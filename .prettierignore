@@ -27,7 +27,8 @@
 /apps/engine/lib/execution/src/runner/javascript/hash_stdlib.js
 /apps/hash-agents/src/agents.ts
 /apps/hash-graph/openapi/**
-/libs/@local/hash-graph-client/*.ts
+/libs/@local/hash-graph-client/typescript/*.ts
+/libs/@local/hash-graph-client/python/scripts/openapi.bundle.json
 
 ########################
 ## Same as in .gitignore
@@ -156,7 +157,6 @@ seed-users.json
 
 # Terraform
 **/.terraform
-*.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.secrets.tfvars

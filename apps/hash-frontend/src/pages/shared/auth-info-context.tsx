@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   createContext,
@@ -67,7 +68,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
 
     const latestAuthenticatedUser = constructAuthenticatedUser({
-      userEntity,
+      userEntity: userEntity as Entity<UserProperties>,
       subgraph,
       kratosSession,
     });

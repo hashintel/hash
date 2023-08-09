@@ -45,6 +45,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // .Mui-disabled CSS styling applied to the button
       const disabledStyles: CSSObject = {
         background: theme.palette.gray[20],
+        borderColor: theme.palette.gray[20],
         color: theme.palette.gray[50],
       };
 

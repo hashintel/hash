@@ -7,7 +7,10 @@ import {
   extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRightEntityForLinkEntity,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import {
@@ -116,6 +119,61 @@ export const getLinearIntegrationById: ImpureGraphFunction<
   return getLinearIntegrationFromEntity({ entity });
 };
 
+export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
+  { linearIntegrationEntityId: EntityId },
+  Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
+> = async ({ graphApi }, { linearIntegrationEntityId }) =>
+  graphApi
+    .getEntitiesByQuery({
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              {
+                parameter:
+                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  linearIntegrationEntityId,
+                ),
+              },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasRightEntity: { incoming: 0, outgoing: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+    })
+    .then(({ data }) => {
+      const subgraph = data as Subgraph<EntityRootType>;
+
+      const syncLinearDataWithLinkEntities = getRoots(subgraph);
+
+      return syncLinearDataWithLinkEntities.map(
+        (syncLinearDataWithLinkEntity) => {
+          const workspaceEntity = getRightEntityForLinkEntity(
+            subgraph,
+            syncLinearDataWithLinkEntity.metadata.recordId.entityId,
+          )![0]!;
+
+          return { syncLinearDataWithLinkEntity, workspaceEntity };
+        },
+      );
+    });
+
 export const linkIntegrationToWorkspace: ImpureGraphFunction<
   {
     linearIntegrationEntityId: EntityId;
@@ -132,6 +190,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery({
       filter: {
         all: [
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
           {
             equal: [
               { path: ["type", "versionedUrl"] },

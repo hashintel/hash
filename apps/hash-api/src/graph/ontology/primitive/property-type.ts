@@ -3,6 +3,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  OntologyTemporalMetadata,
   PropertyTypeStructuralQuery,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -130,7 +131,7 @@ export const getPropertyTypeById: ImpureGraphFunction<
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   Omit<PropertyTypeStructuralQuery, "filter"> & {
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
+    actorId?: AccountId;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, params) => {
@@ -148,7 +149,11 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
+  if (
+    actorId &&
+    subgraph.roots.length === 0 &&
+    !propertyTypeId.startsWith(frontendUrl)
+  ) {
     await context.graphApi.loadExternalPropertyType({
       actorId,
       propertyTypeId,
@@ -201,4 +206,50 @@ export const updatePropertyType: ImpureGraphFunction<
     },
     metadata: metadata as OntologyElementMetadata,
   };
+};
+
+/**
+ * Archives a data type
+ *
+ * @param params.propertyTypeId - the id of the property type that's being archived
+ * @param params.actorId - the id of the account that is archiving the property type
+ */
+export const archivePropertyType: ImpureGraphFunction<
+  {
+    propertyTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { propertyTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.archivePropertyType({
+    typeToArchive: propertyTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
+};
+
+/**
+ * Unarchives a data type
+ *
+ * @param params.propertyTypeId - the id of the property type that's being unarchived
+ * @param params.actorId - the id of the account that is unarchiving the property type
+ */
+export const unarchivePropertyType: ImpureGraphFunction<
+  {
+    propertyTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { propertyTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.unarchivePropertyType({
+    typeToUnarchive: propertyTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
 };

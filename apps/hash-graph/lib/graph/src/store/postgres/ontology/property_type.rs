@@ -1,18 +1,21 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
 use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::PropertyType;
+use type_system::{url::VersionedUrl, PropertyType};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
     identifier::time::RightBoundedTemporalInterval,
-    ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
-    provenance::RecordCreatedById,
+    ontology::{
+        OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
+        PropertyTypeWithMetadata,
+    },
+    provenance::{RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -179,21 +182,20 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
-            Item = (
-                PropertyType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let mut inserted_property_types = Vec::with_capacity(property_types.size_hint().0);
+        let mut inserted_property_types = Vec::new();
+        let mut inserted_property_type_metadata =
+            Vec::with_capacity(inserted_property_types.capacity());
         for (schema, metadata) in property_types {
-            if let Some(ontology_id) = transaction
-                .create_ontology_metadata(metadata.borrow(), on_conflict)
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
                 .await?
             {
                 transaction
@@ -201,6 +203,10 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .await?;
 
                 inserted_property_types.push((ontology_id, schema));
+                inserted_property_type_metadata.push(OntologyElementMetadata::from_partial(
+                    metadata,
+                    transaction_time,
+                ));
             }
         }
 
@@ -220,7 +226,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_property_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -315,5 +321,21 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
+    }
+
+    async fn archive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id, record_archived_by_id).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 import {
   EntityTypeStructuralQuery,
+  OntologyTemporalMetadata,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -134,7 +135,7 @@ export const getEntityTypeById: ImpureGraphFunction<
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<EntityTypeStructuralQuery, "filter"> & {
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
+    actorId?: AccountId;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, params) => {
@@ -152,7 +153,11 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+  if (
+    actorId &&
+    subgraph.roots.length === 0 &&
+    !entityTypeId.startsWith(frontendUrl)
+  ) {
     await context.graphApi.loadExternalEntityType({
       actorId,
       entityTypeId,
@@ -227,4 +232,50 @@ export const isEntityTypeLinkEntityType: PureGraphFunction<
     !!schema.allOf &&
     schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUrl)
   );
+};
+
+/**
+ * Archives a data type
+ *
+ * @param params.entityTypeId - the id of the entity type that's being archived
+ * @param params.actorId - the id of the account that is archiving the entity type
+ */
+export const archiveEntityType: ImpureGraphFunction<
+  {
+    entityTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { entityTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.archiveEntityType({
+    typeToArchive: entityTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
+};
+
+/**
+ * Unarchives a data type
+ *
+ * @param params.entityTypeId - the id of the entity type that's being unarchived
+ * @param params.actorId - the id of the account that is unarchiving the entity type
+ */
+export const unarchiveEntityType: ImpureGraphFunction<
+  {
+    entityTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { entityTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.unarchiveEntityType({
+    typeToUnarchive: entityTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
 };

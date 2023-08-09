@@ -24,6 +24,7 @@ declare module "@mui/material/styles" {
     };
     blue: PaletteValue & {
       15: string;
+      25: string;
       700: string;
     };
     mint: PaletteValue;

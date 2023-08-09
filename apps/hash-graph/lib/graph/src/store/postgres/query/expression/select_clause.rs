@@ -53,7 +53,7 @@ mod tests {
                 None
             )
             .transpile_to_string(),
-            r#""ontology_id_with_metadata_1_2_3"."base_url""#
+            r#""ontology_ids_1_2_3"."base_url""#
         );
 
         assert_eq!(
@@ -98,7 +98,7 @@ mod tests {
                 Some("latest_version")
             )
             .transpile_to_string(),
-            r#"MAX("ontology_id_with_metadata_1_2_3"."version") OVER (PARTITION BY "ontology_id_with_metadata_1_2_3"."base_url") AS "latest_version""#
+            r#"MAX("ontology_ids_1_2_3"."version") OVER (PARTITION BY "ontology_ids_1_2_3"."base_url") AS "latest_version""#
         );
     }
 }

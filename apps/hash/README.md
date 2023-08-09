@@ -289,6 +289,10 @@ We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work
 
 ## Troubleshooting
 
+### Command not found: ruff
+
+Run `yarn poetry:install` before running `yarn lint` or `yarn fix` for the first time.
+
 ### eslint `parserOptions.project`
 
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option

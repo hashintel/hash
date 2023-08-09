@@ -19,6 +19,10 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Table {
     OntologyIds,
+    OntologyTemporalMetadata,
+    OntologyOwnedMetadata,
+    OntologyExternalMetadata,
+    OntologyAdditionalMetadata,
     DataTypes,
     PropertyTypes,
     EntityTypes,
@@ -44,37 +48,37 @@ impl ReferenceTable {
     pub const fn source_relation(self) -> ForeignKeyReference {
         match self {
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::SourcePropertyTypeOntologyId,
                 ),
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::SourcePropertyTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsPropertiesOn(
                     EntityTypeConstrainsPropertiesOn::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeInheritsFrom => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeInheritsFrom(
                     EntityTypeInheritsFrom::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsLinksOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::SourceEntityTypeOntologyId,
                 ),
             },
             Self::EntityTypeConstrainsLinkDestinationsOn => ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::EntityTypeConstrainsLinkDestinationsOn(
                     EntityTypeConstrainsLinkDestinationsOn::SourceEntityTypeOntologyId,
                 ),
@@ -112,41 +116,41 @@ impl ReferenceTable {
                 on: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
                 ),
-                join: Column::DataTypes(DataTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::PropertyTypeConstrainsPropertiesOn(
                     PropertyTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
                 ),
-                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsPropertiesOn(
                     EntityTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
                 ),
-                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeInheritsFrom => ForeignKeyReference::Single {
                 on: Column::EntityTypeInheritsFrom(
                     EntityTypeInheritsFrom::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsLinksOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityTypeConstrainsLinkDestinationsOn => ForeignKeyReference::Single {
                 on: Column::EntityTypeConstrainsLinkDestinationsOn(
                     EntityTypeConstrainsLinkDestinationsOn::TargetEntityTypeOntologyId,
                 ),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityIsOfType => ForeignKeyReference::Single {
                 on: Column::EntityIsOfType(EntityIsOfType::EntityTypeOntologyId),
-                join: Column::EntityTypes(EntityTypes::OntologyId),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
                 on: [
@@ -197,7 +201,11 @@ impl Table {
 
     const fn as_str(self) -> &'static str {
         match self {
-            Self::OntologyIds => "ontology_id_with_metadata",
+            Self::OntologyIds => "ontology_ids",
+            Self::OntologyTemporalMetadata => "ontology_temporal_metadata",
+            Self::OntologyOwnedMetadata => "ontology_owned_metadata",
+            Self::OntologyExternalMetadata => "ontology_external_metadata",
+            Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
@@ -245,14 +253,37 @@ pub enum StaticJsonField {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum OntologyIds<'p> {
+pub enum OntologyIds {
     OntologyId,
     BaseUrl,
     Version,
-    RecordCreatedById,
     LatestVersion,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyOwnedMetadata {
+    OntologyId,
+    OwnedById,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyExternalMetadata {
+    OntologyId,
+    FetchedAt,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyAdditionalMetadata {
+    OntologyId,
+    AdditionalMetadata,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyTemporalMetadata {
+    OntologyId,
     TransactionTime,
-    AdditionalMetadata(Option<JsonField<'p>>),
+    RecordCreatedById,
+    RecordArchivedById,
 }
 
 fn transpile_json_field(
@@ -279,40 +310,13 @@ fn transpile_json_field(
     }
 }
 
-impl<'p> OntologyIds<'p> {
-    pub const fn into_owned(
-        self,
-        current_parameter_index: usize,
-    ) -> (OntologyIds<'static>, Option<&'p (dyn ToSql + Sync)>) {
-        match self {
-            Self::OntologyId => (OntologyIds::OntologyId, None),
-            Self::BaseUrl => (OntologyIds::BaseUrl, None),
-            Self::Version => (OntologyIds::Version, None),
-            Self::RecordCreatedById => (OntologyIds::RecordCreatedById, None),
-            Self::LatestVersion => (OntologyIds::LatestVersion, None),
-            Self::TransactionTime => (OntologyIds::TransactionTime, None),
-            Self::AdditionalMetadata(None) => (OntologyIds::AdditionalMetadata(None), None),
-            Self::AdditionalMetadata(Some(path)) => {
-                let (path, parameter) = path.into_owned(current_parameter_index);
-                (OntologyIds::AdditionalMetadata(Some(path)), parameter)
-            }
-        }
-    }
-}
-
-impl OntologyIds<'static> {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl OntologyIds {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::BaseUrl => "base_url",
-            Self::TransactionTime => "transaction_time",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
-            Self::RecordCreatedById => "record_created_by_id",
-            Self::AdditionalMetadata(None) => "additional_metadata",
-            Self::AdditionalMetadata(Some(path)) => {
-                return transpile_json_field(path, "additional_metadata", table, fmt);
-            }
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -320,11 +324,84 @@ impl OntologyIds<'static> {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::OntologyId => ParameterType::Uuid,
             Self::BaseUrl => ParameterType::Text,
-            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Version | Self::LatestVersion => ParameterType::OntologyTypeVersion,
-            Self::AdditionalMetadata(_) => ParameterType::Any,
+        }
+    }
+}
+
+impl OntologyOwnedMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::OwnedById => "owned_by_id",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+        }
+    }
+}
+
+impl OntologyExternalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::FetchedAt => "fetched_at",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::FetchedAt => ParameterType::Timestamp,
+        }
+    }
+}
+
+impl OntologyAdditionalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::AdditionalMetadata => "additional_metadata",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::AdditionalMetadata => ParameterType::Object,
+        }
+    }
+}
+
+impl OntologyTemporalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::TransactionTime => "transaction_time",
+            Self::RecordCreatedById => "record_created_by_id",
+            Self::RecordArchivedById => "record_archived_by_id",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::RecordCreatedById | Self::RecordArchivedById => {
+                ParameterType::Uuid
+            }
+            Self::TransactionTime => ParameterType::TimeInterval,
         }
     }
 }
@@ -797,7 +874,11 @@ impl EntityTypeConstrainsLinkDestinationsOn {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
-    OntologyIds(OntologyIds<'p>),
+    OntologyIds(OntologyIds),
+    OntologyTemporalMetadata(OntologyTemporalMetadata),
+    OntologyOwnedMetadata(OntologyOwnedMetadata),
+    OntologyExternalMetadata(OntologyExternalMetadata),
+    OntologyAdditionalMetadata(OntologyAdditionalMetadata),
     DataTypes(DataTypes<'p>),
     PropertyTypes(PropertyTypes<'p>),
     EntityTypes(EntityTypes<'p>),
@@ -818,6 +899,10 @@ impl<'p> Column<'p> {
     pub const fn table(self) -> Table {
         match self {
             Self::OntologyIds(_) => Table::OntologyIds,
+            Self::OntologyTemporalMetadata(_) => Table::OntologyTemporalMetadata,
+            Self::OntologyOwnedMetadata(_) => Table::OntologyOwnedMetadata,
+            Self::OntologyExternalMetadata(_) => Table::OntologyExternalMetadata,
+            Self::OntologyAdditionalMetadata(_) => Table::OntologyAdditionalMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -853,7 +938,10 @@ impl<'p> Column<'p> {
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
             Self::EntityEditions(column) => column.nullable(),
-            Self::EntityHasLeftEntity(_) | Self::EntityHasRightEntity(_) => true,
+            Self::EntityHasLeftEntity(_)
+            | Self::EntityHasRightEntity(_)
+            | Self::OntologyOwnedMetadata(_)
+            | Self::OntologyExternalMetadata(_) => true,
             _ => false,
         }
     }
@@ -863,9 +951,16 @@ impl<'p> Column<'p> {
         current_parameter_index: usize,
     ) -> (Column<'static>, Option<&'p (dyn ToSql + Sync)>) {
         match self {
-            Self::OntologyIds(column) => {
-                let (column, parameter) = column.into_owned(current_parameter_index);
-                (Column::OntologyIds(column), parameter)
+            Self::OntologyIds(column) => (Column::OntologyIds(column), None),
+            Self::OntologyTemporalMetadata(column) => {
+                (Column::OntologyTemporalMetadata(column), None)
+            }
+            Self::OntologyOwnedMetadata(column) => (Column::OntologyOwnedMetadata(column), None),
+            Self::OntologyExternalMetadata(column) => {
+                (Column::OntologyExternalMetadata(column), None)
+            }
+            Self::OntologyAdditionalMetadata(column) => {
+                (Column::OntologyAdditionalMetadata(column), None)
             }
             Self::DataTypes(column) => {
                 let (column, parameter) = column.into_owned(current_parameter_index);
@@ -918,6 +1013,10 @@ impl Column<'static> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::OntologyIds(column) => column.transpile_column(table, fmt),
+            Self::OntologyTemporalMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyOwnedMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyExternalMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyAdditionalMetadata(column) => column.transpile_column(table, fmt),
             Self::DataTypes(column) => column.transpile_column(table, fmt),
             Self::PropertyTypes(column) => column.transpile_column(table, fmt),
             Self::EntityTypes(column) => column.transpile_column(table, fmt),
@@ -940,6 +1039,10 @@ impl Column<'static> {
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyIds(column) => column.parameter_type(),
+            Self::OntologyTemporalMetadata(column) => column.parameter_type(),
+            Self::OntologyOwnedMetadata(column) => column.parameter_type(),
+            Self::OntologyExternalMetadata(column) => column.parameter_type(),
+            Self::OntologyAdditionalMetadata(column) => column.parameter_type(),
             Self::DataTypes(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
@@ -1040,6 +1143,10 @@ impl Transpile for AliasedColumn {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Relation {
+    OntologyIds,
+    OntologyOwnedMetadata,
+    OntologyExternalMetadata,
+    OntologyAdditionalMetadata,
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
@@ -1108,17 +1215,41 @@ impl Iterator for ForeignKeyJoin {
 impl Relation {
     pub fn joins(self) -> impl Iterator<Item = ForeignKeyReference> {
         match self {
-            Self::DataTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::DataTypes(DataTypes::OntologyId),
+            Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
+            Self::OntologyOwnedMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OntologyId),
+                })
+            }
+            Self::OntologyExternalMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyExternalMetadata(OntologyExternalMetadata::OntologyId),
+                })
+            }
+            Self::OntologyAdditionalMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyAdditionalMetadata(
+                        OntologyAdditionalMetadata::OntologyId,
+                    ),
+                })
+            }
+            Self::DataTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::DataTypes(DataTypes::OntologyId),
             }),
             Self::PropertyTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::PropertyTypes(PropertyTypes::OntologyId),
-                join: Column::OntologyIds(OntologyIds::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::PropertyTypes(PropertyTypes::OntologyId),
             }),
             Self::EntityTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                on: Column::EntityTypes(EntityTypes::OntologyId),
-                join: Column::OntologyIds(OntologyIds::OntologyId),
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::EntityTypes(EntityTypes::OntologyId),
             }),
             Self::EntityEditions => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                 on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
@@ -1160,7 +1291,7 @@ mod tests {
     fn transpile_table() {
         assert_eq!(
             Table::OntologyIds.transpile_to_string(),
-            r#""ontology_id_with_metadata""#
+            r#""ontology_ids""#
         );
         assert_eq!(Table::DataTypes.transpile_to_string(), r#""data_types""#);
     }
@@ -1175,7 +1306,7 @@ mod tests {
                     number: 3,
                 })
                 .transpile_to_string(),
-            r#""ontology_id_with_metadata_1_2_3""#
+            r#""ontology_ids_1_2_3""#
         );
     }
 

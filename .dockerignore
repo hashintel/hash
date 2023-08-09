@@ -142,7 +142,6 @@ seed-users.json
 
 # Terraform
 **/.terraform
-*.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.secrets.tfvars

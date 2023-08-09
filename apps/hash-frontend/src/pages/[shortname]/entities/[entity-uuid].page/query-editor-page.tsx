@@ -3,8 +3,8 @@ import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
@@ -89,9 +89,8 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   return (
     <>
-      <Head>
-        <title>{entityLabel} | Entity | HASH</title>
-      </Head>
+      <NextSeo title={`${entityLabel} | Entity`} />
+
       <EntityPageWrapper
         header={
           <EntityPageHeader

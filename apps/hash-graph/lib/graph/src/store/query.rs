@@ -23,6 +23,8 @@ pub enum ParameterType {
     BaseUrl,
     VersionedUrl,
     TimeInterval,
+    Timestamp,
+    Object,
     Any,
 }
 
@@ -37,6 +39,8 @@ impl fmt::Display for ParameterType {
             Self::BaseUrl => fmt.write_str("base URL"),
             Self::VersionedUrl => fmt.write_str("versioned URL"),
             Self::TimeInterval => fmt.write_str("time interval"),
+            Self::Timestamp => fmt.write_str("timestamp"),
+            Self::Object => fmt.write_str("object"),
             Self::Any => fmt.write_str("any"),
         }
     }
@@ -68,6 +72,11 @@ pub trait OntologyQueryPath {
     ///
     /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     fn record_created_by_id() -> Self;
+
+    /// Returns the path identifying the [`RecordArchivedById`].
+    ///
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    fn record_archived_by_id() -> Self;
 
     /// Returns the path identifying the schema.
     fn schema() -> Self;

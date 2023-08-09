@@ -13,11 +13,13 @@ export const PageLayout: FunctionComponent<{
   children?: ReactNode;
   subscribe?: boolean;
   recentBlogPosts?: boolean;
+  community?: boolean;
   contentWrapperSx?: BoxProps["sx"];
 }> = ({
   children,
   subscribe = true,
   recentBlogPosts = false,
+  community = true,
   contentWrapperSx,
 }) => {
   const theme = useTheme();
@@ -74,7 +76,11 @@ export const PageLayout: FunctionComponent<{
         </GradientContainer>
       </Box>
       <Box sx={{ flex: 1 }} />
-      <PreFooter subscribe={subscribe} recentBlogPosts={recentBlogPosts} />
+      <PreFooter
+        subscribe={subscribe}
+        recentBlogPosts={recentBlogPosts}
+        community={community}
+      />
       <Footer />
     </Box>
   );

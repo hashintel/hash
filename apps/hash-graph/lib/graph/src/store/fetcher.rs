@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     collections::{HashMap, HashSet},
     iter::once,
     mem,
@@ -25,11 +24,12 @@ use crate::{
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
-        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
-        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeReference, PropertyTypeWithMetadata,
+        domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeMetadata,
+        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeReference, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
+        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
@@ -155,9 +155,9 @@ where
 
 #[derive(Default)]
 struct FetchedOntologyTypes {
-    data_types: Vec<(DataType, OntologyElementMetadata)>,
-    property_types: Vec<(PropertyType, OntologyElementMetadata)>,
-    entity_types: Vec<(EntityType, EntityTypeMetadata)>,
+    data_types: Vec<(DataType, PartialOntologyElementMetadata)>,
+    property_types: Vec<(PropertyType, PartialOntologyElementMetadata)>,
+    entity_types: Vec<(EntityType, PartialEntityTypeMetadata)>,
 }
 
 enum FetchBehavior {
@@ -254,7 +254,10 @@ where
         actor_id: RecordCreatedById,
         fetch_behavior: FetchBehavior,
     ) -> Result<FetchedOntologyTypes, StoreError> {
-        let provenance_metadata = ProvenanceMetadata::new(actor_id);
+        let provenance_metadata = ProvenanceMetadata {
+            record_created_by_id: actor_id,
+            record_archived_by_id: None,
+        };
 
         let mut queue = ontology_type_references;
         let mut seen = match fetch_behavior {
@@ -287,12 +290,11 @@ where
                         let data_type = DataType::try_from(data_type_repr)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = OntologyElementMetadata {
+                        let metadata = PartialOntologyElementMetadata {
                             record_id: data_type.id().clone().into(),
-                            custom: CustomOntologyMetadata::External {
+                            custom: PartialCustomOntologyMetadata::External {
                                 provenance: provenance_metadata,
                                 fetched_at,
-                                temporal_versioning: None,
                             },
                         };
 
@@ -315,12 +317,11 @@ where
                         let property_type = PropertyType::try_from(property_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = OntologyElementMetadata {
+                        let metadata = PartialOntologyElementMetadata {
                             record_id: property_type.id().clone().into(),
-                            custom: CustomOntologyMetadata::External {
+                            custom: PartialCustomOntologyMetadata::External {
                                 provenance: provenance_metadata,
                                 fetched_at,
-                                temporal_versioning: None,
                             },
                         };
 
@@ -343,12 +344,11 @@ where
                         let entity_type = EntityType::try_from(entity_type)
                             .into_report()
                             .change_context(StoreError)?;
-                        let metadata = OntologyElementMetadata {
+                        let metadata = PartialOntologyElementMetadata {
                             record_id: entity_type.id().clone().into(),
-                            custom: CustomOntologyMetadata::External {
+                            custom: PartialCustomOntologyMetadata::External {
                                 provenance: provenance_metadata,
                                 fetched_at,
-                                temporal_versioning: None,
                             },
                         };
 
@@ -365,9 +365,9 @@ where
 
                         fetched_ontology_types.entity_types.push((
                             entity_type,
-                            EntityTypeMetadata {
+                            PartialEntityTypeMetadata {
                                 record_id: metadata.record_id,
-                                custom: CustomEntityTypeMetadata {
+                                custom: PartialCustomEntityTypeMetadata {
                                     common: metadata.custom,
                                     label_property: None,
                                 },
@@ -459,41 +459,31 @@ where
                 .await
                 .change_context(InsertionError)?;
 
-            let metadata = fetched_ontology_types
-                .data_types
-                .iter()
-                .map(|(_, metadata)| metadata.clone())
-                .chain(
-                    fetched_ontology_types
-                        .property_types
-                        .iter()
-                        .map(|(_, metadata)| metadata.clone()),
-                )
-                .chain(
-                    fetched_ontology_types
-                        .entity_types
-                        .iter()
-                        .map(|(_, metadata)| OntologyElementMetadata {
-                            record_id: metadata.record_id.clone(),
-                            custom: metadata.custom.common.clone(),
-                        }),
-                )
-                .collect::<Vec<_>>();
-
-            self.store
+            let created_data_types = self
+                .store
                 .create_data_types(fetched_ontology_types.data_types, ConflictBehavior::Skip)
                 .await?;
-            self.store
+            let created_property_types = self
+                .store
                 .create_property_types(
                     fetched_ontology_types.property_types,
                     ConflictBehavior::Skip,
                 )
                 .await?;
-            self.store
+            let created_entity_types = self
+                .store
                 .create_entity_types(fetched_ontology_types.entity_types, ConflictBehavior::Skip)
                 .await?;
 
-            Ok(metadata)
+            Ok(created_data_types
+                .into_iter()
+                .chain(created_property_types)
+                .chain(
+                    created_entity_types
+                        .into_iter()
+                        .map(OntologyElementMetadata::from),
+                )
+                .collect())
         } else {
             Ok(Vec::new())
         }
@@ -569,19 +559,14 @@ where
 {
     async fn create_data_types(
         &mut self,
-        data_types: impl IntoIterator<
-            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(data_types.iter().map(|(data_type, metadata)| {
-            (
-                data_type,
-                metadata.borrow().custom.provenance().record_created_by_id(),
-            )
+            (data_type, metadata.custom.provenance().record_created_by_id)
         }))
         .await?;
 
@@ -606,6 +591,22 @@ where
 
         self.store.update_data_type(data_type, actor_id).await
     }
+
+    async fn archive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_data_type(id, actor_id).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_data_type(id, actor_id).await
+    }
 }
 
 #[async_trait]
@@ -617,20 +618,17 @@ where
     async fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
-            Item = (
-                PropertyType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
+            Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(property_types.iter().map(|(property_type, metadata)| {
             (
                 property_type,
-                metadata.borrow().custom.provenance().record_created_by_id(),
+                metadata.custom.provenance().record_created_by_id,
             )
         }))
         .await?;
@@ -660,6 +658,22 @@ where
             .update_property_type(property_type, actor_id)
             .await
     }
+
+    async fn archive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_property_type(id, actor_id).await
+    }
+
+    async fn unarchive_property_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_property_type(id, actor_id).await
+    }
 }
 
 #[async_trait]
@@ -670,23 +684,16 @@ where
 {
     async fn create_entity_types(
         &mut self,
-        entity_types: impl IntoIterator<
-            Item = (EntityType, impl Borrow<EntityTypeMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
 
         self.insert_external_types(entity_types.iter().map(|(entity_type, metadata)| {
             (
                 entity_type,
-                metadata
-                    .borrow()
-                    .custom
-                    .common
-                    .provenance()
-                    .record_created_by_id(),
+                metadata.custom.common.provenance().record_created_by_id,
             )
         }))
         .await?;
@@ -716,6 +723,22 @@ where
         self.store
             .update_entity_type(entity_type, actor_id, label_property)
             .await
+    }
+
+    async fn archive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.archive_entity_type(id, actor_id).await
+    }
+
+    async fn unarchive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.store.unarchive_entity_type(id, actor_id).await
     }
 }
 
