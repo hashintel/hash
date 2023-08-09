@@ -133,7 +133,7 @@ class HASHClient:
         request = UpdateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateDataType, model),
-            type_to_update=model.identifier,
+            type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
         return await self.inner.update_data_type(request)
@@ -189,7 +189,7 @@ class HASHClient:
         request = UpdatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdatePropertyType, model),
-            type_to_update=model.identifier,
+            type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
         return await self.inner.update_property_type(request)
@@ -241,7 +241,7 @@ class HASHClient:
         request = UpdateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateEntityType, model),
-            type_to_update=model.identifier,
+            type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
         return await self.inner.update_entity_type(request)

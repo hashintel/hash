@@ -6,6 +6,7 @@ import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
+import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
 import {
   App,
@@ -20,6 +21,8 @@ import { useEffect, useState } from "react";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { PageContentItem } from "../../../graphql/api-types.gen";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import { BlockCreationDialog } from "./canvas-page/block-creation-dialog";
 import { BlockShapeDef, BlockTool } from "./canvas-page/block-shape";
 import { LockedCanvas } from "./canvas-page/locked-canvas";
@@ -121,7 +124,12 @@ export const CanvasPageBlock = ({
   };
 
   return (
-    <div style={{ height: "100%", width: "100%", position: "absolute" }}>
+    <Box
+      sx={{
+        height: `calc(100vh - ${HEADER_HEIGHT}px - ${TOP_CONTEXT_BAR_HEIGHT}px)`,
+        width: "100%",
+      }}
+    >
       <Tldraw
         config={config}
         onMount={handleMount}
@@ -158,6 +166,6 @@ export const CanvasPageBlock = ({
           },
         }}
       />
-    </div>
+    </Box>
   );
 };

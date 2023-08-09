@@ -281,7 +281,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
 }
