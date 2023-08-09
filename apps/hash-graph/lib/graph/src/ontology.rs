@@ -393,6 +393,22 @@ pub enum CustomOntologyMetadata {
     },
 }
 
+impl CustomOntologyMetadata {
+    #[must_use]
+    pub const fn temporal_versioning(&self) -> &OntologyTemporalMetadata {
+        match self {
+            Self::Owned {
+                temporal_versioning,
+                ..
+            }
+            | Self::External {
+                temporal_versioning,
+                ..
+            } => temporal_versioning,
+        }
+    }
+}
+
 /// An [`OntologyElementMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialOntologyElementMetadata {

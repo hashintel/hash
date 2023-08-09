@@ -1,9 +1,15 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{
+    collections::{hash_map::RawEntryMut, HashMap},
+    hash::Hash,
+};
 
 use error_stack::Result;
 
 use crate::{
-    identifier::{knowledge::EntityEditionId, time::RightBoundedTemporalInterval},
+    identifier::{
+        knowledge::EntityEditionId,
+        time::{ClosedTemporalBound, RightBoundedTemporalInterval},
+    },
     knowledge::{Entity, EntityQueryPath},
     ontology::{
         DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
@@ -39,10 +45,37 @@ impl<C: AsClient> PostgresStore<C> {
         )
         .await?
         {
-            subgraph.insert_vertex(
-                data_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
-                data_type,
-            );
+            // TODO: Use `subgraph.insert_vertex` again
+            //   see https://linear.app/hash/issue/H-297
+            // subgraph.insert_vertex(
+            //     data_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
+            //     data_type,
+            // );
+            let vertex_id =
+                data_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis());
+            match subgraph.vertex_entry_mut(&vertex_id) {
+                RawEntryMut::Vacant(entry) => {
+                    entry.insert(vertex_id, data_type);
+                }
+                RawEntryMut::Occupied(mut entry) => {
+                    let ClosedTemporalBound::Inclusive(stored_time) = entry
+                        .get()
+                        .metadata
+                        .custom
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    let ClosedTemporalBound::Inclusive(new_time) = data_type
+                        .metadata
+                        .custom
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    if new_time > stored_time {
+                        entry.insert(data_type);
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -68,10 +101,37 @@ impl<C: AsClient> PostgresStore<C> {
         )
         .await?
         {
-            subgraph.insert_vertex(
-                property_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
-                property_type,
-            );
+            // TODO: Use `subgraph.insert_vertex` again
+            //   see https://linear.app/hash/issue/H-297
+            // subgraph.insert_vertex(
+            //     property_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
+            //     property_type,
+            // );
+            let vertex_id =
+                property_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis());
+            match subgraph.vertex_entry_mut(&vertex_id) {
+                RawEntryMut::Vacant(entry) => {
+                    entry.insert(vertex_id, property_type);
+                }
+                RawEntryMut::Occupied(mut entry) => {
+                    let ClosedTemporalBound::Inclusive(stored_time) = entry
+                        .get()
+                        .metadata
+                        .custom
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    let ClosedTemporalBound::Inclusive(new_time) = property_type
+                        .metadata
+                        .custom
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    if new_time > stored_time {
+                        entry.insert(property_type);
+                    }
+                }
+            }
         }
 
         Ok(())
@@ -97,10 +157,39 @@ impl<C: AsClient> PostgresStore<C> {
         )
         .await?
         {
-            subgraph.insert_vertex(
-                entity_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
-                entity_type,
-            );
+            // TODO: Use `subgraph.insert_vertex` again
+            //   see https://linear.app/hash/issue/H-297
+            // subgraph.insert_vertex(
+            //     entity_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
+            //     entity_type,
+            // );
+            let vertex_id =
+                entity_type.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis());
+            match subgraph.vertex_entry_mut(&vertex_id) {
+                RawEntryMut::Vacant(entry) => {
+                    entry.insert(vertex_id, entity_type);
+                }
+                RawEntryMut::Occupied(mut entry) => {
+                    let ClosedTemporalBound::Inclusive(stored_time) = entry
+                        .get()
+                        .metadata
+                        .custom
+                        .common
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    let ClosedTemporalBound::Inclusive(new_time) = entity_type
+                        .metadata
+                        .custom
+                        .common
+                        .temporal_versioning()
+                        .transaction_time
+                        .start();
+                    if new_time > stored_time {
+                        entry.insert(entity_type);
+                    }
+                }
+            }
         }
 
         Ok(())
