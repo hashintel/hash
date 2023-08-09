@@ -427,7 +427,7 @@ impl<C> Report<C> {
     /// # #[cfg(all(feature = "std", not(miri)))] {
     /// use std::{fmt, fs};
     ///
-    /// use error_stack::{ResultExt};
+    /// use error_stack::ResultExt;
     ///
     /// #[derive(Debug)]
     /// pub struct Suggestion(&'static str);
