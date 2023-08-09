@@ -141,7 +141,6 @@ describe("User model class", () => {
     await joinOrg(graphContext, {
       userEntityId: createdUser.entity.metadata.recordId.entityId,
       orgEntityId: testOrg.entity.metadata.recordId.entityId,
-      responsibility: "developer",
       actorId: systemUserAccountId,
     });
 

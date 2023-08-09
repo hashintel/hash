@@ -1,9 +1,9 @@
-import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
-
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
-} from "../../../graph";
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
+
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import { systemUserAccountId } from "../../../graph/system-user";
 import {

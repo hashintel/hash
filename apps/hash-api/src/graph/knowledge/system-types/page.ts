@@ -1,6 +1,10 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -15,12 +19,7 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,

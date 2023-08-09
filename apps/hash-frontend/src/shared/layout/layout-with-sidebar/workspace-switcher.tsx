@@ -60,10 +60,10 @@ export const WorkspaceSwitcher: FunctionComponent<
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ accountId, name, members }) => ({
+      ...authenticatedUser.memberOf.map(({ accountId, name, memberships }) => ({
         accountId,
         title: name,
-        subText: `${members.length} members`,
+        subText: `${memberships.length} members`,
         avatarTitle: name,
       })),
     ];

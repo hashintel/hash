@@ -228,10 +228,6 @@ const systemPropertyTypes = {
     title: "Organization Provided Information",
     description: undefined,
   },
-  responsibility: {
-    title: "Responsibility",
-    description: `The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)`,
-  },
   componentId: {
     title: "Component Id",
     description: undefined,
