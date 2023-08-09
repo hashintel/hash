@@ -25,9 +25,7 @@ use crate::{
             json::Json,
             report_to_status_code,
             status::status_to_response,
-            utoipa_typedef::{
-                base_url_schema, subgraph::Subgraph, ListOrValue, MaybeListOfEntityType,
-            },
+            utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
             RestApiStore,
         },
     },

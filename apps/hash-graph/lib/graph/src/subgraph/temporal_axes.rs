@@ -3,8 +3,8 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::{
     DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    RightBoundedTemporalIntervalUnresolved, TemporalAxis, TemporalBound, TemporalInterval,
-    TemporalTagged, TimeAxis, Timestamp, TransactionTime,
+    RightBoundedTemporalIntervalUnresolved, TemporalBound, TemporalInterval, TemporalTagged,
+    TimeAxis, Timestamp, TransactionTime,
 };
 
 /// Marker trait for any temporal axis.

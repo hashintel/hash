@@ -33,23 +33,3 @@ pub trait TemporalTagged {
 
     fn cast<A>(self) -> Self::Tagged<A>;
 }
-
-/// Marker trait for any temporal axis.
-///
-/// Contains useful metadata about the temporal axis.
-pub trait TemporalAxis {
-    /// The name of the temporal axis.
-    fn noun() -> &'static str;
-}
-
-impl TemporalAxis for DecisionTime {
-    fn noun() -> &'static str {
-        "Decision"
-    }
-}
-
-impl TemporalAxis for TransactionTime {
-    fn noun() -> &'static str {
-        "Transaction"
-    }
-}
