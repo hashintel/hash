@@ -6,10 +6,10 @@ depending on the query this will be either: `DataTypePath`,
 """
 
 from graph_sdk.filter.path import (
+    DataTypePath,
     EntityPath,
     EntityTypePath,
     PropertyTypePath,
-    DataTypePath,
 )
 
 __all__ = [
