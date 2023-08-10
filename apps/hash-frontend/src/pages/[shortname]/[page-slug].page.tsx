@@ -26,6 +26,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Collapse, Container, Typography } from "@mui/material";
+import { formatDistance } from "date-fns";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { Router, useRouter } from "next/router";
@@ -210,39 +211,46 @@ export const PageNotificationBanner = ({
 
   const archivedByAccountId = provenance.recordCreatedById;
 
-  const archivedByUser = users?.find(({ accountId }) => archivedByAccountId === accountId);
+  const archivedByUser = users?.find(
+    ({ accountId }) => archivedByAccountId === accountId,
+  );
 
   const archivedAt = useMemo(
     () => new Date(temporalVersioning.decisionTime.start.limit),
     [temporalVersioning],
   );
 
-  const timeSinceArchived = useMemo(() => {
-    const now = new Date();
+  const timeSinceArchived = useMemo(
+    () => formatDistance(archivedAt, new Date()),
+    [archivedAt],
+  );
 
-    const differenceInMilliseconds = now.getTime() - archivedAt.getTime();
+  // const timeSinceArchived = useMemo(() => {
+  //   const now = new Date();
 
-    const differenceInDays = Math.round(
-      differenceInMilliseconds / (1000 * 60 * 60 * 24),
-    );
+  //   const differenceInMilliseconds = now.getTime() - archivedAt.getTime();
 
-    if (differenceInDays >= 1) {
-      return `${differenceInDays} days`;
-    } else {
-      const differenceInHours = Math.round(
-        differenceInMilliseconds / (1000 * 60 * 60),
-      );
-      if (differenceInHours >= 1) {
-        return `${differenceInHours} hours`;
-      } else {
-        const differenceInMinutes = Math.round(
-          differenceInMilliseconds / (1000 * 60),
-        );
+  //   const differenceInDays = Math.round(
+  //     differenceInMilliseconds / (1000 * 60 * 60 * 24),
+  //   );
 
-        return `${differenceInMinutes} minutes`;
-      }
-    }
-  }, [archivedAt]);
+  //   if (differenceInDays >= 1) {
+  //     return `${differenceInDays} days`;
+  //   } else {
+  //     const differenceInHours = Math.round(
+  //       differenceInMilliseconds / (1000 * 60 * 60),
+  //     );
+  //     if (differenceInHours >= 1) {
+  //       return `${differenceInHours} hours`;
+  //     } else {
+  //       const differenceInMinutes = Math.round(
+  //         differenceInMilliseconds / (1000 * 60),
+  //       );
+
+  //       return `${differenceInMinutes} minutes`;
+  //     }
+  //   }
+  // }, [archivedAt]);
 
   const archivedAtTimestamp = useMemo(() => {
     const year = archivedAt.getUTCFullYear();
