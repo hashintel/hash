@@ -131,11 +131,7 @@ export const OrgForm = ({
   const isSubmitEnabled = isValid && !loading && isDirty;
 
   return (
-    <Box
-      component="form"
-      onSubmit={innerSubmit}
-      sx={{ background: "white", padding: 6 }}
-    >
+    <Box component="form" onSubmit={innerSubmit} sx={{ px: 5, py: 4 }}>
       <InputGroup>
         <Label
           label="Display name"

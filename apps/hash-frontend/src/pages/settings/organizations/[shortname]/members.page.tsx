@@ -61,7 +61,6 @@ const OrgMembersPage: NextPageWithLayout = () => {
         <Table
           sx={{
             borderRadius: 1,
-            boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
             "th, td": {
               padding: "12px 16px",
               "&:first-of-type": {

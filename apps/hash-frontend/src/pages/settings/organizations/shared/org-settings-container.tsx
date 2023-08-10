@@ -15,7 +15,16 @@ export const OrgSettingsContainer = forwardRef<
           {sectionLabel}
         </Typography>
       )}
-      <Box sx={{ background: "white", borderRadius: 6 }}>{children}</Box>
+
+      <Box
+        sx={{
+          background: "white",
+          borderRadius: 1.5,
+          boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
+        }}
+      >
+        {children}
+      </Box>
     </>
   );
 });
