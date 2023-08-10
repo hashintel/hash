@@ -225,33 +225,6 @@ export const PageNotificationBanner = ({
     [archivedAt],
   );
 
-  // const timeSinceArchived = useMemo(() => {
-  //   const now = new Date();
-
-  //   const differenceInMilliseconds = now.getTime() - archivedAt.getTime();
-
-  //   const differenceInDays = Math.round(
-  //     differenceInMilliseconds / (1000 * 60 * 60 * 24),
-  //   );
-
-  //   if (differenceInDays >= 1) {
-  //     return `${differenceInDays} days`;
-  //   } else {
-  //     const differenceInHours = Math.round(
-  //       differenceInMilliseconds / (1000 * 60 * 60),
-  //     );
-  //     if (differenceInHours >= 1) {
-  //       return `${differenceInHours} hours`;
-  //     } else {
-  //       const differenceInMinutes = Math.round(
-  //         differenceInMilliseconds / (1000 * 60),
-  //       );
-
-  //       return `${differenceInMinutes} minutes`;
-  //     }
-  //   }
-  // }, [archivedAt]);
-
   const archivedAtTimestamp = useMemo(() => {
     const year = archivedAt.getUTCFullYear();
     const month = String(archivedAt.getUTCMonth() + 1).padStart(2, "0"); // Months are 0-indexed
