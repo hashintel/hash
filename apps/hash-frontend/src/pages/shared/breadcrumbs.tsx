@@ -129,13 +129,13 @@ export const Breadcrumbs = ({
               }}
               size="xs"
               startIcon={item.icon ?? defaultIcon}
-              sx={{
+              sx={({ palette }) => ({
                 "&:disabled": {
-                  background: "white",
-                  borderColor: "white",
+                  background: palette.common.white,
+                  borderColor: palette.common.white,
                 },
                 px: 1,
-              }}
+              })}
             >
               <Box
                 component="span"
