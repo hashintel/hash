@@ -51,7 +51,10 @@ export const EntityPageHeader = ({
 
       {editBar}
 
-      <Box py={3.75} sx={{ background: "white" }}>
+      <Box
+        py={3.75}
+        sx={({ palette }) => ({ background: palette.common.white })}
+      >
         <Container>
           {chip}
           <Stack

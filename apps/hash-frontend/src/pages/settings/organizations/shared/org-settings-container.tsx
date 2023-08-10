@@ -17,11 +17,11 @@ export const OrgSettingsContainer = forwardRef<
       )}
 
       <Box
-        sx={{
-          background: "white",
+        sx={({ palette }) => ({
+          background: palette.common.white,
           borderRadius: 1.5,
           boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
-        }}
+        })}
       >
         {children}
       </Box>

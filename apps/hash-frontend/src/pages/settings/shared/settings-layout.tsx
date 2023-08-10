@@ -115,7 +115,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
         defaultCrumbIcon={null}
         scrollToTop={() => {}}
       />
-      <Box sx={{ background: "white", py: 3 }}>
+      <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
         <Typography variant="h4" sx={{ ...containerSx }}>
           Settings
         </Typography>

@@ -88,7 +88,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 
           <Box
             sx={({ palette }) => ({
-              backgroundColor: grayBackground ? palette.gray[10] : "white",
+              backgroundColor: grayBackground
+                ? palette.gray[10]
+                : palette.common.white,
               minHeight: "100%",
               overflowY: "scroll",
             })}
