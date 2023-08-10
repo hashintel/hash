@@ -1,4 +1,8 @@
-import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowUpAZ,
+  faSearch,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   IconButton,
@@ -11,6 +15,7 @@ import {
   Fade,
   outlinedInputClasses,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
@@ -18,6 +23,8 @@ import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
+import { ArrowRightIcon } from "../../icons/arrow-right";
+import { Link } from "../../ui";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -28,7 +35,6 @@ import { NavLink } from "./nav-link";
 type SearchInputProps = {
   searchVisible: boolean;
   showSearchInput: () => void;
-  // eslint-disable-next-line react/no-unused-prop-types -- @todo remove prop or use it in the component body
   hideSearchInput: () => void;
   onChangeText: (text: string) => void;
 };
@@ -36,7 +42,7 @@ type SearchInputProps = {
 const SearchInput: FunctionComponent<SearchInputProps> = ({
   searchVisible,
   showSearchInput,
-  // hideSearchInput,
+  hideSearchInput,
   onChangeText,
 }) => (
   <>
@@ -89,21 +95,13 @@ const SearchInput: FunctionComponent<SearchInputProps> = ({
             },
           }),
 
-          // Commented this out because "View All Types" is commented out
-          // Ideally the textfield is meant to appear on top of "View All Types"
-          // when the search icon is clicked, and should close when
-          // close search icon is clicked.
-          // Since "View All Types" isn't displayed at the moment, this
-          // text field will always be visible and as a result there is no need
-          // to show the close search icon.
-          // @todo uncomment when "View All Types" has been implemented
-          // endAdornment: (
-          //   <Tooltip title="Clear Search">
-          //     <IconButton onClick={hideSearchInput} size="small" unpadded>
-          //       <FontAwesomeIcon icon={faXmark} />
-          //     </IconButton>
-          //   </Tooltip>
-          // ),
+          endAdornment: (
+            <Tooltip title="Clear Search">
+              <IconButton onClick={hideSearchInput} size="small" unpadded>
+                <FontAwesomeIcon icon={faXmark} />
+              </IconButton>
+            </Tooltip>
+          ),
         }}
       />
     </Fade>
@@ -118,7 +116,7 @@ export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ ownedById }) => {
   const [sortType, setSortType] = useState<SortType>("asc");
-  const [searchVisible, setSearchVisible] = useState(true);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const sortActionsPopupState = usePopupState({
     variant: "popover",
@@ -199,15 +197,8 @@ export const AccountEntityTypeList: FunctionComponent<
               pl={3.5}
               position="relative"
             >
-              {/*
-                Commented this out because the functionality is not present yet
-                ("View All Pages" screen hasn't been designed/built)
-
-                @todo uncomment when this has been done
-              */}
-
-              {/* <Link
-                href="/"
+              <Link
+                href="/types"
                 noLinkStyle
                 tabIndex={-1}
                 sx={{
@@ -218,14 +209,35 @@ export const AccountEntityTypeList: FunctionComponent<
                 <Typography
                   variant="smallTextLabels"
                   sx={({ palette }) => ({
-                    fontWeight: 600,
+                    fontWeight: 500,
                     color: palette.gray[80],
+                    fontSize: 14,
+                    marginLeft: -1.5,
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: "100px",
+                    ":hover": {
+                      color: palette.gray[90],
+                      background: palette.gray[15],
+                      "> svg": {
+                        color: palette.gray[90],
+                        marginLeft: 1.5,
+                      },
+                    },
                   })}
                 >
                   View All Types
+                  <ArrowRightIcon
+                    sx={{
+                      marginLeft: 0.75,
+                      fontSize: 10,
+                      color: ({ palette }) => palette.gray[80],
+                      transition: ({ transitions }) =>
+                        transitions.create(["color", "margin-left"]),
+                    }}
+                  />
                 </Typography>
-              </Link> */}
-
+              </Link>
               <SearchInput
                 searchVisible={searchVisible}
                 showSearchInput={() => setSearchVisible(true)}
