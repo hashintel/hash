@@ -1,8 +1,6 @@
 //! Compatibility module to convert errors from other libraries into [`Report`].
 //!
 //! In order to convert these error types, use [`IntoReportCompat::into_report()`].
-//!
-//! [`Report`]: crate::Report
 
 use crate::Report;
 
@@ -19,7 +17,6 @@ mod eyre;
 /// would imply an implementation for [`Context`]. This also implies, that it's not possible to
 /// implement [`ResultExt`] from within `error-stack`.
 ///
-/// [`Report`]: Report
 /// [`ResultExt`]: crate::ResultExt
 /// [`Context`]: crate::Context
 /// [`Error`]: core::error::Error
