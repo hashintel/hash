@@ -12,7 +12,7 @@ export const getPageSectionContainerStyles = (
   readonlyMode?: boolean,
 ) => {
   const commentsContainerWidth =
-    !readonlyMode && pageComments && pageComments.length
+    !readonlyMode && pageComments?.length
       ? COMMENTS_WIDTH + PAGE_MIN_PADDING
       : 0;
 
