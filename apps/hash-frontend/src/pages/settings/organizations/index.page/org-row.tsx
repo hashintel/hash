@@ -13,7 +13,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
 
   const leaveOrg = async () => {
     const membership = org.memberships.find(
-      (option) => option.user.shortname === authenticatedUser.shortname,
+      (option) => option.user.accountId === authenticatedUser.accountId,
     );
 
     if (!membership) {
