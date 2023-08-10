@@ -210,8 +210,7 @@ export const PageNotificationBanner = ({
 
   const archivedByAccountId = provenance.recordCreatedById;
 
-  const archivedByUser =
-    users && users.find(({ accountId }) => archivedByAccountId === accountId);
+  const archivedByUser = users?.find(({ accountId }) => archivedByAccountId === accountId);
 
   const archivedAt = useMemo(
     () => new Date(temporalVersioning.decisionTime.start.limit),
