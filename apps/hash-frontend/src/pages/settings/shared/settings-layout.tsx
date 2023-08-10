@@ -3,22 +3,18 @@ import { useRouter } from "next/router";
 import { PropsWithChildren, ReactElement, useMemo } from "react";
 
 import { Org } from "../../../lib/user-and-org";
+import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
 import { LayoutWithSidebar } from "../../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { TopContextBar } from "../../shared/top-context-bar";
 import {
-  MenuItem,
-  MenuItemWithChildren,
   SettingsSidebar,
+  SidebarItemData,
 } from "./settings-layout/settings-sidebar";
 
-const generateMenuLinks = (
-  organizations: Org[],
-): {
-  menuItemsFlat: MenuItem[];
-  menuItemsWithChildren: MenuItemWithChildren[];
-} => {
-  const organizationItems: MenuItem[] = organizations
+const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
+  const organizationItems: SidebarItemData[] = organizations
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map((org) => [
       {
         label: org.name,
@@ -38,40 +34,37 @@ const generateMenuLinks = (
     ])
     .flat();
 
-  const menuItemsFlat = [
-    { label: "Personal info", href: "/settings/personal" },
-    { label: "Organizations", href: "/settings/organizations" },
+  const menuItems: SidebarItemData[] = [
+    // { label: "Personal info", href: "/settings/personal" },
+    {
+      label: "Organizations",
+      href: "/settings/organizations",
+      icon: PeopleGroupIcon,
+    },
     ...organizationItems,
   ];
 
-  const menuItemsWithChildren: MenuItemWithChildren[] = JSON.parse(
-    JSON.stringify(menuItemsFlat),
-  );
-  for (const item of menuItemsWithChildren) {
-    item.children = menuItemsWithChildren.filter(
-      (child) => child.parentHref === item.href,
-    );
+  for (const item of menuItems) {
+    item.children = menuItems.filter((child) => child.parentHref === item.href);
   }
 
-  return {
-    menuItemsWithChildren,
-    menuItemsFlat,
-  };
+  return menuItems;
 };
 
-const containerSx = { maxWidth: { lg: 1040 }, margin: "0 auto" };
+const containerSx = {
+  maxWidth: { lg: 1040 },
+  margin: "0 auto",
+  px: { xs: 4 },
+};
 
 const SettingsLayout = ({ children }: PropsWithChildren) => {
   const user = useAuthenticatedUser();
 
   const router = useRouter();
 
-  const { menuItemsWithChildren, menuItemsFlat } = useMemo(() => {
+  const menuItems = useMemo(() => {
     if (!user.authenticatedUser.accountSignupComplete) {
-      return {
-        menuItemsFlat: [],
-        menuItemsWithChildren: [],
-      };
+      return [];
     }
 
     return generateMenuLinks(user.authenticatedUser.memberOf);
@@ -85,7 +78,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
 
       do {
         // eslint-disable-next-line no-loop-func
-        const currentPage = menuItemsFlat.find((item) => item.href === href);
+        const currentPage = menuItems.find((item) => item.href === href);
 
         if (!currentPage) {
           break;
@@ -108,7 +101,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
     });
 
     return crumbs;
-  }, [menuItemsFlat, router.asPath]);
+  }, [menuItems, router.asPath]);
 
   if (!user.authenticatedUser.accountSignupComplete) {
     void router.push("/login");
@@ -122,14 +115,14 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
         defaultCrumbIcon={null}
         scrollToTop={() => {}}
       />
-      <Box sx={{ background: "white", pl: 4, py: 3 }}>
-        <Typography variant="h4" sx={containerSx}>
+      <Box sx={{ background: "white", py: 3 }}>
+        <Typography variant="h4" sx={{ ...containerSx }}>
           Settings
         </Typography>
       </Box>
-      <Container sx={containerSx}>
+      <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar menuItems={menuItemsWithChildren} />
+          <SettingsSidebar menuItems={menuItems} />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

@@ -4,7 +4,7 @@ import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/b
 import { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { Cell } from "./cell";
+import { Cell } from "../../shared/cell";
 import { MemberContextMenu } from "./member-row/member-context-menu";
 
 export const MemberRow = ({

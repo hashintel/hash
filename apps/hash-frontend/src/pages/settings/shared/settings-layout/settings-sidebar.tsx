@@ -1,60 +1,167 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, ListItem } from "@mui/material";
-import { ReactElement, useState } from "react";
+import { CaretDownIcon } from "@hashintel/block-design-system";
+import { IconButton } from "@hashintel/design-system";
+import {
+  Box,
+  Collapse,
+  ListItem,
+  styled,
+  SvgIconProps,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import { useRouter } from "next/router";
+import { FunctionComponent, useEffect, useState } from "react";
 
 import { Link } from "../../../../shared/ui/link";
 
-export type MenuItem = {
+export type SidebarItemData = {
+  children?: SidebarItemData[];
   label: string;
   href: string;
-  icon?: ReactElement;
+  icon?: FunctionComponent<SvgIconProps>;
   parentHref?: string;
 };
 
-export type MenuItemWithChildren = MenuItem & {
-  children: MenuItemWithChildren[];
-};
+const ItemLink = styled(Link)<{
+  active: boolean;
+  color: string;
+  level: number;
+}>(
+  ({ active, color, level }) => `
+  color: ${color};
+  font-size: ${Math.max(16 - level, 13)}px;
+  font-weight: ${level === 2 && active ? 600 : 500};
+  text-decoration: none;
+  
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`,
+);
 
-const SidebarItem = ({ item }: { item: MenuItemWithChildren }) => {
-  const expandable = !!item.children.length;
-  const [expanded, setExpanded] = useState(false);
+const SidebarItem = ({
+  item,
+  level,
+}: {
+  item: SidebarItemData;
+  level: number;
+}) => {
+  const expandable = !!item.children?.length;
+
+  const router = useRouter();
+  const active = router.asPath.startsWith(item.href);
+  const parentActive =
+    item.parentHref && router.asPath.startsWith(item.parentHref);
+
+  const [expanded, setExpanded] = useState(active);
+
+  useEffect(() => {
+    const handleRouteChange = (path: string) => {
+      if (path.startsWith(item.href)) {
+        setExpanded(true);
+      } else {
+        setExpanded(false);
+      }
+    };
+
+    router.events.on("routeChangeComplete", handleRouteChange);
+
+    return () => {
+      router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [item.href, router.events]);
+
+  const theme = useTheme();
+
+  const itemColor = active
+    ? level === 2
+      ? theme.palette.black
+      : theme.palette.primary.main
+    : level === 2
+    ? theme.palette.gray[70]
+    : theme.palette.black;
+
+  const borderColor =
+    active || (level > 2 && parentActive)
+      ? level === 1
+        ? theme.palette.blue[70]
+        : theme.palette.blue[20]
+      : level === 1
+      ? "transparent"
+      : theme.palette.gray[20];
 
   return (
     <>
-      <ListItem>
-        <Link href={item.href}>{item.label}</Link>
+      <ListItem
+        sx={{
+          borderLeft: `3px solid ${borderColor}`,
+          pl: 2,
+          py: 0.5,
+          position: "relative",
+        }}
+      >
+        {item.icon ? (
+          <item.icon
+            sx={{
+              fill: itemColor,
+              width: "1rem",
+              mr: 1.2,
+            }}
+          />
+        ) : (
+          <Box width="1rem" mr={1.2} />
+        )}
+        {level === 3 && active ? (
+          <Box
+            sx={({ palette }) => ({
+              background: palette.blue[70],
+              borderRadius: "50%",
+              height: 5,
+              width: 5,
+              position: "absolute",
+              left: -4,
+            })}
+          />
+        ) : null}
+        <ItemLink
+          active={active}
+          color={itemColor}
+          href={item.href}
+          level={level}
+        >
+          {item.label}
+        </ItemLink>
         {expandable && (
           <IconButton
             onClick={(event) => {
               event.stopPropagation();
               setExpanded((isExpanded) => !isExpanded);
             }}
-            size="xs"
+            size="small"
             unpadded
             rounded
             sx={({ transitions }) => ({
-              mr: 0.5,
-
+              ml: 0.5,
               visibility: "visible",
               pointerEvents: "auto",
-              transform: expanded ? `rotate(90deg)` : "none",
+              transform: expanded ? "none" : "rotate(-90deg)",
               transition: transitions.create("transform", {
                 duration: 300,
               }),
             })}
           >
-            <FontAwesomeIcon icon={faChevronRight} />
+            <CaretDownIcon
+              fill={level === 2 && !active ? theme.palette.gray[40] : itemColor}
+            />
           </IconButton>
         )}
       </ListItem>
-      {expanded && (
-        <Box ml={1}>
-          {item.children.map((child) => (
-            <SidebarItem key={child.href} item={child} />
-          ))}
-        </Box>
-      )}
+
+      <Collapse in={expanded}>
+        {item.children?.map((child) => (
+          <SidebarItem key={child.href} item={child} level={level + 1} />
+        ))}
+      </Collapse>
     </>
   );
 };
@@ -62,14 +169,27 @@ const SidebarItem = ({ item }: { item: MenuItemWithChildren }) => {
 export const SettingsSidebar = ({
   menuItems,
 }: {
-  menuItems: MenuItemWithChildren[];
+  menuItems: SidebarItemData[];
 }) => {
   return (
-    <Box mr={4}>
+    <Box mr={4} width={200}>
+      <Typography
+        variant="microText"
+        sx={({ palette }) => ({
+          color: palette.gray[80],
+          display: "block",
+          fontWeight: 600,
+          letterSpacing: 0.6,
+          mb: 2,
+          pl: 2,
+        })}
+      >
+        ACCOUNT
+      </Typography>
       {menuItems
         .filter((item) => !item.parentHref)
         .map((item) => (
-          <SidebarItem key={item.href} item={item} />
+          <SidebarItem key={item.href} item={item} level={1} />
         ))}
     </Box>
   );

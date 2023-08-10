@@ -92,12 +92,11 @@ const Page: NextPageWithLayout = () => {
               </Box>
               {profile ? (
                 <Typography
-                  sx={{
-                    /** @todo: add this color to the MUI theme system */
-                    color: "#0775E3",
+                  sx={({ palette }) => ({
+                    color: palette.blue[70],
                     fontSize: 20,
                     fontWeight: 600,
-                  }}
+                  })}
                 >
                   @{profile.shortname}
                 </Typography>

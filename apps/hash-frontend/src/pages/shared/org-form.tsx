@@ -58,7 +58,7 @@ const Label = ({
 };
 
 const InputGroup = ({ children }: PropsWithChildren) => {
-  return <Box mt={3}>{children}</Box>;
+  return <Box mb={3}>{children}</Box>;
 };
 
 export type OrgFormData = Omit<
@@ -131,7 +131,11 @@ export const OrgForm = ({
   const isSubmitEnabled = isValid && !loading && isDirty;
 
   return (
-    <Box component="form" onSubmit={innerSubmit} sx={{ background: "white" }}>
+    <Box
+      component="form"
+      onSubmit={innerSubmit}
+      sx={{ background: "white", padding: 6 }}
+    >
       <InputGroup>
         <Label
           label="Display name"

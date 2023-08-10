@@ -5,19 +5,10 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
-import { MenuItem } from "../../../../../../shared/ui/menu-item";
-import {
-  ContextButton,
-  contextMenuProps,
-} from "../../../../shared/context-menu";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
 
-export const MemberContextMenu = ({
-  removeFromOrg,
-  self,
-}: {
-  removeFromOrg: () => void;
-  self: boolean;
-}) => {
+export const OrgContextMenu = ({ leaveOrg }: { leaveOrg: () => void }) => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",
@@ -30,13 +21,11 @@ export const MemberContextMenu = ({
       <Menu {...bindMenu(popupState)} {...contextMenuProps}>
         <MenuItem
           onClick={() => {
-            removeFromOrg();
+            leaveOrg();
             popupState.close();
           }}
         >
-          <ListItemText
-            primary={self ? "Leave organization" : "Remove from organization"}
-          />
+          <ListItemText primary="Leave organization" />
         </MenuItem>
       </Menu>
     </Box>
