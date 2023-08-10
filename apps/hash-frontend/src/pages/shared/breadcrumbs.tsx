@@ -1,5 +1,5 @@
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
@@ -17,7 +17,7 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/page-title/page-title";
-import { MenuItem } from "../../shared/ui";
+import { Button, MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
   title: string;
