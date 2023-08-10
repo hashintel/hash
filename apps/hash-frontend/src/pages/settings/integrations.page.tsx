@@ -2,7 +2,7 @@ import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { Box, Container, Paper, Typography } from "@mui/material";
 import { FunctionComponent, useContext } from "react";
 
-import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";
 import { getSettingsLayout } from "./shared/settings-layout";

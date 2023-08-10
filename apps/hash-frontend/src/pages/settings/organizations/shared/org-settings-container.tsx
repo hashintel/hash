@@ -1,13 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  PropsWithChildren,
-  ReactElement,
-  ReactNode,
-} from "react";
-
-import { Org } from "../../../../lib/user-and-org";
+import { forwardRef, PropsWithChildren, ReactElement } from "react";
 
 export const OrgSettingsContainer = forwardRef<
   HTMLSpanElement,
