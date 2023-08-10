@@ -13,13 +13,14 @@ mod eyre;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
-/// *Note*: It's not possible to implement [`IntoReport`] or [`Context`] on other error libraries'
-/// types as both traits have blanket implementation relying on [`Error`]. Thus, implementing either
-/// trait would violate the orphan rule; the upstream crate could implement [`Error`] and this would
-/// imply an implementation for [`IntoReport`]/[`Context`].
+/// **Note**: It's not possible to implement [`Context`] on other error libraries' types from within
+/// `error-stack` as the trait has a blanket implementation relying on [`Error`]. Thus, implementing
+/// the trait would violate the orphan rule; the upstream crate could implement [`Error`] and this
+/// would imply an implementation for [`Context`]. This also implies, that it's not possible to
+/// implement [`ResultExt`] from within `error-stack`.
 ///
-/// [`Report`]: crate::Report
-/// [`IntoReport`]: crate::IntoReport
+/// [`Report`]: Report
+/// [`ResultExt`]: crate::ResultExt
 /// [`Context`]: crate::Context
 /// [`Error`]: core::error::Error
 pub trait IntoReportCompat: Sized {

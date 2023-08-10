@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use core::fmt;
 
 use error_stack::{Context, IntoReport, Report};
