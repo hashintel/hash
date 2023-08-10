@@ -15,6 +15,8 @@ import { FunctionComponent, useEffect, useState } from "react";
 import { Link } from "../../../../shared/ui/link";
 
 export type SidebarItemData = {
+  // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy
+  activeIfHrefStartsWith?: string;
   children?: SidebarItemData[];
   label: string;
   href: string;
@@ -49,7 +51,10 @@ const SidebarItem = ({
   const expandable = !!item.children?.length;
 
   const router = useRouter();
-  const active = router.asPath.startsWith(item.href);
+  const active =
+    router.asPath.startsWith(item.href) ||
+    (!!item.activeIfHrefStartsWith &&
+      router.asPath.startsWith(item.activeIfHrefStartsWith));
   const parentActive =
     item.parentHref && router.asPath.startsWith(item.parentHref);
 

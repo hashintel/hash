@@ -18,7 +18,8 @@ const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
     .map((org) => [
       {
         label: org.name,
-        href: `/settings/organizations/${org.shortname}`,
+        href: `/settings/organizations/${org.shortname}/general`,
+        activeIfHrefStartsWith: `/settings/organizations/${org.shortname}`,
         parentHref: "/settings/organizations",
       },
       {
@@ -45,7 +46,12 @@ const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
   ];
 
   for (const item of menuItems) {
-    item.children = menuItems.filter((child) => child.parentHref === item.href);
+    item.children = menuItems.filter(
+      (child) =>
+        child.parentHref === item.href ||
+        (item.activeIfHrefStartsWith &&
+          child.parentHref === item.activeIfHrefStartsWith),
+    );
   }
 
   return menuItems;
@@ -77,8 +83,13 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
       let href: string | undefined = router.asPath;
 
       do {
-        // eslint-disable-next-line no-loop-func
-        const currentPage = menuItems.find((item) => item.href === href);
+        const currentPage = menuItems.find(
+          // eslint-disable-next-line no-loop-func
+          (item) =>
+            item.href === href ||
+            (item.activeIfHrefStartsWith &&
+              item.activeIfHrefStartsWith === href),
+        );
 
         if (!currentPage) {
           break;
