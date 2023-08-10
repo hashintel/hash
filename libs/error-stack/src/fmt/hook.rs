@@ -468,7 +468,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, location::LocationDisplay},
+        fmt::{hook::HookContext, location::LocationAttachment},
         Report,
     };
 
@@ -507,7 +507,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        context.push_body(LocationDisplay::new(location, context.color_mode()).to_string());
+        context.push_body(LocationAttachment::new(location, context.color_mode()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]

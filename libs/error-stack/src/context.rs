@@ -1,8 +1,6 @@
-#[cfg(nightly)]
-use core::any::Demand;
-#[cfg(nightly)]
-use core::error::Error;
 use core::fmt;
+#[cfg(nightly)]
+use core::{any::Demand, error::Error};
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;
 
@@ -13,14 +11,11 @@ use crate::Report;
 /// When in a `std` environment or on a nightly toolchain, every [`Error`] is a valid `Context`.
 /// This trait is not limited to [`Error`]s and can also be manually implemented on a type.
 ///
-/// [`Error`]: core::error::Error
-///
 /// ## Example
 ///
 /// Used for creating a [`Report`] or for switching the [`Report`]'s context:
 ///
 /// ```rust
-/// # #![cfg_attr(any(not(feature = "std"), miri), allow(unused_imports))]
 /// use std::{fmt, fs, io};
 ///
 /// use error_stack::{Context, Result, ResultExt, Report};
@@ -32,7 +27,7 @@ use crate::Report;
 /// }
 ///
 /// impl fmt::Display for ConfigError {
-///     # #[allow(unused_variables)]
+///     # #[allow(unused_variables)] // `fmt` is not used in this example
 ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///         # const _: &str = stringify! {
 ///         ...
@@ -44,9 +39,6 @@ use crate::Report;
 /// // `Context` manually.
 /// impl Context for ConfigError {}
 ///
-/// # #[cfg(any(not(feature = "std"), miri))]
-/// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error_stack::bail!(ConfigError::ParseError) }
-/// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
 ///     fs::read_to_string(path).map_err(Report::from)
@@ -62,7 +54,6 @@ use crate::Report;
 ///     # }; Ok(())
 /// }
 /// # let err = parse_config("invalid-path").unwrap_err();
-/// # #[cfg(all(feature = "std", not(miri)))]
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
 /// ```

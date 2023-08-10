@@ -69,7 +69,6 @@
 //! existing [`Error`]:
 //!
 //! ```rust
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! use std::{fs, io, path::Path};
 //!
 //! use error_stack::Report;
@@ -85,7 +84,6 @@
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
 //! # assert!(report.contains::<io::Error>());
-//! # }
 //! ```
 //!
 //! ## Using and Expanding the Report
@@ -105,7 +103,6 @@
 //! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fmt, fs, io, path::Path};
 //! use error_stack::{Context, Result, ResultExt};
 //! # pub type Config = String;
@@ -122,7 +119,6 @@
 //! // It's also possible to implement `Error` instead.
 //! impl Context for ParseConfigError {}
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
@@ -135,7 +131,6 @@
 //! # let report = parse_config("test.txt").unwrap_err();
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
-//! # }
 //! ```
 //!
 //! ### Building up the Report - Attachments
@@ -226,7 +221,6 @@
 //! [`extend_one()`]: Report::extend_one
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
 //! # use error_stack::Report;
 //! # pub type Config = String;

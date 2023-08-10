@@ -13,7 +13,7 @@ use crate::{Context, Report};
 ///
 /// `Result` can also be used in `fn main()`:
 ///
-/// ```
+/// ```rust
 /// # fn has_permission(_: usize, _: usize) -> bool { true }
 /// # fn get_user() -> Result<usize, AccessError> { Ok(0) }
 /// # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
