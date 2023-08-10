@@ -47,6 +47,7 @@ export const MemberRow = ({
             py: "4px",
             color: palette.gray[60],
             fontWeight: 500,
+            whiteSpace: "nowrap",
           })}
         >
           @{membership.user.shortname}

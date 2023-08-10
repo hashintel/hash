@@ -49,6 +49,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
             py: "4px",
             color: palette.gray[60],
             fontWeight: 500,
+            whiteSpace: "nowrap",
           })}
         >
           @{org.shortname}
