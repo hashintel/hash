@@ -403,7 +403,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity,
     properties: updatedProperties.reduce<EntityPropertiesObject>(
       (prev, { propertyTypeBaseUrl, value }) =>
-        value
+        value !== undefined
           ? {
               ...prev,
               [propertyTypeBaseUrl]: value,

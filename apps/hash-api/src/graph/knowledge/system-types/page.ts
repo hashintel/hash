@@ -243,16 +243,25 @@ export const isPageArchived: ImpureGraphFunction<
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
     accountId: AccountId;
+    includeArchived?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, params) => {
   const { graphApi } = ctx;
+  const { accountId, includeArchived = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+        all: [
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            ],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: accountId }],
+          },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -262,21 +271,11 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       getEntities(subgraph as Subgraph<EntityRootType>),
     );
 
-  const pages = pageEntities
-    /**
-     * @todo: filter the pages by their ownedById in the query instead once it's supported
-     * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
-     */
-    .filter(
-      (pageEntity) =>
-        extractOwnedByIdFromEntityId(pageEntity.metadata.recordId.entityId) ===
-        params.accountId,
-    )
-    .map((entity) => getPageFromEntity({ entity }));
+  const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 
   return await Promise.all(
     pages.map(async (page) => {
-      if (await isPageArchived(ctx, { page })) {
+      if (!includeArchived && (await isPageArchived(ctx, { page }))) {
         return [];
       }
       return page;

@@ -1,4 +1,8 @@
-import { faFile, faPencilRuler } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faFile,
+  faPencilRuler,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
@@ -8,6 +12,7 @@ import {
   Theme,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
@@ -15,11 +20,81 @@ import { ReactNode } from "react";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 
-type Props = {
+const pageRestoredMessage = (
+  <Box
+    sx={({ palette }) => ({
+      "@keyframes fadeInOut": {
+        "0%": {
+          opacity: 0,
+          background: palette.green[80],
+          borderColor: palette.green[80],
+          color: palette.common.white,
+        },
+        "5%": {
+          opacity: 1,
+          background: palette.green[80],
+          borderColor: palette.green[80],
+          color: palette.common.white,
+        },
+        "10%": {
+          background: palette.green[10],
+          borderColor: palette.green[50],
+          color: palette.common.black,
+        },
+        "80%": { opacity: 1 },
+        "100%": { opacity: 0 },
+      },
+      background: palette.green[10],
+      borderColor: palette.green[50],
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      borderWidth: 1,
+      borderStyle: "solid",
+      borderRadius: "4px",
+      paddingY: 0.5,
+      paddingX: 1.5,
+      animationName: "fadeInOut",
+      animationTimingFunction: "linear",
+      animationDuration: "5s",
+      animationFillMode: "forwards",
+    })}
+  >
+    <FontAwesomeIcon
+      icon={faCheck}
+      sx={({ palette }) => ({
+        fontSize: 14,
+        "@keyframes svgFadeInOut": {
+          "0%": {
+            color: palette.common.white,
+          },
+          "5%": {
+            color: palette.common.white,
+          },
+          "10%": {
+            color: palette.green[70],
+          },
+          "80%": {},
+          "100%": { color: palette.green[70] },
+        },
+        animationName: "svgFadeInOut",
+        animationTimingFunction: "linear",
+        animationDuration: "5s",
+        animationFillMode: "forwards",
+      })}
+    />
+    <Typography variant="smallTextParagraphs" sx={{ fontWeight: 500 }}>
+      Page restored
+    </Typography>
+  </Box>
+);
+
+type TopContextBarProps = {
   crumbs: BreadcrumbsProps["crumbs"];
   defaultCrumbIcon?: ReactNode;
   isBlockPage?: boolean;
   scrollToTop: () => void;
+  displayPageRestoredMessage?: boolean;
   sx?: SxProps<Theme>;
 };
 
@@ -30,8 +105,9 @@ export const TopContextBar = ({
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
   isBlockPage = false,
   scrollToTop = () => {},
+  displayPageRestoredMessage = false,
   sx = [],
-}: Props) => {
+}: TopContextBarProps) => {
   const { sidebarOpen } = useSidebarContext();
 
   const { replace, query } = useRouter();
@@ -68,12 +144,13 @@ export const TopContextBar = ({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Box>
+      <Box display="flex" gap={1}>
         <Breadcrumbs
           crumbs={crumbs}
           defaultIcon={defaultCrumbIcon}
           scrollToTop={scrollToTop}
         />
+        {displayPageRestoredMessage ? pageRestoredMessage : null}
       </Box>
       <Box sx={{ display: "flex", alignItems: "center" }}>
         {isBlockPage && query.canvas && (

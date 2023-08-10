@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -15,6 +17,7 @@ import {
   Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityMetadata,
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -22,7 +25,8 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { alpha, Box, Collapse } from "@mui/material";
+import { Box, Collapse, Container, Typography } from "@mui/material";
+import { formatDistance } from "date-fns";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { Router, useRouter } from "next/router";
@@ -50,6 +54,7 @@ import {
 } from "../../components/hooks/use-account-pages";
 import { useArchivePage } from "../../components/hooks/use-archive-page";
 import { usePageComments } from "../../components/hooks/use-page-comments";
+import { useUsers } from "../../components/hooks/use-users";
 import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
@@ -65,6 +70,9 @@ import {
   MinimalUser,
 } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+import { BoxArchiveIcon } from "../../shared/icons/box-archive-icon";
+import { CalendarIcon } from "../../shared/icons/calendar-icon";
+import { UserIcon } from "../../shared/icons/user-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
@@ -72,6 +80,7 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../shared/routing/route-page-info";
+import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -186,47 +195,147 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 
 export const PageNotificationBanner = ({
   archived = false,
+  pageMetadata,
+  onUnarchived,
 }: {
   archived: boolean;
+  pageMetadata: EntityMetadata;
+  onUnarchived: () => void;
 }) => {
   const { pageEntityId } = usePageContext();
-  const [archivePage] = useArchivePage();
+  const { unarchivePage } = useArchivePage();
+
+  const { provenance, temporalVersioning } = pageMetadata;
+
+  const { users } = useUsers();
+
+  const archivedByAccountId = provenance.recordCreatedById;
+
+  const archivedByUser = users?.find(
+    ({ accountId }) => archivedByAccountId === accountId,
+  );
+
+  const archivedAt = useMemo(
+    () => new Date(temporalVersioning.decisionTime.start.limit),
+    [temporalVersioning],
+  );
+
+  const timeSinceArchived = useMemo(
+    () => formatDistance(archivedAt, new Date()),
+    [archivedAt],
+  );
+
+  const archivedAtTimestamp = useMemo(() => {
+    const year = archivedAt.getUTCFullYear();
+    const month = String(archivedAt.getUTCMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+    const day = String(archivedAt.getUTCDate()).padStart(2, "0");
+    const hours = String(archivedAt.getUTCHours()).padStart(2, "0");
+    const minutes = String(archivedAt.getUTCMinutes()).padStart(2, "0");
+    const seconds = String(archivedAt.getUTCSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+  }, [archivedAt]);
 
   return (
     <Collapse in={archived}>
       <Box
         sx={({ palette }) => ({
-          color: palette.common.white,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: 1,
-          background: palette.red[60],
-          padding: 1,
+          background: palette.gray[10],
         })}
       >
-        This page is archived.
-        <Button
-          variant="secondary"
-          sx={({ palette }) => ({
-            marginLeft: 1.5,
-            minWidth: 0,
-            minHeight: 0,
-            paddingY: 0,
-            paddingX: 1.5,
-            background: "transparent",
-            color: palette.common.white,
-            borderColor: palette.common.white,
-            fontWeight: 400,
-            "&:hover": {
-              background: alpha(palette.gray[90], 0.08),
+        <Container
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            py: 1,
+            maxWidth: {
+              md: 860,
             },
-          })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
+          }}
         >
-          Restore
-        </Button>
+          <Typography sx={{ fontSize: 14 }}>
+            <BoxArchiveIcon
+              sx={{
+                fontSize: 14,
+                position: "relative",
+                top: 1,
+                marginRight: 1.5,
+                color: ({ palette }) => palette.gray[60],
+              }}
+            />
+            <strong>This page was archived</strong>
+            {archivedByUser ? (
+              <>
+                {" by "}
+                <Link
+                  href={`/@${archivedByUser.shortname}`}
+                  sx={{
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  <UserIcon
+                    sx={{
+                      fontSize: 14,
+                      position: "relative",
+                      top: 1,
+                      marginRight: 0.75,
+                    }}
+                  />
+                  {archivedByUser.preferredName}
+                </Link>
+              </>
+            ) : null}
+            {" at "}
+            <Box component="span">
+              <CalendarIcon
+                sx={{
+                  fontSize: 14,
+                  position: "relative",
+                  top: 1,
+                  marginRight: 0.75,
+                }}
+              />
+              <strong>{archivedAtTimestamp}</strong> ({timeSinceArchived} ago).
+            </Box>
+          </Typography>
+          <Button
+            variant="secondary"
+            sx={({ palette }) => ({
+              marginLeft: 1.5,
+              minWidth: 0,
+              minHeight: 0,
+              paddingY: 0.5,
+              paddingX: 2,
+              background: palette.common.white,
+              borderColor: palette.gray[30],
+              color: palette.common.black,
+              fontWeight: 400,
+              fontSize: 14,
+              "&:hover": {
+                background: palette.blue[20],
+                borderColor: palette.blue[50],
+                color: palette.blue[100],
+                "& svg": {
+                  color: palette.blue[50],
+                },
+              },
+            })}
+            startIcon={
+              <FontAwesomeIcon
+                sx={{ fontSize: 14, color: ({ palette }) => palette.gray[50] }}
+                icon={faRotateRight}
+              />
+            }
+            onClick={async () => {
+              await unarchivePage(pageEntityId);
+              onUnarchived();
+            }}
+          >
+            Restore
+          </Button>
+        </Container>
       </Box>
     </Collapse>
   );
@@ -288,7 +397,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const { data: accountPages } = useAccountPages(pageOwnedById);
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -297,6 +406,9 @@ const Page: NextPageWithLayout<PageProps> = ({
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
   );
+
+  const [displayPageRestoredMessage, setDisplayPageRestoredMessage] =
+    useState(false);
 
   const { data, error, loading } = useQuery<
     GetPageQuery,
@@ -371,7 +483,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, archived, contents } = data.page;
+  const { title, icon, archived, contents, metadata } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -409,10 +521,20 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            displayPageRestoredMessage={displayPageRestoredMessage}
             isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner archived={!!archived} />
+          <PageNotificationBanner
+            archived={!!archived}
+            pageMetadata={metadata}
+            onUnarchived={() => {
+              setDisplayPageRestoredMessage(true);
+              setTimeout(() => {
+                setDisplayPageRestoredMessage(false);
+              }, 5000);
+            }}
+          />
         </Box>
 
         {!canvasPage && (
