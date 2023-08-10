@@ -156,7 +156,10 @@ const SidebarItem = ({
             })}
           >
             <CaretDownIcon
-              fill={level === 2 && !active ? theme.palette.gray[40] : itemColor}
+              sx={{
+                fill:
+                  level === 2 && !active ? theme.palette.gray[40] : itemColor,
+              }}
             />
           </IconButton>
         )}
