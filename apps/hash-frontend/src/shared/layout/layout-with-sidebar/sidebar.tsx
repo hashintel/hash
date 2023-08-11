@@ -40,8 +40,6 @@ export const PageSidebar: FunctionComponent = () => {
           flex: 1,
           backgroundColor: theme.palette.white,
           borderRight: `1px solid ${theme.palette.gray[30]}`,
-          // boxShadow:
-          //   "inset -24px 0px 24px rgba(220, 229, 235, 0.15), inset -1px 0px 16px rgba(220, 229, 235, 0.4)",
         }),
       }}
       data-testid="page-sidebar"
