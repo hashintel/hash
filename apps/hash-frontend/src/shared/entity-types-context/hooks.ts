@@ -25,8 +25,12 @@ export const useEntityTypesSubgraphOptional = () =>
 export const useFetchEntityTypes = () =>
   useEntityTypesContextRequired().refetch;
 
-export const useLatestEntityTypesOptional = () => {
-  const entityTypes = useEntityTypesOptional();
+export const useLatestEntityTypesOptional = (params?: {
+  includeArchived: boolean;
+}) => {
+  const { includeArchived = false } = params ?? {};
+
+  const entityTypes = useEntityTypesOptional({ includeArchived });
 
   return useMemo(() => {
     if (!entityTypes) {

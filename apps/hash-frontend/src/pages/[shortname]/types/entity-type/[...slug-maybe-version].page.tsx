@@ -23,6 +23,7 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { isLinkEntityType } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -45,9 +46,6 @@ import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
-
-export const isLinkEntityType = (type: EntityType) =>
-  !!type.allOf?.some((parent) => parent.$ref === linkEntityTypeUrl);
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
