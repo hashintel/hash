@@ -24,9 +24,21 @@
     },
     {
       "enabled": true,
+      "groupName": "GraphQL",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@graphql/", "^graphql$", "^graphql-"]
+    },
+    {
+      "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "OpenTelemetry",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
       "enabled": true,
@@ -36,15 +48,27 @@
     },
     {
       "enabled": true,
+      "groupName": "Prettier",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prettier-"]
+    },
+    {
+      "enabled": true,
       "groupName": "ProseMirror",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror-"]
+      "matchPackagePatterns": ["^prosemirror$", "^prosemirror-"]
     },
     {
       "enabled": true,
       "groupName": "Sentry",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Signia",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@signia/"]
     },
     {
       "matchManagers": ["cargo"],
