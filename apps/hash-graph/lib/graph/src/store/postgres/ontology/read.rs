@@ -14,6 +14,7 @@ use type_system::{
 
 use crate::{
     identifier::{
+        account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
         time::RightBoundedTemporalInterval,
     },
@@ -22,14 +23,14 @@ use crate::{
         EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     snapshot::OntologyTypeSnapshotRecord,
     store::{
         crud::Read,
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord,
+                Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath, PostgresRecord,
                 ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
@@ -95,6 +96,8 @@ where
             <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::schema();
         let record_created_by_id_path =
             <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::record_created_by_id();
+        let record_archived_by_id_path =
+            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::record_archived_by_id();
         let additional_metadata_path =
             <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
         let transaction_time_path =
@@ -112,11 +115,19 @@ where
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &transaction_time_path,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&schema_path);
         let record_created_by_id_path_index =
             compiler.add_selection_path(&record_created_by_id_path);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&record_archived_by_id_path);
         let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
-        let transaction_time_index = compiler.add_selection_path(&transaction_time_path);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -132,9 +143,14 @@ where
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
 
-                let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
-                    row.get(record_created_by_id_path_index),
-                ));
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
 
                 let temporal_versioning = OntologyTemporalMetadata {
                     transaction_time: row.get(transaction_time_index),
@@ -202,13 +218,20 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
             compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::RecordArchivedById);
         let additional_metadata_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata(None));
-        let transaction_time_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
+            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
 
         compiler.add_filter(filter);
@@ -225,9 +248,14 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
 
-                let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
-                    row.get(record_created_by_id_path_index),
-                ));
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
 
                 let temporal_versioning = OntologyTemporalMetadata {
                     transaction_time: row.get(transaction_time_index),

@@ -11,9 +11,12 @@ packages = [{ include = "graph_client" }]
 python = "^3.11"
 
 pydantic = "^2.1.1"
+httpx = "^0.24.1"
+yarl = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
+datamodel-code-generator = "^0.21.3"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.3"
@@ -24,6 +27,11 @@ mypy = "^1.4"
 [tool.black]
 target-version = ['py311']
 preview = true
+extend-exclude = '''
+(
+    ^/graph_client/models.py
+)
+'''
 
 [tool.ruff]
 select = ["ALL"]
@@ -36,6 +44,31 @@ ignore = [
     "FIX002", # TODOs should be fixed, not removed
     "TD002", # We don't add authors to TODO strings
     "PLC0414", # Conflicts with `no_implicit_reexport = true`
+]
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "graph_client/models.py"
 ]
 
 [tool.mypy]

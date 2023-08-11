@@ -8,7 +8,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-07-31&color=blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-08-07&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -26,7 +26,7 @@ The library enables building a `Report` around an error as it propagates:
 ```rust
 use std::fmt;
 
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -41,8 +41,7 @@ impl Context for ParseExperimentError {}
 
 fn parse_experiment(description: &str) -> Result<(u64, u64), ParseExperimentError> {
     let value = description
-        .parse()
-        .into_report()
+        .parse::<u64>()
         .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
         .change_context(ParseExperimentError)?;
 
@@ -97,11 +96,11 @@ This will most likely result in an error and print
 
 <pre>
 Error: <b>experiment error: could not run experiment</b>
-&#x251C;&#x2574;at <i>examples/demo.rs:51:18</i>
+&#x251C;&#x2574;at <i>examples/demo.rs:50:18</i>
 &#x251C;&#x2574;unable to set up experiments
 &#x2502;
 &#x251C;&#x2500;&#x25B6; <b>invalid experiment description</b>
-&#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:21:10</i>
+&#x2502;   &#x251C;&#x2574;at <i>examples/demo.rs:20:10</i>
 &#x2502;   &#x2570;&#x2574;experiment 2 could not be parsed
 &#x2502;
 &#x2570;&#x2500;&#x25B6; <b>invalid digit found in string</b>
@@ -113,23 +112,27 @@ Error: <b>experiment error: could not run experiment</b>
 
 backtrace no. 1
    0: std::backtrace_rs::backtrace::libunwind::trace
-             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5
+             at /rustc/f3623871cfa0763c95ebd6ceafaa6dc2e44ca68f/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93:5
    1: std::backtrace_rs::backtrace::trace_unsynchronized
-             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
+             at /rustc/f3623871cfa0763c95ebd6ceafaa6dc2e44ca68f/library/std/src/../../backtrace/src/backtrace/mod.rs:66:5
    2: std::backtrace::Backtrace::create
-             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/std/src/backtrace.rs:332:13
+             at /rustc/f3623871cfa0763c95ebd6ceafaa6dc2e44ca68f/library/std/src/backtrace.rs:331:13
    3: core::ops::function::FnOnce::call_once
-             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/core/src/ops/function.rs:250:5
+             at /rustc/f3623871cfa0763c95ebd6ceafaa6dc2e44ca68f/library/core/src/ops/function.rs:250:5
    4: core::bool::&lt;impl bool&gt;::then
-             at /rustc/e972bc8083d5228536dfd42913c8778b6bb04c8e/library/core/src/bool.rs:71:24
+             at /rustc/f3623871cfa0763c95ebd6ceafaa6dc2e44ca68f/library/core/src/bool.rs:60:24
    5: error_stack::report::Report&lt;C&gt;::from_frame
-             at ./src/report.rs:288:25
+             at ./src/report.rs:286:25
    6: error_stack::report::Report&lt;C&gt;::new
-             at ./src/report.rs:274:9
-   7: error_stack::context::&lt;impl core::convert::From&lt;C&gt; for error_stack::report::Report&lt;C&gt;&gt;::from
+             at ./src/report.rs:272:9
+   7: error_stack::context::&lt;impl core::convert::From&lt;C&lt; for error_stack::report::Report&lt;C&gt;&gt;::from
              at ./src/context.rs:83:9
-   8: &lt;core::result::Result&lt;T,E&gt; as error_stack::result::IntoReport&gt;::into_report
-             at ./src/result.rs:203:31
+   8: &lt;core::result::Result&lt;T,C&lt; as error_stack::result::ResultExt&lt;::attach_printable_lazy
+             at ./src/result.rs:158:31
+   9: demo::parse_experiment
+             at demo.rs:17:17
+  10: demo::start_experiments::{{closure}}
+             at demo.rs:48:30
    (<b>For this example:</b> additional frames have been removed)
 </pre>
 

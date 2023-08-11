@@ -27,7 +27,7 @@ use crate::{
         OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
         OntologyVersionDoesNotExist, StorePool,
@@ -147,7 +147,10 @@ where
         partial_metadata.push(PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(actor_id),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: actor_id,
+                    record_archived_by_id: None,
+                },
                 owned_by_id,
             },
         });
@@ -185,7 +188,7 @@ where
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct LoadExternalDataTypeRequest {
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     data_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
@@ -278,7 +281,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
 }
@@ -340,8 +343,9 @@ async fn update_data_type<P: StorePool + Send>(
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct ArchiveDataTypeRequest {
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
+    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
@@ -363,7 +367,10 @@ async fn archive_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchiveDataTypeRequest { type_to_archive }) = body;
+    let Json(ArchiveDataTypeRequest {
+        type_to_archive,
+        actor_id,
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -371,7 +378,7 @@ async fn archive_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .archive_data_type(&type_to_archive)
+        .archive_data_type(&type_to_archive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive data type");
@@ -392,8 +399,9 @@ async fn archive_data_type<P: StorePool + Send>(
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UnarchiveDataTypeRequest {
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -415,7 +423,10 @@ async fn unarchive_data_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UnarchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchiveDataTypeRequest { type_to_unarchive }) = body;
+    let Json(UnarchiveDataTypeRequest {
+        type_to_unarchive,
+        actor_id,
+    }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -423,7 +434,7 @@ async fn unarchive_data_type<P: StorePool + Send>(
     })?;
 
     store
-        .unarchive_data_type(&type_to_unarchive)
+        .unarchive_data_type(&type_to_unarchive, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive data type");

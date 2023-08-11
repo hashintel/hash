@@ -66,6 +66,9 @@ export const extractEntityUuidFromEntityId = (
 /** An account ID of an actor that has created a record */
 export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
 
+/** An account ID of an actor that has created a record */
+export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
+
 /** An `EntityId` which is the base of an Account Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
 

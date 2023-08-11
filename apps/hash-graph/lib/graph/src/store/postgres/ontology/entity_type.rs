@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
@@ -18,7 +18,7 @@ use crate::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -270,11 +270,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.entity_types =
                 Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|entity_type| (entity_type.vertex_id(time_axis), entity_type))
+                    .filter_map(|entity_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(entity_type.vertex_id(time_axis))
+                            .then(|| (entity_type.vertex_id(time_axis), entity_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.entity_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());
@@ -335,7 +345,10 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             record_id,
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(record_created_by_id),
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id,
+                        record_archived_by_id: None,
+                    },
                     owned_by_id,
                 },
                 label_property,
@@ -362,14 +375,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn archive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id).await
+        self.archive_ontology_type(id, record_archived_by_id).await
     }
 
     async fn unarchive_entity_type(
         &mut self,
         id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id).await
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

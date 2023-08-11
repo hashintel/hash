@@ -9,6 +9,7 @@ import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import stringify from "safe-stable-stringify";
 
 import type {
   GetDataTypeQuery,
@@ -31,10 +32,11 @@ const generateErrorResponse = (
     { status, headers: { "content-type": "application/json" } },
   );
 
-const generateJsonResponse = (object: DataType | EntityType | PropertyType) =>
-  new NextResponse(JSON.stringify(object, undefined, 2), {
+const generateJsonResponse = (object: DataType | EntityType | PropertyType) => {
+  return new NextResponse(stringify(object, undefined, 2), {
     headers: { "content-type": "application/json" },
   });
+};
 
 const makeGraphQlRequest = async <Data, Variables>(
   query: string,

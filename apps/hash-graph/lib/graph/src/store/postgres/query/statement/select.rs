@@ -233,10 +233,10 @@ mod tests {
             r#"
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("ontology_id_with_metadata_0_1_0"."base_url" = $2) AND ("ontology_id_with_metadata_0_1_0"."version" = $3)
+              AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
             "#,
             &[
                 &pinned_timestamp,
@@ -263,13 +263,13 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
+              AND "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
             "#,
             &[&pinned_timestamp],
         );
@@ -292,13 +292,13 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
             FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_id_with_metadata_0_1_0"."version" != "ontology_id_with_metadata_0_1_0"."latest_version"
+              AND "ontology_ids_0_1_0"."version" != "ontology_ids_0_1_0"."latest_version"
             "#,
             &[&pinned_timestamp],
         );
@@ -380,13 +380,13 @@ mod tests {
               ON "property_type_constrains_values_on_1_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_1_2_0"
               ON "ontology_temporal_metadata_1_2_0"."ontology_id" = "property_type_constrains_values_on_1_1_0"."target_data_type_ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
-              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "ontology_temporal_metadata_1_2_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
+              ON "ontology_ids_1_3_0"."ontology_id" = "ontology_temporal_metadata_1_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "data_types_0_3_0"."schema"->>'title' = $2
               AND "ontology_temporal_metadata_1_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $3) AND ("ontology_id_with_metadata_1_3_0"."version" = $4)
+              AND ("ontology_ids_1_3_0"."base_url" = $3) AND ("ontology_ids_1_3_0"."version" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -556,11 +556,11 @@ mod tests {
               ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
               ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
-              ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
+              ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "ontology_id_with_metadata_0_3_0"."base_url" = $2
+              AND "ontology_ids_0_3_0"."base_url" = $2
             "#,
             &[
                 &pinned_timestamp,
@@ -943,8 +943,8 @@ mod tests {
               ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
               ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_0"
-              ON "ontology_id_with_metadata_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
+              ON "ontology_ids_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
               ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
              AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
@@ -955,8 +955,8 @@ mod tests {
               ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_1"
               ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_5_1"
-              ON "ontology_id_with_metadata_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
+              ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
@@ -965,8 +965,8 @@ mod tests {
               AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
               AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
-              AND ("ontology_id_with_metadata_0_5_0"."base_url" = $3)
-              AND ("ontology_id_with_metadata_0_5_1"."base_url" = $4)
+              AND ("ontology_ids_0_5_0"."base_url" = $3)
+              AND ("ontology_ids_0_5_1"."base_url" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -1010,10 +1010,10 @@ mod tests {
                 r#"
                 SELECT *
                 FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
-                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-                  ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+                INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+                  ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
                 WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND ("ontology_id_with_metadata_0_1_0"."base_url" = $2) AND ("ontology_id_with_metadata_0_1_0"."version" = $3)
+                  AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
                 "#,
                 &[
                     &pinned_timestamp,

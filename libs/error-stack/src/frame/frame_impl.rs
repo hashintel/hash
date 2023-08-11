@@ -18,7 +18,6 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>);
 }
 
-#[repr(C)]
 struct ContextFrame<C> {
     context: C,
 }
@@ -42,7 +41,6 @@ impl<C: Context> FrameImpl for ContextFrame<C> {
     }
 }
 
-#[repr(C)]
 struct AttachmentFrame<A> {
     attachment: A,
 }
@@ -66,7 +64,6 @@ impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     }
 }
 
-#[repr(C)]
 struct PrintableAttachmentFrame<A> {
     attachment: A,
 }
@@ -210,6 +207,20 @@ impl Frame {
         }
     }
 
+    /// Creates a frame from an attachment which implements [`Debug`] and [`Display`].
+    ///
+    /// [`Debug`]: core::fmt::Debug
+    /// [`Display`]: core::fmt::Display
+    pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        Self {
+            frame: Box::new(PrintableAttachmentFrame { attachment }),
+            sources,
+        }
+    }
+
     /// Creates a frame from an [`anyhow::Error`].
     #[cfg(feature = "anyhow")]
     pub(crate) fn from_anyhow(error: anyhow::Error, sources: Box<[Self]>) -> Self {
@@ -224,20 +235,6 @@ impl Frame {
     pub(crate) fn from_eyre(report: eyre::Report, sources: Box<[Self]>) -> Self {
         Self {
             frame: Box::new(EyreContext(report)),
-            sources,
-        }
-    }
-
-    /// Creates a frame from an attachment which implements [`Debug`] and [`Display`].
-    ///
-    /// [`Debug`]: core::fmt::Debug
-    /// [`Display`]: core::fmt::Display
-    pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        Self {
-            frame: Box::new(PrintableAttachmentFrame { attachment }),
             sources,
         }
     }

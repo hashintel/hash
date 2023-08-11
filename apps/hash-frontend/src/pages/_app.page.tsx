@@ -1,5 +1,7 @@
 /* eslint-disable import/first */
 // @todo have webpack polyfill this
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+
 require("setimmediate");
 
 import "./globals.scss";
@@ -9,7 +11,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
@@ -35,6 +37,7 @@ import {
 } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import {
   RoutePageInfoProvider,
   RouteWorkspaceInfoProvider,
@@ -140,7 +143,9 @@ const App: FunctionComponent<AppProps> = ({
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
                       <EntityTypesContextProvider>
-                        {getLayout(<Component {...pageProps} />)}
+                        <SidebarContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </SidebarContextProvider>
                       </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>
@@ -225,7 +230,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   await TypeSystemInitializer.initialize();
 
   const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntity,
+    userEntity: userEntity as Entity<UserProperties>,
     subgraph,
     kratosSession,
   });

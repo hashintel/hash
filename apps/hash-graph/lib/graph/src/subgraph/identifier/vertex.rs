@@ -38,6 +38,7 @@ macro_rules! define_ontology_type_vertex_id {
         #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
+            #[schema(value_type = SHARED_BaseUrl)]
             pub base_id: BaseUrl,
             pub revision_id: OntologyTypeVersion,
         }

@@ -1,10 +1,7 @@
 /**
- * Narrows the type of a search term to a member of T
- *
- * Array MUST be passed as a tuple
- * @example includes(["foo", "bar"] as const, "foo") // true
+ * Narrows the type of a search term to a member of a tuple
  */
-export function tupleIncludes<T>(
+export function tupleIncludes<const T>(
   array: readonly T[],
   searchElement: unknown,
 ): searchElement is T {

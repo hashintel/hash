@@ -40,7 +40,6 @@ import {
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   PreferredNamePropertyValue,
-  ResponsibilityPropertyValue,
   ShortnamePropertyValue,
   Text,
   TextDataType,
@@ -92,7 +91,6 @@ export type {
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   PreferredNamePropertyValue,
-  ResponsibilityPropertyValue,
   ShortnamePropertyValue,
   Text,
   TextDataType,
@@ -129,14 +127,14 @@ export type CommentAuthorLink = { linkEntity: Author; rightEntity: User };
 export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
 
 export type CommentOutgoingLinkAndTarget =
-  | CommentParentLink
   | CommentAuthorLink
-  | CommentHasTextLink;
+  | CommentHasTextLink
+  | CommentParentLink;
 
 export type CommentOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
   "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
   "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
 };
 
 export type CommentParentLink = {
@@ -145,8 +143,8 @@ export type CommentParentLink = {
 };
 
 export type CommentProperties = {
-  "http://localhost:3000/@system-user/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
 };
 
 /**

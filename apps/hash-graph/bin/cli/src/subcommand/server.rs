@@ -238,7 +238,10 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         let data_type_metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
@@ -277,7 +280,10 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         record_id: link_entity_type.id().clone().into(),
         custom: PartialCustomEntityTypeMetadata {
             common: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
             label_property: None,

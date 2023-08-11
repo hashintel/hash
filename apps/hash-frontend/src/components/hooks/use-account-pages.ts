@@ -14,12 +14,15 @@ export type AccountPagesInfo = {
   loading: boolean;
 };
 
-export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
+export const useAccountPages = (
+  ownedById: OwnedById,
+  includeArchived?: boolean,
+): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
-    variables: { ownedById },
+    variables: { ownedById, includeArchived },
   });
 
   const pages = useMemo(() => {

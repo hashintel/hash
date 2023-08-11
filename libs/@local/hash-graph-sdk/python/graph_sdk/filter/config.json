@@ -1,0 +1,34 @@
+{
+  "data_type": {
+    "selector": {},
+    "untyped": [],
+    "direct": {}
+  },
+  "property_type": {
+    "selector": {
+      "data_types": "data_type",
+      "property_types": "property_type"
+    },
+    "untyped": [],
+    "direct": {}
+  },
+  "entity_type": {
+    "selector": {
+      "properties": "property_type",
+      "links": "entity_type"
+    },
+    "untyped": [],
+    "direct": {}
+  },
+  "entity": {
+    "selector": {},
+    "untyped": ["properties"],
+    "direct": {
+      "type": "entity_type",
+      "incoming_links": "entity",
+      "outgoing_links": "entity",
+      "left_entity": "entity",
+      "right_entity": "entity"
+    }
+  }
+}

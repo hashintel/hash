@@ -8,6 +8,10 @@ import {
 } from "@local/hash-graph-client";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -22,11 +26,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -223,10 +223,11 @@ export const archiveDataType: ImpureGraphFunction<
   },
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, params) => {
-  const { dataTypeId } = params;
+  const { dataTypeId, actorId } = params;
 
   const { data: temporalMetadata } = await graphApi.archiveDataType({
     typeToArchive: dataTypeId,
+    actorId,
   });
 
   return temporalMetadata;
@@ -245,10 +246,11 @@ export const unarchiveDataType: ImpureGraphFunction<
   },
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, params) => {
-  const { dataTypeId } = params;
+  const { dataTypeId, actorId } = params;
 
   const { data: temporalMetadata } = await graphApi.unarchiveDataType({
     typeToUnarchive: dataTypeId,
+    actorId,
   });
 
   return temporalMetadata;
