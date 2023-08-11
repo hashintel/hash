@@ -6,11 +6,24 @@
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
+  "labels": ["area: deps"]
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "packageRules": [
+    {
+      "enabled": true,
+      "groupName": "Block Protocol",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@blockprotocol/",
+        "^block-",
+        "blockprotocol",
+        "create-block-app",
+        "mock-block-dock"
+      ]
+    },
     {
       "enabled": true,
       "groupName": "ESLint",
@@ -32,7 +45,7 @@
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+      "matchPackagePatterns": ["^@types/jest$", "jest", "^jest-", "-jest$"]
     },
     {
       "enabled": true,
@@ -71,8 +84,19 @@
       "matchPackagePatterns": ["^@signia/"]
     },
     {
+      "matchManagers": ["poetry"],
+      "commitMessageTopic": "Python package `{{depName}}`"
+    },
+    {
+      "enabled": true,
+      "groupName": "Pydantic",
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["^pydantic"]
+    },
+    {
       "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`"
+      "commitMessageTopic": "Rust crate `{{depName}}`",
+      "reviewers": ["team:Rust"]
     },
     {
       "matchManagers": ["regex"],
