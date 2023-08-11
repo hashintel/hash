@@ -30,7 +30,7 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord,
+                Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath, PostgresRecord,
                 ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
@@ -115,13 +115,17 @@ where
             Distinctness::Distinct,
             None,
         );
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &transaction_time_path,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&schema_path);
         let record_created_by_id_path_index =
             compiler.add_selection_path(&record_created_by_id_path);
         let record_archived_by_id_path_index =
             compiler.add_selection_path(&record_archived_by_id_path);
         let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
-        let transaction_time_index = compiler.add_selection_path(&transaction_time_path);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
