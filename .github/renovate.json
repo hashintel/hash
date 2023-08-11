@@ -67,7 +67,7 @@
       "enabled": true,
       "groupName": "Prettier",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier-"],
+      "matchPackagePatterns": ["^prettier"],
       "addLabels": "category: entropy"
     },
     {
