@@ -108,7 +108,8 @@
     {
       "matchManagers": ["poetry"],
       "commitMessageTopic": "Python package `{{depName}}`",
-      "additionalBranchPrefix": "py/"
+      "additionalBranchPrefix": "py/",
+      "reviewers": ["team:Python"]
     },
     {
       "enabled": true,
