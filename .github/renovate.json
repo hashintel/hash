@@ -3,6 +3,7 @@
   "extends": ["config:base"],
 
   "addLabels": ["area: deps"],
+  "branchPrefix": "deps/",
   "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
@@ -12,6 +13,11 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "commitMessageTopic": "npm package `{{depName}}`",
+      "additionalBranchPrefix": "js/"
+    },
     {
       "enabled": true,
       "groupName": "Block Protocol",
@@ -61,7 +67,7 @@
       "groupName": "Playwright",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"],
-      "addLabels": "area: tests"
+      "addLabels": ["area: tests", "area: tests > playwright"]
     },
     {
       "enabled": true,
@@ -90,7 +96,8 @@
     },
     {
       "matchManagers": ["poetry"],
-      "commitMessageTopic": "Python package `{{depName}}`"
+      "commitMessageTopic": "Python package `{{depName}}`",
+      "additionalBranchPrefix": "py/"
     },
     {
       "enabled": true,
@@ -101,6 +108,7 @@
     {
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
+      "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"]
     },
     {
