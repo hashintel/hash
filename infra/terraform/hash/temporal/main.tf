@@ -20,7 +20,6 @@ module "cluster" {
   source             = "../../modules/container_cluster"
   prefix             = local.prefix
   ecs_name           = "ecs"
-  capacity_providers = ["FARGATE"]
 }
 
 resource "aws_iam_role" "execution_role" {
