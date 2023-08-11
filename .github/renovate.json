@@ -2,11 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
+  "addLabels": ["area: deps"],
   "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
-  "labels": ["area: deps"]
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
