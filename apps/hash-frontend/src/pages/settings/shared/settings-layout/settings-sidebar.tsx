@@ -64,7 +64,7 @@ const SidebarItem = ({
     const handleRouteChange = (path: string) => {
       if (
         path.startsWith(item.href) ||
-        (item.parentHref && router.asPath.startsWith(item.parentHref)) ||
+        (item.parentHref && path.startsWith(item.parentHref)) ||
         (item.activeIfHrefStartsWith &&
           path.startsWith(item.activeIfHrefStartsWith))
       ) {
@@ -79,7 +79,7 @@ const SidebarItem = ({
     return () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
-  }, [item.href, router.events]);
+  }, [item, router.events]);
 
   const theme = useTheme();
 
