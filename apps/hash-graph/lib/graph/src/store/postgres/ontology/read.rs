@@ -216,6 +216,11 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             Distinctness::Distinct,
             None,
         );
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
             compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
@@ -223,8 +228,6 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             compiler.add_selection_path(&EntityTypeQueryPath::RecordArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
-        let transaction_time_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
 
         compiler.add_filter(filter);
