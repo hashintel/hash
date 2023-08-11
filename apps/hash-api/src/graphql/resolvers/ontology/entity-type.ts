@@ -60,6 +60,7 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
     latestOnly = true,
   },
   { dataSources },
@@ -79,6 +80,7 @@ export const queryEntityTypesResolver: ResolverFn<
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
+      inheritsFrom,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
   });
@@ -99,6 +101,7 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
   },
   { dataSources, user },
   __,
@@ -114,6 +117,7 @@ export const getEntityTypeResolver: ResolverFn<
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
+      inheritsFrom,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
   });

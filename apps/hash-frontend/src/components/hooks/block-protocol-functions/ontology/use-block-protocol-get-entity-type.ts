@@ -49,6 +49,7 @@ export const useBlockProtocolGetEntityType = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
           ...graphResolveDepths,
         },
       });

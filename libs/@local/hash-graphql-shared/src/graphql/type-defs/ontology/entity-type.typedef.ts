@@ -14,6 +14,7 @@ export const entityTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
       latestOnly: Boolean = true
     ): Subgraph!
 
@@ -26,6 +27,7 @@ export const entityTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
