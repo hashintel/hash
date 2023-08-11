@@ -626,6 +626,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 Page.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
+    grayBackground: false,
   });
 
 export default Page;

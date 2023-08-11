@@ -14,7 +14,7 @@ import {
 } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
-const SettingsPage: NextPageWithLayout = () => {
+const ChangePasswordPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
 
@@ -65,7 +65,11 @@ const SettingsPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // their data when they reload the page.
-      .push(`/settings`, { query: { flow: flow.id } }, { shallow: true });
+      .push(
+        `/change-password`,
+        { query: { flow: flow.id } },
+        { shallow: true },
+      );
 
     const { csrf_token } =
       gatherUiNodeValuesFromFlow<"settingsWithPassword">(flow);
@@ -146,6 +150,6 @@ const SettingsPage: NextPageWithLayout = () => {
   );
 };
 
-SettingsPage.getLayout = getPlainLayout;
+ChangePasswordPage.getLayout = getPlainLayout;
 
-export default SettingsPage;
+export default ChangePasswordPage;

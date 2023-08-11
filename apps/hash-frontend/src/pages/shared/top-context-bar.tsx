@@ -133,14 +133,15 @@ export const TopContextBar = ({
   return (
     <Box
       sx={[
-        {
+        ({ palette }) => ({
+          background: palette.common.white,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           height: TOP_CONTEXT_BAR_HEIGHT,
           pl: sidebarOpen ? 3 : 8,
           pr: 4,
-        },
+        }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >

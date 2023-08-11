@@ -1,23 +1,21 @@
 import { EntityPropertiesObject } from "@blockprotocol/graph";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../../shared/layout";
+import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { OrgForm, OrgFormData } from "../../../shared/org-form";
+import { getSettingsLayout } from "../../shared/settings-layout";
+import { OrgSettingsContainer } from "../shared/org-settings-container";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const topRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLSpanElement>(null);
 
   const { shortname } = router.query as { shortname: string };
 
@@ -86,23 +84,21 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${org.name} | Settings`} />
 
-      <Container sx={{ paddingLeft: 4, mb: 10 }} ref={topRef}>
-        <Typography variant="h2" mt={10} mb={4} fontWeight="bold">
-          {org.name}
-        </Typography>
+      <OrgSettingsContainer
+        header={org.name}
+        sectionLabel="General"
+        ref={topRef}
+      >
         <OrgForm
           org={org}
           onSubmit={updateOrg}
-          submitLabel="Update workspace profile"
+          submitLabel="Update organization profile"
         />
-      </Container>
+      </OrgSettingsContainer>
     </>
   );
 };
 
-OrgGeneralSettingsPage.getLayout = (page) =>
-  getLayoutWithSidebar(page, {
-    fullWidth: true,
-  });
+OrgGeneralSettingsPage.getLayout = (page) => getSettingsLayout(page);
 
 export default OrgGeneralSettingsPage;

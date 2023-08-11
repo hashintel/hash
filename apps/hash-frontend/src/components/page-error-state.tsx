@@ -7,7 +7,7 @@ import { Link } from "../shared/ui";
 export const PageErrorState = () => {
   return (
     <Container>
-      <Typography mt={10} variant="h1">
+      <Typography pt={10} variant="h1">
         Error loading page
       </Typography>
 

@@ -235,12 +235,10 @@ const Page: NextPageWithLayout = () => {
                   crumbs={[
                     {
                       title: "Types",
-                      href: "#",
                       id: "types",
                     },
                     {
                       title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
-                      href: "#",
                       id: "entity-types",
                     },
                     {
