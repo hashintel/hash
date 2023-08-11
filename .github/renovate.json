@@ -24,9 +24,9 @@
       "matchPackagePatterns": [
         "^@blockprotocol/",
         "^block-",
-        "blockprotocol",
-        "create-block-app",
-        "mock-block-dock"
+        "^blockprotocol$",
+        "^create-block-app$",
+        "^mock-block-dock$"
       ]
     },
     {
@@ -37,20 +37,27 @@
         "^@types/eslint",
         "^@typescript-eslint/",
         "^eslint-",
-        "^eslint$"
+        "eslint$"
       ]
     },
     {
       "enabled": true,
       "groupName": "GraphQL",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@graphql/", "^graphql$", "^graphql-"]
+      "matchPackagePatterns": [
+        "^@graphql/",
+        "^graphql-",
+        "graphql$"
+      ]
     },
     {
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^jest$"]
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$"
+      ]
     },
     {
       "enabled": true,
@@ -62,19 +69,29 @@
       "enabled": true,
       "groupName": "Playwright",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+      "matchPackagePatterns": [
+        "^@playwright/",
+        "^playwright-",
+        "playwright$"
+      ]
     },
     {
       "enabled": true,
       "groupName": "Prettier",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier"]
+      "matchPackagePatterns": [
+        "^prettier",
+        "prettier$"
+      ]
     },
     {
       "enabled": true,
       "groupName": "ProseMirror",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror$"]
+      "matchPackagePatterns": [
+        "^prosemirror",
+        "prosemirror$"
+      ]
     },
     {
       "enabled": true,
