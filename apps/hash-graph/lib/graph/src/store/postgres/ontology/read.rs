@@ -115,6 +115,8 @@ where
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
             &transaction_time_path,
             Distinctness::Distinct,
@@ -216,6 +218,8 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
             &EntityTypeQueryPath::TransactionTime,
             Distinctness::Distinct,

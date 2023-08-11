@@ -259,6 +259,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     .await?
                     .into_iter()
                     .filter_map(|property_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
                         visited_ontology_ids
                             .insert(property_type.vertex_id(time_axis))
                             .then(|| (property_type.vertex_id(time_axis), property_type))

@@ -279,6 +279,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .await?
                     .into_iter()
                     .filter_map(|entity_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
                         visited_ontology_ids
                             .insert(entity_type.vertex_id(time_axis))
                             .then(|| (entity_type.vertex_id(time_axis), entity_type))

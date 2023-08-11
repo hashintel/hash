@@ -140,6 +140,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .await?
                     .into_iter()
                     .filter_map(|data_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
                         visited_ontology_ids
                             .insert(data_type.vertex_id(time_axis))
                             .then(|| (data_type.vertex_id(time_axis), data_type))
