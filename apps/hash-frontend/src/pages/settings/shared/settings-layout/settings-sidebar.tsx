@@ -62,7 +62,12 @@ const SidebarItem = ({
 
   useEffect(() => {
     const handleRouteChange = (path: string) => {
-      if (path.startsWith(item.href)) {
+      if (
+        path.startsWith(item.href) ||
+        (item.parentHref && router.asPath.startsWith(item.parentHref)) ||
+        (item.activeIfHrefStartsWith &&
+          path.startsWith(item.activeIfHrefStartsWith))
+      ) {
         setExpanded(true);
       } else {
         setExpanded(false);
