@@ -36,25 +36,29 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     CREATE TEMPORARY TABLE entity_type_constrains_properties_on_tmp (
                         source_entity_type_ontology_id UUID NOT NULL,
                         target_property_type_base_url TEXT NOT NULL,
-                        target_property_type_version INT8 NOT NULL
+                        target_property_type_version INT8 NOT NULL,
+                        inheritance_depth INTEGER NOT NULL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_inherits_from_tmp (
                         source_entity_type_ontology_id UUID NOT NULL,
                         target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        target_entity_type_version INT8 NOT NULL,
+                        inheritance_depth INTEGER NOT NULL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_constrains_links_on_tmp (
                         source_entity_type_ontology_id UUID NOT NULL,
                         target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        target_entity_type_version INT8 NOT NULL,
+                        inheritance_depth INTEGER NOT NULL
                     ) ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_type_constrains_link_destinations_on_tmp (
                         source_entity_type_ontology_id UUID NOT NULL,
                         target_entity_type_base_url TEXT NOT NULL,
-                        target_entity_type_version INT8 NOT NULL
+                        target_entity_type_version INT8 NOT NULL,
+                        inheritance_depth INTEGER NOT NULL
                     ) ON COMMIT DROP;
                 ",
             )
@@ -171,7 +175,8 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     INSERT INTO entity_type_inherits_from
                         SELECT
                             source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
+                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id,
+                            entity_type_inherits_from_tmp.inheritance_depth
                         FROM entity_type_inherits_from_tmp
                         INNER JOIN ontology_ids_tmp ON
                             ontology_ids_tmp.base_url = entity_type_inherits_from_tmp.target_entity_type_base_url
@@ -180,7 +185,8 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     INSERT INTO entity_type_constrains_properties_on
                         SELECT
                             source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
+                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id,
+                            entity_type_constrains_properties_on_tmp.inheritance_depth
                         FROM entity_type_constrains_properties_on_tmp
                         INNER JOIN ontology_ids_tmp ON
                             ontology_ids_tmp.base_url = entity_type_constrains_properties_on_tmp.target_property_type_base_url
@@ -189,7 +195,8 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     INSERT INTO entity_type_constrains_links_on
                         SELECT
                             source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
+                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id,
+                            entity_type_constrains_links_on_tmp.inheritance_depth
                         FROM entity_type_constrains_links_on_tmp
                         INNER JOIN ontology_ids_tmp ON
                             ontology_ids_tmp.base_url = entity_type_constrains_links_on_tmp.target_entity_type_base_url
@@ -198,7 +205,8 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                     INSERT INTO entity_type_constrains_link_destinations_on
                         SELECT
                             source_entity_type_ontology_id,
-                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
+                            ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id,
+                            entity_type_constrains_link_destinations_on_tmp.inheritance_depth
                         FROM entity_type_constrains_link_destinations_on_tmp
                         INNER JOIN ontology_ids_tmp ON
                             ontology_ids_tmp.base_url = entity_type_constrains_link_destinations_on_tmp.target_entity_type_base_url

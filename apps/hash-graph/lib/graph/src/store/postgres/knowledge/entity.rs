@@ -720,8 +720,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 r#"
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
-                        entity_type_ontology_id
-                    ) VALUES ($1, $2);
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    ) VALUES ($1, $2, 0);
                 "#,
                 &[&edition_id, &entity_type_ontology_id],
             )

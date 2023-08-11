@@ -434,8 +434,8 @@ where
             .as_client()
             .query_opt(
                 r#"
-                    INSERT INTO entity_types (ontology_id, schema, label_property)
-                    VALUES ($1, $2, $3)
+                    INSERT INTO entity_types (ontology_id, schema, closed_schema, label_property)
+                    VALUES ($1, $2, $2, $3)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 "#,
@@ -514,10 +514,12 @@ where
                     r#"
                         INSERT INTO entity_type_constrains_properties_on (
                             source_entity_type_ontology_id,
-                            target_property_type_ontology_id
+                            target_property_type_ontology_id,
+                            inheritance_depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3),
+                            0
                         ) RETURNING source_entity_type_ontology_id;
                     "#,
                     &[
@@ -537,10 +539,12 @@ where
                 r#"
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
-                            target_entity_type_ontology_id
+                            target_entity_type_ontology_id,
+                            inheritance_depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3),
+                            0
                         ) RETURNING target_entity_type_ontology_id;
                     "#,
                     &[
@@ -562,10 +566,12 @@ where
                     r#"
                         INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
-                            target_entity_type_ontology_id
+                            target_entity_type_ontology_id,
+                            inheritance_depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3),
+                            0
                         ) RETURNING target_entity_type_ontology_id;
                     "#,
                     &[
@@ -584,12 +590,14 @@ where
                 .query_one(
                     r#"
                         INSERT INTO entity_type_constrains_link_destinations_on (
-                        source_entity_type_ontology_id,
-                        target_entity_type_ontology_id
-                            ) VALUES (
-                                $1,
-                                (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
-                            ) RETURNING target_entity_type_ontology_id;
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id,
+                            inheritance_depth
+                        ) VALUES (
+                            $1,
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3),
+                            0
+                        ) RETURNING target_entity_type_ontology_id;
                         "#,
                         &[
                             &ontology_id,
@@ -973,19 +981,20 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .copy_in(
                 "COPY entity_is_of_type (
                     entity_edition_id,
-                    entity_type_ontology_id
+                    entity_type_ontology_id,
+                    inheritance_depth
                 ) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
+        let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::INT4]);
 
         futures::pin_mut!(writer);
         for entity_edition_id in entity_edition_ids {
             writer
                 .as_mut()
-                .write(&[&entity_edition_id, &entity_type_ontology_id])
+                .write(&[&entity_edition_id, &entity_type_ontology_id, &0])
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
