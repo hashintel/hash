@@ -50,7 +50,7 @@
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "jest", "^jest-", "-jest$"]
+      "matchPackagePatterns": ["^jest$"]
     },
     {
       "enabled": true,
