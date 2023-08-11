@@ -38,7 +38,7 @@
         "^@typescript-eslint/",
         "^eslint-",
         "^eslint$"
-      ],
+      ]
     },
     {
       "enabled": true,
@@ -50,7 +50,7 @@
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "jest", "^jest-", "-jest$"],
+      "matchPackagePatterns": ["^@types/jest$", "jest", "^jest-", "-jest$"]
     },
     {
       "enabled": true,
@@ -62,13 +62,13 @@
       "enabled": true,
       "groupName": "Playwright",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
     },
     {
       "enabled": true,
       "groupName": "Prettier",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier"],
+      "matchPackagePatterns": ["^prettier"]
     },
     {
       "enabled": true,
