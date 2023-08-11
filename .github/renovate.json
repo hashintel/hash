@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "addLabels": ["area: deps"],
   "branchPrefix": "deps/",
   "automerge": true,
   "dependencyDashboard": true,
@@ -40,7 +39,6 @@
         "^eslint-",
         "^eslint$"
       ],
-      "addLabels": "category: entropy"
     },
     {
       "enabled": true,
@@ -53,7 +51,6 @@
       "groupName": "Jest",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@types/jest$", "jest", "^jest-", "-jest$"],
-      "addLabels": "area: tests"
     },
     {
       "enabled": true,
@@ -66,14 +63,12 @@
       "groupName": "Playwright",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"],
-      "addLabels": ["area: tests", "area: tests > playwright"]
     },
     {
       "enabled": true,
       "groupName": "Prettier",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier"],
-      "addLabels": "category: entropy"
     },
     {
       "enabled": true,
