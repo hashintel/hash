@@ -20,7 +20,7 @@ export type InsertTypeFieldProps<T extends TypeSelectorType> = {
   inputRef: Ref<HTMLInputElement | null>;
   onCancel: () => void;
   onAdd: (option: T) => void;
-  variant: "property" | "link";
+  variant: "entityType" | "property" | "link";
   createModalPopupState?: PopupState;
   searchText: string;
   onSearchTextChange: Dispatch<SetStateAction<string>>;
@@ -127,7 +127,12 @@ export const InsertTypeField = <T extends TypeSelectorType>({
                     },
                   }
                 : null,
-              variant: variant === "property" ? "propertyType" : "linkType",
+              variant:
+                variant === "property"
+                  ? "propertyType"
+                  : variant === "link"
+                  ? "linkType"
+                  : "entityType",
             }}
             variant={variant}
           />

@@ -1,4 +1,6 @@
 /* eslint-disable import/first */
+import { InheritanceRow } from "./entity-type-editor/inheritance-row";
+
 require("setimmediate");
 
 import { EntityType, PropertyType } from "@blockprotocol/graph";
@@ -39,7 +41,7 @@ export type EntityTypeEditorProps = {
   customization?: CustomizationOptions;
   // the entity type being edited
   entityType: EntityType;
-  // The entity types available for constraining the destination of a link, INCLUDING those used on this entity
+  // The entity types available for (a) extending or (b) constraining the destination of a link, INCLUDING those used on this entity
   entityTypeOptions: Record<VersionedUrl, EntityType>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
   propertyTypeOptions: Record<VersionedUrl, PropertyType>;
@@ -69,6 +71,13 @@ export const EntityTypeEditor = ({
                 propertyTypeOptions={propertyTypeOptions}
               >
                 <Stack spacing={6.5} className={fluidFontClassName}>
+                  <Box>
+                    <Typography variant="h5" mb={2}>
+                      Extends
+                    </Typography>
+                    <InheritanceRow />
+                  </Box>
+
                   <Box>
                     <Typography variant="h5" mb={2}>
                       Properties of{" "}

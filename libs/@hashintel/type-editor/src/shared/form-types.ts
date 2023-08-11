@@ -16,10 +16,8 @@ export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
   entityTypes: VersionedUrl[];
 };
 
-export type EntityTypeInheritanceData = VersionedUrl[];
-
 export type EntityTypeEditorFormData = {
-  allOf: EntityTypeInheritanceData;
+  allOf: VersionedUrl[];
   description: string;
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
