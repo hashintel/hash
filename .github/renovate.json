@@ -28,8 +28,7 @@
         "blockprotocol",
         "create-block-app",
         "mock-block-dock"
-      ],
-      "addLabels": "area: blocks"
+      ]
     },
     {
       "enabled": true,
