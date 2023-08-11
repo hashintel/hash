@@ -80,7 +80,7 @@
       "enabled": true,
       "groupName": "ProseMirror",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror$", "^prosemirror-"]
+      "matchPackagePatterns": ["^prosemirror$"]
     },
     {
       "enabled": true,
