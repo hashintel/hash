@@ -2,8 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "branchPrefix": "deps/",
   "automerge": true,
+  "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
@@ -11,6 +11,8 @@
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
+  "updateInternalDeps": "true",
+  
   "packageRules": [
     {
       "matchManagers": ["npm"],
