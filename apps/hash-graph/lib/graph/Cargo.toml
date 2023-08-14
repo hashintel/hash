@@ -12,7 +12,7 @@ error-stack = { workspace = true }
 hash-status = { workspace = true }
 type-system = { workspace = true }
 
-async-trait = "0.1.71"
+async-trait = "0.1.73"
 axum = "0.6.19"
 bb8-postgres = "0.8.1"
 bytes = "1.4.0"
