@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
@@ -250,11 +250,21 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.property_types =
                 Read::<PropertyTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|property_type| (property_type.vertex_id(time_axis), property_type))
+                    .filter_map(|property_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(property_type.vertex_id(time_axis))
+                            .then(|| (property_type.vertex_id(time_axis), property_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.property_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());

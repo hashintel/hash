@@ -1,4 +1,8 @@
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -13,12 +17,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";

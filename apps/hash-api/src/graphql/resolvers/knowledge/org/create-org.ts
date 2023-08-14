@@ -30,7 +30,6 @@ export const createOrgResolver: ResolverFn<
   await joinOrg(context, {
     actorId: user.accountId,
     orgEntityId: org.entity.metadata.recordId.entityId,
-    responsibility: "Owner",
     userEntityId: user.entity.metadata.recordId.entityId,
   });
 

@@ -15,7 +15,6 @@ import {
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-  overflowY: "auto",
   flexGrow: 1,
   marginLeft: "auto",
   marginRight: "auto",
@@ -28,12 +27,13 @@ const Main = styled("main")(({ theme }) => ({
 export type LayoutWithSidebarProps = {
   children?: ReactNode;
   fullWidth?: boolean;
+  grayBackground?: boolean;
 };
 
 export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   children,
-
-  fullWidth,
+  fullWidth = false,
+  grayBackground = true,
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const isReadonlyMode = useIsReadonlyModeForApp();
@@ -86,18 +86,29 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             </Tooltip>
           </Fade>
 
-          <Main
-            sx={({ spacing }) => ({
-              ...(!fullWidth && {
-                padding: spacing(7, 10),
-              }),
+          <Box
+            sx={({ palette }) => ({
+              backgroundColor: grayBackground
+                ? palette.gray[10]
+                : palette.common.white,
+              minHeight: "100%",
               overflowY: "scroll",
             })}
-            ref={setMain}
           >
-            {/* Enables EditBar to make the page scroll as it animates in */}
-            <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>
-          </Main>
+            <Main
+              sx={({ spacing }) => ({
+                ...(!fullWidth && {
+                  padding: spacing(7, 10),
+                  margin: "0 auto",
+                  maxWidth: 820,
+                }),
+              })}
+              ref={setMain}
+            >
+              {/* Enables EditBar to make the page scroll as it animates in */}
+              <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>
+            </Main>
+          </Box>
         </Box>
       </Box>
     </LayoutWithHeader>

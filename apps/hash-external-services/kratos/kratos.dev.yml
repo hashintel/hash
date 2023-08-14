@@ -87,7 +87,7 @@ selfservice:
 
     settings:
       # Set through SELFSERVICE_FLOWS_SETTINGS_UI_URL
-      ui_url: http://localhost:3000/settings
+      ui_url: http://localhost:3000/change-password
 
 log:
   level: debug

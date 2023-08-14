@@ -320,7 +320,7 @@ pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
-use location::LocationDisplay;
+use location::LocationAttachment;
 
 use crate::{
     fmt::{
@@ -864,7 +864,7 @@ fn debug_attachments_invoke<'a>(
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
                 .map(|location| {
-                    vec![LocationDisplay::new(location, config.color_mode()).to_string()]
+                    vec![LocationAttachment::new(location, config.color_mode()).to_string()]
                 }),
         })
         .flat_map(|body| {

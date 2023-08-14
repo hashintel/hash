@@ -44,7 +44,7 @@ QueryToken: TypeAlias = (
     | float
 )
 
-__all__ = ["GraphClient", "models"]
+__all__ = ["GraphClient", "QueryToken", "models"]
 
 
 async def _send_request(

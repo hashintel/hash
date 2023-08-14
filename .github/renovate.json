@@ -129,7 +129,7 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
-      "commitMessageExtra": "to nightly-{{newVersion}}"
+      "commitMessageExtra": "to nightly-{{newVersion}}",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"]
     },

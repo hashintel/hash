@@ -54,8 +54,8 @@ export const linearWebhook: RequestHandler<{}, string, string> = async (
   }
 
   if (
-    tupleIncludes(["create", "update"] as const, payload.action) &&
-    tupleIncludes(["Issue", "User"] as const, payload.type)
+    tupleIncludes(["create", "update"], payload.action) &&
+    tupleIncludes(["Issue", "User"], payload.type)
   ) {
     if (!payload.data) {
       res

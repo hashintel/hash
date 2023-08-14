@@ -71,6 +71,15 @@ module.exports = withSentryConfig(
     withTM(
       /** @type {import('next').NextConfig} */
       {
+        redirects() {
+          return [
+            {
+              source: "/settings/organizations/:shortname",
+              destination: "/settings/organizations/:shortname/general",
+              permanent: true,
+            },
+          ];
+        },
         async headers() {
           return [
             {

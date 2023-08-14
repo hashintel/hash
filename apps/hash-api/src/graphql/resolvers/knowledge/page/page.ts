@@ -79,13 +79,14 @@ export const pagesResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPagesArgs
-> = async (_, { ownedById }, { dataSources, user }) => {
+> = async (_, { ownedById, includeArchived }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const accountId = ownedById ?? user.accountId;
 
   const pages = await getAllPagesInWorkspace(context, {
     accountId,
+    includeArchived: includeArchived ?? false,
   });
 
   return pages.map(mapPageToGQL);
