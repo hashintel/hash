@@ -122,7 +122,7 @@
     },
     {
       "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`",
+      "commitMessageTopic": "Rust crate `{{depName}}`"
     },
     {
       "matchManagers": ["regex"],
