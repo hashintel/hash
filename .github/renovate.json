@@ -3,6 +3,7 @@
   "extends": ["config:base"],
 
   "automerge": true,
+  "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
@@ -10,7 +11,26 @@
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
+  "updateInternalDeps": "true",
+
   "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "commitMessageTopic": "npm package `{{depName}}`",
+      "additionalBranchPrefix": "js/"
+    },
+    {
+      "enabled": true,
+      "groupName": "Block Protocol",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@blockprotocol/",
+        "^block-",
+        "^blockprotocol$",
+        "^create-block-app$",
+        "^mock-block-dock$"
+      ]
+    },
     {
       "enabled": true,
       "groupName": "ESLint",
@@ -19,32 +39,73 @@
         "^@types/eslint",
         "^@typescript-eslint/",
         "^eslint-",
-        "^eslint$"
+        "eslint$"
       ]
+    },
+    {
+      "enabled": true,
+      "groupName": "GraphQL",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+      "matchPackagePatterns": ["^jest-", "jest$"]
+    },
+    {
+      "enabled": true,
+      "groupName": "OpenTelemetry",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
       "enabled": true,
       "groupName": "Playwright",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Prettier",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prettier", "prettier$"]
     },
     {
       "enabled": true,
       "groupName": "ProseMirror",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror-"]
+      "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
     },
     {
       "enabled": true,
       "groupName": "Sentry",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Signia",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@signia/"]
+    },
+    {
+      "matchManagers": ["poetry"],
+      "commitMessageTopic": "Python package `{{depName}}`",
+      "additionalBranchPrefix": "py/",
+      "reviewers": ["team:Python"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Pydantic",
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["^pydantic"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
     },
     {
       "matchManagers": ["cargo"],
@@ -56,7 +117,9 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
-      "commitMessageExtra": "to nightly-{{newVersion}}"
+      "commitMessageExtra": "to nightly-{{newVersion}}",
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
     },
     {
       "matchManagers": ["regex"],
