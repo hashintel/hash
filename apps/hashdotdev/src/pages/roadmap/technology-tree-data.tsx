@@ -576,7 +576,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Multi-Type Entities",
     body: "Allow a single entity to have more than one assigned type",
     parentIds: ["32"],
-    status: "future",
+    status: "in-progress",
     useCases: [
       "knowledge-management",
       "data-management",
