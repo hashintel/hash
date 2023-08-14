@@ -90,6 +90,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
         ref={topRef}
       >
         <OrgForm
+          key={org.entityRecordId.entityId}
           org={org}
           onSubmit={updateOrg}
           submitLabel="Update organization profile"
