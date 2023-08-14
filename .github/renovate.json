@@ -2,16 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
+  "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
-  "updateInternalDeps": "true",
 
   "packageRules": [
     {
@@ -21,7 +20,7 @@
     },
     {
       "enabled": true,
-      "groupName": "Block Protocol",
+      "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
         "^@blockprotocol/",
@@ -33,60 +32,65 @@
     },
     {
       "enabled": true,
-      "groupName": "ESLint",
+      "groupName": "ESLint npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
         "^@types/eslint",
         "^@typescript-eslint/",
         "^eslint-",
         "eslint$"
-      ]
+      ],
+      "automerge": true
     },
     {
       "enabled": true,
-      "groupName": "GraphQL",
+      "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
       "enabled": true,
-      "groupName": "Jest",
+      "groupName": "Jest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^jest-", "jest$"]
+      "matchPackagePatterns": ["^jest-", "jest$"],
+      "automerge": true
     },
     {
       "enabled": true,
-      "groupName": "OpenTelemetry",
+      "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
       "enabled": true,
-      "groupName": "Playwright",
+      "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"]
+      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
+      "automerge": true
     },
     {
       "enabled": true,
-      "groupName": "Prettier",
+      "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier", "prettier$"]
+      "matchPackagePatterns": ["^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true
     },
     {
       "enabled": true,
-      "groupName": "ProseMirror",
+      "groupName": "ProseMirror npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
     },
     {
       "enabled": true,
-      "groupName": "Sentry",
+      "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
       "enabled": true,
-      "groupName": "Signia",
+      "groupName": "Signia npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@signia/"]
     },
@@ -98,9 +102,10 @@
     },
     {
       "enabled": true,
-      "groupName": "Pydantic",
+      "groupName": "Pydantic Python packages",
       "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["^pydantic"]
+      "matchPackagePatterns": ["^pydantic"],
+      "automerge": true
     },
     {
       "matchManagers": ["cargo"],
@@ -197,6 +202,26 @@
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    },
+    {
+      "enabled": true,
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
+    },
+    {
+      "enabled": true,
+      "extends": ["packages:linters", "packages:test"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
+    },
+    {
+      "enabled": true,
+      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
     }
   ]
 }
