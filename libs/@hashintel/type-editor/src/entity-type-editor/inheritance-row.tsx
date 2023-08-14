@@ -59,9 +59,8 @@ export const InheritanceRow = () => {
     >
       {chosenEntityTypes.length > 0 ? (
         chosenEntityTypes.map((type) => (
-          <Box mr={2}>
+          <Box key={type.$id} mr={2}>
             <TypeCard
-              key={type.$id}
               LinkComponent={Link}
               title={type.title}
               url={type.$id}
