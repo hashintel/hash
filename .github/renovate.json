@@ -104,9 +104,12 @@
     },
     {
       "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`",
     },
     {
       "matchManagers": ["regex"],
@@ -115,6 +118,8 @@
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
       "commitMessageExtra": "to nightly-{{newVersion}}"
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
     },
     {
       "matchManagers": ["regex"],
