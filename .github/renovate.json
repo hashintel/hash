@@ -12,7 +12,6 @@
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
-  "updateInternalDeps": "true",
 
   "lockFileMaintenance": {
     "enabled": true,
