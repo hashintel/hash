@@ -14,9 +14,34 @@
 
   "packageRules": [
     {
+      "enabled": true,
+      "extends": ["packages:linters", "packages:test"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
+    },
+    {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "commitMessageTopic": "Python package `{{depName}}`",
+      "additionalBranchPrefix": "py/",
+      "reviewers": ["team:Python"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
+    },
+    {
+      "enabled": true,
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
     },
     {
       "enabled": true,
@@ -95,22 +120,19 @@
       "matchPackagePatterns": ["^@signia/"]
     },
     {
-      "matchManagers": ["poetry"],
-      "commitMessageTopic": "Python package `{{depName}}`",
-      "additionalBranchPrefix": "py/",
-      "reviewers": ["team:Python"]
-    },
-    {
       "enabled": true,
       "groupName": "Pydantic Python packages",
       "matchManagers": ["poetry"],
       "matchPackagePatterns": ["^pydantic"],
-      "automerge": true
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
     },
     {
-      "matchManagers": ["cargo"],
-      "additionalBranchPrefix": "rs/",
-      "reviewers": ["team:Rust"]
+      "enabled": true,
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "automerge": true,
+      "schedule": ["before 4am every weekday", "every weekend"]
     },
     {
       "matchManagers": ["cargo"],
@@ -202,26 +224,6 @@
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
-    },
-    {
-      "enabled": true,
-      "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
-      "excludePackageNames": ["prettier-plugin-sql"],
-      "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
-    },
-    {
-      "enabled": true,
-      "extends": ["packages:linters", "packages:test"],
-      "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
-    },
-    {
-      "enabled": true,
-      "matchPackagePatterns": ["mypy", "ruff", "black"],
-      "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
     }
   ]
 }
