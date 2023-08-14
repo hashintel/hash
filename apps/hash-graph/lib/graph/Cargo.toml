@@ -6,10 +6,11 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-hash-status = { path = "../../../../libs/@local/status/crate" }
 type-fetcher = { path = "../type-fetcher" }
 
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+error-stack = { workspace = true }
+hash-status = { workspace = true }
+type-system = { workspace = true }
 
 async-trait = "0.1.71"
 axum = "0.6.19"
@@ -17,7 +18,6 @@ bb8-postgres = "0.8.1"
 bytes = "1.4.0"
 clap = { version = "4.3.16", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
-error-stack = { version = "0.3.1", features = ["spantrace"] }
 futures = "0.3.28"
 hyper = "0.14.27"
 include_dir = "0.7.3"

@@ -13,6 +13,11 @@ license-file = "LICENSE.md"
 publish = false
 repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph"
 
+[workspace.dependencies]
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+hash-status = { path = "../../libs/@local/status/crate" }
+error-stack = { version = "0.3.1", features = ["spantrace"] }
+
 [profile.production]
 inherits = "release"
 lto = "fat"
