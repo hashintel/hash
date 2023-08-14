@@ -13,7 +13,7 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "updateInternalDeps": "true",
-  
+
   "lockFileMaintenance": {
     "enabled": true,
     "automerge": true
@@ -22,7 +22,7 @@
     "before 4am every weekday",
     "every weekend"
   ],
-  
+
   "packageRules": [
     {
       "matchManagers": ["npm"],
