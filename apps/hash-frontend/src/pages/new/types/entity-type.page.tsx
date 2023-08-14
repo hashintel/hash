@@ -121,7 +121,6 @@ const Page: NextPageWithLayout = () => {
           crumbs={[
             {
               title: "Types",
-              href: "#",
               id: "types",
             },
             {

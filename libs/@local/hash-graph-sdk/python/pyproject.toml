@@ -11,14 +11,19 @@ packages = [{ include = "graph_sdk" }]
 python = "^3.11"
 
 pydantic = "^2.1.1"
+yarl = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.0.0"
+devtools = "^0.11.0"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.3"
 ruff = "^0.0.275"
 mypy = "^1.4"
+
+hash-graph-client = { path = "../../hash-graph-client/python", develop = true }
+hash-graph-types = { path = "../../hash-graph-types", develop = true }
 
 
 [tool.black]

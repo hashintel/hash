@@ -13,7 +13,7 @@ use crate::{Context, Report};
 ///
 /// `Result` can also be used in `fn main()`:
 ///
-/// ```
+/// ```rust
 /// # fn has_permission(_: usize, _: usize) -> bool { true }
 /// # fn get_user() -> Result<usize, AccessError> { Ok(0) }
 /// # fn get_resource() -> Result<usize, AccessError> { Ok(0) }
@@ -43,22 +43,26 @@ pub type Result<T, C> = core::result::Result<T, Report<C>>;
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
 pub trait ResultExt {
+    /// The [`Context`] type of the [`Result`].
+    type Context: Context;
+
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
     /// Adds a new attachment to the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
-    #[must_use]
-    fn attach<A>(self, attachment: A) -> Self
+    fn attach<A>(self, attachment: A) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
         A: Send + Sync + 'static;
 
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
-    #[must_use]
-    fn attach_lazy<A, F>(self, attachment: F) -> Self
+    fn attach_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -67,8 +71,10 @@ pub trait ResultExt {
     ///
     /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
     /// information.
-    #[must_use]
-    fn attach_printable<A>(self, attachment: A) -> Self
+    fn attach_printable<A>(
+        self,
+        attachment: A,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
@@ -76,8 +82,10 @@ pub trait ResultExt {
     ///
     /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
     /// information.
-    #[must_use]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
+    fn attach_printable_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A;
@@ -85,20 +93,101 @@ pub trait ResultExt {
     /// Changes the context of the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
-    fn change_context<C>(self, context: C) -> Result<Self::Ok, C>
+    fn change_context<C>(self, context: C) -> core::result::Result<Self::Ok, Report<C>>
     where
         C: Context;
 
     /// Lazily changes the context of the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
-    fn change_context_lazy<C, F>(self, context: F) -> Result<Self::Ok, C>
+    fn change_context_lazy<C, F>(self, context: F) -> core::result::Result<Self::Ok, Report<C>>
     where
         C: Context,
         F: FnOnce() -> C;
 }
 
-impl<T, C> ResultExt for Result<T, C> {
+impl<T, C> ResultExt for core::result::Result<T, C>
+where
+    C: Context,
+{
+    type Context = C;
+    type Ok = T;
+
+    #[track_caller]
+    fn attach<A>(self, attachment: A) -> Result<T, C>
+    where
+        A: Send + Sync + 'static,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).attach(attachment)),
+        }
+    }
+
+    #[track_caller]
+    fn attach_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    where
+        A: Send + Sync + 'static,
+        F: FnOnce() -> A,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).attach(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable<A>(self, attachment: A) -> Result<T, C>
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).attach_printable(attachment)),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> A,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).attach_printable(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn change_context<C2>(self, context: C2) -> Result<T, C2>
+    where
+        C2: Context,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).change_context(context)),
+        }
+    }
+
+    #[track_caller]
+    fn change_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
+    where
+        C2: Context,
+        F: FnOnce() -> C2,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(Report::from(error).change_context(context())),
+        }
+    }
+}
+
+impl<T, C> ResultExt for Result<T, C>
+where
+    C: Context,
+{
+    type Context = C;
     type Ok = T;
 
     #[track_caller]
@@ -178,6 +267,10 @@ impl<T, C> ResultExt for Result<T, C> {
 }
 
 /// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
+#[deprecated(
+    since = "0.4.0",
+    note = "Use `ReportExt` or `From` via `Result::map_err(Report::from)` instead"
+)]
 pub trait IntoReport: Sized {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
@@ -189,6 +282,7 @@ pub trait IntoReport: Sized {
     fn into_report(self) -> Result<Self::Ok, Self::Err>;
 }
 
+#[allow(deprecated)]
 impl<T, E> IntoReport for core::result::Result<T, E>
 where
     Report<E>: From<E>,

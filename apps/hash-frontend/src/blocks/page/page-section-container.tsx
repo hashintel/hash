@@ -8,11 +8,11 @@ export const PAGE_MIN_PADDING = 48;
 export const COMMENTS_WIDTH = 320;
 
 export const getPageSectionContainerStyles = (
-  pageComments: PageThread[],
+  pageComments?: PageThread[],
   readonlyMode?: boolean,
 ) => {
   const commentsContainerWidth =
-    !readonlyMode && pageComments.length
+    !readonlyMode && pageComments?.length
       ? COMMENTS_WIDTH + PAGE_MIN_PADDING
       : 0;
 

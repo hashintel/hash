@@ -43,9 +43,7 @@ pub(crate) struct Config {
 
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 impl Config {
-    // alternate is still provided, as it is used in the hook counterpart
-    #[allow(unused)]
-    pub(crate) const fn new(color_mode: ColorMode, charset: Charset, alternate: bool) -> Self {
+    pub(crate) const fn new(color_mode: ColorMode, charset: Charset, _alternate: bool) -> Self {
         Self {
             color_mode,
             charset,

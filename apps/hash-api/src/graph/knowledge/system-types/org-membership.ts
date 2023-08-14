@@ -1,6 +1,5 @@
 import {
   EntityId,
-  EntityPropertiesObject,
   extractEntityUuidFromEntityId,
   OwnedById,
   Uuid,
@@ -20,7 +19,6 @@ import { getOrgFromEntity, Org } from "./org";
 import { getUserFromEntity, User } from "./user";
 
 export type OrgMembership = {
-  responsibility: string;
   linkEntity: LinkEntity;
 };
 
@@ -39,12 +37,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
     );
   }
 
-  const responsibility = linkEntity.properties[
-    SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUrl
-  ] as string;
-
   return {
-    responsibility,
     linkEntity,
   };
 };
@@ -52,7 +45,6 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 /**
  * Create a system OrgMembership entity.
  *
- * @param params.responsibility - the role of the user at the organization
  * @param params.org - the org
  * @param params.user - the user
  *
@@ -67,23 +59,17 @@ export const createOrgMembership: ImpureGraphFunction<
     | "rightEntityId"
     | "ownedById"
   > & {
-    responsibility: string;
     orgEntityId: EntityId;
     userEntityId: EntityId;
   },
   Promise<OrgMembership>
-> = async (ctx, { userEntityId, orgEntityId, responsibility, actorId }) => {
-  const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.responsibility.metadata.recordId.baseUrl]:
-      responsibility,
-  };
-
+> = async (ctx, { userEntityId, orgEntityId, actorId }) => {
   const linkEntity = await createLinkEntity(ctx, {
     ownedById: extractEntityUuidFromEntityId(orgEntityId) as Uuid as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
     leftEntityId: userEntityId,
     rightEntityId: orgEntityId,
-    properties,
+    properties: {},
     actorId,
   });
 

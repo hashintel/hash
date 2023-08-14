@@ -79,8 +79,7 @@ pub mod __private {
 ///
 /// Create a [`Report`] from [`Error`]:
 ///
-/// ```
-/// # #[cfg(all(not(miri), feature = "std"))] {
+/// ```rust
 /// use std::fs;
 ///
 /// use error_stack::report;
@@ -91,12 +90,12 @@ pub mod __private {
 ///     Err(err) => return Err(report!(err)),
 /// }
 /// # Ok(()) }
-/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>()); }
+/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
 /// ```
 ///
 /// Create a [`Report`] from [`Context`]:
 ///
-/// ```
+/// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
 /// # type User = u32;
 /// # let user = 0;
@@ -147,7 +146,6 @@ macro_rules! report {
 /// [`Error`]: core::error::Error
 ///
 /// ```
-/// # #[cfg(all(not(miri), feature = "std"))] {
 /// use std::fs;
 ///
 /// use error_stack::bail;
@@ -157,14 +155,14 @@ macro_rules! report {
 ///     Err(err) => bail!(err),
 /// }
 /// # Ok(()) }
-/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>()); }
+/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
 /// ```
 ///
 /// Create a [`Report`] from [`Context`]:
 ///
 /// [`Context`]: crate::Context
 ///
-/// ```
+/// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
 /// # type User = u32;
 /// # let user = 0;
@@ -213,7 +211,7 @@ macro_rules! bail {
 /// [`Report`]: crate::Report
 /// [`Context`]: crate::Context
 ///
-/// ```
+/// ```rust
 /// # fn has_permission(_: &u32, _: &u32) -> bool { true }
 /// # type User = u32;
 /// # let user = 0;

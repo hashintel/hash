@@ -72,6 +72,7 @@ export const getInputProps = ({
           {
             borderColor: error ? palette.red[40] : palette.gray[30],
           },
+        [`&.${inputClasses.disabled}`]: { backgroundColor: palette.gray[20] },
         ...(multiline &&
           autoResize && {
             [`& .${outlinedInputClasses.input}`]: {

@@ -3,10 +3,13 @@ import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/red
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
+import {
+  fullDecisionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { fullDecisionTimeAxis, zeroedGraphResolveDepths } from "../graph";
 import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {

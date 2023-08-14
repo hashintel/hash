@@ -1,7 +1,7 @@
 error[E0599]: the method `into_report` exists for enum `Result<(), Report<RootError>>`, but its trait bounds were not satisfied
-  --> tests/ui/into_report.rs:22:20
+  --> tests/ui/into_report.rs:24:20
    |
-22 |     let _ = result.into_report();
+24 |     let _ = result.into_report();
    |                    ^^^^^^^^^^^ method cannot be called on `Result<(), Report<RootError>>` due to unsatisfied trait bounds
    |
   ::: $RUST/core/src/result.rs

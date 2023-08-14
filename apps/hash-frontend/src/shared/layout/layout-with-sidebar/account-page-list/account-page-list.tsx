@@ -82,7 +82,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     accountId as OwnedById,
   );
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
-  const [archivePage, { loading: archivePageLoading }] = useArchivePage();
+  const { archivePage, loading: archivePageLoading } = useArchivePage();
 
   const loading =
     pagesLoading ||
