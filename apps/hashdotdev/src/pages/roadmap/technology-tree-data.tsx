@@ -444,7 +444,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "29",
     heading: "Type Archival (Soft Deletion)",
     body: "Ability to hide outdated or redundant types in the UI",
-    parentIds: ["26"],
+    parentIds: ["17"],
     status: "in-progress",
     useCases: [
       "knowledge-management",
@@ -534,7 +534,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Authorization",
     body: "Basic permissions and attribute-based access control (ABAC)",
     parentIds: ["23", "27"],
-    status: "future",
+    status: "next-up",
     useCases: [
       "knowledge-management",
       "data-management",
