@@ -1075,6 +1075,15 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     ],
     variant: "feature",
   },
+  {
+    id: "81",
+    heading: "Rippling Integration",
+    body: "Two-way sync of information and actions with the Rippling platform",
+    parentIds: ["51"],
+    status: "future",
+    useCases: ["knowledge-management", "internal-tools-apps"],
+    variant: "feature",
+  },
   // {
   //   id: "80",
   //   heading: "Composite Blocks",
