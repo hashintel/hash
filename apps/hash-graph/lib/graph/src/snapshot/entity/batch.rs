@@ -162,8 +162,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     INSERT INTO entity_is_of_type
                         SELECT
                             entity_edition_id,
-                            ontology_ids_tmp.ontology_id AS entity_type_ontology_id,
-                            0 AS inheritance_depth
+                            ontology_ids_tmp.ontology_id AS entity_type_ontology_id
                         FROM entity_editions_tmp
                         INNER JOIN ontology_ids_tmp ON
                             ontology_ids_tmp.base_url = entity_editions_tmp.entity_type_base_url

@@ -77,7 +77,6 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<repr::EntityType>,
-    pub closed_schema: Json<repr::EntityType>,
     pub label_property: Option<String>,
 }
 
@@ -87,7 +86,6 @@ pub struct EntityTypeConstrainsPropertiesOnRow {
     pub source_entity_type_ontology_id: Uuid,
     pub target_property_type_base_url: String,
     pub target_property_type_version: OntologyTypeVersion,
-    pub inheritance_depth: i32,
 }
 
 #[derive(Debug, ToSql)]
@@ -96,7 +94,6 @@ pub struct EntityTypeInheritsFromRow {
     pub source_entity_type_ontology_id: Uuid,
     pub target_entity_type_base_url: String,
     pub target_entity_type_version: OntologyTypeVersion,
-    pub inheritance_depth: i32,
 }
 
 #[derive(Debug, ToSql)]
@@ -105,7 +102,6 @@ pub struct EntityTypeConstrainsLinksOnRow {
     pub source_entity_type_ontology_id: Uuid,
     pub target_entity_type_base_url: String,
     pub target_entity_type_version: OntologyTypeVersion,
-    pub inheritance_depth: i32,
 }
 
 #[derive(Debug, ToSql)]
@@ -114,5 +110,4 @@ pub struct EntityTypeConstrainsLinkDestinationsOnRow {
     pub source_entity_type_ontology_id: Uuid,
     pub target_entity_type_base_url: String,
     pub target_entity_type_version: OntologyTypeVersion,
-    pub inheritance_depth: i32,
 }
