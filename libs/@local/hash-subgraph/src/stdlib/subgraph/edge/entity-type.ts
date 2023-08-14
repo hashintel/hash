@@ -15,8 +15,9 @@ import { OntologyTypeVertexId, Subgraph } from "../../../main";
 export const getPropertyTypesReferencedByEntityType = (
   subgraph: Subgraph,
   entityTypeId: OntologyTypeVertexId | VersionedUrl,
-): OntologyTypeVertexId[] =>
-  getPropertyTypesReferencedByEntityTypeBp(
+): OntologyTypeVertexId[] => {
+  return getPropertyTypesReferencedByEntityTypeBp(
     subgraph as unknown as SubgraphBp,
     entityTypeId,
   ) as OntologyTypeVertexId[];
+};

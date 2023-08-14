@@ -65,6 +65,7 @@ export const TypeCard = ({
               unpadded
               onClick={(event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 onUpdateVersion?.();
               }}
               sx={{

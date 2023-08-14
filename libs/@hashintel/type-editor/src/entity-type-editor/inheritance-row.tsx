@@ -1,11 +1,9 @@
-import { extractVersion } from "@blockprotocol/graph";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   FontAwesomeIcon,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { TypeCard } from "@hashintel/design-system/src/type-card";
 import { Box, Stack } from "@mui/material";
 import { useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
@@ -13,8 +11,8 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
+import { InheritedTypeCard } from "./inheritance-row/inherited-type-card";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
-import { Link } from "./shared/link";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 
 export const InheritanceRow = () => {
@@ -25,19 +23,19 @@ export const InheritanceRow = () => {
 
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
 
-  const chosenEntityTypeIds = useWatch({
+  const directParentEntityTypeIds = useWatch({
     control,
     name: "allOf",
   });
 
   const { entityTypes } = useEntityTypesOptions();
   const entityTypesArray = Object.values(entityTypes);
-  const chosenEntityTypes = entityTypesArray.filter((type) =>
-    chosenEntityTypeIds.includes(type.$id),
+  const directParents = entityTypesArray.filter((type) =>
+    directParentEntityTypeIds.includes(type.$id),
   );
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    typesToExclude: chosenEntityTypes,
+    typesToExclude: directParents,
   });
 
   const isReadonly = useIsReadonly();
@@ -57,15 +55,10 @@ export const InheritanceRow = () => {
       alignItems="center"
       sx={{ height: TYPE_SELECTOR_HEIGHT }}
     >
-      {chosenEntityTypes.length > 0 ? (
-        chosenEntityTypes.map((type) => (
-          <Box key={type.$id} mr={2}>
-            <TypeCard
-              LinkComponent={Link}
-              title={type.title}
-              url={type.$id}
-              version={extractVersion(type.$id)}
-            />
+      {directParents.length > 0 ? (
+        directParents.map((type) => (
+          <Box key={type.$id} sx={{ mr: 2 }}>
+            <InheritedTypeCard entityType={type} />
           </Box>
         ))
       ) : (
@@ -93,7 +86,9 @@ export const InheritanceRow = () => {
           }}
           inputRef={selectorInputRef}
           onAdd={(value) => {
-            setValue("allOf", [...chosenEntityTypeIds, value.$id]);
+            setValue("allOf", [...directParentEntityTypeIds, value.$id], {
+              shouldDirty: true,
+            });
             setTypeSelectorSearchText("");
             setTypeSelectorOpen(false);
           }}

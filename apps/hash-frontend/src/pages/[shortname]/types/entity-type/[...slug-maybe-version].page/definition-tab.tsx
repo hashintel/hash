@@ -67,6 +67,10 @@ export const DefinitionTab = ({
     typesWithMetadata,
   );
 
+  if (!possiblyIncompletePropertyTypeOptions) {
+    return null;
+  }
+
   return (
     <EntityTypeEditor
       customization={{ onNavigateToType }}

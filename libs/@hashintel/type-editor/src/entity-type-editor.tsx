@@ -60,8 +60,6 @@ export const EntityTypeEditor = ({
   ontologyFunctions,
   readonly,
 }: EntityTypeEditorProps) => {
-  console.log({ entityType });
-
   return (
     <ThemeProvider theme={theme}>
       <ReadonlyContext.Provider value={readonly || !ontologyFunctions}>

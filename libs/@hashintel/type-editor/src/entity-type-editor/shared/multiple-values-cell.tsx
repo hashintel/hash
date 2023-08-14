@@ -54,7 +54,7 @@ const Frozen: FunctionComponent<
   return <>{frozenChildren}</>;
 };
 
-const MultipleValuesCellSummary = ({
+export const MultipleValuesCellSummary = ({
   show,
   infinity,
   max,
