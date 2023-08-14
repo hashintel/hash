@@ -2,7 +2,7 @@ import {
   SelectorAutocomplete,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
-import { AutocompleteProps, SxProps, Theme } from "@mui/material";
+import { SxProps, Theme } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { Ref, useRef, useState } from "react";
 
@@ -13,7 +13,6 @@ export type TypeSelectorType = {
 };
 
 export const TypeSelector = <T extends TypeSelectorType>({
-  autoFocus,
   searchText,
   onSearchTextChange,
   createModalPopupState,
@@ -25,7 +24,6 @@ export const TypeSelector = <T extends TypeSelectorType>({
   sx,
   variant,
 }: {
-  autoFocus?: boolean;
   searchText: string;
   onSearchTextChange: (searchText: string) => void;
   createModalPopupState?: PopupState;
@@ -42,7 +40,6 @@ export const TypeSelector = <T extends TypeSelectorType>({
 
   return (
     <SelectorAutocomplete
-      autoFocus={autoFocus}
       dropdownProps={dropdownProps}
       inputPlaceholder={`Search for a ${variant} type`}
       inputRef={inputRef}

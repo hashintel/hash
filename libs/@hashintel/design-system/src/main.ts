@@ -26,5 +26,6 @@ export * from "./skeleton";
 export * from "./submit-button-wrapper";
 export * from "./text-field";
 export * from "./theme";
+export * from "./type-card";
 export * from "./use-scroll-lock";
 export * from "./white-card";

@@ -224,6 +224,8 @@ export const SelectorAutocomplete = <
                   [`.${outlinedInputClasses.notchedOutline}`]: {
                     border: `1px solid ${theme.palette.gray[30]} !important`,
                   },
+
+                  padding: 0,
                 }),
                 ...(open
                   ? [

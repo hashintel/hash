@@ -7,6 +7,7 @@ import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
+import { ElementType } from "react";
 
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";

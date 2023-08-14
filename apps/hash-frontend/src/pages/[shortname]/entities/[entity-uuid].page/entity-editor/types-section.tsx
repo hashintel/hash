@@ -1,4 +1,5 @@
 import { extractVersion } from "@blockprotocol/type-system";
+import { TypeCard } from "@hashintel/design-system";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
@@ -12,7 +13,6 @@ import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hook
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
-import { TypeCard } from "./types-section/type-card";
 
 export const TypesSection = () => {
   const { entitySubgraph, refetch, readonly } = useEntityEditor();

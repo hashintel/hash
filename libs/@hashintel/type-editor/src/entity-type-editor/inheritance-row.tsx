@@ -1,6 +1,12 @@
-import { Button } from "@hashintel/design-system";
-import { Box, Collapse, Stack } from "@mui/material";
-import { bindTrigger } from "material-ui-popup-state/hooks";
+import { extractVersion } from "@blockprotocol/graph";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import {
+  Button,
+  FontAwesomeIcon,
+  TYPE_SELECTOR_HEIGHT,
+} from "@hashintel/design-system";
+import { TypeCard } from "@hashintel/design-system/src/type-card";
+import { Box, Stack } from "@mui/material";
 import { useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -8,9 +14,8 @@ import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
-import { InsertTypeField } from "./shared/insert-type-field";
+import { Link } from "./shared/link";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { withHandler } from "./shared/with-handler";
 
 export const InheritanceRow = () => {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
@@ -32,11 +37,7 @@ export const InheritanceRow = () => {
   );
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    /**
-     * we pass the selected values to MUI, and can let it identify which are already selected
-     * – it matches values to options by the provided 'isOptionEqualToValue' function
-     */
-    typesToExclude: [],
+    typesToExclude: chosenEntityTypes,
   });
 
   const isReadonly = useIsReadonly();
@@ -51,20 +52,41 @@ export const InheritanceRow = () => {
   };
 
   return (
-    <Stack direction="row">
-      <Box>
-        {chosenEntityTypes.map((type) => (
-          <Box key={type.$id}>{type.title}</Box>
-        ))}
-      </Box>
-      {!isReadonly && (
-        <Button onClick={() => setSelectorVisibility(!typeSelectorOpen)}>
-          {typeSelectorOpen ? "Cancel" : "Add"}
-        </Button>
+    <Stack
+      direction="row"
+      alignItems="center"
+      sx={{ height: TYPE_SELECTOR_HEIGHT }}
+    >
+      {chosenEntityTypes.length > 0 ? (
+        chosenEntityTypes.map((type) => (
+          <Box mr={2}>
+            <TypeCard
+              key={type.$id}
+              LinkComponent={Link}
+              title={type.title}
+              url={type.$id}
+              version={extractVersion(type.$id)}
+            />
+          </Box>
+        ))
+      ) : (
+        <Box
+          sx={({ palette }) => ({
+            background: palette.gray[20],
+            border: `1px solid ${palette.gray[30]}`,
+            borderRadius: 1.5,
+            color: palette.gray[80],
+            fontSize: "var(--step--1)",
+            px: 2,
+            py: 1,
+            mr: 2,
+          })}
+        >
+          No other types yet
+        </Box>
       )}
-      <Collapse in={typeSelectorOpen} orientation="horizontal">
+      {isReadonly ? null : typeSelectorOpen ? (
         <TypeSelector
-          autoFocus
           dropdownProps={{
             query: typeSelectorSearchText,
             createButtonProps: null,
@@ -83,7 +105,25 @@ export const InheritanceRow = () => {
           sx={{ width: 500 }}
           variant="entityType"
         />
-      </Collapse>
+      ) : (
+        <Button
+          onClick={() => setSelectorVisibility(!typeSelectorOpen)}
+          size="xs"
+          variant="secondary_quiet"
+        >
+          ADD TYPE{" "}
+          <FontAwesomeIcon
+            icon={faPlus}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              fontSize: "var(--step--3)",
+              ml: 0.7,
+              mb: 0.1,
+            }}
+          />
+        </Button>
+      )}
     </Stack>
   );
 };
