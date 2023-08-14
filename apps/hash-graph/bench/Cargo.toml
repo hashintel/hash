@@ -21,7 +21,7 @@ serde = { version = "1.0.171", features = ["derive"] }
 serde_json = "1.0.103"
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.8", default-features = false }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+type-system = { workspace = true }
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
 
 [[bench]]
