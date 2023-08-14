@@ -12,7 +12,7 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "updateInternalDeps": "true",
-  
+
   "packageRules": [
     {
       "matchManagers": ["npm"],
