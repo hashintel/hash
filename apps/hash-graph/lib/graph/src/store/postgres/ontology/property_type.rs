@@ -83,6 +83,7 @@ impl<C: AsClient> PostgresStore<C> {
                     self.read_ontology_edges::<PropertyTypeVertexId, DataTypeVertexId>(
                         traversal_data,
                         ReferenceTable::PropertyTypeConstrainsValuesOn,
+                        None,
                     )
                     .await?
                     .flat_map(|edge| {
@@ -109,6 +110,7 @@ impl<C: AsClient> PostgresStore<C> {
                     self.read_ontology_edges::<PropertyTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
                         ReferenceTable::PropertyTypeConstrainsPropertiesOn,
+                        None,
                     )
                     .await?
                     .flat_map(|edge| {

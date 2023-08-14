@@ -40,6 +40,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
                 direction: EdgeDirection::Outgoing,
+                inheritance_depth: None,
             })
             .chain(path.relations())
             .collect(),
@@ -50,6 +51,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeInheritsFrom,
                 direction: *direction,
+                inheritance_depth: Some(0),
             })
             .chain(path.relations())
             .collect(),
@@ -60,6 +62,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinksOn,
                 direction: *direction,
+                inheritance_depth: Some(0),
             })
             .chain(path.relations())
             .collect(),
@@ -70,6 +73,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
                 direction: *direction,
+                inheritance_depth: Some(0),
             })
             .chain(path.relations())
             .collect(),
@@ -79,6 +83,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityIsOfType,
                 direction: EdgeDirection::Incoming,
+                inheritance_depth: Some(0),
             })
             .chain(path.relations())
             .collect(),

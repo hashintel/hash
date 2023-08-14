@@ -125,22 +125,24 @@ impl<C: AsClient> PostgresStore<C> {
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(self.read_shared_edges(&traversal_data).await?.flat_map(
-                    |edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+                entity_type_queue.extend(
+                    self.read_shared_edges(&traversal_data, Some(0))
+                        .await?
+                        .flat_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                SharedEdgeKind::IsOfType,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
 
-                        traversal_context.add_entity_type_id(
-                            edge.right_endpoint_ontology_id,
-                            edge.resolve_depths,
-                            edge.traversal_interval,
-                        )
-                    },
-                ));
+                            traversal_context.add_entity_type_id(
+                                edge.right_endpoint_ontology_id,
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                        }),
+                );
             }
 
             for (edge_kind, edge_direction, table) in entity_edges {

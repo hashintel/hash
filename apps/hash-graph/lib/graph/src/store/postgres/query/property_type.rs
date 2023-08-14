@@ -36,6 +36,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsValuesOn,
                 direction: EdgeDirection::Outgoing,
+                inheritance_depth: None,
             })
             .chain(path.relations())
             .collect(),
@@ -46,6 +47,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsPropertiesOn,
                 direction: *direction,
+                inheritance_depth: None,
             })
             .chain(path.relations())
             .collect(),
@@ -55,6 +57,7 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
                 direction: EdgeDirection::Incoming,
+                inheritance_depth: Some(0),
             })
             .chain(path.relations())
             .collect(),

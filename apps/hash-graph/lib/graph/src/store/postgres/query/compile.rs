@@ -570,7 +570,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         }
 
         for relation in path.relations() {
-            for foreign_key_reference in relation.joins() {
+            let foreign_key_join = relation.joins();
+            for foreign_key_reference in foreign_key_join {
                 let mut join_expression = JoinExpression::from_foreign_key(
                     foreign_key_reference,
                     current_table.alias,
@@ -624,6 +625,10 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = join_expression.table;
                     self.statement.joins.push(join_expression);
+
+                    for condition in relation.additional_conditions(current_table) {
+                        self.statement.where_expression.add_condition(condition);
+                    }
 
                     if current_table.table == Table::EntityTemporalMetadata {
                         self.pin_entity_table(current_table.alias);

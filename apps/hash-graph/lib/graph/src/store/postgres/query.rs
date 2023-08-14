@@ -18,8 +18,8 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
-        SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, Constant, Expression, Function, JoinExpression, OrderByExpression,
+        Ordering, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
     table::{Alias, AliasedColumn, AliasedTable, ForeignKeyReference, ReferenceTable, Table},

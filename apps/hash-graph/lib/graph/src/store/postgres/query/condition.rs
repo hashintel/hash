@@ -1,6 +1,6 @@
 use std::{fmt, fmt::Write};
 
-use crate::store::postgres::query::{Expression, Transpile};
+use crate::store::postgres::query::{Constant, Expression, Transpile};
 
 /// A [`Filter`], which can be transpiled.
 ///
@@ -18,6 +18,15 @@ pub enum Condition {
     StartsWith(Expression, Expression),
     EndsWith(Expression, Expression),
     ContainsSegment(Expression, Expression),
+}
+
+impl Condition {
+    pub const fn inheritance_depth(depth: u8) -> Self {
+        Self::Equal(
+            Some(Expression::Constant(Constant::String("inheritance_depth"))),
+            Some(Expression::Constant(Constant::Integer(depth))),
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

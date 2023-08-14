@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -476,6 +476,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
+        depth: Option<u8>,
     ) -> Result<impl Iterator<Item = OntologyEdgeTraversal<L, R>> + 'r, QueryError>
     where
         L: From<VersionedUrl>,
@@ -494,6 +495,10 @@ impl<C: AsClient> PostgresStore<C> {
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
+
+        let where_statement = depth.map_or(Cow::Borrowed(""), |depth| {
+            Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
+        });
 
         Ok(self
             .client
@@ -518,7 +523,9 @@ impl<C: AsClient> PostgresStore<C> {
                           ON filter.id = source.ontology_id
 
                         JOIN ontology_ids as target
-                          ON {target} = target.ontology_id;
+                          ON {target} = target.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[&record_ids.ontology_ids],
