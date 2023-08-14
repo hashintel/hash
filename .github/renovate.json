@@ -12,6 +12,11 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "updateInternalDeps": "true",
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
   
   "packageRules": [
     {
