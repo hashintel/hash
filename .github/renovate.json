@@ -40,7 +40,8 @@
         "^@typescript-eslint/",
         "^eslint-",
         "eslint$"
-      ]
+      ],
+      "automerge": true
     },
     {
       "enabled": true,
@@ -72,7 +73,9 @@
       "enabled": true,
       "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier", "prettier$"]
+      "matchPackagePatterns": ["^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true
     },
     {
       "enabled": true,
@@ -202,6 +205,7 @@
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     },
     {
+      "enabled": true,
       "matchDepTypes": ["devDependencies"],
       "matchPackagePatterns": [
         "^jest-",
@@ -209,6 +213,7 @@
         "^prettier",
         "prettier$"
       ],
+      "excludePackageNames": ["prettier-plugin-sql"],
       "automerge": true,
       "schedule": [
         "before 4am every weekday",
@@ -216,6 +221,7 @@
       ]
     },
     {
+      "enabled": true,
       "extends": [
         "packages:linters",
         "packages:test"
