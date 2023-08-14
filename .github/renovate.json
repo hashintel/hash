@@ -13,11 +13,6 @@
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
 
-  "automergeSchedule": [
-    "before 4am every weekday",
-    "every weekend"
-  ],
-
   "packageRules": [
     {
       "matchManagers": ["npm"],
@@ -214,14 +209,22 @@
         "^prettier",
         "prettier$"
       ],
-      "automerge": true
+      "automerge": true,
+      "schedule": [
+        "before 4am every weekday",
+        "every weekend"
+      ]
     },
     {
       "extends": [
         "packages:linters",
         "packages:test"
       ],
-      "automerge": true
+      "automerge": true,
+      "schedule": [
+        "before 4am every weekday",
+        "every weekend"
+      ]
     }
   ]
 }
