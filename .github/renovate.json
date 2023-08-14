@@ -17,6 +17,10 @@
     "enabled": true,
     "automerge": true
   },
+  "automergeSchedule": [
+    "before 4am every weekday",
+    "every weekend"
+  ],
   
   "packageRules": [
     {
