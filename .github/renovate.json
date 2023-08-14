@@ -61,7 +61,8 @@
       "enabled": true,
       "groupName": "Jest",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^jest-", "jest$"]
+      "matchPackagePatterns": ["^jest-", "jest$"],
+      "automerge": true
     },
     {
       "enabled": true,
@@ -73,7 +74,8 @@
       "enabled": true,
       "groupName": "Playwright",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"]
+      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
+      "automerge": true
     },
     {
       "enabled": true,
@@ -109,7 +111,8 @@
       "enabled": true,
       "groupName": "Pydantic",
       "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["^pydantic"]
+      "matchPackagePatterns": ["^pydantic"],
+      "automerge": true
     },
     {
       "matchManagers": ["cargo"],
@@ -206,6 +209,23 @@
       "packageNameTemplate": "rust-lang/rust-analyzer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$",
+        "^prettier",
+        "prettier$"
+      ],
+      "automerge": true
+    },
+    {
+      "extends": [
+        "packages:linters",
+        "packages:test"
+      ],
+      "automerge": true
     }
   ]
 }
