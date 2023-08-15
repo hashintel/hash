@@ -92,8 +92,6 @@ const addInheritedValuesForEntityType = (
   );
 };
 
-// Returns an
-
 export const useInheritedValues = (): InheritedValues => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
