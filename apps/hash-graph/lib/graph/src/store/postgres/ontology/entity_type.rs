@@ -87,7 +87,9 @@ impl<C: AsClient> PostgresStore<C> {
                 property_type_queue.extend(
                     self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
-                        ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                        ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                            inheritance_depth: 0,
+                        },
                     )
                     .await?
                     .flat_map(|edge| {
@@ -110,15 +112,21 @@ impl<C: AsClient> PostgresStore<C> {
             for (edge_kind, table) in [
                 (
                     OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::EntityTypeInheritsFrom,
+                    ReferenceTable::EntityTypeInheritsFrom {
+                        inheritance_depth: 0,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    ReferenceTable::EntityTypeConstrainsLinksOn,
+                    ReferenceTable::EntityTypeConstrainsLinksOn {
+                        inheritance_depth: 0,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
+                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                        inheritance_depth: 0,
+                    },
                 ),
             ] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {

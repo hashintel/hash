@@ -53,7 +53,9 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
             } => once(Relation::Reference {
-                table: ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                table: ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                    inheritance_depth: 0,
+                },
                 direction: EdgeDirection::Incoming,
             })
             .chain(path.relations())

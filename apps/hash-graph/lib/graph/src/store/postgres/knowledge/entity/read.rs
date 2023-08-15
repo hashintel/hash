@@ -1,4 +1,4 @@
-use std::{mem::swap, str::FromStr};
+use std::{borrow::Cow, mem::swap, str::FromStr};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -264,10 +264,22 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn read_shared_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
+        depth: u8,
     ) -> Result<impl Iterator<Item = SharedEdgeTraversal> + 't, QueryError> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
+        };
+
+        let (table, where_statement) = if depth > 0 {
+            (
+                "closed_entity_is_of_type",
+                Cow::Owned(format!(
+                    "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
+                )),
+            )
+        } else {
+            ("entity_is_of_type", Cow::Borrowed(""))
         };
 
         Ok(self
@@ -292,11 +304,13 @@ impl<C: AsClient> PostgresStore<C> {
                          AND source.owned_by_id = filter.owned_by_id
                          AND source.entity_uuid = filter.entity_uuid
 
-                        JOIN entity_is_of_type
-                          ON source.entity_edition_id = entity_is_of_type.entity_edition_id
+                        JOIN {table}
+                          ON source.entity_edition_id = {table}.entity_edition_id
 
                         JOIN ontology_ids
-                          ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id;
+                          ON {table}.entity_type_ontology_id = ontology_ids.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[
