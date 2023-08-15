@@ -117,11 +117,14 @@ export const TypeCard = ({
         {onDelete && (
           <Collapse in={hovered} orientation="horizontal">
             <IconButton
-              onClick={onDelete}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onDelete();
+              }}
               sx={{ "&:hover": { background: "none" }, padding: 0 }}
             >
               <CloseIcon
-                onClick={onDelete}
                 sx={({ palette }) => ({
                   width: 11,
                   height: 11,

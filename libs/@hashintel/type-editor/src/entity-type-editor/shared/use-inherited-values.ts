@@ -35,11 +35,23 @@ export type InheritedValues = {
   properties: (EntityTypeEditorPropertyData & InheritanceData)[];
 };
 
-const getInheritedValuesForEntityType = (
+type ValueMap = {
+  links: Record<VersionedUrl, InheritedValues["links"][0]>;
+  properties: Record<VersionedUrl, InheritedValues["properties"][0]>;
+};
+
+/*
+ * Mutates the provided map to add inherited values for the given entity type
+ *
+ * If moving this outside of this file, probably should consider a non-mutating approach.
+ * This was the easiest way of generating a unique set of types.
+ */
+const addInheritedValuesForEntityType = (
   entityTypeId: VersionedUrl,
   entityTypeOptions: Record<VersionedUrl, EntityType>,
+  inheritedValuesMap: ValueMap,
   inheritanceChain: string[] = [],
-): InheritedValues => {
+) => {
   const entity = entityTypeOptions[entityTypeId];
 
   if (!entity) {
@@ -52,38 +64,35 @@ const getInheritedValuesForEntityType = (
 
   const { properties, links } = getFormDataFromSchema(entity);
 
-  const inheritedValues = {
-    links: links.map((link) => ({
+  for (const link of links) {
+    // eslint-disable-next-line no-param-reassign
+    inheritedValuesMap.links[link.$id] = {
       ...link,
       inheritedFrom: entity,
       inheritanceChain: newInheritanceChain,
-    })),
-    properties: properties.map((property) => ({
+    };
+  }
+
+  for (const property of properties) {
+    // eslint-disable-next-line no-param-reassign
+    inheritedValuesMap.properties[property.$id] = {
       ...property,
       inheritedFrom: entity,
       inheritanceChain: newInheritanceChain,
-    })),
-  };
+    };
+  }
 
-  const parentsInheritedValues = (entity.allOf ?? []).map(({ $ref }) =>
-    getInheritedValuesForEntityType(
+  (entity.allOf ?? []).map(({ $ref }) =>
+    addInheritedValuesForEntityType(
       $ref,
       entityTypeOptions,
+      inheritedValuesMap,
       newInheritanceChain,
     ),
   );
-
-  return {
-    links: [
-      ...inheritedValues.links,
-      ...parentsInheritedValues.map((parent) => parent.links).flat(),
-    ],
-    properties: [
-      ...inheritedValues.properties,
-      ...parentsInheritedValues.map((parent) => parent.properties).flat(),
-    ],
-  };
 };
+
+// Returns an
 
 export const useInheritedValues = (): InheritedValues => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
@@ -95,22 +104,14 @@ export const useInheritedValues = (): InheritedValues => {
     name: "allOf",
   });
 
-  return useMemo(
-    () =>
-      directParentIds.reduce<InheritedValues>(
-        (acc, id) => {
-          const inheritedValues = getInheritedValuesForEntityType(
-            id,
-            entityTypes,
-          );
-
-          return {
-            links: [...acc.links, ...inheritedValues.links],
-            properties: [...acc.properties, ...inheritedValues.properties],
-          };
-        },
-        { links: [], properties: [] },
-      ),
-    [directParentIds, entityTypes],
-  );
+  return useMemo(() => {
+    const inheritedValuesMap: ValueMap = { links: {}, properties: {} };
+    for (const parent of directParentIds) {
+      addInheritedValuesForEntityType(parent, entityTypes, inheritedValuesMap);
+    }
+    return {
+      links: Object.values(inheritedValuesMap.links),
+      properties: Object.values(inheritedValuesMap.properties),
+    };
+  }, [directParentIds, entityTypes]);
 };
