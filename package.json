@@ -111,6 +111,7 @@
     "prettier-plugin-packagejson": "2.3.0",
     "prettier-plugin-sh": "0.12.8",
     "prettier-plugin-sql": "0.12.1",
+    "renovate": "36.44.0",
     "suppress-exit-code": "3.1.0",
     "turbo": "1.10.12",
     "wait-on": "6.0.1",

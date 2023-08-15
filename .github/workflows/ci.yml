@@ -73,6 +73,19 @@ jobs:
       - name: Setup python
         run: yarn poetry:install
 
+      - name: Validate renovate config
+        if: ${{ success() || failure() }}
+        run: |
+          if ! renovate-config-validator; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
