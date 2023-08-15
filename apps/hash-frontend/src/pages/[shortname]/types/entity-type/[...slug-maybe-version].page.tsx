@@ -113,17 +113,17 @@ const Page: NextPageWithLayout = () => {
     requestedVersion,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      if (isHrefExternal(fetchedEntityType.$id)) {
+      if (isHrefExternal(fetchedEntityType.schema.$id)) {
         // In the current routing this should never be the case, but this is a marker to handle it when external types exist
-        window.open(fetchedEntityType.$id);
+        window.open(fetchedEntityType.schema.$id);
       }
 
       // Load the initial form data after the entity type has been fetched
-      reset(getFormDataFromSchema(fetchedEntityType));
+      reset(getFormDataFromSchema(fetchedEntityType.schema));
     },
   );
 
-  const entityType = remoteEntityType ?? draftEntityType;
+  const entityType = remoteEntityType?.schema ?? draftEntityType;
 
   const userUnauthorized = useIsReadonlyModeForResource(
     routeNamespace?.accountId,
@@ -232,6 +232,7 @@ const Page: NextPageWithLayout = () => {
               <Box display="contents" component="form" onSubmit={handleSubmit}>
                 <TopContextBar
                   defaultCrumbIcon={null}
+                  item={remoteEntityType ?? undefined}
                   crumbs={[
                     {
                       title: "Types",

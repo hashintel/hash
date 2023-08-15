@@ -15,6 +15,7 @@ export const entityTypeTypedef = gql`
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
       latestOnly: Boolean = true
+      includeArchived: Boolean = false
     ): Subgraph!
 
     """
