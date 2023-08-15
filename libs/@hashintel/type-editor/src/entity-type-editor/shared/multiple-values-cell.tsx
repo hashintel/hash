@@ -9,6 +9,7 @@ import {
 } from "@hashintel/design-system";
 import {
   Box,
+  BoxProps,
   Checkbox,
   ClickAwayListener,
   Collapse,
@@ -52,6 +53,59 @@ const Frozen: FunctionComponent<
   // Needed to render children directly as could be string, etc
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{frozenChildren}</>;
+};
+
+export const MultipleValuesControlContainer = ({
+  canToggle,
+  children,
+  isReadOnly,
+  menuOpen,
+  showSummary,
+  ...props
+}: PropsWithChildren<
+  {
+    canToggle: boolean;
+    isReadOnly: boolean;
+    menuOpen: boolean;
+    showSummary: boolean;
+  } & BoxProps
+>) => {
+  return (
+    <Box
+      sx={({ palette, transitions }) => ({
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        cursor: isReadOnly ? "default" : "pointer",
+        height: 1,
+        transition: transitions.create("border-color"),
+        border: 1,
+        borderColor: `${
+          menuOpen ? palette.gray[40] : "transparent"
+        } !important`,
+      })}
+      {...props}
+    >
+      <Box
+        sx={({ palette, transitions }) => ({
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: canToggle ? "4px 30px 30px 4px" : "30px",
+          backgroundColor: "transparent",
+          transition: transitions.create(["padding", "background-color"]),
+          ...(showSummary
+            ? {
+                py: 0.5,
+                px: 0.75,
+                background: palette.gray[20],
+              }
+            : {}),
+        })}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
 };
 
 export const MultipleValuesCellSummary = ({
@@ -188,7 +242,11 @@ export const MultipleValuesCell = ({
         }}
         width={MULTIPLE_VALUES_CELL_WIDTH}
       >
-        <Box
+        <MultipleValuesControlContainer
+          canToggle={canToggle}
+          isReadOnly={isReadonly}
+          menuOpen={multipleValuesMenuOpen}
+          showSummary={showSummary}
           onClick={() => {
             if (isReadonly) {
               return;
@@ -201,75 +259,46 @@ export const MultipleValuesCell = ({
               handleArrayChange(true);
             }
           }}
-          sx={({ palette, transitions }) => ({
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            cursor: isReadonly ? "default" : "pointer",
-            height: 1,
-            transition: transitions.create("border-color"),
-            border: 1,
-            borderColor: `${
-              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-            } !important`,
-          })}
           onMouseEnter={() => setHovered(!isReadonly)}
           onMouseLeave={() => setHovered(false)}
         >
-          <Box
-            sx={({ palette, transitions }) => ({
-              display: "inline-flex",
-              alignItems: "center",
-              borderRadius: canToggle ? "4px 30px 30px 4px" : "30px",
-              backgroundColor: "transparent",
-              transition: transitions.create(["padding", "background-color"]),
-              ...(showSummary
-                ? {
-                    py: 0.5,
-                    px: 0.75,
-                    background: palette.gray[20],
-                  }
-                : {}),
-            })}
-          >
-            {canToggle ? (
-              <Checkbox
-                {...arrayController.field}
-                checked={arrayController.field.value}
-                onChange={(evt) => {
-                  handleArrayChange(evt.target.checked);
-                }}
-                sx={{
-                  "+ *": {
-                    ml: 1,
-                  },
-                }}
-              />
-            ) : null}
-            <MultipleValuesCellSummary
-              show={showSummary}
-              infinity={infinity}
-              min={minValue}
-              max={maxValue}
+          {canToggle ? (
+            <Checkbox
+              {...arrayController.field}
+              checked={arrayController.field.value}
+              onChange={(evt) => {
+                handleArrayChange(evt.target.checked);
+              }}
+              sx={{
+                "+ *": {
+                  ml: 1,
+                },
+              }}
             />
-            {canToggle ? null : (
-              <Collapse
-                in={hovered || multipleValuesMenuOpen}
-                orientation="horizontal"
-              >
-                <FontAwesomeIcon
-                  icon={faEdit}
-                  sx={(theme) => ({
-                    fontSize: "13px",
-                    color: theme.palette.gray[70],
-                    ml: 0.5,
-                    display: "block",
-                  })}
-                />
-              </Collapse>
-            )}
-          </Box>
-        </Box>
+          ) : null}
+          <MultipleValuesCellSummary
+            show={showSummary}
+            infinity={infinity}
+            min={minValue}
+            max={maxValue}
+          />
+          {canToggle ? null : (
+            <Collapse
+              in={hovered || multipleValuesMenuOpen}
+              orientation="horizontal"
+            >
+              <FontAwesomeIcon
+                icon={faEdit}
+                sx={(theme) => ({
+                  fontSize: "13px",
+                  color: theme.palette.gray[70],
+                  ml: 0.5,
+                  display: "block",
+                })}
+              />
+            </Collapse>
+          )}
+        </MultipleValuesControlContainer>
         <Popper
           open={multipleValuesMenuOpen}
           anchorEl={anchorEl}

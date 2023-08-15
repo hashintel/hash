@@ -1,9 +1,5 @@
 import { PropertyType } from "@blockprotocol/type-system/slim";
-import {
-  faArrowTurnRight,
-  faChevronRight,
-  faList,
-} from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
@@ -13,6 +9,7 @@ import {
   ROW_DEPTH_INDENTATION,
 } from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
+import { InheritedIcon } from "../shared/inherited-icon";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
 interface PropertyTitleCellProps {
@@ -105,16 +102,7 @@ export const PropertyTitleCell = ({
           </IconButton>
         </Collapse>
 
-        {inherited && (
-          <FontAwesomeIcon
-            sx={{
-              color: ({ palette }) => palette.gray[70],
-              fontSize: 14,
-              mr: 1,
-            }}
-            icon={faArrowTurnRight}
-          />
-        )}
+        {inherited && <InheritedIcon sx={{ mr: 1 }} />}
 
         <Box>{property.title}</Box>
 

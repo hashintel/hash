@@ -2,6 +2,9 @@ import { usePropertyTypesOptions } from "../../shared/property-types-options-con
 import { InheritedValues } from "../shared/use-inherited-values";
 import { PropertyRow } from "./property-row";
 
+/**
+ * Displays a property row for an inherited property.
+ */
 export const InheritedPropertyRow = ({
   inheritedPropertyData,
 }: {

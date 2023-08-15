@@ -1,12 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { EntityType } from "@blockprotocol/type-system/slim";
 import {
-  faArrowUpRightFromSquare,
-  faAsterisk,
-} from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  FontAwesomeIcon,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
   popperPlacementSelectors,
@@ -14,8 +7,8 @@ import {
   setPopperPlacementAttribute,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
-import { Box, IconButton, PopperPlacementType, Stack } from "@mui/material";
-import { MouseEvent, ReactNode, useRef, useState } from "react";
+import { Box, PopperPlacementType } from "@mui/material";
+import { MouseEvent, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
@@ -23,107 +16,10 @@ import { useResizeObserverRef } from "rooks";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
 import { useIsReadonly } from "../../shared/read-only-context";
-import { Link } from "../shared/link";
 import { useFilterTypeOptions } from "../shared/use-filter-type-options";
-import { useTypeVersions } from "../shared/use-type-versions";
-import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
-
-const TypeChipLabel = ({
-  children,
-  currentVersion,
-  latestVersion,
-  onUpdate,
-  versionedUrl,
-}: {
-  children: ReactNode;
-  currentVersion?: number;
-  latestVersion?: number;
-  versionedUrl?: VersionedUrl;
-  onUpdate?: () => void;
-}) => {
-  const readonly = useIsReadonly();
-
-  return (
-    <Stack direction="row" spacing={0.75} fontSize={14} alignItems="center">
-      <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: "inherit" }} />
-      <Box component="span">{children}</Box>
-
-      {!readonly &&
-      currentVersion &&
-      latestVersion &&
-      onUpdate &&
-      currentVersion !== latestVersion ? (
-        <Box sx={{ my: ({ spacing }) => `-${spacing(0.5)} !important` }}>
-          <VersionUpgradeIndicator
-            currentVersion={currentVersion}
-            latestVersion={latestVersion}
-            onUpdateVersion={onUpdate}
-            mode="tooltip"
-          />
-        </Box>
-      ) : null}
-
-      {versionedUrl && (
-        <Link href={versionedUrl}>
-          <IconButton
-            sx={{
-              padding: 0,
-              background: "transparent !important",
-              color: "inherit",
-              cursor: "pointer",
-            }}
-          >
-            <FontAwesomeIcon
-              icon={faArrowUpRightFromSquare}
-              sx={({ palette }) => ({
-                height: "11px",
-                width: "11px",
-                "&:hover": { fill: palette.primary.light },
-              })}
-            />
-          </IconButton>
-        </Link>
-      )}
-    </Stack>
-  );
-};
-
-const ChosenEntityType = ({
-  updateVersion,
-  onDelete,
-  entityType,
-}: {
-  updateVersion: (newVersion: VersionedUrl) => void;
-  onDelete?: () => void;
-  entityType: EntityType;
-}) => {
-  const { entityTypes } = useEntityTypesOptions();
-
-  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
-    entityType.$id,
-    entityTypes,
-  );
-
-  return (
-    <Chip
-      key={entityType.$id}
-      sx={{ m: 0.25 }}
-      tabIndex={-1}
-      onDelete={onDelete}
-      color="blue"
-      label={
-        <TypeChipLabel
-          currentVersion={currentVersion}
-          latestVersion={latestVersion}
-          onUpdate={() => updateVersion(`${baseUrl}v/${latestVersion}`)}
-          versionedUrl={entityType.$id}
-        >
-          {entityType.title}
-        </TypeChipLabel>
-      }
-    />
-  );
-};
+import { AnythingChip } from "./anything-chip";
+import { DestinationEntityType } from "./destination-entity-type";
+import { DestinationTypeContainer } from "./destination-type-container";
 
 const linkEntityTypeSelectorDropdownProps = {
   query: "",
@@ -134,7 +30,7 @@ const linkEntityTypeSelectorDropdownProps = {
   variant: "entityType" as const,
 };
 
-export const LinkEntityTypeSelector = ({
+export const DestinationEntityTypeSelector = ({
   linkIndex,
 }: {
   linkIndex: number;
@@ -211,25 +107,7 @@ export const LinkEntityTypeSelector = ({
       })}
       ref={entityTypeSelectorRef}
     >
-      <Stack
-        direction="row"
-        flexWrap="wrap"
-        sx={[
-          (theme) => ({
-            border: 1,
-            borderColor: "transparent",
-            borderRadius: 1.5,
-            p: 0.5,
-            userSelect: "none",
-            minWidth: 200,
-            minHeight: 42,
-            left: -7,
-            width: "calc(100% + 14px)",
-            overflow: "hidden",
-            position: "relative",
-            zIndex: theme.zIndex.drawer,
-          }),
-        ]}
+      <DestinationTypeContainer
         onClick={(event: MouseEvent) => {
           event.preventDefault();
           if (isReadonly) {
@@ -254,11 +132,13 @@ export const LinkEntityTypeSelector = ({
             const entityType = entityTypes[entityTypeId];
 
             if (!entityType) {
-              throw new Error("Entity type missing in links table");
+              throw new Error(
+                `Destination entity type ${entityTypeId} not found in options`,
+              );
             }
 
             return (
-              <ChosenEntityType
+              <DestinationEntityType
                 key={entityTypeId}
                 entityType={entityType}
                 updateVersion={(newVersion: VersionedUrl) =>
@@ -287,13 +167,9 @@ export const LinkEntityTypeSelector = ({
             );
           })
         ) : (
-          <Chip
-            color="blue"
-            variant="outlined"
-            label={<TypeChipLabel>Anything</TypeChipLabel>}
-          />
+          <AnythingChip />
         )}
-      </Stack>
+      </DestinationTypeContainer>
       {entityTypeSelectorPopupOpen ? (
         <Box
           ref={resizeObserverRef}

@@ -205,9 +205,10 @@ const InsertPropertyField = (
 
   const propertyTypeOptions = usePropertyTypesOptions();
   const propertyTypes = Object.values(propertyTypeOptions);
+  const { properties: inheritedProperties } = useInheritedValues();
 
   const filteredPropertyTypes = useFilterTypeOptions({
-    typesToExclude: properties,
+    typesToExclude: [...properties, ...inheritedProperties],
     typeOptions: propertyTypes,
   });
 
@@ -243,9 +244,9 @@ export const PropertyListCard = () => {
 
   const ontologyFunctions = useOntologyFunctions();
 
-  const { properties: inheritedProperties } = useInheritedValues();
-
   const isReadonly = useIsReadonly();
+
+  const { properties: inheritedProperties } = useInheritedValues();
 
   const fields = useMemo(
     () =>

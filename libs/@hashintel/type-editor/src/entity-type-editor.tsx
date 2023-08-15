@@ -1,14 +1,12 @@
 /* eslint-disable import/first */
-import { InheritanceRow } from "./entity-type-editor/inheritance-row";
-
 require("setimmediate");
 
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
-import { ElementType } from "react";
 
+import { InheritanceRow } from "./entity-type-editor/inheritance-row";
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
