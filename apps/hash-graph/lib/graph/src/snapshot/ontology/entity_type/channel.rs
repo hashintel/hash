@@ -108,7 +108,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     source_entity_type_ontology_id: ontology_id,
                     target_entity_type_base_url: url.base_url.as_str().to_owned(),
                     target_entity_type_version: OntologyTypeVersion::new(url.version),
-                    inheritance_depth: 0,
                 }
             })
             .collect();
@@ -129,7 +128,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     source_entity_type_ontology_id: ontology_id,
                     target_property_type_base_url: url.base_url.as_str().to_owned(),
                     target_property_type_version: OntologyTypeVersion::new(url.version),
-                    inheritance_depth: 0,
                 }
             })
             .collect();
@@ -152,7 +150,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     source_entity_type_ontology_id: ontology_id,
                     target_entity_type_base_url: url.base_url.as_str().to_owned(),
                     target_entity_type_version: OntologyTypeVersion::new(url.version),
-                    inheritance_depth: 0,
                 }
             })
             .collect();
@@ -173,7 +170,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     source_entity_type_ontology_id: ontology_id,
                     target_entity_type_base_url: url.base_url.as_str().to_owned(),
                     target_entity_type_version: OntologyTypeVersion::new(url.version),
-                    inheritance_depth: 0,
                 }
             })
             .collect();
@@ -188,8 +184,7 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(schema.clone().into()),
-                closed_schema: Json(schema.into()),
+                schema: Json(schema.into()),
                 label_property: entity_type
                     .metadata
                     .custom
