@@ -4,8 +4,12 @@ import {
   faPencilRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
+  Collapse,
   FormControlLabel,
   Switch,
   SxProps,
@@ -15,12 +19,18 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
+import { FunctionComponent, ReactNode, useMemo, useState } from "react";
 
+import { isEntityTypeArchived } from "../../shared/entity-types-context/util";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
+import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
+import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
+import { isEntityPageEntity, isItemEntityType } from "./top-context-bar/util";
 
-const pageRestoredMessage = (
+const PageRestoredMessageWrapper: FunctionComponent<{
+  children: ReactNode;
+}> = ({ children }) => (
   <Box
     sx={({ palette }) => ({
       "@keyframes fadeInOut": {
@@ -84,17 +94,16 @@ const pageRestoredMessage = (
       })}
     />
     <Typography variant="smallTextParagraphs" sx={{ fontWeight: 500 }}>
-      Page restored
+      {children}
     </Typography>
   </Box>
 );
 
 type TopContextBarProps = {
   crumbs: BreadcrumbsProps["crumbs"];
+  item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
-  isBlockPage?: boolean;
   scrollToTop: () => void;
-  displayPageRestoredMessage?: boolean;
   sx?: SxProps<Theme>;
 };
 
@@ -102,21 +111,18 @@ export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 export const TopContextBar = ({
   crumbs,
+  item,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
-  isBlockPage = false,
   scrollToTop = () => {},
-  displayPageRestoredMessage = false,
   sx = [],
 }: TopContextBarProps) => {
+  const [displayRestoredMessage, setDisplayRestoredMessage] = useState(false);
+
   const { sidebarOpen } = useSidebarContext();
 
   const { replace, query } = useRouter();
 
   const setPageMode = (type: "canvas" | "document", lockCanvas?: boolean) => {
-    if (!isBlockPage) {
-      return;
-    }
-
     const newQuery: { canvas?: true; locked?: true } = {};
     if (type === "canvas") {
       newQuery.canvas = true;
@@ -130,79 +136,125 @@ export const TopContextBar = ({
     });
   };
 
+  const isItemArchived = useMemo(() => {
+    if (!item) {
+      return false;
+    }
+
+    if (isItemEntityType(item)) {
+      return isEntityTypeArchived(item);
+    } else if (isEntityPageEntity(item)) {
+      return item.properties[
+        extractBaseUrl(types.propertyType.archived.propertyTypeId)
+      ] as boolean;
+    }
+    return false;
+  }, [item]);
+
+  const isBlockPage = useMemo(
+    () => item && !isItemEntityType(item) && isEntityPageEntity(item),
+    [item],
+  );
+
   return (
-    <Box
-      sx={[
-        ({ palette }) => ({
-          background: palette.common.white,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: TOP_CONTEXT_BAR_HEIGHT,
-          pl: sidebarOpen ? 3 : 8,
-          pr: 4,
-        }),
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
-    >
-      <Box display="flex" gap={1}>
-        <Breadcrumbs
-          crumbs={crumbs}
-          defaultIcon={defaultCrumbIcon}
-          scrollToTop={scrollToTop}
-        />
-        {displayPageRestoredMessage ? pageRestoredMessage : null}
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
-        {isBlockPage && query.canvas && (
-          <FormControlLabel
-            labelPlacement="start"
-            slotProps={{
-              typography: { fontSize: 14, fontWeight: 500, marginRight: 1 },
-            }}
-            sx={{
-              mr: 2,
-            }}
-            control={
-              <Switch
-                checked={!!query.locked}
-                onChange={() => setPageMode("canvas", !query.locked)}
-                inputProps={{ "aria-label": "controlled" }}
-                size="medium"
-              />
-            }
-            label="Locked"
+    <>
+      <Box
+        sx={[
+          ({ palette }) => ({
+            background: palette.common.white,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: TOP_CONTEXT_BAR_HEIGHT,
+            pl: sidebarOpen ? 3 : 8,
+            pr: 4,
+          }),
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
+      >
+        <Box display="flex" gap={1}>
+          <Breadcrumbs
+            crumbs={crumbs}
+            defaultIcon={defaultCrumbIcon}
+            scrollToTop={scrollToTop}
           />
-        )}
-        {isBlockPage && (
-          <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
-            <ToggleButton
-              value="document"
-              aria-label="document"
-              onClick={() => setPageMode("document")}
-            >
-              <FontAwesomeIcon
-                icon={faFile}
-                sx={(theme) => ({
-                  color: theme.palette.gray[40],
-                })}
-              />
-            </ToggleButton>
-            <ToggleButton
-              value="canvas"
-              aria-label="canvas"
-              onClick={() => setPageMode("canvas", false)}
-            >
-              <FontAwesomeIcon
-                icon={faPencilRuler}
-                sx={(theme) => ({
-                  color: theme.palette.gray[40],
-                })}
-              />
-            </ToggleButton>
-          </ToggleButtonGroup>
-        )}
+          {item && displayRestoredMessage ? (
+            <PageRestoredMessageWrapper>{`${
+              isItemEntityType(item)
+                ? "Type"
+                : isEntityPageEntity(item)
+                ? "Page"
+                : "Entity"
+            } restored!`}</PageRestoredMessageWrapper>
+          ) : null}
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {item && !isItemArchived ? (
+            <ContextBarActionsDropdown item={item} />
+          ) : null}
+          {isBlockPage && query.canvas && (
+            <FormControlLabel
+              labelPlacement="start"
+              slotProps={{
+                typography: { fontSize: 14, fontWeight: 500, marginRight: 1 },
+              }}
+              sx={{
+                mr: 2,
+              }}
+              control={
+                <Switch
+                  checked={!!query.locked}
+                  onChange={() => setPageMode("canvas", !query.locked)}
+                  inputProps={{ "aria-label": "controlled" }}
+                  size="medium"
+                />
+              }
+              label="Locked"
+            />
+          )}
+          {isBlockPage && (
+            <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
+              <ToggleButton
+                value="document"
+                aria-label="document"
+                onClick={() => setPageMode("document")}
+              >
+                <FontAwesomeIcon
+                  icon={faFile}
+                  sx={(theme) => ({
+                    color: theme.palette.gray[40],
+                  })}
+                />
+              </ToggleButton>
+              <ToggleButton
+                value="canvas"
+                aria-label="canvas"
+                onClick={() => setPageMode("canvas", false)}
+              >
+                <FontAwesomeIcon
+                  icon={faPencilRuler}
+                  sx={(theme) => ({
+                    color: theme.palette.gray[40],
+                  })}
+                />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        </Box>
       </Box>
-    </Box>
+      {item ? (
+        <Collapse in={isItemArchived}>
+          <ArchivedItemBanner
+            item={item}
+            onUnarchived={() => {
+              setDisplayRestoredMessage(true);
+              setTimeout(() => {
+                setDisplayRestoredMessage(false);
+              }, 5000);
+            }}
+          />
+        </Collapse>
+      ) : null}
+    </>
   );
 };
