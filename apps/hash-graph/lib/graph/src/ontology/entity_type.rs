@@ -221,13 +221,15 @@ pub enum EntityTypeQueryPath<'p> {
     /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUrl"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::PropertyTypeEdge {
     ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-    ///     path: PropertyTypeQueryPath::BaseUrl
+    ///     path: PropertyTypeQueryPath::BaseUrl,
+    ///     inheritance_depth: None,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: PropertyTypeQueryPath<'p>,
+        inheritance_depth: Option<u32>,
     },
     /// An edge between two [`EntityType`]s using an [`OntologyEdgeKind`].
     ///
@@ -265,6 +267,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///     edge_kind: OntologyEdgeKind::InheritsFrom,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
     ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -290,6 +293,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
     ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -306,6 +310,7 @@ pub enum EntityTypeQueryPath<'p> {
         edge_kind: OntologyEdgeKind,
         path: Box<Self>,
         direction: EdgeDirection,
+        inheritance_depth: Option<u32>,
     },
     /// A reversed edge from an [`Entity`] to this [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -318,6 +323,7 @@ pub enum EntityTypeQueryPath<'p> {
     EntityEdge {
         edge_kind: SharedEdgeKind,
         path: Box<EntityQueryPath<'p>>,
+        inheritance_depth: Option<u32>,
     },
     /// Only used internally and not available for deserialization.
     OntologyId,
@@ -407,6 +413,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
+                ..
             } => write!(fmt, "properties.{path}"),
             #[expect(
                 clippy::use_debug,
@@ -414,7 +421,9 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
                           (a) never happen and (b) be easy to debug if it does happen. In the \
                           future, this will become a compile-time check"
             )]
-            Self::PropertyTypeEdge { edge_kind, path } => write!(fmt, "<{edge_kind:?}>.{path}"),
+            Self::PropertyTypeEdge {
+                edge_kind, path, ..
+            } => write!(fmt, "<{edge_kind:?}>.{path}"),
             Self::EntityTypeEdge {
                 edge_kind: OntologyEdgeKind::InheritsFrom,
                 path,
@@ -523,6 +532,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 EntityTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                    inheritance_depth: None,
                 }
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
@@ -536,6 +546,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
                     direction: EdgeDirection::Outgoing,
+                    inheritance_depth: None,
                 }
             }
             EntityTypeQueryToken::InheritsFrom => {
@@ -547,6 +558,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
                     direction: EdgeDirection::Outgoing,
+                    inheritance_depth: None,
                 }
             }
             EntityTypeQueryToken::Schema => {
@@ -607,7 +619,8 @@ mod tests {
             deserialize(["properties", "*", "version"]),
             EntityTypeQueryPath::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                path: PropertyTypeQueryPath::Version
+                path: PropertyTypeQueryPath::Version,
+                inheritance_depth: None,
             }
         );
         assert_eq!(deserialize(["required"]), EntityTypeQueryPath::Required);
@@ -617,6 +630,7 @@ mod tests {
                 edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                 path: Box::new(EntityTypeQueryPath::Version),
                 direction: EdgeDirection::Outgoing,
+                inheritance_depth: None,
             },
         );
 

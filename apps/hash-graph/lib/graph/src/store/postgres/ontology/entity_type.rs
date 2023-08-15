@@ -88,7 +88,7 @@ impl<C: AsClient> PostgresStore<C> {
                     self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
                         ReferenceTable::EntityTypeConstrainsPropertiesOn {
-                            inheritance_depth: 0,
+                            inheritance_depth: None,
                         },
                     )
                     .await?
@@ -113,19 +113,19 @@ impl<C: AsClient> PostgresStore<C> {
                 (
                     OntologyEdgeKind::InheritsFrom,
                     ReferenceTable::EntityTypeInheritsFrom {
-                        inheritance_depth: 0,
+                        inheritance_depth: None,
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
                     ReferenceTable::EntityTypeConstrainsLinksOn {
-                        inheritance_depth: 0,
+                        inheritance_depth: None,
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                     ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
-                        inheritance_depth: 0,
+                        inheritance_depth: None,
                     },
                 ),
             ] {

@@ -126,7 +126,7 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
                 entity_type_queue.extend(
-                    self.read_shared_edges(&traversal_data, 0)
+                    self.read_shared_edges(&traversal_data, Some(0))
                         .await?
                         .flat_map(|edge| {
                             subgraph.insert_edge(
