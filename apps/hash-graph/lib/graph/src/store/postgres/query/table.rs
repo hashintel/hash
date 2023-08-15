@@ -963,6 +963,9 @@ impl EntityTypeConstrainsLinkDestinationsOn {
     }
 }
 
+/// A column in the database.
+///
+/// If a second parameter is present, it represents the inheritance depths parameter for that view.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
     OntologyIds(OntologyIds),
