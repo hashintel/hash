@@ -76,7 +76,7 @@ jobs:
       - name: Validate renovate config
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:renovate; then
+          if ! renovate-config-validator; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
