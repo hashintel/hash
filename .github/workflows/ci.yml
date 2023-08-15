@@ -76,6 +76,8 @@ jobs:
       - name: Validate renovate config
         if: ${{ success() || failure() }}
         run: |
+          # Adding renovate in `package.json` causes incompatibility between our dependencies and their dependencies.
+          yarn add -W --dev renovate
           if ! renovate-config-validator; then
             echo ''
             echo ''
