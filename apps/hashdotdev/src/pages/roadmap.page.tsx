@@ -3,7 +3,12 @@ import { FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
 import { HiddenAnchorFragmentTag } from "../components/hidden-anchor-fragment-tag";
-import { FaIcon } from "../components/icons/fa-icon";
+import { BallotCheckRegularIcon } from "../components/icons/ballot-check-regular-icon";
+import { DiagramProjectRegularIcon } from "../components/icons/diagram-project-regular-icon";
+import { DiscordIcon } from "../components/icons/discord-icon";
+import { GithubIcon } from "../components/icons/github-icon";
+import { TeddyBearRegularIcon } from "../components/icons/teddy-bear-regular-icon";
+import { WindLightIcon } from "../components/icons/wind-light-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
 import { NextPageWithLayout } from "../util/next-types";
@@ -15,17 +20,17 @@ const headingLinks: { label: string; href: string; icon: ReactNode }[] = [
   {
     label: "Use Cases",
     href: "#use-cases",
-    icon: <FaIcon name="ballot-check" type="regular" />,
+    icon: <BallotCheckRegularIcon />,
   },
   {
     label: "Technology Tree",
     href: "#technology-tree",
-    icon: <FaIcon name="diagram-project" type="regular" />,
+    icon: <DiagramProjectRegularIcon />,
   },
   {
     label: "Get Involved",
     href: "#get-involved",
-    icon: <FaIcon name="teddy-bear" type="regular" />,
+    icon: <TeddyBearRegularIcon />,
   },
 ];
 
@@ -159,9 +164,7 @@ const GetInvolved: FunctionComponent = () => (
       Get Involved
     </Typography>
     <Typography variant="hashHeading4" marginBottom={3}>
-      <FaIcon
-        name="wind"
-        type="light"
+      <WindLightIcon
         sx={{ color: ({ palette }) => palette.teal[90], marginRight: 3 }}
       />
       Become an early adopter
@@ -227,7 +230,7 @@ const GetInvolved: FunctionComponent = () => (
         size="medium"
         color="purple"
         href="https://hash.ai/discord"
-        startIcon={<FaIcon name="discord" type="brands" />}
+        startIcon={<DiscordIcon />}
         sx={{ width: { xs: "100%", sm: "auto" } }}
       >
         <Typography>Join our Discord</Typography>
@@ -248,7 +251,7 @@ const GetInvolved: FunctionComponent = () => (
         variant="primarySquare"
         size="medium"
         href="https://github.com/hashintel/hash"
-        startIcon={<FaIcon name="github" type="brands" />}
+        startIcon={<GithubIcon />}
         sx={{ width: { xs: "100%", sm: "auto" } }}
       >
         <Typography>View on GitHub</Typography>

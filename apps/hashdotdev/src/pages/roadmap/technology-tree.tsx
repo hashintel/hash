@@ -18,7 +18,7 @@ import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 import { HiddenAnchorFragmentTag } from "../../components/hidden-anchor-fragment-tag";
-import { FaIcon } from "../../components/icons/fa-icon";
+import { TriangleExclamationLightIcon } from "../../components/icons/triangle-exclamation-light-icon";
 import { statuses, StatusId } from "./statuses";
 import { TechnologyTreeButtons } from "./technology-tree-buttons";
 import {
@@ -298,9 +298,7 @@ export const TechnologyTree: FunctionComponent = () => {
                     textAlign: "center",
                   }}
                 >
-                  <FaIcon
-                    name="warning"
-                    type="light"
+                  <TriangleExclamationLightIcon
                     sx={{
                       fontSize: 42,
                       color: ({ palette }) => palette.gray[50],
