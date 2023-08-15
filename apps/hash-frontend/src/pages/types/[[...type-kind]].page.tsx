@@ -1,15 +1,24 @@
+import {
+  DataTypeRootType,
+  DataTypeWithMetadata,
+  PropertyTypeRootType,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Typography } from "@mui/material";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { NextSeo } from "next-seo";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
+import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { isLinkEntityType } from "../../shared/entity-types-context/util";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useLatestPropertyTypes } from "../[shortname]/types/entity-type/[...slug-maybe-version].page/shared/latest-property-types-context";
 import { TopContextBar } from "../shared/top-context-bar";
 import { tabTitles, TypesPageTabs } from "./types-page-tabs";
+import { TypesTable } from "./types-table";
 
 const parsedQueryParams = [
   "entity-type",
@@ -68,9 +77,66 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     [latestEntityTypes],
   );
 
-  const latestPropertyTypes = useLatestPropertyTypes();
+  const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
+  const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 
-  const latestDataTypes = [];
+  const [latestPropertyTypes, setLatestPropertyTypes] =
+    useState<PropertyTypeWithMetadata[]>();
+
+  const [latestDataTypes, setLatestDataTypes] =
+    useState<DataTypeWithMetadata[]>();
+
+  const fetchPropertyTypes = useCallback(async () => {
+    await queryPropertyTypes({ data: {} }).then(
+      ({ data: propertyTypesSubgraph }) => {
+        if (propertyTypesSubgraph) {
+          setLatestPropertyTypes(
+            getRoots<PropertyTypeRootType>(propertyTypesSubgraph),
+          );
+        }
+      },
+    );
+  }, [queryPropertyTypes]);
+
+  const fetchDataTypes = useCallback(
+    async () =>
+      await queryDataTypes({ data: {} }).then(({ data: dataTypesSubgraph }) => {
+        if (dataTypesSubgraph) {
+          setLatestDataTypes(getRoots<DataTypeRootType>(dataTypesSubgraph));
+        }
+      }),
+    [queryDataTypes],
+  );
+
+  useEffect(() => {
+    void fetchPropertyTypes();
+    void fetchDataTypes();
+  }, [fetchPropertyTypes, fetchDataTypes]);
+
+  const currentTypes = useMemo(
+    () =>
+      currentTab === "all"
+        ? [
+            ...(latestNonLinkEntityTypes ?? []),
+            ...(latestLinkEntityTypes ?? []),
+            ...(latestPropertyTypes ?? []),
+            ...(latestDataTypes ?? []),
+          ]
+        : currentTab === "entity-type"
+        ? latestNonLinkEntityTypes ?? []
+        : currentTab === "link-type"
+        ? latestLinkEntityTypes ?? []
+        : currentTab === "property-type"
+        ? latestPropertyTypes ?? []
+        : latestDataTypes ?? [],
+    [
+      currentTab,
+      latestNonLinkEntityTypes,
+      latestLinkEntityTypes,
+      latestPropertyTypes,
+      latestDataTypes,
+    ],
+  );
 
   return (
     <>
@@ -120,6 +186,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           <TypesPageTabs currentTab={currentTab} />
         </Container>
       </Box>
+      <Container sx={{ paddingTop: 5 }}>
+        <TypesTable kind={currentTab} types={currentTypes} />
+      </Container>
     </>
   );
 };

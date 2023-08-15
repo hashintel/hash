@@ -9,6 +9,7 @@ import {
   Box,
   buttonClasses,
   Checkbox,
+  chipClasses,
   FormControlLabel,
   formControlLabelClasses,
   Tooltip,
@@ -27,6 +28,8 @@ import { FilterListIcon } from "../../../shared/icons/filter-list-icon";
 import { HouseRegularIcon } from "../../../shared/icons/house-regular-icon";
 import { Button } from "../../../shared/ui";
 import { WorkspaceContext } from "../../shared/workspace-context";
+
+export const typesTableHeaderHeight = 48;
 
 const CheckboxFilter: FunctionComponent<{
   label: string;
@@ -124,6 +127,9 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
             icon={<HouseRegularIcon />}
             label={`${numberOfActiveWorkspaceTypes} in @${activeWorkspace?.shortname}`}
             sx={{
+              [`.${chipClasses.label}`]: {
+                fontSize: 13,
+              },
               border: ({ palette }) => palette.common.white,
               background: ({ palette }) => palette.gray[5],
             }}
@@ -137,6 +143,10 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
             icon={<EarthAmericasRegularIcon />}
             label={`${numberOfGlobalTypes} globally`}
             sx={{
+              [`.${chipClasses.label}`]: {
+                fontSize: 13,
+              },
+              fontSize: 13,
               border: ({ palette }) => palette.gray[30],
               background: ({ palette }) => palette.common.white,
             }}
