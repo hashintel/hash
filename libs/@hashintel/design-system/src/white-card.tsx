@@ -12,6 +12,8 @@ import { ElementType } from "react";
 
 export const WhiteCard = ({
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   href,
   LinkComponent,
   children,
@@ -19,6 +21,8 @@ export const WhiteCard = ({
   sx = [],
 }: {
   onClick?: CardActionAreaProps["onClick"];
+  onMouseEnter?: CardActionAreaProps["onMouseEnter"];
+  onMouseLeave?: CardActionAreaProps["onMouseLeave"];
   href?: string;
   LinkComponent?: ElementType;
   children: CardContentProps["children"];
@@ -66,6 +70,8 @@ export const WhiteCard = ({
           LinkComponent={LinkComponent}
           disableRipple
           disableTouchRipple
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           sx={[
             {
               [`&:hover .${cardActionAreaClasses.focusHighlight}`]: {

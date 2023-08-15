@@ -43,8 +43,17 @@ export const InheritedTypeCard = ({
     );
   };
 
+  const removeType = () => {
+    setValue(
+      "allOf",
+      directParentEntityTypeIds.filter((id) => id !== $id),
+      { shouldDirty: true },
+    );
+  };
+
   return (
     <TypeCard
+      onDelete={removeType}
       LinkComponent={Link}
       newVersionConfig={
         newVersion

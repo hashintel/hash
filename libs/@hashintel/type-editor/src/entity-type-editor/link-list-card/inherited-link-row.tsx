@@ -1,10 +1,12 @@
-import { TableCell } from "@mui/material";
+import { fluidFontClassName } from "@hashintel/design-system";
+import { TableCell, Tooltip } from "@mui/material";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import {
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "../shared/entity-type-table";
+import { generateReadonlyMessage } from "../shared/generate-readonly-message";
 import { InheritedIcon } from "../shared/inherited-icon";
 import { Link } from "../shared/link";
 import {
@@ -25,7 +27,8 @@ export const InheritedLinkRow = ({
   const {
     $id,
     entityTypes: destinationEntityTypes,
-
+    inheritedFrom,
+    inheritanceChain,
     minValue,
     maxValue,
     infinity,
@@ -38,6 +41,11 @@ export const InheritedLinkRow = ({
     throw new Error(`Inherited property type ${$id} not found`);
   }
 
+  const readonlyMessage = generateReadonlyMessage({
+    inheritanceChain,
+    inheritedFrom,
+  });
+
   return (
     <EntityTypeTableRow inherited>
       <TableCell>
@@ -48,45 +56,58 @@ export const InheritedLinkRow = ({
           </Link>
         </EntityTypeTableTitleCellText>
       </TableCell>
-      <TableCell sx={{ py: "0 !important" }}>
-        <DestinationTypeContainer>
-          {destinationEntityTypes.length ? (
-            destinationEntityTypes.map((entityTypeId) => {
-              const entityType = entityTypes[entityTypeId];
+      <Tooltip
+        placement="top"
+        classes={{ popper: fluidFontClassName }}
+        title={readonlyMessage}
+      >
+        <TableCell sx={{ py: "0 !important" }}>
+          <DestinationTypeContainer>
+            {destinationEntityTypes.length ? (
+              destinationEntityTypes.map((entityTypeId) => {
+                const entityType = entityTypes[entityTypeId];
 
-              if (!entityType) {
-                throw new Error(
-                  `Destination entity type ${entityTypeId} not found in options`,
+                if (!entityType) {
+                  throw new Error(
+                    `Destination entity type ${entityTypeId} not found in options`,
+                  );
+                }
+
+                return (
+                  <DestinationEntityType
+                    key={entityTypeId}
+                    entityType={entityType}
+                  />
                 );
-              }
+              })
+            ) : (
+              <AnythingChip />
+            )}
+          </DestinationTypeContainer>
+        </TableCell>
+      </Tooltip>
+      <Tooltip
+        placement="top"
+        classes={{ popper: fluidFontClassName }}
+        title={readonlyMessage}
+      >
+        <TableCell sx={{ p: "0 !important" }}>
+          <MultipleValuesControlContainer
+            canToggle={false}
+            menuOpen={false}
+            isReadOnly
+            showSummary
+          >
+            <MultipleValuesCellSummary
+              show
+              infinity={infinity}
+              min={minValue}
+              max={maxValue}
+            />
+          </MultipleValuesControlContainer>
+        </TableCell>
+      </Tooltip>
 
-              return (
-                <DestinationEntityType
-                  key={entityTypeId}
-                  entityType={entityType}
-                />
-              );
-            })
-          ) : (
-            <AnythingChip />
-          )}
-        </DestinationTypeContainer>
-      </TableCell>
-      <TableCell sx={{ p: "0 !important" }}>
-        <MultipleValuesControlContainer
-          canToggle={false}
-          menuOpen={false}
-          isReadOnly
-          showSummary
-        >
-          <MultipleValuesCellSummary
-            show
-            infinity={infinity}
-            min={minValue}
-            max={maxValue}
-          />
-        </MultipleValuesControlContainer>
-      </TableCell>
       <TypeMenuCell editable={false} typeId={$id} variant="link" />
     </EntityTypeTableRow>
   );

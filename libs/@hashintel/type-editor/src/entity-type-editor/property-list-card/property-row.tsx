@@ -7,6 +7,7 @@ import { useIsReadonly } from "../../shared/read-only-context";
 import { REQUIRED_CELL_WIDTH } from "../property-list-card";
 import { CollapsibleRowLine } from "../shared/collapsible-row-line";
 import { EntityTypeTableRow } from "../shared/entity-type-table";
+import { generateReadonlyMessage } from "../shared/generate-readonly-message";
 import { MULTIPLE_VALUES_CELL_WIDTH } from "../shared/multiple-values-cell";
 import { TypeMenuCell } from "../shared/type-menu-cell";
 import { InheritanceData } from "../shared/use-inherited-values";
@@ -60,8 +61,6 @@ const CollapsibleTableRow = ({
 
 export const PropertyRow = ({
   property,
-  inheritanceChain,
-  inheritedFrom,
   isArray,
   isRequired,
   depth = 0,
@@ -72,6 +71,7 @@ export const PropertyRow = ({
   menuTableCell,
   onUpdateVersion,
   flash = false,
+  ...maybeInheritanceData
 }: {
   property: PropertyType;
   isArray: boolean;
@@ -84,7 +84,7 @@ export const PropertyRow = ({
   menuTableCell?: ReactNode;
   onUpdateVersion?: (nextId: VersionedUrl) => void;
   flash?: boolean;
-} & Partial<InheritanceData>) => {
+} & (InheritanceData | {})) => {
   const propertyTypesOptions = usePropertyTypesOptions();
 
   const isReadonly = useIsReadonly();
@@ -157,21 +157,13 @@ export const PropertyRow = ({
     };
   }, []);
 
-  const inherited = !!inheritedFrom;
+  const inherited = "inheritedFrom" in maybeInheritanceData;
 
-  const readonlyMessage = inheritanceChain
-    ? `This property is inherited. To edit this value or remove it, modify the parent type from which it is inherited (${
-        inheritedFrom!.title
-      }${
-        inheritanceChain.length > 1
-          ? ` via ${inheritanceChain.slice(0, -1).join(", ")}`
-          : ""
-      }), or remove ${inheritedFrom!.title}${
-        inheritanceChain.length > 1
-          ? " from the inheritance chain"
-          : " from the 'extends' section"
-      }.`
-    : `Edit the '${parentPropertyName ?? "parent"}' property to change this`;
+  const readonlyMessage = generateReadonlyMessage(
+    inherited
+      ? maybeInheritanceData
+      : { parentPropertyName: parentPropertyName ?? "parent" },
+  );
 
   return (
     <>

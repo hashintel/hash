@@ -1,12 +1,14 @@
 import { faArrowsRotate, faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Box, Tooltip, Typography } from "@mui/material";
-import { ElementType } from "react";
+import { CloseIcon } from "@hashintel/type-editor/src/entity-type-editor/shared/close-icon";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { ElementType, useState } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { IconButton } from "./icon-button";
 import { WhiteCard } from "./white-card";
 
 interface TypeCardProps {
+  onDelete?: () => void;
   LinkComponent?: ElementType;
   url: string;
   title: string;
@@ -18,6 +20,7 @@ interface TypeCardProps {
 }
 
 export const TypeCard = ({
+  onDelete,
   LinkComponent,
   url,
   title,
@@ -26,8 +29,15 @@ export const TypeCard = ({
 }: TypeCardProps) => {
   const { newVersion, onUpdateVersion } = newVersionConfig ?? {};
 
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <WhiteCard href={url} LinkComponent={LinkComponent}>
+    <WhiteCard
+      href={url}
+      LinkComponent={LinkComponent}
+      onMouseEnter={() => (onDelete ? setHovered(true) : null)}
+      onMouseLeave={() => (onDelete ? setHovered(false) : null)}
+    >
       <Box
         sx={{
           height: 40,
@@ -79,6 +89,25 @@ export const TypeCard = ({
               <FontAwesomeIcon icon={faArrowsRotate} />
             </IconButton>
           </Tooltip>
+        )}
+        {onDelete && (
+          <Collapse in={hovered} orientation="horizontal">
+            <IconButton
+              onClick={onDelete}
+              sx={{ "&:hover": { background: "none" }, padding: 0 }}
+            >
+              <CloseIcon
+                onClick={onDelete}
+                sx={({ palette }) => ({
+                  width: 11,
+                  height: 11,
+                  "&:hover": {
+                    fill: palette.error.main,
+                  },
+                })}
+              />
+            </IconButton>
+          </Collapse>
         )}
       </Box>
     </WhiteCard>
