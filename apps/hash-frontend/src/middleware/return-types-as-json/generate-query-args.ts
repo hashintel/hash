@@ -55,6 +55,7 @@ export const generateQueryArgs = (
           constrainsLinksOn: zeroDepth,
           constrainsPropertiesOn: zeroDepth,
           constrainsValuesOn: zeroDepth,
+          inheritsFrom: zeroDepth,
         },
       };
     case "property-type":
