@@ -49,6 +49,7 @@
     "lint:markdownlint": "markdownlint --dot .",
     "lint:prettier": "prettier --check --ignore-unknown .",
     "lint:mypy": "turbo lint:mypy",
+    "lint:renovate": "renovate-config-validator",
     "lint:ruff": "turbo lint:ruff",
     "lint:tsc": "turbo --continue lint:tsc --",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
