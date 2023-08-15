@@ -113,15 +113,31 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     void fetchDataTypes();
   }, [fetchPropertyTypes, fetchDataTypes]);
 
+  const allTypes = useMemo(
+    () =>
+      latestNonLinkEntityTypes &&
+      latestLinkEntityTypes &&
+      latestPropertyTypes &&
+      latestDataTypes
+        ? [
+            ...latestNonLinkEntityTypes,
+            ...latestLinkEntityTypes,
+            ...latestPropertyTypes,
+            ...latestDataTypes,
+          ]
+        : undefined,
+    [
+      latestNonLinkEntityTypes,
+      latestLinkEntityTypes,
+      latestPropertyTypes,
+      latestDataTypes,
+    ],
+  );
+
   const currentTypes = useMemo(
     () =>
       currentTab === "all"
-        ? [
-            ...(latestNonLinkEntityTypes ?? []),
-            ...(latestLinkEntityTypes ?? []),
-            ...(latestPropertyTypes ?? []),
-            ...(latestDataTypes ?? []),
-          ]
+        ? allTypes
         : currentTab === "entity-type"
         ? latestNonLinkEntityTypes ?? []
         : currentTab === "link-type"
@@ -131,6 +147,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         : latestDataTypes ?? [],
     [
       currentTab,
+      allTypes,
       latestNonLinkEntityTypes,
       latestLinkEntityTypes,
       latestPropertyTypes,
@@ -183,11 +200,20 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             </Box>
             Types
           </Typography>
-          <TypesPageTabs currentTab={currentTab} />
+          <TypesPageTabs
+            currentTab={currentTab}
+            numberOfTypesByTab={{
+              all: allTypes?.length,
+              "entity-type": latestNonLinkEntityTypes?.length,
+              "link-type": latestLinkEntityTypes?.length,
+              "property-type": latestPropertyTypes?.length,
+              "data-type": latestDataTypes?.length,
+            }}
+          />
         </Container>
       </Box>
       <Container sx={{ paddingTop: 5 }}>
-        <TypesTable kind={currentTab} types={currentTypes} />
+        <TypesTable kind={currentTab} types={currentTypes ?? []} />
       </Container>
     </>
   );

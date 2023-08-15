@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 
 import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
-import { TabLink } from "./entity-type-tabs/tab-link";
+import { TabLink } from "../../../../../shared/ui/tab-link";
 import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";

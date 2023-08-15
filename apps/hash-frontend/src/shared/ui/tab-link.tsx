@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { FunctionComponent, ReactElement } from "react";
 
-import { Link } from "../../../../../../shared/ui/link";
+import { Link } from "./link";
 
 export type TabLinkProps = {
   label: string;

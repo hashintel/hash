@@ -1,13 +1,7 @@
-import {
-  Tab,
-  Tabs,
-  tabsClasses,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
+import { Tabs, tabsClasses, typographyClasses } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { Link } from "../../shared/ui";
+import { TabLink } from "../../shared/ui/tab-link";
 import { TabId } from "./[[...type-kind]].page";
 
 const tabIds = [
@@ -26,8 +20,14 @@ export const tabTitles: Record<TabId, string> = {
   "data-type": "Data Types",
 };
 
-export const TypesPageTabs: FunctionComponent<{ currentTab: TabId }> = ({
+type TypesPageTabsProps = {
+  currentTab: TabId;
+  numberOfTypesByTab: Record<TabId, number | undefined>;
+};
+
+export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
   currentTab,
+  numberOfTypesByTab,
 }) => {
   return (
     <Tabs
@@ -38,7 +38,6 @@ export const TypesPageTabs: FunctionComponent<{ currentTab: TabId }> = ({
           backgroundColor: palette.blue[60],
           minHeight: 0,
           bottom: -1,
-          // ...(!animateTabs ? { transition: "none" } : {}),
         }),
       }}
       sx={{
@@ -52,23 +51,13 @@ export const TypesPageTabs: FunctionComponent<{ currentTab: TabId }> = ({
       }}
     >
       {tabIds.map((tabId) => (
-        <Tab
+        <TabLink
           key={tabId}
-          disableRipple
           value={tabId}
           href={tabId === "all" ? "/types" : `/types/${tabId}`}
-          component={Link}
-          label={
-            <Typography
-              variant="smallTextLabels"
-              fontWeight={500}
-              sx={{
-                paddingY: 0.25,
-              }}
-            >
-              {tabTitles[tabId]}
-            </Typography>
-          }
+          label={tabTitles[tabId]}
+          count={numberOfTypesByTab[tabId]}
+          loading={numberOfTypesByTab[tabId] === undefined}
           sx={[
             ({ palette }) => ({
               marginRight: 3,
