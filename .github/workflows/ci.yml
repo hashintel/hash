@@ -248,6 +248,21 @@ jobs:
             exit 1;
           fi
 
+      - name: Validate renovate config
+        if: ${{ success() || failure() }}
+        run: |
+          # Adding renovate in `package.json` causes incompatibility between our dependencies and their dependencies.
+          npm install --global renovate
+          if ! renovate-config-validator; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
   backend-integration-tests:
     name: Backend integration tests
     needs: [build-hash-graph, build-hash-ai-worker-ts, build-hash-ai-worker-py]
