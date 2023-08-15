@@ -87,8 +87,9 @@ impl<C: AsClient> PostgresStore<C> {
                 property_type_queue.extend(
                     self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
-                        ReferenceTable::EntityTypeConstrainsPropertiesOn,
-                        Some(0),
+                        ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                            inheritance_depth: 0,
+                        },
                     )
                     .await?
                     .flat_map(|edge| {
@@ -108,21 +109,24 @@ impl<C: AsClient> PostgresStore<C> {
                 );
             }
 
-            for (edge_kind, table, inheritance_depth) in [
+            for (edge_kind, table) in [
                 (
                     OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::EntityTypeInheritsFrom,
-                    Some(0),
+                    ReferenceTable::EntityTypeInheritsFrom {
+                        inheritance_depth: 0,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    ReferenceTable::EntityTypeConstrainsLinksOn,
-                    Some(0),
+                    ReferenceTable::EntityTypeConstrainsLinksOn {
+                        inheritance_depth: 0,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
-                    Some(0),
+                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                        inheritance_depth: 0,
+                    },
                 ),
             ] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
@@ -130,7 +134,6 @@ impl<C: AsClient> PostgresStore<C> {
                         self.read_ontology_edges::<EntityTypeVertexId, EntityTypeVertexId>(
                             traversal_data,
                             table,
-                            inheritance_depth,
                         )
                         .await?
                         .flat_map(|edge| {

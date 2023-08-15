@@ -37,7 +37,6 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             } => once(Relation::Reference {
                 table: ReferenceTable::PropertyTypeConstrainsValuesOn,
                 direction: EdgeDirection::Incoming,
-                inheritance_depth: None,
             })
             .chain(path.relations())
             .collect(),

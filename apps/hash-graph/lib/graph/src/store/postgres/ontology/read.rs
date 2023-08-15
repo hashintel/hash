@@ -30,8 +30,8 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath, PostgresRecord,
-                ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
+                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
         query::{Filter, OntologyQueryPath},
@@ -476,7 +476,6 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
-        depth: Option<u8>,
     ) -> Result<impl Iterator<Item = OntologyEdgeTraversal<L, R>> + 'r, QueryError>
     where
         L: From<VersionedUrl>,
@@ -496,9 +495,12 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
-        let where_statement = depth.map_or(Cow::Borrowed(""), |depth| {
-            Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
-        });
+        let where_statement = reference_table
+            .inheritance_depth_column()
+            .and_then(Column::inheritance_depth)
+            .map_or(Cow::Borrowed(""), |depth| {
+                Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
+            });
 
         Ok(self
             .client

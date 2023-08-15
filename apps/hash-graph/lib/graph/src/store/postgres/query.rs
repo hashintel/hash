@@ -22,12 +22,11 @@ pub use self::{
         Ordering, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{Alias, AliasedColumn, AliasedTable, ForeignKeyReference, ReferenceTable, Table},
+    table::{
+        Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
+    },
 };
-use crate::store::{
-    postgres::query::table::{Column, Relation},
-    Record,
-};
+use crate::store::{postgres::query::table::Relation, Record};
 
 pub trait PostgresRecord: Record {
     /// The [`Table`] used for this `Query`.

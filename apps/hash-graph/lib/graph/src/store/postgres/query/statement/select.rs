@@ -518,9 +518,7 @@ mod tests {
             INNER JOIN "entity_types" AS "entity_types_0_5_0"
               ON "entity_types_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_constrains_links_on_0_1_0"."inheritance_depth" = 0
               AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_constrains_links_on_0_3_0"."inheritance_depth" = 0
               AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_types_0_5_0"."schema"->>'title' = $2
             "#,
@@ -561,7 +559,6 @@ mod tests {
             INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
               ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_inherits_from_0_1_0"."inheritance_depth" = 0
               AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "ontology_ids_0_3_0"."base_url" = $2
             "#,
@@ -964,11 +961,9 @@ mod tests {
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-              AND "entity_is_of_type_0_3_0"."inheritance_depth" = 0
               AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
-              AND "entity_is_of_type_0_3_1"."inheritance_depth" = 0
               AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND ("ontology_ids_0_5_0"."base_url" = $3)
               AND ("ontology_ids_0_5_1"."base_url" = $4)
