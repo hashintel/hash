@@ -33,6 +33,7 @@ export const queryEntityTypesQuery = gql`
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $latestOnly: Boolean = true
+    $includeArchived: Boolean = false
   ) {
     queryEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
@@ -41,6 +42,7 @@ export const queryEntityTypesQuery = gql`
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
       inheritsFrom: $inheritsFrom
       latestOnly: $latestOnly
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -67,5 +69,17 @@ export const updateEntityTypeMutation = gql`
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
     )
+  }
+`;
+
+export const archiveEntityTypeMutation = gql`
+  mutation archiveEntityType($entityTypeId: VersionedUrl!) {
+    archiveEntityType(entityTypeId: $entityTypeId)
+  }
+`;
+
+export const unarchiveEntityTypeMutation = gql`
+  mutation unarchiveEntityType($entityTypeId: VersionedUrl!) {
+    unarchiveEntityType(entityTypeId: $entityTypeId)
   }
 `;

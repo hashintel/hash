@@ -27,7 +27,7 @@
 "area: blocks":
   - "blocks/**"
 
-"area: dependencies":
+"area: deps":
   - "**/patches/**"
   - "**/Cargo.lock"
   - "**/yarn.lock"

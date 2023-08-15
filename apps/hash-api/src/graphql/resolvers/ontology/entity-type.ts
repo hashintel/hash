@@ -62,6 +62,7 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsLinkDestinationsOn,
     inheritsFrom,
     latestOnly = true,
+    includeArchived = false,
   },
   { dataSources },
   __,
@@ -82,7 +83,23 @@ export const queryEntityTypesResolver: ResolverFn<
       constrainsLinkDestinationsOn,
       inheritsFrom,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
+    temporalAxes: includeArchived
+      ? {
+          pinned: {
+            axis: "decisionTime",
+            timestamp: null,
+          },
+          variable: {
+            axis: "transactionTime",
+            interval: {
+              start: {
+                kind: "unbounded",
+              },
+              end: null,
+            },
+          },
+        }
+      : currentTimeInstantTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;

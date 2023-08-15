@@ -8,6 +8,7 @@ import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/ty
 import {
   AccountId,
   BaseUrl,
+  EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -136,7 +137,7 @@ export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: number | null,
   accountId: AccountId | null,
-  onCompleted?: (entityType: EntityType) => void,
+  onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
 
@@ -151,7 +152,7 @@ export const useEntityTypeValue = (
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   const { contextEntityType, latestVersion } = useMemo<{
-    contextEntityType: EntityType | null;
+    contextEntityType: EntityTypeWithMetadata | null;
     latestVersion: number | null;
   }>(() => {
     if (entityTypesLoading || !entityTypesSubgraph) {
@@ -181,8 +182,7 @@ export const useEntityTypeValue = (
 
         if (indexOfRequestedVersion >= 0) {
           return {
-            contextEntityType:
-              relevantEntityTypes[indexOfRequestedVersion]!.schema,
+            contextEntityType: relevantEntityTypes[indexOfRequestedVersion]!,
             latestVersion: maxVersion,
           };
         } else {
@@ -196,7 +196,7 @@ export const useEntityTypeValue = (
       // Otherwise, return the latest version
       const relevantVersionIndex = availableVersions.indexOf(maxVersion);
       return {
-        contextEntityType: relevantEntityTypes[relevantVersionIndex]!.schema,
+        contextEntityType: relevantEntityTypes[relevantVersionIndex]!,
         latestVersion: maxVersion,
       };
     }
@@ -216,9 +216,9 @@ export const useEntityTypeValue = (
     (contextEntityType ||
       (stateEntityType &&
         (requestedVersion && entityTypeBaseUrl
-          ? stateEntityType.$id !==
+          ? stateEntityType.schema.$id !==
             versionedUrlFromComponents(entityTypeBaseUrl, requestedVersion)
-          : extractBaseUrl(stateEntityType.$id) !== entityTypeBaseUrl)))
+          : extractBaseUrl(stateEntityType.schema.$id) !== entityTypeBaseUrl)))
   ) {
     setStateEntityType(contextEntityType);
   }
@@ -229,7 +229,7 @@ export const useEntityTypeValue = (
     }
 
     const relevantPropertiesMap = getPropertyTypesForEntityType(
-      stateEntityType,
+      stateEntityType.schema,
       entityTypesSubgraph,
     );
 
@@ -244,8 +244,11 @@ export const useEntityTypeValue = (
   const completedRef = useRef<VersionedUrl | null>(null);
 
   useLayoutEffect(() => {
-    if (stateEntityType && completedRef.current !== stateEntityType.$id) {
-      completedRef.current = stateEntityType.$id;
+    if (
+      stateEntityType &&
+      completedRef.current !== stateEntityType.schema.$id
+    ) {
+      completedRef.current = stateEntityType.schema.$id;
       onCompleted?.(stateEntityType);
     }
   });
@@ -267,7 +270,9 @@ export const useEntityTypeValue = (
         throw new Error("Cannot update yet");
       }
 
-      const { $id, ...restOfEntityType } = stateEntityTypeRef.current;
+      const {
+        schema: { $id, ...restOfEntityType },
+      } = stateEntityTypeRef.current;
 
       const res = await updateEntityType({
         data: {
