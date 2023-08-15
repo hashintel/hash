@@ -7,6 +7,7 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
+import millify from "millify";
 import { FunctionComponent, ReactElement } from "react";
 
 import { Link } from "./link";
@@ -77,7 +78,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
                 color: active ? palette.primary.main : palette.gray[80],
               })}
             >
-              {count}
+              {millify(count)}
             </Typography>
           )}
         </Box>
