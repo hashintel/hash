@@ -111,6 +111,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
             position: "absolute",
             top: 0,
             right: 0,
+            overflowY: "auto",
           }}
         >
           {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (
