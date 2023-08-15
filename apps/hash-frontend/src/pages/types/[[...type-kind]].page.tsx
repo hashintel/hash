@@ -56,6 +56,8 @@ export const getStaticProps: GetStaticProps<
   return { props: { currentTab } };
 };
 
+const contentMaxWidth = 1000;
+
 const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   const latestEntityTypes = useLatestEntityTypesOptional({
     includeArchived: true,
@@ -186,7 +188,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           backgroundColor: ({ palette }) => palette.common.white,
         }}
       >
-        <Container>
+        <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
           <Typography variant="h1" fontWeight="bold" my={3}>
             <Box display="inline-flex">
               <FilesLightIcon
@@ -212,7 +214,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
           />
         </Container>
       </Box>
-      <Container sx={{ paddingTop: 5 }}>
+      <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
         <TypesTable kind={currentTab} types={currentTypes ?? []} />
       </Container>
     </>
