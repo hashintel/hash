@@ -20,14 +20,15 @@ export type InheritanceData = {
    */
   inheritanceChain: string[];
   /**
-   * The entity type these values are inherited from.
+   * The entity type this type is inherited from.
    */
   inheritedFrom: EntityType;
 };
 
 /**
- * The form data for the entity type in inheritedFrom, augmented with inheritance information.
- * The data is not intended to be edited, but the components are written to expect data in this format
+ * Inherited links and properties, each including:
+ * 1. The usual form data for links and properties (they won't be edited, but it's convenient given the component design)
+ * 2. Additional inheritance information to mark them as inherited, and for use in tooltips etc
  */
 export type InheritedValues = {
   links: (EntityTypeEditorLinkData & InheritanceData)[];

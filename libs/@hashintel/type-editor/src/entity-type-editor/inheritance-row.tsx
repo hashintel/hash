@@ -82,7 +82,7 @@ export const InheritanceRow = () => {
           dropdownProps={{
             query: typeSelectorSearchText,
             createButtonProps: null,
-            variant: "entityType",
+            variant: "entity type",
           }}
           inputRef={selectorInputRef}
           onAdd={(value) => {
@@ -97,7 +97,7 @@ export const InheritanceRow = () => {
           options={entityTypeOptions}
           searchText={typeSelectorSearchText}
           sx={{ width: 500 }}
-          variant="entityType"
+          variant="entity type"
         />
       ) : (
         <Button

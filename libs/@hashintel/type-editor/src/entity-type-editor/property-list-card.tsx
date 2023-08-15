@@ -216,7 +216,7 @@ const InsertPropertyField = (
     <InsertTypeField
       {...props}
       options={filteredPropertyTypes}
-      variant="property"
+      variant="property type"
     />
   );
 };

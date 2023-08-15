@@ -33,7 +33,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
   options: T[];
   inputRef: Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
-  variant: "entityType" | "property" | "link";
+  variant: "entity type" | "property type" | "link type";
 }) => {
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | T>(null);
@@ -41,7 +41,9 @@ export const TypeSelector = <T extends TypeSelectorType>({
   return (
     <SelectorAutocomplete
       dropdownProps={dropdownProps}
-      inputPlaceholder={`Search for a ${variant} type`}
+      inputPlaceholder={`Search for ${
+        variant === "entity type" ? "an" : "a"
+      } ${variant}`}
       inputRef={inputRef}
       isOptionEqualToValue={(option, value) => option.$id === value.$id}
       optionToRenderData={({ $id, title, description }) => ({

@@ -232,7 +232,11 @@ const InsertLinkField = (
   });
 
   return (
-    <InsertTypeField {...props} options={filteredLinkTypes} variant="link" />
+    <InsertTypeField
+      {...props}
+      options={filteredLinkTypes}
+      variant="link type"
+    />
   );
 };
 

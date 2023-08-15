@@ -28,7 +28,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entityType" | "propertyType" | "entity" | "linkType";
+  variant: "entity type" | "property type" | "entity" | "link type";
 };
 
 const DropdownPropsContext =
@@ -85,14 +85,22 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
               </Typography>
             </>
           ) : null}
-          {variant === "entityType" ? (
-            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          {variant === "entity type" ? (
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : variant === "entity" ? (
-            <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
-          ) : variant === "linkType" ? (
-            <Chip color="turquoise" label="LINK TYPE" sx={{ ml: 1.5 }} />
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
+          ) : variant === "link type" ? (
+            <Chip
+              color="turquoise"
+              label={variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           ) : (
-            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+            <Chip
+              color="purple"
+              label={variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           )}
         </Button>
       ) : null}
@@ -224,8 +232,6 @@ export const SelectorAutocomplete = <
                   [`.${outlinedInputClasses.notchedOutline}`]: {
                     border: `1px solid ${theme.palette.gray[30]} !important`,
                   },
-
-                  padding: 0,
                 }),
                 ...(open
                   ? [
