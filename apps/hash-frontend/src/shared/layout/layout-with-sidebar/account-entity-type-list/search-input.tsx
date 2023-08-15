@@ -75,7 +75,17 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
           }),
 
           endAdornment: (
-            <Tooltip title="Clear Search">
+            <Tooltip
+              title="Clear Search"
+              PopperProps={{
+                modifiers: [
+                  {
+                    name: "offset",
+                    options: { offset: [-1, 0] },
+                  },
+                ],
+              }}
+            >
               <IconButton onClick={hideSearchInput} size="small" unpadded>
                 <FontAwesomeIcon icon={faXmark} />
               </IconButton>
