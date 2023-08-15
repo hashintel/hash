@@ -120,6 +120,7 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
 
 export type QueryEntityTypesRequest = {
   latestOnly?: boolean;
+  includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],

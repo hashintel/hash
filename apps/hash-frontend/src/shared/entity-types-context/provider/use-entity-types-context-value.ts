@@ -30,6 +30,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     const res = await queryEntityTypes({
       data: {
         latestOnly: false,
+        includeArchived: true,
       },
     });
 
