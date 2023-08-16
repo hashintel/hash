@@ -42,6 +42,7 @@ export const useBlockProtocolGetEntity = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },

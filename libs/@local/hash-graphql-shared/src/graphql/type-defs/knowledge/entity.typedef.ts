@@ -74,6 +74,7 @@ export const entityTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
@@ -95,6 +96,7 @@ export const entityTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!

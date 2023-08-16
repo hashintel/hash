@@ -1,7 +1,7 @@
 import { BaseUrl, EntityType, PropertyType } from "@blockprotocol/type-system";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  getEntityTypeById,
+  getEntityTypeAndParentsById,
   getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
@@ -40,7 +40,8 @@ export const useEntityTypeEntitiesContextValue = (
           },
         },
         graphResolveDepths: {
-          constrainsPropertiesOn: { outgoing: 1 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
       },
@@ -69,12 +70,13 @@ export const useEntityTypeEntitiesContextValue = (
         metadata: { entityTypeId },
       } of relevantEntities) {
         if (!relevantTypesMap.has(entityTypeId)) {
-          const type = getEntityTypeById(subgraph, entityTypeId)?.schema;
-          if (type) {
-            relevantTypesMap.set(entityTypeId, type);
+          const types = getEntityTypeAndParentsById(subgraph, entityTypeId);
+          for (const { schema } of types) {
+            relevantTypesMap.set(schema.$id, schema);
           }
         }
       }
+
       const relevantTypes = Array.from(relevantTypesMap.values());
 
       const relevantPropertiesMap = new Map<string, PropertyType>();

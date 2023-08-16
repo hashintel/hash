@@ -43,6 +43,7 @@ export const useOrgs = (
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
       constrainsLinkDestinationsOn: { outgoing: 0 },
+      inheritsFrom: { outgoing: 1 },
       isOfType: { outgoing: 0 },
       hasLeftEntity: { incoming: 0, outgoing: 1 },
       hasRightEntity: { incoming: 1, outgoing: 0 },
