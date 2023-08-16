@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
 use error_stack::IntoReport;
@@ -129,11 +131,21 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.data_types =
                 Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|data_type| (data_type.vertex_id(time_axis), data_type))
+                    .filter_map(|data_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(data_type.vertex_id(time_axis))
+                            .then(|| (data_type.vertex_id(time_axis), data_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.data_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());

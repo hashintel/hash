@@ -54,9 +54,7 @@ impl Subgraph {
         }
     }
 
-    // TODO: Make private again
-    //   see https://linear.app/hash/issue/H-297
-    pub fn vertex_entry_mut<R: Record>(
+    fn vertex_entry_mut<R: Record>(
         &mut self,
         vertex_id: &R::VertexId,
     ) -> RawEntryMut<R::VertexId, R, RandomState> {
@@ -67,16 +65,12 @@ impl Subgraph {
         vertex_id.subgraph_entry(&self.vertices)
     }
 
-    pub fn insert_vertex<R: Record>(&mut self, vertex_id: R::VertexId, record: R) -> Option<R>
+    pub fn insert_vertex<R: Record>(&mut self, vertex_id: R::VertexId, record: R)
     where
         R::VertexId: Eq + Hash,
     {
-        match self.vertex_entry_mut(&vertex_id) {
-            RawEntryMut::Occupied(mut entry) => Some(entry.insert(record)),
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(vertex_id, record);
-                None
-            }
+        if let RawEntryMut::Vacant(entry) = self.vertex_entry_mut(&vertex_id) {
+            entry.insert(vertex_id, record);
         }
     }
 

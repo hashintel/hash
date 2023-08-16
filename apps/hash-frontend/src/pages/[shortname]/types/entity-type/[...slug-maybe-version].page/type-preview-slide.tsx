@@ -58,7 +58,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
     version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset(getFormDataFromSchema(fetchedEntityType));
+      reset(getFormDataFromSchema(fetchedEntityType.schema));
     },
   );
 
@@ -66,7 +66,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
 
   const entityTypesContext = useEntityTypesContextRequired();
 
-  const ontology = parseUrlForOntologyChip(remoteEntityType?.$id ?? "");
+  const ontology = parseUrlForOntologyChip(remoteEntityType?.schema.$id ?? "");
 
   const entityTypeOptions = useMemo(
     () =>
@@ -130,11 +130,11 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
           ) : (
             <Box padding={8}>
               <EntityTypeFormProvider {...formMethods}>
-                <EntityTypeContext.Provider value={remoteEntityType}>
+                <EntityTypeContext.Provider value={remoteEntityType.schema}>
                   <EntityTypeHeader
                     ontologyChip={
                       <Link
-                        href={remoteEntityType.$id}
+                        href={remoteEntityType.schema.$id}
                         target="_blank"
                         style={{ textDecoration: "none" }}
                       >
@@ -153,12 +153,12 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                         />
                       </Link>
                     }
-                    entityType={remoteEntityType}
+                    entityType={remoteEntityType.schema}
                     isReadonly
                   />
                   <EntityTypeEditor
                     customization={{ onNavigateToType }}
-                    entityType={remoteEntityType}
+                    entityType={remoteEntityType.schema}
                     entityTypeOptions={entityTypeOptions}
                     ontologyFunctions={null}
                     propertyTypeOptions={propertyTypeOptions}
