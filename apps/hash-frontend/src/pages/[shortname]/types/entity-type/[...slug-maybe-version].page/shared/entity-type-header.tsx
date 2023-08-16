@@ -4,9 +4,9 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
 
+import { isLinkEntityType } from "../../../../../../shared/entity-types-context/util";
 import { LinkedIcon } from "../../../../../../shared/icons/linked-icon";
 import { Link } from "../../../../../../shared/ui/link";
-import { isLinkEntityType } from "../../[...slug-maybe-version].page";
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {

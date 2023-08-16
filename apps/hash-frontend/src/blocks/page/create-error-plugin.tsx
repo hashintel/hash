@@ -1,9 +1,9 @@
-import { Button } from "@hashintel/design-system";
 import { Box, Dialog, Stack, Typography } from "@mui/material";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";
 
 import { ensureMounted } from "../../lib/dom";
+import { Button } from "../../shared/ui";
 import { RenderPortal } from "./block-portals";
 
 type ErrorProps = { errored: boolean };

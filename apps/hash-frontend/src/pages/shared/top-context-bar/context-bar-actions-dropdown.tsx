@@ -1,10 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  MenuItem,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph/.";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import {
@@ -22,6 +18,7 @@ import {
 import { archiveEntityTypeMutation } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
+import { MenuItem } from "../../../shared/ui";
 import { isEntityPageEntity, isItemEntityType } from "./util";
 
 export const ContextBarActionsDropdown: FunctionComponent<{

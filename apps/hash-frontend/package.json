@@ -64,6 +64,7 @@
     "lodash": "4.17.21",
     "marked": "4.1.1",
     "material-ui-popup-state": "4.0.2",
+    "millify": "6.1.0",
     "next": "13.0.6",
     "next-seo": "6.1.0",
     "next-transpile-modules": "10.0.0",

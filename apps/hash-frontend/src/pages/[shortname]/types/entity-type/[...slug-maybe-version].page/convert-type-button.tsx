@@ -1,7 +1,7 @@
-import { Button } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 
+import { Button } from "../../../../../shared/ui";
 import { ConvertTypeConfirmationModal } from "./convert-type-button/convert-type-confirmation-modal";
 
 interface ConvertTypeButtonProps {
