@@ -5,7 +5,7 @@ import {
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
@@ -29,10 +29,17 @@ export const InheritanceRow = () => {
   });
 
   const { entityTypes } = useEntityTypesOptions();
-  const entityTypesArray = Object.values(entityTypes);
-  const directParents = entityTypesArray.filter((type) =>
-    directParentEntityTypeIds.includes(type.$id),
-  );
+
+  const { entityTypesArray, directParents } = useMemo(() => {
+    const typesArray = Object.values(entityTypes);
+
+    const parents = typesArray.filter((type) =>
+      directParentEntityTypeIds.includes(type.$id),
+    );
+
+    return { entityTypesArray: typesArray, directParents: parents };
+  }, [entityTypes, directParentEntityTypeIds]);
+
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
     typesToExclude: directParents,
