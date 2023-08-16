@@ -208,7 +208,10 @@ export const AccountEntityTypeList: FunctionComponent<
               <SearchInput
                 searchVisible={searchVisible}
                 showSearchInput={() => setSearchVisible(true)}
-                hideSearchInput={() => setSearchVisible(false)}
+                hideSearchInput={() => {
+                  setSearchQuery("");
+                  setSearchVisible(false);
+                }}
                 onChangeText={(query) => setSearchQuery(query)}
               />
             </Box>
