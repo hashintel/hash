@@ -36,7 +36,7 @@ export const useAllEntitiesExcept = (
       constrainsPropertiesOn: { outgoing: 1 },
       constrainsLinksOn: { outgoing: 0 },
       constrainsLinkDestinationsOn: { outgoing: 0 },
-      inheritsFrom: { outgoing: 1 },
+      inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 1 },
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
