@@ -984,7 +984,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "website-building",
       "internal-tools-apps",
       "agent-based-simulation",
-      "entity-storage-retrieval"
+      "entity-storage-retrieval",
     ],
     variant: "feature",
   },
@@ -1015,7 +1015,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     useCases: [
       "data-management",
       "business-intelligence",
-      "agent-based-simulation"
+      "agent-based-simulation",
     ],
     variant: "infrastructure",
   },
@@ -1037,7 +1037,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     useCases: [
       "data-management",
       "business-intelligence",
-      "internal-tools-apps"
+      "internal-tools-apps",
     ],
     variant: "feature",
   },
@@ -1056,10 +1056,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Intelligent offloading of infrequently accessed data into cold storage",
     parentIds: ["76"],
     status: "future",
-    useCases: [
-      "knowledge-management",
-      "data-management"
-    ],
+    useCases: ["knowledge-management", "data-management"],
     variant: "infrastructure",
   },
   {
@@ -1071,7 +1068,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     useCases: [
       "knowledge-management",
       "data-management",
-      "internal-tools-apps"
+      "internal-tools-apps",
     ],
     variant: "feature",
   },
