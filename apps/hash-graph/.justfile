@@ -21,6 +21,7 @@ run *arguments:
 # Generates the OpenAPI client for the Graph REST API
 generate-openapi-specs:
   cargo run --bin hash-graph -- server --write-openapi-specs
+  just yarn codegen --filter @local/hash-graph-client-python
 
 [private]
 test *arguments:
