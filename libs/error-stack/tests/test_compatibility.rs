@@ -1,11 +1,11 @@
 #![cfg(any(feature = "eyre", feature = "anyhow"))]
-#![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(
-    all(nightly, feature = "std"),
-    feature(backtrace_frames, error_generic_member_access)
-)]
+#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
+#![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 
 mod common;
+
+#[cfg(nightly)]
+use core::error;
 
 #[allow(clippy::wildcard_imports)]
 use common::*;
@@ -21,7 +21,7 @@ fn error() {
     assert_eq!(error_ref.to_string(), "context A");
     #[cfg(nightly)]
     assert_eq!(
-        *core::any::request_ref::<u32>(error_ref).expect("requested value not found"),
+        *error::request_ref::<u32>(error_ref).expect("requested value not found"),
         10
     );
 
@@ -29,7 +29,7 @@ fn error() {
     assert_eq!(error.to_string(), "context A");
     #[cfg(nightly)]
     assert_eq!(
-        *core::any::request_ref::<u32>(&error).expect("requested value not found"),
+        *error::request_ref::<u32>(&error).expect("requested value not found"),
         10
     );
 }
@@ -171,13 +171,15 @@ fn eyre() {
 }
 
 #[test]
-#[cfg(all(nightly, feature = "eyre"))]
+#[cfg(all(nightly, feature = "eyre", feature = "std"))]
 #[ignore = "bug: `eyre` currently does not provide a backtrace`"]
 fn eyre_backtrace() {
+    install_eyre_hook();
+
     let error = eyre::eyre!("test error");
-    let error_backtrace = error
-        .request_ref::<std::backtrace::Backtrace>()
-        .expect("no backtrace captured");
+    let error_backtrace =
+        error::request_ref::<std::backtrace::Backtrace>(error.as_ref() as &dyn error::Error)
+            .expect("no backtrace captured");
     let error_backtrace_len = error_backtrace.frames().len();
     let error_backtrace_string = error_backtrace.to_string();
 

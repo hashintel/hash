@@ -1,6 +1,6 @@
-use core::fmt;
 #[cfg(nightly)]
-use core::{any::Demand, error::Error};
+use core::error::{Error, Request};
+use core::fmt;
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;
 
@@ -61,7 +61,7 @@ pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
     #[cfg(nightly)]
     #[allow(unused_variables)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {}
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {}
 }
 
 impl<C> From<C> for Report<C>
@@ -78,7 +78,7 @@ where
 #[cfg(any(nightly, feature = "std"))]
 impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Error::provide(self, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Error::provide(self, request);
     }
 }

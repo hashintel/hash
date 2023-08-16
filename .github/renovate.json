@@ -205,6 +205,11 @@
       "matchPackagePatterns": ["^tracing[-_]?"],
       "excludePackageNames": ["tracing-opentelemetry"],
       "groupName": "`tracing` crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "excludeDepNames": ["anyhow"]
     }
   ],
   "regexManagers": [
