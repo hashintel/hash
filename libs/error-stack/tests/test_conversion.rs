@@ -1,5 +1,5 @@
 #![cfg(feature = "std")]
-#![cfg_attr(nightly, feature(provide_any, error_generic_member_access))]
+#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
 
 use std::io;
 
@@ -38,7 +38,7 @@ fn boxed_error() {
 
     #[cfg(nightly)]
     assert_eq!(
-        *core::any::request_ref::<u32>(report.as_ref()).expect("requested value not found"),
+        *core::error::request_ref::<u32>(report.as_ref()).expect("requested value not found"),
         10
     );
 }

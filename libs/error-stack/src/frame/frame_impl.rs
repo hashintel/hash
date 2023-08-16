@@ -1,6 +1,6 @@
 use alloc::boxed::Box;
 #[cfg(nightly)]
-use core::any::Demand;
+use core::error::{Error, Request};
 use core::{any::Any, fmt};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};
@@ -15,7 +15,28 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
 
     /// Provide values which can then be requested.
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>);
+    fn provide<'a>(&'a self, request: &mut Request<'a>);
+}
+
+#[cfg(nightly)]
+impl fmt::Debug for Box<dyn FrameImpl> {
+    fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unreachable!()
+    }
+}
+
+#[cfg(nightly)]
+impl fmt::Display for Box<dyn FrameImpl> {
+    fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
+        unreachable!()
+    }
+}
+
+#[cfg(nightly)]
+impl Error for Box<dyn FrameImpl> {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        (**self).provide(request);
+    }
 }
 
 struct ContextFrame<C> {
@@ -36,8 +57,8 @@ impl<C: Context> FrameImpl for ContextFrame<C> {
     }
 
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Context::provide(&self.context, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Context::provide(&self.context, request);
     }
 }
 
@@ -59,8 +80,8 @@ impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     }
 
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.attachment);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_ref(&self.attachment);
     }
 }
 
@@ -84,8 +105,8 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
     }
 
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.attachment);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_ref(&self.attachment);
     }
 }
 
@@ -108,11 +129,10 @@ impl fmt::Display for AnyhowContext {
 
 #[cfg(feature = "anyhow")]
 impl Context for AnyhowContext {
-    // `Provider` is only implemented for `anyhow::Error` on `std`
     #[cfg(all(nightly, feature = "std"))]
     #[inline]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        core::any::Provider::provide(&self.0, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_ref(self.0.backtrace());
     }
 }
 
@@ -132,8 +152,8 @@ impl FrameImpl for AnyhowContext {
 
     #[cfg(nightly)]
     #[inline]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Context::provide(self, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Context::provide(self, request);
     }
 }
 
@@ -158,8 +178,8 @@ impl fmt::Display for EyreContext {
 impl Context for EyreContext {
     #[cfg(nightly)]
     #[inline]
-    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {
-        // `eyre::Report` does not implement `Provider`
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Error::provide(self.0.as_ref() as &dyn Error, request);
     }
 }
 
@@ -179,8 +199,8 @@ impl FrameImpl for EyreContext {
 
     #[cfg(nightly)]
     #[inline]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Context::provide(self, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Context::provide(self, request);
     }
 }
 

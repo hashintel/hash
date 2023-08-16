@@ -63,7 +63,7 @@ use crate::{
 /// consists of. Therefore it isn't guaranteed that [`request_ref()`] will only ever return a single
 /// [`Backtrace`] or [`SpanTrace`].
 ///
-/// [`provide`]: core::any::Provider::provide
+/// [`provide`]: core::error::Error::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`extend_one()`]: Self::extend_one
@@ -269,7 +269,7 @@ impl<C> Report<C> {
     #[track_caller]
     pub(crate) fn from_frame(frame: Frame) -> Self {
         #[cfg(nightly)]
-        let location = core::any::request_ref::<Location>(&frame)
+        let location = core::error::request_ref::<Location>(&frame.as_error())
             .is_none()
             .then_some(Location::caller());
 
@@ -277,7 +277,7 @@ impl<C> Report<C> {
         let location = Some(Location::caller());
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = core::any::request_ref::<Backtrace>(&frame)
+        let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
             .then(Backtrace::capture);
@@ -286,7 +286,7 @@ impl<C> Report<C> {
         let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = core::any::request_ref::<SpanTrace>(&frame)
+        let span_trace = core::error::request_ref::<SpanTrace>(&frame.as_error())
             .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
             .is_none()
             .then(SpanTrace::capture);
@@ -509,14 +509,14 @@ impl<C> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(&self.frames)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(&self.frames)
