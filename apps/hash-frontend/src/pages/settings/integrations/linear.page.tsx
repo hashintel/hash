@@ -1,5 +1,4 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";
@@ -22,6 +21,7 @@ import {
   syncLinearIntegrationWithWorkspacesMutation,
 } from "../../../graphql/queries/integrations/linear.queries";
 import { NextPageWithLayout } from "../../../shared/layout";
+import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../shared/settings-layout";
 import {
