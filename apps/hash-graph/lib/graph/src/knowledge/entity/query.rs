@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 use serde::{
     de::{self, SeqAccess, Visitor},
@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{JsonPath, ParameterType, PathToken, QueryPath},
+    store::query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
@@ -125,6 +125,22 @@ pub enum EntityQueryPath<'p> {
     ///     edge_kind: SharedEdgeKind::IsOfType,
     ///     path: EntityTypeQueryPath::BaseUrl,
     ///     inheritance_depth: None,
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// It's possible to specify the inheritance search depths:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
+    /// # use graph::subgraph::edges::SharedEdgeKind;
+    /// let path = EntityQueryPath::deserialize(json!(["type(inheritanceDepth = 10)", "baseUrl"]))?;
+    /// assert_eq!(path, EntityQueryPath::EntityTypeEdge {
+    ///     edge_kind: SharedEdgeKind::IsOfType,
+    ///     path: EntityTypeQueryPath::BaseUrl,
+    ///     inheritance_depth: Some(10),
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -302,7 +318,12 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
-                ..
+                inheritance_depth: Some(depth),
+            } => write!(fmt, "type({depth}).{path}"),
+            Self::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+                inheritance_depth: None,
             } => write!(fmt, "type.{path}"),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -395,12 +416,13 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let token = seq
+        let query_token: String = seq
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+        let (token, mut parameters) = parse_query_token(&query_token)?;
         self.position += 1;
 
-        Ok(match token {
+        let query_path = match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::EditionId => EntityQueryPath::EditionId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
@@ -409,7 +431,11 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
-                inheritance_depth: None,
+                inheritance_depth: parameters
+                    .remove("inheritanceDepth")
+                    .map(u32::from_str)
+                    .transpose()
+                    .map_err(de::Error::custom)?,
             },
             EntityQueryToken::Properties => {
                 let mut path_tokens = Vec::new();
@@ -446,7 +472,16 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             },
             EntityQueryToken::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
             EntityQueryToken::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
-        })
+        };
+
+        if !parameters.is_empty() {
+            return Err(de::Error::custom(format!(
+                "unknown parameters: {}",
+                parameters.into_keys().collect::<Vec<_>>().join(", ")
+            )));
+        }
+
+        Ok(query_path)
     }
 }
 
@@ -481,6 +516,14 @@ mod tests {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPath::Version,
                 inheritance_depth: None,
+            }
+        );
+        assert_eq!(
+            deserialize(["type(inheritanceDepth = 5)", "version"]),
+            EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::Version,
+                inheritance_depth: Some(5),
             }
         );
         assert_eq!(
