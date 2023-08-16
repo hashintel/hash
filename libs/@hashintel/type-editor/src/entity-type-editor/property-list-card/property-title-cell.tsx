@@ -4,12 +4,12 @@ import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
 import { useIsReadonly } from "../../shared/read-only-context";
+import { ArrowTurnDownRight } from "../shared/arrow-turn-down-right";
 import {
   CollapsibleRowLine,
   ROW_DEPTH_INDENTATION,
 } from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
-import { InheritedIcon } from "../shared/inherited-icon";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
 interface PropertyTitleCellProps {
@@ -102,7 +102,7 @@ export const PropertyTitleCell = ({
           </IconButton>
         </Collapse>
 
-        {inherited && <InheritedIcon sx={{ mr: 1 }} />}
+        {inherited && <ArrowTurnDownRight sx={{ mr: 1 }} />}
 
         <Box>{property.title}</Box>
 

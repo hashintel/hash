@@ -1,8 +1,7 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-// FontAwesome 'arrow-turn-down-right' / ArrowTurnDownRight
-export const InheritedIcon: FunctionComponent<SvgIconProps> = ({
+export const ArrowTurnDownRight: FunctionComponent<SvgIconProps> = ({
   sx,
   ...props
 }) => {

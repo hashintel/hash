@@ -2,12 +2,12 @@ import { fluidFontClassName } from "@hashintel/design-system";
 import { TableCell, Tooltip } from "@mui/material";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
+import { ArrowTurnDownRight } from "../shared/arrow-turn-down-right";
 import {
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "../shared/entity-type-table";
 import { generateReadonlyMessage } from "../shared/generate-readonly-message";
-import { InheritedIcon } from "../shared/inherited-icon";
 import { Link } from "../shared/link";
 import {
   MultipleValuesCellSummary,
@@ -50,7 +50,7 @@ export const InheritedLinkRow = ({
     <EntityTypeTableRow inherited>
       <TableCell>
         <EntityTypeTableTitleCellText>
-          <InheritedIcon sx={{ mr: 1 }} />
+          <ArrowTurnDownRight sx={{ mr: 1 }} />
           <Link href={$id} style={{ color: "inherit", fontWeight: 600 }}>
             {linkSchema.title}
           </Link>
