@@ -30,14 +30,12 @@ pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
     token: &'de str,
 ) -> Result<(T, HashMap<&str, &str>), E> {
     let Some((token, parameters)) = token.split_once('(') else {
-          return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
+        return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
     };
 
     let parameters = parameters
         .strip_suffix(')')
-        .ok_or_else(|| E::custom("missing closing parenthesis"))?;
-
-    let parameters = parameters
+        .ok_or_else(|| E::custom("missing closing parenthesis"))?
         .split(',')
         .filter(|parameter| !parameter.trim().is_empty())
         .map(|parameter| {
