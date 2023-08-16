@@ -5,12 +5,11 @@ import {
   useEntityTypeFormContext,
   useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
-import { Box, Tabs, tabsClasses } from "@mui/material";
+import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import { useState } from "react";
 
-import { useFontLoadedCallback } from "../../../../../components/hooks/use-font-loaded-callback";
 import { TabLink } from "../../../../../shared/ui/tab-link";
+import { Tabs } from "../../../../../shared/ui/tabs";
 import { useEntityType } from "./shared/entity-type-context";
 import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";
@@ -20,8 +19,6 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
 
   const entityType = useEntityType();
-
-  const [animateTabs, setAnimateTabs] = useState(false);
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
   const propertiesCount = useEntityTypeFormWatch({
@@ -38,39 +35,9 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
 
   const currentTab = useCurrentTab();
 
-  useFontLoadedCallback(
-    [
-      {
-        family: "Open Sauce Two",
-        weight: "500",
-      },
-    ],
-    () => setAnimateTabs(true),
-  );
-
   return (
     <Box display="flex">
-      <Tabs
-        value={router.query.tab ?? ""}
-        TabIndicatorProps={{
-          sx: ({ palette }) => ({
-            height: 3,
-            backgroundColor: palette.blue[60],
-            minHeight: 0,
-            bottom: -1,
-            ...(!animateTabs ? { transition: "none" } : {}),
-          }),
-        }}
-        sx={{
-          minHeight: 0,
-          overflow: "visible",
-          alignItems: "flex-end",
-          flex: 1,
-          [`.${tabsClasses.scroller}`]: {
-            overflow: "visible !important",
-          },
-        }}
-      >
+      <Tabs value={router.query.tab ?? ""}>
         <TabLink
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUrl(baseUrl, "definition")}

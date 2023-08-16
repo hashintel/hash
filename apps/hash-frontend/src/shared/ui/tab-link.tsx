@@ -89,11 +89,6 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     iconPosition="end"
     sx={[
       ({ palette }) => ({
-        marginRight: 3,
-        paddingY: 1.25,
-        paddingX: 0.5,
-        minWidth: 0,
-        minHeight: 0,
         ":hover": {
           [`.${typographyClasses.root}`]: {
             color: `${

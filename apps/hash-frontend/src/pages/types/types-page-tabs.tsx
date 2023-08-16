@@ -1,7 +1,8 @@
-import { Tabs, tabsClasses, typographyClasses } from "@mui/material";
+import { typographyClasses } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { TabLink } from "../../shared/ui/tab-link";
+import { Tabs } from "../../shared/ui/tabs";
 import { TabId } from "./[[...type-kind]].page";
 
 const tabIds = [
@@ -30,26 +31,7 @@ export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
   numberOfTypesByTab,
 }) => {
   return (
-    <Tabs
-      value={currentTab}
-      TabIndicatorProps={{
-        sx: ({ palette }) => ({
-          height: 3,
-          backgroundColor: palette.blue[60],
-          minHeight: 0,
-          bottom: -1,
-        }),
-      }}
-      sx={{
-        minHeight: 0,
-        overflow: "visible",
-        alignItems: "flex-end",
-        flex: 1,
-        [`.${tabsClasses.scroller}`]: {
-          overflow: "visible !important",
-        },
-      }}
-    >
+    <Tabs value={currentTab}>
       {tabIds.map((tabId) => (
         <TabLink
           key={tabId}
@@ -60,11 +42,6 @@ export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
           loading={numberOfTypesByTab[tabId] === undefined}
           sx={[
             ({ palette }) => ({
-              marginRight: 3,
-              paddingY: 1.25,
-              paddingX: 0.5,
-              minWidth: 0,
-              minHeight: 0,
               ":hover": {
                 [`.${typographyClasses.root}`]: {
                   color: `${
