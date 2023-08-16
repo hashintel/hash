@@ -35,10 +35,11 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
         <MagnifyingGlassLightIcon />
       </IconButton>
     </Tooltip>
-    <Fade in={searchVisible}>
+    <Fade in={searchVisible} mountOnEnter unmountOnExit>
       <TextField
         variant="outlined"
         size="small"
+        autoFocus
         placeholder="Search for types"
         onChange={(evt) => onChangeText(evt.target.value)}
         sx={({ palette }) => ({
