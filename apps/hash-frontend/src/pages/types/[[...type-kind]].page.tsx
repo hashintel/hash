@@ -163,7 +163,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             ? [
                 {
                   title: tabTitles[currentTab],
-                  href: `/types/${tabTitles[currentTab]}`,
+                  href: `/types/${currentTab}`,
                   id: currentTab,
                 },
               ]

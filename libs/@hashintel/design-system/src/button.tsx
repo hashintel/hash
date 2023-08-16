@@ -4,7 +4,6 @@ import {
   ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
-import Link from "next/link";
 import {
   forwardRef,
   ForwardRefRenderFunction,
@@ -90,7 +89,6 @@ const Button: ForwardRefRenderFunction<HTMLButtonElement, ButtonProps> = (
       },
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
-    LinkComponent={Link}
     {...props}
     ref={ref}
   >

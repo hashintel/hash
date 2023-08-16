@@ -48,6 +48,12 @@ module.exports = {
             message:
               "Please use the custom src/components/hooks/useSnackbar hook instead.",
           },
+          {
+            name: "@hashintel/design-system",
+            importNames: ["Button", "Link", "MenuItem"],
+            message:
+              "Please use the custom wrapper component in src/shared/ui component instead",
+          },
         ],
         patterns: [
           {

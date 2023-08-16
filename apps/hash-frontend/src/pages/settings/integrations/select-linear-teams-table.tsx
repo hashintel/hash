@@ -1,6 +1,6 @@
-import { Chip, MenuItem, Select } from "@hashintel/design-system";
+import { Chip, Select } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityId } from "@local/hash-subgraph/.";
+import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -24,6 +24,7 @@ import {
   SyncWithWorkspace,
 } from "../../../graphql/api-types.gen";
 import { MinimalUser, Org } from "../../../lib/user-and-org";
+import { MenuItem } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { LinearIntegration } from "./use-linear-integrations";
 

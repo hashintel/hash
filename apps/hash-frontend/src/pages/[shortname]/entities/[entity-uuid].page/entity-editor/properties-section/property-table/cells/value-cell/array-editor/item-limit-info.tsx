@@ -1,6 +1,7 @@
-import { Button } from "@hashintel/design-system";
 import { Box, styled } from "@mui/material";
 import { isNumber } from "lodash";
+
+import { Button } from "../../../../../../../../../../shared/ui";
 
 const StyledBox = styled(Box)(({ theme }) =>
   theme.unstable_sx({
