@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
+import { Link } from "../../../../../shared/ui/link";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
@@ -111,6 +112,7 @@ export const TypesSection = () => {
     >
       <Box display="flex" gap={2}>
         <TypeCard
+          LinkComponent={Link}
           url={entityTypeBaseUrl}
           title={entityTypeTitle}
           version={currentVersion}
