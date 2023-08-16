@@ -44,7 +44,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       </Typography>
     }
     icon={
-      typeof count === "number" ? (
+      typeof count === "number" || loading ? (
         <Box
           sx={({ palette }) => ({
             display: "flex",
@@ -70,7 +70,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
                 color: active ? palette.primary.main : palette.gray[80],
               })}
             >
-              {millify(count)}
+              {millify(count ?? 0)}
             </Typography>
           )}
         </Box>
