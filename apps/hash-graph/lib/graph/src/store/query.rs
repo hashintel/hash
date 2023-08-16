@@ -1,7 +1,12 @@
 mod filter;
 mod path;
 
-use std::fmt;
+use std::{collections::HashMap, fmt};
+
+use serde::{
+    de::{self, IntoDeserializer},
+    Deserialize,
+};
 
 pub use self::{
     filter::{Filter, FilterExpression, Parameter, ParameterConversionError, ParameterList},
@@ -11,6 +16,37 @@ pub use self::{
 pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
     fn expected_type(&self) -> ParameterType;
+}
+
+/// Parses a query token of the form `token(key=value)`.
+///
+/// Whitespaces are ignored and multiple parameters are supported.
+///
+/// # Errors
+///
+/// - If the token is not of the form `token`, `token()`, or `token(key=value)`
+/// - If `token` can not be deserialized into `T`
+pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
+    token: &'de str,
+) -> Result<(T, HashMap<&str, &str>), E> {
+    let Some((token, parameters)) = token.split_once('(') else {
+        return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
+    };
+
+    let parameters = parameters
+        .strip_suffix(')')
+        .ok_or_else(|| E::custom("missing closing parenthesis"))?
+        .split(',')
+        .filter(|parameter| !parameter.trim().is_empty())
+        .map(|parameter| {
+            let (key, value) = parameter
+                .split_once('=')
+                .ok_or_else(|| E::custom("missing parameter value, expected `key=value`"))?;
+            Ok((key.trim(), value.trim()))
+        })
+        .collect::<Result<_, _>>()?;
+
+    T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

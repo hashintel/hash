@@ -1,15 +1,15 @@
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../../../graph";
 import {
   archiveEntityType,
   createEntityType,
@@ -61,6 +61,7 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
     latestOnly = true,
+    includeArchived = false,
   },
   { dataSources },
   __,
@@ -80,7 +81,23 @@ export const queryEntityTypesResolver: ResolverFn<
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
+    temporalAxes: includeArchived
+      ? {
+          pinned: {
+            axis: "decisionTime",
+            timestamp: null,
+          },
+          variable: {
+            axis: "transactionTime",
+            interval: {
+              start: {
+                kind: "unbounded",
+              },
+              end: null,
+            },
+          },
+        }
+      : currentTimeInstantTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;

@@ -22,7 +22,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { alpha, Box, Collapse } from "@mui/material";
+import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { Router, useRouter } from "next/router";
@@ -30,14 +30,8 @@ import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-// import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
-// import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
-// import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
 import { PageBlock } from "../../blocks/page/page-block";
-import {
-  PageContextProvider,
-  usePageContext,
-} from "../../blocks/page/page-context";
+import { PageContextProvider } from "../../blocks/page/page-context";
 import {
   PageSectionContainer,
   PageSectionContainerProps,
@@ -48,7 +42,6 @@ import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/use-account-pages";
-import { useArchivePage } from "../../components/hooks/use-archive-page";
 import { usePageComments } from "../../components/hooks/use-page-comments";
 import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
@@ -72,7 +65,6 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../shared/routing/route-page-info";
-import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -184,54 +176,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   };
 };
 
-export const PageNotificationBanner = ({
-  archived = false,
-}: {
-  archived: boolean;
-}) => {
-  const { pageEntityId } = usePageContext();
-  const [archivePage] = useArchivePage();
-
-  return (
-    <Collapse in={archived}>
-      <Box
-        sx={({ palette }) => ({
-          color: palette.common.white,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: 1,
-          background: palette.red[60],
-          padding: 1,
-        })}
-      >
-        This page is archived.
-        <Button
-          variant="secondary"
-          sx={({ palette }) => ({
-            marginLeft: 1.5,
-            minWidth: 0,
-            minHeight: 0,
-            paddingY: 0,
-            paddingX: 1.5,
-            background: "transparent",
-            color: palette.common.white,
-            borderColor: palette.common.white,
-            fontWeight: 400,
-            "&:hover": {
-              background: alpha(palette.gray[90], 0.08),
-            },
-          })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
-        >
-          Restore
-        </Button>
-      </Box>
-    </Collapse>
-  );
-};
-
 const generateCrumbsFromPages = ({
   pages = [],
   pageEntityId,
@@ -288,7 +232,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const { data: accountPages } = useAccountPages(pageOwnedById);
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -371,7 +315,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, archived, contents } = data.page;
+  const { title, icon, contents, metadata, properties } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -404,15 +348,14 @@ const Page: NextPageWithLayout<PageProps> = ({
           })}
         >
           <TopContextBar
+            item={{ metadata, properties }}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
-            isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner archived={!!archived} />
         </Box>
 
         {!canvasPage && (
@@ -504,6 +447,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 Page.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
+    grayBackground: false,
   });
 
 export default Page;

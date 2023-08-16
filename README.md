@@ -1,7 +1,7 @@
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.ai]: https://hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
@@ -44,7 +44,7 @@ HASH does this by combining various different powerful tools together into one s
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-Browse the [HASH roadmap] for more information about upcoming features and releases.
+Browse the HASH [development roadmap] for more information about currently in-flight and upcoming features.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 

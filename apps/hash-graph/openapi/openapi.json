@@ -2823,7 +2823,7 @@
             "$ref": "./models/update_data_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },

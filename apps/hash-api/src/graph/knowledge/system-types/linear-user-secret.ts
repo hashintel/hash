@@ -1,4 +1,8 @@
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -11,12 +15,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 
 export type LinearUserSecret = {

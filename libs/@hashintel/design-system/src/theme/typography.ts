@@ -48,8 +48,8 @@ export const typography: ThemeOptions["typography"] = {
   },
   mediumCaps: {
     fontFamily: headingFonts,
-    fontSize: "var(--step-0)",
-    fontWeight: 500,
+    fontSize: "var(--step--1)",
+    fontWeight: 600,
     lineHeight: "18px",
     letterSpacing: "0.05em",
     textTransform: "uppercase",

@@ -1,4 +1,8 @@
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -18,12 +22,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { systemUserAccountId } from "../../system-user";
 import {
@@ -452,22 +451,19 @@ export const updateUserPreferredName: ImpureGraphFunction<
  *
  * @param params.user - the user
  * @param params.org - the organization the user is joining
- * @param params.responsibility - the responsibility of the user at the organization
  * @param params.actorId - the id of the account that is making the user a member of the organization
  */
 export const joinOrg: ImpureGraphFunction<
   {
     userEntityId: EntityId;
     orgEntityId: EntityId;
-    responsibility: string;
     actorId: AccountId;
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { userEntityId, orgEntityId, responsibility, actorId } = params;
+  const { userEntityId, orgEntityId, actorId } = params;
 
   await createOrgMembership(ctx, {
-    responsibility,
     orgEntityId,
     userEntityId,
     actorId,

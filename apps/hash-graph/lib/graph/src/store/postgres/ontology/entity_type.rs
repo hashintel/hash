@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 #[cfg(hash_graph_test_environment)]
@@ -87,7 +87,9 @@ impl<C: AsClient> PostgresStore<C> {
                 property_type_queue.extend(
                     self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
-                        ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                        ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                            inheritance_depth: None,
+                        },
                     )
                     .await?
                     .flat_map(|edge| {
@@ -110,15 +112,21 @@ impl<C: AsClient> PostgresStore<C> {
             for (edge_kind, table) in [
                 (
                     OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::EntityTypeInheritsFrom,
+                    ReferenceTable::EntityTypeInheritsFrom {
+                        inheritance_depth: None,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    ReferenceTable::EntityTypeConstrainsLinksOn,
+                    ReferenceTable::EntityTypeConstrainsLinksOn {
+                        inheritance_depth: None,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
+                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                        inheritance_depth: None,
+                    },
                 ),
             ] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
@@ -270,11 +278,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.entity_types =
                 Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|entity_type| (entity_type.vertex_id(time_axis), entity_type))
+                    .filter_map(|entity_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(entity_type.vertex_id(time_axis))
+                            .then(|| (entity_type.vertex_id(time_axis), entity_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.entity_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());

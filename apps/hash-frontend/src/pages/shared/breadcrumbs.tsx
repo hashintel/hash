@@ -1,5 +1,5 @@
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
@@ -17,11 +17,11 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/page-title/page-title";
-import { MenuItem } from "../../shared/ui";
+import { Button, MenuItem } from "../../shared/ui";
 
 export type Breadcrumb = {
   title: string;
-  href: string;
+  href?: string;
   icon?: ReactNode;
   id: string;
 };
@@ -74,7 +74,7 @@ export const Breadcrumbs = ({
   const router = useRouter();
   let items: (Breadcrumb | { submenu: Breadcrumb[] })[] = crumbs;
 
-  if (crumbs.length > 3) {
+  if (crumbs.length > 4) {
     items = [
       crumbs[0]!,
       {
@@ -117,19 +117,25 @@ export const Breadcrumbs = ({
         return (
           <Tooltip placement="bottom-start" key={item.title} title={item.title}>
             <Button
+              disabled={!item.href}
               variant="tertiary_quiet"
               // don't attach href if it's the current page
-              {...(!item.href.includes(router.asPath) && { href: item.href })}
+              {...(item.href &&
+                !item.href.includes(router.asPath) && { href: item.href })}
               onClick={() => {
-                if (item.href.includes(router.asPath)) {
+                if (item.href?.includes(router.asPath)) {
                   scrollToTop();
                 }
               }}
               size="xs"
               startIcon={item.icon ?? defaultIcon}
-              sx={{
+              sx={({ palette }) => ({
+                "&:disabled": {
+                  background: palette.common.white,
+                  borderColor: palette.common.white,
+                },
                 px: 1,
-              }}
+              })}
             >
               <Box
                 component="span"

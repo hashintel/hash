@@ -723,7 +723,7 @@ class UpdateDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     actor_id: RecordCreatedById = Field(..., alias="actorId")
     schema_: UpdateDataType = Field(..., alias="schema")
-    type_to_update: str = Field(..., alias="typeToUpdate")
+    type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
 class UpdateEntityRequest(EntityLinkOrder):

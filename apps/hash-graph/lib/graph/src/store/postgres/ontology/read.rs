@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -30,8 +30,8 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord,
-                ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
+                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
         query::{Filter, OntologyQueryPath},
@@ -115,13 +115,19 @@ where
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &transaction_time_path,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&schema_path);
         let record_created_by_id_path_index =
             compiler.add_selection_path(&record_created_by_id_path);
         let record_archived_by_id_path_index =
             compiler.add_selection_path(&record_archived_by_id_path);
         let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
-        let transaction_time_index = compiler.add_selection_path(&transaction_time_path);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -212,6 +218,13 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
             compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
@@ -219,8 +232,6 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             compiler.add_selection_path(&EntityTypeQueryPath::RecordArchivedById);
         let additional_metadata_index =
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
-        let transaction_time_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
 
         compiler.add_filter(filter);
@@ -484,6 +495,17 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
+        let depth = reference_table
+            .inheritance_depth_column()
+            .and_then(Column::inheritance_depth);
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => {
+                Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
+            }
+            _ => Cow::Borrowed(""),
+        };
+
         Ok(self
             .client
             .as_client()
@@ -507,7 +529,9 @@ impl<C: AsClient> PostgresStore<C> {
                           ON filter.id = source.ontology_id
 
                         JOIN ontology_ids as target
-                          ON {target} = target.ontology_id;
+                          ON {target} = target.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[&record_ids.ontology_ids],

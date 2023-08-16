@@ -228,6 +228,7 @@ pub enum PropertyTypeQueryPath<'p> {
     EntityTypeEdge {
         edge_kind: OntologyEdgeKind,
         path: Box<EntityTypeQueryPath<'p>>,
+        inheritance_depth: Option<u32>,
     },
     /// Only used internally and not available for deserialization.
     OntologyId,

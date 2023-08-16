@@ -1,8 +1,6 @@
 import {
   createGraphClient,
-  currentTimeInstantTemporalAxes,
   ImpureGraphContext,
-  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -11,6 +9,10 @@ import { StorageType } from "@apps/hash-api/src/storage";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   AccountId,
   DataTypeWithMetadata,

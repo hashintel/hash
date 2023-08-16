@@ -37,6 +37,7 @@ import {
 } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import {
   RoutePageInfoProvider,
   RouteWorkspaceInfoProvider,
@@ -142,7 +143,9 @@ const App: FunctionComponent<AppProps> = ({
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
                       <EntityTypesContextProvider>
-                        {getLayout(<Component {...pageProps} />)}
+                        <SidebarContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </SidebarContextProvider>
                       </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>

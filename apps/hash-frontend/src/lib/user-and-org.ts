@@ -1,6 +1,7 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
+  OrgMembershipProperties,
   OrgProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -23,7 +24,6 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -60,7 +60,7 @@ export const constructMinimalUser = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: (Org & { responsibility: string })[];
+  memberOf: Org[];
 };
 
 export const constructUser = (params: {
@@ -90,11 +90,7 @@ export const constructUser = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedUsers[entityRecordIdToString(user.entityRecordId)] = user;
 
-  user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
-    const responsibility: string = properties[
-      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
-    ] as string;
-
+  user.memberOf = orgMemberships.map(({ linkData, metadata }) => {
     if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }
@@ -133,10 +129,7 @@ export const constructUser = (params: {
       resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
     }
 
-    return {
-      ...org,
-      responsibility,
-    };
+    return org;
   });
 
   return user;
@@ -228,7 +221,10 @@ export const constructMinimalOrg = (params: {
 };
 
 export type Org = MinimalOrg & {
-  members: (User & { responsibility: string })[];
+  memberships: {
+    membershipEntity: Entity<OrgMembershipProperties>;
+    user: User;
+  }[];
 };
 
 export const constructOrg = (params: {
@@ -250,7 +246,7 @@ export const constructOrg = (params: {
     (linkEntity) =>
       linkEntity.metadata.entityTypeId ===
       types.linkEntityType.orgMembership.linkEntityTypeId,
-  );
+  ) as Entity<OrgMembershipProperties>[];
 
   const org = constructMinimalOrg({
     orgEntity,
@@ -260,11 +256,7 @@ export const constructOrg = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedOrgs[entityRecordIdToString(org.entityRecordId)] = org;
 
-  org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
-    const responsibility: string = properties[
-      extractBaseUrl(types.propertyType.responsibility.propertyTypeId)
-    ] as string;
-
+  org.memberships = orgMemberships.map(({ properties, linkData, metadata }) => {
     if (!linkData?.leftEntityId) {
       throw new Error("Expected org membership to contain a left entity");
     }
@@ -304,8 +296,14 @@ export const constructOrg = (params: {
     }
 
     return {
-      ...user,
-      responsibility,
+      // create a new user object, because the original will be mutated in the createUser function to add 'memberOf'
+      // if we don't create a new object here we will end up with a circular reference
+      user: JSON.parse(JSON.stringify(user, undefined, 2)),
+      membershipEntity: {
+        properties,
+        metadata,
+        linkData,
+      },
     };
   });
 

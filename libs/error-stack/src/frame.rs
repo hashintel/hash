@@ -3,7 +3,7 @@ mod kind;
 
 use alloc::boxed::Box;
 #[cfg(nightly)]
-use core::any::{self, Demand, Provider};
+use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
 use self::frame_impl::FrameImpl;
@@ -59,7 +59,7 @@ impl Frame {
     where
         T: ?Sized + 'static,
     {
-        any::request_ref(self)
+        error::request_ref(self.as_error())
     }
 
     /// Requests the value of `T` from the `Frame` if provided.
@@ -69,7 +69,7 @@ impl Frame {
     where
         T: 'static,
     {
-        any::request_value(self)
+        error::request_value(self.as_error())
     }
 
     /// Returns if `T` is the held context or attachment by this frame.
@@ -95,12 +95,10 @@ impl Frame {
     pub fn type_id(&self) -> TypeId {
         self.frame.as_any().type_id()
     }
-}
 
-#[cfg(nightly)]
-impl Provider for Frame {
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.frame.provide(demand);
+    #[cfg(nightly)]
+    pub(crate) fn as_error(&self) -> &impl Error {
+        &self.frame
     }
 }
 
