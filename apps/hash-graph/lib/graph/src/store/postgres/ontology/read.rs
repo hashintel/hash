@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -30,8 +30,8 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath, PostgresRecord,
-                ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
+                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
         query::{Filter, OntologyQueryPath},
@@ -495,6 +495,17 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
+        let depth = reference_table
+            .inheritance_depth_column()
+            .and_then(Column::inheritance_depth);
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => {
+                Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
+            }
+            _ => Cow::Borrowed(""),
+        };
+
         Ok(self
             .client
             .as_client()
@@ -518,7 +529,9 @@ impl<C: AsClient> PostgresStore<C> {
                           ON filter.id = source.ontology_id
 
                         JOIN ontology_ids as target
-                          ON {target} = target.ontology_id;
+                          ON {target} = target.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[&record_ids.ontology_ids],

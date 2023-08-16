@@ -92,6 +92,7 @@ impl Transpile for Function {
 pub enum Constant {
     Boolean(bool),
     String(&'static str),
+    UnsignedInteger(u32),
 }
 
 impl Transpile for Constant {
@@ -99,6 +100,7 @@ impl Transpile for Constant {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
             Self::String(value) => write!(fmt, "'{value}'"),
+            Self::UnsignedInteger(value) => write!(fmt, "{value}"),
         }
     }
 }

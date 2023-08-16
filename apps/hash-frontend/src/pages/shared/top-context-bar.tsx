@@ -21,7 +21,7 @@ import {
 import { useRouter } from "next/router";
 import { FunctionComponent, ReactNode, useMemo, useState } from "react";
 
-import { isEntityTypeArchived } from "../../shared/entity-types-context/util";
+import { isTypeArchived } from "../../shared/entity-types-context/util";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
@@ -142,7 +142,7 @@ export const TopContextBar = ({
     }
 
     if (isItemEntityType(item)) {
-      return isEntityTypeArchived(item);
+      return isTypeArchived(item);
     } else if (isEntityPageEntity(item)) {
       return item.properties[
         extractBaseUrl(types.propertyType.archived.propertyTypeId)

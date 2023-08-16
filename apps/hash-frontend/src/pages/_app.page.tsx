@@ -36,6 +36,7 @@ import {
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
+import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import {
@@ -143,9 +144,11 @@ const App: FunctionComponent<AppProps> = ({
                   <WorkspaceContextProvider>
                     <SnackbarProvider maxSnack={3}>
                       <EntityTypesContextProvider>
-                        <SidebarContextProvider>
-                          {getLayout(<Component {...pageProps} />)}
-                        </SidebarContextProvider>
+                        <LatestPropertyTypesContextProvider>
+                          <SidebarContextProvider>
+                            {getLayout(<Component {...pageProps} />)}
+                          </SidebarContextProvider>
+                        </LatestPropertyTypesContextProvider>
                       </EntityTypesContextProvider>
                     </SnackbarProvider>
                   </WorkspaceContextProvider>

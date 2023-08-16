@@ -18,10 +18,10 @@
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
 //! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
 //! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
-//! [`Display`] implementation, you may want to call [`demand.provide_ref(self)`] inside of
+//! [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
 //! [`Context::provide`].
 //!
-//! [`demand.provide_ref(self)`]: core::any::Demand::provide_ref
+//! [`request.provide_ref(self)`]: core::error::Request::provide_ref
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.

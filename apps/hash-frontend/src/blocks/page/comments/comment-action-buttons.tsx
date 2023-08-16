@@ -1,6 +1,7 @@
-import { Button } from "@hashintel/design-system";
 import { Box, SxProps, Theme } from "@mui/material";
 import { FunctionComponent } from "react";
+
+import { Button } from "../../../shared/ui";
 
 type CommentActionButtonsProps = {
   submitLabel?: string;

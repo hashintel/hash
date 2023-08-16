@@ -1,9 +1,4 @@
-import {
-  faArrowDownAZ,
-  faArrowUpZA,
-  faQuestionCircle,
-  IconDefinition,
-} from "@fortawesome/free-solid-svg-icons";
+import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
@@ -14,8 +9,10 @@ import {
   Typography,
 } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent } from "react";
+import { FunctionComponent, ReactNode } from "react";
 
+import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
 import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
@@ -32,16 +29,16 @@ type SortActionsDropdownProps = {
 const menuItems: {
   title: string;
   sortType: SortType;
-  icon: IconDefinition;
+  icon: ReactNode;
 }[] = [
   {
     title: "Alphabetical",
-    icon: faArrowDownAZ,
+    icon: <ArrowDownAZRegularIcon />,
     sortType: "asc",
   },
   {
     title: "Reverse Alphabetical",
-    icon: faArrowUpZA,
+    icon: <ArrowUpZARegularIcon />,
     sortType: "desc",
   },
   // {
@@ -102,9 +99,7 @@ export const SortActionsDropdown: FunctionComponent<
           }}
           selected={activeSortType === sortType}
         >
-          <ListItemIcon>
-            <FontAwesomeIcon icon={icon} />
-          </ListItemIcon>
+          <ListItemIcon sx={{ svg: { fontSize: 16 } }}>{icon}</ListItemIcon>
           <ListItemText primary={title} />
         </MenuItem>
       ))}

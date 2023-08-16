@@ -17676,6 +17676,13 @@ micromatch@^4.0.2, micromatch@^4.0.4, micromatch@^4.0.5:
     braces "^3.0.2"
     picomatch "^2.3.1"
 
+millify@6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/millify/-/millify-6.1.0.tgz#6919d09377c28923624f9e4f41493d9706b8aadf"
+  integrity sha512-H/E3J6t+DQs/F2YgfDhxUVZz/dF8JXPPKTLHL/yHCcLZLtCXJDUaqvhJXQwqOVBvbyNn4T0WjLpIHd7PAw7fBA==
+  dependencies:
+    yargs "^17.0.1"
+
 mime-db@1.52.0, "mime-db@>= 1.43.0 < 2":
   version "1.52.0"
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.52.0.tgz#bbabcdc02859f4987301c856e3387ce5ec43bf70"

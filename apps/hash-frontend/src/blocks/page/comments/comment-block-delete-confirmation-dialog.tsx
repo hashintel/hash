@@ -1,4 +1,3 @@
-import { Button } from "@hashintel/design-system";
 import {
   alpha,
   backdropClasses,
@@ -9,6 +8,8 @@ import {
   DialogContentText,
 } from "@mui/material";
 import { FunctionComponent } from "react";
+
+import { Button } from "../../../shared/ui";
 
 type CommentBlockDeleteConfirmationDialogProps = {
   container: HTMLDivElement | null;

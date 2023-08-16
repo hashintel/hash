@@ -1,6 +1,7 @@
 import { UrlObject } from "node:url";
 
 import {
+  // eslint-disable-next-line no-restricted-imports
   Button as BaseButton,
   ButtonProps as BaseButtonProps,
 } from "@hashintel/design-system";

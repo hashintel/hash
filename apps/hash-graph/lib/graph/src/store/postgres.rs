@@ -590,7 +590,7 @@ where
                                 $1,
                                 (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                             ) RETURNING target_entity_type_ontology_id;
-                        "#,
+                    "#,
                         &[
                             &ontology_id,
                             &destination.url().base_url.as_str(),
