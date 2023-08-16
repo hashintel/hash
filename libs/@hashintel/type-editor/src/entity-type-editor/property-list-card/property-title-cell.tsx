@@ -4,7 +4,7 @@ import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, TableCell } from "@mui/material";
 
 import { useIsReadonly } from "../../shared/read-only-context";
-import { ArrowTurnDownRight } from "../shared/arrow-turn-down-right";
+import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
 import {
   CollapsibleRowLine,
   ROW_DEPTH_INDENTATION,
@@ -102,7 +102,7 @@ export const PropertyTitleCell = ({
           </IconButton>
         </Collapse>
 
-        {inherited && <ArrowTurnDownRight sx={{ mr: 1 }} />}
+        {inherited && <ArrowTurnDownRightIcon sx={{ mr: 1 }} />}
 
         <Box>{property.title}</Box>
 

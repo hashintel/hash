@@ -1,7 +1,7 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-export const ArrowTurnDownRight: FunctionComponent<SvgIconProps> = ({
+export const ArrowTurnDownRightIcon: FunctionComponent<SvgIconProps> = ({
   sx,
   ...props
 }) => {
