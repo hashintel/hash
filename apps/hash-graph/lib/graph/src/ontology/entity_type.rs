@@ -231,7 +231,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// ### Specifying the inheritance depth
     ///
-    /// By passing `inheritanceDepths` as paramteer it's possible to limit the searched depth:
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -298,7 +298,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// ### Specifying the inheritance depth
     ///
-    /// By passing `inheritanceDepths` as paramteer it's possible to limit the searched depth:
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -348,7 +348,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// ### Specifying the inheritance depth
     ///
-    /// By passing `inheritanceDepths` as paramteer it's possible to limit the searched depth:
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
     ///
     /// ```rust
     /// # use serde::Deserialize;

@@ -29,26 +29,26 @@ pub trait QueryPath {
 pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
     token: &'de str,
 ) -> Result<(T, HashMap<&str, &str>), E> {
-    if let Some((token, parameters)) = token.split_once('(') {
-        let parameters = parameters
-            .strip_suffix(')')
-            .ok_or_else(|| E::custom("missing closing parenthesis"))?;
+    let Some((token, parameters)) = token.split_once('(') else {
+          return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
+    };
 
-        let parameters = parameters
-            .split(',')
-            .filter(|parameter| !parameter.trim().is_empty())
-            .map(|parameter| {
-                let (key, value) = parameter
-                    .split_once('=')
-                    .ok_or_else(|| E::custom("missing parameter value, expected `key=value`"))?;
-                Ok((key.trim(), value.trim()))
-            })
-            .collect::<Result<_, _>>()?;
+    let parameters = parameters
+        .strip_suffix(')')
+        .ok_or_else(|| E::custom("missing closing parenthesis"))?;
 
-        T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
-    } else {
-        T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()))
-    }
+    let parameters = parameters
+        .split(',')
+        .filter(|parameter| !parameter.trim().is_empty())
+        .map(|parameter| {
+            let (key, value) = parameter
+                .split_once('=')
+                .ok_or_else(|| E::custom("missing parameter value, expected `key=value`"))?;
+            Ok((key.trim(), value.trim()))
+        })
+        .collect::<Result<_, _>>()?;
+
+    T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
