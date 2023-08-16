@@ -1520,7 +1520,7 @@
           "labelProperty",
           "links",
           "inheritsFrom",
-          "parents"
+          "children"
         ]
       },
       "EntityTypeStructuralQuery": {

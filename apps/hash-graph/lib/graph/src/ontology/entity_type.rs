@@ -303,7 +303,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde_json::json;
     /// # use graph::ontology::EntityTypeQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
-    /// let path = EntityTypeQueryPath::deserialize(json!(["parents", "*", "baseUrl"]))?;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
     ///     edge_kind: OntologyEdgeKind::InheritsFrom,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
@@ -344,7 +344,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use graph::ontology::EntityTypeQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
-    ///     EntityTypeQueryPath::deserialize(json!(["parents(inheritanceDepth=10)", "*", "baseUrl"]))?;
+    ///     EntityTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
     /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
     ///     edge_kind: OntologyEdgeKind::InheritsFrom,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
@@ -610,7 +610,7 @@ pub enum EntityTypeQueryToken {
     LabelProperty,
     Links,
     InheritsFrom,
-    Parents,
+    Children,
     #[serde(skip)]
     Schema,
 }
@@ -625,7 +625,7 @@ impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, \
          `recordArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
-         `labelProperty`, `links`, `inheritsFrom`, `parents`";
+         `labelProperty`, `links`, `inheritsFrom`, `children`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -709,7 +709,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                         .map_err(de::Error::custom)?,
                 }
             }
-            EntityTypeQueryToken::Parents => {
+            EntityTypeQueryToken::Children => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;

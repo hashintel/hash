@@ -849,7 +849,7 @@ Content-Type: application/json
     "equal": [
       {
         "path": [
-          "parents",
+          "children",
           "*",
           "versionedUrl"
         ]
