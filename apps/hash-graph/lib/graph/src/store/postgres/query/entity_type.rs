@@ -37,9 +37,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsPropertiesOn {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: EdgeDirection::Outgoing,
             })
@@ -49,9 +50,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::InheritsFrom,
                 path,
                 direction,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeInheritsFrom {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: *direction,
             })
@@ -61,9 +63,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                 path,
                 direction,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinksOn {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: *direction,
             })
@@ -73,9 +76,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                 path,
                 direction,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: *direction,
             })
@@ -84,9 +88,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::EntityEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityIsOfType {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: EdgeDirection::Incoming,
             })

@@ -124,6 +124,7 @@ pub enum EntityQueryPath<'p> {
     /// assert_eq!(path, EntityQueryPath::EntityTypeEdge {
     ///     edge_kind: SharedEdgeKind::IsOfType,
     ///     path: EntityTypeQueryPath::BaseUrl,
+    ///     inheritance_depth: None,
     /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -133,6 +134,7 @@ pub enum EntityQueryPath<'p> {
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
         path: EntityTypeQueryPath<'p>,
+        inheritance_depth: Option<u32>,
     },
     /// An edge between two [`Entities`][`Entity`] using a [`KnowledgeGraphEdgeKind`].
     ///
@@ -300,6 +302,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
+                ..
             } => write!(fmt, "type.{path}"),
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -406,6 +409,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Type => EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path: EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                inheritance_depth: None,
             },
             EntityQueryToken::Properties => {
                 let mut path_tokens = Vec::new();
@@ -475,7 +479,8 @@ mod tests {
             deserialize(["type", "version"]),
             EntityQueryPath::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
-                path: EntityTypeQueryPath::Version
+                path: EntityTypeQueryPath::Version,
+                inheritance_depth: None,
             }
         );
         assert_eq!(

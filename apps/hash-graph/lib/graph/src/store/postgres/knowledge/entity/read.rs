@@ -98,6 +98,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
             edge_kind: SharedEdgeKind::IsOfType,
             path: EntityTypeQueryPath::VersionedUrl,
+            inheritance_depth: Some(0),
         });
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
@@ -264,22 +265,24 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn read_shared_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
-        depth: u8,
+        depth: Option<u32>,
     ) -> Result<impl Iterator<Item = SharedEdgeTraversal> + 't, QueryError> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
         };
 
-        let (table, where_statement) = if depth > 0 {
-            (
-                "closed_entity_is_of_type",
-                Cow::Owned(format!(
-                    "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
-                )),
-            )
+        let table = if depth == Some(0) {
+            "entity_is_of_type"
         } else {
-            ("entity_is_of_type", Cow::Borrowed(""))
+            "closed_entity_is_of_type"
+        };
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => Cow::Owned(format!(
+                "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
+            )),
+            _ => Cow::Borrowed(""),
         };
 
         Ok(self

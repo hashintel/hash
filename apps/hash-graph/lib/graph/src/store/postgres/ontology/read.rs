@@ -495,12 +495,16 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
-        let where_statement = reference_table
+        let depth = reference_table
             .inheritance_depth_column()
-            .and_then(Column::inheritance_depth)
-            .map_or(Cow::Borrowed(""), |depth| {
+            .and_then(Column::inheritance_depth);
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => {
                 Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
-            });
+            }
+            _ => Cow::Borrowed(""),
+        };
 
         Ok(self
             .client

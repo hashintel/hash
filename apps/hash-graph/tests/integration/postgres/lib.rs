@@ -557,6 +557,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
                     edge_kind: SharedEdgeKind::IsOfType,
                     path: EntityTypeQueryPath::BaseUrl,
+                    inheritance_depth: Some(0),
                 })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     link_type_id.base_url.as_str(),
@@ -566,6 +567,7 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
                     edge_kind: SharedEdgeKind::IsOfType,
                     path: EntityTypeQueryPath::Version,
+                    inheritance_depth: Some(0),
                 })),
                 Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
                     OntologyTypeVersion::new(link_type_id.version),

@@ -34,9 +34,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
+                inheritance_depth,
             } => once(Relation::Reference {
                 table: ReferenceTable::EntityIsOfType {
-                    inheritance_depth: 0,
+                    inheritance_depth: *inheritance_depth,
                 },
                 direction: EdgeDirection::Outgoing,
             })
