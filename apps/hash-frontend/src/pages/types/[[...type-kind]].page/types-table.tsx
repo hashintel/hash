@@ -32,7 +32,7 @@ import {
   FilterState,
   TypesTableHeader,
   typesTableHeaderHeight,
-} from "./types-table/types-table-header";
+} from "./[[...type-kind]].page/types-table/types-table-header";
 
 const typesTableColumnIds = [
   "title",

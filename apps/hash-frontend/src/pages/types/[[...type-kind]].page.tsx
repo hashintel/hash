@@ -12,8 +12,11 @@ import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { useLatestPropertyTypes } from "../../shared/latest-property-types-context";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { TopContextBar } from "../shared/top-context-bar";
-import { tabTitles, TypesPageTabs } from "./types-page-tabs";
-import { TypesTable } from "./types-table";
+import {
+  tabTitles,
+  TypesPageTabs,
+} from "./[[...type-kind]].page/types-page-tabs";
+import { TypesTable } from "./[[...type-kind]].page/types-table";
 
 const parsedQueryParams = [
   "entity-type",

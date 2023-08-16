@@ -23,11 +23,11 @@ import {
   useState,
 } from "react";
 
-import { EarthAmericasRegularIcon } from "../../../shared/icons/earth-americas-regular";
-import { FilterListIcon } from "../../../shared/icons/filter-list-icon";
-import { HouseRegularIcon } from "../../../shared/icons/house-regular-icon";
-import { Button } from "../../../shared/ui";
-import { WorkspaceContext } from "../../shared/workspace-context";
+import { EarthAmericasRegularIcon } from "../../../../shared/icons/earth-americas-regular";
+import { FilterListIcon } from "../../../../shared/icons/filter-list-icon";
+import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
+import { Button } from "../../../../shared/ui";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 
 export const typesTableHeaderHeight = 48;
 
