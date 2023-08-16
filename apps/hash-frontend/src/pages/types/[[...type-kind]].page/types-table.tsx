@@ -15,24 +15,24 @@ import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
-import { Grid } from "../../components/grid/grid";
-import { useOrgs } from "../../components/hooks/use-orgs";
-import { useUsers } from "../../components/hooks/use-users";
+import { Grid } from "../../../components/grid/grid";
+import { useOrgs } from "../../../components/hooks/use-orgs";
+import { useUsers } from "../../../components/hooks/use-users";
 import {
   isLinkEntityType,
   isTypeArchived,
-} from "../../shared/entity-types-context/util";
-import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+} from "../../../shared/entity-types-context/util";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
   renderTextIconCell,
   TextIconCell,
-} from "../[shortname]/types/entity-type/[...slug-maybe-version].page/entities-tab/text-icon-cell";
-import { TOP_CONTEXT_BAR_HEIGHT } from "../shared/top-context-bar";
+} from "../../[shortname]/types/entity-type/[...slug-maybe-version].page/entities-tab/text-icon-cell";
+import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import {
   FilterState,
   TypesTableHeader,
   typesTableHeaderHeight,
-} from "./[[...type-kind]].page/types-table/types-table-header";
+} from "./types-table/types-table-header";
 
 const typesTableColumnIds = [
   "title",
