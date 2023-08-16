@@ -1,12 +1,5 @@
 import { LoadingSpinner, theme } from "@hashintel/design-system";
-import {
-  Box,
-  SxProps,
-  Tab,
-  Theme,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
+import { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
 import millify from "millify";
 import { FunctionComponent, ReactElement } from "react";
 
@@ -31,7 +24,6 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
   loading,
   active,
   icon,
-  sx,
   ...props
 }) => (
   <Tab
@@ -87,17 +79,5 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       )
     }
     iconPosition="end"
-    sx={[
-      ({ palette }) => ({
-        ":hover": {
-          [`.${typographyClasses.root}`]: {
-            color: `${
-              active ? palette.primary.main : palette.blue[60]
-            } !important`,
-          },
-        },
-      }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
   />
 );

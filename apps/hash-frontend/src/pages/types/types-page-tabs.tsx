@@ -1,4 +1,3 @@
-import { typographyClasses } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { TabLink } from "../../shared/ui/tab-link";
@@ -40,19 +39,6 @@ export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
           label={tabTitles[tabId]}
           count={numberOfTypesByTab[tabId]}
           loading={numberOfTypesByTab[tabId] === undefined}
-          sx={[
-            ({ palette }) => ({
-              ":hover": {
-                [`.${typographyClasses.root}`]: {
-                  color: `${
-                    currentTab === tabId
-                      ? palette.primary.main
-                      : palette.blue[60]
-                  } !important`,
-                },
-              },
-            }),
-          ]}
         />
       ))}
     </Tabs>
