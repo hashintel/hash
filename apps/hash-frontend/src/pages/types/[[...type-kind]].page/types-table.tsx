@@ -229,33 +229,21 @@ export const TypesTable: FunctionComponent<{
         filterState={filterState}
         setFilterState={setFilterState}
       />
-      <Box
-        sx={{
-          borderBottomLeftRadius: "6px",
-          borderBottomRightRadius: "6px",
-          overflow: "hidden",
-          boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
-        }}
-      >
-        <Grid
-          columns={typesTableColumns}
-          rows={filteredRows}
-          sortable
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={
-            filteredRows.length > 10
-              ? `calc(100vh - (${
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  170 +
-                  tableHeaderHeight
-                }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
-              : undefined
-          }
-          customRenderers={[renderTextIconCell]}
-        />
-      </Box>
+      <Grid
+        columns={typesTableColumns}
+        rows={filteredRows}
+        sortable
+        createGetCellContent={createGetCellContent}
+        // define max height if there are lots of rows
+        height={
+          filteredRows.length > 10
+            ? `calc(100vh - (${
+                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+              }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
+            : undefined
+        }
+        customRenderers={[renderTextIconCell]}
+      />
     </Box>
   );
 };
