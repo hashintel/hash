@@ -11,13 +11,14 @@
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
+  "schedule": ["before 4am every weekday", "every weekend"],
 
   "packageRules": [
     {
       "enabled": true,
       "extends": ["packages:linters", "packages:test"],
       "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["npm"],
@@ -41,7 +42,7 @@
       "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
       "excludePackageNames": ["prettier-plugin-sql"],
       "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
@@ -65,7 +66,8 @@
         "^eslint-",
         "eslint$"
       ],
-      "automerge": true
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
@@ -78,7 +80,8 @@
       "groupName": "Jest npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^jest-", "jest$"],
-      "automerge": true
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
@@ -91,7 +94,8 @@
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
-      "automerge": true
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
@@ -99,7 +103,8 @@
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier", "prettier$"],
       "excludePackageNames": ["prettier-plugin-sql"],
-      "automerge": true
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
@@ -123,15 +128,14 @@
       "enabled": true,
       "groupName": "Pydantic Python packages",
       "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["^pydantic"],
-      "automerge": true
+      "matchPackagePatterns": ["^pydantic"]
     },
     {
       "enabled": true,
       "matchManagers": ["poetry"],
       "matchPackagePatterns": ["mypy", "ruff", "black"],
       "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["cargo"],
@@ -147,7 +151,7 @@
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"],
       "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["regex"],
@@ -168,19 +172,19 @@
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^clap[-_]?"],
-      "groupName": "`clap` crates"
+      "groupName": "`clap` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` crates",
+      "groupName": "`criterion` Rust crates",
       "automerge": true,
-      "schedule": ["before 4am every weekday", "every weekend"]
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^futures[-_]?"],
-      "groupName": "`futures` crates"
+      "groupName": "`futures` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
@@ -188,28 +192,28 @@
         "^opentelemetry[-_]?",
         "^tracing-opentelemetry$"
       ],
-      "groupName": "`opentelemetry` crates"
+      "groupName": "`opentelemetry` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
-      "groupName": "`postgres` crates"
+      "groupName": "`postgres` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^serde[-_]?"],
-      "groupName": "`serde` crates"
+      "groupName": "`serde` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^tracing[-_]?"],
       "excludePackageNames": ["tracing-opentelemetry"],
-      "groupName": "`tracing` crates"
+      "groupName": "`tracing` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchFileNames": ["libs/error-stack/Cargo.toml"],
-      "excludeDepNames": ["anyhow"]
+      "excludePackageNames": ["anyhow"]
     }
   ],
   "regexManagers": [
