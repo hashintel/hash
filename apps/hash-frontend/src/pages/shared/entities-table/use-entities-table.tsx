@@ -14,8 +14,8 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useMemo } from "react";
 
-import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get-owner-for-entity";
-import { generateEntityLabel } from "../../../../../../lib/entities";
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
+import { generateEntityLabel } from "../../../lib/entities";
 
 export interface TypeEntitiesRow {
   entityId: string;

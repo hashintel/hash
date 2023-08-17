@@ -26,7 +26,7 @@ import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-he
 import {
   renderTextIconCell,
   TextIconCell,
-} from "../../[shortname]/types/entity-type/[...slug-maybe-version].page/entities-tab/text-icon-cell";
+} from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 import {
   FilterState,
