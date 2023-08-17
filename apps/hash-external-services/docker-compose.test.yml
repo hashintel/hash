@@ -10,7 +10,7 @@ services:
 
   ory-keto-migrate:
     environment:
-      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_TEST_DATABASE}
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_ORY_KETO_PG_TEST_DATABASE}
 
   ory-keto:
     environment:
