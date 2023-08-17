@@ -105,6 +105,7 @@ class EntityTypeQueryToken(Enum):
     label_property = "labelProperty"
     links = "links"
     inherits_from = "inheritsFrom"
+    children = "children"
 
 
 class EntityUuid(RootModel):

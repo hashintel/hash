@@ -296,6 +296,23 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// It's also possible to create a query path for the reversed direction:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
+    ///     inheritance_depth: None,
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
     /// ### Specifying the inheritance depth
     ///
     /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
@@ -314,6 +331,24 @@ pub enum EntityTypeQueryPath<'p> {
     ///     edge_kind: OntologyEdgeKind::InheritsFrom,
     ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
     ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: Some(10),
+    /// });
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// and similary for the reversed direction:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path =
+    ///     EntityTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
     ///     inheritance_depth: Some(10),
     /// });
     /// # Ok::<(), serde_json::Error>(())
@@ -575,6 +610,7 @@ pub enum EntityTypeQueryToken {
     LabelProperty,
     Links,
     InheritsFrom,
+    Children,
     #[serde(skip)]
     Schema,
 }
@@ -586,10 +622,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
-                                         `title`, `description`, `examples`, `properties`, \
-                                         `required`, `labelProperty`, `links`, `inheritsFrom`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, \
+         `recordArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
+         `labelProperty`, `links`, `inheritsFrom`, `children`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -666,6 +702,22 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(Self::new(self.position).visit_seq(seq)?),
                     direction: EdgeDirection::Outgoing,
+                    inheritance_depth: parameters
+                        .remove("inheritanceDepth")
+                        .map(u32::from_str)
+                        .transpose()
+                        .map_err(de::Error::custom)?,
+                }
+            }
+            EntityTypeQueryToken::Children => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Incoming,
                     inheritance_depth: parameters
                         .remove("inheritanceDepth")
                         .map(u32::from_str)
