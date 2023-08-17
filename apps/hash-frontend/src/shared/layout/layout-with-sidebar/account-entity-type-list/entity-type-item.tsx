@@ -1,7 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
+import { Box, BoxProps, styled, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
