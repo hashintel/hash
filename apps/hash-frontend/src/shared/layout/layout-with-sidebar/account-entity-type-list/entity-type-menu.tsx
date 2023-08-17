@@ -1,6 +1,7 @@
 import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
+  faDownLeftAndUpRightToCenter,
   faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
@@ -80,6 +81,12 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
             popupState.close();
           }, 2000);
         }}
+      />
+      <EntityTypeMenuItem
+        title="Extend this type"
+        icon={faDownLeftAndUpRightToCenter}
+        href={`/new/types/entity-type?extends=${entityTypeId}`}
+        popupState={popupState}
       />
     </Menu>
   );
