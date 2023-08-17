@@ -40,7 +40,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { reset } = formMethods;
 
@@ -111,6 +111,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
             position: "absolute",
             top: 0,
             right: 0,
+            overflowY: "auto",
           }}
         >
           {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (

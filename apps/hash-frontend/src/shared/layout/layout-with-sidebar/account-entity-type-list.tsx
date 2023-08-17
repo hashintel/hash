@@ -103,21 +103,20 @@ export const AccountEntityTypeList: FunctionComponent<
               setSortType={setSortType}
               activeSortType={sortType}
             />
-            <Tooltip title="Create new entity type">
-              <Link tabIndex={-1} href="/new/types/entity-type" noLinkStyle>
-                <IconButton
-                  size="small"
-                  unpadded
-                  rounded
-                  className="end-adornment-button"
-                  sx={({ palette }) => ({
-                    color: palette.gray[80],
-                  })}
-                >
-                  <PlusRegularIcon />
-                </IconButton>
-              </Link>
-            </Tooltip>
+            <Link tabIndex={-1} href="/new/types/entity-type" noLinkStyle>
+              <IconButton
+                data-testid="create-entity-type-btn"
+                size="small"
+                unpadded
+                rounded
+                className="end-adornment-button"
+                sx={({ palette }) => ({
+                  color: palette.gray[80],
+                })}
+              >
+                <PlusRegularIcon />
+              </IconButton>
+            </Link>
           </Box>
         }
       >

@@ -27,7 +27,7 @@ export const EntityTypeSelector: FunctionComponent<{
             onCreateNew(search);
           },
         },
-        variant: "entityType",
+        variant: "entity type",
       }}
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({

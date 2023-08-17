@@ -67,7 +67,7 @@ const Page: NextPageWithLayout = () => {
     useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 

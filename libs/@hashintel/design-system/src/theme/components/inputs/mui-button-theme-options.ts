@@ -126,6 +126,20 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...hoverStyles,
           background: theme.palette.blue[20],
         };
+      } else if (variant === "secondary_quiet") {
+        baseStyles = {
+          ...baseStyles,
+          border: "1px solid transparent",
+          color: theme.palette.gray[90],
+          background: "transparent",
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          borderColor: theme.palette.blue[70],
+          color: theme.palette.blue[70],
+          background: theme.palette.blue[20],
+        };
       } else if (variant === "tertiary") {
         /** ===== TERTIARY variant specific styling ===== */
         baseStyles = {
@@ -228,6 +242,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           minHeight: 34,
           minWidth: 52,
           ...theme.typography.smallTextLabels,
+          fontSize:
+            variant === "secondary_quiet"
+              ? "var(--step--2)"
+              : theme.typography.smallTextLabels.fontSize,
         }),
         fontWeight: 600,
         ...(["tertiary", "tertiary_quiet"].includes(variant ?? "primary") && {
