@@ -26,13 +26,34 @@ export interface TypeEntitiesRow {
   [k: string]: string;
 }
 
-export const useEntitiesTable = (
-  entities?: Entity[],
-  entityTypes?: EntityType[],
-  propertyTypes?: PropertyType[],
-  subgraph?: Subgraph<EntityRootType>,
-) => {
+export const useEntitiesTable = (params: {
+  entities?: Entity[];
+  entityTypes?: EntityType[];
+  propertyTypes?: PropertyType[];
+  subgraph?: Subgraph<EntityRootType>;
+  hideEntityTypeVersionColumn?: boolean;
+  hidePropertiesColumns?: boolean;
+}) => {
+  const {
+    entities,
+    entityTypes,
+    propertyTypes,
+    subgraph,
+    hideEntityTypeVersionColumn = false,
+    hidePropertiesColumns = false,
+  } = params;
+
   const getOwnerForEntity = useGetOwnerForEntity();
+
+  const entitiesHaveSameType = useMemo(
+    () =>
+      !!entities &&
+      !!entities.length &&
+      entities
+        .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
+        .every((value, _i, all) => value === all[0]),
+    [entities],
+  );
 
   return useMemo(() => {
     if (!entities || !entityTypes || !propertyTypes || !subgraph) {
@@ -58,16 +79,24 @@ export const useEntitiesTable = (
 
     const columns: SizedGridColumn[] = [
       {
-        title: "Entity",
+        title: entitiesHaveSameType
+          ? entityTypes.find(
+              ({ $id }) => $id === entities[0]?.metadata.entityTypeId,
+            )?.title ?? "Entity"
+          : "Entity",
         id: "entity",
         width: 250,
         grow: 1,
       },
-      {
-        title: "Entity Type Version",
-        id: "entityTypeVersion",
-        width: 250,
-      },
+      ...(hideEntityTypeVersionColumn
+        ? []
+        : [
+            {
+              title: "Entity Type Version",
+              id: "entityTypeVersion",
+              width: 250,
+            },
+          ]),
       {
         title: "Namespace",
         id: "namespace",
@@ -79,7 +108,7 @@ export const useEntitiesTable = (
       //   id: "additionalTypes",
       //   width: 250,
       // },
-      ...propertyColumns,
+      ...(hidePropertiesColumns ? [] : propertyColumns),
     ];
 
     const rows: TypeEntitiesRow[] =
@@ -122,5 +151,14 @@ export const useEntitiesTable = (
       }) ?? {};
 
     return { columns, rows };
-  }, [entities, entityTypes, getOwnerForEntity, propertyTypes, subgraph]);
+  }, [
+    entities,
+    entityTypes,
+    getOwnerForEntity,
+    propertyTypes,
+    subgraph,
+    entitiesHaveSameType,
+    hideEntityTypeVersionColumn,
+    hidePropertiesColumns,
+  ]);
 };

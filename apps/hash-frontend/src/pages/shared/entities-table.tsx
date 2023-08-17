@@ -17,7 +17,10 @@ import {
   useEntitiesTable,
 } from "./entities-table/use-entities-table";
 
-export const EntitiesTable: FunctionComponent = () => {
+export const EntitiesTable: FunctionComponent<{
+  hideEntityTypeVersionColumn?: boolean;
+  hidePropertiesColumns?: boolean;
+}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
   const router = useRouter();
 
   const [filterState, setFilterState] = useState<FilterState>({
@@ -29,7 +32,14 @@ export const EntitiesTable: FunctionComponent = () => {
     useEntityTypeEntities();
 
   const { columns, rows } =
-    useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
+    useEntitiesTable({
+      entities,
+      entityTypes,
+      propertyTypes,
+      subgraph,
+      hideEntityTypeVersionColumn,
+      hidePropertiesColumns,
+    }) ?? {};
 
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
