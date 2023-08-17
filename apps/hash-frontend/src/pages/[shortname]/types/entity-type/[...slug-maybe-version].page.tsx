@@ -32,7 +32,7 @@ import {
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-button";
+import { ConvertTypeMenuItem } from "./[...slug-maybe-version].page/convert-type-menu-item";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -52,8 +52,6 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
-
-  const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
   const [slug, _, requestedVersionString] = router.query[
     "slug-maybe-version"
@@ -203,13 +201,11 @@ const Page: NextPageWithLayout = () => {
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
 
-    setConvertTypeLoading(true);
     const res = await updateEntityType({
       ...entityTypeSchema,
       allOf: [{ $ref: linkEntityTypeUrl }],
     });
 
-    setConvertTypeLoading(false);
     if (!res.errors?.length && res.data) {
       void router.push(res.data.schema.$id);
     } else {
@@ -223,31 +219,40 @@ const Page: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${entityType.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
-        <EntityTypeContext.Provider value={entityType}>
-          <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-            <Box display="contents" component="form" onSubmit={handleSubmit}>
-              <TopContextBar
-                defaultCrumbIcon={null}
-                item={remoteEntityType ?? undefined}
-                crumbs={[
-                  {
-                    title: "Types",
-                    id: "types",
-                  },
-                  {
-                    title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
-                    id: "entity-types",
-                  },
-                  {
-                    title: entityType.title,
-                    href: "#",
-                    id: entityType.$id,
-                    icon: <FontAwesomeIcon icon={faAsterisk} />,
-                  },
-                ]}
-                scrollToTop={() => {}}
-                sx={{ bgcolor: "white" }}
-              />
+        <LatestPropertyTypesContextProvider>
+          <EntityTypeContext.Provider value={entityType}>
+            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+              <Box display="contents" component="form" onSubmit={handleSubmit}>
+                <TopContextBar
+                  actionMenuItems={
+                    !isReadonly && !isDraft && !entityTypeIsLink ? (
+                      <ConvertTypeMenuItem
+                        convertToLinkType={convertToLinkType}
+                        disabled={isDirty}
+                      />
+                    ) : null
+                  }
+                  defaultCrumbIcon={null}
+                  item={remoteEntityType ?? undefined}
+                  crumbs={[
+                    {
+                      title: "Types",
+                      id: "types",
+                    },
+                    {
+                      title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
+                      id: "entity-types",
+                    },
+                    {
+                      title: entityType.title,
+                      href: "#",
+                      id: entityType.$id,
+                      icon: <FontAwesomeIcon icon={faAsterisk} />,
+                    },
+                  ]}
+                  scrollToTop={() => {}}
+                  sx={{ bgcolor: "white" }}
+                />
 
               {!isReadonly && (
                 <EditBarTypeEditor
@@ -322,13 +327,6 @@ const Page: NextPageWithLayout = () => {
                       isReadonly={isReadonly}
                       latestVersion={latestVersion}
                     />
-                    {!isReadonly && !isDraft && !entityTypeIsLink ? (
-                      <ConvertTypeButton
-                        onClick={convertToLinkType}
-                        loading={convertTypeLoading}
-                        disabled={isDirty}
-                      />
-                    ) : null}
                   </Box>
 
                   <EntityTypeTabs isDraft={isDraft} />

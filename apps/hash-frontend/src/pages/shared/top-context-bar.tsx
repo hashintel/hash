@@ -19,14 +19,24 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, ReactNode, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useMemo,
+  useState,
+} from "react";
 
 import { isTypeArchived } from "../../shared/entity-types-context/util";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
+import { MenuItemProps } from "../../shared/ui/menu-item";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { isEntityPageEntity, isItemEntityType } from "./top-context-bar/util";
+
+export { isEntityPageEntity, isItemEntityType };
+export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 
 const PageRestoredMessageWrapper: FunctionComponent<{
   children: ReactNode;
@@ -99,7 +109,13 @@ const PageRestoredMessageWrapper: FunctionComponent<{
   </Box>
 );
 
+export const TOP_CONTEXT_BAR_HEIGHT = 50;
+
 type TopContextBarProps = {
+  actionMenuItems:
+    | ReactElement<MenuItemProps>
+    | [ReactElement<MenuItemProps>, ...ReactElement<MenuItemProps>[]]
+    | null;
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
@@ -107,9 +123,8 @@ type TopContextBarProps = {
   sx?: SxProps<Theme>;
 };
 
-export const TOP_CONTEXT_BAR_HEIGHT = 50;
-
 export const TopContextBar = ({
+  actionMenuItems,
   crumbs,
   item,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
@@ -122,6 +137,7 @@ export const TopContextBar = ({
 
   const { replace, query } = useRouter();
 
+  // @todo make 'additional buttons' a prop and move this to the page page
   const setPageMode = (type: "canvas" | "document", lockCanvas?: boolean) => {
     const newQuery: { canvas?: true; locked?: true } = {};
     if (type === "canvas") {
@@ -136,6 +152,7 @@ export const TopContextBar = ({
     });
   };
 
+  // @todo make 'additional banner' a prop and move this logic to the (1) page page and (2) entity type pages
   const isItemArchived = useMemo(() => {
     if (!item) {
       return false;
@@ -189,8 +206,10 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemArchived ? (
-            <ContextBarActionsDropdown item={item} />
+          {actionMenuItems ? (
+            <ContextBarActionsDropdown>
+              {actionMenuItems}
+            </ContextBarActionsDropdown>
           ) : null}
           {isBlockPage && query.canvas && (
             <FormControlLabel

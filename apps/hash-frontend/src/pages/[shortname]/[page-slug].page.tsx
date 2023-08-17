@@ -70,6 +70,7 @@ import {
   TopContextBar,
 } from "../shared/top-context-bar";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
+import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -316,7 +317,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, contents, metadata, properties } = data.page;
+  const { title, icon, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -349,7 +350,10 @@ const Page: NextPageWithLayout<PageProps> = ({
           })}
         >
           <TopContextBar
-            item={{ metadata, properties }}
+            actionMenuItems={
+              data.page.archived ? null : <ArchiveMenuItem item={data.page} />
+            }
+            item={data.page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.recordId.entityId,
