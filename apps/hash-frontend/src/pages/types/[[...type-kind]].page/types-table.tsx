@@ -13,7 +13,13 @@ import {
 } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { Grid } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
@@ -33,6 +39,7 @@ import {
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
+import { WorkspaceContext } from "../../shared/workspace-context";
 
 const typesTableColumnIds = [
   "title",
@@ -66,6 +73,8 @@ export const TypesTable: FunctionComponent<{
   kind: "all" | "entity-type" | "property-type" | "link-type" | "data-type";
 }> = ({ types, kind }) => {
   const router = useRouter();
+
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: true,
@@ -115,7 +124,9 @@ export const TypesTable: FunctionComponent<{
     () =>
       types
         .map((type) => {
-          const isExternal = isExternalOntologyElementMetadata(type.metadata);
+          const isExternal = isExternalOntologyElementMetadata(type.metadata)
+            ? true
+            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
 
           const namespaceAccountId = isExternalOntologyElementMetadata(
             type.metadata,
@@ -149,7 +160,7 @@ export const TypesTable: FunctionComponent<{
             (filterState.includeExternal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
-    [types, namespaces, filterState],
+    [types, namespaces, filterState, activeWorkspaceAccountId],
   );
 
   const createGetCellContent = useCallback(
@@ -191,11 +202,9 @@ export const TypesTable: FunctionComponent<{
               data: row.kind,
             };
           case "namespaceShortname": {
-            const value = row.external
-              ? ""
-              : row.namespaceShortname
+            const value = row.namespaceShortname
               ? `@${row.namespaceShortname}`
-              : "Loading...";
+              : "";
 
             return {
               kind: GridCellKind.Text,
