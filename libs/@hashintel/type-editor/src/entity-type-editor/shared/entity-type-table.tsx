@@ -125,8 +125,8 @@ export const useFlashRow = () => {
 
 export const EntityTypeTableRow = forwardRef<
   HTMLTableRowElement,
-  { children: ReactNode; flash?: boolean }
->(({ children, flash = false }, ref) => {
+  { children: ReactNode; flash?: boolean; inherited?: boolean }
+>(({ children, flash = false, inherited = false }, ref) => {
   const [flashed, setFlashed] = useState(false);
 
   const rowRef = useRef<HTMLElement>(null);
@@ -202,6 +202,17 @@ export const EntityTypeTableRow = forwardRef<
             : {
                 background: theme.palette.gray[10],
               },
+          ...(inherited
+            ? {
+                background: "#FCFEFF",
+                "&:not(:first-of-type)": {
+                  borderTop: `1px solid ${theme.palette.gray[20]}`,
+                },
+                "&:not(:last-of-type)": {
+                  borderBottom: `1px solid ${theme.palette.gray[20]}`,
+                },
+              }
+            : {}),
         }),
         flash &&
           ((theme) => ({

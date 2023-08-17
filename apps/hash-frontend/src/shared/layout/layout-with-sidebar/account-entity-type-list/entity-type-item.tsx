@@ -1,7 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
+import { Box, BoxProps, styled, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
@@ -83,33 +83,22 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
           {title}
         </Typography>
       </Link>
-      <Tooltip
-        title="Create entity and copy link."
-        componentsProps={{
-          tooltip: {
-            sx: {
-              width: 175,
-            },
+      <IconButton
+        ref={entityMenuTriggerRef}
+        className="entity-menu-trigger"
+        {...bindTrigger(popupState)}
+        size="medium"
+        unpadded
+        sx={({ palette }) => ({
+          color: [selected ? palette.gray[80] : "transparent"],
+          "&:focus-visible, &:hover": {
+            backgroundColor: palette.gray[selected ? 40 : 30],
+            color: palette.gray[selected ? 80 : 40],
           },
-        }}
+        })}
       >
-        <IconButton
-          ref={entityMenuTriggerRef}
-          className="entity-menu-trigger"
-          {...bindTrigger(popupState)}
-          size="medium"
-          unpadded
-          sx={({ palette }) => ({
-            color: [selected ? palette.gray[80] : "transparent"],
-            "&:focus-visible, &:hover": {
-              backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 80 : 40],
-            },
-          })}
-        >
-          <EllipsisRegularIcon />
-        </IconButton>
-      </Tooltip>
+        <EllipsisRegularIcon />
+      </IconButton>
       <EntityTypeMenu
         entityTypeId={entityTypeId}
         popupState={popupState}

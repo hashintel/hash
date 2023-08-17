@@ -136,6 +136,7 @@ declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
     primary: true;
     secondary: true;
+    secondary_quiet: true;
     tertiary: true;
     tertiary_quiet: true;
     warning: true;
