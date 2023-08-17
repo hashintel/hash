@@ -1,4 +1,4 @@
-import { Chip } from "@hashintel/design-system";
+import { Chip, IconButton } from "@hashintel/design-system";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -29,6 +29,7 @@ import { WorkspaceContext } from "../pages/shared/workspace-context";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
+import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { Button } from "./ui";
 
 export const tableHeaderHeight = 48;
@@ -77,12 +78,14 @@ type TableHeaderProps = {
   )[];
   filterState: FilterState;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
+  toggleSearch?: () => void;
 };
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   items,
   filterState,
   setFilterState,
+  toggleSearch,
 }) => {
   const { activeWorkspace } = useContext(WorkspaceContext);
 
@@ -158,6 +161,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             }}
           />
         </Tooltip>
+        {toggleSearch ? (
+          <IconButton onClick={toggleSearch}>
+            <MagnifyingGlassRegularIcon />
+          </IconButton>
+        ) : null}
       </Box>
       <Box
         sx={{

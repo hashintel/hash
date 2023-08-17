@@ -78,6 +78,7 @@ export const EntitiesTable: FunctionComponent = () => {
         items={entities ?? []}
         filterState={filterState}
         setFilterState={setFilterState}
+        toggleSearch={() => setShowSearch(true)}
       />
       <Grid
         showSearch={showSearch}
