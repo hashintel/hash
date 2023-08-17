@@ -2,10 +2,13 @@ import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { Box, Paper } from "@mui/material";
+import { Box, Paper, useTheme } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
+import { HEADER_HEIGHT } from "../../../../../shared/layout/layout-with-header/page-header";
+import { tableHeaderHeight } from "../../../../../shared/table-header";
 import { EntitiesTable } from "../../../../shared/entities-table";
+import { TOP_CONTEXT_BAR_HEIGHT } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
 import { SectionWrapper } from "../../../shared/section-wrapper";
@@ -35,6 +38,8 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
 
+  const theme = useTheme();
+
   return (
     <Box>
       <SectionWrapper
@@ -55,13 +60,19 @@ export const EntitiesTab: FunctionComponent = () => {
             />
           </Paper>
         ) : (
-          <Box
-            sx={{
-              height: "50vh",
-            }}
-          >
-            <EntitiesTable />
-          </Box>
+          <EntitiesTable
+            height={
+              entities && entities.length > 8
+                ? `calc(100vh - (${
+                    HEADER_HEIGHT +
+                    TOP_CONTEXT_BAR_HEIGHT +
+                    215 +
+                    24 +
+                    tableHeaderHeight
+                  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`
+                : undefined
+            }
+          />
         )}
       </SectionWrapper>
     </Box>

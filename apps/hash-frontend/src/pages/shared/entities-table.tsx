@@ -1,9 +1,10 @@
 import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
+import { Entity } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useCallback, useState } from "react";
 
-import { Grid } from "../../components/grid/grid";
+import { Grid, GridProps } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { FilterState, TableHeader } from "../../shared/table-header";
 // todo: move this out
@@ -20,7 +21,8 @@ import {
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
+  height?: GridProps<Entity[]>["height"];
+}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns, height }) => {
   const router = useRouter();
 
   const [filterState, setFilterState] = useState<FilterState>({
@@ -95,6 +97,7 @@ export const EntitiesTable: FunctionComponent<{
         onSearchClose={() => setShowSearch(false)}
         columns={columns ?? []}
         rows={rows ?? []}
+        height={height}
         createGetCellContent={createGetCellContent}
         customRenderers={[renderTextIconCell]}
       />

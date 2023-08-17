@@ -32,7 +32,7 @@ import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { Button } from "./ui";
 
-export const tableHeaderHeight = 48;
+export const tableHeaderHeight = 50;
 
 const CheckboxFilter: FunctionComponent<{
   label: string;
