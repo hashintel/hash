@@ -24,15 +24,15 @@ import {
 } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
+  FilterState,
+  TableHeader,
+  tableHeaderHeight,
+} from "../../../shared/table-header";
+import {
   renderTextIconCell,
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import {
-  FilterState,
-  TypesTableHeader,
-  typesTableHeaderHeight,
-} from "./types-table/types-table-header";
 
 const typesTableColumnIds = [
   "title",
@@ -224,8 +224,8 @@ export const TypesTable: FunctionComponent<{
 
   return (
     <Box>
-      <TypesTableHeader
-        types={types}
+      <TableHeader
+        items={types}
         filterState={filterState}
         setFilterState={setFilterState}
       />
@@ -249,7 +249,7 @@ export const TypesTable: FunctionComponent<{
                   HEADER_HEIGHT +
                   TOP_CONTEXT_BAR_HEIGHT +
                   170 +
-                  typesTableHeaderHeight
+                  tableHeaderHeight
                 }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
               : undefined
           }

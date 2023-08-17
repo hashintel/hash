@@ -1,7 +1,9 @@
 import { Chip } from "@hashintel/design-system";
 import {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
@@ -23,13 +25,13 @@ import {
   useState,
 } from "react";
 
-import { EarthAmericasRegularIcon } from "../../../../shared/icons/earth-americas-regular";
-import { FilterListIcon } from "../../../../shared/icons/filter-list-icon";
-import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
-import { Button } from "../../../../shared/ui";
-import { WorkspaceContext } from "../../../shared/workspace-context";
+import { WorkspaceContext } from "../pages/shared/workspace-context";
+import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
+import { FilterListIcon } from "./icons/filter-list-icon";
+import { HouseRegularIcon } from "./icons/house-regular-icon";
+import { Button } from "./ui";
 
-export const typesTableHeaderHeight = 48;
+export const tableHeaderHeight = 48;
 
 const CheckboxFilter: FunctionComponent<{
   label: string;
@@ -62,12 +64,13 @@ const CheckboxFilter: FunctionComponent<{
 );
 
 export type FilterState = {
-  includeArchived: boolean;
+  includeArchived?: boolean;
   includeExternal: boolean;
 };
 
-type TypesTableHeaderProps = {
-  types: (
+type TableHeaderProps = {
+  items: (
+    | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
@@ -76,8 +79,8 @@ type TypesTableHeaderProps = {
   setFilterState: Dispatch<SetStateAction<FilterState>>;
 };
 
-export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
-  types,
+export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  items,
   filterState,
   setFilterState,
 }) => {
@@ -85,21 +88,24 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
 
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
 
-  const numberOfActiveWorkspaceTypes = useMemo(() => {
-    const activeWorkspaceTypes = activeWorkspace
-      ? types.filter(({ metadata }) =>
-          isExternalOntologyElementMetadata(metadata)
+  const numberOfActiveWorkspaceItems = useMemo(() => {
+    const activeWorkspaceItems = activeWorkspace
+      ? items.filter(({ metadata }) =>
+          "entityTypeId" in metadata
+            ? extractOwnedByIdFromEntityId(metadata.recordId.entityId) ===
+              activeWorkspace.accountId
+            : isExternalOntologyElementMetadata(metadata)
             ? false
             : metadata.custom.ownedById === activeWorkspace.accountId,
         )
       : undefined;
 
-    return activeWorkspaceTypes ? activeWorkspaceTypes.length : undefined;
-  }, [types, activeWorkspace]);
+    return activeWorkspaceItems ? activeWorkspaceItems.length : undefined;
+  }, [items, activeWorkspace]);
 
-  const numberOfGlobalTypes =
-    typeof numberOfActiveWorkspaceTypes !== "undefined"
-      ? types.length - numberOfActiveWorkspaceTypes
+  const numberOfGlobalItems =
+    typeof numberOfActiveWorkspaceItems !== "undefined"
+      ? items.length - numberOfActiveWorkspaceItems
       : undefined;
 
   return (
@@ -125,7 +131,7 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
         >
           <Chip
             icon={<HouseRegularIcon />}
-            label={`${numberOfActiveWorkspaceTypes} in @${activeWorkspace?.shortname}`}
+            label={`${numberOfActiveWorkspaceItems} in @${activeWorkspace?.shortname}`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
@@ -141,7 +147,7 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
         >
           <Chip
             icon={<EarthAmericasRegularIcon />}
-            label={`${numberOfGlobalTypes} globally`}
+            label={`${numberOfGlobalItems} globally`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
@@ -205,16 +211,18 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
             paddingRight={3}
             gap={1}
           >
-            <CheckboxFilter
-              label="Include Archived"
-              checked={filterState.includeArchived}
-              onChange={(checked) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  includeArchived: checked,
-                }))
-              }
-            />
+            {filterState.includeArchived !== undefined ? (
+              <CheckboxFilter
+                label="Include Archived"
+                checked={filterState.includeArchived}
+                onChange={(checked) =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    includeArchived: checked,
+                  }))
+                }
+              />
+            ) : null}
             <CheckboxFilter
               label="Include External"
               checked={filterState.includeExternal}

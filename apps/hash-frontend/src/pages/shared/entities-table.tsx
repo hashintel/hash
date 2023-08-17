@@ -5,6 +5,7 @@ import { FunctionComponent, useCallback, useState } from "react";
 
 import { Grid } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { FilterState, TableHeader } from "../../shared/table-header";
 // todo: move this out
 import { useEntityTypeEntities } from "../[shortname]/types/entity-type/[...slug-maybe-version].page/shared/entity-type-entities-context";
 import {
@@ -18,6 +19,10 @@ import {
 
 export const EntitiesTable: FunctionComponent = () => {
   const router = useRouter();
+
+  const [filterState, setFilterState] = useState<FilterState>({
+    includeExternal: true,
+  });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
   const { entities, entityTypes, propertyTypes, subgraph } =
@@ -69,16 +74,19 @@ export const EntitiesTable: FunctionComponent = () => {
 
   return (
     <Box>
-      {columns && rows ? (
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={columns}
-          rows={rows}
-          createGetCellContent={createGetCellContent}
-          customRenderers={[renderTextIconCell]}
-        />
-      ) : null}
+      <TableHeader
+        items={entities ?? []}
+        filterState={filterState}
+        setFilterState={setFilterState}
+      />
+      <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
+        columns={columns ?? []}
+        rows={rows ?? []}
+        createGetCellContent={createGetCellContent}
+        customRenderers={[renderTextIconCell]}
+      />
     </Box>
   );
 };
