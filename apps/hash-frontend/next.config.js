@@ -63,6 +63,24 @@ process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
 
 /**
+ * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
+ * when the `next.config.js` supports imports from modules
+ */
+const frontendUrl =
+  process.env.NEXT_PUBLIC_FRONTEND_URL ??
+  (process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : process.env.FRONTEND_URL ?? "http://localhost:3000");
+
+const systemUserShortname =
+  process.env.SYSTEM_USER_SHORTNAME ??
+  // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
+  process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
+  "example-org";
+
+const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-type/page/v/1`;
+
+/**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
  *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
@@ -71,6 +89,14 @@ module.exports = withSentryConfig(
     withTM(
       /** @type {import('next').NextConfig} */
       {
+        async rewrites() {
+          return [
+            {
+              source: "/pages",
+              destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
+            },
+          ];
+        },
         redirects() {
           return [
             {
