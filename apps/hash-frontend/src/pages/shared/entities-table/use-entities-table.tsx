@@ -4,6 +4,7 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
   Entity,
@@ -22,8 +23,9 @@ export interface TypeEntitiesRow {
   entity: string;
   entityTypeVersion: string;
   namespace: string;
+  archived?: boolean;
 
-  [k: string]: string;
+  [k: string]: string | boolean | undefined;
 }
 
 export const useEntitiesTable = (params: {
@@ -33,6 +35,7 @@ export const useEntitiesTable = (params: {
   subgraph?: Subgraph<EntityRootType>;
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
+  isViewingPages?: boolean;
 }) => {
   const {
     entities,
@@ -41,6 +44,7 @@ export const useEntitiesTable = (params: {
     subgraph,
     hideEntityTypeVersionColumn = false,
     hidePropertiesColumns = false,
+    isViewingPages = false,
   } = params;
 
   const getOwnerForEntity = useGetOwnerForEntity();
@@ -102,6 +106,15 @@ export const useEntitiesTable = (params: {
         id: "namespace",
         width: 250,
       },
+      ...(isViewingPages
+        ? [
+            {
+              title: "Archived",
+              id: "archived",
+              width: 200,
+            },
+          ]
+        : []),
       /** @todo: uncomment this when we have additional types for entities */
       // {
       //   title: "Additional Types",
@@ -126,6 +139,9 @@ export const useEntitiesTable = (params: {
           entity.metadata.recordId.entityId,
         );
 
+        const isPage =
+          entity.metadata.entityTypeId === types.entityType.page.entityTypeId;
+
         return {
           entityId,
           entity: entityLabel,
@@ -133,6 +149,11 @@ export const useEntitiesTable = (params: {
             ? `v${extractVersion(entityType.$id)} ${entityType.title}`
             : "",
           namespace: `@${entityNamespace}`,
+          archived: isPage
+            ? (entity.properties[
+                extractBaseUrl(types.propertyType.archived.propertyTypeId)
+              ] as boolean)
+            : undefined,
           /** @todo: uncomment this when we have additional types for entities */
           // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
@@ -160,5 +181,6 @@ export const useEntitiesTable = (params: {
     entitiesHaveSameType,
     hideEntityTypeVersionColumn,
     hidePropertiesColumns,
+    isViewingPages,
   ]);
 };
