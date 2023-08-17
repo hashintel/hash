@@ -33,7 +33,6 @@ export const EntityPageHeader = ({
   return (
     <>
       <TopContextBar
-        actionMenuItems={null}
         defaultCrumbIcon={null}
         crumbs={[
           {

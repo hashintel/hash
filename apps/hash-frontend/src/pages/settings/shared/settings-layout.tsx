@@ -122,7 +122,6 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
   return (
     <LayoutWithSidebar fullWidth>
       <TopContextBar
-        actionMenuItems={null}
         crumbs={breadcrumbs}
         defaultCrumbIcon={null}
         scrollToTop={() => {}}

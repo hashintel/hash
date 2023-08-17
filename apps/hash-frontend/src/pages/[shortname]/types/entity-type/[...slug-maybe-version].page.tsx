@@ -23,7 +23,10 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
-import { isLinkEntityType } from "../../../../shared/entity-types-context/util";
+import {
+  isLinkEntityType,
+  isTypeArchived,
+} from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -31,6 +34,7 @@ import {
 } from "../../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { ArchiveMenuItem } from "../../shared/archive-menu-item";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { ConvertTypeMenuItem } from "./[...slug-maybe-version].page/convert-type-menu-item";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
@@ -219,40 +223,50 @@ const Page: NextPageWithLayout = () => {
     <>
       <NextSeo title={`${entityType.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
-        <LatestPropertyTypesContextProvider>
-          <EntityTypeContext.Provider value={entityType}>
-            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <Box display="contents" component="form" onSubmit={handleSubmit}>
-                <TopContextBar
-                  actionMenuItems={
-                    !isReadonly && !isDraft && !entityTypeIsLink ? (
-                      <ConvertTypeMenuItem
-                        convertToLinkType={convertToLinkType}
-                        disabled={isDirty}
-                      />
-                    ) : null
-                  }
-                  defaultCrumbIcon={null}
-                  item={remoteEntityType ?? undefined}
-                  crumbs={[
-                    {
-                      title: "Types",
-                      id: "types",
-                    },
-                    {
-                      title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
-                      id: "entity-types",
-                    },
-                    {
-                      title: entityType.title,
-                      href: "#",
-                      id: entityType.$id,
-                      icon: <FontAwesomeIcon icon={faAsterisk} />,
-                    },
-                  ]}
-                  scrollToTop={() => {}}
-                  sx={{ bgcolor: "white" }}
-                />
+        <EntityTypeContext.Provider value={entityType}>
+          <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+            <Box display="contents" component="form" onSubmit={handleSubmit}>
+              <TopContextBar
+                actionMenuItems={[
+                  ...(remoteEntityType && !isTypeArchived(remoteEntityType)
+                    ? [
+                        <ArchiveMenuItem
+                          key={entityType.$id}
+                          item={remoteEntityType}
+                        />,
+                      ]
+                    : []),
+                  ...(!isReadonly && !isDraft && !entityTypeIsLink
+                    ? [
+                        <ConvertTypeMenuItem
+                          key={entityType.$id}
+                          convertToLinkType={convertToLinkType}
+                          disabled={isDirty}
+                        />,
+                      ]
+                    : []),
+                ]}
+                defaultCrumbIcon={null}
+                item={remoteEntityType ?? undefined}
+                crumbs={[
+                  {
+                    title: "Types",
+                    id: "types",
+                  },
+                  {
+                    title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
+                    id: "entity-types",
+                  },
+                  {
+                    title: entityType.title,
+                    href: "#",
+                    id: entityType.$id,
+                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                  },
+                ]}
+                scrollToTop={() => {}}
+                sx={{ bgcolor: "white" }}
+              />
 
               {!isReadonly && (
                 <EditBarTypeEditor

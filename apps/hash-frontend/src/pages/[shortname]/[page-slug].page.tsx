@@ -351,7 +351,14 @@ const Page: NextPageWithLayout<PageProps> = ({
         >
           <TopContextBar
             actionMenuItems={
-              data.page.archived ? null : <ArchiveMenuItem item={data.page} />
+              data.page.archived
+                ? undefined
+                : [
+                    <ArchiveMenuItem
+                      key={data.page.metadata.recordId.entityId}
+                      item={data.page}
+                    />,
+                  ]
             }
             item={data.page}
             crumbs={generateCrumbsFromPages({

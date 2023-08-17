@@ -40,8 +40,10 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
 
   const { unarchivePage } = useArchivePage();
 
+  const isEntityType = isItemEntityType(item);
+
   const handleUnarchive = useCallback(async () => {
-    if (isItemEntityType(item)) {
+    if (isEntityType) {
       await unarchiveEntityType({
         variables: { entityTypeId: item.schema.$id },
       });
@@ -61,7 +63,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   ]);
 
   const archivedByAccountId = useMemo(() => {
-    if (isItemEntityType(item)) {
+    if (isEntityType) {
       return item.metadata.custom.provenance.recordArchivedById!;
     } else if (isEntityPageEntity(item)) {
       return item.metadata.provenance.recordCreatedById;
@@ -76,7 +78,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   const archivedAt = useMemo(
     () =>
       new Date(
-        isItemEntityType(item)
+        isEntityType
           ? item.metadata.custom.temporalVersioning.transactionTime.end.kind ===
             "exclusive"
             ? item.metadata.custom.temporalVersioning.transactionTime.end.limit
@@ -103,7 +105,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   }, [archivedAt]);
 
   const isBlockPage = useMemo(
-    () => !isItemEntityType(item) && isEntityPageEntity(item),
+    () => !isEntityType && isEntityPageEntity(item),
     [item],
   );
 
@@ -134,7 +136,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               color: ({ palette }) => palette.gray[60],
             }}
           />
-          <strong>This page was archived</strong>
+          <strong>This {isEntityType ? "type" : "page"} was archived</strong>
           {archivedByUser ? (
             <>
               {" by "}
@@ -201,11 +203,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
           onClick={handleUnarchive}
         >
           {`Restore ${
-            isItemEntityType(item)
-              ? "type"
-              : isEntityPageEntity(item)
-              ? "page"
-              : "entity"
+            isEntityType ? "type" : isEntityPageEntity(item) ? "page" : "entity"
           }`}
         </Button>
       </Container>

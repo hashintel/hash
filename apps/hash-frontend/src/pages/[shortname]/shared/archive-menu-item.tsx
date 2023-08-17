@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
-import { MenuItem } from "@hashintel/design-system";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph/.";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
 import { FunctionComponent, useCallback } from "react";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
@@ -12,6 +11,7 @@ import {
 import { archiveEntityTypeMutation } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
+import { MenuItem } from "../../../shared/ui/menu-item";
 import {
   isEntityPageEntity,
   isItemEntityType,

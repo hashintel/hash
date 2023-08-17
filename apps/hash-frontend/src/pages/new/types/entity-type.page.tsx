@@ -117,7 +117,6 @@ const Page: NextPageWithLayout = () => {
     <Stack sx={{ height: "100vh" }}>
       <Box bgcolor="white">
         <TopContextBar
-          actionMenuItems={[]}
           defaultCrumbIcon={null}
           crumbs={[
             {

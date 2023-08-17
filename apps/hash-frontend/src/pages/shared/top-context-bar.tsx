@@ -29,7 +29,6 @@ import {
 
 import { isTypeArchived } from "../../shared/entity-types-context/util";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import { MenuItemProps } from "../../shared/ui/menu-item";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
@@ -112,10 +111,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
 export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
 type TopContextBarProps = {
-  actionMenuItems:
-    | ReactElement<MenuItemProps>
-    | [ReactElement<MenuItemProps>, ...ReactElement<MenuItemProps>[]]
-    | null;
+  actionMenuItems?: ReactElement[];
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
@@ -206,7 +202,7 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {actionMenuItems ? (
+          {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>
               {actionMenuItems}
             </ContextBarActionsDropdown>
