@@ -1,7 +1,7 @@
 import { DataTypeRootType, DataTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Typography } from "@mui/material";
-import { GetStaticPaths, GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -31,24 +31,17 @@ type ParsedQueryParams = {
   ["type-kind"]?: ParsedQueryKindParam[];
 };
 
-export const getStaticPaths: GetStaticPaths<ParsedQueryParams> = () => ({
-  paths: [
-    { params: { "type-kind": [] } },
-    ...parsedQueryParams.map((kind) => ({ params: { "type-kind": [kind] } })),
-  ],
-  fallback: false,
-});
-
 export type TabId = "all" | ParsedQueryKindParam;
 
 type TypesPageProps = {
   currentTab: TabId;
 };
 
-export const getStaticProps: GetStaticProps<
+export const getServerSideProps: GetServerSideProps<
   TypesPageProps,
   ParsedQueryParams
-> = ({ params }) => {
+  // eslint-disable-next-line @typescript-eslint/require-await
+> = async ({ params }) => {
   const currentTab = params?.["type-kind"]?.[0] ?? "all";
 
   return { props: { currentTab } };
