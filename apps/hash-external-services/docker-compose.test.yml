@@ -8,6 +8,14 @@ services:
       HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
 
+  ory-keto-migrate:
+    environment:
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_TEST_DATABASE}
+
+  ory-keto:
+    environment:
+      - DSN=postgres://${HASH_ORY_KETO_PG_USER}:${HASH_ORY_KETO_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_ORY_KETO_PG_TEST_DATABASE}
+
   graph-migrate:
     environment:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
