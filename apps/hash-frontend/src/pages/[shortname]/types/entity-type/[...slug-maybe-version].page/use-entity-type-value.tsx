@@ -1,4 +1,9 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  EntityType,
+  PropertyTypeReference,
+  ValueOrArray,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   AccountId,
@@ -9,6 +14,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  getEntityTypeById,
   getEntityTypesByBaseUrl,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
@@ -34,22 +40,40 @@ import {
   useFetchEntityTypes,
 } from "../../../../../shared/entity-types-context/hooks";
 
-const getPropertyTypes = (
-  properties: any,
+/**
+ * Adds all property types referenced by the given property reference objects to the provided map,
+ * including from nested property objects each property type may further reference.
+ *
+ * The subgraph must be a result of having queried for an entity type with sufficiently high depth
+ * for constrainsPropertiesOn to contain all property types referenced by the entity type and its properties.
+ *
+ * @param propertyReferenceObjects The values of an entity type or property type's 'properties' object
+ * @param subgraph a subgraph which is assumed to contain all relevant property types
+ * @param propertyTypesMap the map to add the property types to
+ *
+ * @return nothing, because the caller provided the map
+ *
+ * @throws if the subgraph does not contain a property type referenced by the given reference objects
+ *
+ * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ */
+const addPropertyTypesToMapFromReferences = (
+  propertyReferenceObjects: ValueOrArray<PropertyTypeReference>[],
   subgraph: Subgraph,
-  propertyTypes?: Map<string, PropertyTypeWithMetadata>,
+  propertyTypesMap: Map<string, PropertyTypeWithMetadata>,
 ) => {
-  let propertyTypesMap =
-    propertyTypes ?? new Map<string, PropertyTypeWithMetadata>();
-  for (const prop of properties) {
-    const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
+  for (const referenceObject of propertyReferenceObjects) {
+    const propertyUrl =
+      "items" in referenceObject
+        ? referenceObject.items.$ref
+        : referenceObject.$ref;
     if (!propertyTypesMap.has(propertyUrl)) {
       const propertyType = getPropertyTypeById(subgraph, propertyUrl);
 
       if (propertyType) {
         for (const childProp of propertyType.schema.oneOf) {
           if ("type" in childProp && childProp.type === "object") {
-            propertyTypesMap = getPropertyTypes(
+            addPropertyTypesToMapFromReferences(
               Object.values(childProp.properties),
               subgraph,
               propertyTypesMap,
@@ -62,6 +86,48 @@ const getPropertyTypes = (
         propertyTypesMap.set(propertyUrl, propertyType);
       }
     }
+  }
+};
+
+/**
+ * Gets a map of all property types referenced by the entity type to the provided map,
+ * including from any parents in its inheritance chain and nested property objects,
+ *
+ * The subgraph must be a result of having queried for an entity type with sufficiently high depth
+ * for constrainsPropertiesOn and inheritsFrom to contain all parent entity types and property types they reference.
+ *
+ * @param entityType The entity type to provide properties for
+ * @param subgraph a subgraph which is assumed to contain all relevant property types
+ *
+ * @throws if the subgraph does not contain a property type or parent entity type relied on by the entity type
+ *
+ * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ */
+const getPropertyTypesForEntityType = (
+  entityType: EntityType,
+  subgraph: Subgraph,
+  propertyTypesMap = new Map<string, PropertyTypeWithMetadata>(),
+) => {
+  addPropertyTypesToMapFromReferences(
+    Object.values(entityType.properties),
+    subgraph,
+    propertyTypesMap,
+  );
+
+  for (const parentReference of entityType.allOf ?? []) {
+    const parentEntityType = getEntityTypeById(subgraph, parentReference.$ref);
+
+    if (!parentEntityType) {
+      throw new Error(
+        `Could not find parent entity type ${parentReference.$ref} for entity type ${entityType.$id}`,
+      );
+    }
+
+    getPropertyTypesForEntityType(
+      parentEntityType.schema,
+      subgraph,
+      propertyTypesMap,
+    );
   }
 
   return propertyTypesMap;
@@ -162,8 +228,8 @@ export const useEntityTypeValue = (
       return null;
     }
 
-    const relevantPropertiesMap = getPropertyTypes(
-      Object.values(stateEntityType.schema.properties),
+    const relevantPropertiesMap = getPropertyTypesForEntityType(
+      stateEntityType.schema,
       entityTypesSubgraph,
     );
 

@@ -1,7 +1,9 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-export const EarthIcon: FunctionComponent<SvgIconProps> = (props) => {
+export const EarthAmericasRegularIcon: FunctionComponent<SvgIconProps> = (
+  props,
+) => {
   return (
     <SvgIcon
       {...props}

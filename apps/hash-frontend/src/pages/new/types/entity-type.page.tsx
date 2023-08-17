@@ -3,7 +3,6 @@ import {
   EntityType,
 } from "@blockprotocol/type-system";
 import {
-  Button,
   OntologyChip,
   OntologyIcon,
   TextField,
@@ -29,6 +28,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
+import { Button } from "../../../shared/ui";
 import { Link } from "../../../shared/ui/link";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { useGenerateTypeUrlsForUser } from "../../shared/use-generate-type-urls-for-user";

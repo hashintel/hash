@@ -1,15 +1,9 @@
 import { LoadingSpinner, theme } from "@hashintel/design-system";
-import {
-  Box,
-  SxProps,
-  Tab,
-  Theme,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
+import { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
+import millify from "millify";
 import { FunctionComponent, ReactElement } from "react";
 
-import { Link } from "../../../../../../shared/ui/link";
+import { Link } from "./link";
 
 export type TabLinkProps = {
   label: string;
@@ -30,7 +24,6 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
   loading,
   active,
   icon,
-  sx,
   ...props
 }) => (
   <Tab
@@ -51,7 +44,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       </Typography>
     }
     icon={
-      typeof count === "number" ? (
+      typeof count === "number" || loading ? (
         <Box
           sx={({ palette }) => ({
             display: "flex",
@@ -77,7 +70,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
                 color: active ? palette.primary.main : palette.gray[80],
               })}
             >
-              {count}
+              {millify(count ?? 0)}
             </Typography>
           )}
         </Box>
@@ -86,22 +79,5 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       )
     }
     iconPosition="end"
-    sx={[
-      ({ palette }) => ({
-        marginRight: 3,
-        paddingY: 1.25,
-        paddingX: 0.5,
-        minWidth: 0,
-        minHeight: 0,
-        ":hover": {
-          [`.${typographyClasses.root}`]: {
-            color: `${
-              active ? palette.primary.main : palette.blue[60]
-            } !important`,
-          },
-        },
-      }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
   />
 );

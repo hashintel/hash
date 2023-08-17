@@ -13,7 +13,7 @@ import {
   useEntityTypesLoading,
   useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
-import { useLatestPropertyTypesContextValue } from "../../types/entity-type/[...slug-maybe-version].page/shared/use-latest-property-types-context-value";
+import { useLatestPropertyTypes } from "../../../../shared/latest-property-types-context";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
@@ -44,7 +44,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   const [queryEditorKey, setQueryEditorKey] = useState(0);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
-  const { propertyTypes } = useLatestPropertyTypesContextValue();
+  const propertyTypes = useLatestPropertyTypes();
   const entityTypes = useLatestEntityTypesOptional();
   const entityTypesLoading = useEntityTypesLoading();
 
