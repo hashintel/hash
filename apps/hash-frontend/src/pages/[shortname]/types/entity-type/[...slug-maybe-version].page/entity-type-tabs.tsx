@@ -78,6 +78,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
                     color: theme.palette.primary.main,
                     fill: theme.palette.blue[60],
                   },
+                  mr: 0,
                 })}
                 icon={
                   <FontAwesomeIcon

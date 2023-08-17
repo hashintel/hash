@@ -131,7 +131,6 @@ export const CreateEntityTypeForm = ({
 
   return (
     <Box
-      py={8}
       component="form"
       onSubmit={handleFormSubmit}
       data-testid="entity-type-creation-form"
