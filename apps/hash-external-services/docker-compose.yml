@@ -110,6 +110,9 @@ services:
       DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_ORY_KETO_PG_DEV_DATABASE}"
     volumes:
       - ./ory-keto:/home/ory
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     command: migrate up --yes
 
   ory-keto:
