@@ -1,18 +1,22 @@
-from typing import TypeVar, Generic, Self
+"""Definition of high-level entities.
 
-from graph_client import EntityMetadata
+Entities are instantiated objects that are stored in the graph,
+they can be created through the graph client.
+"""
+from typing import Generic, Self, TypeVar
+
 from graph_client.models import (
-    ProvenanceMetadata,
-    EntityTemporalMetadata,
+    EntityId,
+    EntityLinkOrder,
+    EntityMetadata,
     EntityRecordId,
+    EntityTemporalMetadata,
     LinkData,
     LinkOrder,
-    EntityLinkOrder,
-    EntityId,
+    ProvenanceMetadata,
 )
-from pydantic import BaseModel
-
 from graph_types.base import EntityType
+from pydantic import BaseModel
 
 T = TypeVar("T", bound=EntityType)
 
@@ -20,8 +24,8 @@ T = TypeVar("T", bound=EntityType)
 class Link(BaseModel):
     """Aggregated link information for an entity."""
 
-    left: EntityId | "Entity" = None
-    right: EntityId | "Entity" = None
+    left: EntityId | "Entity" | None = None
+    right: EntityId | "Entity" | None = None
 
     left_to_right_order: LinkOrder | None = None
     right_to_left_order: LinkOrder | None = None
@@ -64,11 +68,14 @@ class Entity(BaseModel, Generic[T]):
 
         self.archived = metadata.archived
         self.provenance = metadata.provenance
-        self.temporal = metadata.temporal
+        self.temporal = metadata.temporal_versioning
 
     @classmethod
     def from_create(
-        cls, meta: EntityMetadata, link: LinkData | None, properties: T
+        cls,
+        meta: EntityMetadata,
+        link: LinkData | None,
+        properties: T,
     ) -> Self:
         """Create an entity from FFI data."""
         return cls(
@@ -77,5 +84,5 @@ class Entity(BaseModel, Generic[T]):
             link=Link.from_ffi(link, None),
             archived=meta.archived,
             provenance=meta.provenance,
-            temporal=meta.temporal,
+            temporal=meta.temporal_versioning,
         )

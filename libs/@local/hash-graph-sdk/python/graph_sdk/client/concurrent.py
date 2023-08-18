@@ -1,19 +1,22 @@
 """Concurrent (async) client for the HASH API."""
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Self, TypeVar
+from typing import Self, TypeVar, cast
 from uuid import UUID
 
 from graph_client import GraphClient as LowLevelClient
 from graph_client.models import (
     CreateDataTypeRequest,
+    CreateEntityRequest,
     CreateEntityTypeRequest,
     CreatePropertyTypeRequest,
     DataType,
     DataTypeStructuralQuery,
+    EntityProperties,
     EntityStructuralQuery,
     EntityType,
     EntityTypeStructuralQuery,
+    LinkData,
     LoadExternalDataTypeRequest,
     LoadExternalEntityTypeRequest,
     LoadExternalPropertyTypeRequest,
@@ -26,23 +29,17 @@ from graph_client.models import (
     Subgraph,
     UpdateDataType,
     UpdateDataTypeRequest,
+    UpdateEntityRequest,
     UpdateEntityType,
     UpdateEntityTypeRequest,
     UpdatePropertyType,
     UpdatePropertyTypeRequest,
     VersionedURL,
-    CreateEntityRequest,
-    LinkData,
-    EntityProperties,
-    EntityMetadata,
-    UpdateEntityRequest,
-    EntityLinkOrder,
-    EntityId,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from graph_types.base import EntityType as GraphEntityType
-from pydantic_core._pydantic_core import Url
 from yarl import URL
+from pydantic import AnyUrl
 
 from graph_sdk.client._compat import recast
 from graph_sdk.entity import Entity
@@ -111,7 +108,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalDataTypeRequest(
-            data_type_id=VersionedURL(root=Url(str(url))),
+            data_type_id=VersionedURL(root=AnyUrl(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -143,7 +140,7 @@ class HASHClient:
         request = UpdateDataTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateDataType, model),
-            type_to_update=VersionedURL(root=Url(model.identifier)),
+            type_to_update=VersionedURL(root=AnyUrl(model.identifier)),
         )
 
         return await self.inner.update_data_type(request)
@@ -167,7 +164,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalPropertyTypeRequest(
-            property_type_id=VersionedURL(root=Url(str(url))),
+            property_type_id=VersionedURL(root=AnyUrl(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -199,7 +196,7 @@ class HASHClient:
         request = UpdatePropertyTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdatePropertyType, model),
-            type_to_update=VersionedURL(root=Url(model.identifier)),
+            type_to_update=VersionedURL(root=AnyUrl(model.identifier)),
         )
 
         return await self.inner.update_property_type(request)
@@ -219,7 +216,7 @@ class HASHClient:
         actor = assert_not_none(self.actor)
 
         request = LoadExternalEntityTypeRequest(
-            entity_type_id=VersionedURL(root=Url(str(url))),
+            entity_type_id=VersionedURL(root=AnyUrl(str(url))),
             actor_id=RecordCreatedById(root=actor),
         )
 
@@ -251,7 +248,7 @@ class HASHClient:
         request = UpdateEntityTypeRequest(
             actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateEntityType, model),
-            type_to_update=VersionedURL(root=Url(model.identifier)),
+            type_to_update=VersionedURL(root=AnyUrl(model.identifier)),
         )
 
         return await self.inner.update_entity_type(request)
@@ -278,18 +275,24 @@ class HASHClient:
 
         request = CreateEntityRequest(
             actor_id=RecordCreatedById(root=actor),
-            entity_type_id=VersionedURL(root=Url(properties.info.identifier)),
+            entity_type_id=VersionedURL(root=AnyUrl(properties.info.identifier)),
             entity_uuid=None,
             link_data=link,
             owned_by_id=OwnedById(root=owned_by_id),
             properties=EntityProperties.model_validate(
-                properties.model_dump(by_alias=True)
+                properties.model_dump(by_alias=True),
             ),
         )
 
         metadata = await self.inner.create_entity(request)
 
-        return Entity[type(properties)].from_create(metadata, link, properties)
+        # We cannot do `Entity[type(properties)]` because of mypy,
+        # by directly calling the magic method we can bypass this.
+        # Annoying? Yes. Necessary? Also yes.
+        properties_type: type[U] = type(properties)
+        entity_type = cast(type[Entity[U]], Entity.__class_getitem__(properties_type))
+
+        return entity_type.from_create(metadata, link, properties)
 
     async def update_entity(
         self,
@@ -302,9 +305,16 @@ class HASHClient:
             actor_id=RecordCreatedById(root=actor),
             archived=entity.archived,
             entity_id=entity.id.entity_id,
-            entity_type_id=VersionedURL(root=Url(entity.properties.info.identifier)),
-            left_to_right_link_order=entity.link.left_to_right_order,
-            right_to_left_link_order=entity.link.right_to_left_order,
+            entity_type_id=VersionedURL(root=AnyUrl(entity.properties.info.identifier)),
+            properties=EntityProperties.model_validate(
+                entity.properties.model_dump(by_alias=True),
+            ),
+            left_to_right_order=(
+                entity.link.left_to_right_order if entity.link else None
+            ),
+            right_to_left_order=(
+                entity.link.right_to_left_order if entity.link else None
+            ),
         )
 
         metadata = await self.inner.update_entity(request)
