@@ -6,21 +6,26 @@ This is just a thin wrapper around the async API.
 the problem with that approach however is that users loose the ability to look
 at the source code)
 """
-from typing import Self, TypeVar
-from uuid import UUID
+from __future__ import annotations
 
-from graph_client.models import (
-    MaybeListOfOntologyElementMetadata,
-    OntologyElementMetadata,
-    Subgraph,
-)
-from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
-from yarl import URL
+from typing import TYPE_CHECKING, Self, TypeVar
 
 from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
-from graph_sdk.options import Options
-from graph_sdk.query import BaseFilter
 from graph_sdk.utils import async_to_sync
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from graph_client.models import (
+        MaybeListOfOntologyElementMetadata,
+        OntologyElementMetadata,
+        Subgraph,
+    )
+    from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+    from yarl import URL
+
+    from graph_sdk.options import Options
+    from graph_sdk.query import BaseFilter
 
 T = TypeVar("T")
 

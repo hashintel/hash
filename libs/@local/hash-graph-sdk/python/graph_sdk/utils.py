@@ -1,12 +1,14 @@
 """Miscellaneous utilities for the SDK."""
+from __future__ import annotations
+
 import asyncio
-from collections.abc import Awaitable
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from graph_client.models import KnowledgeGraphVertex, OntologyVertex, Subgraph
 from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
     from types import EllipsisType
 
 try:
@@ -27,7 +29,7 @@ def async_to_sync(awaitable: Awaitable[T]) -> T:
 
     Different from `asyncio.run` in that it does not create a new event loop each time.
     """
-    response: T | "EllipsisType" = Missing
+    response: T | EllipsisType = Missing
 
     async def run_and_capture() -> None:
         nonlocal response

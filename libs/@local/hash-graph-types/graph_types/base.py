@@ -2,12 +2,16 @@
 
 These classes are primarily used as markers
 """
+from __future__ import annotations
+
 from abc import ABC
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema
+
+if TYPE_CHECKING:
+    from pydantic.json_schema import JsonSchemaValue
+    from pydantic_core import CoreSchema
 
 
 class OntologyTypeInfo(BaseModel):

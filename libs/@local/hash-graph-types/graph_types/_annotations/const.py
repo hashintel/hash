@@ -1,8 +1,12 @@
-from typing import Annotated, Any, TypeVar, cast, overload
+from __future__ import annotations
 
-from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
+from typing import TYPE_CHECKING, Annotated, Any, TypeVar, cast, overload
+
 from pydantic_core import CoreSchema, core_schema
+
+if TYPE_CHECKING:
+    from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+    from pydantic.json_schema import JsonSchemaValue
 
 T = TypeVar("T")
 
