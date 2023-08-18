@@ -21,8 +21,8 @@ export type SiteMap = {
 export const generateSiteMap = (): SiteMap => ({
   pages: [
     {
-      title: "Roadmap",
-      href: "/roadmap",
+      title: "Blog",
+      href: "/blog",
       sections: [],
       subPages: [],
     },
@@ -47,9 +47,10 @@ export const generateSiteMap = (): SiteMap => ({
         },
       ],
     },
+
     {
-      title: "Blog",
-      href: "/blog",
+      title: "Roadmap",
+      href: "/roadmap",
       sections: [],
       subPages: [],
     },
