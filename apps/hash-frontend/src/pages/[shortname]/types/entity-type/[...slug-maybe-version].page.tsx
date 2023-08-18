@@ -209,10 +209,12 @@ const Page: NextPageWithLayout = () => {
                 item={remoteEntityType ?? undefined}
                 crumbs={[
                   {
+                    href: "/types",
                     title: "Types",
                     id: "types",
                   },
                   {
+                    href: "/types/entity-type",
                     title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
                     id: "entity-types",
                   },
