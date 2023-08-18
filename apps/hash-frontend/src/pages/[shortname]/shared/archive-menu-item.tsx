@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph/.";
-import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import { FunctionComponent, useCallback } from "react";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";

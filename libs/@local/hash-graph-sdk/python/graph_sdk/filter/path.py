@@ -180,11 +180,9 @@ class EntityTypeQueryPath(AbstractQueryPath):
         if inheritance_depth is not None:
             args.append(f"inheritanceDepth={inheritance_depth}")
         return self.path.push(
-            (
-                f"{EntityTypeQueryToken.children}({', '.join(args)})"
-                if args
-                else EntityTypeQueryToken.children
-            ),
+            f"{EntityTypeQueryToken.children}({', '.join(args)})"
+            if args
+            else EntityTypeQueryToken.children
         )
 
 
@@ -218,12 +216,10 @@ class EntityQueryPath(AbstractQueryPath):
             args.append(f"inheritanceDepth={inheritance_depth}")
         return EntityTypeQueryPath.from_path(
             self.path.push(
-                (
-                    f"{EntityQueryToken.type}({', '.join(args)})"
-                    if args
-                    else EntityQueryToken.type
-                ),
-            ),
+                f"{EntityQueryToken.type}({', '.join(args)})"
+                if args
+                else EntityQueryToken.type
+            )
         )
 
     def properties(self) -> UntypedQueryPath:
