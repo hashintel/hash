@@ -78,7 +78,7 @@ const systemUserShortname =
   process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
   "example-org";
 
-const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-type/page/v/1`;
+const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-type/page/`;
 
 /**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
