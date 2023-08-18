@@ -6,8 +6,8 @@ import {
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { customColors } from "@hashintel/design-system";
 
-import { getCellHorizontalPadding } from "../../../../../../components/grid/utils";
-import { drawTextWithIcon } from "../../../../../../components/grid/utils/draw-text-with-icon";
+import { getCellHorizontalPadding } from "../../../components/grid/utils";
+import { drawTextWithIcon } from "../../../components/grid/utils/draw-text-with-icon";
 
 export interface TextIconCellProps {
   readonly kind: "text-icon-cell";

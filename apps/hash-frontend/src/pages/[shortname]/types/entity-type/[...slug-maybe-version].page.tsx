@@ -23,6 +23,8 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
+import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { isLinkEntityType } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -37,12 +39,10 @@ import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
-import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
 import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
-import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
 
 const Page: NextPageWithLayout = () => {
@@ -56,12 +56,13 @@ const Page: NextPageWithLayout = () => {
     "slug-maybe-version"
   ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
 
-  const baseEntityTypeUrl = !isDraft
+  const entityTypeBaseUrl = !isDraft
     ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
-    : null;
+    : undefined;
 
-  const entityTypeEntitiesValue =
-    useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
+  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
+    entityTypeBaseUrl,
+  });
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
@@ -103,7 +104,7 @@ const Page: NextPageWithLayout = () => {
     publishDraft,
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
-    baseEntityTypeUrl,
+    entityTypeBaseUrl ?? null,
     requestedVersion,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
