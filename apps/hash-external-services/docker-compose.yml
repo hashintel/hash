@@ -48,6 +48,9 @@ services:
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DEV_DATABASE}"
+      HASH_ORY_KETO_PG_USER: "${HASH_ORY_KETO_PG_USER}"
+      HASH_ORY_KETO_PG_PASSWORD: "${HASH_ORY_KETO_PG_PASSWORD}"
+      HASH_ORY_KETO_PG_DATABASE: "${HASH_ORY_KETO_PG_DEV_DATABASE}"
       HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER}"
       HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD}"
       HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DEV_DATABASE}"
@@ -69,6 +72,86 @@ services:
       timeout: 2s
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  telemetry-collector:
+    image: jaegertracing/all-in-one:1.40
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      # Port 14269 is the Jaeger admin endpoint
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    ports:
+      - "16686:16686"
+      # To expose OTLP collector over gRPC on the host
+      - "4317:4317"
+      # To expose OTLP collector over HTTP on the host
+      # - "4318:4318"
+      # serve configs (sampling, etc.)
+      - "5778:5778"
+      # accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
+      - "6831:6831"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  ory-keto-migrate:
+    image: oryd/keto:v${HASH_ORY_KETO_VERSION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_ORY_KETO_PG_DEV_DATABASE}"
+    volumes:
+      - ./ory-keto:/home/ory
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    command: migrate up --yes
+
+  ory-keto:
+    image: oryd/keto:v${HASH_ORY_KETO_VERSION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ory-keto-migrate:
+        condition: service_completed_successfully
+      telemetry-collector:
+        condition: service_healthy
+    ports:
+      - "${HASH_ORY_KETO_READ_PORT}:4466"
+      - "${HASH_ORY_KETO_WRITE_PORT}:4467"
+    restart: on-failure
+    environment:
+      DSN: "postgres://${HASH_ORY_KETO_PG_USER}:${HASH_ORY_KETO_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_ORY_KETO_PG_DEV_DATABASE}"
+      TRACING_PROVIDER: "jaeger"
+      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
+      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
+      LOG_LEVEL: trace
+    volumes:
+      - ./ory-keto:/home/ory
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    command: serve
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "keto",
+          "status",
+          "--quiet",
+          "--insecure-disable-transport-security",
+        ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   graph-migrate:
     init: true
@@ -100,30 +183,6 @@ services:
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash-graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
 
-  telemetry-collector:
-    image: jaegertracing/all-in-one:1.40
-    deploy:
-      restart_policy:
-        condition: on-failure
-    healthcheck:
-      # Port 14269 is the Jaeger admin endpoint
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
-        ]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    ports:
-      - "16686:16686"
-      # To expose OTLP collector over gRPC on the host
-      - "4317:4317"
-      # To expose OTLP collector over HTTP on the host
-      # - 4318:4318
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-
   graph:
     init: true
     depends_on:
@@ -132,6 +191,8 @@ services:
       graph-migrate:
         condition: service_completed_successfully
       telemetry-collector:
+        condition: service_healthy
+      ory-keto:
         condition: service_healthy
     image: hash-graph
     read_only: true
@@ -197,8 +258,12 @@ services:
         SECRET: "${KRATOS_API_KEY}"
         API_CALLBACK_URL: "http://host.docker.internal:5001/kratos-after-registration"
     depends_on:
+      postgres:
+        condition: service_healthy
       kratos-migrate:
         condition: service_completed_successfully
+      telemetry-collector:
+        condition: service_healthy
     ports:
       - "4433:4433" # public
       - "4434:4434" # admin
@@ -208,6 +273,9 @@ services:
       SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      TRACING_PROVIDER: "jaeger"
+      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
+      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
       LOG_LEVEL: trace
     command: serve --dev --watch-courier
     extra_hosts:
