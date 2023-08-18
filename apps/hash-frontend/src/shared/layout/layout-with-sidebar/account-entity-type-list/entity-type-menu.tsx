@@ -1,7 +1,6 @@
 import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
-  faDownLeftAndUpRightToCenter,
   faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";

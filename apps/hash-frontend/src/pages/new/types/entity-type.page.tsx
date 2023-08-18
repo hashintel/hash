@@ -21,6 +21,14 @@ const Page: NextPageWithLayout = () => {
     return null;
   }
 
+  const initialData = {
+    extendsEntityTypeId:
+      typeof router.query.extends === "string"
+        ? (router.query.extends as VersionedUrl)
+        : undefined,
+    name: typeof router.query.name === "string" ? router.query.name : undefined,
+  };
+
   return (
     <Stack sx={{ height: "100vh" }}>
       <Box bgcolor="white">
@@ -64,19 +72,17 @@ const Page: NextPageWithLayout = () => {
           </Container>
         </Box>
       </Box>
-      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
+      <Box
+        flex={1}
+        bgcolor="gray.10"
+        borderTop={1}
+        borderColor="gray.20"
+        pt={5}
+      >
         <Container>
           <CreateEntityTypeForm
-            initialData={{
-              extendsEntityTypeId:
-                typeof router.query.extends === "string"
-                  ? (router.query.extends as VersionedUrl)
-                  : undefined,
-              name:
-                typeof router.query.name === "string"
-                  ? router.query.name
-                  : undefined,
-            }}
+            key={JSON.stringify(initialData)} // re-render the form to reset state when the initial data changes
+            initialData={initialData}
             onCancel={() => router.push("/")}
           />
         </Container>

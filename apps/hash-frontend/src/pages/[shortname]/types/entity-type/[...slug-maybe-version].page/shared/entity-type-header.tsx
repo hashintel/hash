@@ -93,7 +93,7 @@ export const EntityTypeHeader = ({
 
             {entityType.title}
           </Typography>
-          {!isReadonly && !isDraft ? (
+          {!isDraft ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
@@ -108,20 +108,26 @@ export const EntityTypeHeader = ({
           <EntityTypeDescription readonly={isReadonly} />
         </Box>
       </Box>
-      <Modal open={showExtendTypeModal} contentStyle={{ p: "0px !important" }}>
+      <Modal
+        open={showExtendTypeModal}
+        contentStyle={{ padding: "0px !important" }}
+      >
         <>
           <Typography
             sx={({ palette }) => ({
               color: palette.gray[80],
               fontWeight: 500,
-              p: 3,
-              pb: 0,
+              px: 2.5,
+              pt: 2,
+              pb: 1.5,
             })}
           >
             Create new entity type
           </Typography>
-          <Box p={3}>
+          <Box>
             <CreateEntityTypeForm
+              afterSubmit={() => setShowExtendTypeModal(false)}
+              inModal
               initialData={{ extendsEntityTypeId: entityType.$id }}
               onCancel={() => setShowExtendTypeModal(false)}
             />

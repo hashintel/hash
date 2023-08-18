@@ -26,7 +26,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";

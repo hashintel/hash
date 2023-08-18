@@ -37,7 +37,6 @@ export const Modal: FunctionComponent<ModalProps> = ({
   contentStyle = [],
   ...props
 }) => {
-  console.log({ contentStyle });
   return (
     <MuiModal
       open={open}

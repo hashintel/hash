@@ -1,8 +1,5 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import {
-  faAsterisk,
-  faMagnifyingGlass,
-} from "@fortawesome/free-solid-svg-icons";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";

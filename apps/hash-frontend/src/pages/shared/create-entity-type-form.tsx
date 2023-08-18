@@ -53,12 +53,16 @@ type CreateEntityTypeFormData = {
 };
 
 type CreateEntityTypeFormProps = {
+  afterSubmit?: () => void;
   initialData: Partial<CreateEntityTypeFormData>;
+  inModal?: boolean;
   onCancel: () => void;
 };
 
 export const CreateEntityTypeForm = ({
+  afterSubmit,
   initialData,
+  inModal,
   onCancel,
 }: CreateEntityTypeFormProps) => {
   const router = useRouter();
@@ -85,24 +89,24 @@ export const CreateEntityTypeForm = ({
   const { extendsEntityTypeId } = initialData;
 
   const entityTypes = useEntityTypesOptional();
-  const parent = extendsEntityTypeId
+  const parentType = extendsEntityTypeId
     ? entityTypes?.find(
         (entityType) => entityType.schema.$id === extendsEntityTypeId,
       )
     : null;
+
   if (!activeWorkspace) {
     return null;
   }
 
-  if (extendsEntityTypeId && entityTypes?.length && !parent) {
-    console.log({ entityTypes });
+  if (extendsEntityTypeId && entityTypes?.length && !parentType) {
     throw new Error(
       `Could not find parent entity type ${extendsEntityTypeId} in entity type options`,
     );
   }
 
   const handleFormSubmit = handleSubmit(
-    async ({ extendsEntityTypeId: parent, name, description }) => {
+    async ({ extendsEntityTypeId: parentId, name, description }) => {
       const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
         title: name,
         kind: "entity-type",
@@ -112,7 +116,7 @@ export const CreateEntityTypeForm = ({
         $schema: ENTITY_TYPE_META_SCHEMA,
         kind: "entityType",
         $id: versionedUrl,
-        allOf: parent ? [{ $ref: parent }] : undefined,
+        allOf: parentId ? [{ $ref: parentId }] : undefined,
         title: name,
         description,
         type: "object",
@@ -123,49 +127,58 @@ export const CreateEntityTypeForm = ({
         Buffer.from(JSON.stringify(entityType)).toString("base64"),
       )}`;
 
+      afterSubmit?.();
+
       await router.push(nextUrl);
     },
   );
 
-  const formItemWidth = `calc(100% - ${HELPER_TEXT_WIDTH + 52}px)`;
+  const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;
 
   return (
     <Box
       component="form"
-      onSubmit={handleFormSubmit}
+      onSubmit={(event) => {
+        // stop submission propagating in case this form is nested in another
+        event.stopPropagation();
+
+        void handleFormSubmit(event);
+      }}
       data-testid="entity-type-creation-form"
     >
       <Stack
         alignItems="stretch"
         sx={(theme) => ({
-          [theme.breakpoints.up("md")]: {
-            [`.${outlinedInputClasses.root}`]: {
-              width: formItemWidth,
-            },
-          },
+          ...(inModal
+            ? {}
+            : {
+                [theme.breakpoints.up("md")]: {
+                  [`.${outlinedInputClasses.root}`]: {
+                    width: formItemWidth,
+                  },
 
-          [`.${formHelperTextClasses.root}`]: {
-            position: "absolute",
-            right: 0,
-            top: 24,
-            width: HELPER_TEXT_WIDTH,
-            p: 0,
-            m: 0,
-            color: theme.palette.gray[80],
+                  [`.${formHelperTextClasses.root}`]: {
+                    position: "absolute",
+                    left: `calc(${formItemWidth} + 30px)`,
+                    top: 24,
+                    width: HELPER_TEXT_WIDTH,
+                    p: 0,
+                    m: 0,
+                    color: theme.palette.gray[80],
+                  },
+                },
 
-            [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
-              {
-                display: "none",
-              },
-
-            [theme.breakpoints.down("md")]: {
-              display: "none",
-            },
-          },
+                [`.${formHelperTextClasses.root}`]: {
+                  [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
+                    {
+                      display: "none",
+                    },
+                },
+              }),
         })}
         spacing={3}
       >
-        {parent && (
+        {parentType && (
           <Stack
             alignItems="center"
             direction="row"
@@ -174,7 +187,7 @@ export const CreateEntityTypeForm = ({
               border: `1px solid ${palette.yellow[40]}`,
               px: 2.5,
               py: 2,
-              width: { md: formItemWidth },
+              width: { md: inModal ? "100%" : formItemWidth },
             })}
           >
             <FontAwesomeIcon
@@ -189,8 +202,8 @@ export const CreateEntityTypeForm = ({
               variant="smallTextLabels"
               sx={({ palette }) => ({ color: palette.gray[80] })}
             >
-              You are extending <strong>{parent.schema.title}</strong> to create
-              a new entity type in the
+              You are extending <strong>{parentType.schema.title}</strong> to
+              create a new entity type in the
               <strong> @{activeWorkspace.shortname} </strong>
               workspace.
             </Typography>
@@ -229,26 +242,25 @@ export const CreateEntityTypeForm = ({
           type="text"
           placeholder="e.g. Stock Price"
           helperText={
-            <Box pr={1.25}>
-              {nameError?.message ? (
-                <>
-                  <FormHelperLabel
-                    sx={(theme) => ({ color: theme.palette.red[70] })}
-                  >
-                    Error
-                  </FormHelperLabel>{" "}
-                  - {nameError.message}
-                </>
-              ) : (
-                <>
-                  <FormHelperLabel>Required</FormHelperLabel> - provide the
-                  singular form of your entity type’s name so it can be referred
-                  to correctly (e.g. “Stock Price” not “Stock Prices”)
-                </>
-              )}
-            </Box>
+            nameError?.message ? (
+              <>
+                <FormHelperLabel
+                  sx={(theme) => ({ color: theme.palette.red[70] })}
+                >
+                  Error
+                </FormHelperLabel>{" "}
+                - {nameError.message}
+              </>
+            ) : inModal ? undefined : (
+              <>
+                <FormHelperLabel>Required</FormHelperLabel> - provide the
+                singular form of your entity type’s name so it can be referred
+                to correctly (e.g. “Stock Price” not “Stock Prices”)
+              </>
+            )
           }
           error={!!nameError}
+          sx={{ px: inModal ? 3 : 0 }}
         />
         <TextField
           {...register("description", {
@@ -266,13 +278,22 @@ export const CreateEntityTypeForm = ({
           type="text"
           placeholder="Describe this entity in one or two sentences"
           helperText={
-            <Box pr={3.75}>
-              <FormHelperLabel>Required</FormHelperLabel> - descriptions should
-              explain what an entity type is, and when they should be used
-            </Box>
+            inModal ? undefined : (
+              <Box pr={3.75}>
+                <FormHelperLabel>Required</FormHelperLabel> - descriptions
+                should explain what an entity type is, and when they should be
+                used
+              </Box>
+            )
           }
+          sx={{ px: inModal ? 3 : 0 }}
         />
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.25}
+          px={inModal ? 3 : 0}
+          pb={inModal ? 3 : 0}
+        >
           <Button
             type="submit"
             size="small"
@@ -289,7 +310,7 @@ export const CreateEntityTypeForm = ({
             size="small"
             disabled={isSubmitting}
           >
-            Discard draft
+            Discard
           </Button>
         </Stack>
       </Stack>
