@@ -28,17 +28,20 @@ export const InheritanceRow = () => {
     name: "allOf",
   });
 
-  const { entityTypes } = useEntityTypesOptions();
+  const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   const { entityTypesArray, directParents } = useMemo(() => {
-    const typesArray = Object.values(entityTypes);
+    const typesArray = [
+      ...Object.values(entityTypes),
+      ...Object.values(linkTypes),
+    ];
 
     const parents = typesArray.filter((type) =>
       directParentEntityTypeIds.includes(type.$id),
     );
 
     return { entityTypesArray: typesArray, directParents: parents };
-  }, [entityTypes, directParentEntityTypeIds]);
+  }, [entityTypes, linkTypes, directParentEntityTypeIds]);
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,

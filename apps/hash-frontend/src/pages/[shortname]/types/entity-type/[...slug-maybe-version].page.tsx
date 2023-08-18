@@ -25,10 +25,8 @@ import { useMemo, useState } from "react";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import {
-  isLinkEntityType,
-  isTypeArchived,
-} from "../../../../shared/entity-types-context/util";
+import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { isTypeArchived } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -68,6 +66,9 @@ const Page: NextPageWithLayout = () => {
   const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
     entityTypeBaseUrl,
   });
+
+  const { isLinkTypeLookup, loading: loadingEntityTypes } =
+    useEntityTypesContextRequired();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
@@ -191,6 +192,14 @@ const Page: NextPageWithLayout = () => {
     }
   }
 
+  if (!isLinkTypeLookup) {
+    if (loadingEntityTypes) {
+      return null;
+    } else {
+      return <PageErrorState />;
+    }
+  }
+
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
@@ -201,7 +210,7 @@ const Page: NextPageWithLayout = () => {
 
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
-  const entityTypeIsLink = isLinkEntityType(entityType);
+  const entityTypeIsLink = !!isLinkTypeLookup[entityType.$id];
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
@@ -337,6 +346,7 @@ const Page: NextPageWithLayout = () => {
                       />
                     }
                     entityType={entityType}
+                    isLink={entityTypeIsLink}
                     isReadonly={isReadonly}
                     latestVersion={latestVersion}
                   />

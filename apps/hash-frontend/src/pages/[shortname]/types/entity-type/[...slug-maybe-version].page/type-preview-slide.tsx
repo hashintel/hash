@@ -134,6 +134,11 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                   <EntityTypeHeader
                     isDraft={false}
                     isPreviewSlide
+                    isLink={
+                      !!entityTypesContext.isLinkTypeLookup?.[
+                        remoteEntityType.schema.$id
+                      ]
+                    }
                     ontologyChip={
                       <Link
                         href={remoteEntityType.schema.$id}
