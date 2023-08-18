@@ -44,7 +44,7 @@ export const EntitiesTable: FunctionComponent<{
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
-    includeExternal: true,
+    includeExternal: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
