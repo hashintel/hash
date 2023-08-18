@@ -20,7 +20,7 @@ setuptools = "^68.0.0"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.7.0"
-ruff = "^0.0.275"
+ruff = "^0.0.285"
 mypy = "^1.4"
 
 
