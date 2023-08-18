@@ -12,7 +12,7 @@ import { NextSeo } from "next-seo";
 import { ComponentProps, Fragment, FunctionComponent } from "react";
 
 import { BlogPostAuthor } from "../../components/blog-post";
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ArrowUpRightFromSquareRegularIcon } from "../../components/icons/arrow-up-right-from-square-regular-icon";
 import { Link } from "../../components/link";
 import { PageLayout } from "../../components/page-layout";
 import { Subscribe } from "../../components/pre-footer";
@@ -317,9 +317,7 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
                 >
                   hash.ai/blog
                 </Typography>
-                <FaIcon
-                  name="arrow-up-right-from-square"
-                  type="regular"
+                <ArrowUpRightFromSquareRegularIcon
                   sx={{
                     height: "0.8rem",
                     width: "0.8rem",

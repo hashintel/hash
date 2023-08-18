@@ -20,7 +20,7 @@ datamodel-code-generator = "^0.21.3"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.7.0"
-ruff = "^0.0.275"
+ruff = "^0.0.285"
 mypy = "^1.4"
 
 
@@ -46,28 +46,9 @@ ignore = [
     "PLC0414", # Conflicts with `no_implicit_reexport = true`
 ]
 
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
+target-version = "py311"
+
+extend-exclude = [
     "graph_client/models.py"
 ]
 

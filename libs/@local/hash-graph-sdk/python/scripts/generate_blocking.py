@@ -83,7 +83,7 @@ client_init.body = [
                 value=ast.Name(id="self", ctx=ast.Load()),
                 attr="inner",
                 ctx=ast.Store(),
-            )
+            ),
         ],
         value=ast.Call(
             func=ast.Name(id="ConcurrentHASHClient", ctx=ast.Load()),
@@ -193,15 +193,15 @@ for method in client_ast.body:
                                     )
                                     for keyword in (method_args.kwarg or [])
                                 ],
-                            )
+                            ),
                         ],
                         keywords=[],
-                    )
+                    ),
                 ),
             ],
             returns=method_returns,
             decorator_list=[],
-        )
+        ),
     )
 
 # remove all async methods

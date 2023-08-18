@@ -44,6 +44,7 @@ import { useWorkspaceShortnameByAccountId } from "../../../../components/hooks/u
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
+import { ViewAllLink } from "../view-all-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
@@ -383,6 +384,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             </Box>
           )}
         </NavLink>
+        <ViewAllLink href="/pages" sx={{ marginLeft: 1 }}>
+          View all pages
+        </ViewAllLink>
       </SortableContext>
     </DndContext>
   );

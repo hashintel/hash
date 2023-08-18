@@ -21,6 +21,7 @@ const FilterHeading = styled(Typography)(({ theme }) => ({
   fontSize: 12,
   fontWeight: 600,
   textTransform: "uppercase",
+  marginBottom: theme.spacing(0.75),
 }));
 
 const FilterCheckboxItem: FunctionComponent<{
@@ -35,7 +36,7 @@ const FilterCheckboxItem: FunctionComponent<{
       display: "flex",
       marginLeft: 0,
       marginRight: 0,
-      marginBottom: -1,
+      marginBottom: 0.75,
       [`.${formControlLabelClasses.label}`]: {
         "> svg": {
           color: ({ palette }) =>

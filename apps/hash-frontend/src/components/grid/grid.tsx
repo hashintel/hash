@@ -13,7 +13,7 @@ import {
   SizedGridColumn,
   Theme,
 } from "@glideapps/glide-data-grid";
-import { useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { uniqueId } from "lodash";
 import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -212,39 +212,48 @@ export const Grid = <T extends Rows>({
   }, [columns, columnSizes]);
 
   return (
-    <DataEditor
-      ref={gridRef}
-      theme={gridTheme}
-      getRowThemeOverride={getRowThemeOverride}
-      gridSelection={selection}
-      width="100%"
-      headerHeight={42}
-      rowHeight={42}
-      drawFocusRing={false}
-      rangeSelect="cell"
-      columnSelect="none"
-      smoothScrollX
-      smoothScrollY
-      getCellsForSelection
-      onItemHovered={onCellSelect}
-      onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
-      customRenderers={overriddenCustomRenderers}
-      onVisibleRegionChanged={handleVisibleRegionChanged}
-      onColumnResize={resizable ? handleColumnResize : undefined}
-      columns={resizedColumns}
-      drawHeader={drawHeader ?? defaultDrawHeader}
-      onHeaderClicked={handleHeaderClicked}
-      getCellContent={createGetCellContent(sortedRows)}
-      onCellEdited={createOnCellEdited?.(sortedRows)}
-      rows={sortedRows.length}
-      maxColumnWidth={1000}
-      {...rest}
-      /**
-       * icons defined via `headerIcons` are available to be drawn using
-       * glide's `spriteManager.drawSprite`,
-       * which will be used to draw svg icons inside custom cells
-       */
-      headerIcons={customGridIcons}
-    />
+    <Box
+      sx={{
+        borderBottomLeftRadius: "6px",
+        borderBottomRightRadius: "6px",
+        overflow: "hidden",
+        boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
+      }}
+    >
+      <DataEditor
+        ref={gridRef}
+        theme={gridTheme}
+        getRowThemeOverride={getRowThemeOverride}
+        gridSelection={selection}
+        width="100%"
+        headerHeight={42}
+        rowHeight={42}
+        drawFocusRing={false}
+        rangeSelect="cell"
+        columnSelect="none"
+        smoothScrollX
+        smoothScrollY
+        getCellsForSelection
+        onItemHovered={onCellSelect}
+        onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
+        customRenderers={overriddenCustomRenderers}
+        onVisibleRegionChanged={handleVisibleRegionChanged}
+        onColumnResize={resizable ? handleColumnResize : undefined}
+        columns={resizedColumns}
+        drawHeader={drawHeader ?? defaultDrawHeader}
+        onHeaderClicked={handleHeaderClicked}
+        getCellContent={createGetCellContent(sortedRows)}
+        onCellEdited={createOnCellEdited?.(sortedRows)}
+        rows={sortedRows.length}
+        maxColumnWidth={1000}
+        {...rest}
+        /**
+         * icons defined via `headerIcons` are available to be drawn using
+         * glide's `spriteManager.drawSprite`,
+         * which will be used to draw svg icons inside custom cells
+         */
+        headerIcons={customGridIcons}
+      />
+    </Box>
   );
 };

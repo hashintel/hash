@@ -1,28 +1,31 @@
-import { BaseUrl, EntityType, PropertyType } from "@blockprotocol/type-system";
+import {
+  BaseUrl,
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useState } from "react";
 
-import { useBlockProtocolQueryEntities } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import { EntityTypeEntitiesContextValue } from "./shared/entity-type-entities-context";
+import { useBlockProtocolQueryEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
+import { EntityTypeEntitiesContextValue } from "../entity-type-entities-context";
 
-export const useEntityTypeEntitiesContextValue = (
-  typeBaseUrl: BaseUrl | null,
-): EntityTypeEntitiesContextValue => {
+export const useEntityTypeEntitiesContextValue = (params: {
+  entityTypeBaseUrl?: BaseUrl;
+  entityTypeId?: VersionedUrl;
+}): EntityTypeEntitiesContextValue => {
+  const { entityTypeBaseUrl, entityTypeId } = params;
+
   const [loading, setLoading] = useState(false);
   const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const { queryEntities } = useBlockProtocolQueryEntities();
 
   useEffect(() => {
-    if (!typeBaseUrl) {
-      return;
-    }
-
     setLoading(true);
 
     void queryEntities({
@@ -30,11 +33,23 @@ export const useEntityTypeEntitiesContextValue = (
         operation: {
           multiFilter: {
             filters: [
-              {
-                field: ["metadata", "entityTypeBaseUrl"],
-                operator: "EQUALS",
-                value: typeBaseUrl,
-              },
+              ...(entityTypeBaseUrl
+                ? [
+                    {
+                      field: ["metadata", "entityTypeBaseUrl"],
+                      operator: "EQUALS" as const,
+                      value: entityTypeBaseUrl,
+                    },
+                  ]
+                : entityTypeId
+                ? [
+                    {
+                      field: ["metadata", "entityTypeId"],
+                      operator: "EQUALS" as const,
+                      value: entityTypeId,
+                    },
+                  ]
+                : []),
             ],
             operator: "AND",
           },
@@ -52,7 +67,7 @@ export const useEntityTypeEntitiesContextValue = (
         }
       })
       .finally(() => setLoading(false));
-  }, [queryEntities, typeBaseUrl]);
+  }, [queryEntities, entityTypeBaseUrl, entityTypeId]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {
@@ -60,17 +75,15 @@ export const useEntityTypeEntitiesContextValue = (
         return undefined;
       }
 
-      const relevantEntities = getRoots(subgraph).filter(
-        ({ metadata: { entityTypeId } }) =>
-          extractBaseUrl(entityTypeId) === typeBaseUrl,
-      );
+      const relevantEntities = getRoots(subgraph);
 
       const relevantTypesMap = new Map<string, EntityType>();
-      for (const {
-        metadata: { entityTypeId },
-      } of relevantEntities) {
-        if (!relevantTypesMap.has(entityTypeId)) {
-          const types = getEntityTypeAndParentsById(subgraph, entityTypeId);
+      for (const { metadata } of relevantEntities) {
+        if (!relevantTypesMap.has(metadata.entityTypeId)) {
+          const types = getEntityTypeAndParentsById(
+            subgraph,
+            metadata.entityTypeId,
+          );
           for (const { schema } of types) {
             relevantTypesMap.set(schema.$id, schema);
           }
@@ -97,7 +110,7 @@ export const useEntityTypeEntitiesContextValue = (
       const relevantProperties = Array.from(relevantPropertiesMap.values());
 
       return [relevantEntities, relevantTypes, relevantProperties];
-    }, [subgraph, typeBaseUrl]) ?? [];
+    }, [subgraph]) ?? [];
 
   return {
     entities,
