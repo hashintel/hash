@@ -30,7 +30,7 @@ class Schema(BaseModel, ABC):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[BaseModel] | Annotated[Any, ...]:  # noqa: ANN401
+    ) -> type[BaseModel] | Annotated[Any, ...]:
         ...
 
 
