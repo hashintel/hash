@@ -174,6 +174,10 @@ class EntityTypeQueryPath(AbstractQueryPath):
         """Return the path to the inherits_from attribute of an entity type."""
         return self.path.push(EntityTypeQueryToken.inherits_from)
 
+    def children(self) -> Path:
+        """Return the path to the children attribute of an entity type."""
+        return self.path.push(EntityTypeQueryToken.children)
+
 
 class EntityQueryPath(AbstractQueryPath):
     """A query path for an entity."""
