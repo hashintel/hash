@@ -41,34 +41,14 @@ ignore = [
     "D401", # Relates to PEP-257 but also conflicts with Google Python Style Guide, generally gets in the way
     "ANN101", # most type checkers infer the type of `self` automatically
     "ANN102", # most type checkers infer the type of `cls` automatically
-    "FA102", # Will become the default in a later Python release
     "FIX002", # TODOs should be fixed, not removed
     "TD002", # We don't add authors to TODO strings
     "PLC0414", # Conflicts with `no_implicit_reexport = true`
 ]
 
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
+target-version = "py311"
+
+extend-exclude = [
     "graph_client/models.py"
 ]
 
