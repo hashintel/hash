@@ -29,7 +29,7 @@ $ h-list-images --service citus
 1.  Set the image tag you wish to deploy from step 1:
 
 ```console
-$ image_tag=<TAG>
+$ image_tag=$IMAGE_TAG
 ..
 ```
 
@@ -40,10 +40,10 @@ $ aws ecr get-login-password --region $AWS_REGION | docker login --username AWS 
 ..
 ```
 
-1.  Pull an image with the tag `<TAG>`:
+1.  Pull an image with the tag `$IMAGE_TAG`:
 
 ```console
-$ docker pull $ECR_REPO_URL:$image_tag
+$ docker pull $ECR_REPO_URL:$IMAGE_TAG
 ..
 ```
 
@@ -56,7 +56,7 @@ $ docker pull $ECR_REPO_URL:$image_tag
     variable:
 
 ```console
-$ superuser_password=<PASSWORD>
+$ superuser_password=$PASSWORD
 ..
 ```
 
@@ -81,10 +81,10 @@ $ docker run --rm \
 ## Connect to the database using psql
 
 1.  Get the password for the desired user from 1Password.
-1.  Connect with user `<USER>`:
+1.  Connect with user `$USER`:
 
 ```console
-$ psql -h $(h-tfinfo --deployment citus --output instance_ip) -U 5432 -d postgres < USER > -p
+$ psql -h $(h-tfinfo --deployment citus --output instance_ip) -U 5432 -d postgres $USER -p
 ..
 ```
 

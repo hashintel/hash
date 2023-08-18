@@ -8,10 +8,10 @@ import {
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 
+import { useEntityTypeEntities } from "../../../../../shared/entity-type-entities-context";
 import { TabLink } from "../../../../../shared/ui/tab-link";
 import { Tabs } from "../../../../../shared/ui/tabs";
 import { useEntityType } from "./shared/entity-type-context";
-import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";
 import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
@@ -78,6 +78,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
                     color: theme.palette.primary.main,
                     fill: theme.palette.blue[60],
                   },
+                  mr: 0,
                 })}
                 icon={
                   <FontAwesomeIcon

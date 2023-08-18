@@ -132,6 +132,8 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
               <EntityTypeFormProvider {...formMethods}>
                 <EntityTypeContext.Provider value={remoteEntityType.schema}>
                   <EntityTypeHeader
+                    isDraft={false}
+                    isPreviewSlide
                     ontologyChip={
                       <Link
                         href={remoteEntityType.schema.$id}
