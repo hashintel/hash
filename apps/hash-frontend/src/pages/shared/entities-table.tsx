@@ -43,7 +43,7 @@ export const EntitiesTable: FunctionComponent<{
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
-    includeExternal: false,
+    includeGlobal: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -69,7 +69,7 @@ export const EntitiesTable: FunctionComponent<{
     () =>
       entities?.filter(
         (entity) =>
-          (filterState.includeExternal
+          (filterState.includeGlobal
             ? true
             : extractOwnedByIdFromEntityId(
                 entity.metadata.recordId.entityId,

@@ -78,7 +78,7 @@ export const TypesTable: FunctionComponent<{
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: true,
-    includeExternal: true,
+    includeGlobal: true,
   });
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
@@ -157,7 +157,7 @@ export const TypesTable: FunctionComponent<{
         })
         .filter(
           ({ external, archived }) =>
-            (filterState.includeExternal ? true : !external) &&
+            (filterState.includeGlobal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
     [types, namespaces, filterState, activeWorkspaceAccountId],

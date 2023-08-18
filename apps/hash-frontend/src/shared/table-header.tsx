@@ -66,7 +66,7 @@ const CheckboxFilter: FunctionComponent<{
 
 export type FilterState = {
   includeArchived?: boolean;
-  includeExternal: boolean;
+  includeGlobal: boolean;
 };
 
 type TableHeaderProps = {
@@ -232,12 +232,12 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
               />
             ) : null}
             <CheckboxFilter
-              label="Include External"
-              checked={filterState.includeExternal}
+              label="Include Global"
+              checked={filterState.includeGlobal}
               onChange={(checked) =>
                 setFilterState((prev) => ({
                   ...prev,
-                  includeExternal: checked,
+                  includeGlobal: checked,
                 }))
               }
             />
