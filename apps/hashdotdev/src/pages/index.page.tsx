@@ -521,7 +521,7 @@ const _Resources: FunctionComponent = () => {
         marginBottom={2}
         sx={{ color: ({ palette }) => palette.gray[70] }}
       >
-        Learn by example through our step-by-step tutorials
+        Learn by example through step-by-step guides and resources
       </HomePageBodyTypography>
       <Grid container spacing={4} marginBottom={2}>
         <Grid item xs={12} md={6} lg={4}>
