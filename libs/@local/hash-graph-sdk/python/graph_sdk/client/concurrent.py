@@ -45,10 +45,12 @@ from pydantic_core._pydantic_core import Url
 from yarl import URL
 
 from graph_sdk.client._compat import recast
+from graph_sdk.entity import Entity
 from graph_sdk.options import Options
 from graph_sdk.query import BaseFilter
 
 T = TypeVar("T")
+U = TypeVar("U", bound=GraphEntityType)
 
 
 def assert_not_none(value: T | None) -> T:
@@ -264,56 +266,46 @@ class HASHClient:
 
         return await self.inner.query_entities(request)
 
-    # TODO: even higher level API which is just `entity`
     async def create_entity(
         self,
-        entity: GraphEntityType,
+        properties: U,
         *,
         link: LinkData | None = None,
         owned_by_id: UUID,
-    ) -> EntityMetadata:
+    ) -> Entity[U]:
         """Create an entity."""
         actor = assert_not_none(self.actor)
 
         request = CreateEntityRequest(
             actor_id=RecordCreatedById(root=actor),
-            entity_type_id=VersionedURL(root=Url(entity.info.identifier)),
+            entity_type_id=VersionedURL(root=Url(properties.info.identifier)),
             entity_uuid=None,
             link_data=link,
             owned_by_id=OwnedById(root=owned_by_id),
             properties=EntityProperties.model_validate(
-                entity.model_dump(by_alias=True)
+                properties.model_dump(by_alias=True)
             ),
         )
 
-        return await self.inner.create_entity(request)
+        metadata = await self.inner.create_entity(request)
+
+        return Entity[type(properties)].from_create(metadata, link, properties)
 
     async def update_entity(
         self,
-        id: UUID,
-        entity: GraphEntityType,
-        *,
-        link_order: EntityLinkOrder | None = None,
-        archived: bool = False,
-    ) -> EntityMetadata:
+        entity: Entity[U],
+    ) -> None:
         """Update an entity."""
         actor = assert_not_none(self.actor)
 
         request = UpdateEntityRequest(
             actor_id=RecordCreatedById(root=actor),
-            archived=archived,
-            entity_id=EntityId(root=id),
-            entity_type_id=VersionedURL(root=Url(entity.info.identifier)),
-            left_to_right_link_order=(
-                link_order.left_to_right_order if link_order else None
-            ),
-            right_to_left_link_order=(
-                link_order.right_to_left_order if link_order else None
-            ),
+            archived=entity.archived,
+            entity_id=entity.id.entity_id,
+            entity_type_id=VersionedURL(root=Url(entity.properties.info.identifier)),
+            left_to_right_link_order=entity.link.left_to_right_order,
+            right_to_left_link_order=entity.link.right_to_left_order,
         )
 
-        return await self.inner.update_entity(request)
-
-
-# TODO: H-351: Use hash_graph_client for create_entity
-#   https://linear.app/hash/issue/H-351
+        metadata = await self.inner.update_entity(request)
+        entity.apply_metadata(metadata)
