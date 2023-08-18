@@ -31,8 +31,16 @@ from graph_client.models import (
     UpdatePropertyType,
     UpdatePropertyTypeRequest,
     VersionedURL,
+    CreateEntityRequest,
+    LinkData,
+    EntityProperties,
+    EntityMetadata,
+    UpdateEntityRequest,
+    EntityLinkOrder,
+    EntityId,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from graph_types.base import EntityType as GraphEntityType
 from pydantic_core._pydantic_core import Url
 from yarl import URL
 
@@ -255,3 +263,57 @@ class HASHClient:
         )
 
         return await self.inner.query_entities(request)
+
+    # TODO: even higher level API which is just `entity`
+    async def create_entity(
+        self,
+        entity: GraphEntityType,
+        *,
+        link: LinkData | None = None,
+        owned_by_id: UUID,
+    ) -> EntityMetadata:
+        """Create an entity."""
+        actor = assert_not_none(self.actor)
+
+        request = CreateEntityRequest(
+            actor_id=RecordCreatedById(root=actor),
+            entity_type_id=VersionedURL(root=Url(entity.info.identifier)),
+            entity_uuid=None,
+            link_data=link,
+            owned_by_id=OwnedById(root=owned_by_id),
+            properties=EntityProperties.model_validate(
+                entity.model_dump(by_alias=True)
+            ),
+        )
+
+        return await self.inner.create_entity(request)
+
+    async def update_entity(
+        self,
+        id: UUID,
+        entity: GraphEntityType,
+        *,
+        link_order: EntityLinkOrder | None = None,
+        archived: bool = False,
+    ) -> EntityMetadata:
+        """Update an entity."""
+        actor = assert_not_none(self.actor)
+
+        request = UpdateEntityRequest(
+            actor_id=RecordCreatedById(root=actor),
+            archived=archived,
+            entity_id=EntityId(root=id),
+            entity_type_id=VersionedURL(root=Url(entity.info.identifier)),
+            left_to_right_link_order=(
+                link_order.left_to_right_order if link_order else None
+            ),
+            right_to_left_link_order=(
+                link_order.right_to_left_order if link_order else None
+            ),
+        )
+
+        return await self.inner.update_entity(request)
+
+
+# TODO: H-351: Use hash_graph_client for create_entity
+#   https://linear.app/hash/issue/H-351
