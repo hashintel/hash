@@ -104,14 +104,13 @@ export const EntitiesTable: FunctionComponent<{
         | TextCell
         | BlankCell
         | CustomCell => {
-        if (columns) {
+        const columnId = columns?.[colIndex]?.id;
+        if (columnId) {
           const row = entityRows[rowIndex];
 
           if (!row) {
             throw new Error("row not found");
           }
-
-          const columnId = columns[colIndex]?.id;
 
           if (columnId === "entity") {
             return {
@@ -131,6 +130,15 @@ export const EntitiesTable: FunctionComponent<{
                       : `/${row.namespace}/entities/${row.entityId}`,
                   ),
               },
+            };
+          } else if (["namespace", "entityTypeVersion"].includes(columnId)) {
+            const cellValue = row[columnId];
+            return {
+              kind: GridCellKind.Text,
+              allowOverlay: true,
+              readonly: true,
+              displayData: String(cellValue),
+              data: cellValue,
             };
           } else if (columnId === "archived") {
             const value = row.archived ? "Yes" : "No";
