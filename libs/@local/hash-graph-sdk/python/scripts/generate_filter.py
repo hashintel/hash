@@ -34,7 +34,7 @@ import ast
 import json
 from enum import Enum
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, assert_never
 
 from graph_client.models import (
     DataTypeQueryToken,
@@ -153,8 +153,7 @@ def argument_annotation(argument: Argument) -> ast.expr:
         type_ = ast.Name(id="int", ctx=ast.Load())
 
     if type_ is None:
-        msg = f"Unknown argument type: {argument['type']}"
-        raise ValueError(msg)
+        assert_never(argument["type"])
 
     if not argument["required"]:
         return ast.BinOp(left=type_, op=ast.BitOr(), right=ast.Name(id="None"))
@@ -168,7 +167,7 @@ def create_method(
     args: dict[str, Argument],
     body: list[ast.stmt],
     returns: ast.expr,
-):
+) -> ast.FunctionDef:
     """Create a method with arguments."""
     keywords = [
         ast.arg(arg=to_snake_case(name), annotation=argument_annotation(info))
@@ -477,7 +476,7 @@ def generate_method(
     meta: Meta,
 ) -> ast.FunctionDef:
     """Generate a method for a path class."""
-    arguments = config["arguments"].get(method_name, {})
+    arguments = config["arguments"].get(method_name, [])
     args = {key: meta["arguments"][key] for key in arguments}
 
     if selector := config["selector"].get(method_name, None):
