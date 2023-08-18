@@ -24,7 +24,8 @@ import {
 } from "../../pages/shared/page-utils";
 import { SiteMapPage, SiteMapPageSection } from "../../pages/shared/sitemap";
 import { SiteMapContext } from "../../pages/shared/sitemap-context";
-import { FaIcon } from "../icons/fa-icon";
+import { ChevronDownRegularIcon } from "../icons/chevron-down-regular-icon";
+import { HashtagRegularIcon } from "../icons/hashtag-regular-icon";
 import { Link } from "../link";
 import { itemIsPage, pageTitleToIcons } from "./util";
 
@@ -110,11 +111,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
               })}
             >
               {icon ?? (
-                <FaIcon
-                  name="hashtag"
-                  type="regular"
-                  sx={{ color: "inherit", fontSize: 15 }}
-                />
+                <HashtagRegularIcon sx={{ color: "inherit", fontSize: 15 }} />
               )}
             </ListItemIcon>
           ) : null}
@@ -149,11 +146,7 @@ const MobileNavNestedPage = <T extends SiteMapPage | SiteMapPageSection>({
                 );
               }}
             >
-              <FaIcon
-                sx={{ fontSize: 15 }}
-                name="chevron-down"
-                type="regular"
-              />
+              <ChevronDownRegularIcon sx={{ fontSize: 15 }} />
             </IconButton>
           ) : null}
         </ListItemButton>

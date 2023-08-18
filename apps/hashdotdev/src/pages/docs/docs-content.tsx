@@ -12,7 +12,7 @@ import { useRouter } from "next/router";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { FunctionComponent, ReactNode } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ChevronRightRegularIcon } from "../../components/icons/chevron-right-regular-icon";
 import { Link } from "../../components/link";
 import { MdxPageContent } from "../../components/mdx-page-content";
 import { DocsPageData } from "../shared/mdx-utils";
@@ -151,13 +151,11 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
           <Collapse in={md && parents.length > 0}>
             <Breadcrumbs
               separator={
-                <FaIcon
+                <ChevronRightRegularIcon
                   sx={{
                     fontSize: 14,
                     color: ({ palette }) => palette.gray[40],
                   }}
-                  name="chevron-right"
-                  type="regular"
                 />
               }
               sx={{ marginBottom: 2, marginLeft: 0.25 }}
@@ -174,14 +172,12 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
                 >
                   {parentTitle}
                   {i === all.length - 1 ? (
-                    <FaIcon
+                    <ChevronRightRegularIcon
                       sx={{
                         fontSize: 14,
                         color: ({ palette }) => palette.gray[40],
                         marginLeft: 1,
                       }}
-                      name="chevron-right"
-                      type="regular"
                     />
                   ) : null}
                 </Link>

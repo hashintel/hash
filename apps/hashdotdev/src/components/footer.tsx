@@ -1,3 +1,4 @@
+import { faArrowUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Container,
@@ -10,7 +11,7 @@ import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/discord-icon";
-import { FaIcon } from "./icons/fa-icon";
+import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { GithubIcon } from "./icons/github-icon";
 import { TwitterIcon } from "./icons/twitter-icon";
 import { Link } from "./link";
@@ -51,9 +52,8 @@ const FooterLink: FunctionComponent<
     >
       {children}
       {externalIcon ? (
-        <FaIcon
-          name="arrow-up-right-from-square"
-          type="solid"
+        <FontAwesomeIcon
+          icon={faArrowUpRightFromSquare}
           sx={{
             transition: ({ transitions }) => transitions.create("color"),
             color: ({ palette }) => palette.gray[50],

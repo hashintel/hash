@@ -6,7 +6,7 @@ import { MouseEvent, useMemo } from "react";
 
 import siteMap from "../../../sitemap.json";
 import { Button } from "../../components/button";
-import { FaIcon } from "../../components/icons/fa-icon";
+import { DiscordIcon } from "../../components/icons/discord-icon";
 import { PageLayout } from "../../components/page-layout";
 import { NextPageWithLayout } from "../../util/next-types";
 import { DocsPageData, getSerializedDocsPage } from "../shared/mdx-utils";
@@ -145,7 +145,7 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         <Button
           variant="tertiary"
           href="https://hash.ai/discord"
-          startIcon={<FaIcon name="discord" type="brands" />}
+          startIcon={<DiscordIcon />}
           sx={{
             display: {
               xs: "none",

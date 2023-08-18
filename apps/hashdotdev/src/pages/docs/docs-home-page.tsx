@@ -1,3 +1,4 @@
+import { faPlay } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   BoxProps,
@@ -9,7 +10,15 @@ import {
 } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
+import { BookRegularIcon } from "../../components/icons/book-regular-icon";
+import { EarthAmericasRegularIcon } from "../../components/icons/earth-americas-regular-icon";
+import { EllipsisRegularIcon } from "../../components/icons/ellipsis-regular-icon";
+import { FontAwesomeIcon } from "../../components/icons/font-awesome-icon";
+import { GithubIcon } from "../../components/icons/github-icon";
+import { GlobeRegularIcon } from "../../components/icons/globe-regular-icon";
+import { HubspotIcon } from "../../components/icons/hubspot-icon";
+import { ServerRegularIcon } from "../../components/icons/server-regular-icon";
 import { Link } from "../../components/link";
 import { useCases } from "../roadmap/use-cases";
 import { HashIcon } from "./hash-icon";
@@ -18,13 +27,13 @@ const gettingStartedLinks = [
   {
     title: "Run on the global network",
     description: "Quickest, easiest, recommended",
-    iconName: "globe",
+    icon: <GlobeRegularIcon />,
     href: "https://app.hash.ai",
   },
   {
     title: "Self-host HASH",
     description: "Run HASH on your own infrastructure",
-    iconName: "server",
+    icon: <ServerRegularIcon />,
     href: "/",
   },
 ];
@@ -66,9 +75,8 @@ const GettingStartedLinks: FunctionComponent = () => (
           marginRight: 1.25,
         }}
       >
-        <FaIcon
-          name="play"
-          type="solid"
+        <FontAwesomeIcon
+          icon={faPlay}
           sx={{ color: ({ palette }) => palette.teal[60] }}
         />
       </Box>
@@ -88,7 +96,7 @@ const GettingStartedLinks: FunctionComponent = () => (
         flexWrap: "wrap",
       }}
     >
-      {gettingStartedLinks.map(({ href, iconName, title, description }) => (
+      {gettingStartedLinks.map(({ href, icon, title, description }) => (
         <Link
           key={href}
           href={href}
@@ -112,16 +120,13 @@ const GettingStartedLinks: FunctionComponent = () => (
                 display: "flex",
                 justifyContent: "center",
                 paddingTop: 1,
-              }}
-            >
-              <FaIcon
-                name={iconName}
-                type="regular"
-                sx={{
+                svg: {
                   fontSize: 16,
                   color: ({ palette }) => palette.teal[60],
-                }}
-              />
+                },
+              }}
+            >
+              {icon}
             </Box>
             <Box>
               <Typography
@@ -132,9 +137,7 @@ const GettingStartedLinks: FunctionComponent = () => (
                 }}
               >
                 <strong>{title}</strong>
-                <FaIcon
-                  name="arrow-right"
-                  type="regular"
+                <ArrowRightRegularIcon
                   sx={{
                     fontSize: 16,
                     marginLeft: 1,
@@ -342,9 +345,7 @@ export const DocsHomePage: FunctionComponent = () => {
                   alignItems="center"
                   justifyContent="center"
                 >
-                  <FaIcon
-                    name="book"
-                    type="regular"
+                  <BookRegularIcon
                     sx={{ color: ({ palette }) => palette.teal[80] }}
                   />
                 </Box>
@@ -364,7 +365,9 @@ export const DocsHomePage: FunctionComponent = () => {
                     }}
                   >
                     Learn more about incrementally adopting HASH{" "}
-                    <FaIcon name="arrow-right" type="regular" />
+                    <ArrowRightRegularIcon
+                      sx={{ position: "relative", top: 2 }}
+                    />
                   </Typography>
                 </Box>
               </Box>
@@ -393,7 +396,7 @@ export const DocsHomePage: FunctionComponent = () => {
                       key={name}
                       label={name}
                       iconBackground="teal"
-                      icon={<FaIcon name="earth" type="regular" />}
+                      icon={<EarthAmericasRegularIcon />}
                       width={180}
                     />
                   ))}
@@ -431,26 +434,26 @@ export const DocsHomePage: FunctionComponent = () => {
                     { name: "Notion" },
                     {
                       name: "GitHub",
-                      icon: <FaIcon name="github" type="brands" />,
+                      icon: <GithubIcon />,
                     },
                     { name: "Linear" },
                     { name: "ClickUp" },
                     { name: "Greenhouse" },
                     {
                       name: "Hubspot",
-                      icon: <FaIcon name="hubspot" type="brands" />,
+                      icon: <HubspotIcon />,
                     },
                     { name: "TBD" },
                     {
                       name: "Browse all...",
-                      icon: <FaIcon name="ellipsis" type="regular" />,
+                      icon: <EllipsisRegularIcon />,
                     },
                   ].map(({ name, icon }) => (
                     <LabelWithIcon
                       key={name}
                       label={name}
                       iconBackground="teal"
-                      icon={icon ?? <FaIcon name="earth" type="regular" />}
+                      icon={icon ?? <EarthAmericasRegularIcon />}
                       width={180}
                     />
                   ))}

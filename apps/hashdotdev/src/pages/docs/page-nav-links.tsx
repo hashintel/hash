@@ -7,7 +7,8 @@ import {
 } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ArrowLeftRegularIcon } from "../../components/icons/arrow-left-regular-icon";
+import { ArrowRightRegularIcon } from "../../components/icons/arrow-right-regular-icon";
 import { Link } from "../../components/link";
 import { SiteMapPage } from "../shared/sitemap";
 
@@ -58,15 +59,13 @@ export const PageNavLinks: FunctionComponent<PageNavLinksProps> = ({
                   },
                 }}
               >
-                <FaIcon
+                <ArrowLeftRegularIcon
                   sx={[
                     {
                       marginRight: 2,
                     },
                     navArrowIconStyling,
                   ]}
-                  name="arrow-left"
-                  type="regular"
                 />
                 <Link
                   sx={{
@@ -116,15 +115,13 @@ export const PageNavLinks: FunctionComponent<PageNavLinksProps> = ({
               >
                 {nextPage.title}
               </Link>
-              <FaIcon
+              <ArrowRightRegularIcon
                 sx={[
                   {
                     marginLeft: 2,
                   },
                   navArrowIconStyling,
                 ]}
-                name="arrow-right"
-                type="regular"
               />
             </Box>
           </Box>

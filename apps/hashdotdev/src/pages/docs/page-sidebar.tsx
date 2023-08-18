@@ -19,7 +19,7 @@ import {
   useState,
 } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ChevronRightRegularIcon } from "../../components/icons/chevron-right-regular-icon";
 import { Link } from "../../components/link";
 import { NAV_HEIGHT } from "../../components/navbar";
 import { customColors } from "../../theme/palette";
@@ -170,13 +170,7 @@ const SidebarPageSection: FunctionComponent<SidebarPageSectionProps> = ({
               },
             })}
           >
-            <FaIcon
-              name="chevron-right"
-              type="regular"
-              sx={{
-                fontSize: 14,
-              }}
-            />
+            <ChevronRightRegularIcon sx={{ fontSize: 14 }} />
           </IconButton>
         ) : null}
       </Box>
@@ -286,7 +280,7 @@ const SidebarPage: FunctionComponent<SidebarPageProps> = ({
               },
             })}
           >
-            <FaIcon name="chevron-right" type="regular" sx={{ fontSize: 14 }} />
+            <ChevronRightRegularIcon sx={{ fontSize: 14 }} />
           </IconButton>
         ) : null}
       </Box>
