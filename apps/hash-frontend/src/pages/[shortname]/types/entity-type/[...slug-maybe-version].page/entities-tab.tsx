@@ -1,5 +1,4 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Paper, useTheme } from "@mui/material";
@@ -53,9 +52,6 @@ export const EntitiesTab: FunctionComponent = () => {
           <Paper sx={{ overflow: "hidden" }}>
             <SectionEmptyState
               title="There are no entities of this type visible to you"
-              titleIcon={
-                <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 18 }} />
-              }
               description="Assigning this type to an entity will result in it being shown here"
             />
           </Paper>

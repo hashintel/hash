@@ -13,7 +13,7 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -34,7 +34,6 @@ import {
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
-import { ConvertTypeButton } from "./[...slug-maybe-version].page/convert-type-button";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -52,8 +51,6 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
-
-  const [convertTypeLoading, setConvertTypeLoading] = useState(false);
 
   const [slug, _, requestedVersionString] = router.query[
     "slug-maybe-version"
@@ -201,25 +198,6 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeIsLink = isLinkEntityType(entityType);
 
-  const convertToLinkType = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getSchemaFromFormData(data);
-
-    setConvertTypeLoading(true);
-    const res = await updateEntityType({
-      ...entityTypeSchema,
-      allOf: [{ $ref: linkEntityTypeUrl }],
-    });
-
-    setConvertTypeLoading(false);
-    if (!res.errors?.length && res.data) {
-      void router.push(res.data.schema.$id);
-    } else {
-      throw new Error("Could not publish changes");
-    }
-  });
-
-  const isDirty = formMethods.formState.isDirty;
-
   return (
     <>
       <NextSeo title={`${entityType.title} | Entity Type`} />
@@ -232,10 +210,12 @@ const Page: NextPageWithLayout = () => {
                 item={remoteEntityType ?? undefined}
                 crumbs={[
                   {
+                    href: "/types",
                     title: "Types",
                     id: "types",
                   },
                   {
+                    href: "/types/entity-type",
                     title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
                     id: "entity-types",
                   },
@@ -277,60 +257,48 @@ const Page: NextPageWithLayout = () => {
                 }}
               >
                 <Container>
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="flex-start"
-                  >
-                    <EntityTypeHeader
-                      ontologyChip={
-                        <OntologyChip
-                          icon={<OntologyIcon />}
-                          domain="hash.ai"
-                          path={
-                            <>
-                              <Typography
-                                component="span"
-                                fontWeight="bold"
-                                color={(theme) => theme.palette.blue[70]}
-                              >
-                                {router.query.shortname}
-                              </Typography>
-                              <Typography
-                                component="span"
-                                color={(theme) => theme.palette.blue[70]}
-                              >
-                                /types/entity-type/
-                              </Typography>
-                              <Typography
-                                component="span"
-                                fontWeight="bold"
-                                color={(theme) => theme.palette.blue[70]}
-                              >
-                                {slug}
-                              </Typography>
-                              <Typography
-                                component="span"
-                                color={(theme) => theme.palette.blue[70]}
-                              >
-                                /v/{currentVersion}
-                              </Typography>
-                            </>
-                          }
-                        />
-                      }
-                      entityType={entityType}
-                      isReadonly={isReadonly}
-                      latestVersion={latestVersion}
-                    />
-                    {!isReadonly && !isDraft && !entityTypeIsLink ? (
-                      <ConvertTypeButton
-                        onClick={convertToLinkType}
-                        loading={convertTypeLoading}
-                        disabled={isDirty}
+                  <EntityTypeHeader
+                    isDraft={isDraft}
+                    ontologyChip={
+                      <OntologyChip
+                        icon={<OntologyIcon />}
+                        domain="hash.ai"
+                        path={
+                          <>
+                            <Typography
+                              component="span"
+                              fontWeight="bold"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              {router.query.shortname}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              /types/entity-type/
+                            </Typography>
+                            <Typography
+                              component="span"
+                              fontWeight="bold"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              {slug}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              /v/{currentVersion}
+                            </Typography>
+                          </>
+                        }
                       />
-                    ) : null}
-                  </Box>
+                    }
+                    entityType={entityType}
+                    isReadonly={isReadonly}
+                    latestVersion={latestVersion}
+                  />
 
                   <EntityTypeTabs isDraft={isDraft} />
                 </Container>
