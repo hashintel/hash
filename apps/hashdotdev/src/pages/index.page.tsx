@@ -1,4 +1,7 @@
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRight,
+  faArrowUpRightFromSquare,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Container,
@@ -16,8 +19,9 @@ import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
-import { FaIcon } from "../components/icons/fa-icon";
+import { ArrowUpRightFromSquareRegularIcon } from "../components/icons/arrow-up-right-from-square-regular-icon";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
+import { GithubIcon } from "../components/icons/github-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
 import { Subscribe } from "../components/pre-footer";
@@ -211,9 +215,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   href="https://blockprotocol.org"
                   openInNew
                   color="purple"
-                  endIcon={
-                    <FaIcon name="arrow-up-right-from-square" type="solid" />
-                  }
+                  endIcon={<ArrowUpRightFromSquareRegularIcon />}
                   sx={{ marginRight: 2, marginBottom: 2 }}
                 >
                   Learn more
@@ -221,7 +223,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 <Button
                   href="https://github.com/blockprotocol/blockprotocol"
                   openInNew
-                  endIcon={<FaIcon name="github" type="brands" />}
+                  endIcon={<GithubIcon />}
                   variant="secondary"
                   color="purple"
                   sx={{ marginBottom: 2 }}
@@ -302,9 +304,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 <Button
                   href="https://hash.ai"
                   openInNew
-                  endIcon={
-                    <FaIcon name="arrow-up-right-from-square" type="solid" />
-                  }
+                  endIcon={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
                   color="blue"
                   sx={{ marginRight: 2, marginBottom: 2 }}
                 >
@@ -313,7 +313,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                 <Button
                   href="https://github.com/hashintel/hash"
                   openInNew
-                  endIcon={<FaIcon name="github" type="brands" />}
+                  endIcon={<GithubIcon />}
                   variant="secondary"
                   color="blue"
                   sx={{ marginBottom: 2 }}
@@ -477,7 +477,7 @@ const Resource: FunctionComponent<{
               },
             }}
           >
-            Read more <FaIcon name="arrow-right" type="solid" />
+            Read more <FontAwesomeIcon icon={faArrowRight} />
           </Link>
           {icon}
         </Box>

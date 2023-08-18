@@ -1,6 +1,12 @@
 import { ReactNode } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { BinaryLightIcon } from "../../components/icons/binary-light-icon";
+import { BrainLightIcon } from "../../components/icons/brain-light-icon";
+import { BrowserLightIcon } from "../../components/icons/browser-light-icon";
+import { DisplayChartUpLightIcon } from "../../components/icons/display-chart-up-light-icon";
+import { PeopleLightIcon } from "../../components/icons/people-light-icon";
+import { ScrewdriverWrenchLightIcon } from "../../components/icons/screwdriver-wrench-light-icon";
+import { SitemapLightIcon } from "../../components/icons/sitemap-light-icon";
 
 export type UseCaseId =
   | "knowledge-management"
@@ -21,32 +27,32 @@ export const useCases: UseCase[] = [
   {
     id: "knowledge-management",
     name: "Knowledge Management",
-    icon: <FaIcon name="sitemap" type="light" />,
+    icon: <SitemapLightIcon />,
   },
   {
     id: "data-management",
     name: "Data Management",
-    icon: <FaIcon name="binary" type="light" />,
+    icon: <BinaryLightIcon />,
   },
   {
     id: "business-intelligence",
     name: "Business Intelligence",
-    icon: <FaIcon name="display-chart-up" type="light" />,
+    icon: <DisplayChartUpLightIcon />,
   },
   {
     id: "website-building",
     name: "Website Building",
-    icon: <FaIcon name="browser" type="light" />,
+    icon: <BrowserLightIcon />,
   },
   {
     id: "internal-tools-apps",
     name: "Internal Tools/Apps",
-    icon: <FaIcon name="tools" type="light" />,
+    icon: <ScrewdriverWrenchLightIcon />,
   },
   {
     id: "agent-based-simulation",
     name: "Agent-Based Simulation",
-    icon: <FaIcon name="people" type="light" />,
+    icon: <PeopleLightIcon />,
   },
   {
     id: "entity-storage-retrieval",
@@ -57,6 +63,6 @@ export const useCases: UseCase[] = [
         Retrieval
       </>
     ),
-    icon: <FaIcon name="brain" type="light" />,
+    icon: <BrainLightIcon />,
   },
 ];

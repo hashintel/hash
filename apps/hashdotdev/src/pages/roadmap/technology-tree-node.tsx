@@ -1,7 +1,7 @@
 import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { Fragment, FunctionComponent, RefObject } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { CircleInfoRegularIcon } from "../../components/icons/circle-info-regular-icon";
 import { statuses } from "./statuses";
 import { TechnologyTreeNodeData } from "./technology-tree-data";
 import { useCases } from "./use-cases";
@@ -99,7 +99,7 @@ export const TechnologyTreeNode: FunctionComponent<{
             onClick={onSelected}
             onBlur={onDeselected}
           >
-            <FaIcon name="circle-info" type="regular" sx={{ fontSize: 14 }} />
+            <CircleInfoRegularIcon sx={{ fontSize: 14 }} />
           </IconButton>
         </Tooltip>
       </Box>

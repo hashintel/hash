@@ -1,28 +1,21 @@
-import { Box, Components, Theme } from "@mui/material";
+import { Components, Theme } from "@mui/material";
 
-import { FaIcon } from "../../../components/icons/fa-icon";
+import { SquareCheckRegularIcon } from "../../../components/icons/square-check-regular-icon";
+import { SquareRegularIcon } from "../../../components/icons/square-regular-icon";
 
 export const MuiCheckboxThemeOptions: Components<Theme>["MuiCheckbox"] = {
   defaultProps: {
     disableRipple: true,
     disableTouchRipple: true,
     icon: (
-      <Box>
-        <FaIcon
-          name="square"
-          type="regular"
-          sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
-        />
-      </Box>
+      <SquareRegularIcon
+        sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
+      />
     ),
     checkedIcon: (
-      <Box>
-        <FaIcon
-          name="square-check"
-          type="regular"
-          sx={{ color: ({ palette }) => palette.common.black, fontSize: 14 }}
-        />
-      </Box>
+      <SquareCheckRegularIcon
+        sx={{ color: ({ palette }) => palette.common.black, fontSize: 14 }}
+      />
     ),
   },
   styleOverrides: {

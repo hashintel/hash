@@ -174,9 +174,18 @@ class EntityTypeQueryPath(AbstractQueryPath):
         """Return the path to the inherits_from attribute of an entity type."""
         return self.path.push(EntityTypeQueryToken.inherits_from)
 
-    def children(self) -> Path:
+    def children(self, *, inheritance_depth: int | None = None) -> Path:
         """Return the path to the children attribute of an entity type."""
-        return self.path.push(EntityTypeQueryToken.children)
+        args = []
+        if inheritance_depth is not None:
+            args.append(f"inheritanceDepth={inheritance_depth}")
+        return self.path.push(
+            (
+                f"{EntityTypeQueryToken.children}({', '.join(args)})"
+                if args
+                else EntityTypeQueryToken.children
+            ),
+        )
 
 
 class EntityQueryPath(AbstractQueryPath):
@@ -202,9 +211,20 @@ class EntityQueryPath(AbstractQueryPath):
         """Return the path to the record_created_by_id attribute of an entity."""
         return self.path.push(EntityQueryToken.record_created_by_id)
 
-    def type_(self) -> EntityTypeQueryPath:
+    def type_(self, *, inheritance_depth: int | None = None) -> EntityTypeQueryPath:
         """Return the path to the type attribute of an entity."""
-        return EntityTypeQueryPath.from_path(self.path.push(EntityQueryToken.type))
+        args = []
+        if inheritance_depth is not None:
+            args.append(f"inheritanceDepth={inheritance_depth}")
+        return EntityTypeQueryPath.from_path(
+            self.path.push(
+                (
+                    f"{EntityQueryToken.type}({', '.join(args)})"
+                    if args
+                    else EntityQueryToken.type
+                ),
+            ),
+        )
 
     def properties(self) -> UntypedQueryPath:
         """Return the path to the properties attribute of an entity."""
