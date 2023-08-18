@@ -10,19 +10,23 @@ from typing import Self, TypeVar
 from uuid import UUID
 
 from graph_client.models import (
+    LinkData,
     MaybeListOfOntologyElementMetadata,
     OntologyElementMetadata,
     Subgraph,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from graph_types.base import EntityType as GraphEntityType
 from yarl import URL
 
 from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
+from graph_sdk.entity import Entity
 from graph_sdk.options import Options
 from graph_sdk.query import BaseFilter
 from graph_sdk.utils import async_to_sync
 
 T = TypeVar("T")
+U = TypeVar("U", bound=GraphEntityType)
 
 
 class HASHClient:
@@ -108,3 +112,19 @@ class HASHClient:
     def query_entities(self, query: BaseFilter, options: Options) -> Subgraph:
         """Query entities."""
         return async_to_sync(self.inner.query_entities(query, options))
+
+    def create_entity(
+        self,
+        properties: U,
+        *,
+        link: LinkData | None = None,
+        owned_by_id: UUID,
+    ) -> Entity[U]:
+        """Create an entity."""
+        return async_to_sync(
+            self.inner.create_entity(properties, link=link, owned_by_id=owned_by_id),
+        )
+
+    def update_entity(self, entity: Entity[U]) -> None:
+        """Update an entity."""
+        return async_to_sync(self.inner.update_entity(entity))

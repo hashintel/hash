@@ -191,7 +191,10 @@ for method in client_ast.body:
                                         arg=keyword.arg,
                                         value=ast.Name(keyword.arg, ctx=ast.Load()),
                                     )
-                                    for keyword in (method_args.kwarg or [])
+                                    for keyword in (
+                                        (method_args.kwarg or [])
+                                        + (method_args.kwonlyargs or [])
+                                    )
                                 ],
                             )
                         ],
