@@ -57,9 +57,7 @@ export const createLinkEntity: ImpureGraphFunction<
     properties = {},
   } = params;
 
-  if (
-    !(await isEntityTypeLinkEntityType(context, { entityType: linkEntityType }))
-  ) {
+  if (!(await isEntityTypeLinkEntityType(context, linkEntityType.schema))) {
     throw new Error(
       `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
     );

@@ -4,6 +4,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  EntityType,
   EntityTypeStructuralQuery,
   OntologyTemporalMetadata,
   UpdateEntityTypeRequest,
@@ -215,35 +216,29 @@ export const updateEntityType: ImpureGraphFunction<
 
 // Return true if any type in the provided entity type's ancestors is a link entity type
 export const isEntityTypeLinkEntityType: ImpureGraphFunction<
-  {
-    entityType: EntityTypeWithMetadata;
-  },
+  Pick<EntityType, "allOf">,
   Promise<boolean>
 > = async (context, params) => {
-  const {
-    entityType: { schema },
-  } = params;
+  const { allOf } = params;
 
-  if (schema.allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
+  if (allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
     return true;
   }
 
   const parentTypes = await Promise.all(
-    (schema.allOf ?? []).map(async ({ $ref }) =>
-      getEntityTypeById(context, { entityTypeId: $ref }),
+    (allOf ?? []).map(async ({ $ref }) =>
+      getEntityTypeById(context, { entityTypeId: $ref as VersionedUrl }),
     ),
   );
 
   return new Promise((resolve) => {
     const promises = parentTypes.map((parent) =>
-      isEntityTypeLinkEntityType(context, { entityType: parent }).then(
-        (isLinkType) => {
-          if (isLinkType) {
-            // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
-            resolve(true);
-          }
-        },
-      ),
+      isEntityTypeLinkEntityType(context, parent.schema).then((isLinkType) => {
+        if (isLinkType) {
+          // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
+          resolve(true);
+        }
+      }),
     );
 
     void Promise.all(promises).then(() =>
