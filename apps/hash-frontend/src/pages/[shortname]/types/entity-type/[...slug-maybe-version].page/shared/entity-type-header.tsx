@@ -12,6 +12,7 @@ import { CreateEntityTypeForm } from "../../../../../shared/create-entity-type-f
 import { EntityTypeDescription } from "../entity-type-description";
 
 interface EntityTypeHeaderProps {
+  isPreviewSlide?: boolean;
   ontologyChip: ReactNode;
   entityType: EntityType;
   isDraft: boolean;
@@ -20,6 +21,7 @@ interface EntityTypeHeaderProps {
 }
 
 export const EntityTypeHeader = ({
+  isPreviewSlide,
   ontologyChip,
   entityType,
   isDraft,
@@ -93,7 +95,7 @@ export const EntityTypeHeader = ({
 
             {entityType.title}
           </Typography>
-          {!isDraft ? (
+          {!isDraft && !isPreviewSlide ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"
