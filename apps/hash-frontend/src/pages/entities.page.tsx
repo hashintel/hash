@@ -1,20 +1,6 @@
-import {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  EntityRootType,
-  isBaseUrl,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
-  getEntityTypeById,
-  getPropertyTypeById,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { isBaseUrl, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -25,11 +11,12 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo } from "react";
 
-import { useBlockProtocolQueryEntities } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
+import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-context";
+import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
 import { AsteriskRegularIcon } from "../shared/icons/asterisk-regular-icon";
@@ -42,7 +29,6 @@ import { tableHeaderHeight } from "../shared/table-header";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
-import { EntityTypeEntitiesContext } from "./[shortname]/types/entity-type/[...slug-maybe-version].page/shared/entity-type-entities-context";
 import { EntitiesTable } from "./shared/entities-table";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -105,94 +91,10 @@ const EntitiesPage: NextPageWithLayout = () => {
     [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
   );
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
-  const { queryEntities } = useBlockProtocolQueryEntities();
-
-  useEffect(() => {
-    setLoading(true);
-
-    void queryEntities({
-      data: {
-        operation: {
-          multiFilter: {
-            filters: [
-              ...(entityTypeBaseUrl
-                ? [
-                    {
-                      field: ["metadata", "entityTypeBaseUrl"],
-                      operator: "EQUALS" as const,
-                      value: entityTypeBaseUrl,
-                    },
-                  ]
-                : entityTypeId
-                ? [
-                    {
-                      field: ["metadata", "entityTypeId"],
-                      operator: "EQUALS" as const,
-                      value: entityTypeId,
-                    },
-                  ]
-                : []),
-            ],
-            operator: "AND",
-          },
-        },
-        graphResolveDepths: {
-          constrainsPropertiesOn: { outgoing: 1 },
-          isOfType: { outgoing: 1 },
-        },
-      },
-    })
-      .then((res) => {
-        if (res.data) {
-          setSubgraph(res.data);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [queryEntities, entityTypeId, entityTypeBaseUrl]);
-
-  const [entities, entityTypes, propertyTypes] =
-    useMemo(() => {
-      if (!subgraph) {
-        return undefined;
-      }
-
-      const relevantEntities = getRoots(subgraph);
-
-      const relevantTypesMap = new Map<string, EntityType>();
-      for (const { metadata } of relevantEntities) {
-        if (!relevantTypesMap.has(metadata.entityTypeId)) {
-          const type = getEntityTypeById(
-            subgraph,
-            metadata.entityTypeId,
-          )?.schema;
-          if (type) {
-            relevantTypesMap.set(metadata.entityTypeId, type);
-          }
-        }
-      }
-      const relevantTypes = Array.from(relevantTypesMap.values());
-
-      const relevantPropertiesMap = new Map<string, PropertyType>();
-      for (const { properties } of relevantTypes) {
-        for (const prop of Object.values(properties)) {
-          const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
-          if (!relevantPropertiesMap.has(propertyUrl)) {
-            const propertyType = getPropertyTypeById(
-              subgraph,
-              propertyUrl,
-            )?.schema;
-            if (propertyType) {
-              relevantPropertiesMap.set(propertyUrl, propertyType);
-            }
-          }
-        }
-      }
-      const relevantProperties = Array.from(relevantPropertiesMap.values());
-
-      return [relevantEntities, relevantTypes, relevantProperties];
-    }, [subgraph]) ?? [];
+  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
+    entityTypeBaseUrl,
+    entityTypeId,
+  });
 
   const isViewAllPagesPage =
     entityType?.schema.$id === types.entityType.page.entityTypeId;
@@ -200,6 +102,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const pageTitle = entityType ? `${entityType.schema.title}s` : "Entities";
 
   const theme = useTheme();
+
+  const { entities, loading } = entityTypeEntitiesValue;
 
   return (
     <>
@@ -287,16 +191,7 @@ const EntitiesPage: NextPageWithLayout = () => {
         </Container>
       </Box>
       <Container sx={{ maxWidth: { lg: contentMaxWidth }, py: 5 }}>
-        <EntityTypeEntitiesContext.Provider
-          // eslint-disable-next-line react/jsx-no-constructed-context-values
-          value={{
-            loading,
-            entities,
-            entityTypes,
-            propertyTypes,
-            subgraph,
-          }}
-        >
+        <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
             hideEntityTypeVersionColumn={!!entityTypeId}
             hidePropertiesColumns

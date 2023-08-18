@@ -20,10 +20,9 @@ import {
 
 import { Grid, GridProps } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
+import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
 import { FilterState, TableHeader } from "../../shared/table-header";
 import { renderChipCell } from "../[shortname]/entities/[entity-uuid].page/entity-editor/properties-section/property-table/cells/chip-cell";
-// todo: move this out
-import { useEntityTypeEntities } from "../[shortname]/types/entity-type/[...slug-maybe-version].page/shared/entity-type-entities-context";
 import {
   renderTextIconCell,
   TextIconCell,

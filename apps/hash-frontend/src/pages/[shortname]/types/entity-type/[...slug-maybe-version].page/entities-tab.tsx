@@ -5,6 +5,7 @@ import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { Box, Paper, useTheme } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
+import { useEntityTypeEntities } from "../../../../../shared/entity-type-entities-context";
 import { HEADER_HEIGHT } from "../../../../../shared/layout/layout-with-header/page-header";
 import { tableHeaderHeight } from "../../../../../shared/table-header";
 import { EntitiesTable } from "../../../../shared/entities-table";
@@ -13,7 +14,6 @@ import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityType } from "./shared/entity-type-context";
-import { useEntityTypeEntities } from "./shared/entity-type-entities-context";
 
 export const EntitiesTab: FunctionComponent = () => {
   const { entities } = useEntityTypeEntities();
