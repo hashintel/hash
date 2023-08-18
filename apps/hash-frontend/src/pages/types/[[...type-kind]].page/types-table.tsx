@@ -18,10 +18,8 @@ import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { Grid } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
-import {
-  isLinkEntityType,
-  isTypeArchived,
-} from "../../../shared/entity-types-context/util";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { isTypeArchived } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
   renderTextIconCell,
@@ -71,6 +69,8 @@ export const TypesTable: FunctionComponent<{
     includeArchived: true,
     includeExternal: true,
   });
+
+  const { isLinkTypeLookup } = useEntityTypesContextRequired();
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
     () => [
@@ -133,7 +133,7 @@ export const TypesTable: FunctionComponent<{
             title: type.schema.title,
             kind:
               type.schema.kind === "entityType"
-                ? isLinkEntityType(type.schema)
+                ? isLinkTypeLookup?.[type.schema.$id]
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
@@ -149,7 +149,7 @@ export const TypesTable: FunctionComponent<{
             (filterState.includeExternal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
-    [types, namespaces, filterState],
+    [isLinkTypeLookup, types, namespaces, filterState],
   );
 
   const createGetCellContent = useCallback(

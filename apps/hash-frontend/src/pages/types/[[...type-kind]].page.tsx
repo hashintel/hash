@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
-import { isLinkEntityType } from "../../shared/entity-types-context/util";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { useLatestPropertyTypes } from "../../shared/latest-property-types-context";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
@@ -54,20 +54,26 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     includeArchived: true,
   });
 
+  const { isLinkTypeLookup } = useEntityTypesContextRequired();
+
   const latestNonLinkEntityTypes = useMemo(
     () =>
-      latestEntityTypes?.filter(
-        (entityType) => !isLinkEntityType(entityType.schema),
-      ),
-    [latestEntityTypes],
+      isLinkTypeLookup
+        ? latestEntityTypes?.filter(
+            (entityType) => !isLinkTypeLookup[entityType.schema.$id],
+          )
+        : undefined,
+    [isLinkTypeLookup, latestEntityTypes],
   );
 
   const latestLinkEntityTypes = useMemo(
     () =>
-      latestEntityTypes?.filter((entityType) =>
-        isLinkEntityType(entityType.schema),
-      ),
-    [latestEntityTypes],
+      isLinkTypeLookup
+        ? latestEntityTypes?.filter(
+            (entityType) => isLinkTypeLookup[entityType.schema.$id],
+          )
+        : undefined,
+    [isLinkTypeLookup, latestEntityTypes],
   );
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();

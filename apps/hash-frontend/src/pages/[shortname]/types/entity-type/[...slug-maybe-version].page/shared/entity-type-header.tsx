@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
 
-import { isLinkEntityType } from "../../../../../../shared/entity-types-context/util";
 import { LinkedIcon } from "../../../../../../shared/icons/linked-icon";
 import { Link } from "../../../../../../shared/ui/link";
 import { EntityTypeDescription } from "../entity-type-description";
@@ -12,6 +11,7 @@ import { EntityTypeDescription } from "../entity-type-description";
 interface EntityTypeHeaderProps {
   ontologyChip: ReactNode;
   entityType: EntityType;
+  isLink: boolean;
   isReadonly: boolean;
   latestVersion?: number | null;
 }
@@ -19,11 +19,10 @@ interface EntityTypeHeaderProps {
 export const EntityTypeHeader = ({
   ontologyChip,
   entityType,
+  isLink,
   isReadonly,
   latestVersion,
 }: EntityTypeHeaderProps) => {
-  const entityTypeIsLink = isLinkEntityType(entityType);
-
   const isLatest =
     !latestVersion || extractVersion(entityType.$id) === latestVersion;
   const latestVersionUrl = entityType.$id.replace(/\d+$/, `${latestVersion}`);
@@ -47,7 +46,7 @@ export const EntityTypeHeader = ({
         )}
       </Stack>
       <Typography variant="h1" fontWeight="bold" my={3}>
-        {entityTypeIsLink ? (
+        {isLink ? (
           <Tooltip
             title="This is a 'link' entity type. It is used to link other entities together."
             placement="top"

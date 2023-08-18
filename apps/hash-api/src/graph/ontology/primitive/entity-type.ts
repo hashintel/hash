@@ -29,7 +29,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { ImpureGraphFunction } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -213,24 +213,44 @@ export const updateEntityType: ImpureGraphFunction<
   };
 };
 
-export const isEntityTypeLinkEntityType: PureGraphFunction<
+// Return true if any type in the provided entity type's ancestors is a link entity type
+export const isEntityTypeLinkEntityType: ImpureGraphFunction<
   {
     entityType: EntityTypeWithMetadata;
   },
-  boolean
-> = (params) => {
-  /**
-   * @todo: account for link entity types being able to inherit from other link entity types
-   * @see https://app.asana.com/0/1200211978612931/1201726402115269/f
-   */
+  Promise<boolean>
+> = async (context, params) => {
   const {
     entityType: { schema },
   } = params;
 
-  return (
-    !!schema.allOf &&
-    schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUrl)
+  if (schema.allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
+    return true;
+  }
+
+  const parentTypes = await Promise.all(
+    (schema.allOf ?? []).map(async ({ $ref }) =>
+      getEntityTypeById(context, { entityTypeId: $ref }),
+    ),
   );
+
+  return new Promise((resolve) => {
+    const promises = parentTypes.map((parent) =>
+      isEntityTypeLinkEntityType(context, { entityType: parent }).then(
+        (isLinkType) => {
+          if (isLinkType) {
+            // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
+            resolve(true);
+          }
+        },
+      ),
+    );
+
+    void Promise.all(promises).then(() =>
+      // If we haven't resolved yet, then none of the parent types are link types. If we have resolved this is a no-op.
+      resolve(false),
+    );
+  });
 };
 
 /**
