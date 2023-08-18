@@ -1,7 +1,6 @@
 """Ergonomic API to configure options for structural queries."""
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Protocol
+from datetime import datetime
+from typing import Protocol
 
 from graph_client.models import (
     DecisionTime,
@@ -28,9 +27,6 @@ from graph_client.models import (
 from graph_client.models import (
     TemporalBound as FFITemporalBound,
 )
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 class ToLimitedTemporalBound(Protocol):
@@ -75,17 +71,17 @@ class TemporalBound:
     """
 
     @classmethod
-    def unbounded(cls) -> UnboundedTemporalBound:
+    def unbounded(cls) -> "UnboundedTemporalBound":
         """Return an unbounded interval."""
         return UnboundedTemporalBound()
 
     @classmethod
-    def inclusive(cls, time: datetime) -> InclusiveTemporalBound:
+    def inclusive(cls, time: datetime) -> "InclusiveTemporalBound":
         """Return an inclusive interval."""
         return InclusiveTemporalBound(time)
 
     @classmethod
-    def exclusive(cls, time: datetime) -> ExclusiveTemporalBound:
+    def exclusive(cls, time: datetime) -> "ExclusiveTemporalBound":
         """Return an exclusive interval."""
         return ExclusiveTemporalBound(time)
 

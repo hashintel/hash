@@ -1,6 +1,4 @@
 """A property type schema as defined by the Block Protocol."""
-from __future__ import annotations
-
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -9,6 +7,7 @@ from typing import (
     Literal,
     cast,
 )
+from uuid import UUID
 
 from pydantic import (
     BaseModel,
@@ -21,12 +20,10 @@ from slugify import slugify
 from ._cache import Cache
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .base import PropertyType
+from .data_type import DataTypeReference
 
 if TYPE_CHECKING:
-    from uuid import UUID
-
     from . import GraphAPIProtocol
-    from .data_type import DataTypeReference
 
 __all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
@@ -35,7 +32,7 @@ async def fetch_model(
     ref: str,
     *,
     actor_id: UUID,
-    graph: GraphAPIProtocol,
+    graph: "GraphAPIProtocol",
 ) -> type[PropertyType]:
     schema = await graph.get_property_type(ref, actor_id=actor_id)
     return await schema.create_property_type(actor_id=actor_id, graph=graph)
@@ -51,7 +48,7 @@ class PropertyTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[PropertyType]:
         """Creates a model from the referenced property type schema."""
         return await self._cache.get(
@@ -63,14 +60,14 @@ class PropertyTypeReference(Schema):
 class PropertyValue(RootModel, Schema):
     root: DataTypeReference | Object[
         PropertyTypeReference | Array[PropertyTypeReference]
-    ] | Array[OneOf[PropertyValue]]
+    ] | Array[OneOf["PropertyValue"]]
 
     async def create_model(
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
-    ) -> type[RootModel] | Annotated[Any, ...]:  # noqa: ANN401
+        graph: "GraphAPIProtocol",
+    ) -> type[RootModel] | Annotated[Any, ...]:
         return await self.root.create_model(actor_id=actor_id, graph=graph)
 
 
@@ -86,7 +83,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[PropertyType]:
         """Create an annotated type from this schema."""
         inner = await self.create_model(actor_id=actor_id, graph=graph)

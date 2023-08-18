@@ -1,11 +1,7 @@
-from __future__ import annotations
+from typing import Annotated, Any, TypeVar, cast
 
-from typing import TYPE_CHECKING, Annotated, Any, TypeVar, cast
-
+from pydantic import GetCoreSchemaHandler
 from pydantic_core import CoreSchema, core_schema
-
-if TYPE_CHECKING:
-    from pydantic import GetCoreSchemaHandler
 
 T = TypeVar("T")
 

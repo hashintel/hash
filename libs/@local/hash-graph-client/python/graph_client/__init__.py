@@ -1,10 +1,9 @@
 """Client for the HASH API."""
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Literal, TypeAlias, TypeVar
+from typing import Literal, TypeAlias, TypeVar
 
 import httpx
 from pydantic import BaseModel
+from yarl import URL
 
 from graph_client.models import (
     CreateDataTypeRequest,
@@ -32,9 +31,6 @@ from graph_client.models import (
     UpdateEntityTypeRequest,
     UpdatePropertyTypeRequest,
 )
-
-if TYPE_CHECKING:
-    from yarl import URL
 
 T = TypeVar("T", bound=BaseModel)
 

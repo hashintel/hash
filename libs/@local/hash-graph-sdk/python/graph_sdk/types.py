@@ -1,8 +1,5 @@
 """Create dynamic types from entity, property, and data types via pydantic."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from uuid import UUID
 
 from graph_types import (
     DataTypeSchema,
@@ -23,9 +20,6 @@ from graph_sdk.utils import (
     async_to_sync,
     filter_latest_ontology_types_from_subgraph,
 )
-
-if TYPE_CHECKING:
-    from uuid import UUID
 
 
 class TypeAPI:

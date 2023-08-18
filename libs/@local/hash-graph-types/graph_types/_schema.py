@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable
 from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, TypeVar, cast
+from uuid import UUID
 
 from pydantic import (
     BaseModel,
@@ -13,17 +13,13 @@ from pydantic import (
     create_model,
 )
 from pydantic.fields import FieldInfo
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 
 from ._annotations import not_required
 from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
-    from uuid import UUID
-
-    from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core import CoreSchema
-
     from . import GraphAPIProtocol
 
 
@@ -33,8 +29,8 @@ class Schema(BaseModel, ABC):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
-    ) -> type[BaseModel] | Annotated[Any, ...]:  # noqa: ANN401
+        graph: "GraphAPIProtocol",
+    ) -> type[BaseModel] | Annotated[Any, ...]:
         ...
 
 
@@ -67,7 +63,7 @@ class OneOf(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> object:
         types = await asyncio.gather(
             *[
@@ -109,7 +105,7 @@ class Array(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[list[BaseModel]]:
         type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
 
@@ -134,7 +130,7 @@ class Object(Schema, Generic[T]):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[BaseModel]:
         async def async_value(
             key: str,

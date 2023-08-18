@@ -1,15 +1,11 @@
 """Base and generic classes for query paths."""
-from __future__ import annotations
-
 from abc import ABC
-from typing import TYPE_CHECKING, Generic, Self, TypeVar
+from typing import Generic, Self, TypeVar
 
+from graph_client import QueryToken
 from graph_client.models import Selector
 
 from graph_sdk.query import Path
-
-if TYPE_CHECKING:
-    from graph_client import QueryToken
 
 
 class AbstractQueryPath(ABC):

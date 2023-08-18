@@ -1,8 +1,8 @@
 """Concurrent (async) client for the HASH API."""
-from __future__ import annotations
-
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Self, TypeVar
+from typing import Self, TypeVar
+from uuid import UUID
 
 from graph_client import GraphClient as LowLevelClient
 from graph_client.models import (
@@ -32,19 +32,13 @@ from graph_client.models import (
     UpdatePropertyTypeRequest,
     VersionedURL,
 )
+from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
 from pydantic_core._pydantic_core import Url
+from yarl import URL
 
 from graph_sdk.client._compat import recast
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
-    from uuid import UUID
-
-    from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
-    from yarl import URL
-
-    from graph_sdk.options import Options
-    from graph_sdk.query import BaseFilter
+from graph_sdk.options import Options
+from graph_sdk.query import BaseFilter
 
 T = TypeVar("T")
 
@@ -59,7 +53,7 @@ def assert_not_none(value: T | None) -> T:
 
 
 @contextmanager
-def with_actor(client: HASHClient, actor: UUID) -> Generator[None, None, None]:
+def with_actor(client: "HASHClient", actor: UUID) -> Generator[None, None, None]:
     """Context manager for setting the actor on the client."""
     old_actor = client.actor
     client.actor = actor

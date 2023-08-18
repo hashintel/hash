@@ -14,21 +14,12 @@ and `BaseFilter.not_equal()` respectively.
 To create a filter that will always match use `BaseFilter.always()`.
 Use `BaseFilter.never()` to create a filter that will never match.
 """
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Never,
-    Protocol,
-    Self,
-    TypeVar,
-    assert_never,
-)
+from typing import Any, Generic, Never, Protocol, Self, TypeVar, assert_never
 
+from graph_client import QueryToken
 from graph_client.models import (
     AllFilter,
     AnyFilter,
@@ -43,12 +34,7 @@ from graph_client.models import (
     PathExpression,
     StartsWithFilter,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from graph_client import QueryToken
-    from pydantic import BaseModel
+from pydantic import BaseModel
 
 
 class FFIConversionProtocol(Protocol):
@@ -93,11 +79,11 @@ class BaseFilter(ABC):
     def all_(
         self,
         other: Sequence[F],
-    ) -> NaryFilter[Self | F]:
+    ) -> "NaryFilter[Self | F]":
         """Combines two or more queries with an AND."""
         return NaryFilter(NaryOperation.ALL, [self, *other])
 
-    def __and__(self, other: F) -> NaryFilter[Self | F]:
+    def __and__(self, other: F) -> "NaryFilter[Self | F]":
         """Combines two queries with an AND."""
         if isinstance(other, BaseFilter):
             return self.all_((other,))
@@ -109,11 +95,11 @@ class BaseFilter(ABC):
     def any_(
         self,
         other: Sequence[F],
-    ) -> NaryFilter[Self | F]:
+    ) -> "NaryFilter[Self | F]":
         """Combines two or more queries with an OR."""
         return NaryFilter(NaryOperation.ANY, [self, *other])
 
-    def __or__(self, other: F) -> NaryFilter[Self | F]:
+    def __or__(self, other: F) -> "NaryFilter[Self | F]":
         """Combines two queries with an OR."""
         if isinstance(other, BaseFilter):
             return self.any_((other,))
@@ -122,16 +108,16 @@ class BaseFilter(ABC):
         msg = f"unsupported operand type(s) for |: '{type(self)}' and '{type(other)}'"
         raise TypeError(msg)
 
-    def not_(self) -> UnaryFilter[Self]:
+    def not_(self) -> "UnaryFilter[Self]":
         """Negates the query."""
         return UnaryFilter(UnaryOperation.NOT, self)
 
-    def __invert__(self) -> UnaryFilter[Self]:
+    def __invert__(self) -> "UnaryFilter[Self]":
         """Negates the query."""
         return self.not_()
 
     @classmethod
-    def always(cls) -> NaryFilter[Never]:
+    def always(cls) -> "NaryFilter[Never]":
         """Returns a query that always returns true.
 
         Warning:
@@ -145,7 +131,7 @@ class BaseFilter(ABC):
         return NaryFilter(NaryOperation.ALL, [])
 
     @classmethod
-    def never(cls) -> NaryFilter[Never]:
+    def never(cls) -> "NaryFilter[Never]":
         """Returns a query that always returns false."""
         return NaryFilter(NaryOperation.ANY, [])
 

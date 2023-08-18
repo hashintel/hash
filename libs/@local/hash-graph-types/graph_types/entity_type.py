@@ -1,7 +1,5 @@
 """An entity type schema as defined by the Block Protocol."""
 
-from __future__ import annotations
-
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -10,6 +8,7 @@ from typing import (
     Never,
     cast,
 )
+from uuid import UUID
 
 from pydantic import (
     BaseModel,
@@ -25,8 +24,6 @@ from .base import EntityType, EntityTypeInfo
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
-    from uuid import UUID
-
     from . import GraphAPIProtocol
 
 __all__ = ["EntityTypeSchema", "EntityTypeReference"]
@@ -36,7 +33,7 @@ async def fetch_model(
     ref: str,
     *,
     actor_id: UUID,
-    graph: GraphAPIProtocol,
+    graph: "GraphAPIProtocol",
 ) -> type[EntityType]:
     schema = await graph.get_entity_type(ref, actor_id=actor_id)
     return await schema.create_entity_type(actor_id=actor_id, graph=graph)
@@ -52,7 +49,7 @@ class EntityTypeReference(Schema):
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[EntityType]:
         """Creates a model from the referenced entity type schema."""
         return await self.cache.get(
@@ -64,7 +61,7 @@ class EntityTypeReference(Schema):
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID, graph: GraphAPIProtocol) -> Never:
+    async def create_model(self, *, actor_id: UUID, graph: "GraphAPIProtocol") -> Never:
         raise NotImplementedError
 
 
@@ -94,7 +91,7 @@ class EntityTypeSchema(
         self,
         *,
         actor_id: UUID,
-        graph: GraphAPIProtocol,
+        graph: "GraphAPIProtocol",
     ) -> type[EntityType]:
         """Create an annotated type from this schema."""
         # Take the fields from Object and create a new model, with a new baseclass.
