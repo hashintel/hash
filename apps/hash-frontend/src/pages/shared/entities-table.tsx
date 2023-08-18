@@ -125,7 +125,11 @@ export const EntitiesTable: FunctionComponent<{
                 icon: "bpAsterisk",
                 value: row.entity,
                 onClick: () =>
-                  router.push(`/${row.namespace}/entities/${row.entityId}`),
+                  router.push(
+                    isViewingPages
+                      ? `/${row.namespace}/${row.entityId}`
+                      : `/${row.namespace}/entities/${row.entityId}`,
+                  ),
               },
             };
           } else if (columnId === "archived") {
@@ -177,7 +181,7 @@ export const EntitiesTable: FunctionComponent<{
 
         return blankCell;
       },
-    [columns, router],
+    [columns, router, isViewingPages],
   );
 
   return (
