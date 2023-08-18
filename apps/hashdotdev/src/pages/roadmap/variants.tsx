@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 
-import { FaIcon } from "../../components/icons/fa-icon";
+import { ServerRegularIcon } from "../../components/icons/server-regular-icon";
+import { SparklesRegularIcon } from "../../components/icons/sparkles-regular-icon";
+import { VialRegularIcon } from "../../components/icons/vial-regular-icon";
 import { BlockProtocolIcon } from "./block-protocol-icon";
 
 export type VariantId =
@@ -24,16 +26,16 @@ export const variants: Variant[] = [
   {
     id: "infrastructure",
     name: "Infrastructure",
-    icon: <FaIcon name="server" type="regular" />,
+    icon: <ServerRegularIcon />,
   },
   {
     id: "feature",
     name: "Feature",
-    icon: <FaIcon name="sparkles" type="regular" />,
+    icon: <SparklesRegularIcon />,
   },
   {
     id: "experiment",
     name: "Experiment",
-    icon: <FaIcon name="vial" type="regular" />,
+    icon: <VialRegularIcon />,
   },
 ];
