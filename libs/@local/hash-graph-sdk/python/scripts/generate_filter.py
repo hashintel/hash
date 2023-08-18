@@ -109,7 +109,7 @@ def to_snake_case(name: str) -> str:
 
 
 def get_class_name(
-    name: Literal["data_type", "property_type", "entity_type", "entity"]
+    name: Literal["data_type", "property_type", "entity_type", "entity"],
 ) -> str:
     """Get the class name for the given name."""
     return {
@@ -206,8 +206,8 @@ def generate_method_docstring(
             value=(
                 f"Return the path to the {name} attribute "
                 f"of {get_human_readable_name(token)}."
-            )
-        )
+            ),
+        ),
     )
 
 
@@ -225,7 +225,7 @@ def generate_method_argument_body(args: dict[str, Argument]) -> list[ast.stmt]:
         ast.Assign(
             [ast.Name(id="args", ctx=ast.Store())],
             ast.List(elts=[], ctx=ast.Load()),
-        )
+        ),
     ]
 
     for name, info in args.items():
@@ -235,7 +235,7 @@ def generate_method_argument_body(args: dict[str, Argument]) -> list[ast.stmt]:
             values=[
                 ast.Constant(value=f"{name}="),
                 ast.FormattedValue(value=variable, conversion=-1, format_spec=None),
-            ]
+            ],
         )
 
         if info["required"]:
@@ -245,8 +245,8 @@ def generate_method_argument_body(args: dict[str, Argument]) -> list[ast.stmt]:
                         func=load_attribute(["args", "append"]),
                         args=[append_value],
                         keywords=[],
-                    )
-                )
+                    ),
+                ),
             )
         else:
             statements.append(
@@ -262,8 +262,8 @@ def generate_method_argument_body(args: dict[str, Argument]) -> list[ast.stmt]:
                                 func=load_attribute(["args", "append"]),
                                 args=[append_value],
                                 keywords=[],
-                            )
-                        )
+                            ),
+                        ),
                     ],
                     orelse=[],
                 ),
@@ -310,17 +310,19 @@ def generate_push_call(token: Enum, name: str, args: dict[str, Argument]) -> ast
                             format_spec=None,
                         ),
                         ast.Constant(value=")"),
-                    ]
+                    ],
                 ),
                 orelse=load_attribute([type(token).__name__, name]),
-            )
+            ),
         ],
         keywords=[],
     )
 
 
 def generate_plain_method(
-    token: Enum, name: str, args: dict[str, Argument]
+    token: Enum,
+    name: str,
+    args: dict[str, Argument],
 ) -> ast.FunctionDef:
     """Generate a method that ends the path."""
     function_name = name
@@ -374,7 +376,8 @@ def generate_selector_method(
                             func=ast.Attribute(
                                 value=ast.Subscript(
                                     value=ast.Name(
-                                        id="SelectorQueryPath", ctx=ast.Load()
+                                        id="SelectorQueryPath",
+                                        ctx=ast.Load(),
                                     ),
                                     slice=ast.Name(id=next_class_name, ctx=ast.Load()),
                                 ),
@@ -389,7 +392,7 @@ def generate_selector_method(
                     ),
                     args=[next_class_name_set],
                     keywords=[],
-                )
+                ),
             ),
         ],
         args=args,
@@ -420,7 +423,7 @@ def generate_untyped_method(
                     func=load_attribute(["UntypedQueryPath", "from_path"]),
                     args=[generate_push_call(token, name, args)],
                     keywords=[],
-                )
+                ),
             ),
         ],
         args=args,
@@ -457,7 +460,7 @@ def generate_direct_method(
                     func=load_attribute([call_from_path_on, "from_path"]),
                     args=[generate_push_call(token, name, args)],
                     keywords=[],
-                )
+                ),
             ),
         ],
         args=args,
@@ -525,8 +528,8 @@ def generate_path(
                     value=(
                         "A query path for"
                         f" {get_human_readable_name(next(iter(tokens)))}."
-                    )
-                )
+                    ),
+                ),
             ),
             *body,
         ],
@@ -576,13 +579,13 @@ def doc_comment() -> ast.Expr:
             value=(
                 "Definitions for all path objects.\n\nThis file is auto-generated. Do"
                 " not edit!"
-            )
-        )
+            ),
+        ),
     )
 
 
 configuration: Configuration = json.loads(
-    (DIRECTORY / "graph_sdk" / "filter" / "config.json").read_text()
+    (DIRECTORY / "graph_sdk" / "filter" / "config.json").read_text(),
 )
 
 
@@ -592,10 +595,14 @@ module = ast.Module(
         *imports(),
         generate_path("data_type", configuration["data_type"], configuration["meta"]),
         generate_path(
-            "property_type", configuration["property_type"], configuration["meta"]
+            "property_type",
+            configuration["property_type"],
+            configuration["meta"],
         ),
         generate_path(
-            "entity_type", configuration["entity_type"], configuration["meta"]
+            "entity_type",
+            configuration["entity_type"],
+            configuration["meta"],
         ),
         generate_path("entity", configuration["entity"], configuration["meta"]),
     ],
