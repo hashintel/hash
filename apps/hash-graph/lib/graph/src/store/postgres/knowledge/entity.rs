@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::GenericClient;
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 
@@ -125,22 +125,24 @@ impl<C: AsClient> PostgresStore<C> {
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(self.read_shared_edges(&traversal_data).await?.flat_map(
-                    |edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+                entity_type_queue.extend(
+                    self.read_shared_edges(&traversal_data, Some(0))
+                        .await?
+                        .flat_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                SharedEdgeKind::IsOfType,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
 
-                        traversal_context.add_entity_type_id(
-                            edge.right_endpoint_ontology_id,
-                            edge.resolve_depths,
-                            edge.traversal_interval,
-                        )
-                    },
-                ));
+                            traversal_context.add_entity_type_id(
+                                edge.right_endpoint_ontology_id,
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                        }),
+                );
             }
 
             for (edge_kind, edge_direction, table) in entity_edges {
@@ -224,79 +226,155 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
         };
 
-        let entity_type_ontology_id = self
-            .ontology_id_by_url(&entity_type_id)
-            .await
-            .change_context(InsertionError)?;
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let row = self
+        transaction
             .as_client()
-            .query_one(
+            .query(
                 r#"
-                SELECT
-                    entity_edition_id,
-                    decision_time,
-                    transaction_time
-                FROM
-                    create_entity(
-                        _owned_by_id := $1,
-                        _entity_uuid := $2,
-                        _decision_time := $3,
-                        _record_created_by_id := $4,
-                        _archived := $5,
-                        _entity_type_ontology_id := $6,
-                        _properties := $7,
-                        _left_owned_by_id := $8,
-                        _left_entity_uuid := $9,
-                        _right_owned_by_id := $10,
-                        _right_entity_uuid := $11,
-                        _left_to_right_order := $12,
-                        _right_to_left_order := $13
-                    );
+                    INSERT INTO entity_ids (owned_by_id, entity_uuid)
+                    VALUES ($1, $2);
                 "#,
-                &[
-                    &entity_id.owned_by_id,
-                    &entity_id.entity_uuid,
-                    &decision_time,
-                    &record_created_by_id,
-                    &archived,
-                    &entity_type_ontology_id,
-                    &properties,
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id.owned_by_id),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.left_entity_id.entity_uuid),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id.owned_by_id),
-                    &link_data
-                        .as_ref()
-                        .map(|metadata| metadata.right_entity_id.entity_uuid),
-                    &link_data
-                        .as_ref()
-                        .map(|link_data| link_data.order.left_to_right),
-                    &link_data
-                        .as_ref()
-                        .map(|link_data| link_data.order.right_to_left),
-                ],
+                &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
 
+        let link_order = if let Some(link_data) = link_data {
+            transaction
+                .as_client()
+                .query(
+                    r#"
+                        INSERT INTO entity_has_left_entity (
+                            owned_by_id,
+                            entity_uuid,
+                            left_owned_by_id,
+                            left_entity_uuid
+                        ) VALUES ($1, $2, $3, $4);
+                    "#,
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &link_data.left_entity_id.owned_by_id,
+                        &link_data.left_entity_id.entity_uuid,
+                    ],
+                )
+                .await
+                .into_report()
+                .change_context(InsertionError)?;
+
+            transaction
+                .as_client()
+                .query(
+                    r#"
+                        INSERT INTO entity_has_right_entity (
+                            owned_by_id,
+                            entity_uuid,
+                            right_owned_by_id,
+                            right_entity_uuid
+                        ) VALUES ($1, $2, $3, $4);
+                    "#,
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &link_data.right_entity_id.owned_by_id,
+                        &link_data.right_entity_id.entity_uuid,
+                    ],
+                )
+                .await
+                .into_report()
+                .change_context(InsertionError)?;
+
+            link_data.order
+        } else {
+            EntityLinkOrder {
+                left_to_right: None,
+                right_to_left: None,
+            }
+        };
+
+        let edition_id = transaction
+            .insert_entity_edition(
+                record_created_by_id,
+                archived,
+                &entity_type_id,
+                properties,
+                link_order,
+            )
+            .await?;
+
+        let row = if let Some(decision_time) = decision_time {
+            transaction
+                .as_client()
+                .query_one(
+                    r#"
+                    INSERT INTO entity_temporal_metadata (
+                        owned_by_id,
+                        entity_uuid,
+                        entity_edition_id,
+                        decision_time,
+                        transaction_time
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        tstzrange($4, NULL, '[)'),
+                        tstzrange(now(), NULL, '[)')
+                    ) RETURNING decision_time, transaction_time;
+                "#,
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &edition_id,
+                        &decision_time,
+                    ],
+                )
+                .await
+                .into_report()
+                .change_context(InsertionError)?
+        } else {
+            transaction
+                .as_client()
+                .query_one(
+                    r#"
+                    INSERT INTO entity_temporal_metadata (
+                        owned_by_id,
+                        entity_uuid,
+                        entity_edition_id,
+                        decision_time,
+                        transaction_time
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        tstzrange(now(), NULL, '[)'),
+                        tstzrange(now(), NULL, '[)')
+                    ) RETURNING decision_time, transaction_time;
+                "#,
+                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
+                )
+                .await
+                .into_report()
+                .change_context(InsertionError)?
+        };
+
+        transaction.commit().await.change_context(InsertionError)?;
+
         Ok(EntityMetadata::new(
             EntityRecordId {
                 entity_id,
-                edition_id: EntityEditionId::new(row.get(0)),
+                edition_id,
             },
             EntityTemporalMetadata {
-                decision_time: row.get(1),
-                transaction_time: row.get(2),
+                decision_time: row.get(0),
+                transaction_time: row.get(1),
             },
             entity_type_id,
-            ProvenanceMetadata::new(record_created_by_id),
+            ProvenanceMetadata {
+                record_created_by_id,
+                record_archived_by_id: None,
+            },
             archived,
         ))
     }
@@ -415,7 +493,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     },
                     entity_version,
                     entity_type_id.clone(),
-                    ProvenanceMetadata::new(actor_id),
+                    ProvenanceMetadata {
+                        record_created_by_id: actor_id,
+                        record_archived_by_id: None,
+                    },
                     false,
                 )
             })
@@ -490,14 +571,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
-        let entity_type_ontology_id = self
-            .ontology_id_by_url(&entity_type_id)
-            .await
-            .change_context(UpdateError)?;
-
-        // The transaction is required to check if the update happened. If there is no returned
-        // row, it either means, that there was no entity with that parameters or a race condition
-        // happened.
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         if transaction
@@ -519,34 +592,116 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
-        let row = transaction
+        let edition_id = transaction
+            .insert_entity_edition(
+                record_created_by_id,
+                archived,
+                &entity_type_id,
+                properties,
+                link_order,
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        // Calling `UPDATE` on `entity_temporal_metadata` will invoke a trigger that properly
+        // updates the temporal versioning of the entity.
+        let optional_row = if let Some(decision_time) = decision_time {
+            transaction
+                .as_client()
+                .query_opt(
+                    r#"
+                        UPDATE entity_temporal_metadata
+                        SET decision_time = tstzrange($4, upper(decision_time), '[)'),
+                            transaction_time = tstzrange(now(), NULL, '[)'),
+                            entity_edition_id = $3
+                        WHERE owned_by_id = $1
+                          AND entity_uuid = $2
+                          AND decision_time @> $4::TIMESTAMPTZ
+                          AND transaction_time @> now()
+                        RETURNING decision_time, transaction_time;
+                    "#,
+                    &[
+                        &entity_id.owned_by_id,
+                        &entity_id.entity_uuid,
+                        &edition_id,
+                        &decision_time,
+                    ],
+                )
+                .await
+        } else {
+            transaction
+                .as_client()
+                .query_opt(
+                    r#"
+                        UPDATE entity_temporal_metadata
+                        SET decision_time = tstzrange(now(), upper(decision_time), '[)'),
+                            transaction_time = tstzrange(now(), NULL, '[)'),
+                            entity_edition_id = $3
+                        WHERE owned_by_id = $1
+                          AND entity_uuid = $2
+                          AND decision_time @> now()
+                          AND transaction_time @> now()
+                        RETURNING decision_time, transaction_time;
+                    "#,
+                    &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
+                )
+                .await
+        }
+        .into_report()
+        .change_context(UpdateError)?;
+        let row = optional_row.ok_or_else(|| {
+            Report::new(RaceConditionOnUpdate)
+                .attach(entity_id)
+                .change_context(UpdateError)
+        })?;
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        Ok(EntityMetadata::new(
+            EntityRecordId {
+                entity_id,
+                edition_id,
+            },
+            EntityTemporalMetadata {
+                decision_time: row.get(0),
+                transaction_time: row.get(1),
+            },
+            entity_type_id,
+            ProvenanceMetadata {
+                record_created_by_id,
+                record_archived_by_id: None,
+            },
+            archived,
+        ))
+    }
+}
+
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    async fn insert_entity_edition(
+        &self,
+        record_created_by_id: RecordCreatedById,
+        archived: bool,
+        entity_type_id: &VersionedUrl,
+        properties: EntityProperties,
+        link_order: EntityLinkOrder,
+    ) -> Result<EntityEditionId, InsertionError> {
+        let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
                 r#"
-                SELECT
-                    entity_edition_id,
-                    decision_time,
-                    transaction_time
-                FROM
-                    update_entity(
-                        _owned_by_id := $1,
-                        _entity_uuid := $2,
-                        _decision_time := $3,
-                        _record_created_by_id := $4,
-                        _archived := $5,
-                        _entity_type_ontology_id := $6,
-                        _properties := $7,
-                        _left_to_right_order := $8,
-                        _right_to_left_order := $9
-                    );
+                    INSERT INTO entity_editions (
+                        entity_edition_id,
+                        record_created_by_id,
+                        archived,
+                        properties,
+                        left_to_right_order,
+                        right_to_left_order
+                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+                    RETURNING entity_edition_id;
                 "#,
                 &[
-                    &entity_id.owned_by_id,
-                    &entity_id.entity_uuid,
-                    &decision_time,
                     &record_created_by_id,
                     &archived,
-                    &entity_type_ontology_id,
                     &properties,
                     &link_order.left_to_right,
                     &link_order.right_to_left,
@@ -554,28 +709,28 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await
             .into_report()
-            .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::RESTRICT_VIOLATION) => report
-                    .change_context(RaceConditionOnUpdate)
-                    .attach(entity_id)
-                    .change_context(UpdateError),
-                _ => report.change_context(UpdateError).attach(entity_id),
-            })?;
+            .change_context(InsertionError)?
+            .get(0);
 
-        transaction.commit().await.change_context(UpdateError)?;
+        let entity_type_ontology_id = self
+            .ontology_id_by_url(entity_type_id)
+            .await
+            .change_context(InsertionError)?;
 
-        Ok(EntityMetadata::new(
-            EntityRecordId {
-                entity_id,
-                edition_id: EntityEditionId::new(row.get(0)),
-            },
-            EntityTemporalMetadata {
-                decision_time: row.get(1),
-                transaction_time: row.get(2),
-            },
-            entity_type_id,
-            ProvenanceMetadata::new(record_created_by_id),
-            archived,
-        ))
+        self.as_client()
+            .query(
+                r#"
+                    INSERT INTO entity_is_of_type (
+                        entity_edition_id,
+                        entity_type_ontology_id
+                    ) VALUES ($1, $2);
+                "#,
+                &[&edition_id, &entity_type_ontology_id],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(edition_id)
     }
 }

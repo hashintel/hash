@@ -114,7 +114,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
   a: (props: HTMLProps<HTMLAnchorElement>) => {
     const { href, ref: _ref, ...rest } = props;
     return href ? (
-      <Link {...rest} href={href.replace("https://blockprotocol.org", "")} />
+      <Link {...rest} href={href.replace("https://hash.dev", "")} />
     ) : (
       // eslint-disable-next-line jsx-a11y/anchor-has-content -- special case for creating bookmarks (for cross-linking)
       <a id={props.id} />

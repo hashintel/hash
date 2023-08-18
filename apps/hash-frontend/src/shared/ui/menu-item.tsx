@@ -1,4 +1,5 @@
 import {
+  // eslint-disable-next-line no-restricted-imports
   MenuItem as BaseMenuItem,
   MenuItemProps as BaseMenuItemProps,
 } from "@hashintel/design-system";

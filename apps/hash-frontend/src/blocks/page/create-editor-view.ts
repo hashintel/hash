@@ -197,6 +197,8 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
+      const isInitialPageTitleEmpty = pageTitleRef.current?.value === "";
+
       return new ComponentView(
         node,
         editorView,
@@ -205,6 +207,7 @@ export const createEditorView = (
         block,
         manager,
         readonly,
+        isInitialPageTitleEmpty,
       );
     },
   );

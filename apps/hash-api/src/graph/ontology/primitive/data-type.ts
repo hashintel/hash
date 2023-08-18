@@ -2,9 +2,16 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { DataTypeStructuralQuery } from "@local/hash-graph-client";
+import {
+  DataTypeStructuralQuery,
+  OntologyTemporalMetadata,
+} from "@local/hash-graph-client";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -19,11 +26,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction } from "../..";
 import { getNamespaceOfAccountOwner } from "./util";
 
 /**
@@ -205,4 +208,50 @@ export const updateDataType: ImpureGraphFunction<
     },
     metadata: metadata as OntologyElementMetadata,
   };
+};
+
+/**
+ * Archives a data type
+ *
+ * @param params.dataTypeId - the id of the data type that's being archived
+ * @param params.actorId - the id of the account that is archiving the data type
+ */
+export const archiveDataType: ImpureGraphFunction<
+  {
+    dataTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { dataTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.archiveDataType({
+    typeToArchive: dataTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
+};
+
+/**
+ * Unarchives a data type
+ *
+ * @param params.dataTypeId - the id of the data type that's being unarchived
+ * @param params.actorId - the id of the account that is unarchiving the data type
+ */
+export const unarchiveDataType: ImpureGraphFunction<
+  {
+    dataTypeId: VersionedUrl;
+    actorId: AccountId;
+  },
+  Promise<OntologyTemporalMetadata>
+> = async ({ graphApi }, params) => {
+  const { dataTypeId, actorId } = params;
+
+  const { data: temporalMetadata } = await graphApi.unarchiveDataType({
+    typeToUnarchive: dataTypeId,
+    actorId,
+  });
+
+  return temporalMetadata;
 };

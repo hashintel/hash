@@ -3,7 +3,10 @@ use std::iter::once;
 use crate::{
     ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, DataTypes, JsonField, OntologyIds, ReferenceTable, Relation},
+        table::{
+            Column, DataTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,
+            OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
+        },
         PostgresQueryPath, PostgresRecord, Table,
     },
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
@@ -11,27 +14,23 @@ use crate::{
 
 impl PostgresRecord for DataTypeWithMetadata {
     fn base_table() -> Table {
-        Table::DataTypes
+        Table::OntologyTemporalMetadata
     }
 }
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::VersionedUrl
+            Self::OntologyId
+            | Self::VersionedUrl
             | Self::Title
             | Self::Description
             | Self::Type
-            | Self::OntologyId
-            | Self::Schema(_) => vec![],
-            Self::BaseUrl
-            | Self::Version
-            | Self::TransactionTime
-            | Self::RecordCreatedById
-            | Self::OwnedById
-            | Self::AdditionalMetadata(_) => {
-                vec![Relation::DataTypeIds]
-            }
+            | Self::Schema(_) => vec![Relation::DataTypeIds],
+            Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
+            Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
+            Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
+            Self::TransactionTime | Self::RecordCreatedById | Self::RecordArchivedById => vec![],
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
@@ -49,11 +48,16 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
-            Self::TransactionTime => Column::OntologyIds(OntologyIds::TransactionTime),
-            Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
-                JsonField::StaticText("owned_by_id"),
-            ))),
-            Self::RecordCreatedById => Column::OntologyIds(OntologyIds::RecordCreatedById),
+            Self::TransactionTime => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
+            }
+            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OwnedById),
+            Self::RecordCreatedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordCreatedById)
+            }
+            Self::RecordArchivedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordArchivedById)
+            }
             Self::OntologyId => Column::DataTypes(DataTypes::OntologyId),
             Self::Schema(path) => path
                 .as_ref()
@@ -71,14 +75,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 "description",
             )))),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
-            Self::AdditionalMetadata(path) => path.as_ref().map_or(
-                Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
-                |path| {
-                    Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(JsonField::JsonPath(
-                        path,
-                    ))))
-                },
-            ),
+            Self::AdditionalMetadata => {
+                Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata)
+            }
         }
     }
 }

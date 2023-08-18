@@ -19,14 +19,14 @@ categories = ["rust-patterns", "no-std"]
 
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default_features = false }
-anyhow = { version = "1.0.72", default-features = false, optional = true }
+anyhow = { version = ">=1.0.73", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 serde = { version = "1", default-features = false, optional = true }
 spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
-serde = { version = "1.0.171", features = ["derive"] }
-serde_json = "1.0.103"
+serde = { version = "1.0.183", features = ["derive"] }
+serde_json = "1.0.104"
 futures = { version = "0.3.28", default-features = false, features = ["executor"] }
 trybuild = "1.0.81"
 tracing = "0.1.37"

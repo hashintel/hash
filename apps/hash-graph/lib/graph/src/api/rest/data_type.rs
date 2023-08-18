@@ -2,7 +2,11 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Router};
+use axum::{
+    http::StatusCode,
+    routing::{post, put},
+    Extension, Router,
+};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -19,13 +23,14 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, CustomOntologyMetadata, DataTypeQueryToken, DataTypeWithMetadata,
-        OntologyElementMetadata, OntologyTypeReference,
+        patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
+        PartialOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
-        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
-        StorePool,
+        error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
+        OntologyVersionDoesNotExist, StorePool,
     },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
@@ -36,7 +41,9 @@ use crate::{
         create_data_type,
         load_external_data_type,
         get_data_types_by_query,
-        update_data_type
+        update_data_type,
+        archive_data_type,
+        unarchive_data_type,
     ),
     components(
         schemas(
@@ -47,6 +54,8 @@ use crate::{
             UpdateDataTypeRequest,
             DataTypeQueryToken,
             DataTypeStructuralQuery,
+            ArchiveDataTypeRequest,
+            UnarchiveDataTypeRequest,
         )
     ),
     tags(
@@ -67,7 +76,9 @@ impl RoutedResource for DataTypeResource {
             Router::new()
                 .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
                 .route("/query", post(get_data_types_by_query::<P>))
-                .route("/load", post(load_external_data_type::<P>)),
+                .route("/load", post(load_external_data_type::<P>))
+                .route("/archive", put(archive_data_type::<P>))
+                .route("/unarchive", put(unarchive_data_type::<P>)),
         )
     }
 }
@@ -118,7 +129,7 @@ where
 
     let schema_iter = schema.into_iter();
     let mut data_types = Vec::with_capacity(schema_iter.size_hint().0);
-    let mut metadata = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
         let data_type: DataType = schema.try_into().into_report().map_err(|report| {
@@ -133,11 +144,13 @@ where
             StatusCode::UNPROCESSABLE_ENTITY
         })?;
 
-        metadata.push(OntologyElementMetadata {
+        partial_metadata.push(PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
-            custom: CustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(actor_id),
-                temporal_versioning: None,
+            custom: PartialCustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: actor_id,
+                    record_archived_by_id: None,
+                },
                 owned_by_id,
             },
         });
@@ -145,9 +158,9 @@ where
         data_types.push(data_type);
     }
 
-    store
+    let mut metadata = store
         .create_data_types(
-            data_types.into_iter().zip(metadata.iter()),
+            data_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
         .await
@@ -175,7 +188,7 @@ where
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct LoadExternalDataTypeRequest {
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     data_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
 }
@@ -268,7 +281,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 struct UpdateDataTypeRequest {
     #[schema(value_type = VAR_UPDATE_DATA_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
     actor_id: RecordCreatedById,
 }
@@ -319,6 +332,118 @@ async fn update_data_type<P: StorePool + Send>(
 
             if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ArchiveDataTypeRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    type_to_archive: VersionedUrl,
+    actor_id: RecordArchivedById,
+}
+
+#[utoipa::path(
+    put,
+    path = "/data-types/archive",
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyTemporalMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Data type ID was not found"),
+        (status = 409, description = "Data type ID is already archived"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = ArchiveDataTypeRequest,
+)]
+#[tracing::instrument(level = "info", skip(pool))]
+async fn archive_data_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    body: Json<ArchiveDataTypeRequest>,
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+    let Json(ArchiveDataTypeRequest {
+        type_to_archive,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .archive_data_type(&type_to_archive, actor_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not archive data type");
+
+            if report.contains::<OntologyVersionDoesNotExist>() {
+                return StatusCode::NOT_FOUND;
+            }
+            if report.contains::<VersionedUrlAlreadyExists>() {
+                return StatusCode::CONFLICT;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct UnarchiveDataTypeRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    type_to_unarchive: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    put,
+    path = "/data-types/unarchive",
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The temporal metadata of the updated data type", body = OntologyTemporalMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Data type ID was not found"),
+        (status = 409, description = "Data type ID already exists and is not archived"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UnarchiveDataTypeRequest,
+)]
+#[tracing::instrument(level = "info", skip(pool))]
+async fn unarchive_data_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    body: Json<UnarchiveDataTypeRequest>,
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+    let Json(UnarchiveDataTypeRequest {
+        type_to_unarchive,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .unarchive_data_type(&type_to_unarchive, actor_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not unarchive data type");
+
+            if report.contains::<OntologyVersionDoesNotExist>() {
+                return StatusCode::NOT_FOUND;
+            }
+            if report.contains::<VersionedUrlAlreadyExists>() {
+                return StatusCode::CONFLICT;
             }
 
             // Insertion/update errors are considered internal server errors.

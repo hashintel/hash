@@ -1,28 +1,28 @@
 """A data type schema as defined by the Block Protocol."""
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Any,
     ClassVar,
     Literal,
     TypeAlias,
     assert_never,
+    cast,
 )
 from uuid import UUID
 
 from pydantic import (
+    BaseModel,
     Extra,
     Field,
-    GetCoreSchemaHandler,
-    GetJsonSchemaHandler,
     RootModel,
     create_model,
 )
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema, core_schema
 from slugify import slugify
 
+from ._annotations import constant
+from ._cache import Cache
 from ._schema import OntologyTypeSchema, Schema
+from .base import DataType as DataTypeBase
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
@@ -32,34 +32,34 @@ __all__ = ["DataTypeSchema", "DataTypeReference"]
 DataType: TypeAlias = str | float | bool | None | list[Any] | dict[str, Any]
 
 
+async def fetch_model(
+    ref: str,
+    *,
+    actor_id: UUID,
+    graph: "GraphAPIProtocol",
+) -> type[DataTypeBase]:
+    schema = await graph.get_data_type(ref, actor_id=actor_id)
+    return await schema.create_data_type(actor_id=actor_id, graph=graph)
+
+
 class DataTypeReference(Schema):
     """A reference to a data type schema."""
 
     ref: str = Field(..., alias="$ref")
-    cache: ClassVar[dict[str, type[RootModel]]] = {}
+
+    _cache: ClassVar[Cache[type[DataTypeBase]]] = Cache()
 
     async def create_model(
         self,
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[RootModel]:
+    ) -> type[DataTypeBase]:
         """Creates a model from the referenced data type schema."""
-        if cached := self.cache.get(self.ref):
-            return cached
-
-        schema = await graph.get_data_type(self.ref, actor_id=actor_id)
-
-        model = create_model(
-            slugify(self.ref, regex_pattern=r"[^a-z0-9_]+", separator="_"),
-            __base__=RootModel,
-            root=(
-                await schema.create_data_type(actor_id=actor_id, graph=graph),
-                Field(...),
-            ),
+        return await self._cache.get(
+            self.ref,
+            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
         )
-        self.cache[self.ref] = model
-        return model
 
 
 class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
@@ -96,57 +96,35 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> Annotated[Any, "DataTypeAnnotation"]:
+    ) -> type[DataTypeBase]:
         """Create an annotated type from this schema."""
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
         _graph = graph
 
-        const = self.model_extra.get("const") if self.model_extra else None
+        type_ = self._type()
+        if "const" in (self.model_extra or {}):
+            # `const` can only be in `model_extra`, therefore it is safe to index!
+            const = self.model_extra["const"]  # type: ignore[index]
+            type_ = constant(type_, const)
 
-        # TODO: Use `Field` instead when multiple fields are supported
-        #   https://github.com/pydantic/pydantic/issues/6349
-        #   https://github.com/pydantic/pydantic/issues/6353
-        class DataTypeAnnotation:
-            @classmethod
-            def __get_pydantic_core_schema__(
-                cls,
-                source_type: Any,  # noqa: ANN401
-                handler: GetCoreSchemaHandler,
-            ) -> CoreSchema:
-                schema = handler(source_type)
-                if const is not None:
-                    return core_schema.no_info_after_validator_function(
-                        cls.validate_const,
-                        schema,
-                    )
-                return schema
+        class_name = slugify(
+            self.identifier,
+            regex_pattern=r"[^a-z0-9_]+",
+            separator="_",
+        )
 
-            @classmethod
-            def __get_pydantic_json_schema__(
-                cls,
-                schema: CoreSchema,
-                handler: GetJsonSchemaHandler,
-            ) -> JsonSchemaValue:
-                json_schema = handler(schema)
-                json_schema.update(
-                    **{
-                        "$id": self.identifier,
-                        "$schema": self.schema_url,
-                        "title": self.title,
-                        "description": self.description,
-                        "kind": self.kind,
-                    },
-                )
-                if const is not None:
-                    json_schema.update(const=const)
+        base: type[BaseModel] = type(
+            f"{class_name}Base",
+            (DataTypeBase,),
+            {"info": self.type_info()},
+        )
 
-                return json_schema
-
-            @classmethod
-            def validate_const(cls, v: DataType) -> None:
-                if v != const:
-                    msg = f"Value must be {const}"
-                    raise ValueError(msg)
-
-        return Annotated[self._type(), DataTypeAnnotation]
+        return cast(
+            type[DataTypeBase],
+            create_model(
+                class_name,
+                __base__=(base, RootModel),
+                root=(type_, Field(...)),
+            ),
+        )

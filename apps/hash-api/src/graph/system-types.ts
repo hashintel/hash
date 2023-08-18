@@ -10,6 +10,13 @@ import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
+/**
+ * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
+ * run `yarn generate-system-types` to update their TypeScript representation
+ *
+ * @todo enforce this in CI – H-308
+ */
+
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
   dataType: {};
@@ -32,9 +39,6 @@ export let SYSTEM_TYPES: {
     orgName: PropertyTypeWithMetadata;
     orgSize: PropertyTypeWithMetadata;
     orgProvidedInfo: PropertyTypeWithMetadata;
-
-    // OrgMembership-related
-    responsibility: PropertyTypeWithMetadata;
 
     // Block-related
     componentId: PropertyTypeWithMetadata;
@@ -312,28 +316,10 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.responsibility,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
 const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-  const responsibilityPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(context);
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  return entityTypeInitializer({
-    ...types.linkEntityType.orgMembership,
-    properties: [
-      {
-        propertyType: responsibilityPropertyType,
-        required: true,
-      },
-    ],
-  })(context);
+  return entityTypeInitializer(types.linkEntityType.orgMembership)(context);
 };
 
 const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -375,7 +361,6 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: preferredNamePropertyType,
-        required: true,
       },
     ],
     outgoingLinks: [
@@ -843,8 +828,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
-
-    responsibility: responsibilityPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
 

@@ -1,6 +1,8 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, Modal } from "@hashintel/design-system";
+import { FontAwesomeIcon, Modal } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
+
+import { Button } from "../../../../../../shared/ui";
 
 interface EntityTypeUpdateModalProps {
   open: boolean;

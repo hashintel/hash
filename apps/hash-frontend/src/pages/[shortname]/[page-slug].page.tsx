@@ -6,8 +6,13 @@ import {
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
+  Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
@@ -17,22 +22,16 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { alpha, Box, Collapse } from "@mui/material";
+import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import { Router, useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-// import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
-// import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
-// import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
 import { PageBlock } from "../../blocks/page/page-block";
-import {
-  PageContextProvider,
-  usePageContext,
-} from "../../blocks/page/page-context";
+import { PageContextProvider } from "../../blocks/page/page-context";
 import {
   PageSectionContainer,
   PageSectionContainerProps,
@@ -43,7 +42,6 @@ import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/use-account-pages";
-import { useArchivePage } from "../../components/hooks/use-archive-page";
 import { usePageComments } from "../../components/hooks/use-page-comments";
 import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
@@ -67,7 +65,6 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../shared/routing/route-page-info";
-import { Button } from "../../shared/ui/button";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -128,6 +125,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
+        inheritsFrom: { outgoing: 0 },
         isOfType: { outgoing: 0 },
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
@@ -139,10 +137,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntity: entity,
+          userEntity: entity as Entity<UserProperties>,
         })
       : constructMinimalOrg({
-          orgEntity: entity,
+          orgEntity: entity as Entity<OrgProperties>,
         }),
   );
 
@@ -177,54 +175,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
       pageEntityId,
     },
   };
-};
-
-export const PageNotificationBanner = ({
-  archived = false,
-}: {
-  archived: boolean;
-}) => {
-  const { pageEntityId } = usePageContext();
-  const [archivePage] = useArchivePage();
-
-  return (
-    <Collapse in={archived}>
-      <Box
-        sx={({ palette }) => ({
-          color: palette.common.white,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: 1,
-          background: palette.red[60],
-          padding: 1,
-        })}
-      >
-        This page is archived.
-        <Button
-          variant="secondary"
-          sx={({ palette }) => ({
-            marginLeft: 1.5,
-            minWidth: 0,
-            minHeight: 0,
-            paddingY: 0,
-            paddingX: 1.5,
-            background: "transparent",
-            color: palette.common.white,
-            borderColor: palette.common.white,
-            fontWeight: 400,
-            "&:hover": {
-              background: alpha(palette.gray[90], 0.08),
-            },
-          })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
-        >
-          Restore
-        </Button>
-      </Box>
-    </Collapse>
-  );
 };
 
 const generateCrumbsFromPages = ({
@@ -283,7 +233,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const { data: accountPages } = useAccountPages(pageOwnedById);
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -366,30 +316,28 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, archived, contents } = data.page;
+  const { title, icon, contents, metadata, properties } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
 
   return (
     <>
-      <Head>
-        <title>{pageTitle || "Untitled"} | HASH</title>
-
-        {/*
-          Rendering favicon.png again even if it's already defined on _document.page.tsx,
-          because client-side navigation does not fallback to the default icon when visiting a page without an icon
-        */}
-        {icon ? (
-          <link
-            rel="icon"
-            href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
-          ${icon}</text></svg>`}
-          />
-        ) : (
-          <link rel="icon" type="image/png" href="/favicon.png" />
-        )}
-      </Head>
+      <NextSeo
+        key={pageEntityId}
+        title={pageTitle || "Untitled"}
+        additionalLinkTags={
+          icon
+            ? [
+                {
+                  rel: "icon",
+                  href: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
+          ${icon}</text></svg>`,
+                },
+              ]
+            : []
+        }
+      />
 
       <PageContextProvider pageEntityId={pageEntityId}>
         <Box
@@ -401,15 +349,14 @@ const Page: NextPageWithLayout<PageProps> = ({
           })}
         >
           <TopContextBar
+            item={{ metadata, properties }}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
-            isBlockPage
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner archived={!!archived} />
         </Box>
 
         {!canvasPage && (
@@ -501,6 +448,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 Page.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
+    grayBackground: false,
   });
 
 export default Page;

@@ -221,7 +221,6 @@ const SignupPage: NextPageWithLayout = () => {
   const handleAccountSetupSubmit = async (params: {
     shortname: string;
     preferredName: string;
-    responsibility?: string;
   }) => {
     const { shortname, preferredName } = params;
 
@@ -239,8 +238,6 @@ const SignupPage: NextPageWithLayout = () => {
       if (updatedAuthenticatedUser.accountSignupComplete) {
         void router.push("/");
       }
-
-      /** @todo: set responsibility at org if in org invitation flow */
     }
   };
 

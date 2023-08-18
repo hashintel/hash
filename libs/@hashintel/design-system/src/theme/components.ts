@@ -24,6 +24,8 @@ import {
   MuiMenuItemThemeOptions,
   MuiMenuThemeOptions,
 } from "./components/navigation";
+import { MuiTabThemeOptions } from "./components/navigation/mui-tab-theme-options";
+import { MuiTabsThemeOptions } from "./components/navigation/mui-tabs-theme-options";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
 
 export const components: Components<Theme> = {
@@ -52,6 +54,8 @@ export const components: Components<Theme> = {
   MuiDrawer: MuiDrawerThemeOptions,
   MuiMenu: MuiMenuThemeOptions,
   MuiMenuItem: MuiMenuItemThemeOptions,
+  MuiTabs: MuiTabsThemeOptions,
+  MuiTab: MuiTabThemeOptions,
 
   /** ===== LAYOUT ===== */
   /** ===== UTILS ===== */

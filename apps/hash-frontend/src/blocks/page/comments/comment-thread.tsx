@@ -1,4 +1,3 @@
-import { Button } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -16,6 +15,7 @@ import { FunctionComponent, useMemo, useRef, useState } from "react";
 import { useCreateComment } from "../../../components/hooks/use-create-comment";
 import { PageThread } from "../../../components/hooks/use-page-comments";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { Button } from "../../../shared/ui";
 import { CommentActionButtons } from "./comment-action-buttons";
 import { CommentBlock } from "./comment-block";
 import { CommentTextField } from "./comment-text-field";

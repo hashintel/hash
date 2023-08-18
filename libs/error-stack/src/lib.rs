@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-07-31&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-08-15&color=blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -68,20 +68,15 @@
 //! Any [`Error`] can be used as a [`Context`], so it's possible to create [`Report`] from an
 //! existing [`Error`]:
 //!
-//! (For convenience, this crate provides an [`IntoReport`] trait to convert between
-//! [`Err`]-variants)
-//!
 //! ```rust
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! use std::{fs, io, path::Path};
 //!
-//! use error_stack::{IntoReport, Report};
+//! use error_stack::Report;
 //!
 //! // Note: For demonstration purposes this example does not use `error_stack::Result`.
-//! // As can be seen, it's possible to call `IntoReport::report` to easily create a `Report` from
-//! // an `io::Error`
+//! // As can be seen, it's possible to implicitly convert `io::Error` to `Report<io::Error>`
 //! fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-//!     let content = fs::read_to_string(path).into_report()?;
+//!     let content = fs::read_to_string(path)?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
@@ -89,7 +84,6 @@
 //! }
 //! # let report = read_file("test.txt").unwrap_err();
 //! # assert!(report.contains::<io::Error>());
-//! # }
 //! ```
 //!
 //! ## Using and Expanding the Report
@@ -109,9 +103,8 @@
 //! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fmt, fs, io, path::Path};
-//! use error_stack::{Context, IntoReport, Result, ResultExt};
+//! use error_stack::{Context, Result, ResultExt};
 //! # pub type Config = String;
 //!
 //! #[derive(Debug)]
@@ -126,11 +119,9 @@
 //! // It's also possible to implement `Error` instead.
 //! impl Context for ParseConfigError {}
 //!
-//! # #[cfg(all(not(miri), feature = "std"))] {
 //! // For clarification, this example is not using `error_stack::Result`.
 //! fn parse_config(path: impl AsRef<Path>) -> Result<Config, ParseConfigError> {
 //!     let content = fs::read_to_string(path.as_ref())
-//!         .into_report()
 //!         .change_context(ParseConfigError)?;
 //!
 //!     # const _: &str = stringify! {
@@ -140,7 +131,6 @@
 //! # let report = parse_config("test.txt").unwrap_err();
 //! # assert!(report.contains::<io::Error>());
 //! # assert!(report.contains::<ParseConfigError>());
-//! # }
 //! ```
 //!
 //! ### Building up the Report - Attachments
@@ -154,7 +144,7 @@
 //! # // we only test the snapshot on nightly, therefore report is unused (so is render)
 //! # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{Context, IntoReport, Report, ResultExt};
+//! # use error_stack::{Context, Report, ResultExt};
 //! # pub type Config = String;
 //! # #[derive(Debug)] struct ParseConfigError;
 //! # impl ParseConfigError { pub fn new() -> Self { Self } }
@@ -171,7 +161,6 @@
 //!     let path = path.as_ref();
 //!
 //!     let content = fs::read_to_string(path)
-//!         .into_report()
 //!         .change_context(ParseConfigError::new())
 //!         .attach(Suggestion("use a file you can read next time!"))
 //!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
@@ -232,9 +221,8 @@
 //! [`extend_one()`]: Report::extend_one
 //!
 //! ```rust
-//! # #![cfg_attr(not(feature = "std"), allow(dead_code, unused_variables, unused_imports))]
 //! # use std::{fs, path::Path};
-//! # use error_stack::{IntoReport, Report};
+//! # use error_stack::Report;
 //! # pub type Config = String;
 //!
 //! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
@@ -244,15 +232,15 @@
 //!     for path in paths {
 //!         let path = path.as_ref();
 //!
-//!         match fs::read_to_string(path).into_report() {
+//!         match fs::read_to_string(path) {
 //!             Ok(ok) => {
 //!                 configs.push(ok);
 //!             }
 //!             Err(err) => {
 //!                 if let Some(error) = error.as_mut() {
-//!                     error.extend_one(err);
+//!                     error.extend_one(err.into());
 //!                 } else {
-//!                     error = Some(err);
+//!                     error = Some(err.into());
 //!                 }
 //!             }
 //!         }
@@ -401,10 +389,10 @@
 //!
 //! ### Additional Adaptors
 //!
-//! [`ResultExt`] is a convenient wrapper around `Result<_, Report<_>>`. It offers
-//! [`attach`](ResultExt::attach) and [`change_context`](ResultExt::change_context) on the
-//! [`Result`] directly, but also a lazy variant that receives a function which is only called if
-//! an error happens.
+//! [`ResultExt`] is a convenient wrapper around `Result<_, impl Context>` and `Result<_,
+//! Report<impl Context>`. It offers [`attach`](ResultExt::attach) and
+//! [`change_context`](ResultExt::change_context) on the [`Result`] directly, but also a lazy
+//! variant that receives a function which is only called if an error happens.
 //!
 //! In addition to [`ResultExt`], this crate also comes with [`FutureExt`], which provides the same
 //! functionality for [`Future`]s.
@@ -440,10 +428,7 @@
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(
-    nightly,
-    feature(provide_any, error_in_core, error_generic_member_access)
-)]
+#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
@@ -480,6 +465,7 @@ pub use self::{
     result::Result,
 };
 #[doc(inline)]
+#[allow(deprecated)]
 pub use self::{
     future::FutureExt,
     result::{IntoReport, ResultExt},

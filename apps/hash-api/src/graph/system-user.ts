@@ -1,5 +1,9 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
@@ -13,11 +17,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphContext,
-  zeroedGraphResolveDepths,
-} from "./index";
+import { ImpureGraphContext } from "./index";
 import {
   createUser,
   getUserByShortname,

@@ -18,7 +18,7 @@ import {
 
 import { Grid } from "../../../../../components/grid/grid";
 import { BlankCell, blankCell } from "../../../../../components/grid/utils";
-import { EarthIcon } from "../../../../../shared/icons/earth-icon";
+import { EarthAmericasRegularIcon } from "../../../../../shared/icons/earth-americas-regular";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
@@ -134,7 +134,7 @@ export const EntitiesTab: FunctionComponent = () => {
                   <WhiteChip
                     size="xs"
                     label={`${entitiesCount.public} public`}
-                    icon={<EarthIcon />}
+                    icon={<EarthAmericasRegularIcon />}
                   />
                 ) : null}
               </Stack>
@@ -153,8 +153,8 @@ export const EntitiesTab: FunctionComponent = () => {
           <FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
         }
       >
-        <Paper sx={{ overflow: "hidden" }}>
-          {isEmpty ? (
+        {isEmpty ? (
+          <Paper sx={{ overflow: "hidden" }}>
             <SectionEmptyState
               title="There are no entities of this type visible to you"
               titleIcon={
@@ -162,7 +162,13 @@ export const EntitiesTab: FunctionComponent = () => {
               }
               description="Assigning this type to an entity will result in it being shown here"
             />
-          ) : (
+          </Paper>
+        ) : (
+          <Box
+            sx={{
+              height: "50vh",
+            }}
+          >
             <Grid
               showSearch={showSearch}
               onSearchClose={() => setShowSearch(false)}
@@ -171,8 +177,8 @@ export const EntitiesTab: FunctionComponent = () => {
               createGetCellContent={createGetCellContent}
               customRenderers={[renderTextIconCell]}
             />
-          )}
-        </Paper>
+          </Box>
+        )}
       </SectionWrapper>
     </Box>
   );

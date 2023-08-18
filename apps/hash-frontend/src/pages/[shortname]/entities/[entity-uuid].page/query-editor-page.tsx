@@ -1,10 +1,11 @@
-import { GraphResolveDepths, MultiFilter } from "@blockprotocol/graph";
+import { MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
+import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
@@ -12,24 +13,13 @@ import {
   useEntityTypesLoading,
   useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
-import { useLatestPropertyTypesContextValue } from "../../types/entity-type/[...slug-maybe-version].page/shared/use-latest-property-types-context-value";
+import { useLatestPropertyTypes } from "../../../../shared/latest-property-types-context";
 import { QUERY_PROPERTY_TYPE_BASE_URL } from "./create-entity-page";
 import { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-
-const zeroedGraphResolveDepths: GraphResolveDepths = {
-  inheritsFrom: { outgoing: 0 },
-  constrainsValuesOn: { outgoing: 0 },
-  constrainsPropertiesOn: { outgoing: 0 },
-  constrainsLinksOn: { outgoing: 0 },
-  constrainsLinkDestinationsOn: { outgoing: 0 },
-  isOfType: { outgoing: 0 },
-  hasLeftEntity: { incoming: 0, outgoing: 0 },
-  hasRightEntity: { incoming: 0, outgoing: 0 },
-};
 
 interface QueryEditorPageProps extends EntityEditorProps {
   entityLabel: string;
@@ -54,7 +44,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   const [queryEditorKey, setQueryEditorKey] = useState(0);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
-  const { propertyTypes } = useLatestPropertyTypesContextValue();
+  const propertyTypes = useLatestPropertyTypes();
   const entityTypes = useLatestEntityTypesOptional();
   const entityTypesLoading = useEntityTypesLoading();
 
@@ -89,9 +79,8 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
 
   return (
     <>
-      <Head>
-        <title>{entityLabel} | Entity | HASH</title>
-      </Head>
+      <NextSeo title={`${entityLabel} | Entity`} />
+
       <EntityPageWrapper
         header={
           <EntityPageHeader

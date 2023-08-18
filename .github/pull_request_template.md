@@ -34,15 +34,15 @@
 
 This PR:
 
-- [ ] modifies an **npm**-publishable library and **I have added a changeset file(s)**
+- [x] does not modify any publishable blocks or libraries, or modifications do not need publishing
 
-- [ ] modifies a **Cargo**-publishable library and **I have amended the version**
+- [x] modifies an **npm**-publishable library and **I have added a changeset file(s)**
 
-- [ ] modifies a **Cargo**-publishable library, but **it is not yet ready to publish**
+- [x] modifies a **Cargo**-publishable library and **I have amended the version**
 
-- [ ] modifies a **block** that will need publishing via GitHub action once merged
+- [x] modifies a **Cargo**-publishable library, but **it is not yet ready to publish**
 
-- [ ] does not modify any publishable blocks or libraries, or modifications do not need publishing
+- [x] modifies a **block** that will need publishing via GitHub action once merged
 
 - [x] I am unsure / need advice
 
@@ -53,15 +53,15 @@ This PR:
 
 The changes in this PR:
 
-- [ ] are internal and do not require a docs change
+- [x] are internal and do not require a docs change
 
-- [ ] are in a state where docs changes are not _yet_ required but will be
+- [x] are in a state where docs changes are not _yet_ required but will be
 
   - this is tracked in: [Insert Link Here](link)
 
-- [ ] require changes to docs which **are made** as part of this PR
+- [x] require changes to docs which **are made** as part of this PR
 
-- [ ] require changes to docs which are **not** made in this PR
+- [x] require changes to docs which are **not** made in this PR
 
   - _Provide more detail here_
 
@@ -74,9 +74,9 @@ The changes in this PR:
 
 The changes in this PR:
 
-- [ ] affected the execution graph, and the `turbo.json`'s have been updated to reflect this
+- [x] do not affect the execution graph
 
-- [ ] do not affect the execution graph
+- [x] affected the execution graph, and the `turbo.json`'s have been updated to reflect this
 
 - [x] I am unsure / need advice
 

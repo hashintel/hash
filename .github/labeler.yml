@@ -27,16 +27,14 @@
 "area: blocks":
   - "blocks/**"
 
-"area: dependencies":
+"area: deps":
   - "**/patches/**"
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
 "area: infra":
   - "infra/**"
-  - "**/*.json"
   - "**/*.md"
-  - "**/*.yml"
   - "**/.changeset/config.json"
   - "**/.github/**"
   - "**/.*ignore"

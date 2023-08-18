@@ -12,6 +12,10 @@ pub enum Condition {
     Not(Box<Self>),
     Equal(Option<Expression>, Option<Expression>),
     NotEqual(Option<Expression>, Option<Expression>),
+    Less(Expression, Expression),
+    LessOrEqual(Expression, Expression),
+    Greater(Expression, Expression),
+    GreaterOrEqual(Expression, Expression),
     In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
@@ -27,6 +31,7 @@ pub enum EqualityOperator {
 }
 
 impl Transpile for Condition {
+    #[expect(clippy::too_many_lines)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
@@ -82,6 +87,26 @@ impl Transpile for Condition {
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
+            Self::Less(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" < ")?;
+                rhs.transpile(fmt)
+            }
+            Self::LessOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" <= ")?;
+                rhs.transpile(fmt)
+            }
+            Self::Greater(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" > ")?;
+                rhs.transpile(fmt)
+            }
+            Self::GreaterOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" >= ")?;
+                rhs.transpile(fmt)
+            }
             Self::In(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" = ANY(")?;
@@ -132,7 +157,6 @@ mod tests {
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(
@@ -140,8 +164,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes));
+        let mut compiler = SelectCompiler::new(None);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -173,7 +196,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -182,7 +205,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -193,7 +216,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -202,7 +225,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -218,7 +241,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -235,7 +258,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
+            r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -252,7 +275,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -269,7 +292,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"(("ontology_id_with_metadata_0_1_0"."base_url" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
+            r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -286,7 +309,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             ))),
-            r#"NOT("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
     }
@@ -298,7 +321,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'description' = "data_types_0_0_0"."schema"->>'title')"#,
+            r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
             &[],
         );
     }

@@ -12,7 +12,7 @@
 
 use std::{fmt, fs, path::Path};
 
-use error_stack::{Context, IntoReport, Report, ResultExt};
+use error_stack::{Context, Report, ResultExt};
 
 pub type Config = String;
 
@@ -40,7 +40,6 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
     let path = path.as_ref();
 
     let content = fs::read_to_string(path)
-        .into_report()
         .change_context(ParseConfigError::new())
         .attach(Suggestion("use a file you can read next time!"))
         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;

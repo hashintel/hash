@@ -53,28 +53,28 @@ To run HASH locally, please follow these steps:
     ```sh
     git --version
     ## ≥ 2.17
-    
+
     node --version
     ## ≥ 18.15
-    
+
     yarn --version
     ## ≥ 1.16
-    
+
     docker --version
     ## ≥ 20.10
-    
+
     docker compose version
     ## ≥ 2.17.2
-    
+
     docker buildx version
     ## ≥ 0.10.4
-    
+
     java --version
     ## ≥ 8
-    
+
     python --version
     ## ≥ 3.11
-    
+
     poetry --version
     ## ≥ 1.4.2
     ```
@@ -288,6 +288,10 @@ We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work
 [Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
 
 ## Troubleshooting
+
+### Command not found: ruff
+
+Run `yarn poetry:install` before running `yarn lint` or `yarn fix` for the first time.
 
 ### eslint `parserOptions.project`
 

@@ -320,7 +320,7 @@ const main = async () => {
     graphApi,
   );
 
-  integrationSyncBackWatcher.start();
+  void integrationSyncBackWatcher.start();
 
   shutdown.addCleanup(
     "Integration sync back watcher",

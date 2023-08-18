@@ -18,11 +18,12 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import { PageErrorState } from "../../../../components/page-error-state";
+import { isLinkEntityType } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -40,14 +41,10 @@ import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-
 import { EntityTypeEntitiesContext } from "./[...slug-maybe-version].page/shared/entity-type-entities-context";
 import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
-import { LatestPropertyTypesContextProvider } from "./[...slug-maybe-version].page/shared/latest-property-types-context";
 import { useCurrentTab } from "./[...slug-maybe-version].page/shared/tabs";
 import { TypePreviewSlide } from "./[...slug-maybe-version].page/type-preview-slide";
 import { useEntityTypeEntitiesContextValue } from "./[...slug-maybe-version].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[...slug-maybe-version].page/use-entity-type-value";
-
-export const isLinkEntityType = (type: EntityType) =>
-  !!type.allOf?.some((parent) => parent.$ref === linkEntityTypeUrl);
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -70,7 +67,7 @@ const Page: NextPageWithLayout = () => {
     useEntityTypeEntitiesContextValue(baseEntityTypeUrl);
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
@@ -113,17 +110,17 @@ const Page: NextPageWithLayout = () => {
     requestedVersion,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      if (isHrefExternal(fetchedEntityType.$id)) {
+      if (isHrefExternal(fetchedEntityType.schema.$id)) {
         // In the current routing this should never be the case, but this is a marker to handle it when external types exist
-        window.open(fetchedEntityType.$id);
+        window.open(fetchedEntityType.schema.$id);
       }
 
       // Load the initial form data after the entity type has been fetched
-      reset(getFormDataFromSchema(fetchedEntityType));
+      reset(getFormDataFromSchema(fetchedEntityType.schema));
     },
   );
 
-  const entityType = remoteEntityType ?? draftEntityType;
+  const entityType = remoteEntityType?.schema ?? draftEntityType;
 
   const userUnauthorized = useIsReadonlyModeForResource(
     routeNamespace?.accountId,
@@ -224,147 +221,140 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
-      <Head>
-        <title>{entityType.title} | Entity Type | HASH</title>
-      </Head>
+      <NextSeo title={`${entityType.title} | Entity Type`} />
       <EntityTypeFormProvider {...formMethods}>
-        <LatestPropertyTypesContextProvider>
-          <EntityTypeContext.Provider value={entityType}>
-            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <Box display="contents" component="form" onSubmit={handleSubmit}>
-                <TopContextBar
-                  defaultCrumbIcon={null}
-                  crumbs={[
-                    {
-                      title: "Types",
-                      href: "#",
-                      id: "types",
-                    },
-                    {
-                      title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
-                      href: "#",
-                      id: "entity-types",
-                    },
-                    {
-                      title: entityType.title,
-                      href: "#",
-                      id: entityType.$id,
-                      icon: <FontAwesomeIcon icon={faAsterisk} />,
-                    },
-                  ]}
-                  scrollToTop={() => {}}
-                  sx={{ bgcolor: "white" }}
-                />
+        <EntityTypeContext.Provider value={entityType}>
+          <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+            <Box display="contents" component="form" onSubmit={handleSubmit}>
+              <TopContextBar
+                defaultCrumbIcon={null}
+                item={remoteEntityType ?? undefined}
+                crumbs={[
+                  {
+                    title: "Types",
+                    id: "types",
+                  },
+                  {
+                    title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
+                    id: "entity-types",
+                  },
+                  {
+                    title: entityType.title,
+                    href: "#",
+                    id: entityType.$id,
+                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                  },
+                ]}
+                scrollToTop={() => {}}
+                sx={{ bgcolor: "white" }}
+              />
 
-                {!isReadonly && (
-                  <EditBarTypeEditor
-                    currentVersion={currentVersion}
-                    discardButtonProps={
-                      // @todo confirmation of discard when draft
-                      isDraft
-                        ? {
-                            href: `/new/types/entity-type`,
-                          }
-                        : {
-                            onClick() {
-                              reset();
-                            },
-                          }
-                    }
-                  />
-                )}
-
-                <Box
-                  sx={{
-                    borderBottom: 1,
-                    borderColor: "gray.20",
-                    pt: 3.75,
-                    backgroundColor: "white",
-                  }}
-                >
-                  <Container>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="flex-start"
-                    >
-                      <EntityTypeHeader
-                        ontologyChip={
-                          <OntologyChip
-                            icon={<OntologyIcon />}
-                            domain="hash.ai"
-                            path={
-                              <>
-                                <Typography
-                                  component="span"
-                                  fontWeight="bold"
-                                  color={(theme) => theme.palette.blue[70]}
-                                >
-                                  {router.query.shortname}
-                                </Typography>
-                                <Typography
-                                  component="span"
-                                  color={(theme) => theme.palette.blue[70]}
-                                >
-                                  /types/entity-type/
-                                </Typography>
-                                <Typography
-                                  component="span"
-                                  fontWeight="bold"
-                                  color={(theme) => theme.palette.blue[70]}
-                                >
-                                  {slug}
-                                </Typography>
-                                <Typography
-                                  component="span"
-                                  color={(theme) => theme.palette.blue[70]}
-                                >
-                                  /v/{currentVersion}
-                                </Typography>
-                              </>
-                            }
-                          />
+              {!isReadonly && (
+                <EditBarTypeEditor
+                  currentVersion={currentVersion}
+                  discardButtonProps={
+                    // @todo confirmation of discard when draft
+                    isDraft
+                      ? {
+                          href: `/new/types/entity-type`,
                         }
-                        entityType={entityType}
-                        isReadonly={isReadonly}
-                        latestVersion={latestVersion}
-                      />
-                      {!isReadonly && !isDraft && !entityTypeIsLink ? (
-                        <ConvertTypeButton
-                          onClick={convertToLinkType}
-                          loading={convertTypeLoading}
-                          disabled={isDirty}
-                        />
-                      ) : null}
-                    </Box>
+                      : {
+                          onClick() {
+                            reset();
+                          },
+                        }
+                  }
+                />
+              )}
 
-                    <EntityTypeTabs isDraft={isDraft} />
-                  </Container>
-                </Box>
-
-                <Box py={5}>
-                  <Container>
-                    {currentTab === "definition" ? (
-                      entityTypeAndPropertyTypes ? (
-                        <DefinitionTab
-                          entityTypeAndPropertyTypes={
-                            entityTypeAndPropertyTypes
+              <Box
+                sx={{
+                  borderBottom: 1,
+                  borderColor: "gray.20",
+                  pt: 3.75,
+                  backgroundColor: "white",
+                }}
+              >
+                <Container>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                  >
+                    <EntityTypeHeader
+                      ontologyChip={
+                        <OntologyChip
+                          icon={<OntologyIcon />}
+                          domain="hash.ai"
+                          path={
+                            <>
+                              <Typography
+                                component="span"
+                                fontWeight="bold"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                {router.query.shortname}
+                              </Typography>
+                              <Typography
+                                component="span"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                /types/entity-type/
+                              </Typography>
+                              <Typography
+                                component="span"
+                                fontWeight="bold"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                {slug}
+                              </Typography>
+                              <Typography
+                                component="span"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                /v/{currentVersion}
+                              </Typography>
+                            </>
                           }
-                          onNavigateToType={onNavigateToType}
-                          ownedById={routeNamespace.accountId as OwnedById}
-                          readonly={isReadonly}
                         />
-                      ) : (
-                        "Loading..."
-                      )
+                      }
+                      entityType={entityType}
+                      isReadonly={isReadonly}
+                      latestVersion={latestVersion}
+                    />
+                    {!isReadonly && !isDraft && !entityTypeIsLink ? (
+                      <ConvertTypeButton
+                        onClick={convertToLinkType}
+                        loading={convertTypeLoading}
+                        disabled={isDirty}
+                      />
                     ) : null}
-                    {currentTab === "entities" ? <EntitiesTab /> : null}
-                  </Container>
-                </Box>
+                  </Box>
+
+                  <EntityTypeTabs isDraft={isDraft} />
+                </Container>
               </Box>
-            </EntityTypeEntitiesContext.Provider>
-          </EntityTypeContext.Provider>
-        </LatestPropertyTypesContextProvider>
+
+              <Box py={5}>
+                <Container>
+                  {currentTab === "definition" ? (
+                    entityTypeAndPropertyTypes ? (
+                      <DefinitionTab
+                        entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+                        onNavigateToType={onNavigateToType}
+                        ownedById={routeNamespace.accountId as OwnedById}
+                        readonly={isReadonly}
+                      />
+                    ) : (
+                      "Loading..."
+                    )
+                  ) : null}
+                  {currentTab === "entities" ? <EntitiesTab /> : null}
+                </Container>
+              </Box>
+            </Box>
+          </EntityTypeEntitiesContext.Provider>
+        </EntityTypeContext.Provider>
       </EntityTypeFormProvider>
 
       {previewEntityTypeUrl ? (

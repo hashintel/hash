@@ -1,7 +1,5 @@
 #[cfg(nightly)]
-use core::any::Demand;
-#[cfg(nightly)]
-use core::error::Error;
+use core::error::{Error, Request};
 use core::fmt;
 #[cfg(all(not(nightly), feature = "std"))]
 use std::error::Error;
@@ -13,17 +11,14 @@ use crate::Report;
 /// When in a `std` environment or on a nightly toolchain, every [`Error`] is a valid `Context`.
 /// This trait is not limited to [`Error`]s and can also be manually implemented on a type.
 ///
-/// [`Error`]: core::error::Error
-///
 /// ## Example
 ///
 /// Used for creating a [`Report`] or for switching the [`Report`]'s context:
 ///
 /// ```rust
-/// # #![cfg_attr(any(not(feature = "std"), miri), allow(unused_imports))]
 /// use std::{fmt, fs, io};
 ///
-/// use error_stack::{Context, IntoReport, Result, ResultExt};
+/// use error_stack::{Context, Result, ResultExt, Report};
 ///
 /// # type Config = ();
 /// #[derive(Debug)]
@@ -32,7 +27,7 @@ use crate::Report;
 /// }
 ///
 /// impl fmt::Display for ConfigError {
-///     # #[allow(unused_variables)]
+///     # #[allow(unused_variables)] // `fmt` is not used in this example
 ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///         # const _: &str = stringify! {
 ///         ...
@@ -44,12 +39,9 @@ use crate::Report;
 /// // `Context` manually.
 /// impl Context for ConfigError {}
 ///
-/// # #[cfg(any(not(feature = "std"), miri))]
-/// # pub fn read_file(_: &str) -> Result<String, ConfigError> { error_stack::bail!(ConfigError::ParseError) }
-/// # #[cfg(all(feature = "std", not(miri)))]
 /// pub fn read_file(path: &str) -> Result<String, io::Error> {
 ///     // Creates a `Report` from `io::Error`, the current context is `io::Error`
-///     fs::read_to_string(path).into_report()
+///     fs::read_to_string(path).map_err(Report::from)
 /// }
 ///
 /// pub fn parse_config(path: &str) -> Result<Config, ConfigError> {
@@ -62,7 +54,6 @@ use crate::Report;
 ///     # }; Ok(())
 /// }
 /// # let err = parse_config("invalid-path").unwrap_err();
-/// # #[cfg(all(feature = "std", not(miri)))]
 /// # assert!(err.contains::<io::Error>());
 /// # assert!(err.contains::<ConfigError>());
 /// ```
@@ -70,7 +61,7 @@ pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
     #[cfg(nightly)]
     #[allow(unused_variables)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {}
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {}
 }
 
 impl<C> From<C> for Report<C>
@@ -87,7 +78,7 @@ where
 #[cfg(any(nightly, feature = "std"))]
 impl<C: Error + Send + Sync + 'static> Context for C {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        Error::provide(self, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        Error::provide(self, request);
     }
 }

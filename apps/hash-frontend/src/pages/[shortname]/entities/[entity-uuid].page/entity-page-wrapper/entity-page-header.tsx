@@ -37,7 +37,6 @@ export const EntityPageHeader = ({
         crumbs={[
           {
             title: "Entities",
-            href: `/@${shortname}/entities`,
             id: "entities",
           },
           {
@@ -52,7 +51,10 @@ export const EntityPageHeader = ({
 
       {editBar}
 
-      <Box py={3.75}>
+      <Box
+        py={3.75}
+        sx={({ palette }) => ({ background: palette.common.white })}
+      >
         <Container>
           {chip}
           <Stack

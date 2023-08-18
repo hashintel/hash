@@ -1,9 +1,6 @@
-use core::fmt;
 #[cfg(nightly)]
-use core::{
-    any::{Demand, Provider},
-    error::Error,
-};
+use core::error::{Error, Request};
+use core::fmt;
 #[cfg(not(nightly))]
 use std::error::Error;
 
@@ -37,7 +34,9 @@ impl<C> fmt::Display for ReportError<C> {
 
 impl<C> Error for ReportError<C> {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        self.0.frames().for_each(|frame| frame.provide(demand));
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        self.0
+            .frames()
+            .for_each(|frame| frame.as_error().provide(request));
     }
 }

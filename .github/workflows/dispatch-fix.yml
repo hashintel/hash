@@ -6,17 +6,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
 
       - name: Warm up repo
         uses: ./.github/actions/warm-up-repo
+
+      - name: Setup python
+        run: yarn poetry:install
 
       - name: Fix
         run: yarn fix
 
       - name: Commit
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name HASH
+          git config user.email careers@hash.dev
           git add .
           git commit -m '`yarn fix`'
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}

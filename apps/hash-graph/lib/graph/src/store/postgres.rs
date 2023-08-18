@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use time::OffsetDateTime;
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -26,9 +26,13 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
+        time::{LeftClosedTemporalInterval, TransactionTime},
     },
-    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    ontology::{
+        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        PartialCustomOntologyMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         postgres::ontology::{OntologyDatabaseType, OntologyId},
@@ -51,6 +55,12 @@ pub struct PostgresStore<C> {
     client: C,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum OntologyLocation {
+    Owned,
+    External,
+}
+
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -61,254 +71,300 @@ where
         Self { client }
     }
 
-    /// Creates a new owned [`OntologyId`] from the provided [`VersionedUrl`].
-    ///
-    /// # Errors
-    ///
-    /// - if [`VersionedUrl::base_url`] did already exist in the database
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn create_owned_ontology_id(
+    async fn create_base_url(
+        &self,
+        base_url: &BaseUrl,
+        on_conflict: ConflictBehavior,
+        location: OntologyLocation,
+    ) -> Result<(), InsertionError> {
+        match on_conflict {
+            ConflictBehavior::Fail => {
+                self.as_client()
+                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
+                        &base_url.as_str(),
+                    ])
+                    .await
+                    .into_report()
+                    .map_err(|report| match report.current_context().code() {
+                        Some(&SqlState::UNIQUE_VIOLATION) => report
+                            .change_context(BaseUrlAlreadyExists)
+                            .attach_printable(base_url.clone())
+                            .change_context(InsertionError),
+                        _ => report
+                            .change_context(InsertionError)
+                            .attach_printable(base_url.clone()),
+                    })?;
+            }
+            ConflictBehavior::Skip => {
+                let created = self
+                    .as_client()
+                    .query_opt(
+                        r#"
+                            INSERT INTO base_urls (base_url) VALUES ($1)
+                            ON CONFLICT DO NOTHING
+                            RETURNING 1;
+                        "#,
+                        &[&base_url.as_str()],
+                    )
+                    .await
+                    .into_report()
+                    .change_context(InsertionError)?
+                    .is_some();
+
+                if !created {
+                    let query = match location {
+                        OntologyLocation::Owned => {
+                            r#"
+                                SELECT EXISTS (SELECT 1
+                                FROM ontology_owned_metadata
+                                NATURAL JOIN ontology_ids
+                                WHERE base_url = $1);
+                            "#
+                        }
+                        OntologyLocation::External => {
+                            r#"
+                                SELECT EXISTS (SELECT 1
+                                FROM ontology_external_metadata
+                                NATURAL JOIN ontology_ids
+                                WHERE base_url = $1);
+                            "#
+                        }
+                    };
+
+                    let exists_in_specified_location: bool = self
+                        .as_client()
+                        .query_one(query, &[&base_url.as_str()])
+                        .await
+                        .into_report()
+                        .change_context(InsertionError)
+                        .map(|row| row.get(0))?;
+
+                    if !exists_in_specified_location {
+                        return Err(Report::new(BaseUrlAlreadyExists)
+                            .attach_printable(base_url.clone())
+                            .change_context(InsertionError));
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn create_ontology_id(
         &self,
         record_id: &OntologyTypeRecordId,
-        provenance: ProvenanceMetadata,
-        owned_by_id: OwnedById,
-        on_conflict: ConflictBehavior,
-    ) -> Result<OntologyId, InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                SELECT
-                    ontology_id
-                FROM create_owned_ontology_id(
-                    base_url := $1,
-                    version := $2,
-                    record_created_by_id := $3,
-                    owned_by_id := $4,
-                    resume_on_conflict := $5
-                );"#,
-                &[
-                    &record_id.base_url.as_str(),
-                    &record_id.version,
-                    &provenance.record_created_by_id(),
-                    &owned_by_id,
-                    &(on_conflict == ConflictBehavior::Skip),
-                ],
-            )
-            .await
-            .into_report()
-            .map(|row| row.get(0))
-            .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(BaseUrlAlreadyExists)
-                    .attach_printable(record_id.base_url.clone())
-                    .change_context(InsertionError),
-                Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(VersionedUrl::from(record_id.clone()))
-                    .change_context(InsertionError),
-                _ => report
-                    .change_context(InsertionError)
-                    .attach_printable(VersionedUrl::from(record_id.clone())),
-            })
-    }
-
-    /// Creates a new external [`OntologyId`] from the provided [`VersionedUrl`].
-    ///
-    /// # Errors
-    ///
-    /// - [`BaseUrlAlreadyExists`] if [`VersionedUrl::base_url`] is an owned base url
-    /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl::version`] is already used for the base
-    ///   url
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn create_external_ontology_id(
-        &self,
-        record_id: &OntologyTypeRecordId,
-        provenance: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-        on_conflict: ConflictBehavior,
-    ) -> Result<OntologyId, InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                SELECT
-                    ontology_id
-                FROM create_external_ontology_id(
-                    base_url := $1,
-                    version := $2,
-                    record_created_by_id := $3,
-                    fetched_at := $4,
-                    resume_on_conflict := $5
-                );"#,
-                &[
-                    &record_id.base_url.as_str(),
-                    &record_id.version,
-                    &provenance.record_created_by_id(),
-                    &fetched_at,
-                    &(on_conflict == ConflictBehavior::Skip),
-                ],
-            )
-            .await
-            .into_report()
-            .map(|row| row.get(0))
-            .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(BaseUrlAlreadyExists)
-                    .attach_printable(record_id.base_url.clone())
-                    .change_context(InsertionError),
-                Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(VersionedUrl::from(record_id.clone()))
-                    .change_context(InsertionError),
-                _ => report
-                    .change_context(InsertionError)
-                    .attach_printable(VersionedUrl::from(record_id.clone())),
-            })
-    }
-
-    /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
-    /// for it.
-    ///
-    /// # Errors
-    ///
-    /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl`] does already exist in the database
-    /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
-    /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn update_owned_ontology_id(
-        &self,
-        url: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OwnedById), UpdateError> {
-        let row = self
-            .as_client()
-            .query_one(
-                r#"
-                SELECT
-                    ontology_id,
-                    owned_by_id
-                FROM update_owned_ontology_id(
-                    base_url := $1,
-                    version := $2,
-                    version_to_update := $3,
-                    record_created_by_id := $4
-                );"#,
-                &[
-                    &url.base_url.as_str(),
-                    &i64::from(url.version),
-                    &i64::from(url.version - 1),
-                    &record_created_by_id,
-                ],
-            )
-            .await
-            .into_report()
-            .map_err(|report| match report.current_context().code() {
-                Some(&SqlState::UNIQUE_VIOLATION) => report
-                    .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(url.clone())
-                    .change_context(UpdateError),
-                Some(&SqlState::INVALID_PARAMETER_VALUE) => report
-                    .change_context(OntologyVersionDoesNotExist)
-                    .attach_printable(url.base_url.clone())
-                    .change_context(UpdateError),
-                Some(&SqlState::RESTRICT_VIOLATION) => report
-                    .change_context(OntologyTypeIsNotOwned)
-                    .attach_printable(url.base_url.clone())
-                    .change_context(UpdateError),
-                _ => report
-                    .change_context(UpdateError)
-                    .attach_printable(url.clone()),
-            })?;
-
-        Ok((row.get(0), OwnedById::new(row.get(1))))
-    }
-
-    /// Inserts the specified [`OntologyDatabaseType`].
-    ///
-    /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
-    /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
-    /// inserts the entry.
-    ///
-    /// # Errors
-    ///
-    /// - If the [`BaseUrl`] already exists
-    ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn create_ontology_metadata(
-        &self,
-        metadata: &OntologyElementMetadata,
         on_conflict: ConflictBehavior,
     ) -> Result<Option<OntologyId>, InsertionError> {
-        let ontology_id = match metadata.custom {
-            CustomOntologyMetadata::Owned {
-                provenance,
-                owned_by_id,
-                ..
-            } => {
-                self.create_owned_ontology_id(
-                    &metadata.record_id,
-                    provenance,
-                    owned_by_id,
-                    on_conflict,
-                )
-                .await?
+        let query: &str = match on_conflict {
+            ConflictBehavior::Skip => {
+                r#"
+                  INSERT INTO ontology_ids (
+                    ontology_id,
+                    base_url,
+                    version
+                  ) VALUES (gen_random_uuid(), $1, $2)
+                  ON CONFLICT DO NOTHING
+                  RETURNING ontology_ids.ontology_id;
+                "#
             }
-            CustomOntologyMetadata::External {
-                provenance,
-                fetched_at,
-                ..
-            } => {
-                self.create_external_ontology_id(
-                    &metadata.record_id,
-                    provenance,
-                    fetched_at,
-                    on_conflict,
-                )
-                .await?
+            ConflictBehavior::Fail => {
+                r#"
+                  INSERT INTO ontology_ids (
+                    ontology_id,
+                    base_url,
+                    version
+                  ) VALUES (gen_random_uuid(), $1, $2)
+                  RETURNING ontology_ids.ontology_id;
+                "#
             }
         };
-
-        Ok(Some(ontology_id))
+        self.as_client()
+            .query_opt(query, &[&record_id.base_url.as_str(), &record_id.version])
+            .await
+            .into_report()
+            .map_err(|report| match report.current_context().code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => report
+                    .change_context(VersionedUrlAlreadyExists)
+                    .attach_printable(VersionedUrl::from(record_id.clone()))
+                    .change_context(InsertionError),
+                _ => report
+                    .change_context(InsertionError)
+                    .attach_printable(VersionedUrl::from(record_id.clone())),
+            })
+            .map(|optional| optional.map(|row| row.get(0)))
     }
 
-    /// Updates the specified [`OntologyDatabaseType`].
-    ///
-    /// First this ensures the [`BaseUrl`] of the type already exists. It then creates a
-    /// new [`OntologyId`] from the contained [`VersionedUrl`] and inserts the type.
-    ///
-    /// # Errors
-    ///
-    /// - If the [`BaseUrl`] does not already exist
-    ///
-    /// [`BaseUrl`]: type_system::url::BaseUrl
-    #[tracing::instrument(level = "info", skip(self, database_type))]
-    async fn update<T>(
+    async fn create_ontology_temporal_metadata(
         &self,
-        database_type: T,
+        ontology_id: OntologyId,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
-    where
-        T: OntologyDatabaseType + Send,
-        T::Representation: Send,
-    {
-        let url = database_type.id();
-        let record_id = OntologyTypeRecordId::from(url.clone());
+    ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
+        let query: &str = r#"
+              INSERT INTO ontology_temporal_metadata (
+                ontology_id,
+                transaction_time,
+                record_created_by_id
+              ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
+              RETURNING transaction_time;
+            "#;
 
-        let (ontology_id, owned_by_id) = self
-            .update_owned_ontology_id(url, record_created_by_id)
-            .await?;
-        self.insert_with_id(ontology_id, database_type)
+        self.as_client()
+            .query_one(query, &[&ontology_id, &record_created_by_id])
             .await
-            .change_context(UpdateError)?;
+            .into_report()
+            .change_context(InsertionError)
+            .map(|row| row.get(0))
+    }
 
-        Ok((ontology_id, OntologyElementMetadata {
-            record_id,
-            custom: CustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata::new(record_created_by_id),
-                owned_by_id,
-                temporal_versioning: None,
-            },
-        }))
+    async fn archive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          UPDATE ontology_temporal_metadata
+          SET
+            transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
+            record_archived_by_id = $3
+          WHERE ontology_id = (
+            SELECT ontology_id
+            FROM ontology_ids
+            WHERE base_url = $1 AND version = $2
+          ) AND transaction_time @> now()
+          RETURNING transaction_time;
+        "#;
+
+        let optional = self
+            .as_client()
+            .query_opt(query, &[
+                &id.base_url.as_str(),
+                &OntologyTypeVersion::new(id.version),
+                &record_archived_by_id,
+            ])
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+        if let Some(row) = optional {
+            Ok(OntologyTemporalMetadata {
+                transaction_time: row.get(0),
+            })
+        } else {
+            let exists = self
+                .as_client()
+                .query_one(
+                    r#"
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM ontology_ids
+                            WHERE base_url = $1 AND version = $2
+                        );
+                    "#,
+                    &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
+                )
+                .await
+                .into_report()
+                .change_context(UpdateError)?
+                .get(0);
+
+            Err(if exists {
+                Report::new(VersionedUrlAlreadyExists)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            } else {
+                Report::new(OntologyVersionDoesNotExist)
+                    .attach_printable(id.clone())
+                    .change_context(UpdateError)
+            })
+        }
+    }
+
+    async fn unarchive_ontology_type(
+        &self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        let query: &str = r#"
+          INSERT INTO ontology_temporal_metadata (
+            ontology_id,
+            transaction_time,
+            record_created_by_id
+          ) VALUES (
+            (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
+            tstzrange(now(), NULL, '[)'),
+            $3
+          )
+          RETURNING transaction_time;
+        "#;
+
+        Ok(OntologyTemporalMetadata {
+            transaction_time: self
+                .as_client()
+                .query_one(query, &[
+                    &id.base_url.as_str(),
+                    &OntologyTypeVersion::new(id.version),
+                    &record_created_by_id,
+                ])
+                .await
+                .into_report()
+                .map_err(|report| match report.current_context().code() {
+                    Some(&SqlState::EXCLUSION_VIOLATION) => report
+                        .change_context(VersionedUrlAlreadyExists)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    Some(&SqlState::NOT_NULL_VIOLATION) => report
+                        .change_context(OntologyVersionDoesNotExist)
+                        .attach_printable(id.clone())
+                        .change_context(UpdateError),
+                    _ => report
+                        .change_context(UpdateError)
+                        .attach_printable(id.clone()),
+                })
+                .change_context(UpdateError)?
+                .get(0),
+        })
+    }
+
+    async fn create_ontology_owned_metadata(
+        &self,
+        ontology_id: OntologyId,
+        owned_by_id: OwnedById,
+    ) -> Result<(), InsertionError> {
+        let query: &str = r#"
+              INSERT INTO ontology_owned_metadata (
+                ontology_id,
+                owned_by_id
+              ) VALUES ($1, $2);
+            "#;
+
+        self.as_client()
+            .query(query, &[&ontology_id, &owned_by_id])
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(())
+    }
+
+    async fn create_ontology_external_metadata(
+        &self,
+        ontology_id: OntologyId,
+        fetched_at: OffsetDateTime,
+    ) -> Result<(), InsertionError> {
+        let query: &str = r#"
+              INSERT INTO ontology_external_metadata (
+                ontology_id,
+                fetched_at
+              ) VALUES ($1, $2);
+            "#;
+
+        self.as_client()
+            .query(query, &[&ontology_id, &fetched_at])
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(())
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`OntologyId`], and associated with an
@@ -534,7 +590,7 @@ where
                                 $1,
                                 (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                             ) RETURNING target_entity_type_ontology_id;
-                        "#,
+                    "#,
                         &[
                             &ontology_id,
                             &destination.url().base_url.as_str(),
@@ -646,6 +702,206 @@ where
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
+    /// Inserts the specified [`OntologyDatabaseType`].
+    ///
+    /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
+    /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
+    /// inserts the entry.
+    ///
+    /// # Errors
+    ///
+    /// - If the [`BaseUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
+    /// - If the [`VersionedUrl`] already exists and `on_conflict` is [`ConflictBehavior::Fail`]
+    ///
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn create_ontology_metadata(
+        &self,
+        record_id: &OntologyTypeRecordId,
+        custom_metadata: &PartialCustomOntologyMetadata,
+        on_conflict: ConflictBehavior,
+    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
+    {
+        match custom_metadata {
+            PartialCustomOntologyMetadata::Owned {
+                provenance,
+                owned_by_id,
+            } => {
+                self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
+                    .await?;
+                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
+                if let Some(ontology_id) = ontology_id {
+                    let transaction_time = self
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            provenance.record_created_by_id,
+                        )
+                        .await?;
+                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                        .await?;
+                    Ok(Some((ontology_id, transaction_time)))
+                } else {
+                    Ok(None)
+                }
+            }
+            PartialCustomOntologyMetadata::External {
+                provenance,
+                fetched_at,
+            } => {
+                self.create_base_url(
+                    &record_id.base_url,
+                    ConflictBehavior::Skip,
+                    OntologyLocation::External,
+                )
+                .await?;
+                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
+                if let Some(ontology_id) = ontology_id {
+                    let transaction_time = self
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            provenance.record_created_by_id,
+                        )
+                        .await?;
+                    self.create_ontology_external_metadata(ontology_id, *fetched_at)
+                        .await?;
+                    Ok(Some((ontology_id, transaction_time)))
+                } else {
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    /// Updates the specified [`OntologyDatabaseType`].
+    ///
+    /// First this ensures the [`BaseUrl`] of the type already exists. It then creates a
+    /// new [`OntologyId`] from the contained [`VersionedUrl`] and inserts the type.
+    ///
+    /// # Errors
+    ///
+    /// - If the [`BaseUrl`] does not already exist
+    ///
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    #[tracing::instrument(level = "info", skip(self, database_type))]
+    async fn update<T>(
+        &self,
+        database_type: T,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
+    where
+        T: OntologyDatabaseType + Send,
+        T::Representation: Send,
+    {
+        let url = database_type.id();
+        let record_id = OntologyTypeRecordId::from(url.clone());
+
+        let (ontology_id, owned_by_id, transaction_time) = self
+            .update_owned_ontology_id(url, record_created_by_id)
+            .await?;
+        self.insert_with_id(ontology_id, database_type)
+            .await
+            .change_context(UpdateError)?;
+
+        Ok((ontology_id, OntologyElementMetadata {
+            record_id,
+            custom: CustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id,
+                    record_archived_by_id: None,
+                },
+                owned_by_id,
+                temporal_versioning: OntologyTemporalMetadata { transaction_time },
+            },
+        }))
+    }
+
+    /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
+    /// for it.
+    ///
+    /// # Errors
+    ///
+    /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl`] does already exist in the database
+    /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
+    /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn update_owned_ontology_id(
+        &self,
+        url: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<
+        (
+            OntologyId,
+            OwnedById,
+            LeftClosedTemporalInterval<TransactionTime>,
+        ),
+        UpdateError,
+    > {
+        let Some(owned_by_id) = self
+            .as_client()
+            .query_opt(
+                r#"
+                  SELECT owned_by_id
+                  FROM ontology_owned_metadata
+                  NATURAL JOIN ontology_ids
+                  WHERE base_url = $1
+                    AND version = $2
+                  LIMIT 1 -- There might be multiple versions of the same ontology, but we only
+                          -- care about the `owned_by_id` which does not change when (un-)archiving.
+                ;"#,
+                &[&url.base_url.as_str(), &i64::from(url.version - 1)],
+            )
+            .await
+            .into_report()
+            .change_context(UpdateError)?
+            .map(|row| row.get(0))
+        else {
+            let exists: bool = self
+                .as_client()
+                .query_one(
+                    r#"
+                  SELECT EXISTS (
+                    SELECT 1
+                    FROM ontology_ids
+                    WHERE base_url = $1
+                      AND version = $2
+                  );"#,
+                    &[&url.base_url.as_str(), &i64::from(url.version - 1)],
+                )
+                .await
+                .into_report()
+                .change_context(UpdateError)
+                .map(|row| row.get(0))?;
+            return Err(if exists {
+                Report::new(OntologyTypeIsNotOwned)
+                    .attach_printable(url.clone())
+                    .change_context(UpdateError)
+            } else {
+                Report::new(OntologyVersionDoesNotExist)
+                    .attach_printable(url.clone())
+                    .change_context(UpdateError)
+            });
+        };
+
+        let ontology_id = self
+            .create_ontology_id(
+                &OntologyTypeRecordId::from(url.clone()),
+                ConflictBehavior::Fail,
+            )
+            .await
+            .change_context(UpdateError)?
+            .expect("ontology id should have been created");
+
+        let transaction_time = self
+            .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
+            .await
+            .change_context(UpdateError)?;
+        self.create_ontology_owned_metadata(ontology_id, owned_by_id)
+            .await
+            .change_context(UpdateError)?;
+
+        Ok((ontology_id, owned_by_id, transaction_time))
+    }
+
     /// # Errors
     ///
     /// - if the underlying client cannot commit the transaction

@@ -1,7 +1,7 @@
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[hash roadmap]: https://hash.ai/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [running your own instance]: https://hash.dev/docs/getting-started?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
@@ -32,7 +32,7 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 
 **HASH is a platform for decision-making, which helps you integrate, understand and use data in a variety of different ways.**
 
-HASH does this by combining various different powerful tools together into one simple interface. These range from data pipelines and a graph database, through to an all-in-one workspace, no-code tool builder, and agent-based simulation engine. These exist at varying stages of maturity, and while some are polished, not all are ready for real-world production use. You can read more about out big-picture vision at [hash.dev]
+HASH does this by combining various different powerful tools together into one simple interface. These range from data pipelines and a graph database, through to an all-in-one workspace, no-code tool builder, and agent-based simulation engine. These exist at varying stages of maturity, and while some are polished, not all are ready for real-world production use. You can read more about our big-picture vision at [hash.dev]
 
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
@@ -45,7 +45,7 @@ HASH does this by combining various different powerful tools together into one s
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
-Browse the [HASH roadmap] for more information about upcoming features and releases.
+Browse the HASH [development roadmap] for more information about currently in-flight and upcoming features.
 
 ## [![a](/.github/assets/gh_icon_repo-structure_20px-base.svg)][gh-repo-structure] &nbsp; About this repository
 
