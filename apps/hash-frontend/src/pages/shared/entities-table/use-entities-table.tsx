@@ -13,10 +13,13 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { format } from "date-fns";
 import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
+import { useUsers } from "../../../components/hooks/use-users";
 import { generateEntityLabel } from "../../../lib/entities";
+import { MinimalUser } from "../../../lib/user-and-org";
 
 export interface TypeEntitiesRow {
   entityId: string;
@@ -24,8 +27,13 @@ export interface TypeEntitiesRow {
   entityTypeVersion: string;
   namespace: string;
   archived?: boolean;
-
-  [k: string]: string | boolean | undefined;
+  lastEdited: string;
+  lastEditedBy?: MinimalUser;
+  properties?: {
+    [k: string]: string;
+  };
+  /** @todo: get rid of this by typing `columnId` */
+  [key: string]: any;
 }
 
 export const useEntitiesTable = (params: {
@@ -46,6 +54,8 @@ export const useEntitiesTable = (params: {
     hidePropertiesColumns = false,
     isViewingPages = false,
   } = params;
+
+  const { users } = useUsers();
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -115,6 +125,16 @@ export const useEntitiesTable = (params: {
             },
           ]
         : []),
+      {
+        title: "Last Edited",
+        id: "lastEdited",
+        width: 200,
+      },
+      {
+        title: "Last Edited By",
+        id: "lastEditedBy",
+        width: 200,
+      },
       /** @todo: uncomment this when we have additional types for entities */
       // {
       //   title: "Additional Types",
@@ -142,6 +162,21 @@ export const useEntitiesTable = (params: {
         const isPage =
           entity.metadata.entityTypeId === types.entityType.page.entityTypeId;
 
+        /**
+         * @todo: consider displaying handling this differently for pages, where
+         * updates on nested blocks/text entities may be a better indicator of
+         * when a page has been last edited.
+         */
+        const lastEdited = format(
+          new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
+          "yyyy-MM-dd HH:mm",
+        );
+
+        const lastEditedBy = users?.find(
+          ({ accountId }) =>
+            accountId === entity.metadata.provenance.recordCreatedById,
+        );
+
         return {
           entityId,
           entity: entityLabel,
@@ -154,9 +189,11 @@ export const useEntitiesTable = (params: {
                 extractBaseUrl(types.propertyType.archived.propertyTypeId)
               ] as boolean)
             : undefined,
+          lastEdited,
+          lastEditedBy,
           /** @todo: uncomment this when we have additional types for entities */
           // additionalTypes: "",
-          ...propertyColumns.reduce((fields, column) => {
+          properties: propertyColumns.reduce((fields, column) => {
             if (column.id) {
               const propertyValue = entity.properties[column.id as BaseUrl];
 
@@ -182,5 +219,6 @@ export const useEntitiesTable = (params: {
     hideEntityTypeVersionColumn,
     hidePropertiesColumns,
     isViewingPages,
+    users,
   ]);
 };

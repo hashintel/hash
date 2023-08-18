@@ -1,4 +1,9 @@
-import { GridCellKind, Item, TextCell } from "@glideapps/glide-data-grid";
+import {
+  CustomCell,
+  GridCellKind,
+  Item,
+  TextCell,
+} from "@glideapps/glide-data-grid";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -16,6 +21,7 @@ import {
 import { Grid, GridProps } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { FilterState, TableHeader } from "../../shared/table-header";
+import { renderChipCell } from "../[shortname]/entities/[entity-uuid].page/entity-editor/properties-section/property-table/cells/chip-cell";
 // todo: move this out
 import { useEntityTypeEntities } from "../[shortname]/types/entity-type/[...slug-maybe-version].page/shared/entity-type-entities-context";
 import {
@@ -93,7 +99,11 @@ export const EntitiesTable: FunctionComponent<{
 
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
-      ([colIndex, rowIndex]: Item): TextIconCell | TextCell | BlankCell => {
+      ([colIndex, rowIndex]: Item):
+        | TextIconCell
+        | TextCell
+        | BlankCell
+        | CustomCell => {
         if (columns) {
           const row = entityRows[rowIndex];
 
@@ -127,17 +137,40 @@ export const EntitiesTable: FunctionComponent<{
               displayData: String(value),
               data: value,
             };
+          } else if (columnId === "lastEdited") {
+            return {
+              kind: GridCellKind.Text,
+              readonly: true,
+              allowOverlay: false,
+              displayData: String(row.lastEdited),
+              data: row.lastEdited,
+            };
+          } else if (columnId === "lastEditedBy") {
+            const lastEditedBy = row.lastEditedBy?.preferredName ?? "";
+            return {
+              kind: GridCellKind.Custom,
+              readonly: true,
+              allowOverlay: false,
+              copyData: String(lastEditedBy),
+              data: {
+                kind: "chip-cell",
+                chips: [{ text: lastEditedBy }],
+                color: "gray",
+                variant: "filled",
+              },
+            };
           }
 
-          const cellValue = columnId && row[columnId];
+          const propertyCellValue =
+            columnId && row.properties && row.properties[columnId];
 
-          if (cellValue && typeof cellValue === "string") {
+          if (propertyCellValue) {
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
               readonly: true,
-              displayData: String(cellValue),
-              data: cellValue,
+              displayData: String(propertyCellValue),
+              data: propertyCellValue,
             };
           }
         }
@@ -162,7 +195,7 @@ export const EntitiesTable: FunctionComponent<{
         rows={rows ?? []}
         height={height}
         createGetCellContent={createGetCellContent}
-        customRenderers={[renderTextIconCell]}
+        customRenderers={[renderTextIconCell, renderChipCell]}
       />
     </Box>
   );
