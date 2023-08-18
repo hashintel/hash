@@ -1,3 +1,4 @@
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Container,
@@ -16,6 +17,7 @@ import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
 import { FaIcon } from "../components/icons/fa-icon";
+import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { Link } from "../components/link";
 import { PageLayout } from "../components/page-layout";
 import { Subscribe } from "../components/pre-footer";
@@ -406,7 +408,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
-const Tutorial: FunctionComponent<{
+const Resource: FunctionComponent<{
   title: string;
   description: string;
   color: "blue" | "teal" | "purple";
@@ -509,11 +511,11 @@ const Tutorial: FunctionComponent<{
   );
 };
 
-const _Tutorials: FunctionComponent = () => {
+const _Resources: FunctionComponent = () => {
   return (
     <Container component="section">
       <Typography variant="hashHeading4" component="h3">
-        Tutorials
+        Resources
       </Typography>
       <HomePageBodyTypography
         marginBottom={2}
@@ -523,7 +525,7 @@ const _Tutorials: FunctionComponent = () => {
       </HomePageBodyTypography>
       <Grid container spacing={4} marginBottom={2}>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Build your own blocks"
             description="Extend the functionality of Block Protocol-based applications by creating your own blocks"
             color="purple"
@@ -532,7 +534,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Code your first simulation"
             description="Learn how to develop a simulation and run it locally or in-browser"
             color="blue"
@@ -541,7 +543,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={12} lg={4}>
-          <Tutorial
+          <Resource
             title="Build a block-based website using HASH"
             description="Use HASH as a CMS alongside Block Protocol blocks"
             color="teal"
@@ -551,7 +553,7 @@ const _Tutorials: FunctionComponent = () => {
       </Grid>
       <Box display="flex" width="100%" flexDirection="row-reverse">
         <Link
-          href="/tutorials"
+          href="/resources"
           sx={{
             color: ({ palette }) => palette.teal[70],
             borderBottomStyle: "solid",
@@ -561,7 +563,11 @@ const _Tutorials: FunctionComponent = () => {
             fontWeight: 600,
           }}
         >
-          View all tutorials
+          See more resources{" "}
+          <FontAwesomeIcon
+            icon={faArrowRight}
+            sx={{ position: "relative", top: 2 }}
+          />
         </Link>
       </Box>
     </Container>
@@ -619,8 +625,8 @@ const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
       <PageLayout subscribe={false} recentBlogPosts>
         <Hero />
         <Projects />
-        {/* @todo: add tutorials pages */}
-        {/* <Tutorials /> */}
+        {/* @todo: add resources pages */}
+        {/* <Resources /> */}
         <Subscribe
           heading="Be the first to know..."
           body={
