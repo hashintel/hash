@@ -1,8 +1,17 @@
 {
+  "meta": {
+    "arguments": {
+      "inheritanceDepth": {
+        "type": "uint",
+        "required": false
+      }
+    }
+  },
   "data_type": {
     "selector": {},
     "untyped": [],
-    "direct": {}
+    "direct": {},
+    "arguments": {}
   },
   "property_type": {
     "selector": {
@@ -10,7 +19,8 @@
       "property_types": "property_type"
     },
     "untyped": [],
-    "direct": {}
+    "direct": {},
+    "arguments": {}
   },
   "entity_type": {
     "selector": {
@@ -18,7 +28,11 @@
       "links": "entity_type"
     },
     "untyped": [],
-    "direct": {}
+    "direct": {},
+    "arguments": {
+      "type": ["inheritanceDepth"],
+      "children": ["inheritanceDepth"]
+    }
   },
   "entity": {
     "selector": {},
@@ -29,6 +43,9 @@
       "outgoing_links": "entity",
       "left_entity": "entity",
       "right_entity": "entity"
+    },
+    "arguments": {
+      "type": ["inheritanceDepth"]
     }
   }
 }
