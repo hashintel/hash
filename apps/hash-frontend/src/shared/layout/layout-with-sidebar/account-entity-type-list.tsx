@@ -1,6 +1,6 @@
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { Box, Collapse, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo, useState } from "react";
@@ -8,7 +8,6 @@ import { TransitionGroup } from "react-transition-group";
 
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
-import { ArrowRightIcon } from "../../icons/arrow-right";
 import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../icons/plus-regular";
 import { Link } from "../../ui";
@@ -19,6 +18,7 @@ import {
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
+import { ViewAllLink } from "./view-all-link";
 
 type AccountEntityTypeListProps = {
   ownedById: string;
@@ -160,50 +160,19 @@ export const AccountEntityTypeList: FunctionComponent<
               pl={2}
               position="relative"
             >
-              <Link
+              <ViewAllLink
                 href="/types"
-                noLinkStyle
-                tabIndex={-1}
                 sx={{
                   mr: "auto",
+                  marginLeft: -1.5,
                   flex: 1,
                   opacity: searchVisible ? 0 : 1,
                   transition: ({ transitions }) =>
                     transitions.create("opacity"),
                 }}
               >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={({ palette }) => ({
-                    fontWeight: 500,
-                    color: palette.gray[80],
-                    fontSize: 14,
-                    marginLeft: -1.5,
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: "100px",
-                    ":hover": {
-                      color: palette.gray[90],
-                      background: palette.gray[15],
-                      "> svg": {
-                        color: palette.gray[90],
-                        marginLeft: 1.5,
-                      },
-                    },
-                  })}
-                >
-                  View All Types
-                  <ArrowRightIcon
-                    sx={{
-                      marginLeft: 0.75,
-                      fontSize: 10,
-                      color: ({ palette }) => palette.gray[80],
-                      transition: ({ transitions }) =>
-                        transitions.create(["color", "margin-left"]),
-                    }}
-                  />
-                </Typography>
-              </Link>
+                View all types
+              </ViewAllLink>
               <SearchInput
                 searchVisible={searchVisible}
                 showSearchInput={() => setSearchVisible(true)}

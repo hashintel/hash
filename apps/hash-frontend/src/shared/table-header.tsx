@@ -1,7 +1,9 @@
-import { Chip } from "@hashintel/design-system";
+import { Chip, IconButton } from "@hashintel/design-system";
 import {
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
@@ -23,13 +25,14 @@ import {
   useState,
 } from "react";
 
-import { EarthAmericasRegularIcon } from "../../../../shared/icons/earth-americas-regular";
-import { FilterListIcon } from "../../../../shared/icons/filter-list-icon";
-import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
-import { Button } from "../../../../shared/ui";
-import { WorkspaceContext } from "../../../shared/workspace-context";
+import { WorkspaceContext } from "../pages/shared/workspace-context";
+import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
+import { FilterListIcon } from "./icons/filter-list-icon";
+import { HouseRegularIcon } from "./icons/house-regular-icon";
+import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
+import { Button } from "./ui";
 
-export const typesTableHeaderHeight = 48;
+export const tableHeaderHeight = 50;
 
 const CheckboxFilter: FunctionComponent<{
   label: string;
@@ -62,44 +65,50 @@ const CheckboxFilter: FunctionComponent<{
 );
 
 export type FilterState = {
-  includeArchived: boolean;
-  includeExternal: boolean;
+  includeArchived?: boolean;
+  includeGlobal: boolean;
 };
 
-type TypesTableHeaderProps = {
-  types: (
+type TableHeaderProps = {
+  items: (
+    | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
   filterState: FilterState;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
+  toggleSearch?: () => void;
 };
 
-export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
-  types,
+export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  items,
   filterState,
   setFilterState,
+  toggleSearch,
 }) => {
   const { activeWorkspace } = useContext(WorkspaceContext);
 
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
 
-  const numberOfActiveWorkspaceTypes = useMemo(() => {
-    const activeWorkspaceTypes = activeWorkspace
-      ? types.filter(({ metadata }) =>
-          isExternalOntologyElementMetadata(metadata)
+  const numberOfActiveWorkspaceItems = useMemo(() => {
+    const activeWorkspaceItems = activeWorkspace
+      ? items.filter(({ metadata }) =>
+          "entityTypeId" in metadata
+            ? extractOwnedByIdFromEntityId(metadata.recordId.entityId) ===
+              activeWorkspace.accountId
+            : isExternalOntologyElementMetadata(metadata)
             ? false
             : metadata.custom.ownedById === activeWorkspace.accountId,
         )
       : undefined;
 
-    return activeWorkspaceTypes ? activeWorkspaceTypes.length : undefined;
-  }, [types, activeWorkspace]);
+    return activeWorkspaceItems ? activeWorkspaceItems.length : undefined;
+  }, [items, activeWorkspace]);
 
-  const numberOfGlobalTypes =
-    typeof numberOfActiveWorkspaceTypes !== "undefined"
-      ? types.length - numberOfActiveWorkspaceTypes
+  const numberOfGlobalItems =
+    typeof numberOfActiveWorkspaceItems !== "undefined"
+      ? items.length - numberOfActiveWorkspaceItems
       : undefined;
 
   return (
@@ -125,7 +134,7 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
         >
           <Chip
             icon={<HouseRegularIcon />}
-            label={`${numberOfActiveWorkspaceTypes} in @${activeWorkspace?.shortname}`}
+            label={`${numberOfActiveWorkspaceItems} in @${activeWorkspace?.shortname}`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
@@ -141,7 +150,7 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
         >
           <Chip
             icon={<EarthAmericasRegularIcon />}
-            label={`${numberOfGlobalTypes} globally`}
+            label={`${numberOfGlobalItems} globally`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
@@ -152,6 +161,11 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
             }}
           />
         </Tooltip>
+        {toggleSearch ? (
+          <IconButton onClick={toggleSearch}>
+            <MagnifyingGlassRegularIcon />
+          </IconButton>
+        ) : null}
       </Box>
       <Box
         sx={{
@@ -205,23 +219,25 @@ export const TypesTableHeader: FunctionComponent<TypesTableHeaderProps> = ({
             paddingRight={3}
             gap={1}
           >
+            {filterState.includeArchived !== undefined ? (
+              <CheckboxFilter
+                label="Include Archived"
+                checked={filterState.includeArchived}
+                onChange={(checked) =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    includeArchived: checked,
+                  }))
+                }
+              />
+            ) : null}
             <CheckboxFilter
-              label="Include Archived"
-              checked={filterState.includeArchived}
+              label="Include Global"
+              checked={filterState.includeGlobal}
               onChange={(checked) =>
                 setFilterState((prev) => ({
                   ...prev,
-                  includeArchived: checked,
-                }))
-              }
-            />
-            <CheckboxFilter
-              label="Include External"
-              checked={filterState.includeExternal}
-              onChange={(checked) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  includeExternal: checked,
+                  includeGlobal: checked,
                 }))
               }
             />

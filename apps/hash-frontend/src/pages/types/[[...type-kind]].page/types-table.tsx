@@ -13,7 +13,13 @@ import {
 } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { Grid } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
@@ -24,15 +30,16 @@ import {
 } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
+  FilterState,
+  TableHeader,
+  tableHeaderHeight,
+} from "../../../shared/table-header";
+import {
   renderTextIconCell,
   TextIconCell,
-} from "../../[shortname]/types/entity-type/[...slug-maybe-version].page/entities-tab/text-icon-cell";
+} from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import {
-  FilterState,
-  TypesTableHeader,
-  typesTableHeaderHeight,
-} from "./types-table/types-table-header";
+import { WorkspaceContext } from "../../shared/workspace-context";
 
 const typesTableColumnIds = [
   "title",
@@ -67,9 +74,11 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: true,
-    includeExternal: true,
+    includeGlobal: true,
   });
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
@@ -115,7 +124,9 @@ export const TypesTable: FunctionComponent<{
     () =>
       types
         .map((type) => {
-          const isExternal = isExternalOntologyElementMetadata(type.metadata);
+          const isExternal = isExternalOntologyElementMetadata(type.metadata)
+            ? true
+            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
 
           const namespaceAccountId = isExternalOntologyElementMetadata(
             type.metadata,
@@ -146,10 +157,10 @@ export const TypesTable: FunctionComponent<{
         })
         .filter(
           ({ external, archived }) =>
-            (filterState.includeExternal ? true : !external) &&
+            (filterState.includeGlobal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
-    [types, namespaces, filterState],
+    [types, namespaces, filterState, activeWorkspaceAccountId],
   );
 
   const createGetCellContent = useCallback(
@@ -191,11 +202,9 @@ export const TypesTable: FunctionComponent<{
               data: row.kind,
             };
           case "namespaceShortname": {
-            const value = row.external
-              ? ""
-              : row.namespaceShortname
+            const value = row.namespaceShortname
               ? `@${row.namespaceShortname}`
-              : "Loading...";
+              : "";
 
             return {
               kind: GridCellKind.Text,
@@ -224,38 +233,26 @@ export const TypesTable: FunctionComponent<{
 
   return (
     <Box>
-      <TypesTableHeader
-        types={types}
+      <TableHeader
+        items={types}
         filterState={filterState}
         setFilterState={setFilterState}
       />
-      <Box
-        sx={{
-          borderBottomLeftRadius: "6px",
-          borderBottomRightRadius: "6px",
-          overflow: "hidden",
-          boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
-        }}
-      >
-        <Grid
-          columns={typesTableColumns}
-          rows={filteredRows}
-          sortable
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={
-            filteredRows.length > 10
-              ? `calc(100vh - (${
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  170 +
-                  typesTableHeaderHeight
-                }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
-              : undefined
-          }
-          customRenderers={[renderTextIconCell]}
-        />
-      </Box>
+      <Grid
+        columns={typesTableColumns}
+        rows={filteredRows}
+        sortable
+        createGetCellContent={createGetCellContent}
+        // define max height if there are lots of rows
+        height={
+          filteredRows.length > 10
+            ? `calc(100vh - (${
+                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+              }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
+            : undefined
+        }
+        customRenderers={[renderTextIconCell]}
+      />
     </Box>
   );
 };
