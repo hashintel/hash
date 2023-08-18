@@ -150,7 +150,7 @@ export const EntitiesTable: FunctionComponent<{
               data: row.lastEdited,
             };
           } else if (columnId === "lastEditedBy") {
-            const lastEditedBy = row.lastEditedBy?.preferredName ?? "";
+            const lastEditedBy = row.lastEditedBy?.preferredName;
             return {
               kind: GridCellKind.Custom,
               readonly: true,
@@ -158,7 +158,7 @@ export const EntitiesTable: FunctionComponent<{
               copyData: String(lastEditedBy),
               data: {
                 kind: "chip-cell",
-                chips: [{ text: lastEditedBy }],
+                chips: lastEditedBy ? [{ text: lastEditedBy }] : [],
                 color: "gray",
                 variant: "filled",
               },
