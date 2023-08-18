@@ -23,5 +23,17 @@ module.exports = {
         "import/no-default-export": "off",
       },
     },
+    {
+      files: ["./scripts/**/*.ts"],
+      rules: {
+        "import/no-extraneous-dependencies": [
+          "error",
+          {
+            //  Allow scripts to be able to import from dev dependencies
+            devDependencies: true,
+          },
+        ],
+      },
+    },
   ],
 };
