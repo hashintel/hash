@@ -19,7 +19,7 @@ types-python-slugify = "^8.0"
 setuptools = "^68.0.0"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.3"
+black = "^23.7.0"
 ruff = "^0.0.275"
 mypy = "^1.4"
 
