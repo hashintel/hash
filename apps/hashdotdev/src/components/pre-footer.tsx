@@ -1,6 +1,7 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
+  buttonClasses,
   Container,
   Divider,
   Grid,
@@ -460,7 +461,11 @@ const RecentBlogPosts: FunctionComponent = () => {
             },
           }}
         >
-          View all blog posts <FontAwesomeIcon icon={faArrowRight} />
+          View all blog posts{" "}
+          <FontAwesomeIcon
+            sx={{ position: "relative", top: 2 }}
+            icon={faArrowRight}
+          />
         </Link>
       </Box>
     </Container>
@@ -505,6 +510,11 @@ const Community: FunctionComponent = () => {
                 color="purple"
                 href="https://hash.ai/discord"
                 startIcon={<DiscordIcon />}
+                sx={{
+                  [`.${buttonClasses.startIcon}>*:nth-of-type(1)`]: {
+                    fontSize: 28,
+                  },
+                }}
               >
                 Join our Discord
               </Button>

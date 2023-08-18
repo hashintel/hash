@@ -92,7 +92,19 @@ const Head: FunctionComponent = () => (
                   fontWeight: 500,
                 }}
               >
-                <Box component="span" minWidth={22} marginRight={1.25}>
+                <Box
+                  component="span"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    minWidth: 22,
+                    marginRight: 1.25,
+                    svg: {
+                      color: ({ palette }) => palette.gray[70],
+                      fontSize: 15,
+                    },
+                  }}
+                >
                   {icon}
                 </Box>
                 {label}
@@ -125,6 +137,7 @@ const UseCases: FunctionComponent = () => (
           sx={{
             display: "flex",
             flexDirection: "column",
+            alignItems: "center",
             justifyContent: "center",
             width: ({ spacing }) => ({
               xs: `calc(50% - ${spacing(1)})`,
