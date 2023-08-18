@@ -116,7 +116,7 @@ const EntitiesPage: NextPageWithLayout = () => {
             href: isViewAllPagesPage
               ? "/pages"
               : `/entities${
-                  entityTypeId ? `?entityTypeId=${entityTypeId}` : ""
+                  entityTypeId ? `?entityTypeIdOrBaseUrl=${entityTypeId}` : ""
                 }`,
             id: entityTypeId ?? "entities",
             icon: isViewAllPagesPage ? (
