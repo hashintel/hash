@@ -200,15 +200,17 @@ export const EntitiesTable: FunctionComponent<{
         setFilterState={setFilterState}
         toggleSearch={() => setShowSearch(true)}
       />
-      <Grid
-        showSearch={showSearch}
-        onSearchClose={() => setShowSearch(false)}
-        columns={columns ?? []}
-        rows={rows ?? []}
-        height={height}
-        createGetCellContent={createGetCellContent}
-        customRenderers={[renderTextIconCell, renderChipCell]}
-      />
+      {columns && rows ? (
+        <Grid
+          showSearch={showSearch}
+          onSearchClose={() => setShowSearch(false)}
+          columns={columns}
+          rows={rows}
+          height={height}
+          createGetCellContent={createGetCellContent}
+          customRenderers={[renderTextIconCell, renderChipCell]}
+        />
+      ) : null}
     </Box>
   );
 };
