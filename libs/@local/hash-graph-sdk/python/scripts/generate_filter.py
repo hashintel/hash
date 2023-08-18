@@ -26,7 +26,10 @@ Each entry has the following fields:
               with another type. It is a record, where the key is the field name and the
               value is the type to continue with.
               (one of `data_type`, `property_type`, `entity_type`, `entity`)
+- `arguments`: Fields that have (optional) arguments,
+               these arguments follow as `key-value` pairs after the name of the property.
 """
+# ruff: noqa: ERA001
 import ast
 import json
 from enum import Enum
@@ -45,16 +48,32 @@ DIRECTORY = Path(__file__).parent.parent
 TypeId = Literal["data_type", "property_type", "entity_type", "entity"]
 
 
+class Argument(TypedDict):
+    """Type information for an argument."""
+
+    type: Literal["uint"]
+    required: bool
+
+
+class Meta(TypedDict):
+    """Additional configuration file information."""
+
+    arguments: dict[str, Argument]
+
+
 class ConfigurationEntry(TypedDict):
     """A configuration entry."""
 
     selector: dict[str, TypeId]
     untyped: list[str]
     direct: dict[str, TypeId]
+    arguments: dict[str, list[str]]
 
 
 class Configuration(TypedDict):
     """The configuration file."""
+
+    meta: Meta
 
     data_type: ConfigurationEntry
     property_type: ConfigurationEntry
@@ -80,6 +99,13 @@ def is_keyword(name: str) -> bool:
 def is_keyword_or_builtin(name: str) -> bool:
     """Check if the given name is a keyword or builtin."""
     return is_builtin(name) or is_keyword(name)
+
+
+def to_snake_case(name: str) -> str:
+    """Convert a camel case name to snake case."""
+    return "".join(
+        f"_{char.lower()}" if char.isupper() else char for char in name
+    ).lstrip("_")
 
 
 def get_class_name(
@@ -119,21 +145,48 @@ def load_attribute(
     )
 
 
-def create_no_args_method(
+def argument_annotation(argument: Argument) -> ast.expr:
+    """Generate the annotation for an argument."""
+    type_ = None
+
+    if argument["type"] == "uint":
+        type_ = ast.Name(id="int", ctx=ast.Load())
+
+    if type_ is None:
+        msg = f"Unknown argument type: {argument['type']}"
+        raise ValueError(msg)
+
+    if not argument["required"]:
+        return ast.BinOp(left=type_, op=ast.BitOr(), right=ast.Name(id="None"))
+
+    return type_
+
+
+def create_method(
     *,
     name: str,
+    args: dict[str, Argument],
     body: list[ast.stmt],
     returns: ast.expr,
-) -> ast.FunctionDef:
-    """Create a method with no arguments."""
+):
+    """Create a method with arguments."""
+    keywords = [
+        ast.arg(arg=to_snake_case(name), annotation=argument_annotation(info))
+        for name, info in args.items()
+    ]
+
+    keyword_defaults = [
+        None if info["required"] else ast.Constant(value=None) for info in args.values()
+    ]
+
     return ast.FunctionDef(
         name=name,
         args=ast.arguments(
             posonlyargs=[],
             args=[ast.arg(arg="self", annotation=None)],
             vararg=None,
-            kwonlyargs=[],
-            kw_defaults=[],
+            kwonlyargs=keywords,
+            kw_defaults=keyword_defaults,
             kwarg=None,
             defaults=[],
         ),
@@ -158,27 +211,130 @@ def generate_method_docstring(
     )
 
 
+def generate_method_argument_body(args: dict[str, Argument]) -> list[ast.stmt]:
+    """Generate the body for the method arguments."""
+    if not args:
+        return []
+
+    # we need to create additional body statements, that will compile to:
+    # args = []
+    # if <arg> is not None:
+    #     args.append(f"{<name>}={<arg>}")
+    #
+    statements: list[ast.stmt] = [
+        ast.Assign(
+            [ast.Name(id="args", ctx=ast.Store())],
+            ast.List(elts=[], ctx=ast.Load()),
+        )
+    ]
+
+    for name, info in args.items():
+        variable = ast.Name(id=to_snake_case(name), ctx=ast.Load())
+
+        append_value = ast.JoinedStr(
+            values=[
+                ast.Constant(value=f"{name}="),
+                ast.FormattedValue(value=variable, conversion=-1, format_spec=None),
+            ]
+        )
+
+        if info["required"]:
+            statements.append(
+                ast.Expr(
+                    value=ast.Call(
+                        func=load_attribute(["args", "append"]),
+                        args=[append_value],
+                        keywords=[],
+                    )
+                )
+            )
+        else:
+            statements.append(
+                ast.If(
+                    test=ast.Compare(
+                        left=variable,
+                        ops=[ast.IsNot()],
+                        comparators=[ast.Name(id="None", ctx=ast.Load())],
+                    ),
+                    body=[
+                        ast.Expr(
+                            value=ast.Call(
+                                func=load_attribute(["args", "append"]),
+                                args=[append_value],
+                                keywords=[],
+                            )
+                        )
+                    ],
+                    orelse=[],
+                ),
+            )
+
+    return statements
+
+
+def generate_push_call(token: Enum, name: str, args: dict[str, Argument]) -> ast.Call:
+    """Generate the call to push."""
+    if not args:
+        return ast.Call(
+            func=load_attribute(["self", "path", "push"]),
+            args=[load_attribute([type(token).__name__, name])],
+            keywords=[],
+        )
+
+    # we need to generate:
+    # self.path.push(f"{<token>.<name>}({ ", ".join(<args>) })"
+    #   if args else <token>.<name>)
+    return ast.Call(
+        func=load_attribute(["self", "path", "push"]),
+        args=[
+            ast.IfExp(
+                test=ast.Name(id="args", ctx=ast.Load()),
+                body=ast.JoinedStr(
+                    values=[
+                        ast.FormattedValue(
+                            value=load_attribute([type(token).__name__, name]),
+                            conversion=-1,
+                            format_spec=None,
+                        ),
+                        ast.Constant(value="("),
+                        ast.FormattedValue(
+                            value=ast.Call(
+                                func=ast.Attribute(
+                                    value=ast.Constant(value=", "),
+                                    attr="join",
+                                ),
+                                args=[ast.Name(id="args", ctx=ast.Load())],
+                                keywords=[],
+                            ),
+                            conversion=-1,
+                            format_spec=None,
+                        ),
+                        ast.Constant(value=")"),
+                    ]
+                ),
+                orelse=load_attribute([type(token).__name__, name]),
+            )
+        ],
+        keywords=[],
+    )
+
+
 def generate_plain_method(
-    token: Enum,
-    name: str,
+    token: Enum, name: str, args: dict[str, Argument]
 ) -> ast.FunctionDef:
     """Generate a method that ends the path."""
     function_name = name
     while is_keyword_or_builtin(function_name):
         function_name += "_"
 
-    return create_no_args_method(
+    return create_method(
         name=function_name,
         body=[
             generate_method_docstring(token, name),
-            ast.Return(
-                value=ast.Call(
-                    func=load_attribute(["self", "path", "push"]),
-                    args=[load_attribute([type(token).__name__, name])],
-                    keywords=[],
-                )
-            ),
+            *generate_method_argument_body(args),
+            ast.Return(value=generate_push_call(token, name, args)),
         ],
+        args=args,
         returns=ast.Name(id="Path", ctx=ast.Load()),
     )
 
@@ -187,6 +343,7 @@ def generate_selector_method(
     class_name: str,
     token: Enum,
     name: str,
+    args: dict[str, Argument],
     next_type: TypeId,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path after a selector to a type."""
@@ -205,10 +362,11 @@ def generate_selector_method(
     while is_keyword_or_builtin(function_name):
         function_name += "_"
 
-    return create_no_args_method(
+    return create_method(
         name=function_name,
         body=[
             generate_method_docstring(token, name),
+            *generate_method_argument_body(args),
             ast.Return(
                 value=ast.Call(
                     func=ast.Attribute(
@@ -223,13 +381,7 @@ def generate_selector_method(
                                 attr="from_path",
                                 ctx=ast.Load(),
                             ),
-                            args=[
-                                ast.Call(
-                                    func=load_attribute(["self", "path", "push"]),
-                                    args=[load_attribute([type(token).__name__, name])],
-                                    keywords=[],
-                                )
-                            ],
+                            args=[generate_push_call(token, name, args)],
                             keywords=[],
                         ),
                         attr="set_cls",
@@ -240,6 +392,7 @@ def generate_selector_method(
                 )
             ),
         ],
+        args=args,
         returns=ast.Subscript(
             value=ast.Name(id="SelectorQueryPath", ctx=ast.Load()),
             slice=ast.Name(id=next_class_name),
@@ -250,30 +403,27 @@ def generate_selector_method(
 def generate_untyped_method(
     token: Enum,
     name: str,
+    args: dict[str, Argument],
 ) -> ast.FunctionDef:
     """Generate a method that continues the path with a wildcard selector."""
     function_name = name
     while is_keyword_or_builtin(function_name):
         function_name += "_"
 
-    return create_no_args_method(
+    return create_method(
         name=function_name,
         body=[
             generate_method_docstring(token, name),
+            *generate_method_argument_body(args),
             ast.Return(
                 value=ast.Call(
                     func=load_attribute(["UntypedQueryPath", "from_path"]),
-                    args=[
-                        ast.Call(
-                            func=load_attribute(["self", "path", "push"]),
-                            args=[load_attribute([type(token).__name__, name])],
-                            keywords=[],
-                        )
-                    ],
+                    args=[generate_push_call(token, name, args)],
                     keywords=[],
                 )
             ),
         ],
+        args=args,
         returns=ast.Name(id="UntypedQueryPath", ctx=ast.Load()),
     )
 
@@ -282,6 +432,7 @@ def generate_direct_method(
     class_name: str,
     token: Enum,
     name: str,
+    args: dict[str, Argument],
     next_type: TypeId,
 ) -> ast.FunctionDef:
     """Generate a method that continues the path with the specified type."""
@@ -296,24 +447,20 @@ def generate_direct_method(
     while is_keyword_or_builtin(function_name):
         function_name += "_"
 
-    return create_no_args_method(
+    return create_method(
         name=function_name,
         body=[
             generate_method_docstring(token, name),
+            *generate_method_argument_body(args),
             ast.Return(
                 value=ast.Call(
                     func=load_attribute([call_from_path_on, "from_path"]),
-                    args=[
-                        ast.Call(
-                            func=load_attribute(["self", "path", "push"]),
-                            args=[load_attribute([type(token).__name__, name])],
-                            keywords=[],
-                        )
-                    ],
+                    args=[generate_push_call(token, name, args)],
                     keywords=[],
                 )
             ),
         ],
+        args=args,
         returns=ast.Name(id=next_class_name, ctx=ast.Load()),
     )
 
@@ -324,23 +471,28 @@ def generate_method(
     method_name: str,
     *,
     config: ConfigurationEntry,
+    meta: Meta,
 ) -> ast.FunctionDef:
     """Generate a method for a path class."""
+    arguments = config["arguments"].get(method_name, {})
+    args = {key: meta["arguments"][key] for key in arguments}
+
     if selector := config["selector"].get(method_name, None):
-        return generate_selector_method(class_name, tokens, method_name, selector)
+        return generate_selector_method(class_name, tokens, method_name, args, selector)
 
     if method_name in config["untyped"]:
-        return generate_untyped_method(tokens, method_name)
+        return generate_untyped_method(tokens, method_name, args)
 
     if direct := config["direct"].get(method_name, None):
-        return generate_direct_method(class_name, tokens, method_name, direct)
+        return generate_direct_method(class_name, tokens, method_name, args, direct)
 
-    return generate_plain_method(tokens, method_name)
+    return generate_plain_method(tokens, method_name, args)
 
 
 def generate_path(
     id_: TypeId,
     config: ConfigurationEntry,
+    meta: Meta,
 ) -> ast.ClassDef:
     """Generate a path class."""
     class_name = get_class_name(id_)
@@ -358,6 +510,7 @@ def generate_path(
             token,
             token.name,
             config=config,
+            meta=meta,
         )
         for token in tokens
     ]
@@ -437,10 +590,14 @@ module = ast.Module(
     body=[
         doc_comment(),
         *imports(),
-        generate_path("data_type", configuration["data_type"]),
-        generate_path("property_type", configuration["property_type"]),
-        generate_path("entity_type", configuration["entity_type"]),
-        generate_path("entity", configuration["entity"]),
+        generate_path("data_type", configuration["data_type"], configuration["meta"]),
+        generate_path(
+            "property_type", configuration["property_type"], configuration["meta"]
+        ),
+        generate_path(
+            "entity_type", configuration["entity_type"], configuration["meta"]
+        ),
+        generate_path("entity", configuration["entity"], configuration["meta"]),
     ],
     type_ignores=[],
 )

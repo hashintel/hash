@@ -1,19 +1,10 @@
 """Definitions for all path objects.
 
-This file is auto-generated. Do not edit!
-"""
+This file is auto-generated. Do not edit!"""
 from typing import Self
-
-from graph_client.models import (
-    DataTypeQueryToken,
-    EntityQueryToken,
-    EntityTypeQueryToken,
-    PropertyTypeQueryToken,
-)
-
-from graph_sdk.filter.base import AbstractQueryPath, SelectorQueryPath, UntypedQueryPath
+from graph_client.models import DataTypeQueryToken, PropertyTypeQueryToken, EntityTypeQueryToken, EntityQueryToken
+from graph_sdk.filter.base import AbstractQueryPath, UntypedQueryPath, SelectorQueryPath
 from graph_sdk.query import Path
-
 
 class DataTypeQueryPath(AbstractQueryPath):
     """A query path for a data type."""
@@ -54,7 +45,6 @@ class DataTypeQueryPath(AbstractQueryPath):
         """Return the path to the type attribute of a data type."""
         return self.path.push(DataTypeQueryToken.type)
 
-
 class PropertyTypeQueryPath(AbstractQueryPath):
     """A query path for a property type."""
 
@@ -92,20 +82,11 @@ class PropertyTypeQueryPath(AbstractQueryPath):
 
     def data_types(self) -> SelectorQueryPath[DataTypeQueryPath]:
         """Return the path to the data_types attribute of a property type."""
-        return (
-            SelectorQueryPath[DataTypeQueryPath]
-            .from_path(self.path.push(PropertyTypeQueryToken.data_types))
-            .set_cls(DataTypeQueryPath)
-        )
+        return SelectorQueryPath[DataTypeQueryPath].from_path(self.path.push(PropertyTypeQueryToken.data_types)).set_cls(DataTypeQueryPath)
 
     def property_types(self) -> SelectorQueryPath[Self]:
         """Return the path to the property_types attribute of a property type."""
-        return (
-            SelectorQueryPath[Self]
-            .from_path(self.path.push(PropertyTypeQueryToken.property_types))
-            .set_cls(type(self))
-        )
-
+        return SelectorQueryPath[Self].from_path(self.path.push(PropertyTypeQueryToken.property_types)).set_cls(type(self))
 
 class EntityTypeQueryPath(AbstractQueryPath):
     """A query path for an entity type."""
@@ -148,11 +129,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
 
     def properties(self) -> SelectorQueryPath[PropertyTypeQueryPath]:
         """Return the path to the properties attribute of an entity type."""
-        return (
-            SelectorQueryPath[PropertyTypeQueryPath]
-            .from_path(self.path.push(EntityTypeQueryToken.properties))
-            .set_cls(PropertyTypeQueryPath)
-        )
+        return SelectorQueryPath[PropertyTypeQueryPath].from_path(self.path.push(EntityTypeQueryToken.properties)).set_cls(PropertyTypeQueryPath)
 
     def required(self) -> Path:
         """Return the path to the required attribute of an entity type."""
@@ -164,16 +141,18 @@ class EntityTypeQueryPath(AbstractQueryPath):
 
     def links(self) -> SelectorQueryPath[Self]:
         """Return the path to the links attribute of an entity type."""
-        return (
-            SelectorQueryPath[Self]
-            .from_path(self.path.push(EntityTypeQueryToken.links))
-            .set_cls(type(self))
-        )
+        return SelectorQueryPath[Self].from_path(self.path.push(EntityTypeQueryToken.links)).set_cls(type(self))
 
     def inherits_from(self) -> Path:
         """Return the path to the inherits_from attribute of an entity type."""
         return self.path.push(EntityTypeQueryToken.inherits_from)
 
+    def children(self, *, inheritance_depth: int | None=None) -> Path:
+        """Return the path to the children attribute of an entity type."""
+        args = []
+        if inheritance_depth is not None:
+            args.append(f'inheritanceDepth={inheritance_depth}')
+        return self.path.push(f"{EntityTypeQueryToken.children}({', '.join(args)})" if args else EntityTypeQueryToken.children)
 
 class EntityQueryPath(AbstractQueryPath):
     """A query path for an entity."""
@@ -198,9 +177,12 @@ class EntityQueryPath(AbstractQueryPath):
         """Return the path to the record_created_by_id attribute of an entity."""
         return self.path.push(EntityQueryToken.record_created_by_id)
 
-    def type_(self) -> EntityTypeQueryPath:
+    def type_(self, *, inheritance_depth: int | None=None) -> EntityTypeQueryPath:
         """Return the path to the type attribute of an entity."""
-        return EntityTypeQueryPath.from_path(self.path.push(EntityQueryToken.type))
+        args = []
+        if inheritance_depth is not None:
+            args.append(f'inheritanceDepth={inheritance_depth}')
+        return EntityTypeQueryPath.from_path(self.path.push(f"{EntityQueryToken.type}({', '.join(args)})" if args else EntityQueryToken.type))
 
     def properties(self) -> UntypedQueryPath:
         """Return the path to the properties attribute of an entity."""
