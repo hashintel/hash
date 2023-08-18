@@ -13,7 +13,7 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
@@ -25,7 +25,10 @@ import { useMemo, useState } from "react";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import { isLinkEntityType } from "../../../../shared/entity-types-context/util";
+import {
+  isLinkEntityType,
+  isTypeArchived,
+} from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -33,7 +36,9 @@ import {
 } from "../../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { ArchiveMenuItem } from "../../shared/archive-menu-item";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+import { ConvertTypeMenuItem } from "./[...slug-maybe-version].page/convert-type-menu-item";
 import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
@@ -198,6 +203,23 @@ const Page: NextPageWithLayout = () => {
 
   const entityTypeIsLink = isLinkEntityType(entityType);
 
+  const convertToLinkType = wrapHandleSubmit(async (data) => {
+    const entityTypeSchema = getSchemaFromFormData(data);
+
+    const res = await updateEntityType({
+      ...entityTypeSchema,
+      allOf: [{ $ref: linkEntityTypeUrl }],
+    });
+
+    if (!res.errors?.length && res.data) {
+      void router.push(res.data.schema.$id);
+    } else {
+      throw new Error("Could not publish changes");
+    }
+  });
+
+  const isDirty = formMethods.formState.isDirty;
+
   return (
     <>
       <NextSeo title={`${entityType.title} | Entity Type`} />
@@ -206,6 +228,25 @@ const Page: NextPageWithLayout = () => {
           <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
             <Box display="contents" component="form" onSubmit={handleSubmit}>
               <TopContextBar
+                actionMenuItems={[
+                  ...(remoteEntityType && !isTypeArchived(remoteEntityType)
+                    ? [
+                        <ArchiveMenuItem
+                          key={entityType.$id}
+                          item={remoteEntityType}
+                        />,
+                      ]
+                    : []),
+                  ...(!isReadonly && !isDraft && !entityTypeIsLink
+                    ? [
+                        <ConvertTypeMenuItem
+                          key={entityType.$id}
+                          convertToLinkType={convertToLinkType}
+                          disabled={isDirty}
+                        />,
+                      ]
+                    : []),
+                ]}
                 defaultCrumbIcon={null}
                 item={remoteEntityType ?? undefined}
                 crumbs={[
