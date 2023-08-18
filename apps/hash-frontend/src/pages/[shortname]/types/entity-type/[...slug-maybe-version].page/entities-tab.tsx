@@ -140,13 +140,15 @@ export const EntitiesTab: FunctionComponent = () => {
               </Stack>
             ) : null}
 
-            <IconButton
-              rounded
-              onClick={() => setShowSearch(true)}
-              sx={{ color: ({ palette }) => palette.gray[60] }}
-            >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </IconButton>
+            {!isEmpty && (
+              <IconButton
+                rounded
+                onClick={() => setShowSearch(true)}
+                sx={{ color: ({ palette }) => palette.gray[60] }}
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </IconButton>
+            )}
           </Stack>
         }
         tooltipIcon={
@@ -157,9 +159,6 @@ export const EntitiesTab: FunctionComponent = () => {
           <Paper sx={{ overflow: "hidden" }}>
             <SectionEmptyState
               title="There are no entities of this type visible to you"
-              titleIcon={
-                <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 18 }} />
-              }
               description="Assigning this type to an entity will result in it being shown here"
             />
           </Paper>
