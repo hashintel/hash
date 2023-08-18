@@ -26,7 +26,7 @@ const style: SxProps<Theme> = {
   p: { xs: 2, md: 4 },
 };
 
-type ModalProps = MuiModalProps & {
+export type ModalProps = MuiModalProps & {
   contentStyle?: SxProps<Theme>;
 };
 
