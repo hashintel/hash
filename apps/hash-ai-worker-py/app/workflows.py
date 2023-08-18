@@ -1,8 +1,9 @@
 """Temporal workflow definitions."""
 
+from __future__ import annotations
+
 import json
-from typing import Any
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
 
 from pydantic import (
     BaseModel,
@@ -13,6 +14,9 @@ from pydantic import (
 from temporalio import workflow
 
 from ._status import Status, StatusCode
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 with workflow.unsafe.imports_passed_through():
     from graph_types import (
