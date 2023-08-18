@@ -1,4 +1,4 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
+import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isBaseUrl, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -99,7 +99,11 @@ const EntitiesPage: NextPageWithLayout = () => {
   const isViewAllPagesPage =
     entityType?.schema.$id === types.entityType.page.entityTypeId;
 
-  const pageTitle = entityType ? `${entityType.schema.title}s` : "Entities";
+  const pageTitle = entityType
+    ? entityTypeId
+      ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
+      : `${entityType.schema.title}s`
+    : "Entities";
 
   const theme = useTheme();
 
