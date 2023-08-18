@@ -12,5 +12,7 @@ DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
 
 poetry run python "$DIR/generate_blocking.py"
 
+# We need to run black twice because ruff changes the output
+poetry run black "$DIR/../graph_sdk/client/blocking.py"
 poetry run ruff --fix "$DIR/../graph_sdk/client/blocking.py" || true
 poetry run black "$DIR/../graph_sdk/client/blocking.py"
