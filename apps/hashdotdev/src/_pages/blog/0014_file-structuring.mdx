@@ -4,19 +4,19 @@ authors:
     jobTitle: CEO, HASH
     photo: blog/authors/david-wilkinson.jpg
   - name: Alexander Kachkaev
-    jobTitle: Contributor, Block Protocol
+    jobTitle: Contributor, HASH
     photo: blog/authors/alexander-kachkaev.webp
-postPhoto: blog/0013_file-structuring/tree-evolution-3.png
+postPhoto: blog/0014_file-structuring/tree-evolution-3.png
 title: "File structuring using fractal trees"
 subtitle: "Scalable code organizing for large projects and monorepos"
-date: "2023-03-21"
+date: "2023-09-05"
 ---
 
 This post is the first in a series from [HASH](https://hash.dev/) on **minimizing entropy** in large, actively growing codebases. It outlines an approach we use when structuring JavaScript source files, which employs the concept of fractal trees. The solutions can be applied to parts of a codebase, as well as projects as a whole, allowing for incremental adoption.
 
 ## Context
 
-At HASH, we maintain two (public) monorepos, [`hash`](https://github.com/hashintel/hash) and [`blockprotocol`](https://github.com/blockprotocol/blockprotocol). In the context of these monorepos, this post's scope is limited to the _internals_ of Yarn workspaces, while the locations of the workspaces themselves are out of scope. In a future post, we'll discuss competing approaches to structuring projects within multi-language monorepos and our recommendations here.
+At HASH, we maintain two (public) monorepos, [`hash`](https://github.com/hashintel/hash) and [`blockprotocol`](https://github.com/blockprotocol/blockprotocol). In the context of these monorepos, this post's scope is limited to the _internals_ of Yarn workspaces, while the locations of the workspaces themselves are out of scope. In a future post, we'll discuss competing approaches to structuring projects within multi-language monorepos and our recommendations here, explaining why our [monorepo repo](https://github.com/hashintel/hash) looks the way it does.
 
 ## Problem
 
@@ -35,19 +35,19 @@ A new project is initiated with just one root source file and is then grown orga
 Project complexity is distributed across the whole tree, which makes the resulting structure robust, flexible, self-explanatory and highly scalable.
 
 <img
-  src="blog/0013_file-structuring/tree-evolution-1.png"
+  src="blog/0014_file-structuring/tree-evolution-1.png"
   width={1176 / 6}
   height={884 / 6}
   alt="tree evolution (1)"
 />
 <img
-  src="blog/0013_file-structuring/tree-evolution-2.png"
+  src="blog/0014_file-structuring/tree-evolution-2.png"
   width={1194 / 6}
   height={886 / 6}
   alt="tree evolution (2)"
 />
 <img
-  src="blog/0013_file-structuring/tree-evolution-3.png"
+  src="blog/0014_file-structuring/tree-evolution-3.png"
   width={1198 / 6}
   height={886 / 6}
   alt="tree evolution (3)"
@@ -80,7 +80,7 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 **Each sub-tree exports resources which can be imported on the next level of the tree.** Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported. As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
 
 <img
-  src="blog/0013_file-structuring/resources-of-subtrees.png"
+  src="blog/0014_file-structuring/resources-of-subtrees.png"
   width={1198 / 2}
   height={886 / 2}
   alt="Resources of subtrees are inaccessible"
@@ -91,13 +91,13 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 **If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.** If the scope of the shared resource has changed over time, a file is moved accordingly. Each ‘fork’ in the tree can accommodate multiple shared resources. Each of the shared resources is a root of a fractal sub-tree by itself.
 
 <img
-  src="blog/0013_file-structuring/shared-resources-1.png"
+  src="blog/0014_file-structuring/shared-resources-1.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (1)"
 />
 <img
-  src="blog/0013_file-structuring/shared-resources-2.png"
+  src="blog/0014_file-structuring/shared-resources-2.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (2)"
@@ -218,7 +218,7 @@ If necessary, it is possible to have multiple entry points, such as Next.js page
 The locations of these entry points are justified by their usage, but the rules of the fractal tree still apply.
 
 <img
-  src="blog/0013_file-structuring/multiple-entry-points.jpg"
+  src="blog/0014_file-structuring/multiple-entry-points.jpg"
   width={800}
   height={600}
   alt="Multiple ‘tree entry points’ in a botanic garden"
