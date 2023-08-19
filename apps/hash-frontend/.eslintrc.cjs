@@ -37,15 +37,22 @@ module.exports = {
               "Link",
               "Button",
               "MenuItem",
+              "Tabs",
             ],
             message:
-              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/design-system' for every other component.",
+              "Please use the custom wrapper component from src/shared/ui for Link, Button, Tabs and MenuItem and from '@hashintel/design-system' for every other component.",
           },
           {
             name: "notistack",
             importNames: ["useSnackbar"],
             message:
               "Please use the custom src/components/hooks/useSnackbar hook instead.",
+          },
+          {
+            name: "@hashintel/design-system",
+            importNames: ["Button", "Link", "MenuItem"],
+            message:
+              "Please use the custom wrapper component in src/shared/ui component instead",
           },
         ],
         patterns: [

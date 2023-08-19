@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
@@ -17,7 +17,7 @@ import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks"
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
 import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
-import { Link } from "../../../shared/ui";
+import { Button, Link } from "../../../shared/ui";
 import { isEntityPageEntity, isItemEntityType } from "./util";
 
 type ArchivedItemBannerProps = {
@@ -134,7 +134,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               color: ({ palette }) => palette.gray[60],
             }}
           />
-          <strong>This page was archived</strong>
+          <strong>
+            This {isItemEntityType(item) ? "type" : "page"} was archived
+          </strong>
           {archivedByUser ? (
             <>
               {" by "}

@@ -449,6 +449,7 @@ mod tests {
                 EntityTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: PropertyTypeQueryPath::Title,
+                    inheritance_depth: Some(0),
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -491,8 +492,10 @@ mod tests {
                         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                         path: Box::new(EntityTypeQueryPath::Title),
                         direction: EdgeDirection::Outgoing,
+                        inheritance_depth: Some(0),
                     }),
                     direction: EdgeDirection::Outgoing,
+                    inheritance_depth: Some(0),
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -539,6 +542,7 @@ mod tests {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(EntityTypeQueryPath::BaseUrl),
                     direction: EdgeDirection::Outgoing,
+                    inheritance_depth: Some(0),
                 },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -905,6 +909,7 @@ mod tests {
                     path: Box::new(EntityQueryPath::EntityTypeEdge {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
                     }),
                     direction: EdgeDirection::Outgoing,
                 })),
@@ -918,6 +923,7 @@ mod tests {
                     path: Box::new(EntityQueryPath::EntityTypeEdge {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
                     }),
                     direction: EdgeDirection::Outgoing,
                 })),

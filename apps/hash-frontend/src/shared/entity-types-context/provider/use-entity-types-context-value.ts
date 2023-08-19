@@ -1,14 +1,43 @@
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  EntityTypeWithMetadata,
+  linkEntityTypeUrl,
+} from "@local/hash-subgraph";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { EntityTypesContextValue } from "../shared/context-types";
 
+const isLinkEntityType = (
+  entityType: EntityType,
+  allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
+) => {
+  let parentRefObjects = entityType.allOf ?? [];
+  while (parentRefObjects.length) {
+    if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
+      return true;
+    }
+
+    parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
+      const parentEntityType = allEntityTypes[$ref];
+      if (!parentEntityType) {
+        throw new Error(
+          `Entity type ${$ref} not found when looking up ancestors of ${entityType.$id}`,
+        );
+      }
+      return parentEntityType.schema.allOf ?? [];
+    });
+  }
+  return false;
+};
+
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<
     Omit<EntityTypesContextValue, "refetch" | "ensureFetched">
   >({
     entityTypes: null,
+    isLinkTypeLookup: null,
     loading: true,
     subgraph: null,
   });
@@ -41,8 +70,19 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     const subgraph = res.data;
     const entityTypes = subgraph ? getEntityTypes(subgraph) : [];
 
+    const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
+      Object.fromEntries(entityTypes.map((type) => [type.schema.$id, type]));
+
+    const isLinkTypeLookup = Object.fromEntries(
+      entityTypes.map((type) => [
+        type.schema.$id,
+        isLinkEntityType(type.schema, typesByVersion),
+      ]),
+    );
+
     setTypes({
       entityTypes,
+      isLinkTypeLookup,
       subgraph: subgraph ?? null,
       loading: false,
     });

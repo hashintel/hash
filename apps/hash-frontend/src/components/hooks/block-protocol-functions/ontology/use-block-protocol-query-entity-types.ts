@@ -47,6 +47,7 @@ export const useBlockProtocolQueryEntityTypes = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
           ...graphResolveDepths,
           latestOnly,
           includeArchived,

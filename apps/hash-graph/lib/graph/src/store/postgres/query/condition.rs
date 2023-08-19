@@ -12,6 +12,10 @@ pub enum Condition {
     Not(Box<Self>),
     Equal(Option<Expression>, Option<Expression>),
     NotEqual(Option<Expression>, Option<Expression>),
+    Less(Expression, Expression),
+    LessOrEqual(Expression, Expression),
+    Greater(Expression, Expression),
+    GreaterOrEqual(Expression, Expression),
     In(Expression, Expression),
     TimeIntervalContainsTimestamp(Expression, Expression),
     Overlap(Expression, Expression),
@@ -27,6 +31,7 @@ pub enum EqualityOperator {
 }
 
 impl Transpile for Condition {
+    #[expect(clippy::too_many_lines)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
@@ -80,6 +85,26 @@ impl Transpile for Condition {
             Self::NotEqual(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
+                rhs.transpile(fmt)
+            }
+            Self::Less(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" < ")?;
+                rhs.transpile(fmt)
+            }
+            Self::LessOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" <= ")?;
+                rhs.transpile(fmt)
+            }
+            Self::Greater(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" > ")?;
+                rhs.transpile(fmt)
+            }
+            Self::GreaterOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" >= ")?;
                 rhs.transpile(fmt)
             }
             Self::In(lhs, rhs) => {

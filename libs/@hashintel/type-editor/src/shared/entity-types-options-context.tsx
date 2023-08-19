@@ -20,13 +20,25 @@ export const useEntityTypesOptionsContextValue = (
     const nonLinkEntityTypesRecord: EntityTypesByVersionedUrl = {};
 
     for (const entityType of Object.values(entityTypes)) {
-      const target =
-        entityType.allOf?.length === 1 &&
-        entityType.allOf[0]?.$ref === linkEntityTypeUrl
-          ? linkEntityTypesRecord
-          : nonLinkEntityTypesRecord;
+      let targetRecord = nonLinkEntityTypesRecord;
+      let parentRefObjects = entityType.allOf ?? [];
+      while (parentRefObjects.length) {
+        if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
+          targetRecord = linkEntityTypesRecord;
+          break;
+        }
+        parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
+          const parentEntityType = entityTypes[$ref];
+          if (!parentEntityType) {
+            throw new Error(
+              `Entity type ${$ref} not found when looking up ancestors of ${entityType.$id}`,
+            );
+          }
+          return parentEntityType.allOf ?? [];
+        });
+      }
 
-      target[entityType.$id] = entityType;
+      targetRecord[entityType.$id] = entityType;
     }
 
     return {

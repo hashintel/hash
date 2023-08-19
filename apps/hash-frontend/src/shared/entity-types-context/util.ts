@@ -1,5 +1,14 @@
-import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 
-export const isEntityTypeArchived = (entityType: EntityTypeWithMetadata) =>
-  entityType.metadata.custom.temporalVersioning.transactionTime.end.kind ===
+export const isTypeArchived = (
+  type:
+    | EntityTypeWithMetadata
+    | PropertyTypeWithMetadata
+    | DataTypeWithMetadata,
+) =>
+  type.metadata.custom.temporalVersioning.transactionTime.end.kind ===
   "exclusive";

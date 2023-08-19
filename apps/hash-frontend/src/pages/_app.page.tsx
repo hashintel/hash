@@ -26,7 +26,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -36,6 +35,7 @@ import {
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
+import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import {
@@ -137,21 +137,21 @@ const App: FunctionComponent<AppProps> = ({
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <ModalProvider>
-              <RouteWorkspaceInfoProvider>
-                <RoutePageInfoProvider>
-                  <WorkspaceContextProvider>
-                    <SnackbarProvider maxSnack={3}>
-                      <EntityTypesContextProvider>
+            <RouteWorkspaceInfoProvider>
+              <RoutePageInfoProvider>
+                <WorkspaceContextProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    <EntityTypesContextProvider>
+                      <LatestPropertyTypesContextProvider>
                         <SidebarContextProvider>
                           {getLayout(<Component {...pageProps} />)}
                         </SidebarContextProvider>
-                      </EntityTypesContextProvider>
-                    </SnackbarProvider>
-                  </WorkspaceContextProvider>
-                </RoutePageInfoProvider>
-              </RouteWorkspaceInfoProvider>
-            </ModalProvider>
+                      </LatestPropertyTypesContextProvider>
+                    </EntityTypesContextProvider>
+                  </SnackbarProvider>
+                </WorkspaceContextProvider>
+              </RoutePageInfoProvider>
+            </RouteWorkspaceInfoProvider>
           </ThemeProvider>
         </CacheProvider>
         {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}

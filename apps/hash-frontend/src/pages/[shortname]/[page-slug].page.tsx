@@ -70,6 +70,7 @@ import {
   TopContextBar,
 } from "../shared/top-context-bar";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
+import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -125,6 +126,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
+        inheritsFrom: { outgoing: 0 },
         isOfType: { outgoing: 0 },
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
@@ -315,7 +317,7 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, contents, metadata, properties } = data.page;
+  const { title, icon, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -348,7 +350,17 @@ const Page: NextPageWithLayout<PageProps> = ({
           })}
         >
           <TopContextBar
-            item={{ metadata, properties }}
+            actionMenuItems={
+              data.page.archived
+                ? undefined
+                : [
+                    <ArchiveMenuItem
+                      key={data.page.metadata.recordId.entityId}
+                      item={data.page}
+                    />,
+                  ]
+            }
+            item={data.page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.recordId.entityId,
