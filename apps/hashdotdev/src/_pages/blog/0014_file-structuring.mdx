@@ -117,105 +117,69 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 
 > ℹ️ Examples below mention `.js` extension for simplicity, but they apply to TypeScript and JSX files too.
 
-### Rule #1 - All file and folder names are in kebab-case
+### Rule 1: All file and folder names are in _kebab-case_
 
-Avoiding capital letters saves us from crashes on case-sensitive file systems.
-For example, `import "./Foo.js"` may not work on Linux if a file is named `foo.js`.
-Unlike `camelCase` and `PascalCase`, `kebab-case` also maps well into URLs and npm package names.
-We use [unicorn/filename-case](https://github.com/sindresorhus/eslint-plugin-unicorn/blob/main/docs/rules/filename-case.md) to maintain consistency in file names.
+Avoiding capital letters saves us from crashes on case-sensitive file systems. For example, `import "./Foo.js"` may not work on Linux if a file is named `foo.js`. And unlike `camelCase` and `PascalCase`, `kebab-case` also maps well into URLs and npm package names. We use [unicorn/filename-case](https://github.com/sindresorhus/eslint-plugin-unicorn/blob/main/docs/rules/filename-case.md) to maintain consistency in file names.
 
-### Rule #2 - No index.js files
+### Rule 2: No `index.js` files
 
-These ‘special’ files enable imports from folders in Node.js.
-For example, `require("./foo")` resolves `./foo` to `./foo/index.js` if the index file is present.
-However, this resolution mechanism does not work in ESM imports, i.e. native web and platforms like Deno (see [their docs](https://deno.land/manual@v1.0.0/contributing/style_guide#do-not-use-the-filename-indextsindexjs)).
-The author of Node.js admits he finds `index.js` files needlessly complicated (watch ‘[10 Things I Regret About Node.js](https://www.youtube.com/watch?v=M3BM9TB-8yA&t=876s)‘).
+These ‘special’ files enable imports from folders in Node.js. For example, `require("./foo")` resolves `./foo` to `./foo/index.js` if the index file is present. However, this resolution mechanism does not work in ESM imports, i.e. native web and platforms like Deno (see [their docs](https://deno.land/manual@v1.0.0/contributing/style_guide#do-not-use-the-filename-indextsindexjs)). The creator of Node.js concedes that although _cute_,  `index.js` files needlessly complicate things (watch ‘[10 Things I Regret About Node.js](https://www.youtube.com/watch?v=M3BM9TB-8yA&t=876s)‘). By refraining from both using `index.js` and implicit folder imports, we improve codebase compatibility with different runtimes. We also protect ourselves from confusing path synonyms like `"./foo"` mapping to both `"./foo.js"` or `"./foo/index.js"`. The entry point to an npm package can be named `main.js` instead of `index.js`.
 
-By refraining from `index.js` and implicit folder imports, we improve codebase compatibility with different runtimes.
-We also protect ourselves from confusing path synonyms like `"./foo"` mapping to both `"./foo.js"` or `"./foo/index.js"`.
+### Rule 3: Each file is a ‘mini-library’
 
-The entry point to an npm package can be named `main.js` instead of `index.js` which is not uncommon.
+A file in a fractal tree can expose one or more named exports, all of which should serve a common semantic purpose. The name of the file summarises its contents, e.g. `maths.ts` presumably contains various maths functions and symbols. If a file contains only one export, it is recommended to name it after that export, e.g. `import { doSomethingCool } from "./do-something-cool.js"`, as doing so simplifies search.
 
-### Rule #3 - Each file is a ‘mini-library’
-
-A file in a fractal tree can expose one or more named exports, all of which should serve a common semantic purpose.
-The name of the file summarises its contents, e.g. `maths.ts` presumably contains various maths functions and symbols.
-If a file contains only one export, it is recommended to name it after that export, e.g. `import { doSomethingCool } from "./do-something-cool.js"`.
-Doing so simplifies search.
-
-When reasoning about the boundaries of a file, it is helpful to imagine this ‘mini-library’ published on npm.
-If it is hard to come up with a good description for a new hypothetical package, the boundaries of the file are probably ill-defined.
-It may be the case of unrelated resources being unreasonably mixed up (e.g. `utils.js` with some filesystem helpers and React hooks).
+When reasoning about the boundaries of a file, it is helpful to imagine this ‘mini-library’ published on npm. If it is hard to come up with a good description for a new hypothetical package, the boundaries of the file are probably ill-defined. It may be the case of unrelated resources being unreasonably mixed up (e.g. `utils.js` with some filesystem helpers and React hooks).
 
 We [avoid default exports](https://basarat.gitbook.io/typescript/main-1/defaultisbad) unless it is an external requirement.
 
-### Rule #4 - Outgrown files are converted into sub-trees of files
+### Rule 4: Outgrown files are converted into sub-trees of files
 
-Because each file is a ‘mini-library’ on the conceptual level, all its logic except external imports can be defined in one place.
-Of course, this would make some files too crowded, so distributing a ‘mini-library’ on the disk often makes sense.
-When parts of a ‘mini-library’ are extracted, the new files should be placed into a folder named after the original file name.
+Because each file is a ‘mini-library’ on the conceptual level, all of its logic, except external imports, can be defined in one place. However, this runs the risk of certain files becoming too crowded, necessitating distribution of a ‘mini-library’ on the disk.
 
-For example, if we extract helpers named `bar` and `baz` from `path/to/foo.js`, new files are created at `path/to/foo/bar.js` and `path/to/foo/baz.js`.
-New file locations communicate their relationship with `path/to/foo.js` which becomes the root of a newly created sub-tree.
-Only `path/to/foo.js` is allowed to import from `path/to/foo/*.js` because this folder is considered ‘private’ from elsewhere.
-If `path/to/foo.js` is no longer used, it can be safely deleted together with its ‘private’ `path/to/foo/` folder.
+When any part of a ‘mini-library’ is extracted, the new files should be placed into a folder named after the original file name. For example, if we extract helpers named `bar` and `baz` from `path/to/foo.js`, new files are created at `path/to/foo/bar.js` and `path/to/foo/baz.js`. New file locations communicate their relationship with `path/to/foo.js` which becomes the root of a newly created sub-tree. Only `path/to/foo.js` is allowed to import from `path/to/foo/*.js` because this folder is considered ‘private’ from elsewhere. If `path/to/foo.js` is no longer used, it can be safely deleted together with its ‘private’ `path/to/foo/` folder.
 
-If any of the ‘mini-libraries’ in a sub-tree needs further splitting, the process of new file extraction repeats.
-Essentially, `path/to/foo.js` can only import files from `path/to/foo/*.js` and not from `path/to/foo/bar/*.js`.
-This is because `path/to/foo/bar/` is a ‘private’ folder which is only accessible from `path/to/foo/bar.js`.
+If any of the ‘mini-libraries’ in a sub-tree needs further splitting, the process of new file extraction repeats. Essentially, `path/to/foo.js` can only import files from `path/to/foo/*.js` and not from `path/to/foo/bar/*.js`. This is because `path/to/foo/bar/` is a ‘private’ folder which is only accessible from `path/to/foo/bar.js`.
 
-There is no hard recommendation on when to split a file because situations are different.
-For example, a file with a complex React component can benefit from extracting a few helper components and placing them in a subfolder (i.e. sub-tree).
-However, there is no need to do this from the start if the original file in its current form has no maintenance issues.
-Splitting makes sense only _when_ issues become _real_, not hypothetical.
-Premature file splitting makes the folder tree larger than it could be, which is a sign of over-engineering.
+There is no hard recommendation on when to split a file because situations are different. For example, a file with a complex React component can benefit from extracting a few helper components and placing them in a subfolder (i.e. sub-tree). However, there is no need to do this from the start if the original file in its current form has no maintenance issues. Splitting makes sense only _when_ issues become _real_, not hypothetical. Premature file splitting makes the folder tree larger than it could be, which is a sign of over-engineering.
 
-For a consumer of a ‘mini-library’, the is no difference between it being a single library or a large sub-tree with thousands of files.
-Internal sub-tree restructuring does not affect the exposed resources.
+For the consumer of a ‘mini-library’, no difference exists between its being a large sub-tree with thousands of files, as opposed to a single library. Internal sub-tree restructuring does not affect the exposed resources.
 
-### Rule #5 - All imports within a workspace use relative paths
+### Rule 5: All imports within a workspace use relative paths
 
-Importing something from another workspace is straightforward: we just go for `package-name/optional/path/to/something`.
-When we need to import from the same workspace, there are two options:
+Importing something from another workspace is as straightforward as `package-name/optional/path/to/something`.
+
+But when faced with the need to import from the same workspace, we have two options:
 
 1.  use relative paths, e.g. `../../../foo/bar`
 2.  create top-level aliases for some folders, e.g. `@/foo` for `my-workspace/src/foo`.
     [Next.js supports this style](https://nextjs.org/docs/advanced-features/module-path-aliases); other types of workspaces can be configured to support it too.
 
-The problem with the second approach is that it creates two correct ways of doing the same thing.
-If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a/b.ts`, we can either write `../a/b` or `@/a/b`.
-Using `@/a/b` needs more setup, which is a source of tooling incompatibility, team debates and so on.
-It is easier to always use relative paths.
+The problem with the second approach is that it creates two correct ways of doing the same thing. If we are in `my-workspace/x/y.ts` and we want to import from `my-workspace/a/b.ts`, we can either write `../a/b` or `@/a/b`. Using `@/a/b` requires additional setup, which can become a source of tooling incompatibility, team debate, and other wastage of time. It is easier to always use relative paths.
 
-### Rule #6 - Shared resources are put into `shared` folders
+### Rule 6: Shared resources are put into `shared` folders
 
-It is not allowed to import any resource from anywhere as this can break the integrity of the fractal tree.
-The location of any file unambiguously communicates the limits of its use.
+Importing any resource from anywhere is disallowed, as doing so can break the integrity of the fractal tree. The location of any file unambiguously communicates the limits of its use.
 
-If the logic of any file (i.e. ‘mini-library’) is shared between multiple sub-trees, this ‘mini-library’ is moved from its original location to `path/to/common-parent/shared/`.
-The new location can be a few folders up from where resources are used, as long as `shared/` is located as deep in the tree as possible.
+If the logic of any file (i.e. ‘mini-library’) is shared between multiple sub-trees, this ‘mini-library’ is moved from its original location to `path/to/common-parent/shared/`. Its new location may be a few directories up from where resources are used, provided `shared/` is located as deep in the tree as possible.
 
-We can think of each `shared/` folder as of a lightweight `node_modules/` folder where each ‘package’ is a single file instead of a folder with `package.json`.
-‘Mini-libraries’ like `path/to/shared/a.js` and `path/to/shared/b.js` can independently moved between `shared/` folders of the fractal tree based on their current usage.
-Moving a ‘mini-library’ requires updates to import paths but this is done automatically in most modern code editors.
-Linting makes sure that the result of this operation is valid.
-Changing the physical location of a sub-tree does not discard its `git blame`.
+We can think of each `shared/` folder as a lightweight `node_modules/` folder wherein each ‘package’ is a single file, instead of a folder as with `package.json`.
 
-Just like in the rest of the tree, files like `path/to/shared/a/x.js` are considered ‘private’ and cannot be imported from anywhere except `path/to/shared/a.js`.
-To expose symbols from `path/to/shared/a/x.js`, they should be re-exported from `path/to/shared/a.js`
+‘Mini-libraries’ like `path/to/shared/a.js` and `path/to/shared/b.js` can independently move between `shared/` folders within the fractal tree based on their current usage.
 
-A shared ‘mini-library’ can import from sibling files, e.g. `path/to/shared/a.js` can contain an import from `path/to/shared/b.js` using relevant import path (`"./b.js"`).
-This would be an equivalent of importing one npm package from another.
+Moving a ‘mini-library’ requires updating import paths, but this can be fully automated in most modern code editors, and linting helps ensure that the result of these operations are valid. Changing the physical location of a sub-tree does not discard its `git blame`.
 
-The contents of the `shared` folders closer to the tree root are also accessible, but not the other way around.
-`import { a } from "../../../shared/a.js"` is allowed just as `import { a } from "./shared/a.js"`, but `import { a } from "./some/sub/tree/shared/a.js"` or `import { a } from "../../some/sub/tree/shared/a.js"` are not.
+Consistent with the rest of the tree, files like `path/to/shared/a/x.js` are considered ‘private’ and cannot be imported from anywhere except `path/to/shared/a.js`. To expose symbols from `path/to/shared/a/x.js`, they should be re-exported from `path/to/shared/a.js`
 
-### Rule #7 - Multiple entry points are allowed
+A shared ‘mini-library’ can import from any sibling files. For example, `path/to/shared/a.js` can contain an import from `path/to/shared/b.js` using the import path (`"./b.js"`). This is equivalent to importing one npm package from another.
 
-A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`.
-This file works as the only entry point into the whole fractal tree, which can be of any size.
-If necessary, it is possible to have multiple entry points, such as Next.js pages, executable CLI scripts, tests files and so on.
-The locations of these entry points are justified by their usage, but the rules of the fractal tree still apply.
+The contents of the `shared` folders closer to the tree root are also accessible, but not the other way around. `import { a } from "../../../shared/a.js"` is allowed just as `import { a } from "./shared/a.js"`, but `import { a } from "./some/sub/tree/shared/a.js"` or `import { a } from "../../some/sub/tree/shared/a.js"` are not.
+
+### Rule 7: Multiple entry points are allowed
+
+A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`. This file works as the only entry point into the whole fractal tree, which can be of any size.
+
+If necessary, it is possible to have multiple entry points, such as Next.js pages, executable CLI scripts, tests files and so on. The locations of these additional entry points should be determined by their usage, but our fractal rules still apply.
 
 <img
   src="blog/0014_file-structuring/multiple-entry-points.jpg"
