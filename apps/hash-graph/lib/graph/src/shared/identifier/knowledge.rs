@@ -1,19 +1,15 @@
 use std::{fmt, str::FromStr};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use temporal_versioning::{
+    DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
+};
 use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        time::{
-            DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
-        },
-    },
-    knowledge::EntityUuid,
-    provenance::OwnedById,
+    identifier::account::AccountId, knowledge::EntityUuid, provenance::OwnedById,
     subgraph::temporal_axes::VariableAxis,
 };
 

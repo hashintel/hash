@@ -5,6 +5,7 @@ use std::{collections::HashMap, error::Error, fmt};
 use bytes::BytesMut;
 use postgres_types::{IsNull, Type};
 use serde::{Deserialize, Serialize};
+use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
@@ -12,10 +13,7 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
-    identifier::{
-        knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{ClosedTemporalBound, TemporalTagged, TimeAxis},
-    },
+    identifier::knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
     provenance::ProvenanceMetadata,
     store::Record,
     subgraph::identifier::EntityVertexId,

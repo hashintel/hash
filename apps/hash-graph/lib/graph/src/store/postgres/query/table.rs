@@ -5,9 +5,9 @@ use std::{
 };
 
 use postgres_types::ToSql;
+use temporal_versioning::TimeAxis;
 
 use crate::{
-    identifier::time::TimeAxis,
     store::{
         postgres::query::{Condition, Constant, Expression, Transpile},
         query::{JsonPath, ParameterType},

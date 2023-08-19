@@ -16,12 +16,7 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::{
-        account::AccountId,
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
-    },
+    identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
         LinkData,
@@ -50,6 +45,7 @@ use graph::{
         },
     },
 };
+use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{repr, url::VersionedUrl, DataType, EntityType, PropertyType};

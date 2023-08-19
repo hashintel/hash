@@ -5,6 +5,7 @@ use error_stack::{IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use postgres_types::{FromSql, Type};
 use serde::Deserialize;
+use temporal_versioning::RightBoundedTemporalInterval;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
 use type_system::{
@@ -16,7 +17,6 @@ use crate::{
     identifier::{
         account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::RightBoundedTemporalInterval,
     },
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
@@ -50,7 +50,7 @@ enum AdditionalOntologyMetadata {
         owned_by_id: OwnedById,
     },
     External {
-        #[serde(with = "crate::serde::time")]
+        #[serde(with = "temporal_versioning::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }

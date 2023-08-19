@@ -1,8 +1,6 @@
-use graph::{
-    identifier::time::ClosedTemporalBound,
-    knowledge::{EntityLinkOrder, EntityProperties},
-};
+use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use temporal_versioning::ClosedTemporalBound;
 use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

@@ -3,7 +3,7 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::{account::AccountId, time::TemporalBound},
+    identifier::account::AccountId,
     knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
@@ -18,6 +18,7 @@ use graph::{
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
+use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::{repr, EntityType};
 use uuid::Uuid;

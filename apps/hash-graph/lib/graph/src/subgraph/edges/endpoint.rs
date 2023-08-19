@@ -3,8 +3,10 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
+use temporal_versioning::LeftClosedTemporalInterval;
+
 use crate::{
-    identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
+    identifier::knowledge::EntityId,
     subgraph::{
         identifier::{EdgeEndpoint, EntityIdWithInterval},
         temporal_axes::VariableAxis,
