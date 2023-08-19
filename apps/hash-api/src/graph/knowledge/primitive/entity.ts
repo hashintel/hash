@@ -1,5 +1,13 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { Filter, GraphResolveDepths } from "@local/hash-graph-client";
+import {
+  EntityStructuralQuery,
+  Filter,
+  GraphResolveDepths,
+} from "@local/hash-graph-client";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   AccountId,
   BaseUrl,
@@ -13,12 +21,10 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  QueryTemporalAxesUnresolved,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -26,7 +32,7 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction, zeroedGraphResolveDepths } from "../..";
+import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import {
   createLinkEntity,
@@ -81,6 +87,36 @@ export const createEntity: ImpureGraphFunction<
 };
 
 /**
+ * Get entities by a structural query.
+ *
+ * @param params.query the structural query to filter entities by.
+ */
+export const getEntities: ImpureGraphFunction<
+  {
+    query: EntityStructuralQuery;
+  },
+  Promise<Subgraph<EntityRootType>>
+> = async ({ graphApi }, { query }) => {
+  return await graphApi.getEntitiesByQuery(query).then(({ data: subgraph }) => {
+    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+    for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
+      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+
+      if (
+        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
+          .archived &&
+        // if the vertex is in the roots of the query, then it is intentionally included
+        !subgraph.roots.find((root) => root.baseId === entityId)
+      ) {
+        // eslint-disable-next-line no-param-reassign -- temporary hack
+        delete subgraph.vertices[entityId];
+      }
+    }
+    return subgraph as Subgraph<EntityRootType>;
+  });
+};
+
+/**
  * Get the latest version of an entity by its entity ID.
  *
  * @param params.entityId - the id of the entity
@@ -90,13 +126,13 @@ export const getLatestEntityById: ImpureGraphFunction<
     entityId: EntityId;
   },
   Promise<Entity>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entityId } = params;
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const [entity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+  const [entity, ...unexpectedEntities] = await getEntities(context, {
+    query: {
       filter: {
         all: [
           {
@@ -108,33 +144,10 @@ export const getLatestEntityById: ImpureGraphFunction<
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
-    })
-    .then(({ data: subgraph }) =>
-      getRoots(mapSubgraph(subgraph) as Subgraph<EntityRootType>),
-    );
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -194,13 +207,9 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
-    const entityType = await getEntityTypeById(context, {
-      entityTypeId,
-    });
-
     entity = await createEntity(context, {
       ownedById,
-      entityTypeId: entityType.schema.$id,
+      entityTypeId,
       properties: entityProperties,
       actorId,
     });
@@ -394,7 +403,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity,
     properties: updatedProperties.reduce<EntityPropertiesObject>(
       (prev, { propertyTypeBaseUrl, value }) =>
-        value
+        value !== undefined
           ? {
               ...prev,
               [propertyTypeBaseUrl]: value,
@@ -440,21 +449,19 @@ export const updateEntityProperty: ImpureGraphFunction<
  */
 export const getEntityIncomingLinks: ImpureGraphFunction<
   {
-    entity: Entity;
+    entityId: EntityId;
     linkEntityType?: EntityTypeWithMetadata;
   },
   Promise<LinkEntity[]>
-> = async ({ graphApi }, params) => {
-  const { entity } = params;
+> = async (context, params) => {
+  const { entityId } = params;
   const filter: Filter = {
     all: [
       {
         equal: [
           { path: ["rightEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(entityId),
           },
         ],
       },
@@ -462,9 +469,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
         equal: [
           { path: ["rightEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(entityId),
           },
         ],
       },
@@ -472,20 +477,6 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
         equal: [{ path: ["archived"] }, { parameter: false }],
       },
     ],
-  };
-
-  const temporalAxes: QueryTemporalAxesUnresolved = {
-    pinned: {
-      axis: "transactionTime",
-      timestamp: null,
-    },
-    variable: {
-      axis: "decisionTime",
-      interval: {
-        start: null,
-        end: null,
-      },
-    },
   };
 
   if (params.linkEntityType) {
@@ -499,13 +490,13 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  const incomingLinkEntitiesSubgraph = await graphApi
-    .getEntitiesByQuery({
+  const incomingLinkEntitiesSubgraph = await getEntities(context, {
+    query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes,
-    })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  });
 
   const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -524,27 +515,26 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
 /**
  * Get the outgoing links of an entity.
  *
- * @param params.entity - the entity
- * @param params.linkEntityType (optional) - the specific link type of the outgoing links
+ * @param params.entityId - the entityId of the entity to get the outgoing links of
+ * @param [params.linkEntityTypeVersionedUrl] (optional) – the specific link type of the outgoing links to filter to
+ * @param [params.rightEntityId] (optional) – limit returned links to those with the specified right entity
  */
 export const getEntityOutgoingLinks: ImpureGraphFunction<
   {
-    entity: Entity;
-    linkEntityType?: EntityTypeWithMetadata;
-    rightEntity?: Entity;
+    entityId: EntityId;
+    linkEntityTypeVersionedUrl?: VersionedUrl;
+    rightEntityId?: EntityId;
   },
   Promise<LinkEntity[]>
-> = async ({ graphApi }, params) => {
-  const { entity } = params;
+> = async (context, params) => {
+  const { entityId, linkEntityTypeVersionedUrl, rightEntityId } = params;
   const filter: Filter = {
     all: [
       {
         equal: [
           { path: ["leftEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(entityId),
           },
         ],
       },
@@ -552,9 +542,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         equal: [
           { path: ["leftEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              entity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(entityId),
           },
         ],
       },
@@ -564,26 +552,24 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     ],
   };
 
-  if (params.linkEntityType) {
+  if (linkEntityTypeVersionedUrl) {
     filter.all.push({
       equal: [
         { path: ["type", "versionedUrl"] },
         {
-          parameter: params.linkEntityType.schema.$id,
+          parameter: linkEntityTypeVersionedUrl,
         },
       ],
     });
   }
 
-  if (params.rightEntity) {
+  if (rightEntityId) {
     filter.all.push(
       {
         equal: [
           { path: ["rightEntity", "uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              params.rightEntity.metadata.recordId.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(rightEntityId),
           },
         ],
       },
@@ -591,36 +577,20 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
         equal: [
           { path: ["rightEntity", "ownedById"] },
           {
-            parameter: extractOwnedByIdFromEntityId(
-              params.rightEntity.metadata.recordId.entityId,
-            ),
+            parameter: extractOwnedByIdFromEntityId(rightEntityId),
           },
         ],
       },
     );
   }
 
-  const temporalAxes: QueryTemporalAxesUnresolved = {
-    pinned: {
-      axis: "transactionTime",
-      timestamp: null,
-    },
-    variable: {
-      axis: "decisionTime",
-      interval: {
-        start: null,
-        end: null,
-      },
-    },
-  };
-
-  const outgoingLinkEntitiesSubgraph = await graphApi
-    .getEntitiesByQuery({
+  const outgoingLinkEntitiesSubgraph = await getEntities(context, {
+    query: {
       filter,
       graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes,
-    })
-    .then(({ data }) => mapSubgraph(data) as Subgraph<EntityRootType>);
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  });
 
   const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -645,60 +615,41 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   { entity: Entity; graphResolveDepths: Partial<GraphResolveDepths> },
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const { entity, graphResolveDepths } = params;
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter: {
-      all: [
-        {
-          equal: [
-            { path: ["uuid"] },
-            {
-              parameter: extractEntityUuidFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        {
-          equal: [
-            { path: ["ownedById"] },
-            {
-              parameter: extractOwnedByIdFromEntityId(
-                entity.metadata.recordId.entityId,
-              ),
-            },
-          ],
-        },
-        { equal: [{ path: ["archived"] }, { parameter: false }] },
-      ],
-    },
-    graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
-      ...graphResolveDepths,
-    },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
+  return await getEntities(context, {
+    query: {
+      filter: {
+        all: [
+          {
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              {
+                parameter: extractOwnedByIdFromEntityId(
+                  entity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
       },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        ...graphResolveDepths,
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
-
-  return mapSubgraph(entitySubgraph) as Subgraph<EntityRootType>;
 };

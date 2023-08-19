@@ -59,7 +59,8 @@ macro_rules! define_provenance_id {
 }
 
 define_provenance_id!(OwnedById);
-define_provenance_id!(UpdatedById);
+define_provenance_id!(RecordCreatedById);
+define_provenance_id!(RecordArchivedById);
 
 // TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
@@ -67,17 +68,7 @@ define_provenance_id!(UpdatedById);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
-    updated_by_id: UpdatedById,
-}
-
-impl ProvenanceMetadata {
-    #[must_use]
-    pub const fn new(updated_by_id: UpdatedById) -> Self {
-        Self { updated_by_id }
-    }
-
-    #[must_use]
-    pub const fn updated_by_id(&self) -> UpdatedById {
-        self.updated_by_id
-    }
+    pub record_created_by_id: RecordCreatedById,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record_archived_by_id: Option<RecordArchivedById>,
 }

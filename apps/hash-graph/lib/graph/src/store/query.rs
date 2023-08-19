@@ -1,16 +1,52 @@
 mod filter;
 mod path;
 
-use std::fmt;
+use std::{collections::HashMap, fmt};
+
+use serde::{
+    de::{self, IntoDeserializer},
+    Deserialize,
+};
 
 pub use self::{
-    filter::{Filter, FilterExpression, Parameter, ParameterConversionError},
+    filter::{Filter, FilterExpression, Parameter, ParameterConversionError, ParameterList},
     path::{JsonPath, PathToken},
 };
 
 pub trait QueryPath {
     /// Returns what type this resolved `Path` has.
     fn expected_type(&self) -> ParameterType;
+}
+
+/// Parses a query token of the form `token(key=value)`.
+///
+/// Whitespaces are ignored and multiple parameters are supported.
+///
+/// # Errors
+///
+/// - If the token is not of the form `token`, `token()`, or `token(key=value)`
+/// - If `token` can not be deserialized into `T`
+pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
+    token: &'de str,
+) -> Result<(T, HashMap<&str, &str>), E> {
+    let Some((token, parameters)) = token.split_once('(') else {
+        return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
+    };
+
+    let parameters = parameters
+        .strip_suffix(')')
+        .ok_or_else(|| E::custom("missing closing parenthesis"))?
+        .split(',')
+        .filter(|parameter| !parameter.trim().is_empty())
+        .map(|parameter| {
+            let (key, value) = parameter
+                .split_once('=')
+                .ok_or_else(|| E::custom("missing parameter value, expected `key=value`"))?;
+            Ok((key.trim(), value.trim()))
+        })
+        .collect::<Result<_, _>>()?;
+
+    T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -23,6 +59,8 @@ pub enum ParameterType {
     BaseUrl,
     VersionedUrl,
     TimeInterval,
+    Timestamp,
+    Object,
     Any,
 }
 
@@ -37,12 +75,17 @@ impl fmt::Display for ParameterType {
             Self::BaseUrl => fmt.write_str("base URL"),
             Self::VersionedUrl => fmt.write_str("versioned URL"),
             Self::TimeInterval => fmt.write_str("time interval"),
+            Self::Timestamp => fmt.write_str("timestamp"),
+            Self::Object => fmt.write_str("object"),
             Self::Any => fmt.write_str("any"),
         }
     }
 }
 
 pub trait OntologyQueryPath {
+    /// Returns the path identifying the internal ontology id.
+    fn ontology_id() -> Self;
+
     /// Returns the path identifying the [`BaseUrl`].
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
@@ -58,10 +101,18 @@ pub trait OntologyQueryPath {
     /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
     fn version() -> Self;
 
-    /// Returns the path identifying the [`UpdatedById`].
+    /// Returns the path identifying the transaction time.
+    fn transaction_time() -> Self;
+
+    /// Returns the path identifying the [`RecordCreatedById`].
     ///
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
-    fn updated_by_id() -> Self;
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
+    fn record_created_by_id() -> Self;
+
+    /// Returns the path identifying the [`RecordArchivedById`].
+    ///
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    fn record_archived_by_id() -> Self;
 
     /// Returns the path identifying the schema.
     fn schema() -> Self;

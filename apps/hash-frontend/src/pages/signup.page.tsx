@@ -8,7 +8,6 @@ import {
   FormEventHandler,
   FunctionComponent,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -19,11 +18,11 @@ import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { parseGraphQLError } from "./shared/auth-utils";
 import {
-  createFlowErrorHandler,
   IdentityTraits,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
+import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
@@ -46,16 +45,11 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
   const [password, setPassword] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  const handleFlowError = useMemo(
-    () =>
-      createFlowErrorHandler({
-        router,
-        flowType: "registration",
-        setFlow,
-        setErrorMessage,
-      }),
-    [router, setFlow, setErrorMessage],
-  );
+  const { handleFlowError } = useKratosErrorHandler({
+    flowType: "registration",
+    setFlow,
+    setErrorMessage,
+  });
 
   // Get ?flow=... from the URL
   const { flow: flowId, return_to: returnTo } = router.query;
@@ -227,7 +221,6 @@ const SignupPage: NextPageWithLayout = () => {
   const handleAccountSetupSubmit = async (params: {
     shortname: string;
     preferredName: string;
-    responsibility?: string;
   }) => {
     const { shortname, preferredName } = params;
 
@@ -245,8 +238,6 @@ const SignupPage: NextPageWithLayout = () => {
       if (updatedAuthenticatedUser.accountSignupComplete) {
         void router.push("/");
       }
-
-      /** @todo: set responsibility at org if in org invitation flow */
     }
   };
 

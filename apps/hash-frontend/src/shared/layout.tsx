@@ -5,7 +5,6 @@ import { LayoutWithHeader } from "./layout/layout-with-header";
 import {
   LayoutWithSidebar,
   LayoutWithSidebarProps,
-  SidebarContextProvider,
 } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
 
@@ -26,8 +25,6 @@ export const getLayoutWithSidebar = (
   layoutWithSidebarProps: LayoutWithSidebarProps = {},
 ) => {
   return (
-    <SidebarContextProvider>
-      <LayoutWithSidebar {...layoutWithSidebarProps}>{page}</LayoutWithSidebar>
-    </SidebarContextProvider>
+    <LayoutWithSidebar {...layoutWithSidebarProps}>{page}</LayoutWithSidebar>
   );
 };

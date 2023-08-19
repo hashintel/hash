@@ -1,0 +1,29 @@
+name: Fix
+on: workflow_dispatch
+jobs:
+  yarn:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
+
+      - name: Warm up repo
+        uses: ./.github/actions/warm-up-repo
+
+      - name: Setup python
+        run: yarn poetry:install
+
+      - name: Fix
+        run: yarn fix
+
+      - name: Commit
+        run: |
+          git config user.name HASH
+          git config user.email careers@hash.dev
+          git add .
+          git commit -m '`yarn fix`'
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}

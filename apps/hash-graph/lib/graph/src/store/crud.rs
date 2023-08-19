@@ -8,6 +8,7 @@
 
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
+use futures::TryStreamExt;
 
 use crate::{
     store::{query::Filter, QueryError, Record},
@@ -20,25 +21,40 @@ use crate::{
 // TODO: Use queries, which are passed to the query-endpoint
 //   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
-pub trait Read<R: Record + Send>: Sync {
-    // TODO: Return a stream of `R` instead
-    //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
+pub trait Read<R>: Sync {
+    type Record: Record;
+    type ReadStream: futures::Stream<Item = Result<R, QueryError>> + Send + Sync;
+
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
     async fn read(
         &self,
-        query: &Filter<R>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<Vec<R>, QueryError>;
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError>;
+
+    async fn read_vec(
+        &self,
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Vec<R>, QueryError>
+    where
+        R: Send,
+    {
+        self.read(query, temporal_axes).await?.try_collect().await
+    }
 
     #[tracing::instrument(level = "info", skip(self, query))]
     async fn read_one(
         &self,
-        query: &Filter<R>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<R, QueryError> {
-        let mut records = self.read(query, temporal_axes).await?;
+        query: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<R, QueryError>
+    where
+        R: Send,
+    {
+        let mut records = self.read_vec(query, temporal_axes).await?;
         ensure!(
             records.len() <= 1,
             Report::new(QueryError).attach_printable(format!(

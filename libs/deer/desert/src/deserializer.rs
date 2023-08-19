@@ -1,10 +1,21 @@
 use alloc::borrow::ToOwned;
-use core::ops::Range;
+use core::num::TryFromIntError;
 
-use deer::{error::DeserializerError, Context, Visitor};
-use error_stack::{Result, ResultExt};
+use deer::{
+    error::{
+        DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
+        Variant,
+    },
+    helpers::EnumObjectVisitor,
+    value::NoneDeserializer,
+    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
+};
+use error_stack::{IntoReport, Report, Result, ResultExt};
+use num_traits::ToPrimitive;
 
-use crate::{array::ArrayAccess, object::ObjectAccess, tape::Tape, token::Token};
+use crate::{
+    array::ArrayAccess, object::ObjectAccess, skip::skip_tokens, tape::Tape, token::Token,
+};
 
 macro_rules! forward {
     ($($method:ident),*) => {
@@ -22,13 +33,7 @@ macro_rules! forward {
 #[derive(Debug)]
 pub struct Deserializer<'a, 'de> {
     context: &'a Context,
-    tape: Tape<'a, 'de>,
-}
-
-impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) fn erase(&mut self, range: Range<usize>) {
-        self.tape.set_trivia(range);
-    }
+    tape: Tape<'de>,
 }
 
 impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
@@ -38,8 +43,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         deserialize_number,
         deserialize_u128,
         deserialize_i128,
-        deserialize_usize,
-        deserialize_isize,
         deserialize_char,
         deserialize_string,
         deserialize_str,
@@ -64,8 +67,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
             Token::Number(value) => visitor.visit_number(value),
             Token::I128(value) => visitor.visit_i128(value),
             Token::U128(value) => visitor.visit_u128(value),
-            Token::ISize(value) => visitor.visit_isize(value),
-            Token::USize(value) => visitor.visit_usize(value),
             Token::Char(value) => visitor.visit_char(value),
             Token::Str(value) => visitor.visit_str(value),
             Token::BorrowedStr(value) => visitor.visit_borrowed_str(value),
@@ -82,10 +83,126 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
         }
         .change_context(DeserializerError)
     }
+
+    fn deserialize_optional<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: OptionalVisitor<'de>,
+    {
+        let token = self.peek();
+
+        match token {
+            Token::Null => {
+                // only eat the token if we're going to visit null
+                self.next();
+                visitor.visit_null()
+            }
+            _ => visitor.visit_some(self),
+        }
+        .change_context(DeserializerError)
+    }
+
+    fn deserialize_enum<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: EnumVisitor<'de>,
+    {
+        let token = self.peek();
+
+        if matches!(token, Token::Object { .. }) {
+            self.deserialize_object(EnumObjectVisitor::new(visitor))
+        } else {
+            let discriminant = visitor
+                .visit_discriminant(&mut *self)
+                .change_context(DeserializerError)?;
+
+            visitor
+                .visit_value(discriminant, NoneDeserializer::new(self.context))
+                .change_context(DeserializerError)
+        }
+    }
+
+    fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: StructVisitor<'de>,
+    {
+        let token = self.next();
+
+        match token {
+            Token::Array { length } => visitor
+                .visit_array(ArrayAccess::new(self, length))
+                .change_context(DeserializerError),
+            Token::Object { length } => visitor
+                .visit_object(ObjectAccess::new(self, length))
+                .change_context(DeserializerError),
+            other => Err(Report::new(TypeError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+                .attach(ReceivedType::new(other.schema()))
+                .change_context(DeserializerError)),
+        }
+    }
+
+    fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
+    where
+        V: IdentifierVisitor<'de>,
+    {
+        let token = self.next();
+
+        let visit_try = |value: core::result::Result<u64, TryFromIntError>| {
+            value
+                .into_report()
+                .change_context(ValueError.into_error())
+                .attach(ExpectedType::new(visitor.expecting()))
+        };
+
+        match token {
+            Token::Str(str) | Token::BorrowedStr(str) | Token::String(str) => {
+                visitor.visit_str(str).change_context(DeserializerError)
+            }
+            Token::Bytes(bytes) | Token::BorrowedBytes(bytes) | Token::BytesBuf(bytes) => {
+                visitor.visit_bytes(bytes).change_context(DeserializerError)
+            }
+            Token::U128(value) => {
+                let value = visit_try(value.try_into())
+                    .attach(ReceivedValue::new(value))
+                    .change_context(DeserializerError)?;
+
+                visitor.visit_u64(value).change_context(DeserializerError)
+            }
+            Token::I128(value) => {
+                let value = visit_try(value.try_into())
+                    .attach(ReceivedValue::new(value))
+                    .change_context(DeserializerError)?;
+
+                visitor.visit_u64(value).change_context(DeserializerError)
+            }
+            Token::Number(value) => {
+                // first try u8 (if possible)
+                if let Some(value) = value.to_u8() {
+                    visitor.visit_u8(value).change_context(DeserializerError)
+                } else {
+                    let value = value.to_u64().ok_or_else(|| {
+                        Report::new(ValueError.into_error())
+                            .attach(ExpectedType::new(visitor.expecting()))
+                            .attach(ReceivedValue::new(value))
+                            .change_context(DeserializerError)
+                    })?;
+
+                    visitor.visit_u64(value).change_context(DeserializerError)
+                }
+            }
+            token => {
+                skip_tokens(self, &token);
+
+                Err(Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(visitor.expecting()))
+                    .attach(ReceivedType::new(token.schema()))
+                    .change_context(DeserializerError))
+            }
+        }
+    }
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
-    pub(crate) const fn new_bare(tape: Tape<'a, 'de>, context: &'a Context) -> Self {
+    pub(crate) const fn new_bare(tape: Tape<'de>, context: &'a Context) -> Self {
         Self { context, tape }
     }
 
@@ -105,11 +222,7 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         self.tape.next().expect("should have token to deserialize")
     }
 
-    pub(crate) const fn tape(&self) -> &Tape<'a, 'de> {
-        &self.tape
-    }
-
-    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'a, 'de> {
+    pub(crate) fn tape_mut(&mut self) -> &mut Tape<'de> {
         &mut self.tape
     }
 
@@ -119,36 +232,5 @@ impl<'a, 'de> Deserializer<'a, 'de> {
 
     pub const fn is_empty(&self) -> bool {
         self.tape.is_empty()
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct DeserializerNone<'a> {
-    pub(crate) context: &'a Context,
-}
-
-impl<'de> deer::Deserializer<'de> for DeserializerNone<'_> {
-    forward!(
-        deserialize_null,
-        deserialize_bool,
-        deserialize_number,
-        deserialize_char,
-        deserialize_string,
-        deserialize_str,
-        deserialize_bytes,
-        deserialize_bytes_buffer,
-        deserialize_array,
-        deserialize_object
-    );
-
-    fn context(&self) -> &Context {
-        self.context
-    }
-
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_none().change_context(DeserializerError)
     }
 }

@@ -1,8 +1,8 @@
 import { Box, Fade } from "@mui/material";
 import { useEffect, useState } from "react";
 
+import { getBlockDomId } from "../../shared/get-block-dom-id";
 import { useBlockLoadedContext } from "../on-block-loaded";
-import { getBlockDomId } from "./block-view";
 
 interface HighlightProps {
   onAnimationComplete: () => void;

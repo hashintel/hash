@@ -5,17 +5,21 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import ArticleIcon from "@mui/icons-material/Article";
 import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
+import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useUsers } from "../../../components/hooks/use-users";
+import { useWorkspaceShortnameByAccountId } from "../../../components/hooks/use-workspace-shortname-by-account-id";
+import { PageIcon } from "../../../components/page-icon";
+import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import { Link } from "../../../shared/ui";
+import { MentionType } from "../create-suggester/mention-suggester";
 
 interface MentionDisplayProps {
   entityId: EntityId;
-  mentionType: "page" | "user";
+  mentionType: MentionType;
   accountId: AccountId;
 }
 
@@ -28,6 +32,10 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const { data: pages, loading: pagesLoading } = useAccountPages(
     accountId as OwnedById,
   );
+  const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
+
+  const { shortname: workspaceShortname, loading: workspaceShortnameLoading } =
+    useWorkspaceShortnameByAccountId({ accountId });
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
@@ -45,31 +53,33 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
             href: userHref,
             icon: "@",
           };
-        } else {
-          // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
-          const matchingUser = users.find(
-            (user) => user.entityRecordId.entityId === entityId,
-          );
-
-          if (matchingUser) {
-            return {
-              title: matchingUser.preferredName,
-              href: userHref,
-              icon: "@",
-            };
-          } else {
-            /** @todo - What should the href be here? */
-            return {
-              title: "Unknown User",
-              href: `#`,
-              icon: "@",
-            };
-          }
         }
+
+        // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
+        const matchingUser = users.find(
+          (user) => user.entityRecordId.entityId === entityId,
+        );
+
+        if (matchingUser) {
+          return {
+            title: matchingUser.preferredName,
+            href: userHref,
+            icon: "@",
+          };
+        }
+
+        /** @todo - What should the href be here? */
+        return {
+          title: "Unknown User",
+          href: `#`,
+          icon: "@",
+        };
       }
+
       case "page": {
         const page = pages.find(
-          (potentialPage) => potentialPage.entityId === entityId,
+          (potentialPage) =>
+            potentialPage.metadata.recordId.entityId === entityId,
         );
 
         let pageTitle = "";
@@ -85,20 +95,60 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return {
-          title: pageTitle,
-          href: page
-            ? constructPageRelativeUrl({
-                workspaceShortname: page.ownerShortname,
-                pageEntityUuid,
-              })
-            : "",
-          icon: <ArticleIcon style={{ fontSize: "1em" }} />,
+          title: pageTitle || "Untitled",
+          href:
+            page && workspaceShortname
+              ? constructPageRelativeUrl({
+                  workspaceShortname,
+                  pageEntityUuid,
+                })
+              : "",
+          icon: (
+            <PageIcon
+              icon={page?.icon}
+              size="small"
+              sx={{ display: "inline-flex", mr: 0.25 }}
+            />
+          ),
+        };
+      }
+      case "entity": {
+        if (!entitySubgraph || entityLoading || workspaceShortnameLoading) {
+          /** @todo consider showing a loading state instead of saying "entity", same for the pages & users above */
+          return {
+            title: "Entity",
+            href: "",
+            icon: "@",
+          };
+        }
+
+        const entityHref = `/@${workspaceShortname}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`;
+
+        const entityLabel = generateEntityLabel(entitySubgraph);
+
+        return {
+          title: entityLabel,
+          href: entityHref,
+          icon: "@",
         };
       }
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [entityId, mentionType, users, pages, pagesLoading, usersLoading]);
+  }, [
+    entityId,
+    mentionType,
+    users,
+    pages,
+    pagesLoading,
+    usersLoading,
+    entitySubgraph,
+    entityLoading,
+    workspaceShortname,
+    workspaceShortnameLoading,
+  ]);
 
   return (
     <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>

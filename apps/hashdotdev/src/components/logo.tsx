@@ -1,6 +1,6 @@
-import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent } from "react";
 
+import { HashDotDevLogo } from "./icons/hash-dot-dev-logo";
 import { Link } from "./link";
 
 export const Logo: FunctionComponent<
@@ -14,6 +14,6 @@ export const Logo: FunctionComponent<
     ]}
     {...props}
   >
-    <Image src="/logo.svg" width={176} height={18.38} />
+    <HashDotDevLogo />
   </Link>
 );

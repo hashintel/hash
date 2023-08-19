@@ -33,7 +33,7 @@ import {
   DeprecatedEntityType,
 } from "../graphql/api-types.gen";
 import {
-  blockProtocolHubOrigin,
+  componentIdBase,
   paragraphBlockComponentId,
 } from "@local/hash-isomorphic-utils/blocks";
 
@@ -104,7 +104,6 @@ const createNewBobWithOrg = async () => {
   await bobUser.joinOrg(db, {
     updatedByAccountId: bobUser.accountId,
     org: bobOrg,
-    responsibility: "CEO",
   });
 
   return { bobUser, bobOrg };
@@ -145,7 +144,6 @@ beforeAll(async () => {
   await existingUser.joinOrg(db, {
     updatedByAccountId: existingUser.accountId,
     org: existingOrg,
-    responsibility: "CEO",
   });
 });
 
@@ -294,7 +292,6 @@ describe("logged in user ", () => {
         shortname: "bigco2",
         orgSize: OrgSize.TwoHundredAndFiftyPlus,
       },
-      responsibility: "CEO",
     };
 
     const gqlOrg = await client.createOrg(variables);
@@ -488,8 +485,6 @@ describe("logged in user ", () => {
       inviteeEmailAddress,
     });
 
-    const responsibility = "CTO";
-
     const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
       assertDerivedPayloadType: "orgInvitation",
     }).derivedPayload;
@@ -497,7 +492,6 @@ describe("logged in user ", () => {
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: { invitationEmailToken: invitationLinkToken },
-      responsibility,
     });
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
@@ -520,14 +514,11 @@ describe("logged in user ", () => {
 
     const [invitation] = await bobOrg.getInvitationLinks(db);
 
-    const responsibility = "CTO";
-
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: {
         invitationLinkToken: invitation.properties.accessToken,
       },
-      responsibility,
     });
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
@@ -568,7 +559,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
+              componentId: `${componentIdBase}/blocks/hash/heading`,
               position: 0,
               entity: {
                 entityType: {
@@ -662,7 +653,7 @@ describe("logged in user ", () => {
     });
 
     // ComponentId doesn't exist in the database
-    const componentId = `${blockProtocolHubOrigin}/blocks/@hash/unknown`;
+    const componentId = `${componentIdBase}/blocks/hash/unknown`;
     let entityTypeComponentId: string;
     it("can add a block with unknown componentId", async () => {
       // No type argument given to insertBlock, only componentId
@@ -940,7 +931,7 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/header`,
+              componentId: `${componentIdBase}/blocks/hash/heading`,
               position: 0,
               entity: {
                 entityType: {
@@ -962,11 +953,11 @@ describe("logged in user ", () => {
           {
             insertBlock: {
               accountId: existingUser.accountId,
-              componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+              componentId: `${componentIdBase}/blocks/hash/divider`,
               position: 1,
               entity: {
                 entityType: {
-                  componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+                  componentId: `${componentIdBase}/blocks/hash/divider`,
                 },
                 entityProperties: {},
               },
@@ -1020,7 +1011,7 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         filter: {
           entityType: {
-            componentId: `${blockProtocolHubOrigin}/blocks/@hash/divider`,
+            componentId: `${componentIdBase}/blocks/hash/divider`,
           },
         },
       });

@@ -1,11 +1,16 @@
 export const scalars = {
+  BaseUrl: "@blockprotocol/type-system#BaseUrl",
+
   Date: "string",
+
   JSONObject: "@blockprotocol/core#JsonObject",
+  QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
+  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
+
   UnknownEntityProperties:
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
+  CanvasPosition: "@local/hash-graphql-shared/graphql/types#CanvasPosition",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
-
-  VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:
@@ -33,10 +38,12 @@ export const scalars = {
   SubgraphTemporalAxes: "@local/hash-subgraph#SubgraphTemporalAxes",
 
   OwnedById: "@local/hash-subgraph#OwnedById",
-  UpdatedById: "@local/hash-subgraph#UpdatedById",
+  RecordCreatedById: "@local/hash-subgraph#RecordCreatedById",
   AccountId: "@local/hash-subgraph#AccountId",
   EntityId: "@local/hash-subgraph#EntityId",
 
   EntityUuid: "@local/hash-subgraph#EntityUuid",
   Uuid: "@local/hash-subgraph#Uuid",
+
+  OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 };

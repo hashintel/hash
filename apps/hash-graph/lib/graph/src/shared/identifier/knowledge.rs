@@ -1,7 +1,4 @@
-use std::{
-    collections::hash_map::{RandomState, RawEntryMut},
-    str::FromStr,
-};
+use std::{fmt, str::FromStr};
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use tokio_postgres::types::{FromSql, ToSql};
@@ -13,13 +10,11 @@ use crate::{
         account::AccountId,
         time::{
             DecisionTime, LeftClosedTemporalInterval, TemporalTagged, TimeAxis, TransactionTime,
-            VariableAxis,
         },
-        EntityVertexId,
     },
-    knowledge::{Entity, EntityUuid},
+    knowledge::EntityUuid,
     provenance::OwnedById,
-    subgraph::{Subgraph, SubgraphIndex},
+    subgraph::temporal_axes::VariableAxis,
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,12 +23,24 @@ pub struct EntityId {
     pub entity_uuid: EntityUuid,
 }
 
+pub const ENTITY_ID_DELIMITER: char = '~';
+
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "{}{}{}",
+            self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
+        )
+    }
+}
+
 impl Serialize for EntityId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}%{}", self.owned_by_id, self.entity_uuid))
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -42,24 +49,23 @@ impl<'de> Deserialize<'de> for EntityId {
     where
         D: Deserializer<'de>,
     {
-        // We can be more efficient than this, we know the byte sizes of all the elements
-        let as_string = String::deserialize(deserializer)?;
-        let mut parts = as_string.split('%');
-
-        Ok(Self {
-            owned_by_id: OwnedById::new(AccountId::new(
-                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
-                    D::Error::custom("failed to find first component of `%` delimited string")
-                })?)
-                .map_err(|err| D::Error::custom(err.to_string()))?,
-            )),
-            entity_uuid: EntityUuid::new(
-                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
-                    D::Error::custom("failed to find second component of `%` delimited string")
-                })?)
-                .map_err(|err| D::Error::custom(err.to_string()))?,
-            ),
-        })
+        String::deserialize(deserializer)?
+            .split_once(ENTITY_ID_DELIMITER)
+            .ok_or_else(|| {
+                Error::custom(format!(
+                    "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
+                ))
+            })
+            .and_then(|(owned_by_id, entity_uuid)| {
+                Ok(Self {
+                    owned_by_id: OwnedById::new(AccountId::new(
+                        Uuid::from_str(owned_by_id).map_err(Error::custom)?,
+                    )),
+                    entity_uuid: EntityUuid::new(
+                        Uuid::from_str(entity_uuid).map_err(Error::custom)?,
+                    ),
+                })
+            })
     }
 }
 
@@ -96,7 +102,19 @@ impl EntityTemporalMetadata {
 }
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, FromSql, ToSql, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    FromSql,
+    ToSql,
+    ToSchema,
 )]
 #[postgres(transparent)]
 #[repr(transparent)]
@@ -109,23 +127,14 @@ impl EntityEditionId {
     }
 
     #[must_use]
-    pub const fn as_uuid(&self) -> Uuid {
+    pub const fn as_uuid(self) -> Uuid {
         self.0
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRecordId {
     pub entity_id: EntityId,
     pub edition_id: EntityEditionId,
-}
-
-impl SubgraphIndex<Entity> for EntityVertexId {
-    fn subgraph_vertex_entry<'a>(
-        &self,
-        subgraph: &'a mut Subgraph,
-    ) -> RawEntryMut<'a, Self, Entity, RandomState> {
-        subgraph.vertices.entities.raw_entry_mut().from_key(self)
-    }
 }

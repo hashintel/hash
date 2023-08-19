@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -7,15 +8,21 @@ import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data
 import {
   createEntityType,
   getEntityTypeById,
+  getEntityTypeSubgraphById,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-graphql-shared/graphql/types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -25,6 +32,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 jest.setTimeout(60000);
@@ -166,6 +174,20 @@ beforeAll(async () => {
   };
 });
 
+afterAll(async () => {
+  await deleteKratosIdentity({
+    kratosIdentityId: systemUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser.kratosIdentityId,
+  });
+  await deleteKratosIdentity({
+    kratosIdentityId: testUser2.kratosIdentityId,
+  });
+
+  await resetGraph();
+});
+
 describe("Entity type CRU", () => {
   let createdEntityType: EntityTypeWithMetadata;
 
@@ -190,7 +212,7 @@ describe("Entity type CRU", () => {
   it("can update an entity type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
-        createdEntityType.metadata.provenance.updatedById,
+        createdEntityType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedEntityType = await updateEntityType(graphContext, {
@@ -201,7 +223,25 @@ describe("Entity type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
-        updatedEntityType.metadata.provenance.updatedById,
+        updatedEntityType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can load an external type on demand", async () => {
+    const entityTypeId =
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
+
+    await expect(
+      getEntityTypeById(graphContext, { entityTypeId }),
+    ).rejects.toThrow("Could not find entity type with ID");
+
+    await expect(
+      getEntityTypeSubgraphById(graphContext, {
+        entityTypeId,
+        actorId: testUser.accountId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).resolves.not.toThrow();
   });
 });

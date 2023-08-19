@@ -1,14 +1,15 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
-import {
-  Box,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
@@ -16,19 +17,24 @@ import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUrl } from "../shared/urls";
-import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
+import { DestinationEntityTypeSelector } from "./link-list-card/destination-entity-type-selector";
+import { InheritedLinkRow } from "./link-list-card/inherited-link-row";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
-  EntityTypeTableButtonRow,
   EntityTypeTableCenteredCell,
+  EntityTypeTableFooter,
+  EntityTypeTableFooterButton,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
-import { InsertTypeRow, InsertTypeRowProps } from "./shared/insert-type-row";
+import {
+  InsertTypeField,
+  InsertTypeFieldProps,
+} from "./shared/insert-type-field";
 import { Link } from "./shared/link";
 import { MultipleValuesCell } from "./shared/multiple-values-cell";
 import { QuestionIcon } from "./shared/question-icon";
@@ -40,6 +46,7 @@ import {
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
+import { useInheritedValues } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
@@ -58,10 +65,14 @@ const formDataToEntityType = (data: TypeFormDefaults) => ({
 });
 
 export const LinkTypeForm = (props: TypeFormProps) => {
-  const { validateTitle: remoteValidation } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
+
+  if (!ontologyFunctions) {
+    return null;
+  }
 
   const validateTitle = async (title: string) =>
-    remoteValidation({
+    ontologyFunctions.validateTitle({
       kind: "entity-type",
       title,
     });
@@ -82,7 +93,7 @@ const LinkTypeRow = ({
 }) => {
   const isReadonly = useIsReadonly();
 
-  const { updateEntityType } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
 
   const editModalPopupId = useId();
   const editModalPopupState = usePopupState({
@@ -115,11 +126,11 @@ const LinkTypeRow = ({
   });
 
   const handleSubmit = async (data: TypeFormDefaults) => {
-    if (isReadonly) {
+    if (isReadonly || !ontologyFunctions) {
       return;
     }
 
-    const res = await updateEntityType({
+    const res = await ontologyFunctions.updateEntityType({
       data: {
         entityTypeId: link.$id,
         entityType: formDataToEntityType(data),
@@ -134,6 +145,19 @@ const LinkTypeRow = ({
 
     editModalPopupState.close();
   };
+
+  const editDisabledReason = useMemo(() => {
+    const canEdit = ontologyFunctions?.canEditResource({
+      kind: "link-type",
+      resource: link,
+    });
+
+    return !canEdit?.allowed
+      ? canEdit?.message
+      : currentVersion !== latestVersion
+      ? "Update the link type to the latest version to edit"
+      : undefined;
+  }, [ontologyFunctions, link, currentVersion, latestVersion]);
 
   return (
     <>
@@ -159,59 +183,64 @@ const LinkTypeRow = ({
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell sx={{ py: "0 !important" }}>
-          <LinkEntityTypeSelector linkIndex={linkIndex} />
+          <DestinationEntityTypeSelector linkIndex={linkIndex} />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
           typeId={link.$id}
           editButtonProps={bindTrigger(editModalPopupState)}
-          {...(currentVersion !== latestVersion
-            ? {
-                editButtonDisabled:
-                  "Update the link type to the latest version to edit",
-              }
-            : {})}
+          editButtonDisabled={editDisabledReason}
           variant="link"
           onRemove={onRemove}
         />
       </EntityTypeTableRow>
-      <TypeFormModal
-        as={LinkTypeForm}
-        popupState={editModalPopupState}
-        modalTitle={<>Edit link</>}
-        onSubmit={handleSubmit}
-        submitButtonProps={{ children: <>Edit link</> }}
-        disabledFields={["name"]}
-        getDefaultValues={() => ({
-          name: link.title,
-          description: link.description,
-        })}
-      />
+
+      {ontologyFunctions && !isReadonly ? (
+        <TypeFormModal
+          as={LinkTypeForm}
+          popupState={editModalPopupState}
+          modalTitle={<>Edit link</>}
+          onSubmit={handleSubmit}
+          submitButtonProps={{ children: <>Edit link</> }}
+          disabledFields={["name"]}
+          getDefaultValues={() => ({
+            name: link.title,
+            description: link.description,
+          })}
+        />
+      ) : null}
     </>
   );
 };
 
-const InsertLinkRow = (
+const InsertLinkField = (
   props: Omit<
-    InsertTypeRowProps<EntityType>,
+    InsertTypeFieldProps<EntityType>,
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const links = useWatch({ control, name: "links" });
+  const { links: inheritedLinks } = useInheritedValues();
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
   const linkTypes = Object.values(linkTypeOptions);
 
   const filteredLinkTypes = useFilterTypeOptions({
-    typesToExclude: links,
+    typesToExclude: [...links, ...inheritedLinks],
     typeOptions: linkTypes,
   });
 
   return (
-    <InsertTypeRow {...props} options={filteredLinkTypes} variant="link" />
+    <InsertTypeField
+      {...props}
+      options={filteredLinkTypes}
+      variant="link type"
+    />
   );
 };
+
+const linkDefaultValues = () => ({ name: "", description: "" });
 
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
@@ -222,18 +251,20 @@ export const LinkListCard = () => {
   } = useFieldArray({ control, name: "links" });
   const { linkTypes } = useEntityTypesOptions();
 
-  const { createEntityType } = useOntologyFunctions();
+  const ontologyFunctions = useOntologyFunctions();
 
   const isReadonly = useIsReadonly();
+
+  const { links: inheritedLinks } = useInheritedValues();
 
   const fields = useMemo(
     () =>
       sortRows(
-        unsortedFields,
+        [...unsortedFields, ...inheritedLinks],
         (linkId) => linkTypes[linkId],
         (row) => row.title,
       ),
-    [linkTypes, unsortedFields],
+    [inheritedLinks, linkTypes, unsortedFields],
   );
 
   const [flashingRows, flashRow] = useFlashRow();
@@ -248,6 +279,7 @@ export const LinkListCard = () => {
   });
 
   const cancelAddingNewLink = () => {
+    createModalPopupState.close();
     setAddingNewLink(false);
     setSearchText("");
   };
@@ -269,11 +301,11 @@ export const LinkListCard = () => {
   };
 
   const handleSubmit = async (data: TypeFormDefaults) => {
-    if (isReadonly) {
+    if (isReadonly || !ontologyFunctions) {
       return;
     }
 
-    const res = await createEntityType({
+    const res = await ontologyFunctions.createEntityType({
       data: {
         entityType: formDataToEntityType(data),
       },
@@ -286,6 +318,11 @@ export const LinkListCard = () => {
 
     handleAddEntityType(res.data.schema);
   };
+
+  const linkDirtyFields = useCallback(
+    () => (searchText ? { name: searchText } : {}),
+    [searchText],
+  );
 
   if (!addingNewLink && fields.length === 0) {
     return (
@@ -335,63 +372,68 @@ export const LinkListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map(({ field, row, index }) => (
-          <LinkTypeRow
-            key={field.id}
-            linkIndex={index}
-            onRemove={() => {
-              remove(index);
-            }}
-            onUpdateVersion={(nextId) => {
-              setValue(`links.${index}.$id`, nextId, {
-                shouldDirty: true,
-              });
-            }}
-            flash={row ? flashingRows.includes(row.$id) : false}
-          />
-        ))}
+        {fields.map(({ field, row, index }) =>
+          "inheritedFrom" in field ? (
+            <InheritedLinkRow key={field.$id} inheritedLinkData={field} />
+          ) : (
+            <LinkTypeRow
+              key={field.id}
+              linkIndex={index}
+              onRemove={() => {
+                remove(index);
+              }}
+              onUpdateVersion={(nextId) => {
+                setValue(`links.${index}.$id`, nextId, {
+                  shouldDirty: true,
+                });
+              }}
+              flash={row ? flashingRows.includes(row.$id) : false}
+            />
+          ),
+        )}
       </TableBody>
-      <TableFooter>
-        {addingNewLink ? (
-          <>
-            <InsertLinkRow
-              inputRef={addingNewLinkRef}
-              onCancel={cancelAddingNewLink}
-              onAdd={handleAddEntityType}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-              createModalPopupState={createModalPopupState}
-            />
-            <TypeFormModal
-              as={LinkTypeForm}
-              popupState={createModalPopupState}
-              modalTitle={
-                <>
-                  Create new link
-                  <QuestionIcon
-                    sx={{
-                      ml: 1.25,
-                    }}
-                    tooltip={
-                      <>
-                        You should only create a new link type if you can't find
-                        an existing one which corresponds to the relationship
-                        you're trying to capture.
-                      </>
-                    }
-                  />
-                </>
-              }
-              onSubmit={handleSubmit}
-              submitButtonProps={{ children: <>Create new link</> }}
-              getDefaultValues={() =>
-                searchText.length ? { name: searchText } : {}
-              }
-            />
-          </>
-        ) : (
-          !isReadonly && (
-            <EntityTypeTableButtonRow
+      {isReadonly || !ontologyFunctions ? (
+        <Box sx={{ height: "var(--table-padding)" }} />
+      ) : (
+        <EntityTypeTableFooter enableShadow={fields.length > 0}>
+          {addingNewLink ? (
+            <>
+              <InsertLinkField
+                inputRef={addingNewLinkRef}
+                onCancel={cancelAddingNewLink}
+                onAdd={handleAddEntityType}
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+                createModalPopupState={createModalPopupState}
+              />
+              <TypeFormModal
+                as={LinkTypeForm}
+                popupState={createModalPopupState}
+                modalTitle={
+                  <>
+                    Create new link
+                    <QuestionIcon
+                      sx={{
+                        ml: 1.25,
+                      }}
+                      tooltip={
+                        <>
+                          You should only create a new link type if you can't
+                          find an existing one which corresponds to the
+                          relationship you're trying to capture.
+                        </>
+                      }
+                    />
+                  </>
+                }
+                onSubmit={handleSubmit}
+                submitButtonProps={{ children: <>Create new link</> }}
+                getDefaultValues={linkDefaultValues}
+                getDirtyFields={linkDirtyFields}
+              />
+            </>
+          ) : (
+            <EntityTypeTableFooterButton
               icon={<StyledPlusCircleIcon />}
               onClick={() => {
                 setAddingNewLink(true, () => {
@@ -400,10 +442,10 @@ export const LinkListCard = () => {
               }}
             >
               Add a link
-            </EntityTypeTableButtonRow>
-          )
-        )}
-      </TableFooter>
+            </EntityTypeTableFooterButton>
+          )}
+        </EntityTypeTableFooter>
+      )}
     </EntityTypeTable>
   );
 };

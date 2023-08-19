@@ -5,17 +5,26 @@ const withTM = require("next-transpile-modules")([
   "@blockprotocol/hook",
   "@blockprotocol/type-system",
   "@hashintel/design-system",
+  "@hashintel/block-design-system",
   "@hashintel/type-editor",
+  "@hashintel/query-editor",
   "@local/advanced-types",
   "@local/hash-graph-client",
   "@local/hash-graphql-shared",
   "@local/hash-isomorphic-utils",
   "@local/hash-subgraph",
+  "react-syntax-highlighter",
+  "@tldraw/polyfills",
+  "@tldraw/tldraw",
+  "@tldraw/tlschema",
+  "@tldraw/ui",
 ]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 const { withSentryConfig } = require("@sentry/nextjs");
+
+const { DefinePlugin } = require("webpack");
 
 const { buildStamp } = require("./buildstamp");
 
@@ -54,6 +63,24 @@ process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
 
 /**
+ * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
+ * when the `next.config.js` supports imports from modules
+ */
+const frontendUrl =
+  process.env.NEXT_PUBLIC_FRONTEND_URL ??
+  (process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : process.env.FRONTEND_URL ?? "http://localhost:3000");
+
+const systemUserShortname =
+  process.env.SYSTEM_USER_SHORTNAME ??
+  // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
+  process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
+  "example-org";
+
+const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-type/page/`;
+
+/**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
  *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
@@ -62,6 +89,23 @@ module.exports = withSentryConfig(
     withTM(
       /** @type {import('next').NextConfig} */
       {
+        async rewrites() {
+          return [
+            {
+              source: "/pages",
+              destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
+            },
+          ];
+        },
+        redirects() {
+          return [
+            {
+              source: "/settings/organizations/:shortname",
+              destination: "/settings/organizations/:shortname/general",
+              permanent: true,
+            },
+          ];
+        },
         async headers() {
           return [
             {
@@ -107,6 +151,14 @@ module.exports = withSentryConfig(
 
         experimental: {
           allowMiddlewareResponseBody: true,
+          // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
+          // frontend dependency tree, they are not shaken and are included in the generated lambdas
+          // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
+          outputFileTracingIgnores: [
+            "node_modules/@swc/core-linux-x64-gnu",
+            "node_modules/@swc/core-linux-x64-musl",
+            "node_modules/@esbuild/linux-x64",
+          ],
         },
 
         webpack: (webpackConfig, { isServer }) => {
@@ -134,6 +186,13 @@ module.exports = withSentryConfig(
           // eslint-disable-next-line no-param-reassign
           webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
             "@blockprotocol/type-system/slim";
+
+          webpackConfig.plugins.push(
+            new DefinePlugin({
+              __SENTRY_DEBUG__: false,
+              __SENTRY_TRACING__: false,
+            }),
+          );
 
           return webpackConfig;
         },

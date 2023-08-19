@@ -1,4 +1,7 @@
-import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  ComponentIdHashBlockMap,
+  fetchBlock,
+} from "@local/hash-isomorphic-utils/blocks";
 import {
   createContext,
   Dispatch,
@@ -12,11 +15,10 @@ import {
 
 import { useCachedDefaultState } from "../components/hooks/use-default-state";
 import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-protocol-blocks";
-import { BlocksMap } from "./page/create-editor-view";
 
 interface UserBlocksContextState {
-  value: BlocksMap;
-  setValue: Dispatch<SetStateAction<BlocksMap>>;
+  value: ComponentIdHashBlockMap;
+  setValue: Dispatch<SetStateAction<ComponentIdHashBlockMap>>;
   blockFetchFailed: boolean;
 }
 
@@ -24,7 +26,7 @@ interface UserBlocksContextState {
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
 export const UserBlocksProvider: FunctionComponent<{
-  value: BlocksMap;
+  value: ComponentIdHashBlockMap;
   children?: ReactNode;
 }> = ({ value: initialUserBlocks, children }) => {
   const [value, setValue] = useCachedDefaultState(
@@ -43,13 +45,28 @@ export const UserBlocksProvider: FunctionComponent<{
         return;
       }
 
-      const apiProvidedBlocksMap: BlocksMap = {};
-      for (const { componentId } of data.getBlockProtocolBlocks) {
-        apiProvidedBlocksMap[componentId] = await fetchBlock(componentId);
+      const apiBlocks = await Promise.all(
+        data.getBlockProtocolBlocks.map(({ componentId }) =>
+          fetchBlock(componentId),
+        ),
+      );
+
+      const apiProvidedBlocksMap: ComponentIdHashBlockMap = {};
+      for (const block of apiBlocks) {
+        apiProvidedBlocksMap[block.meta.componentId] = block;
       }
 
       setValue((prevValue) => {
-        return { ...prevValue, ...apiProvidedBlocksMap };
+        const newValue: ComponentIdHashBlockMap = {};
+        for (const [componentId, blockData] of Object.entries({
+          ...prevValue,
+          ...apiProvidedBlocksMap,
+        })) {
+          if (parseFloat(blockData.meta.protocol) >= 0.3) {
+            newValue[componentId] = blockData;
+          }
+        }
+        return newValue;
       });
     };
 

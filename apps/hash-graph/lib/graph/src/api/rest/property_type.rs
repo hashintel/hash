@@ -2,23 +2,36 @@
 
 use std::sync::Arc;
 
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{
+    http::StatusCode,
+    routing::{post, put},
+    Extension, Router,
+};
 use error_stack::IntoReport;
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
-use type_system::{repr, url::VersionedUrl, PropertyType};
+use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{report_to_status_code, utoipa_typedef::subgraph::Subgraph},
+    api::rest::{
+        json::Json,
+        report_to_status_code,
+        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
+        RestApiStore,
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OwnedOntologyElementMetadata,
+        patch_id_and_parse, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
         PropertyTypeQueryToken, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    store::{
+        error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
+        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
+    },
     subgraph::query::{PropertyTypeStructuralQuery, StructuralQuery},
 };
 
@@ -26,17 +39,23 @@ use crate::{
 #[openapi(
     paths(
         create_property_type,
+        load_external_property_type,
         get_property_types_by_query,
-        update_property_type
+        update_property_type,
+        archive_property_type,
+        unarchive_property_type,
     ),
     components(
         schemas(
             PropertyTypeWithMetadata,
 
             CreatePropertyTypeRequest,
+            LoadExternalPropertyTypeRequest,
             UpdatePropertyTypeRequest,
             PropertyTypeQueryToken,
             PropertyTypeStructuralQuery,
+            ArchivePropertyTypeRequest,
+            UnarchivePropertyTypeRequest,
         )
     ),
     tags(
@@ -47,7 +66,10 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static>() -> Router
+    where
+        for<'pool> P::Store<'pool>: RestApiStore,
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/property-types",
@@ -56,7 +78,10 @@ impl RoutedResource for PropertyTypeResource {
                     "/",
                     post(create_property_type::<P>).put(update_property_type::<P>),
                 )
-                .route("/query", post(get_property_types_by_query::<P>)),
+                .route("/query", post(get_property_types_by_query::<P>))
+                .route("/load", post(load_external_property_type::<P>))
+                .route("/archive", put(archive_property_type::<P>))
+                .route("/unarchive", put(unarchive_property_type::<P>)),
         )
     }
 }
@@ -64,10 +89,10 @@ impl RoutedResource for PropertyTypeResource {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreatePropertyTypeRequest {
-    #[schema(value_type = VAR_PROPERTY_TYPE)]
-    schema: repr::PropertyType,
+    #[schema(inline)]
+    schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -76,56 +101,76 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created property type", body = OntologyElementMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreatePropertyTypeRequest,
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
         actor_id,
     }) = body;
 
-    let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
-        //  https://app.asana.com/0/1201095311341924/1202574350052904/f
-    })?;
+    let is_list = matches!(&schema, ListOrValue::List(_));
 
-    domain_validator
-        .validate(&property_type)
-        .map_err(|report| {
-            tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
+    let schema_iter = schema.into_iter();
+    let mut property_types = Vec::with_capacity(schema_iter.size_hint().0);
+    let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
+
+    for schema in schema_iter {
+        let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
+            tracing::error!(error=?report, "Couldn't convert schema to Property Type");
             StatusCode::UNPROCESSABLE_ENTITY
+            // TODO - We should probably return more information to the client
+            //  https://app.asana.com/0/1201095311341924/1202574350052904/f
         })?;
 
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+        domain_validator
+            .validate(&property_type)
+            .map_err(|report| {
+                tracing::error!(error=?report, id=property_type.id().to_string(), "Property Type ID failed to validate");
+                StatusCode::UNPROCESSABLE_ENTITY
+            })?;
 
-    let metadata = OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-        property_type.id().clone().into(),
-        ProvenanceMetadata::new(actor_id),
-        owned_by_id,
-    ));
+        partial_metadata.push(PartialOntologyElementMetadata {
+            record_id: property_type.id().clone().into(),
+            custom: PartialCustomOntologyMetadata::Owned {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: actor_id,
+                    record_archived_by_id: None,
+                },
+                owned_by_id,
+            },
+        });
 
-    store
-        .create_property_type(property_type, &metadata)
+        property_types.push(property_type);
+    }
+
+    let mut metadata = store
+        .create_property_types(
+            property_types.into_iter().zip(partial_metadata),
+            ConflictBehavior::Fail,
+        )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create property type");
+            tracing::error!(error=?report, "Could not create property types");
 
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
@@ -135,7 +180,64 @@ async fn create_property_type<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(metadata))
+    if is_list {
+        Ok(Json(ListOrValue::List(metadata)))
+    } else {
+        Ok(Json(ListOrValue::Value(
+            metadata.pop().expect("metadata does not contain a value"),
+        )))
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct LoadExternalPropertyTypeRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    property_type_id: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/property-types/load",
+    request_body = LoadExternalPropertyTypeRequest,
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 409, description = "Unable to load property type in the store as the base property type ID already exists"),
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+#[tracing::instrument(level = "info", skip(pool, domain_validator))]
+async fn load_external_property_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    domain_validator: Extension<DomainValidator>,
+    body: Json<LoadExternalPropertyTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let Json(LoadExternalPropertyTypeRequest {
+        property_type_id,
+        actor_id,
+    }) = body;
+
+    Ok(Json(
+        store
+            .load_external_type(
+                &domain_validator,
+                OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
+                actor_id,
+            )
+            .await?,
+    ))
 }
 
 #[utoipa::path(
@@ -186,9 +288,9 @@ async fn get_property_types_by_query<P: StorePool + Send>(
 struct UpdatePropertyTypeRequest {
     #[schema(value_type = VAR_UPDATE_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
-    actor_id: UpdatedById,
+    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -237,6 +339,118 @@ async fn update_property_type<P: StorePool + Send>(
 
             if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ArchivePropertyTypeRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    type_to_archive: VersionedUrl,
+    actor_id: RecordArchivedById,
+}
+
+#[utoipa::path(
+    put,
+    path = "/property-types/archive",
+    tag = "PropertyType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyTemporalMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Property type ID was not found"),
+        (status = 409, description = "Property type ID is already archived"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = ArchivePropertyTypeRequest,
+)]
+#[tracing::instrument(level = "info", skip(pool))]
+async fn archive_property_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    body: Json<ArchivePropertyTypeRequest>,
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+    let Json(ArchivePropertyTypeRequest {
+        type_to_archive,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .archive_property_type(&type_to_archive, actor_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not archive property type");
+
+            if report.contains::<OntologyVersionDoesNotExist>() {
+                return StatusCode::NOT_FOUND;
+            }
+            if report.contains::<VersionedUrlAlreadyExists>() {
+                return StatusCode::CONFLICT;
+            }
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
+        .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct UnarchivePropertyTypeRequest {
+    #[schema(value_type = SHARED_VersionedUrl)]
+    type_to_unarchive: VersionedUrl,
+    actor_id: RecordCreatedById,
+}
+
+#[utoipa::path(
+    put,
+    path = "/property-types/unarchive",
+    tag = "DataType",
+    responses(
+        (status = 200, content_type = "application/json", description = "The temporal metadata of the updated property type", body = OntologyTemporalMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Property type ID was not found"),
+        (status = 409, description = "Property type ID already exists and is not archived"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UnarchivePropertyTypeRequest,
+)]
+#[tracing::instrument(level = "info", skip(pool))]
+async fn unarchive_property_type<P: StorePool + Send>(
+    pool: Extension<Arc<P>>,
+    body: Json<UnarchivePropertyTypeRequest>,
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+    let Json(UnarchivePropertyTypeRequest {
+        type_to_unarchive,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .unarchive_property_type(&type_to_unarchive, actor_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not unarchive property type");
+
+            if report.contains::<OntologyVersionDoesNotExist>() {
+                return StatusCode::NOT_FOUND;
+            }
+            if report.contains::<VersionedUrlAlreadyExists>() {
+                return StatusCode::CONFLICT;
             }
 
             // Insertion/update errors are considered internal server errors.

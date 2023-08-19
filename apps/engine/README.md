@@ -6,9 +6,13 @@
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
-# hEngine
+# HASH Engine
 
-[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (**hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License. This public version of hEngine is our 'next-gen' engine whose architecture and performance characteristics differ significantly to the stable engine powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). These are maintained separately, internally, and their use will be substituted with the next-gen engine under development here upon its first stable release.
+[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (**hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/simulations?utm_medium=organic&utm_source=github_readme_engine). It is publicly and freely available here under the Elastic License.
+
+This public version of hEngine is our 'alpha' engine whose architecture and performance characteristics differ significantly to the stable engine powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine), our in-browser simulation envrionment; and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine), our cloud simulation compute service. It is not yet stable.
+
+Our ultimate intention is to migrate both hCore and hCloud to use the engine under development here (upon its first stable release).
 
 ## Table of Contents
 
@@ -39,7 +43,7 @@
 
 ## Issue Tracking
 
-We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests. This includes hEngine and our **hCore** IDE, as well as the [**HASH**](https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_engine) all-in-one workspace. You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
+We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests. Please use the [HASH Engine Issue form](https://github.com/hashintel/hash/issues/new?assignees=&labels=A-engine%2CC-bug&template=bug-report-hash-engine.yml) to help us deal with your report most effectively. If you're unsure about something or need help, you can also ask questions and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine).
 
 ## Additional Documentation
 
@@ -135,13 +139,13 @@ The CLI binary handles parsing a HASH project, and the lifetime of the engine fo
 Then, run the CLI using:
 
 ```shell
-cargo run --bin cli -- <CLI ARGS>
+cargo run --bin cli -- $CLI_ARGS
 ```
 
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 
 ```shell
-cargo run --bin cli -- <CLI ARGS> -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>
+cargo run --bin cli -- $CLI_ARGS -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps $NUM_STEPS
 ```
 
 ## Quick Start Guide
@@ -200,7 +204,7 @@ unzip my-project.zip -d my-hash-project
 To run the simulation, [build the binaries](#project-setup--building) and pass the project location as a CLI argument:
 
 ```shell
-cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS>
+cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps $NUM_STEPS
 ```
 
 In order to see more logging information while the simulation is running, you can modify the [Rust logging level](https://docs.rs/log/latest/log/enum.Level.html) by exporting `RUST_LOG` before running, e.g.:
@@ -213,7 +217,7 @@ If your simulation requires a lot of memory and uses JavaScript behaviors, the J
 As a first step, you can provide a larger heap size to the runner:
 
 ```shell
-cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
+cargo run --bin cli -- --js-runner-max-heap-size $NEW_SIZE_IN_MB $CLI_ARGS
 ```
 
 This will increase the heap size, but you may still run into limitations beyond 4GB.

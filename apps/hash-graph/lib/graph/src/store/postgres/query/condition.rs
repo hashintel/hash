@@ -6,14 +6,22 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Condition<'p> {
+pub enum Condition {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<Expression<'p>>, Option<Expression<'p>>),
-    NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
-    TimeIntervalContainsTimestamp(Expression<'p>, Expression<'p>),
-    Overlap(Expression<'p>, Expression<'p>),
+    Equal(Option<Expression>, Option<Expression>),
+    NotEqual(Option<Expression>, Option<Expression>),
+    Less(Expression, Expression),
+    LessOrEqual(Expression, Expression),
+    Greater(Expression, Expression),
+    GreaterOrEqual(Expression, Expression),
+    In(Expression, Expression),
+    TimeIntervalContainsTimestamp(Expression, Expression),
+    Overlap(Expression, Expression),
+    StartsWith(Expression, Expression),
+    EndsWith(Expression, Expression),
+    ContainsSegment(Expression, Expression),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -22,12 +30,13 @@ pub enum EqualityOperator {
     NotEqual,
 }
 
-impl Transpile for Condition<'_> {
+impl Transpile for Condition {
+    #[expect(clippy::too_many_lines)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Condition::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
-            Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
-            Condition::All(conditions) => {
+            Self::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
+            Self::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
+            Self::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
                     if idx > 0 {
                         fmt.write_str(" AND ")?;
@@ -38,7 +47,7 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Any(conditions) => {
+            Self::Any(conditions) => {
                 if conditions.len() > 1 {
                     fmt.write_char('(')?;
                 }
@@ -55,39 +64,82 @@ impl Transpile for Condition<'_> {
                 }
                 Ok(())
             }
-            Condition::Not(condition) => {
+            Self::Not(condition) => {
                 fmt.write_str("NOT(")?;
                 condition.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Condition::Equal(value, None) | Condition::Equal(None, value) => {
+            Self::Equal(value, None) | Self::Equal(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NULL")
             }
-            Condition::Equal(lhs, rhs) => {
+            Self::Equal(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" = ")?;
                 rhs.transpile(fmt)
             }
-            Condition::NotEqual(value, None) | Condition::NotEqual(None, value) => {
+            Self::NotEqual(value, None) | Self::NotEqual(None, value) => {
                 value.transpile(fmt)?;
                 fmt.write_str(" IS NOT NULL")
             }
-            Condition::NotEqual(lhs, rhs) => {
+            Self::NotEqual(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" != ")?;
                 rhs.transpile(fmt)
             }
-            Condition::TimeIntervalContainsTimestamp(lhs, rhs) => {
+            Self::Less(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" < ")?;
+                rhs.transpile(fmt)
+            }
+            Self::LessOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" <= ")?;
+                rhs.transpile(fmt)
+            }
+            Self::Greater(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" > ")?;
+                rhs.transpile(fmt)
+            }
+            Self::GreaterOrEqual(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" >= ")?;
+                rhs.transpile(fmt)
+            }
+            Self::In(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" = ANY(")?;
+                rhs.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::TimeIntervalContainsTimestamp(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" @> ")?;
                 rhs.transpile(fmt)?;
                 fmt.write_str("::TIMESTAMPTZ")
             }
-            Condition::Overlap(lhs, rhs) => {
+            Self::Overlap(lhs, rhs) => {
                 lhs.transpile(fmt)?;
                 fmt.write_str(" && ")?;
                 rhs.transpile(fmt)
+            }
+            Self::StartsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
+            }
+            Self::EndsWith(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)
+            }
+            Self::ContainsSegment(lhs, rhs) => {
+                lhs.transpile(fmt)?;
+                fmt.write_str(" LIKE '%' || ")?;
+                rhs.transpile(fmt)?;
+                fmt.write_str(" || '%'")
             }
         }
     }
@@ -105,7 +157,6 @@ mod tests {
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     fn test_condition<'p, 'f: 'p>(
@@ -113,8 +164,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::new(&temporal_axes);
+        let mut compiler = SelectCompiler::new(None);
         let condition = compiler.compile_filter(filter);
 
         assert_eq!(condition.transpile_to_string(), rendered);
@@ -146,7 +196,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -155,7 +205,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -166,7 +216,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -175,7 +225,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -191,7 +241,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -208,7 +258,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)"#,
+            r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -225,7 +275,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -242,7 +292,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1))),
                 ),
             ]),
-            r#"(("ontology_id_with_metadata_0_1_0"."base_url" = $1) OR ("ontology_id_with_metadata_0_1_0"."version" = $2))"#,
+            r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -259,7 +309,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             ))),
-            r#"NOT("data_types_0_0_0"."schema"->>'$id' = $1)"#,
+            r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
     }
@@ -271,7 +321,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
             )]),
-            r#"("data_types_0_0_0"."schema"->>'description' = "data_types_0_0_0"."schema"->>'title')"#,
+            r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
             &[],
         );
     }

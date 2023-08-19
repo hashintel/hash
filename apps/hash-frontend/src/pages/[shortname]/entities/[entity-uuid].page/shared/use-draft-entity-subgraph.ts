@@ -48,7 +48,7 @@ export const useDraftEntitySubgraph = (
         const now = new Date().toISOString() as Timestamp;
 
         const draftEntityVertexId: EntityVertexId = {
-          baseId: "draft%draft" as EntityId,
+          baseId: "draft~draft" as EntityId,
           revisionId: now as EntityRevisionId,
         };
 
@@ -68,7 +68,7 @@ export const useDraftEntitySubgraph = (
                       editionId: now,
                     },
                     entityTypeId,
-                    provenance: { updatedById: "" },
+                    provenance: { recordCreatedById: "" },
                     archived: false,
                     temporalVersioning: {
                       decisionTime: {

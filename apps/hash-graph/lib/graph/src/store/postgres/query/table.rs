@@ -1,26 +1,273 @@
 use std::{
-    borrow::Cow,
     fmt::{self, Debug},
     hash::Hash,
+    iter::{once, Chain, Once},
 };
+
+use postgres_types::ToSql;
 
 use crate::{
     identifier::time::TimeAxis,
-    store::{postgres::query::Transpile, query::JsonPath},
+    store::{
+        postgres::query::{Condition, Constant, Expression, Transpile},
+        query::{JsonPath, ParameterType},
+    },
+    subgraph::edges::EdgeDirection,
 };
 
 /// The name of a [`Table`] in the Postgres database.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Table {
     OntologyIds,
+    OntologyTemporalMetadata,
+    OntologyOwnedMetadata,
+    OntologyExternalMetadata,
+    OntologyAdditionalMetadata,
     DataTypes,
     PropertyTypes,
     EntityTypes,
-    Entities,
-    PropertyTypeDataTypeReferences,
-    PropertyTypePropertyTypeReferences,
-    EntityTypePropertyTypeReferences,
-    EntityTypeEntityTypeReferences,
+    EntityTemporalMetadata,
+    EntityEditions,
+    Reference(ReferenceTable),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ReferenceTable {
+    PropertyTypeConstrainsValuesOn,
+    PropertyTypeConstrainsPropertiesOn,
+    EntityTypeConstrainsPropertiesOn { inheritance_depth: Option<u32> },
+    EntityTypeInheritsFrom { inheritance_depth: Option<u32> },
+    EntityTypeConstrainsLinksOn { inheritance_depth: Option<u32> },
+    EntityTypeConstrainsLinkDestinationsOn { inheritance_depth: Option<u32> },
+    EntityIsOfType { inheritance_depth: Option<u32> },
+    EntityHasLeftEntity,
+    EntityHasRightEntity,
+}
+
+impl ReferenceTable {
+    pub fn inheritance_depth_column(self) -> Option<Column<'static>> {
+        match self {
+            Self::EntityTypeConstrainsPropertiesOn { inheritance_depth }
+                if inheritance_depth != Some(0) =>
+            {
+                Some(Column::EntityTypeConstrainsPropertiesOn(
+                    EntityTypeConstrainsPropertiesOn::InheritanceDepth,
+                    inheritance_depth,
+                ))
+            }
+            Self::EntityTypeInheritsFrom { inheritance_depth } if inheritance_depth != Some(0) => {
+                Some(Column::EntityTypeInheritsFrom(
+                    EntityTypeInheritsFrom::InheritanceDepth,
+                    inheritance_depth,
+                ))
+            }
+            Self::EntityTypeConstrainsLinksOn { inheritance_depth }
+                if inheritance_depth != Some(0) =>
+            {
+                Some(Column::EntityTypeConstrainsLinksOn(
+                    EntityTypeConstrainsLinksOn::InheritanceDepth,
+                    inheritance_depth,
+                ))
+            }
+            Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth }
+                if inheritance_depth != Some(0) =>
+            {
+                Some(Column::EntityTypeConstrainsLinkDestinationsOn(
+                    EntityTypeConstrainsLinkDestinationsOn::InheritanceDepth,
+                    inheritance_depth,
+                ))
+            }
+            Self::EntityIsOfType { inheritance_depth } if inheritance_depth != Some(0) => Some(
+                Column::EntityIsOfType(EntityIsOfType::InheritanceDepth, inheritance_depth),
+            ),
+            _ => None,
+        }
+    }
+
+    pub const fn source_relation(self) -> ForeignKeyReference {
+        match self {
+            Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::PropertyTypeConstrainsValuesOn(
+                    PropertyTypeConstrainsValuesOn::SourcePropertyTypeOntologyId,
+                ),
+            },
+            Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::PropertyTypeConstrainsPropertiesOn(
+                    PropertyTypeConstrainsPropertiesOn::SourcePropertyTypeOntologyId,
+                ),
+            },
+            Self::EntityTypeConstrainsPropertiesOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::EntityTypeConstrainsPropertiesOn(
+                        EntityTypeConstrainsPropertiesOn::SourceEntityTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                }
+            }
+            Self::EntityTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::EntityTypeInheritsFrom(
+                    EntityTypeInheritsFrom::SourceEntityTypeOntologyId,
+                    inheritance_depth,
+                ),
+            },
+            Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::EntityTypeConstrainsLinksOn(
+                        EntityTypeConstrainsLinksOn::SourceEntityTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                }
+            }
+            Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::EntityTypeConstrainsLinkDestinationsOn(
+                        EntityTypeConstrainsLinkDestinationsOn::SourceEntityTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                }
+            }
+            Self::EntityIsOfType { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::EntityIsOfType(EntityIsOfType::EntityEditionId, inheritance_depth),
+            },
+            Self::EntityHasLeftEntity => ForeignKeyReference::Double {
+                on: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+                join: [
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::EntityUuid),
+                ],
+            },
+            Self::EntityHasRightEntity => ForeignKeyReference::Double {
+                on: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+                join: [
+                    Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
+                ],
+            },
+        }
+    }
+
+    pub const fn target_relation(self) -> ForeignKeyReference {
+        match self {
+            Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
+                on: Column::PropertyTypeConstrainsValuesOn(
+                    PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
+                ),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+            },
+            Self::PropertyTypeConstrainsPropertiesOn => ForeignKeyReference::Single {
+                on: Column::PropertyTypeConstrainsPropertiesOn(
+                    PropertyTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
+                ),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+            },
+            Self::EntityTypeConstrainsPropertiesOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::EntityTypeConstrainsPropertiesOn(
+                        EntityTypeConstrainsPropertiesOn::TargetPropertyTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                }
+            }
+            Self::EntityTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::EntityTypeInheritsFrom(
+                    EntityTypeInheritsFrom::TargetEntityTypeOntologyId,
+                    inheritance_depth,
+                ),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+            },
+            Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::EntityTypeConstrainsLinksOn(
+                        EntityTypeConstrainsLinksOn::TargetEntityTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                }
+            }
+            Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth } => {
+                ForeignKeyReference::Single {
+                    on: Column::EntityTypeConstrainsLinkDestinationsOn(
+                        EntityTypeConstrainsLinkDestinationsOn::TargetEntityTypeOntologyId,
+                        inheritance_depth,
+                    ),
+                    join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                }
+            }
+            Self::EntityIsOfType { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::EntityIsOfType(EntityIsOfType::EntityTypeOntologyId, inheritance_depth),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+            },
+            Self::EntityHasLeftEntity => ForeignKeyReference::Double {
+                on: [
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid),
+                ],
+                join: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+            },
+            Self::EntityHasRightEntity => ForeignKeyReference::Double {
+                on: [
+                    Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid),
+                ],
+                join: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+            },
+        }
+    }
+}
+
+impl ReferenceTable {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::PropertyTypeConstrainsValuesOn => "property_type_constrains_values_on",
+            Self::PropertyTypeConstrainsPropertiesOn => "property_type_constrains_properties_on",
+            Self::EntityTypeConstrainsPropertiesOn {
+                inheritance_depth: Some(0),
+            } => "entity_type_constrains_properties_on",
+            Self::EntityTypeConstrainsPropertiesOn { .. } => {
+                "closed_entity_type_constrains_properties_on"
+            }
+            Self::EntityTypeInheritsFrom {
+                inheritance_depth: Some(0),
+            } => "entity_type_inherits_from",
+            Self::EntityTypeInheritsFrom { .. } => "closed_entity_type_inherits_from",
+            Self::EntityTypeConstrainsLinksOn {
+                inheritance_depth: Some(0),
+            } => "entity_type_constrains_links_on",
+            Self::EntityTypeConstrainsLinksOn { .. } => "closed_entity_type_constrains_links_on",
+            Self::EntityTypeConstrainsLinkDestinationsOn {
+                inheritance_depth: Some(0),
+            } => "entity_type_constrains_link_destinations_on",
+            Self::EntityTypeConstrainsLinkDestinationsOn { .. } => {
+                "closed_entity_type_constrains_link_destinations_on"
+            }
+            Self::EntityIsOfType {
+                inheritance_depth: Some(0),
+            } => "entity_is_of_type",
+            Self::EntityIsOfType { .. } => "closed_entity_is_of_type",
+            Self::EntityHasLeftEntity => "entity_has_left_entity",
+            Self::EntityHasRightEntity => "entity_has_right_entity",
+        }
+    }
 }
 
 impl Table {
@@ -30,15 +277,17 @@ impl Table {
 
     const fn as_str(self) -> &'static str {
         match self {
-            Self::OntologyIds => "ontology_id_with_metadata",
+            Self::OntologyIds => "ontology_ids",
+            Self::OntologyTemporalMetadata => "ontology_temporal_metadata",
+            Self::OntologyOwnedMetadata => "ontology_owned_metadata",
+            Self::OntologyExternalMetadata => "ontology_external_metadata",
+            Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
             Self::PropertyTypes => "property_types",
             Self::EntityTypes => "entity_types",
-            Self::Entities => "entities",
-            Self::PropertyTypeDataTypeReferences => "property_type_data_type_references",
-            Self::PropertyTypePropertyTypeReferences => "property_type_property_type_references",
-            Self::EntityTypePropertyTypeReferences => "entity_type_property_type_references",
-            Self::EntityTypeEntityTypeReferences => "entity_type_entity_type_references",
+            Self::EntityTemporalMetadata => "entity_temporal_metadata",
+            Self::EntityEditions => "entity_editions",
+            Self::Reference(table) => table.as_str(),
         }
     }
 }
@@ -49,43 +298,82 @@ impl Transpile for Table {
     }
 }
 
-// TODO: We should add another enum to only contain variants, which may be passed as parameters,
-//       so the lifetime of that struct will be `'static`.
-//   see https://app.asana.com/0/0/1203821263193164/f
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
-    Json(&'p Cow<'p, str>),
     JsonPath(&'p JsonPath<'p>),
+    JsonPathParameter(usize),
+    StaticText(&'static str),
+}
+
+impl<'p> JsonField<'p> {
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (JsonField<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::JsonPath(path) => (
+                JsonField::JsonPathParameter(current_parameter_index),
+                Some(path),
+            ),
+            Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
+            Self::StaticText(text) => (JsonField::StaticText(text), None),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StaticJsonField {
     JsonPathParameter(usize),
     StaticText(&'static str),
     StaticJson(&'static str),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum OntologyIds<'p> {
+pub enum OntologyIds {
     OntologyId,
     BaseUrl,
     Version,
-    UpdatedById,
     LatestVersion,
-    AdditionalMetadata(Option<JsonField<'p>>),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyOwnedMetadata {
+    OntologyId,
+    OwnedById,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyExternalMetadata {
+    OntologyId,
+    FetchedAt,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyAdditionalMetadata {
+    OntologyId,
+    AdditionalMetadata,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum OntologyTemporalMetadata {
+    OntologyId,
+    TransactionTime,
+    RecordCreatedById,
+    RecordArchivedById,
 }
 
 fn transpile_json_field(
-    path: &JsonField,
+    path: &JsonField<'static>,
     name: &'static str,
     table: &impl Transpile,
     fmt: &mut fmt::Formatter,
 ) -> fmt::Result {
     match path {
-        JsonField::Json(field) => panic!(
-            "attempting to access JSON field `{field}` on `{name}` column without preparing the \
-             value"
-        ),
-        JsonField::JsonPath(path) => panic!(
-            "attempting to access JSON path `{path}` on `{name}` column without preparing the \
-             value"
-        ),
+        JsonField::JsonPath(path) => {
+            write!(fmt, "jsonb_path_query_first(")?;
+            table.transpile(fmt)?;
+            write!(fmt, r#"."{name}", {path})"#)
+        }
         JsonField::JsonPathParameter(index) => {
             write!(fmt, "jsonb_path_query_first(")?;
             table.transpile(fmt)?;
@@ -95,28 +383,102 @@ fn transpile_json_field(
             table.transpile(fmt)?;
             write!(fmt, r#"."{name}"->>'{field}'"#)
         }
-        JsonField::StaticJson(field) => {
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}"->'{field}'"#)
-        }
     }
 }
 
-impl OntologyIds<'_> {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl OntologyIds {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
             Self::BaseUrl => "base_url",
             Self::Version => "version",
             Self::LatestVersion => "latest_version",
-            Self::UpdatedById => "record_created_by_id",
-            Self::AdditionalMetadata(None) => "additional_metadata",
-            Self::AdditionalMetadata(Some(path)) => {
-                return transpile_json_field(path, "additional_metadata", table, fmt);
-            }
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::BaseUrl => ParameterType::Text,
+            Self::Version | Self::LatestVersion => ParameterType::OntologyTypeVersion,
+        }
+    }
+}
+
+impl OntologyOwnedMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::OwnedById => "owned_by_id",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+        }
+    }
+}
+
+impl OntologyExternalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::FetchedAt => "fetched_at",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::FetchedAt => ParameterType::Timestamp,
+        }
+    }
+}
+
+impl OntologyAdditionalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::AdditionalMetadata => "additional_metadata",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::AdditionalMetadata => ParameterType::Object,
+        }
+    }
+}
+
+impl OntologyTemporalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::TransactionTime => "transaction_time",
+            Self::RecordCreatedById => "record_created_by_id",
+            Self::RecordArchivedById => "record_archived_by_id",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::RecordCreatedById | Self::RecordArchivedById => {
+                ParameterType::Uuid
+            }
+            Self::TransactionTime => ParameterType::TimeInterval,
+        }
     }
 }
 
@@ -135,6 +497,12 @@ impl OwnedOntologyMetadata {
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+        }
+    }
 }
 
 macro_rules! impl_ontology_column {
@@ -146,16 +514,30 @@ macro_rules! impl_ontology_column {
                 Schema(Option<JsonField<'p>>),
             }
 
-            impl $name<'_> {
+            impl<'p> $name<'p> {
                 pub const fn nullable(self) -> bool {
                     match self {
                         Self::OntologyId => false,
                         Self::Schema(_) => true,
                     }
                 }
+
+                pub const fn into_owned(
+                    self,
+                    current_parameter_index: usize,
+                ) -> ($name<'static>, Option<&'p (dyn ToSql + Sync)>) {
+                    match self {
+                        Self::OntologyId => ($name::OntologyId, None),
+                        Self::Schema(None) => ($name::Schema(None), None),
+                        Self::Schema(Some(path)) => {
+                            let (path, parameter) = path.into_owned(current_parameter_index);
+                            ($name::Schema(Some(path)), parameter)
+                        }
+                    }
+                }
             }
 
-            impl $name<'_> {
+            impl $name<'static> {
                 fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
                         Self::OntologyId => "ontology_id",
@@ -165,7 +547,15 @@ macro_rules! impl_ontology_column {
                         }
                     };
                     table.transpile(fmt)?;
-                    write!(fmt, r#"."{}""#, column)
+                    write!(fmt, r#"."{column}""#)
+                }
+
+                pub const fn parameter_type(self) -> ParameterType {
+                    match self {
+                        Self::OntologyId => ParameterType::Uuid,
+                        Self::Schema(Some(JsonField::StaticText(_))) => ParameterType::Text,
+                        Self::Schema(_) => ParameterType::Any,
+                    }
                 }
             }
         )*
@@ -174,52 +564,70 @@ macro_rules! impl_ontology_column {
 
 impl_ontology_column!(DataTypes);
 impl_ontology_column!(PropertyTypes);
-impl_ontology_column!(EntityTypes);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Entities<'p> {
+pub enum EntityTypes<'p> {
+    OntologyId,
+    Schema(Option<JsonField<'p>>),
+    LabelProperty,
+}
+impl<'p> EntityTypes<'p> {
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::OntologyId => false,
+            Self::Schema(_) | Self::LabelProperty => true,
+        }
+    }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (EntityTypes<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::OntologyId => (EntityTypes::OntologyId, None),
+            Self::Schema(None) => (EntityTypes::Schema(None), None),
+            Self::Schema(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityTypes::Schema(Some(path)), parameter)
+            }
+            Self::LabelProperty => (EntityTypes::LabelProperty, None),
+        }
+    }
+}
+impl EntityTypes<'static> {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OntologyId => "ontology_id",
+            Self::Schema(None) => "schema",
+            Self::Schema(Some(path)) => {
+                return transpile_json_field(path, "schema", table, fmt);
+            }
+            Self::LabelProperty => "label_property",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyId => ParameterType::Uuid,
+            Self::Schema(Some(JsonField::StaticText(_))) => ParameterType::Text,
+            Self::Schema(_) => ParameterType::Any,
+            Self::LabelProperty => ParameterType::BaseUrl,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTemporalMetadata {
+    OwnedById,
     EntityUuid,
     EditionId,
     DecisionTime,
     TransactionTime,
-    // TODO: Remove when correctly resolving time intervals in subgraphs.
-    //   see https://app.asana.com/0/0/1203701389454316/f
-    ProjectedTime,
-    Archived,
-    OwnedById,
-    UpdatedById,
-    EntityTypeOntologyId,
-    Properties(Option<JsonField<'p>>),
-    LeftToRightOrder,
-    RightToLeftOrder,
-    LeftEntityUuid,
-    RightEntityUuid,
-    LeftEntityOwnedById,
-    RightEntityOwnedById,
 }
 
-impl Entities<'_> {
-    pub const fn nullable(self) -> bool {
-        match self {
-            Self::EntityUuid
-            | Self::EditionId
-            | Self::DecisionTime
-            | Self::TransactionTime
-            | Self::ProjectedTime
-            | Self::Archived
-            | Self::OwnedById
-            | Self::UpdatedById
-            | Self::EntityTypeOntologyId => false,
-            Self::Properties(_)
-            | Self::LeftEntityUuid
-            | Self::RightEntityUuid
-            | Self::LeftEntityOwnedById
-            | Self::RightEntityOwnedById
-            | Self::LeftToRightOrder
-            | Self::RightToLeftOrder => true,
-        }
-    }
-
+impl EntityTemporalMetadata {
     pub const fn from_time_axis(time_axis: TimeAxis) -> Self {
         match time_axis {
             TimeAxis::DecisionTime => Self::DecisionTime,
@@ -228,41 +636,184 @@ impl Entities<'_> {
     }
 }
 
-impl Entities<'_> {
-    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl EntityTemporalMetadata {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
+            Self::OwnedById => "owned_by_id",
             Self::EntityUuid => "entity_uuid",
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime => "transaction_time",
-            Self::ProjectedTime => unreachable!("projected time is not a column"),
-            Self::Archived => "archived",
-            Self::OwnedById => "owned_by_id",
-            Self::UpdatedById => "record_created_by_id",
-            Self::EntityTypeOntologyId => "entity_type_ontology_id",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
+            Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityEditions<'p> {
+    EditionId,
+    Properties(Option<JsonField<'p>>),
+    LeftToRightOrder,
+    RightToLeftOrder,
+    RecordCreatedById,
+    Archived,
+}
+
+impl<'p> EntityEditions<'p> {
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::EditionId | Self::Archived | Self::RecordCreatedById => false,
+            Self::Properties(_) | Self::LeftToRightOrder | Self::RightToLeftOrder => true,
+        }
+    }
+
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (EntityEditions<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::EditionId => (EntityEditions::EditionId, None),
+            Self::LeftToRightOrder => (EntityEditions::LeftToRightOrder, None),
+            Self::RightToLeftOrder => (EntityEditions::RightToLeftOrder, None),
+            Self::RecordCreatedById => (EntityEditions::RecordCreatedById, None),
+            Self::Archived => (EntityEditions::Archived, None),
+            Self::Properties(None) => (EntityEditions::Properties(None), None),
+            Self::Properties(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityEditions::Properties(Some(path)), parameter)
+            }
+        }
+    }
+}
+
+impl EntityEditions<'static> {
+    fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::EditionId => "entity_edition_id",
             Self::Properties(None) => "properties",
             Self::Properties(Some(path)) => {
                 return transpile_json_field(path, "properties", table, fmt);
             }
             Self::LeftToRightOrder => "left_to_right_order",
             Self::RightToLeftOrder => "right_to_left_order",
-            Self::LeftEntityUuid => "left_entity_uuid",
-            Self::RightEntityUuid => "right_entity_uuid",
-            Self::LeftEntityOwnedById => "left_owned_by_id",
-            Self::RightEntityOwnedById => "right_owned_by_id",
+            Self::RecordCreatedById => "record_created_by_id",
+            Self::Archived => "archived",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EditionId | Self::RecordCreatedById => ParameterType::Uuid,
+            Self::Properties(_) => ParameterType::Any,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
+            Self::Archived => ParameterType::Boolean,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum PropertyTypeDataTypeReferences {
+pub enum EntityIsOfType {
+    EntityEditionId,
+    EntityTypeOntologyId,
+    InheritanceDepth,
+}
+
+impl EntityIsOfType {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::EntityEditionId => "entity_edition_id",
+            Self::EntityTypeOntologyId => "entity_type_ontology_id",
+            Self::InheritanceDepth => "inheritance_depth",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::EntityEditionId | Self::EntityTypeOntologyId => ParameterType::Uuid,
+            Self::InheritanceDepth => ParameterType::Number,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityHasLeftEntity {
+    OwnedById,
+    EntityUuid,
+    LeftEntityOwnedById,
+    LeftEntityUuid,
+}
+
+impl EntityHasLeftEntity {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OwnedById => "owned_by_id",
+            Self::EntityUuid => "entity_uuid",
+            Self::LeftEntityOwnedById => "left_owned_by_id",
+            Self::LeftEntityUuid => "left_entity_uuid",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById
+            | Self::EntityUuid
+            | Self::LeftEntityOwnedById
+            | Self::LeftEntityUuid => ParameterType::Uuid,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityHasRightEntity {
+    OwnedById,
+    EntityUuid,
+    RightEntityOwnedById,
+    RightEntityUuid,
+}
+
+impl EntityHasRightEntity {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let column = match self {
+            Self::OwnedById => "owned_by_id",
+            Self::EntityUuid => "entity_uuid",
+            Self::RightEntityOwnedById => "right_owned_by_id",
+            Self::RightEntityUuid => "right_entity_uuid",
+        };
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{column}""#)
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OwnedById
+            | Self::EntityUuid
+            | Self::RightEntityOwnedById
+            | Self::RightEntityUuid => ParameterType::Uuid,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PropertyTypeConstrainsValuesOn {
     SourcePropertyTypeOntologyId,
     TargetDataTypeOntologyId,
 }
 
-impl PropertyTypeDataTypeReferences {
+impl PropertyTypeConstrainsValuesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
@@ -270,15 +821,23 @@ impl PropertyTypeDataTypeReferences {
             Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
         })
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetDataTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum PropertyTypePropertyTypeReferences {
+pub enum PropertyTypeConstrainsPropertiesOn {
     SourcePropertyTypeOntologyId,
     TargetPropertyTypeOntologyId,
 }
 
-impl PropertyTypePropertyTypeReferences {
+impl PropertyTypeConstrainsPropertiesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
@@ -286,67 +845,201 @@ impl PropertyTypePropertyTypeReferences {
             Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
         })
     }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourcePropertyTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                ParameterType::Uuid
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityTypePropertyTypeReferences {
+pub enum EntityTypeConstrainsPropertiesOn {
     SourceEntityTypeOntologyId,
     TargetPropertyTypeOntologyId,
+    InheritanceDepth,
 }
 
-impl EntityTypePropertyTypeReferences {
+impl EntityTypeConstrainsPropertiesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
+            Self::InheritanceDepth => "inheritance_depth",
         })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetPropertyTypeOntologyId => {
+                ParameterType::Uuid
+            }
+            Self::InheritanceDepth => ParameterType::Number,
+        }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EntityTypeEntityTypeReferences {
+pub enum EntityTypeInheritsFrom {
     SourceEntityTypeOntologyId,
     TargetEntityTypeOntologyId,
+    InheritanceDepth,
 }
 
-impl EntityTypeEntityTypeReferences {
+impl EntityTypeInheritsFrom {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
         write!(fmt, r#"."{}""#, match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+            Self::InheritanceDepth => "inheritance_depth",
         })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+            Self::InheritanceDepth => ParameterType::Number,
+        }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTypeConstrainsLinksOn {
+    SourceEntityTypeOntologyId,
+    TargetEntityTypeOntologyId,
+    InheritanceDepth,
+}
+
+impl EntityTypeConstrainsLinksOn {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{}""#, match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+            Self::InheritanceDepth => "inheritance_depth",
+        })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+            Self::InheritanceDepth => ParameterType::Number,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EntityTypeConstrainsLinkDestinationsOn {
+    SourceEntityTypeOntologyId,
+    TargetEntityTypeOntologyId,
+    InheritanceDepth,
+}
+
+impl EntityTypeConstrainsLinkDestinationsOn {
+    fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
+        table.transpile(fmt)?;
+        write!(fmt, r#"."{}""#, match self {
+            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+            Self::InheritanceDepth => "inheritance_depth",
+        })
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
+                ParameterType::Uuid
+            }
+            Self::InheritanceDepth => ParameterType::Number,
+        }
+    }
+}
+
+/// A column in the database.
+///
+/// If a second parameter is present, it represents the inheritance depths parameter for that view.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Column<'p> {
-    OntologyIds(OntologyIds<'p>),
+    OntologyIds(OntologyIds),
+    OntologyTemporalMetadata(OntologyTemporalMetadata),
+    OntologyOwnedMetadata(OntologyOwnedMetadata),
+    OntologyExternalMetadata(OntologyExternalMetadata),
+    OntologyAdditionalMetadata(OntologyAdditionalMetadata),
     DataTypes(DataTypes<'p>),
     PropertyTypes(PropertyTypes<'p>),
     EntityTypes(EntityTypes<'p>),
-    Entities(Entities<'p>),
-    PropertyTypeDataTypeReferences(PropertyTypeDataTypeReferences),
-    PropertyTypePropertyTypeReferences(PropertyTypePropertyTypeReferences),
-    EntityTypePropertyTypeReferences(EntityTypePropertyTypeReferences),
-    EntityTypeEntityTypeReferences(EntityTypeEntityTypeReferences),
+    EntityTemporalMetadata(EntityTemporalMetadata),
+    EntityEditions(EntityEditions<'p>),
+    PropertyTypeConstrainsValuesOn(PropertyTypeConstrainsValuesOn),
+    PropertyTypeConstrainsPropertiesOn(PropertyTypeConstrainsPropertiesOn),
+    EntityTypeConstrainsPropertiesOn(EntityTypeConstrainsPropertiesOn, Option<u32>),
+    EntityTypeInheritsFrom(EntityTypeInheritsFrom, Option<u32>),
+    EntityTypeConstrainsLinksOn(EntityTypeConstrainsLinksOn, Option<u32>),
+    EntityTypeConstrainsLinkDestinationsOn(EntityTypeConstrainsLinkDestinationsOn, Option<u32>),
+    EntityIsOfType(EntityIsOfType, Option<u32>),
+    EntityHasLeftEntity(EntityHasLeftEntity),
+    EntityHasRightEntity(EntityHasRightEntity),
 }
 
 impl<'p> Column<'p> {
     pub const fn table(self) -> Table {
         match self {
             Self::OntologyIds(_) => Table::OntologyIds,
+            Self::OntologyTemporalMetadata(_) => Table::OntologyTemporalMetadata,
+            Self::OntologyOwnedMetadata(_) => Table::OntologyOwnedMetadata,
+            Self::OntologyExternalMetadata(_) => Table::OntologyExternalMetadata,
+            Self::OntologyAdditionalMetadata(_) => Table::OntologyAdditionalMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::EntityTypes(_) => Table::EntityTypes,
-            Self::Entities(_) => Table::Entities,
-            Self::PropertyTypeDataTypeReferences(_) => Table::PropertyTypeDataTypeReferences,
-            Self::PropertyTypePropertyTypeReferences(_) => {
-                Table::PropertyTypePropertyTypeReferences
+            Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
+            Self::EntityEditions(_) => Table::EntityEditions,
+            Self::PropertyTypeConstrainsValuesOn(_) => {
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsValuesOn)
             }
-            Self::EntityTypePropertyTypeReferences(_) => Table::EntityTypePropertyTypeReferences,
-            Self::EntityTypeEntityTypeReferences(_) => Table::EntityTypeEntityTypeReferences,
+            Self::PropertyTypeConstrainsPropertiesOn(_) => {
+                Table::Reference(ReferenceTable::PropertyTypeConstrainsPropertiesOn)
+            }
+            Self::EntityTypeConstrainsPropertiesOn(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                    inheritance_depth,
+                })
+            }
+            Self::EntityTypeInheritsFrom(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::EntityTypeInheritsFrom { inheritance_depth })
+            }
+            Self::EntityTypeConstrainsLinksOn(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinksOn { inheritance_depth })
+            }
+            Self::EntityTypeConstrainsLinkDestinationsOn(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                    inheritance_depth,
+                })
+            }
+            Self::EntityIsOfType(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::EntityIsOfType { inheritance_depth })
+            }
+            Self::EntityHasLeftEntity(_) => Table::Reference(ReferenceTable::EntityHasLeftEntity),
+            Self::EntityHasRightEntity(_) => Table::Reference(ReferenceTable::EntityHasRightEntity),
+        }
+    }
+
+    pub const fn inheritance_depth(self) -> Option<u32> {
+        match self {
+            Self::EntityTypeInheritsFrom(_, inheritance_depth)
+            | Self::EntityTypeConstrainsPropertiesOn(_, inheritance_depth)
+            | Self::EntityTypeConstrainsLinksOn(_, inheritance_depth)
+            | Self::EntityTypeConstrainsLinkDestinationsOn(_, inheritance_depth)
+            | Self::EntityIsOfType(_, inheritance_depth) => inheritance_depth,
+            _ => None,
         }
     }
 
@@ -355,12 +1048,81 @@ impl<'p> Column<'p> {
             Self::DataTypes(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
-            Self::Entities(column) => column.nullable(),
+            Self::EntityEditions(column) => column.nullable(),
+            Self::EntityHasLeftEntity(_)
+            | Self::EntityHasRightEntity(_)
+            | Self::OntologyOwnedMetadata(_)
+            | Self::OntologyExternalMetadata(_) => true,
             _ => false,
         }
     }
 
-    pub const fn aliased(self, alias: Alias) -> AliasedColumn<'p> {
+    pub const fn into_owned(
+        self,
+        current_parameter_index: usize,
+    ) -> (Column<'static>, Option<&'p (dyn ToSql + Sync)>) {
+        match self {
+            Self::OntologyIds(column) => (Column::OntologyIds(column), None),
+            Self::OntologyTemporalMetadata(column) => {
+                (Column::OntologyTemporalMetadata(column), None)
+            }
+            Self::OntologyOwnedMetadata(column) => (Column::OntologyOwnedMetadata(column), None),
+            Self::OntologyExternalMetadata(column) => {
+                (Column::OntologyExternalMetadata(column), None)
+            }
+            Self::OntologyAdditionalMetadata(column) => {
+                (Column::OntologyAdditionalMetadata(column), None)
+            }
+            Self::DataTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::DataTypes(column), parameter)
+            }
+            Self::PropertyTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::PropertyTypes(column), parameter)
+            }
+            Self::EntityTypes(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::EntityTypes(column), parameter)
+            }
+            Self::EntityEditions(column) => {
+                let (column, parameter) = column.into_owned(current_parameter_index);
+                (Column::EntityEditions(column), parameter)
+            }
+            Self::EntityTemporalMetadata(column) => (Column::EntityTemporalMetadata(column), None),
+            Self::PropertyTypeConstrainsValuesOn(column) => {
+                (Column::PropertyTypeConstrainsValuesOn(column), None)
+            }
+            Self::PropertyTypeConstrainsPropertiesOn(column) => {
+                (Column::PropertyTypeConstrainsPropertiesOn(column), None)
+            }
+            Self::EntityTypeConstrainsPropertiesOn(column, inheritance_depth) => (
+                Column::EntityTypeConstrainsPropertiesOn(column, inheritance_depth),
+                None,
+            ),
+            Self::EntityTypeInheritsFrom(column, inheritance_depth) => (
+                Column::EntityTypeInheritsFrom(column, inheritance_depth),
+                None,
+            ),
+            Self::EntityTypeConstrainsLinksOn(column, inheritance_depth) => (
+                Column::EntityTypeConstrainsLinksOn(column, inheritance_depth),
+                None,
+            ),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column, inheritance_depth) => (
+                Column::EntityTypeConstrainsLinkDestinationsOn(column, inheritance_depth),
+                None,
+            ),
+            Self::EntityIsOfType(column, inheritance_depth) => {
+                (Column::EntityIsOfType(column, inheritance_depth), None)
+            }
+            Self::EntityHasLeftEntity(column) => (Column::EntityHasLeftEntity(column), None),
+            Self::EntityHasRightEntity(column) => (Column::EntityHasRightEntity(column), None),
+        }
+    }
+}
+
+impl Column<'static> {
+    pub const fn aliased(self, alias: Alias) -> AliasedColumn {
         AliasedColumn {
             column: self,
             alias,
@@ -370,19 +1132,57 @@ impl<'p> Column<'p> {
     fn transpile_column(&self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::OntologyIds(column) => column.transpile_column(table, fmt),
+            Self::OntologyTemporalMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyOwnedMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyExternalMetadata(column) => column.transpile_column(table, fmt),
+            Self::OntologyAdditionalMetadata(column) => column.transpile_column(table, fmt),
             Self::DataTypes(column) => column.transpile_column(table, fmt),
             Self::PropertyTypes(column) => column.transpile_column(table, fmt),
             Self::EntityTypes(column) => column.transpile_column(table, fmt),
-            Self::Entities(column) => column.transpile_column(table, fmt),
-            Self::PropertyTypeDataTypeReferences(column) => column.transpile_column(table, fmt),
-            Self::PropertyTypePropertyTypeReferences(column) => column.transpile_column(table, fmt),
-            Self::EntityTypePropertyTypeReferences(column) => column.transpile_column(table, fmt),
-            Self::EntityTypeEntityTypeReferences(column) => column.transpile_column(table, fmt),
+            Self::EntityTemporalMetadata(column) => column.transpile_column(table, fmt),
+            Self::EntityEditions(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypeConstrainsValuesOn(column) => column.transpile_column(table, fmt),
+            Self::PropertyTypeConstrainsPropertiesOn(column) => column.transpile_column(table, fmt),
+            Self::EntityTypeConstrainsPropertiesOn(column, _) => {
+                column.transpile_column(table, fmt)
+            }
+            Self::EntityTypeInheritsFrom(column, _) => column.transpile_column(table, fmt),
+            Self::EntityTypeConstrainsLinksOn(column, _) => column.transpile_column(table, fmt),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => {
+                column.transpile_column(table, fmt)
+            }
+            Self::EntityIsOfType(column, _) => column.transpile_column(table, fmt),
+            Self::EntityHasLeftEntity(column) => column.transpile_column(table, fmt),
+            Self::EntityHasRightEntity(column) => column.transpile_column(table, fmt),
+        }
+    }
+
+    pub const fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::OntologyIds(column) => column.parameter_type(),
+            Self::OntologyTemporalMetadata(column) => column.parameter_type(),
+            Self::OntologyOwnedMetadata(column) => column.parameter_type(),
+            Self::OntologyExternalMetadata(column) => column.parameter_type(),
+            Self::OntologyAdditionalMetadata(column) => column.parameter_type(),
+            Self::DataTypes(column) => column.parameter_type(),
+            Self::PropertyTypes(column) => column.parameter_type(),
+            Self::EntityTypes(column) => column.parameter_type(),
+            Self::EntityTemporalMetadata(column) => column.parameter_type(),
+            Self::EntityEditions(column) => column.parameter_type(),
+            Self::PropertyTypeConstrainsValuesOn(column) => column.parameter_type(),
+            Self::PropertyTypeConstrainsPropertiesOn(column) => column.parameter_type(),
+            Self::EntityTypeConstrainsPropertiesOn(column, _) => column.parameter_type(),
+            Self::EntityTypeInheritsFrom(column, _) => column.parameter_type(),
+            Self::EntityTypeConstrainsLinksOn(column, _) => column.parameter_type(),
+            Self::EntityTypeConstrainsLinkDestinationsOn(column, _) => column.parameter_type(),
+            Self::EntityIsOfType(column, _) => column.parameter_type(),
+            Self::EntityHasLeftEntity(column) => column.parameter_type(),
+            Self::EntityHasRightEntity(column) => column.parameter_type(),
         }
     }
 }
 
-impl Transpile for Column<'_> {
+impl Transpile for Column<'static> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.transpile_column(&self.table(), fmt)
     }
@@ -445,18 +1245,18 @@ impl Transpile for AliasedTable {
 
 /// A column available in the statement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AliasedColumn<'param> {
-    pub column: Column<'param>,
+pub struct AliasedColumn {
+    pub column: Column<'static>,
     pub alias: Alias,
 }
 
-impl AliasedColumn<'_> {
+impl AliasedColumn {
     pub const fn table(&self) -> AliasedTable {
         self.column.table().aliased(self.alias)
     }
 }
 
-impl Transpile for AliasedColumn<'_> {
+impl Transpile for AliasedColumn {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.column.transpile_column(&self.table(), fmt)
     }
@@ -464,112 +1264,166 @@ impl Transpile for AliasedColumn<'_> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Relation {
+    OntologyIds,
+    OntologyOwnedMetadata,
+    OntologyExternalMetadata,
+    OntologyAdditionalMetadata,
     DataTypeIds,
     PropertyTypeIds,
     EntityTypeIds,
-    PropertyTypeDataTypeReferences,
-    PropertyTypePropertyTypeReferences,
-    EntityTypePropertyTypeReferences,
-    EntityTypeLinks,
-    EntityTypeInheritance,
-    EntityType,
-    LeftEndpoint,
-    RightEndpoint,
-    OutgoingLink,
-    IncomingLink,
+    EntityEditions,
+    LeftEntity,
+    RightEntity,
+    Reference {
+        table: ReferenceTable,
+        direction: EdgeDirection,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ForeignKeyReference {
+    Single {
+        on: Column<'static>,
+        join: Column<'static>,
+    },
+    Double {
+        on: [Column<'static>; 2],
+        join: [Column<'static>; 2],
+    },
+}
+
+impl ForeignKeyReference {
+    pub const fn reverse(self) -> Self {
+        match self {
+            Self::Single { on, join } => Self::Single { on: join, join: on },
+            Self::Double { on, join } => Self::Double { on: join, join: on },
+        }
+    }
+}
+
+pub enum ForeignKeyJoin {
+    Plain(Once<ForeignKeyReference>),
+    Reference(Chain<Once<ForeignKeyReference>, Once<ForeignKeyReference>>),
+}
+
+impl ForeignKeyJoin {
+    fn from_reference(reference: ForeignKeyReference) -> Self {
+        Self::Plain(once(reference))
+    }
+
+    fn from_reference_table(table: ReferenceTable, direction: EdgeDirection) -> Self {
+        Self::Reference(match direction {
+            EdgeDirection::Incoming => once(table.target_relation().reverse())
+                .chain(once(table.source_relation().reverse())),
+            EdgeDirection::Outgoing => {
+                once(table.source_relation()).chain(once(table.target_relation()))
+            }
+        })
+    }
+}
+
+impl Iterator for ForeignKeyJoin {
+    type Item = ForeignKeyReference;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Plain(value) => value.next(),
+            Self::Reference(values) => values.next(),
+        }
+    }
 }
 
 impl Relation {
-    pub const fn joins(self) -> &'static [(Column<'static>, Column<'static>)] {
+    pub fn joins(self) -> ForeignKeyJoin {
         match self {
-            Self::DataTypeIds => &[(
-                Column::DataTypes(DataTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::PropertyTypeIds => &[(
-                Column::PropertyTypes(PropertyTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::EntityTypeIds => &[(
-                Column::EntityTypes(EntityTypes::OntologyId),
-                Column::OntologyIds(OntologyIds::OntologyId),
-            )],
-            Self::PropertyTypeDataTypeReferences => &[
-                (
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                    Column::PropertyTypeDataTypeReferences(
-                        PropertyTypeDataTypeReferences::SourcePropertyTypeOntologyId,
+            Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::OntologyIds(OntologyIds::OntologyId),
+            }),
+            Self::OntologyOwnedMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OntologyId),
+                })
+            }
+            Self::OntologyExternalMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyExternalMetadata(OntologyExternalMetadata::OntologyId),
+                })
+            }
+            Self::OntologyAdditionalMetadata => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::OntologyAdditionalMetadata(
+                        OntologyAdditionalMetadata::OntologyId,
                     ),
-                ),
-                (
-                    Column::PropertyTypeDataTypeReferences(
-                        PropertyTypeDataTypeReferences::TargetDataTypeOntologyId,
-                    ),
-                    Column::DataTypes(DataTypes::OntologyId),
-                ),
-            ],
-            Self::PropertyTypePropertyTypeReferences => &[
-                (
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                    Column::PropertyTypePropertyTypeReferences(
-                        PropertyTypePropertyTypeReferences::SourcePropertyTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::PropertyTypePropertyTypeReferences(
-                        PropertyTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
-                    ),
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                ),
-            ],
-            Self::EntityTypePropertyTypeReferences => &[
-                (
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                    Column::EntityTypePropertyTypeReferences(
-                        EntityTypePropertyTypeReferences::SourceEntityTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::EntityTypePropertyTypeReferences(
-                        EntityTypePropertyTypeReferences::TargetPropertyTypeOntologyId,
-                    ),
-                    Column::PropertyTypes(PropertyTypes::OntologyId),
-                ),
-            ],
-            Self::EntityTypeLinks | Self::EntityTypeInheritance => &[
-                (
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                    Column::EntityTypeEntityTypeReferences(
-                        EntityTypeEntityTypeReferences::SourceEntityTypeOntologyId,
-                    ),
-                ),
-                (
-                    Column::EntityTypeEntityTypeReferences(
-                        EntityTypeEntityTypeReferences::TargetEntityTypeOntologyId,
-                    ),
-                    Column::EntityTypes(EntityTypes::OntologyId),
-                ),
-            ],
-            Self::EntityType => &[(
-                Column::Entities(Entities::EntityTypeOntologyId),
-                Column::EntityTypes(EntityTypes::OntologyId),
-            )],
-            Self::LeftEndpoint => &[(
-                Column::Entities(Entities::LeftEntityUuid),
-                Column::Entities(Entities::EntityUuid),
-            )],
-            Self::RightEndpoint => &[(
-                Column::Entities(Entities::RightEntityUuid),
-                Column::Entities(Entities::EntityUuid),
-            )],
-            Self::OutgoingLink => &[(
-                Column::Entities(Entities::EntityUuid),
-                Column::Entities(Entities::LeftEntityUuid),
-            )],
-            Self::IncomingLink => &[(
-                Column::Entities(Entities::EntityUuid),
-                Column::Entities(Entities::RightEntityUuid),
-            )],
+                })
+            }
+            Self::DataTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::DataTypes(DataTypes::OntologyId),
+            }),
+            Self::PropertyTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::PropertyTypes(PropertyTypes::OntologyId),
+            }),
+            Self::EntityTypeIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::EntityTypes(EntityTypes::OntologyId),
+            }),
+            Self::EntityEditions => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                on: Column::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+                join: Column::EntityEditions(EntityEditions::EditionId),
+            }),
+            Self::LeftEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
+                on: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+                join: [
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::EntityUuid),
+                ],
+            }),
+            Self::RightEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
+                on: [
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+                ],
+                join: [
+                    Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
+                ],
+            }),
+            Self::Reference {
+                table, direction, ..
+            } => ForeignKeyJoin::from_reference_table(table, direction),
+        }
+    }
+
+    pub fn additional_conditions(self, aliased_table: AliasedTable) -> Vec<Condition> {
+        match (self, aliased_table.table) {
+            (Self::Reference { table, .. }, Table::Reference(reference_table))
+                if table == reference_table =>
+            {
+                table
+                    .inheritance_depth_column()
+                    .map(|column| {
+                        column
+                            .inheritance_depth()
+                            .map_or_else(Vec::new, |inheritance_depth| {
+                                vec![Condition::LessOrEqual(
+                                    Expression::Column(column.aliased(aliased_table.alias)),
+                                    Expression::Constant(Constant::UnsignedInteger(
+                                        inheritance_depth,
+                                    )),
+                                )]
+                            })
+                    })
+                    .unwrap_or_default()
+            }
+            _ => Vec::new(),
         }
     }
 }
@@ -583,7 +1437,7 @@ mod tests {
     fn transpile_table() {
         assert_eq!(
             Table::OntologyIds.transpile_to_string(),
-            r#""ontology_id_with_metadata""#
+            r#""ontology_ids""#
         );
         assert_eq!(Table::DataTypes.transpile_to_string(), r#""data_types""#);
     }
@@ -598,7 +1452,7 @@ mod tests {
                     number: 3,
                 })
                 .transpile_to_string(),
-            r#""ontology_id_with_metadata_1_2_3""#
+            r#""ontology_ids_1_2_3""#
         );
     }
 

@@ -1,22 +1,32 @@
+import { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
 
 import {
+  archivePropertyType,
   createPropertyType,
+  getPropertyTypeSubgraphById,
+  unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
 import {
+  MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
+  MutationUnarchivePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createPropertyTypeResolver: ResolverFn<
@@ -63,78 +73,40 @@ export const queryPropertyTypesResolver: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
+        ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
-  return mapSubgraph(propertyTypeSubgraph);
+
+  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetPropertyTypeArgs
 > = async (
   _,
   { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
-  const { graphApi } = dataSources;
+  const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
-    {
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-      },
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-      temporalAxes: {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: null,
-            end: null,
-          },
-        },
-      },
+  return await getPropertyTypeSubgraphById(context, {
+    propertyTypeId,
+    actorId: user?.accountId,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
     },
-  );
-
-  return mapSubgraph(propertyTypeSubgraph);
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 };
 
 export const updatePropertyTypeResolver: ResolverFn<
@@ -156,3 +128,25 @@ export const updatePropertyTypeResolver: ResolverFn<
 
   return updatedPropertyType;
 };
+
+export const archivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  archivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
+
+export const unarchivePropertyTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUnarchivePropertyTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  unarchivePropertyType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });

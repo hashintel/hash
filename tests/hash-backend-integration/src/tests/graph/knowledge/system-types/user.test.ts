@@ -1,5 +1,6 @@
 import {
   createKratosIdentity,
+  deleteKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import {
@@ -16,11 +17,15 @@ import {
   updateUserShortname,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import {
+  systemUser,
+  systemUserAccountId,
+} from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 
+import { resetGraph } from "../../../test-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -43,6 +48,14 @@ describe("User model class", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+
+    await resetGraph();
   });
 
   let createdUser: User;
@@ -120,21 +133,20 @@ describe("User model class", () => {
 
     expect(
       await isUserMemberOfOrg(graphContext, {
-        user: createdUser,
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
     ).toBe(false);
 
     await joinOrg(graphContext, {
-      user: createdUser,
-      org: testOrg,
-      responsibility: "developer",
+      userEntityId: createdUser.entity.metadata.recordId.entityId,
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
       actorId: systemUserAccountId,
     });
 
     expect(
       await isUserMemberOfOrg(graphContext, {
-        user: createdUser,
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
         orgEntityUuid,
       }),
     ).toBe(true);

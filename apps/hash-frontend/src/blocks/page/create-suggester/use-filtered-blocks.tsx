@@ -14,15 +14,20 @@ export const useFilteredBlocks = (
   compatibleBlocks: HashBlock[],
 ) => {
   return useMemo(() => {
-    const allOptions: Option[] = compatibleBlocks.flatMap(({ meta }) =>
-      // Assumes that variants have been built for all blocks in toBlockConfig
-      // any required changes to block metadata should happen there
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-      (meta.variants ?? []).map((variant) => ({
-        variant,
-        meta,
-      })),
-    );
+    const allOptions: Option[] = compatibleBlocks
+      .sort(
+        (a, b) =>
+          a.meta.displayName?.localeCompare(b.meta.displayName ?? "") ?? 0,
+      )
+      .flatMap(({ meta }) =>
+        // Assumes that variants have been built for all blocks in toBlockConfig
+        // any required changes to block metadata should happen there
+
+        meta.variants.map((variant) => ({
+          variant,
+          meta,
+        })),
+      );
 
     return fuzzySearchBy(
       allOptions,

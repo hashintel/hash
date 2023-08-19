@@ -8,12 +8,13 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, OntologyTypeVertexId},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{Entity, EntityQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
     },
+    subgraph::identifier::VertexId,
 };
 
 /// A set of conditions used for queries.
@@ -38,67 +39,35 @@ pub enum Filter<'p, R: Record + ?Sized> {
         Option<FilterExpression<'p, R>>,
         Option<FilterExpression<'p, R>>,
     ),
+    #[serde(skip)]
+    In(FilterExpression<'p, R>, ParameterList<'p>),
+    StartsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    EndsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    ContainsSegment(FilterExpression<'p, R>, FilterExpression<'p, R>),
 }
 
 impl<'p, R> Filter<'p, R>
 where
     R: Record<QueryPath<'p>: OntologyQueryPath>,
+    R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
-    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`BaseUrl`].
-    #[must_use]
-    pub fn for_base_url(base_url: &'p BaseUrl) -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(<R::QueryPath<'p>>::base_url())),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                base_url.as_str(),
-            )))),
-        )
-    }
-
-    /// Creates a `Filter` to search for the latest specific ontology type of kind `R`, identified
-    /// by its [`BaseUrl`].
-    #[must_use]
-    pub fn for_latest_base_url(base_url: &'p BaseUrl) -> Self {
-        Self::All(vec![
-            Self::for_base_url(base_url),
-            Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "latest",
-                )))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to filter by a given version.
-    #[must_use]
-    fn for_version(version: OntologyTypeVersion) -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-            Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                version,
-            ))),
-        )
-    }
-
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
     /// [`VersionedUrl`].
     #[must_use]
     pub fn for_versioned_url(versioned_url: &'p VersionedUrl) -> Self {
         Self::All(vec![
-            Self::for_base_url(&versioned_url.base_url),
-            Self::for_version(OntologyTypeVersion::new(versioned_url.version)),
-        ])
-    }
-
-    /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
-    /// [`OntologyTypeVertexId`].
-    #[must_use]
-    pub fn for_ontology_type_vertex_id(ontology_type_vertex_id: &'p OntologyTypeVertexId) -> Self {
-        Self::All(vec![
-            Self::for_base_url(&ontology_type_vertex_id.base_id),
-            Self::for_version(ontology_type_vertex_id.revision_id),
+            Self::Equal(
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_url())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    versioned_url.base_url.as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
+                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
+                    OntologyTypeVersion::new(versioned_url.version),
+                ))),
+            ),
         ])
     }
 }
@@ -116,102 +85,6 @@ impl<'p> Filter<'p, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for outgoing linked entities where the specified [`EntityId`]
-    /// identifies the source [`Entity`].
-    #[must_use]
-    pub fn for_outgoing_link_by_source_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for incoming linked entities where the specified [`EntityId`]
-    /// identifies the target [`Entity`].
-    #[must_use]
-    pub fn for_incoming_link_by_source_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the left [`Entity`].
-    #[must_use]
-    pub fn for_left_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
-                ))),
-            ),
-        ])
-    }
-
-    /// Creates a `Filter` to search for linked entities where the specified [`EntityId`] identifies
-    /// the right [`Entity`].
-    #[must_use]
-    pub fn for_right_entity_by_entity_id(entity_id: EntityId) -> Self {
-        Self::All(vec![
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
-                ))),
-            ),
-            Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid.as_uuid(),
                 ))),
@@ -246,6 +119,26 @@ where
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
+            Self::In(lhs, rhs) => {
+                if let FilterExpression::Parameter(parameter) = lhs {
+                    match rhs {
+                        ParameterList::Uuid(_) => {
+                            parameter.convert_to_parameter_type(ParameterType::Uuid)?;
+                        }
+                    }
+                }
+            }
+            Self::StartsWith(lhs, rhs)
+            | Self::EndsWith(lhs, rhs)
+            | Self::ContainsSegment(lhs, rhs) => {
+                // TODO: We need to find a way to support lists in addition to strings as well
+                if let FilterExpression::Parameter(parameter) = lhs {
+                    parameter.convert_to_parameter_type(ParameterType::Text)?;
+                }
+                if let FilterExpression::Parameter(parameter) = rhs {
+                    parameter.convert_to_parameter_type(ParameterType::Text)?;
+                }
+            }
         }
 
         Ok(())
@@ -278,6 +171,11 @@ pub enum Parameter<'p> {
     Uuid(Uuid),
     #[serde(skip)]
     OntologyTypeVersion(OntologyTypeVersion),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ParameterList<'p> {
+    Uuid(&'p [Uuid]),
 }
 
 impl Parameter<'_> {
@@ -420,7 +318,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::{account::AccountId, ontology::OntologyTypeVersion},
+        identifier::account::AccountId,
         knowledge::EntityUuid,
         ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
@@ -446,7 +344,7 @@ mod tests {
             version: 1,
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["baseUrl"] },
@@ -457,39 +355,10 @@ mod tests {
               { "parameter": url.version }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_versioned_url(&url),
-            &expected,
-        );
-    }
-
-    #[test]
-    fn for_ontology_type_version_id() {
-        let url = OntologyTypeVertexId {
-            base_id: BaseUrl::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-            )
-            .expect("invalid base url"),
-            revision_id: OntologyTypeVersion::new(1),
-        };
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["baseUrl"] },
-              { "parameter": url.base_id }
-            ]},
-            { "equal": [
-              { "path": ["version"] },
-              { "parameter": url.revision_id }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::for_ontology_type_vertex_id(&url),
             &expected,
         );
     }
@@ -501,7 +370,7 @@ mod tests {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 
-        let expected = json! {{
+        let expected = json!({
           "all": [
             { "equal": [
               { "path": ["ownedById"] },
@@ -512,114 +381,19 @@ mod tests {
               { "parameter": entity_id.entity_uuid }
             ]}
           ]
-        }};
+        });
 
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
-    }
-
-    #[test]
-    fn for_entity_by_id() {
-        let entity_id = EntityId {
-            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-        };
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["ownedById"] },
-              { "parameter": entity_id.owned_by_id }
-            ]},
-            { "equal": [
-              { "path": ["uuid"] },
-              { "parameter": entity_id.entity_uuid }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
-    }
-
-    #[test]
-    fn for_outgoing_link_by_source_entity_id() {
-        let entity_id = EntityId {
-            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-        };
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["leftEntity", "ownedById"] },
-              { "parameter": entity_id.owned_by_id }
-            ]},
-            { "equal": [
-              { "path": ["leftEntity", "uuid"] },
-              { "parameter": entity_id.entity_uuid }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(
-            &Filter::for_outgoing_link_by_source_entity_id(entity_id),
-            &expected,
-        );
-    }
-
-    #[test]
-    fn for_left_entity_by_entity_id() {
-        let entity_id = EntityId {
-            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-        };
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["outgoingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id }
-            ]},
-            { "equal": [
-              { "path": ["outgoingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(&Filter::for_left_entity_by_entity_id(entity_id), &expected);
-    }
-
-    #[test]
-    fn for_right_entity_by_entity_id() {
-        let entity_id = EntityId {
-            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-        };
-
-        let expected = json! {{
-          "all": [
-            { "equal": [
-              { "path": ["incomingLinks", "ownedById"] },
-              { "parameter": entity_id.owned_by_id }
-            ]},
-            { "equal": [
-              { "path": ["incomingLinks", "uuid"] },
-              { "parameter": entity_id.entity_uuid }
-            ]}
-          ]
-        }};
-
-        test_filter_representation(&Filter::for_right_entity_by_entity_id(entity_id), &expected);
     }
 
     #[test]
     fn null_check() {
-        let expected = json! {{
+        let expected = json!({
           "notEqual": [
             { "path": ["description"] },
             null
           ]
-        }};
+        });
 
         test_filter_representation(
             &Filter::NotEqual(

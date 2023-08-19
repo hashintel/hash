@@ -1,0 +1,49 @@
+.addColumnButton {
+  padding: 0 10px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: #0f172a !important;
+
+  &:hover {
+    background-color: #ddd;
+  }
+}
+
+.rowActions {
+  position: absolute;
+  background: white;
+  height: 40px;
+  border-radius: 6px;
+  left: 32px;
+  overflow: hidden;
+
+  z-index: 100;
+  box-shadow: 0px 0px 1px rgba(62, 65, 86, 0.7),
+    0px 6px 12px rgba(62, 65, 86, 0.35);
+
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  gap: 8px;
+
+  font-size: 13px;
+  font-family: var(--font-family);
+
+  .danger {
+    font-weight: 600;
+    padding: 0 8px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+
+    color: rgba(255, 40, 40, 0.8);
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      color: rgba(255, 40, 40, 1);
+    }
+  }
+}

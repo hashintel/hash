@@ -2,48 +2,144 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": false,
+  "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "ignorePaths": ["apps/engine/**"],
+  "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
+  "semanticCommits": "disabled",
+  "schedule": ["before 4am every weekday", "every weekend"],
+
   "packageRules": [
     {
       "enabled": true,
-      "groupName": "ESLint",
+      "extends": ["packages:linters", "packages:test"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "commitMessageTopic": "npm package `{{depName}}`",
+      "additionalBranchPrefix": "js/"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "commitMessageTopic": "Python package `{{depName}}`",
+      "additionalBranchPrefix": "py/",
+      "reviewers": ["team:Python"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
+    },
+    {
+      "enabled": true,
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "enabled": true,
+      "groupName": "Block Protocol npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@blockprotocol/",
+        "^block-",
+        "^blockprotocol$",
+        "^create-block-app$",
+        "^mock-block-dock$"
+      ]
+    },
+    {
+      "enabled": true,
+      "groupName": "ESLint npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
         "^@types/eslint",
         "^@typescript-eslint/",
         "^eslint-",
-        "^eslint$"
-      ]
+        "eslint$"
+      ],
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
-      "groupName": "Jest",
+      "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+      "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
       "enabled": true,
-      "groupName": "Playwright",
+      "groupName": "Jest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+      "matchPackagePatterns": ["^jest-", "jest$"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "enabled": true,
-      "groupName": "ProseMirror",
+      "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror-"]
+      "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
       "enabled": true,
-      "groupName": "Sentry",
+      "groupName": "Playwright npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "enabled": true,
+      "groupName": "Prettier npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "enabled": true,
+      "groupName": "ProseMirror npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Signia npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@signia/"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Pydantic Python packages",
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["^pydantic"]
+    },
+    {
+      "enabled": true,
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`"
     },
     {
       "matchManagers": ["regex"],
@@ -51,39 +147,73 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
-      "commitMessageExtra": "to nightly-{{newVersion}}"
+      "commitMessageExtra": "to nightly-{{newVersion}}",
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"],
+      "automerge": true,
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/error-stack/**"],
-      "groupName": "error-stack",
-      "commitMessageTopic": "Rust toolchain for `error-stack`"
+      "matchPaths": ["libs/**"],
+      "groupName": "Rust libraries toolchains",
+      "commitMessageTopic": "Rust toolchains for `/libs`"
     },
     {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/deer/**"],
-      "groupName": "deer",
-      "commitMessageTopic": "Rust toolchain for `deer`"
+      "matchPaths": ["apps/**"],
+      "groupName": "Rust applications toolchains",
+      "commitMessageTopic": "Rust toolchains for `/apps`"
     },
     {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/antsi/**"],
-      "groupName": "antsi",
-      "commitMessageTopic": "Rust toolchain for `antsi`"
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^clap[-_]?"],
+      "groupName": "`clap` Rust crates"
     },
     {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
-      "matchPaths": ["**/hash-graph/**"],
-      "groupName": "graph",
-      "commitMessageTopic": "Rust toolchain for `graph`"
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^criterion[-_]?"],
+      "groupName": "`criterion` Rust crates",
+      "automerge": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^futures[-_]?"],
+      "groupName": "`futures` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": [
+        "^opentelemetry[-_]?",
+        "^tracing-opentelemetry$"
+      ],
+      "groupName": "`opentelemetry` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
+      "groupName": "`postgres` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^serde[-_]?"],
+      "groupName": "`serde` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchPackagePatterns": ["^tracing[-_]?"],
+      "excludePackageNames": ["tracing-opentelemetry"],
+      "groupName": "`tracing` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "excludePackageNames": ["anyhow"]
     }
   ],
   "regexManagers": [

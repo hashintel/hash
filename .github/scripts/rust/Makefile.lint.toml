@@ -1,9 +1,0 @@
-[tasks.update-clippy]
-env = { "CARGO_MAKE_RUST_SCRIPT_PROVIDER" = "cargo-script", RUST_LOG = "cargo-script=warn" }
-script_runner = "@rust"
-script = { file = "${CARGO_MAKE_CURRENT_TASK_INITIAL_MAKEFILE_DIRECTORY}/lint.rs", absolute_path = true }
-
-[tasks.update-clippy-check]
-private = true
-env = { CARGO_MAKE_CLIPPY_LINT_MODE = "generate" }
-run_task = "update-clippy"

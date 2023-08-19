@@ -9,11 +9,13 @@ import {
   EmojiPicker,
   EmojiPickerPopoverProps,
 } from "./emoji-picker/emoji-picker";
+import { useDefaultState } from "./hooks/use-default-state";
 import { useUpdatePageIcon } from "./hooks/use-update-page-icon";
 import { PageIcon, SizeVariant } from "./page-icon";
 
 interface PageIconButtonProps {
   entityId: EntityId;
+  icon?: string | null;
   readonly?: boolean;
   size?: SizeVariant;
   hasDarkBg?: boolean;
@@ -24,6 +26,7 @@ interface PageIconButtonProps {
 
 export const PageIconButton = ({
   entityId,
+  icon: iconFromProps,
   readonly = false,
   size = "medium",
   hasDarkBg,
@@ -31,6 +34,8 @@ export const PageIconButton = ({
   popoverProps,
   sx = [],
 }: PageIconButtonProps) => {
+  const [icon, setIcon] = useDefaultState(iconFromProps);
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "emoji-picker",
@@ -74,7 +79,7 @@ export const PageIconButton = ({
           ]}
           disabled={readonly || updatePageIconLoading}
         >
-          <PageIcon entityId={entityId} size={size} />
+          <PageIcon icon={icon} size={size} />
         </IconButton>
       </Tooltip>
       <EmojiPicker
@@ -82,6 +87,7 @@ export const PageIconButton = ({
         popupState={popupState}
         onEmojiSelect={(emoji) => {
           void updatePageIcon(emoji.native, entityId);
+          setIcon(emoji.native);
         }}
       />
     </>

@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,6 +11,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { constructOrg, Org } from "../../lib/user-and-org";
+import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
  * Retrieves a list of organizations.
@@ -27,14 +29,24 @@ export const useOrgs = (
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
-      rootEntityTypeIds: [types.entityType.org.entityTypeId],
+      operation: {
+        multiFilter: {
+          filters: [
+            entityHasEntityTypeByVersionedUrlFilter(
+              types.entityType.org.entityTypeId,
+            ),
+          ],
+          operator: "AND",
+        },
+      },
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
       constrainsLinkDestinationsOn: { outgoing: 0 },
-      isOfType: { outgoing: 1 },
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
+      inheritsFrom: { outgoing: 0 },
+      isOfType: { outgoing: 0 },
+      hasLeftEntity: { incoming: 0, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 0 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: cache ? "cache-first" : "no-cache",
@@ -55,7 +67,7 @@ export const useOrgs = (
     return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
       constructOrg({
         subgraph,
-        orgEntity,
+        orgEntity: orgEntity as Entity<OrgProperties>,
         resolvedUsers,
         resolvedOrgs,
       }),

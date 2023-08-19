@@ -1,10 +1,10 @@
 use core::fmt;
-use std::{error::Error, marker::PhantomData, str::FromStr, time::SystemTime};
+use std::{cmp::Ordering, error::Error, marker::PhantomData, str::FromStr};
 
 use derivative::Derivative;
 use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use time::{format_description::well_known::Iso8601, serde::iso8601, OffsetDateTime};
+use time::{format_description::well_known::Iso8601, OffsetDateTime};
 use utoipa::{openapi, ToSchema};
 
 use crate::identifier::time::axis::TemporalTagged;
@@ -19,19 +19,29 @@ use crate::identifier::time::axis::TemporalTagged;
 #[derive(Derivative, Serialize, Deserialize)]
 #[derivative(
     Copy(bound = ""),
-    Clone(bound = ""),
     PartialEq(bound = ""),
     Eq(bound = ""),
     Hash(bound = ""),
-    PartialOrd(bound = ""),
     Ord(bound = "")
 )]
 #[serde(transparent, bound = "")]
 pub struct Timestamp<A> {
     #[serde(skip)]
     axis: PhantomData<A>,
-    #[serde(with = "iso8601")]
+    #[serde(with = "crate::serde::time")]
     time: OffsetDateTime,
+}
+
+impl<A> PartialOrd for Timestamp<A> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A> Clone for Timestamp<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<A> fmt::Debug for Timestamp<A> {
@@ -59,6 +69,11 @@ impl<A> TemporalTagged for Timestamp<A> {
 }
 
 impl<A> Timestamp<A> {
+    pub const UNIX_EPOCH: Self = Self {
+        axis: PhantomData,
+        time: OffsetDateTime::UNIX_EPOCH,
+    };
+
     #[must_use]
     pub fn now() -> Self {
         Self {
@@ -88,37 +103,27 @@ impl<A> FromStr for Timestamp<A> {
 }
 
 impl<'a> FromSql<'a> for Timestamp<()> {
+    postgres_types::accepts!(TIMESTAMPTZ);
+
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         Ok(Self {
             axis: PhantomData,
             time: OffsetDateTime::from_sql(ty, raw)?,
         })
     }
-
-    fn accepts(ty: &Type) -> bool {
-        <SystemTime as FromSql>::accepts(ty)
-    }
 }
 
 impl<A> ToSql for Timestamp<A> {
+    postgres_types::accepts!(TIMESTAMPTZ);
+
+    postgres_types::to_sql_checked!();
+
     fn to_sql(
         &self,
         ty: &Type,
         out: &mut BytesMut,
     ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
         self.time.to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <SystemTime as ToSql>::accepts(ty)
-    }
-
-    fn to_sql_checked(
-        &self,
-        ty: &Type,
-        out: &mut BytesMut,
-    ) -> Result<postgres_types::IsNull, Box<dyn Error + Sync + Send>> {
-        self.time.to_sql_checked(ty, out)
     }
 }
 

@@ -1,27 +1,27 @@
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
 use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectExpression<'p> {
-    expression: Expression<'p>,
-    alias: Option<Cow<'p, str>>,
+pub struct SelectExpression {
+    expression: Expression,
+    alias: Option<&'static str>,
 }
 
-impl<'p> SelectExpression<'p> {
+impl SelectExpression {
     #[must_use]
     #[inline]
-    pub const fn new(expression: Expression<'p>, alias: Option<Cow<'p, str>>) -> Self {
+    pub const fn new(expression: Expression, alias: Option<&'static str>) -> Self {
         Self { expression, alias }
     }
 
     #[must_use]
-    pub const fn from_column(column: AliasedColumn<'p>, alias: Option<Cow<'p, str>>) -> Self {
+    pub const fn from_column(column: AliasedColumn, alias: Option<&'static str>) -> Self {
         Self::new(Expression::Column(column), alias)
     }
 }
 
-impl Transpile for SelectExpression<'_> {
+impl Transpile for SelectExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.expression.transpile(fmt)?;
         if let Some(alias) = &self.alias {
@@ -53,7 +53,7 @@ mod tests {
                 None
             )
             .transpile_to_string(),
-            r#""ontology_id_with_metadata_1_2_3"."base_url""#
+            r#""ontology_ids_1_2_3"."base_url""#
         );
 
         assert_eq!(
@@ -65,7 +65,7 @@ mod tests {
                         chain_depth: 2,
                         number: 3,
                     }),
-                Some(Cow::Borrowed("versionedUrl"))
+                Some("versionedUrl")
             )
             .transpile_to_string(),
             r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUrl""#
@@ -95,10 +95,10 @@ mod tests {
                             })
                     )
                 ),
-                Some(Cow::Borrowed("latest_version"))
+                Some("latest_version")
             )
             .transpile_to_string(),
-            r#"MAX("ontology_id_with_metadata_1_2_3"."version") OVER (PARTITION BY "ontology_id_with_metadata_1_2_3"."base_url") AS "latest_version""#
+            r#"MAX("ontology_ids_1_2_3"."version") OVER (PARTITION BY "ontology_ids_1_2_3"."base_url") AS "latest_version""#
         );
     }
 }

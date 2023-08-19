@@ -4,7 +4,7 @@
 ├╴1 additional opaque attachment
 │
 ╰─▶ <b>No such file or directory (os error 2)</b>
-    ├╴at <i>src/lib.rs:24:10</i>
+    ├╴at <i>src/lib.rs:25:10</i>
     ╰╴backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -23,11 +23,16 @@ export type OwnedById = Brand<AccountId, "OwnedById">;
 /** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
 
+export const ENTITY_ID_DELIMITER = "~";
+
 /** An ID to uniquely identify an entity */
-export type EntityId = Brand<`${OwnedById}%${EntityUuid}`, "EntityId">;
+export type EntityId = Brand<
+  `${OwnedById}${typeof ENTITY_ID_DELIMITER}${EntityUuid}`,
+  "EntityId"
+>;
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
-  const [accountId, entityUuid] = entityId.split("%");
+  const [accountId, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
   return (
     accountId != null &&
     entityUuid != null &&
@@ -40,11 +45,11 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
   ownedById: OwnedById,
   entityUuid: EntityUuid,
 ): EntityId => {
-  return `${ownedById}%${entityUuid}` as EntityId;
+  return `${ownedById}${ENTITY_ID_DELIMITER}${entityUuid}` as EntityId;
 };
 
 export const splitEntityId = (entityId: EntityId): [OwnedById, EntityUuid] => {
-  const [ownedById, entityUuid] = entityId.split("%");
+  const [ownedById, entityUuid] = entityId.split(ENTITY_ID_DELIMITER);
   return [ownedById as OwnedById, entityUuid as EntityUuid];
 };
 
@@ -58,8 +63,11 @@ export const extractEntityUuidFromEntityId = (
   return splitEntityId(entityId)[1]!;
 };
 
-/** An account ID of an actor that has updated something */
-export type UpdatedById = Brand<AccountId, "UpdatedById">;
+/** An account ID of an actor that has created a record */
+export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
+
+/** An account ID of an actor that has created a record */
+export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
 
 /** An `EntityId` which is the base of an Account Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;

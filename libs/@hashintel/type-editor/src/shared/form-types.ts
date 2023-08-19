@@ -17,6 +17,8 @@ export type EntityTypeEditorLinkData = EntityTypeEditorTypeData & {
 };
 
 export type EntityTypeEditorFormData = {
+  allOf: VersionedUrl[];
+  description: string;
   properties: EntityTypeEditorPropertyData[];
   links: EntityTypeEditorLinkData[];
 };

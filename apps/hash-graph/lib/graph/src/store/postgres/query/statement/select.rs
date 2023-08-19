@@ -6,14 +6,14 @@ use crate::store::postgres::query::{
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct SelectStatement<'p> {
-    pub with: WithExpression<'p>,
-    pub distinct: Vec<AliasedColumn<'p>>,
-    pub selects: Vec<SelectExpression<'p>>,
+pub struct SelectStatement {
+    pub with: WithExpression,
+    pub distinct: Vec<AliasedColumn>,
+    pub selects: Vec<SelectExpression>,
     pub from: AliasedTable,
-    pub joins: Vec<JoinExpression<'p>>,
-    pub where_expression: WhereExpression<'p>,
-    pub order_by_expression: OrderByExpression<'p>,
+    pub joins: Vec<JoinExpression>,
+    pub where_expression: WhereExpression,
+    pub order_by_expression: OrderByExpression,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -22,7 +22,7 @@ pub enum Distinctness {
     Distinct,
 }
 
-impl Transpile for SelectStatement<'_> {
+impl Transpile for SelectStatement {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if !self.with.is_empty() {
             self.with.transpile(fmt)?;
@@ -93,13 +93,16 @@ mod tests {
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+        subgraph::{
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+            temporal_axes::QueryTemporalAxesUnresolved,
+        },
     };
 
-    fn test_compilation<'f, 'p: 'f, T: PostgresRecord + 'static>(
-        compiler: &SelectCompiler<'f, 'p, T>,
+    fn test_compilation<'p, T: PostgresRecord + 'static>(
+        compiler: &SelectCompiler<'p, T>,
         expected_statement: &'static str,
-        expected_parameters: &[&'f dyn ToSql],
+        expected_parameters: &[&'p dyn ToSql],
     ) {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
@@ -124,8 +127,8 @@ mod tests {
     fn asterisk() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         test_compilation(
-            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes),
-            r#"SELECT * FROM "data_types" AS "data_types_0_0_0""#,
+            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes)),
+            r#"SELECT * FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0""#,
             &[],
         );
     }
@@ -133,7 +136,9 @@ mod tests {
     #[test]
     fn simple_expression() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -144,17 +149,70 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "data_types" AS "data_types_0_0_0"
-            WHERE "data_types_0_0_0"."schema"->>'$id' = $1
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "data_types" AS "data_types_0_1_0"
+              ON "data_types_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "data_types_0_1_0"."schema"->>'$id' = $2
             "#,
-            &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
+            &[
+                &pinned_timestamp,
+                &"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            ],
+        );
+    }
+
+    #[test]
+    fn limited_temporal() {
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+        );
+        compiler.add_filter(&filter);
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
+            "#,
+            &[
+                &temporal_axes.pinned_timestamp(),
+                &temporal_axes.variable_interval(),
+                &Uuid::nil(),
+            ],
+        );
+    }
+
+    #[test]
+    fn full_temporal() {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None);
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+        );
+        compiler.add_filter(&filter);
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."entity_uuid" = $1
+            "#,
+            &[&Uuid::nil()],
         );
     }
 
     #[test]
     fn specific_version() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -174,12 +232,14 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-            WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
             "#,
             &[
+                &pinned_timestamp,
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
             ],
@@ -189,7 +249,9 @@ mod tests {
     #[test]
     fn latest_version() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -201,21 +263,24 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
-            FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-            WHERE "ontology_id_with_metadata_0_1_0"."version" = "ontology_id_with_metadata_0_1_0"."latest_version"
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version"
             "#,
-            &[],
+            &[&pinned_timestamp],
         );
     }
 
     #[test]
     fn not_latest_version() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         compiler.add_filter(&Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -227,27 +292,32 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "ontology_id_with_metadata" AS (SELECT *, MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url") AS "latest_version" FROM "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_0_0")
+            WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")
             SELECT *
-            FROM "data_types" AS "data_types_0_0_0"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-              ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-            WHERE "ontology_id_with_metadata_0_1_0"."version" != "ontology_id_with_metadata_0_1_0"."latest_version"
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+              ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_ids_0_1_0"."version" != "ontology_ids_0_1_0"."latest_version"
             "#,
-            &[],
+            &[&pinned_timestamp],
         );
     }
 
     #[test]
     fn property_type_by_referenced_data_types() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                DataTypeQueryPath::Title,
-            ))),
+            Some(FilterExpression::Path(
+                PropertyTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                    path: DataTypeQueryPath::Title,
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Text",
             )))),
@@ -257,29 +327,39 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
-            INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
-            WHERE "data_types_0_2_0"."schema"->>'title' = $1
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+            INNER JOIN "data_types" AS "data_types_0_3_0"
+              ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "data_types_0_3_0"."schema"->>'title' = $2
             "#,
-            &[&"Text"],
+            &[&pinned_timestamp, &"Text"],
         );
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                    DataTypeQueryPath::BaseUrl,
-                ))),
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                        path: DataTypeQueryPath::BaseUrl,
+                    },
+                )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
-                    DataTypeQueryPath::Version,
-                ))),
+                Some(FilterExpression::Path(
+                    PropertyTypeQueryPath::DataTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+                        path: DataTypeQueryPath::Version,
+                    },
+                )),
                 Some(FilterExpression::Parameter(Parameter::Number(1))),
             ),
         ]);
@@ -289,19 +369,27 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_1_0"
-              ON "property_type_data_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
-            INNER JOIN "data_types" AS "data_types_0_2_0"
-              ON "data_types_0_2_0"."ontology_id" = "property_type_data_type_references_0_1_0"."target_data_type_ontology_id"
-            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_1_0"
-              ON "property_type_data_type_references_1_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_1_3_0"
-              ON "ontology_id_with_metadata_1_3_0"."ontology_id" = "property_type_data_type_references_1_1_0"."target_data_type_ontology_id"
-            WHERE "data_types_0_2_0"."schema"->>'title' = $1
-              AND ("ontology_id_with_metadata_1_3_0"."base_url" = $2) AND ("ontology_id_with_metadata_1_3_0"."version" = $3)
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_0_1_0"
+              ON "property_type_constrains_values_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_values_on_0_1_0"."target_data_type_ontology_id"
+            INNER JOIN "data_types" AS "data_types_0_3_0"
+              ON "data_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            INNER JOIN "property_type_constrains_values_on" AS "property_type_constrains_values_on_1_1_0"
+              ON "property_type_constrains_values_on_1_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_1_2_0"
+              ON "ontology_temporal_metadata_1_2_0"."ontology_id" = "property_type_constrains_values_on_1_1_0"."target_data_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_1_3_0"
+              ON "ontology_ids_1_3_0"."ontology_id" = "ontology_temporal_metadata_1_2_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "data_types_0_3_0"."schema"->>'title' = $2
+              AND "ontology_temporal_metadata_1_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND ("ontology_ids_1_3_0"."base_url" = $3) AND ("ontology_ids_1_3_0"."version" = $4)
             "#,
             &[
+                &pinned_timestamp,
                 &"Text",
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1,
@@ -312,12 +400,17 @@ mod tests {
     #[test]
     fn property_type_by_referenced_property_types() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
         let mut compiler =
-            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(&temporal_axes);
+            SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
-                PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::Title)),
+                PropertyTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: Box::new(PropertyTypeQueryPath::Title),
+                    direction: EdgeDirection::Outgoing,
+                },
             )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Text",
@@ -329,26 +422,36 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "property_types" AS "property_types_0_0_0"
-            INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_1_0"
-              ON "property_type_property_type_references_0_1_0"."source_property_type_ontology_id" = "property_types_0_0_0"."ontology_id"
-            INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "property_type_property_type_references_0_1_0"."target_property_type_ontology_id"
-            WHERE "property_types_0_2_0"."schema"->>'title' = $1
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "property_type_constrains_properties_on" AS "property_type_constrains_properties_on_0_1_0"
+              ON "property_type_constrains_properties_on_0_1_0"."source_property_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "property_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+            INNER JOIN "property_types" AS "property_types_0_3_0"
+              ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "property_types_0_3_0"."schema"->>'title' = $2
             "#,
-            &[&"Text"],
+            &[&pinned_timestamp, &"Text"],
         );
     }
 
     #[test]
     fn entity_type_by_referenced_property_types() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::Properties(
-                PropertyTypeQueryPath::Title,
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::PropertyTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                    path: PropertyTypeQueryPath::Title,
+                    inheritance_depth: Some(0),
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Name",
             )))),
@@ -359,28 +462,42 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_1_0"
-              ON "entity_type_property_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
-            INNER JOIN "property_types" AS "property_types_0_2_0"
-              ON "property_types_0_2_0"."ontology_id" = "entity_type_property_type_references_0_1_0"."target_property_type_ontology_id"
-            WHERE "property_types_0_2_0"."schema"->>'title' = $1
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "entity_type_constrains_properties_on" AS "entity_type_constrains_properties_on_0_1_0"
+              ON "entity_type_constrains_properties_on_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_constrains_properties_on_0_1_0"."target_property_type_ontology_id"
+            INNER JOIN "property_types" AS "property_types_0_3_0"
+              ON "property_types_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "property_types_0_3_0"."schema"->>'title' = $2
             "#,
-            &[&"Name"],
+            &[&pinned_timestamp, &"Name"],
         );
     }
 
     #[test]
     fn entity_type_by_referenced_link_types() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::Links(
-                Box::new(EntityTypeQueryPath::Links(Box::new(
-                    EntityTypeQueryPath::Title,
-                ))),
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                    path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
+                        edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                        path: Box::new(EntityTypeQueryPath::Title),
+                        direction: EdgeDirection::Outgoing,
+                        inheritance_depth: Some(0),
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                    inheritance_depth: Some(0),
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "Friend Of",
             )))),
@@ -391,32 +508,43 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
-            INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_3_0"
-              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_ontology_id" = "entity_types_0_2_0"."ontology_id"
-            INNER JOIN "entity_types" AS "entity_types_0_4_0"
-              ON "entity_types_0_4_0"."ontology_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_ontology_id"
-            WHERE jsonb_extract_path("entity_types_0_0_0"."schema", 'links', "entity_types_0_2_0"."schema"->>'$id') IS NOT NULL
-              AND jsonb_extract_path("entity_types_0_2_0"."schema", 'links', "entity_types_0_4_0"."schema"->>'$id') IS NOT NULL
-              AND "entity_types_0_4_0"."schema"->>'title' = $1
+            FROM "ontology_temporal_metadata"
+              AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_1_0"
+              ON "entity_type_constrains_links_on_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_constrains_links_on_0_1_0"."target_entity_type_ontology_id"
+            INNER JOIN "entity_type_constrains_links_on" AS "entity_type_constrains_links_on_0_3_0"
+              ON "entity_type_constrains_links_on_0_3_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
+              ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_type_constrains_links_on_0_3_0"."target_entity_type_ontology_id"
+            INNER JOIN "entity_types" AS "entity_types_0_5_0"
+              ON "entity_types_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_types_0_5_0"."schema"->>'title' = $2
             "#,
-            &[&"Friend Of"],
+            &[&pinned_timestamp, &"Friend Of"],
         );
     }
 
     #[test]
     fn entity_type_by_inheritance() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(&temporal_axes);
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+        let mut compiler =
+            SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
-                Box::new(EntityTypeQueryPath::BaseUrl),
-            ))),
+            Some(FilterExpression::Path(
+                EntityTypeQueryPath::EntityTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(EntityTypeQueryPath::BaseUrl),
+                    direction: EdgeDirection::Outgoing,
+                    inheritance_depth: Some(0),
+                },
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
             )))),
@@ -427,17 +555,21 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entity_types" AS "entity_types_0_0_0"
-            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
-              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_ontology_id" = "entity_types_0_0_0"."ontology_id"
-            INNER JOIN "entity_types" AS "entity_types_0_2_0"
-              ON "entity_types_0_2_0"."ontology_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_ontology_id"
-            INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0"
-              ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entity_types_0_2_0"."ontology_id"
-            WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
-              AND "ontology_id_with_metadata_0_3_0"."base_url" = $1
+            FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+            INNER JOIN "entity_type_inherits_from" AS "entity_type_inherits_from_0_1_0"
+              ON "entity_type_inherits_from_0_1_0"."source_entity_type_ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_2_0"
+              ON "ontology_temporal_metadata_0_2_0"."ontology_id" = "entity_type_inherits_from_0_1_0"."target_entity_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
+              ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
+            WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "ontology_ids_0_3_0"."base_url" = $2
             "#,
-            &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
+            &[
+                &pinned_timestamp,
+                &"https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
+            ],
         );
     }
 
@@ -445,7 +577,7 @@ mod tests {
     fn entity_simple_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -459,10 +591,10 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."entity_uuid" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_0_0"."entity_uuid" = $3
             "#,
             &[
                 &pinned_timestamp,
@@ -476,7 +608,7 @@ mod tests {
     fn entity_with_manual_selection() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::new(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes));
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
@@ -490,7 +622,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::UpdatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::RecordCreatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -499,16 +631,18 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON("entities_0_0_0"."entity_uuid", "entities_0_0_0"."decision_time")
-                "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."decision_time",
-                "entities_0_0_0"."properties"
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_0_0"."record_created_by_id" = $3
-            ORDER BY "entities_0_0_0"."entity_uuid" ASC,
-                     "entities_0_0_0"."decision_time" DESC
+                DISTINCT ON("entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time")
+                "entity_temporal_metadata_0_0_0"."entity_uuid",
+                "entity_temporal_metadata_0_0_0"."decision_time",
+                "entity_editions_0_1_0"."properties"
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_editions_0_1_0"."record_created_by_id" = $3
+            ORDER BY "entity_temporal_metadata_0_0_0"."entity_uuid" ASC,
+                     "entity_temporal_metadata_0_0_0"."decision_time" DESC
             "#,
             &[
                 &pinned_timestamp,
@@ -522,7 +656,7 @@ mod tests {
     fn entity_property_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
@@ -541,10 +675,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) = $4
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) = $4
             "#,
             &[
                 &json_path,
@@ -559,7 +695,7 @@ mod tests {
     fn entity_property_null_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
         let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
@@ -576,10 +712,12 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $3
-              AND jsonb_path_query_first("entities_0_0_0"."properties", $1::text::jsonpath) IS NULL
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+              ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $3
+              AND jsonb_path_query_first("entity_editions_0_1_0"."properties", $1::text::jsonpath) IS NULL
             "#,
             &[
                 &json_path,
@@ -593,14 +731,18 @@ mod tests {
     fn entity_outgoing_link_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::EditionId,
-                ))),
-            ))),
+            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::EditionId),
+                    direction: EdgeDirection::Outgoing,
+                }),
+                direction: EdgeDirection::Incoming,
+            })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
@@ -609,18 +751,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."right_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_3_0"
+              ON "entity_has_right_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_right_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_right_entity_0_3_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -630,14 +780,18 @@ mod tests {
     fn entity_incoming_link_query() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                Box::new(EntityQueryPath::LeftEntity(Box::new(
-                    EntityQueryPath::EditionId,
-                ))),
-            ))),
+            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                path: Box::new(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EditionId),
+                    direction: EdgeDirection::Outgoing,
+                }),
+                direction: EdgeDirection::Incoming,
+            })),
             Some(FilterExpression::Parameter(Parameter::Number(10))),
         );
         compiler.add_filter(&filter);
@@ -646,18 +800,26 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-            RIGHT OUTER JOIN "entities" AS "entities_0_2_0"
-              ON "entities_0_2_0"."entity_uuid" = "entities_0_1_0"."left_entity_uuid"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_1_0"."decision_time" && $2
-              AND "entities_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_2_0"."decision_time" && $2
-              AND "entities_0_2_0"."entity_edition_id" = $3
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_3_0"
+              ON "entity_has_left_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+             AND "entity_has_left_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
+              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_left_entity_0_3_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_4_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_4_0"."entity_edition_id" = $3
             "#,
             &[&pinned_timestamp, &temporal_axes.variable_interval(), &10],
         );
@@ -667,31 +829,39 @@ mod tests {
     fn link_entity_left_right_id() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Uuid),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::OwnedById),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::OwnedById),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
         ]);
@@ -701,13 +871,19 @@ mod tests {
             &compiler,
             r#"
             SELECT *
-            FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entities_0_0_0"."decision_time" && $2
-              AND ("entities_0_0_0"."left_entity_uuid" = $3)
-              AND ("entities_0_0_0"."left_owned_by_id" = $4)
-              AND ("entities_0_0_0"."right_entity_uuid" = $5)
-              AND ("entities_0_0_0"."right_owned_by_id" = $6)
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
+              AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $4)
+              AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5)
+              AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $6)
             "#,
             &[
                 &pinned_timestamp,
@@ -724,21 +900,33 @@ mod tests {
     fn filter_left_and_right() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/address",
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Type(EntityTypeQueryPath::BaseUrl)),
-                ))),
+                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
+                    }),
+                    direction: EdgeDirection::Outgoing,
+                })),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "https://example.com/@example-org/types/entity-type/name",
                 )))),
@@ -749,17 +937,42 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-             SELECT *
-             FROM "entities" AS "entities_0_0_0"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_0" ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_0" ON "ontology_id_with_metadata_0_3_0"."ontology_id" = "entities_0_1_0"."entity_type_ontology_id"
-             RIGHT OUTER JOIN "entities" AS "entities_0_1_1" ON "entities_0_1_1"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-             INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_3_1" ON "ontology_id_with_metadata_0_3_1"."ontology_id" = "entities_0_1_1"."entity_type_ontology_id"
-             WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_0_0"."decision_time" && $2
-               AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_0"."decision_time" && $2
-               AND "entities_0_1_1"."transaction_time" @> $1::TIMESTAMPTZ AND "entities_0_1_1"."decision_time" && $2
-               AND ("ontology_id_with_metadata_0_3_0"."base_url" = $3)
-               AND ("ontology_id_with_metadata_0_3_1"."base_url" = $4)
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
+              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
+              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."left_owned_by_id"
+             AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
+              ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
+              ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
+              ON "ontology_ids_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
+              ON "entity_temporal_metadata_0_2_1"."owned_by_id" = "entity_has_right_entity_0_1_0"."right_owned_by_id"
+             AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
+              ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
+            INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_1"
+              ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
+            INNER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
+              ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
+            WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
+              AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
+              AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
+              AND ("ontology_ids_0_5_0"."base_url" = $3)
+              AND ("ontology_ids_0_5_1"."base_url" = $4)
             "#,
             &[
                 &pinned_timestamp,
@@ -775,10 +988,7 @@ mod tests {
 
         use super::*;
         use crate::{
-            identifier::{
-                account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion,
-                OntologyTypeVertexId,
-            },
+            identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
             knowledge::EntityUuid,
             provenance::OwnedById,
         };
@@ -794,8 +1004,9 @@ mod tests {
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+            let pinned_timestamp = temporal_axes.pinned_timestamp();
             let mut compiler =
-                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
+                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes));
 
             let filter = Filter::for_versioned_url(&url);
             compiler.add_filter(&filter);
@@ -804,45 +1015,17 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-                  ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-                WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
+                FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+                INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+                  ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+                WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND ("ontology_ids_0_1_0"."base_url" = $2) AND ("ontology_ids_0_1_0"."version" = $3)
                 "#,
                 &[
+                    &pinned_timestamp,
                     &url.base_url.as_str(),
                     &OntologyTypeVersion::new(url.version),
                 ],
-            );
-        }
-
-        #[test]
-        fn for_ontology_type_record_id() {
-            let url = OntologyTypeVertexId {
-                base_id: BaseUrl::new(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-                )
-                .expect("invalid base url"),
-                revision_id: OntologyTypeVersion::new(1),
-            };
-
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-            let mut compiler =
-                SelectCompiler::<DataTypeWithMetadata>::with_asterisk(&temporal_axes);
-
-            let filter = Filter::for_ontology_type_vertex_id(&url);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "data_types" AS "data_types_0_0_0"
-                INNER JOIN "ontology_id_with_metadata" AS "ontology_id_with_metadata_0_1_0"
-                  ON "ontology_id_with_metadata_0_1_0"."ontology_id" = "data_types_0_0_0"."ontology_id"
-                WHERE ("ontology_id_with_metadata_0_1_0"."base_url" = $1) AND ("ontology_id_with_metadata_0_1_0"."version" = $2)
-                "#,
-                &[&url.base_id.as_str(), &url.revision_id],
             );
         }
 
@@ -855,7 +1038,7 @@ mod tests {
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
             let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
+            let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes));
 
             let filter = Filter::for_entity_by_entity_id(entity_id);
             compiler.add_filter(&filter);
@@ -864,151 +1047,11 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."owned_by_id" = $3)
-                  AND ("entities_0_0_0"."entity_uuid" = $4)
-                "#,
-                &[
-                    &pinned_timestamp,
-                    &temporal_axes.variable_interval(),
-                    &entity_id.owned_by_id.as_uuid(),
-                    &entity_id.entity_uuid.as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_incoming_link_by_source_entity_id() {
-            let entity_id = EntityId {
-                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            };
-
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
-
-            let filter = Filter::for_incoming_link_by_source_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."right_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."right_entity_uuid" = $4)
-                "#,
-                &[
-                    &pinned_timestamp,
-                    &temporal_axes.variable_interval(),
-                    &entity_id.owned_by_id.as_uuid(),
-                    &entity_id.entity_uuid.as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_outgoing_link_by_source_entity_id() {
-            let entity_id = EntityId {
-                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            };
-
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
-
-            let filter = Filter::for_outgoing_link_by_source_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND ("entities_0_0_0"."left_owned_by_id" = $3)
-                  AND ("entities_0_0_0"."left_entity_uuid" = $4)
-                "#,
-                &[
-                    &pinned_timestamp,
-                    &temporal_axes.variable_interval(),
-                    &entity_id.owned_by_id.as_uuid(),
-                    &entity_id.entity_uuid.as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_left_entity_by_entity_id() {
-            let entity_id = EntityId {
-                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            };
-
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
-
-            let filter = Filter::for_left_entity_by_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."left_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
-                "#,
-                &[
-                    &pinned_timestamp,
-                    &temporal_axes.variable_interval(),
-                    &entity_id.owned_by_id.as_uuid(),
-                    &entity_id.entity_uuid.as_uuid(),
-                ],
-            );
-        }
-
-        #[test]
-        fn for_right_entity_by_entity_id() {
-            let entity_id = EntityId {
-                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            };
-
-            let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
-            let pinned_timestamp = temporal_axes.pinned_timestamp();
-            let mut compiler = SelectCompiler::<Entity>::with_asterisk(&temporal_axes);
-
-            let filter = Filter::for_right_entity_by_entity_id(entity_id);
-            compiler.add_filter(&filter);
-
-            test_compilation(
-                &compiler,
-                r#"
-                SELECT *
-                FROM "entities" AS "entities_0_0_0"
-                LEFT OUTER JOIN "entities" AS "entities_0_1_0"
-                  ON "entities_0_1_0"."right_entity_uuid" = "entities_0_0_0"."entity_uuid"
-                WHERE "entities_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_0_0"."decision_time" && $2
-                  AND "entities_0_1_0"."transaction_time" @> $1::TIMESTAMPTZ
-                  AND "entities_0_1_0"."decision_time" && $2
-                  AND ("entities_0_1_0"."owned_by_id" = $3)
-                  AND ("entities_0_1_0"."entity_uuid" = $4)
+                FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+                WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+                  AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+                  AND ("entity_temporal_metadata_0_0_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[
                     &pinned_timestamp,

@@ -1,58 +1,26 @@
-import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   IconButton,
-  IconButtonProps,
   LoadingSpinner,
 } from "@hashintel/design-system";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
+import { Box, Collapse, Typography } from "@mui/material";
 import { FunctionComponent, ReactNode, useState } from "react";
-
-import { Link } from "../../ui";
 
 type NavLinkProps = {
   children?: ReactNode;
   title: string;
-  endAdornmentProps: {
-    tooltipTitle: string;
-    "data-testid"?: string;
-    href?: string;
-    loading?: boolean;
-  } & IconButtonProps;
+  loading?: boolean;
+  endAdornment?: ReactNode;
 };
 
 export const NavLink: FunctionComponent<NavLinkProps> = ({
   title,
   children,
-  endAdornmentProps,
+  loading = false,
+  endAdornment,
 }) => {
   const [expanded, setExpanded] = useState(true);
-  const {
-    tooltipTitle: endAdornmentTooltipTitle,
-    sx: endAdormentSx = [],
-    href: endAdornmentHref,
-    loading = false,
-    ...otherEndAdornmentProps
-  } = endAdornmentProps;
-
-  const endAdornment = (
-    <IconButton
-      size="small"
-      unpadded
-      rounded
-      className="end-adornment-button"
-      onClick={endAdornmentProps.onClick}
-      {...otherEndAdornmentProps}
-      sx={[
-        ({ palette }) => ({
-          color: palette.gray[40],
-        }),
-        ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
-      ]}
-    >
-      <FontAwesomeIcon icon={faAdd} />
-    </IconButton>
-  );
 
   return (
     <Box>
@@ -65,7 +33,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
           mt: 2,
           "&:hover": {
             cursor: "pointer",
-            backgroundColor: palette.gray[20],
+            backgroundColor: palette.gray[15],
             "& .expand-button": {
               color: palette.gray[60],
 
@@ -93,7 +61,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
             variant="smallCaps"
             sx={({ palette }) => ({
               mr: 0.5,
-              color: palette.gray[50],
+              color: palette.gray[70],
             })}
           >
             {title}
@@ -106,7 +74,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
             className="expand-button"
             sx={({ palette }) => ({
               mr: "auto",
-              color: palette.gray[40],
+              color: palette.gray[70],
             })}
           >
             <FontAwesomeIcon
@@ -128,8 +96,8 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
         >
           <LoadingSpinner size={12} thickness={2} />
         </Box>
-
-        <Tooltip title={endAdornmentTooltipTitle}>
+        {endAdornment}
+        {/* <Tooltip title={endAdornmentTooltipTitle}>
           {endAdornmentHref ? (
             <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>
               {endAdornment}
@@ -137,7 +105,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
           ) : (
             endAdornment
           )}
-        </Tooltip>
+        </Tooltip> */}
       </Box>
       <Collapse in={expanded}>{children}</Collapse>
     </Box>

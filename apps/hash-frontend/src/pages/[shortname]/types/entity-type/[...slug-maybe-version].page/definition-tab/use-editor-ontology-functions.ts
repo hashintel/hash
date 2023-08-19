@@ -1,5 +1,11 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeEditorProps } from "@hashintel/type-editor";
-import { OwnedById } from "@local/hash-subgraph";
+import { EditorOntologyFunctions } from "@hashintel/type-editor/src/shared/ontology-functions-context";
+import {
+  EntityTypeWithMetadata,
+  OwnedById,
+  PropertyTypeWithMetadata,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypeById,
@@ -13,14 +19,20 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../components/ho
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
+import { useFetchLatestPropertyTypes } from "../../../../../../shared/latest-property-types-context";
+import { canUserEditResource } from "../../../../../../shared/readonly-mode";
+import { useAuthInfo } from "../../../../../shared/auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
-import { useFetchLatestPropertyTypes } from "../shared/latest-property-types-context";
-
-type OntologyFunctions = EntityTypeEditorProps["ontologyFunctions"];
 
 export const useEditorOntologyFunctions = (
   ownedById: OwnedById | null,
+  typesWithMetadata: Record<
+    VersionedUrl,
+    EntityTypeWithMetadata | PropertyTypeWithMetadata
+  >,
 ): EntityTypeEditorProps["ontologyFunctions"] => {
+  const { authenticatedUser } = useAuthInfo();
+
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { createEntityType } = useBlockProtocolCreateEntityType(ownedById);
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
@@ -33,7 +45,7 @@ export const useEditorOntologyFunctions = (
   const refetchPropertyTypes = useFetchLatestPropertyTypes();
 
   const wrappedCreateEntityType = useCallback<
-    OntologyFunctions["createEntityType"]
+    EditorOntologyFunctions["createEntityType"]
   >(
     (args) => {
       return createEntityType(args as any).then(async (res) => {
@@ -45,7 +57,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedUpdateEntityType = useCallback<
-    OntologyFunctions["updateEntityType"]
+    EditorOntologyFunctions["updateEntityType"]
   >(
     (args) => {
       return updateEntityType(args as any).then(async (res) => {
@@ -57,7 +69,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedCreatePropertyType = useCallback<
-    OntologyFunctions["createPropertyType"]
+    EditorOntologyFunctions["createPropertyType"]
   >(
     (args) => {
       return createPropertyType(args).then(async (res) => {
@@ -69,7 +81,7 @@ export const useEditorOntologyFunctions = (
   );
 
   const wrappedUpdatePropertyType = useCallback<
-    OntologyFunctions["updatePropertyType"]
+    EditorOntologyFunctions["updatePropertyType"]
   >(
     (args) => {
       return updatePropertyType(args).then(async (res) => {
@@ -82,7 +94,7 @@ export const useEditorOntologyFunctions = (
 
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
 
-  const validateTitle = useCallback<OntologyFunctions["validateTitle"]>(
+  const validateTitle = useCallback<EditorOntologyFunctions["validateTitle"]>(
     async ({ kind, title }) => {
       const { versionedUrl } = generateTypeUrlsForUser({
         kind,
@@ -123,11 +135,47 @@ export const useEditorOntologyFunctions = (
     [generateTypeUrlsForUser, getEntityType, getPropertyType],
   );
 
+  const canEditResource = useCallback<
+    EditorOntologyFunctions["canEditResource"]
+  >(
+    ({ kind, resource }) => {
+      if (!authenticatedUser?.accountSignupComplete) {
+        return {
+          allowed: false,
+          message: `${
+            authenticatedUser ? "Complete sign up" : "Sign in"
+          } to edit ${kind === "link-type" ? "link" : "property"} type.`,
+        };
+      }
+
+      const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
+      const resourceAccountId =
+        resourceMetadata &&
+        "ownedById" in resourceMetadata.custom &&
+        resourceMetadata.custom.ownedById;
+
+      return resourceAccountId &&
+        canUserEditResource(resourceAccountId, authenticatedUser)
+        ? {
+            allowed: true,
+            message: "ok",
+          }
+        : {
+            allowed: false,
+            message: `Can't edit ${
+              kind === "link-type" ? "link entity" : "property"
+            } types that belong to other users or organizations you aren't a member of`,
+          };
+    },
+    [typesWithMetadata, authenticatedUser],
+  );
+
   return {
     createEntityType: wrappedCreateEntityType,
     updateEntityType: wrappedUpdateEntityType,
     createPropertyType: wrappedCreatePropertyType,
     updatePropertyType: wrappedUpdatePropertyType,
     validateTitle,
+    canEditResource,
   };
 };

@@ -1,23 +1,43 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt, fs,
+    net::{AddrParseError, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
 use clap::Parser;
-use error_stack::{IntoReport, Result, ResultExt};
-#[cfg(feature = "type-fetcher")]
-use graph::store::FetchingPool;
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use graph::{
-    api::rest::{rest_api_router, RestRouterDependencies},
+    api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
+    identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::domain_validator::DomainValidator,
-    store::{DatabaseConnectionInfo, PostgresStorePool},
+    ontology::{
+        domain_validator::DomainValidator, PartialCustomEntityTypeMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordCreatedById},
+    store::{
+        error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, DatabaseConnectionInfo,
+        EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
+    },
 };
 use regex::Regex;
 use reqwest::Client;
+use serde_json::json;
+use time::OffsetDateTime;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    AllOf, DataType, EntityType, Links, Object,
+};
+use uuid::Uuid;
 
-use crate::error::{GraphError, HealthcheckError};
-#[cfg(feature = "type-fetcher")]
-use crate::subcommand::type_fetcher::TypeFetcherAddress;
+use crate::{
+    error::{GraphError, HealthcheckError},
+    subcommand::type_fetcher::TypeFetcherAddress,
+};
 
 #[derive(Debug, Parser)]
 pub struct ApiAddress {
@@ -28,6 +48,21 @@ pub struct ApiAddress {
     /// The port the REST client is listening at.
     #[clap(long, default_value_t = 4000, env = "HASH_GRAPH_API_PORT")]
     pub api_port: u16,
+}
+
+impl fmt::Display for ApiAddress {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}:{}", self.api_host, self.api_port)
+    }
+}
+
+impl TryFrom<ApiAddress> for SocketAddr {
+    type Error = Report<AddrParseError>;
+
+    fn try_from(address: ApiAddress) -> Result<Self, AddrParseError> {
+        let address = address.to_string();
+        address.parse().into_report().attach_printable(address)
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -43,7 +78,6 @@ pub struct ServerArgs {
     pub api_address: ApiAddress,
 
     /// The address for the type fetcher RPC server is listening at.
-    #[cfg(feature = "type-fetcher")]
     #[clap(flatten)]
     pub type_fetcher_address: TypeFetcherAddress,
 
@@ -70,6 +104,14 @@ pub struct ServerArgs {
     /// Runs the healthcheck for the REST Server.
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
+
+    /// Starts a server that only serves the OpenAPI spec.
+    #[clap(long, default_value_t = false)]
+    pub write_openapi_specs: bool,
+
+    /// Starts a server without connecting to the type fetcher
+    #[clap(long, default_value_t = false, conflicts_with_all = ["type_fetcher_host", "type_fetcher_port"])]
+    pub offline: bool,
 }
 
 // TODO: Consider making this a refinery migration
@@ -78,27 +120,7 @@ pub struct ServerArgs {
 /// This will include things that are mocks or stubs to make up for missing pieces of infrastructure
 /// that haven't been created yet.
 #[expect(clippy::too_many_lines, reason = "temporary solution")]
-#[cfg(not(feature = "type-fetcher"))]
 async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphError> {
-    use std::collections::HashMap;
-
-    use graph::{
-        identifier::account::AccountId,
-        ontology::{ExternalOntologyElementMetadata, OntologyElementMetadata},
-        provenance::{ProvenanceMetadata, UpdatedById},
-        store::{
-            error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, EntityTypeStore,
-            StorePool,
-        },
-    };
-    use serde_json::json;
-    use time::OffsetDateTime;
-    use type_system::{
-        url::{BaseUrl, VersionedUrl},
-        AllOf, DataType, EntityType, Links, Object,
-    };
-    use uuid::Uuid;
-
     // TODO: how do we make these URLs compliant
     let text = DataType::new(
         VersionedUrl {
@@ -192,7 +214,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .await
         .change_context(GraphError)
         .map_err(|err| {
-            tracing::error!("{err:?}");
+            tracing::error!(?err, "Failed to acquire database connection");
             err
         })?;
 
@@ -213,15 +235,19 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata =
-            OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-                data_type.id().clone().into(),
-                ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-                OffsetDateTime::now_utc(),
-            ));
+        let data_type_metadata = PartialOntologyElementMetadata {
+            record_id: data_type.id().clone().into(),
+            custom: PartialCustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+        };
 
         if let Err(error) = connection
-            .create_data_type(data_type, &data_type_metadata)
+            .create_data_type(data_type, data_type_metadata)
             .await
             .change_context(GraphError)
         {
@@ -250,17 +276,24 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Vec::default(),
     );
 
-    let link_entity_type_metadata =
-        OntologyElementMetadata::External(ExternalOntologyElementMetadata::new(
-            link_entity_type.id().clone().into(),
-            ProvenanceMetadata::new(UpdatedById::new(root_account_id)),
-            OffsetDateTime::now_utc(),
-        ));
+    let link_entity_type_metadata = PartialEntityTypeMetadata {
+        record_id: link_entity_type.id().clone().into(),
+        custom: PartialCustomEntityTypeMetadata {
+            common: PartialCustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
+                fetched_at: OffsetDateTime::now_utc(),
+            },
+            label_property: None,
+        },
+    };
 
     let title = link_entity_type.title().to_owned();
 
     if let Err(error) = connection
-        .create_entity_type(link_entity_type, &link_entity_type_metadata)
+        .create_entity_type(link_entity_type, link_entity_type_metadata)
         .await
     {
         if error.contains::<VersionedUrlAlreadyExists>() {
@@ -284,45 +317,70 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             .change_context(GraphError);
     }
 
+    if args.write_openapi_specs {
+        let openapi_path = std::path::Path::new("openapi");
+        let openapi_models_path = openapi_path.join("models");
+        let openapi_json_path = openapi_path.join("openapi.json");
+        for path in [openapi_models_path, openapi_json_path] {
+            if !path.exists() {
+                continue;
+            }
+            if path.is_file() {
+                fs::remove_file(&path)
+                    .into_report()
+                    .change_context(GraphError)
+                    .attach_printable("could not remove old OpenAPI file")
+                    .attach_printable_lazy(|| path.display().to_string())?;
+            } else {
+                fs::remove_dir_all(&path)
+                    .into_report()
+                    .change_context(GraphError)
+                    .attach_printable("could not remove old OpenAPI file")
+                    .attach_printable_lazy(|| path.display().to_string())?;
+            }
+        }
+        OpenApiDocumentation::write_openapi(openapi_path)
+            .change_context(GraphError)
+            .attach_printable("could not write OpenAPI spec")?;
+        return Ok(());
+    }
+
     let pool = PostgresStorePool::new(&args.db_info, NoTls)
         .await
         .change_context(GraphError)
-        .map_err(|err| {
-            tracing::error!("{err:?}");
-            err
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
         })?;
+    let _ = pool
+        .acquire()
+        .await
+        .change_context(GraphError)
+        .attach_printable("Connection to database failed")?;
 
-    #[cfg(not(feature = "type-fetcher"))]
-    stop_gap_setup(&pool).await?;
+    let pool = if args.offline {
+        stop_gap_setup(&pool).await?;
 
-    #[cfg(feature = "type-fetcher")]
-    let pool = FetchingPool::new(
-        pool,
-        (
-            args.type_fetcher_address.type_fetcher_host,
-            args.type_fetcher_address.type_fetcher_port,
-        ),
-        DomainValidator::new(args.allowed_url_domain.clone()),
-    );
+        FetchingPool::new_offline(pool)
+    } else {
+        FetchingPool::new(
+            pool,
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
+            DomainValidator::new(args.allowed_url_domain.clone()),
+        )
+    };
 
-    let rest_router = rest_api_router(RestRouterDependencies {
+    let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 
-    let api_address = format!(
-        "{}:{}",
-        args.api_address.api_host, args.api_address.api_port
-    );
-    let api_address: SocketAddr = api_address
-        .parse()
-        .into_report()
-        .change_context(GraphError)
-        .attach_printable_lazy(|| api_address.clone())?;
-
-    tracing::info!("Listening on {api_address}");
-    axum::Server::bind(&api_address)
-        .serve(rest_router.into_make_service_with_connect_info::<SocketAddr>())
+    tracing::info!("Listening on {}", args.api_address);
+    axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
 
@@ -330,10 +388,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 }
 
 pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
-    let request_url = format!(
-        "http://{}:{}/api-doc/openapi.json",
-        address.api_host, address.api_port
-    );
+    let request_url = format!("http://{address}/api-doc/openapi.json");
 
     timeout(
         Duration::from_secs(10),

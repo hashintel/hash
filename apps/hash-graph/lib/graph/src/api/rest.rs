@@ -2,18 +2,25 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
+#[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+#[doc(hidden)]
+pub mod test_server;
+
 mod api_resource;
+mod json;
 mod middleware;
+mod status;
+mod utoipa_typedef;
 
 mod account;
 mod data_type;
 mod entity;
 mod entity_type;
 mod property_type;
-mod utoipa_typedef;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{fs, io, sync::Arc};
 
+use async_trait::async_trait;
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -21,13 +28,12 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
-use error_stack::Report;
+use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
-use serde::Serialize;
 use utoipa::{
     openapi::{
-        self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        SchemaFormat, SchemaType,
+        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
+        Schema, SchemaFormat, SchemaType,
     },
     Modify, OpenApi, ToSchema,
 };
@@ -36,10 +42,13 @@ use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
     api::rest::{
         middleware::log_request_and_response,
-        utoipa_typedef::subgraph::{
-            Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphRootedEdges, KnowledgeGraphVertex,
-            KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex, OntologyVertices,
-            Subgraph, Vertex, Vertices,
+        utoipa_typedef::{
+            subgraph::{
+                Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
+                OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices,
+                Subgraph, Vertex, Vertices,
+            },
+            MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
     identifier::{
@@ -49,27 +58,76 @@ use crate::{
             OpenTemporalBound, RightBoundedTemporalInterval,
             RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
         },
-        EntityVertexId, GraphElementVertexId, OntologyTypeVertexId,
     },
     ontology::{
-        domain_validator::DomainValidator, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OwnedOntologyElementMetadata, Selector,
+        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
+        EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeReference, Selector,
     },
-    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
-    store::{QueryError, StorePool},
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OntologyOutwardEdge, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
-        SubgraphTemporalAxes,
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            GraphElementVertexId, PropertyTypeVertexId,
+        },
+        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     },
 };
 
+#[async_trait]
+pub trait RestApiStore: Store + TypeFetcher {
+    async fn load_external_type(
+        &mut self,
+        domain_validator: &DomainValidator,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, StatusCode>;
+}
+
+#[async_trait]
+impl<S> RestApiStore for S
+where
+    S: Store + TypeFetcher + Send,
+{
+    async fn load_external_type(
+        &mut self,
+        domain_validator: &DomainValidator,
+        reference: OntologyTypeReference<'_>,
+        actor_id: RecordCreatedById,
+    ) -> Result<OntologyElementMetadata, StatusCode> {
+        if domain_validator.validate_url(reference.url().base_url.as_str()) {
+            tracing::error!(id=%reference.url(), "Ontology type is not external");
+            return Err(StatusCode::UNPROCESSABLE_ENTITY);
+        }
+
+        self
+            .insert_external_ontology_type(
+                reference,
+                actor_id,
+            )
+            .await
+            .map_err(|report| {
+                tracing::error!(error=?report, id=%reference.url(), "Could not insert external type");
+                if report.contains::<VersionedUrlAlreadyExists>() {
+                    StatusCode::CONFLICT
+                } else {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            })
+    }
+}
+
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
+fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router>
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     vec![
         account::AccountResource::routes::<P>(),
         data_type::DataTypeResource::routes::<P>(),
@@ -104,16 +162,30 @@ pub struct RestRouterDependencies<P: StorePool + Send + 'static> {
     pub domain_regex: DomainValidator,
 }
 
+/// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
+/// the REST API.
+pub fn openapi_only_router() -> Router {
+    let open_api_doc = OpenApiDocumentation::openapi();
+
+    Router::new().nest(
+        "/api-doc",
+        Router::new()
+            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
+            .route("/models/*path", get(serve_static_schema)),
+    )
+}
+
+/// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
 pub fn rest_api_router<P: StorePool + Send + 'static>(
     dependencies: RestRouterDependencies<P>,
-) -> Router {
+) -> Router
+where
+    for<'pool> P::Store<'pool>: RestApiStore,
+{
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<P>()
         .into_iter()
-        .fold(Router::new(), axum::Router::merge);
-
-    // OpenAPI documentation is also generated by merging resources
-    let open_api_doc = OpenApiDocumentation::openapi();
+        .fold(Router::new(), Router::merge);
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
@@ -123,24 +195,9 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
         .layer(Extension(dependencies.domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
-        .nest(
-            "/api-doc",
-            Router::new()
-                .route(
-                    "/openapi.json",
-                    get({
-                        let doc = open_api_doc;
-                        move || async { Json(doc) }
-                    }),
-                )
-                .route("/models/*path", get(serve_static_schema)),
-        )
+        .merge(openapi_only_router())
 }
 
-#[allow(
-    clippy::unused_async,
-    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
-)]
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
@@ -169,18 +226,26 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         &OperationGraphTagAddon,
         &FilterSchemaAddon,
         &TimeSchemaAddon,
-        &OntologyTypeSchemaAddon,
     ),
     components(
         schemas(
             OwnedById,
-            UpdatedById,
+            RecordCreatedById,
+            RecordArchivedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
-            OwnedOntologyElementMetadata,
-            ExternalOntologyElementMetadata,
+            OntologyTemporalMetadata,
+            CustomOntologyMetadata,
+            EntityTypeMetadata,
+            CustomEntityTypeMetadata,
+            MaybeListOfOntologyElementMetadata,
+            MaybeListOfEntityTypeMetadata,
             EntityVertexId,
+            EntityIdWithInterval,
+            DataTypeVertexId,
+            PropertyTypeVertexId,
+            EntityTypeVertexId,
             OntologyTypeVertexId,
             OntologyTypeVersion,
             Selector,
@@ -197,8 +262,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyEdgeKind,
             OntologyOutwardEdge,
             KnowledgeGraphOutwardEdge,
-            OntologyRootedEdges,
-            KnowledgeGraphRootedEdges,
             Edges,
             GraphResolveDepths,
             EdgeResolveDepths,
@@ -213,7 +276,63 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         )
     ),
 )]
-struct OpenApiDocumentation;
+pub struct OpenApiDocumentation;
+
+impl OpenApiDocumentation {
+    /// Writes the `OpenAPI` specification to the given path.
+    ///
+    /// The path must be a directory, and the `OpenAPI` specification will be written to
+    /// `openapi.json` in that directory.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the path is not a directory, or if the files cannot be
+    /// written.
+    pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
+        let openapi = Self::openapi();
+        let path = path.as_ref();
+        fs::create_dir_all(path)
+            .into_report()
+            .attach_printable_lazy(|| path.display().to_string())?;
+
+        let openapi_json_path = path.join("openapi.json");
+        serde_json::to_writer_pretty(
+            io::BufWriter::new(
+                fs::File::create(&openapi_json_path)
+                    .into_report()
+                    .attach_printable("could not write openapi.json")
+                    .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
+            ),
+            &openapi,
+        )
+        .map_err(io::Error::from)
+        .into_report()?;
+
+        let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("api")
+            .join("rest")
+            .join("json_schemas");
+
+        let model_path_dir = path.join("models");
+        fs::create_dir_all(&model_path_dir)
+            .into_report()
+            .attach_printable("could not create directory")
+            .attach_printable_lazy(|| model_path_dir.display().to_string())?;
+
+        for file in STATIC_SCHEMAS.files() {
+            let model_path_source = model_def_path.join(file.path());
+            let model_path_target = model_path_dir.join(file.path());
+            fs::copy(&model_path_source, &model_path_target)
+                .into_report()
+                .attach_printable("could not copy file")
+                .attach_printable_lazy(|| model_path_source.display().to_string())
+                .attach_printable_lazy(|| model_path_target.display().to_string())?;
+        }
+
+        Ok(())
+    }
+}
 
 /// Addon to merge multiple [`OpenApi`] documents together.
 ///
@@ -262,6 +381,9 @@ impl Modify for MergeAddon {
 /// Any component that starts with `VAR_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
+/// Any component that starts with `SHARED_` will transform into a relative URL into the
+/// `./models/shared.json` file.
+///
 /// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
@@ -308,20 +430,31 @@ fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
             openapi::Schema::OneOf(one_of) => {
                 one_of.items.iter_mut().for_each(modify_schema_references);
             }
+            openapi::Schema::AllOf(all_of) => {
+                all_of.items.iter_mut().for_each(modify_schema_references);
+            }
             _ => (),
         },
     }
 }
 
 fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_SHARED: &str = "#/components/schemas/SHARED_";
 
-    if reference.ref_location.starts_with(REF_PREFIX) {
+    if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
         reference
             .ref_location
-            .replace_range(0..REF_PREFIX.len(), "./models/");
+            .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
+    };
+
+    if reference.ref_location.starts_with(REF_PREFIX_SHARED) {
+        reference.ref_location.replace_range(
+            0..REF_PREFIX_SHARED.len(),
+            "./models/shared.json#/definitions/",
+        );
     };
 }
 
@@ -352,14 +485,19 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        // This magically generates `any`, which is the closest representation we found working
-        // with the OpenAPI generator.
-        #[derive(Serialize, ToSchema)]
-        #[serde(untagged)]
-        #[expect(dead_code)]
-        enum Any {
-            Object(HashMap<String, Self>),
+        // This is a bit of hack, but basically, it adds a schema that is equivalent to "any value"
+        // `SchemaType::Value` indicates any generic JSON value.
+        struct Any;
+
+        impl ToSchema<'_> for Any {
+            fn schema() -> (&'static str, RefOr<Schema>) {
+                (
+                    "Any",
+                    Schema::Object(Object::with_type(SchemaType::Value)).into(),
+                )
+            }
         }
 
         if let Some(ref mut components) = openapi.components {
@@ -415,6 +553,42 @@ impl Modify for FilterSchemaAddon {
                                 )
                                 .required("notEqual"),
                         )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("StartsWithFilter"))
+                                .property(
+                                    "startsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("startsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("EndsWithFilter"))
+                                .property(
+                                    "endsWith",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("endsWith"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("ContainsSegmentFilter"))
+                                .property(
+                                    "containsSegment",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("containsSegment"),
+                        )
                         .build(),
                 )
                 .into(),
@@ -438,6 +612,10 @@ impl Modify for FilterSchemaAddon {
                                             .item(
                                                 ObjectBuilder::new()
                                                     .schema_type(SchemaType::String),
+                                            )
+                                            .item(
+                                                ObjectBuilder::new()
+                                                    .schema_type(SchemaType::Number),
                                             ),
                                     ),
                                 )
@@ -504,20 +682,6 @@ impl Modify for TimeSchemaAddon {
                     .0
                     .to_owned(),
                 RightBoundedTemporalIntervalUnresolved::<()>::schema().1,
-            );
-        }
-    }
-}
-
-/// Adds time-related structs to the `OpenAPI` schema.
-struct OntologyTypeSchemaAddon;
-
-impl Modify for OntologyTypeSchemaAddon {
-    fn modify(&self, openapi: &mut openapi::OpenApi) {
-        if let Some(ref mut components) = openapi.components {
-            components.schemas.insert(
-                "BaseUrl".to_owned(),
-                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }

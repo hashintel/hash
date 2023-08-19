@@ -1,57 +1,33 @@
-FROM node:16.18.1-alpine AS builder
+FROM node:18.15-alpine AS builder
 
 WORKDIR /app
+
+RUN yarn global add turbo
+COPY . .
+RUN turbo prune --scope='@apps/hash-frontend' --docker
+# Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
+# Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
+COPY patches /app/out/full/patches
+
+
+FROM builder as installer
+
+WORKDIR /usr/local/src/hash
+
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/yarn.lock yarn.lock
+COPY --from=builder /app/out/full/patches patches
 
 # Required dependencies for compiling the re2 NPM package
 RUN apk add --no-cache libc6-compat python3 make g++
 
-# Ensure that the node module layer can be cached
-COPY turbo.json .
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
+RUN yarn install --frozen-lockfile --prefer-offline \
+    && yarn cache clean
 
+COPY --from=builder /app/out/full/ .
 
-# Also ensure that frontend node modules can be cached
-COPY apps/hash-frontend/package.json apps/hash-frontend/
-COPY libs/@hashintel/design-system/package.json libs/@hashintel/design-system/
-COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
-COPY libs/@local/eslint-config/package.json libs/@local/eslint-config/
-COPY libs/@local/hash-graph-client/package.json libs/@local/hash-graph-client/
-COPY libs/@local/hash-isomorphic-utils/package.json libs/@local/hash-isomorphic-utils/
-COPY libs/@local/hash-graphql-shared/package.json libs/@local/hash-graphql-shared/
-COPY libs/@local/hash-subgraph/package.json libs/@local/hash-subgraph/
-COPY libs/@local/tsconfig/package.json libs/@local/tsconfig/
-RUN yarn workspace @apps/hash-frontend install --frozen-lockfile --prefer-offline
+RUN apk add --no-cache openjdk17-jre
 
-COPY apps/hash-api/codegen.config.ts apps/hash-api/codegen.config.ts
-COPY apps/hash-api/src/graphql/type-defs apps/hash-api/src/graphql/type-defs
-COPY apps/hash-frontend/codegen.config.ts apps/hash-frontend/codegen.config.ts
-COPY apps/hash-frontend/src/graphql/queries apps/hash-frontend/src/graphql/queries
-COPY libs/@local/hash-graphql-shared/src/graphql libs/@local/hash-graphql-shared/src/graphql
-COPY libs/@local/hash-graphql-shared/src/queries libs/@local/hash-graphql-shared/src/queries
-
-RUN yarn workspace @apps/hash-frontend codegen
-
-COPY libs/@local/hash-graphql-shared/codegen.config.ts libs/@local/hash-graphql-shared/codegen.config.ts
-
-RUN yarn workspace @local/hash-graphql-shared codegen
-
-COPY libs/@local/hash-isomorphic-utils/codegen.config.ts libs/@local/hash-isomorphic-utils/codegen.config.ts
-
-RUN yarn workspace @local/hash-isomorphic-utils codegen
-
-COPY apps/hash-frontend apps/hash-frontend
-COPY libs/@hashintel/design-system libs/@hashintel/design-system
-COPY libs/@hashintel/type-editor/package.json libs/@hashintel/type-editor/
-COPY libs/@local/eslint-config libs/@local/eslint-config
-COPY libs/@local/hash-graph-client libs/@local/hash-graph-client
-COPY libs/@local/hash-graphql-shared libs/@local/hash-graphql-shared
-COPY libs/@local/hash-isomorphic-utils libs/@local/hash-isomorphic-utils
-COPY libs/@local/hash-subgraph libs/@local/hash-subgraph
-COPY libs/@local/tsconfig libs/@local/tsconfig
-
-WORKDIR /app/apps/hash-frontend
 ENV NODE_ENV production
 ARG API_ORIGIN
 ENV API_ORIGIN ${API_ORIGIN}
@@ -61,22 +37,26 @@ ARG SYSTEM_ACCOUNT_NAME
 ENV SYSTEM_ACCOUNT_NAME ${SYSTEM_ACCOUNT_NAME}
 ARG SYSTEM_USER_SHORTNAME
 ENV SYSTEM_USER_SHORTNAME ${SYSTEM_USER_SHORTNAME}
-RUN yarn next build
+
+RUN turbo build --filter '@apps/hash-frontend'
 
 
-#########################################################################################
+FROM node:18.15-alpine
 
-FROM node:16.18.1-alpine
+RUN #apk add --no-cache libc6-compat
+
+COPY --from=installer /usr/local/src/hash /usr/local/src/hash
+WORKDIR /usr/local/src/hash/apps/hash-frontend
+
+ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+CMD ["start"]
 
 # Run as a non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-COPY --from=builder --chown=appgroup:appuser /app /app
+RUN addgroup --system --gid 60000 hash \
+    && adduser --system --ingroup hash frontend
 
 # Nextjs needs permissions to create caches
-RUN chown -R appuser:appgroup /app/apps/hash-frontend/.next
-WORKDIR /app
+RUN chown -R frontend:hash .next
 
-USER appuser
+USER frontend:hash
 ENV NODE_ENV production
-
-CMD ["yarn", "workspace","@apps/hash-frontend", "start"]

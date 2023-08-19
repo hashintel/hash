@@ -18,18 +18,17 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
-        SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, Constant, Expression, Function, JoinExpression, OrderByExpression,
+        Ordering, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{Alias, AliasedColumn, AliasedTable, Table},
+    table::{
+        Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
+    },
 };
-use crate::store::{
-    postgres::query::table::{Column, Relation},
-    Record,
-};
+use crate::store::{postgres::query::table::Relation, Record};
 
-pub trait PostgresRecord: for<'p> Record<QueryPath<'p>: PostgresQueryPath> {
+pub trait PostgresRecord: Record {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 }
@@ -44,7 +43,7 @@ pub trait PostgresQueryPath {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Transpile {
+pub trait Transpile: 'static {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
@@ -75,7 +74,7 @@ mod test_helper {
             .join(" ")
     }
 
-    pub fn max_version_expression() -> Expression<'static> {
+    pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
                 Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(

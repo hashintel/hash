@@ -1,60 +1,78 @@
-use std::borrow::Borrow;
+use std::collections::HashSet;
 
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
-use type_system::DataType;
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
+use futures::{stream, TryStreamExt};
+use type_system::{url::VersionedUrl, DataType};
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
-    identifier::OntologyTypeVertexId,
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::UpdatedById,
+    identifier::time::RightBoundedTemporalInterval,
+    ontology::{
+        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        PartialOntologyElementMetadata,
+    },
+    provenance::{RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
-        postgres::{DependencyContext, DependencyStatus},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
+        postgres::{ontology::OntologyId, TraversalContext},
+        AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
+        UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::QueryTemporalAxes,
-        Subgraph,
+        edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
     },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
+    /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, dependency_context, subgraph))]
-    pub(crate) async fn traverse_data_type(
+    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
+    pub(crate) async fn traverse_data_types(
         &self,
-        data_type_id: &OntologyTypeVertexId,
-        dependency_context: &mut DependencyContext,
-        subgraph: &mut Subgraph,
-        mut current_resolve_depths: GraphResolveDepths,
-        mut temporal_axes: QueryTemporalAxes,
+        queue: Vec<(
+            OntologyId,
+            GraphResolveDepths,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
+        _traversal_context: &mut TraversalContext,
+        _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let dependency_status = dependency_context.ontology_dependency_map.update(
-            data_type_id,
-            current_resolve_depths,
-            temporal_axes.variable_interval().convert(),
-        );
-
-        #[expect(unused_assignments, unused_variables)]
-        let data_type = match dependency_status {
-            DependencyStatus::Unresolved(depths, interval) => {
-                // The dependency may have to be resolved more than anticipated, so we update
-                // the resolve depth and the temporal axes.
-                current_resolve_depths = depths;
-                temporal_axes.set_variable_interval(interval.convert());
-                subgraph
-                    .get_or_read::<DataTypeWithMetadata>(self, data_type_id, &temporal_axes)
-                    .await?
-            }
-            DependencyStatus::Resolved => return Ok(()),
-        };
-
         // TODO: data types currently have no references to other types, so we don't need to do
         //       anything here
         //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    #[cfg(hash_graph_test_environment)]
+    pub async fn delete_data_types(&mut self) -> Result<(), DeletionError> {
+        let transaction = self.transaction().await.change_context(DeletionError)?;
+
+        let data_types = transaction
+            .as_client()
+            .query(
+                r"
+                    DELETE FROM data_types
+                    RETURNING ontology_id
+                ",
+                &[],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?
+            .into_iter()
+            .filter_map(|row| row.get(0))
+            .collect::<Vec<OntologyId>>();
+
+        transaction.delete_ontology_ids(&data_types).await?;
+
+        transaction.commit().await.change_context(DeletionError)?;
 
         Ok(())
     }
@@ -65,22 +83,31 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn create_data_types(
         &mut self,
-        data_types: impl IntoIterator<
-            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
-    ) -> Result<(), InsertionError> {
+        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
+        + Send,
+        on_conflict: ConflictBehavior,
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            transaction
-                .create(schema.clone(), metadata.borrow())
-                .await?;
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
+                .await?
+            {
+                transaction
+                    .insert_with_id(ontology_id, schema.clone())
+                    .await?;
+                inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
+                    metadata,
+                    transaction_time,
+                ));
+            }
         }
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_data_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -102,23 +129,54 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
-        let mut dependency_context = DependencyContext::default();
 
-        for data_type in Read::<DataTypeWithMetadata>::read(self, filter, &temporal_axes).await? {
-            let vertex_id = data_type.vertex_id(time_axis);
-            // Insert the vertex into the subgraph to avoid another lookup when traversing it
-            subgraph.insert(&vertex_id, data_type);
+        if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
 
-            self.traverse_data_type(
-                &vertex_id,
-                &mut dependency_context,
-                &mut subgraph,
-                graph_resolve_depths,
-                temporal_axes.clone(),
-            )
-            .await?;
+            subgraph.vertices.data_types =
+                Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
+                    .await?
+                    .into_iter()
+                    .filter_map(|data_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(data_type.vertex_id(time_axis))
+                            .then(|| (data_type.vertex_id(time_axis), data_type))
+                    })
+                    .collect();
+            for vertex_id in subgraph.vertices.data_types.keys() {
+                subgraph.roots.insert(vertex_id.clone().into());
+            }
+        } else {
+            let mut traversal_context = TraversalContext::default();
+            let traversal_data = self
+                .read_ontology_ids::<DataTypeWithMetadata>(filter, Some(&temporal_axes))
+                .await?
+                .map_ok(|(vertex_id, ontology_id)| {
+                    subgraph.roots.insert(vertex_id.into());
+                    stream::iter(
+                        traversal_context
+                            .add_data_type_id(
+                                ontology_id,
+                                graph_resolve_depths,
+                                temporal_axes.variable_interval(),
+                            )
+                            .map(Ok::<_, Report<QueryError>>),
+                    )
+                })
+                .try_flatten()
+                .try_collect::<Vec<_>>()
+                .await?;
 
-            subgraph.roots.insert(vertex_id.into());
+            self.traverse_data_types(traversal_data, &mut traversal_context, &mut subgraph)
+                .await?;
+
+            traversal_context
+                .read_traversed_vertices(self, &mut subgraph)
+                .await?;
         }
 
         Ok(subgraph)
@@ -128,16 +186,32 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        updated_by_id: UpdatedById,
+        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
-            .update::<DataType>(data_type, updated_by_id)
+            .update::<DataType>(data_type, record_created_by_id)
             .await?;
 
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
+    }
+
+    async fn archive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id, record_archived_by_id).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

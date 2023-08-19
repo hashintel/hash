@@ -6,7 +6,11 @@ use serde::{
 };
 use utoipa::ToSchema;
 
-use crate::store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath};
+use crate::{
+    ontology::PropertyTypeQueryPath,
+    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::OntologyEdgeKind,
+};
 
 /// A path to a [`DataType`] field.
 ///
@@ -79,6 +83,14 @@ pub enum DataTypeQueryPath<'p> {
     /// [`VersionedUrl`]: type_system::url::VersionedUrl
     /// [`DataType`]: type_system::DataType
     VersionedUrl,
+    /// The transaction time of the [`DataType`].
+    ///
+    /// It's not possible to query for the temporal axis directly, this has to be done via the
+    /// `temporalAxes` parameter on [`StructuralQuery`].
+    ///
+    /// [`DataType`]: type_system::DataType
+    /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
+    TransactionTime,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -94,21 +106,36 @@ pub enum DataTypeQueryPath<'p> {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
+    /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::UpdatedById);
+    /// let path = DataTypeQueryPath::deserialize(json!(["recordCreatedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::RecordCreatedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    UpdatedById,
+    RecordCreatedById,
+    /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["recordArchivedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::RecordArchivedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`DataType`]: type_system::DataType
+    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    RecordArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///
     /// ```rust
@@ -152,11 +179,31 @@ pub enum DataTypeQueryPath<'p> {
     OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// A reversed edge from a [`PropertyType`] to this [`DataType`] using an [`OntologyEdgeKind`].
+    ///
+    /// The corresponding edge is [`PropertyTypeQueryPath::DataTypeEdge`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`ConstrainsValuesOn`]
+    ///
     /// Only used internally and not available for deserialization.
-    AdditionalMetadata(Option<JsonPath<'p>>),
+    ///
+    /// [`ConstrainsValuesOn`]: OntologyEdgeKind::ConstrainsValuesOn
+    /// [`DataType`]: type_system::DataType
+    /// [`PropertyType`]: type_system::PropertyType
+    PropertyTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<PropertyTypeQueryPath<'p>>,
+    },
+    /// Only used internally and not available for deserialization.
+    AdditionalMetadata,
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
+    fn ontology_id() -> Self {
+        Self::OntologyId
+    }
+
     fn base_url() -> Self {
         Self::BaseUrl
     }
@@ -169,8 +216,16 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
         Self::Version
     }
 
-    fn updated_by_id() -> Self {
-        Self::UpdatedById
+    fn transaction_time() -> Self {
+        Self::TransactionTime
+    }
+
+    fn record_created_by_id() -> Self {
+        Self::RecordCreatedById
+    }
+
+    fn record_archived_by_id() -> Self {
+        Self::RecordArchivedById
     }
 
     fn schema() -> Self {
@@ -178,19 +233,24 @@ impl OntologyQueryPath for DataTypeQueryPath<'_> {
     }
 
     fn additional_metadata() -> Self {
-        Self::AdditionalMetadata(None)
+        Self::AdditionalMetadata
     }
 }
 
 impl QueryPath for DataTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata(_) => ParameterType::Any,
+            Self::OntologyId
+            | Self::OwnedById
+            | Self::RecordCreatedById
+            | Self::RecordArchivedById => ParameterType::Uuid,
+            Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
             Self::BaseUrl => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
+            Self::TransactionTime => ParameterType::TimeInterval,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
+            Self::PropertyTypeEdge { path, .. } => path.expected_type(),
         }
     }
 }
@@ -202,15 +262,25 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::BaseUrl => fmt.write_str("baseUrl"),
             Self::Version => fmt.write_str("version"),
             Self::VersionedUrl => fmt.write_str("versionedUrl"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RecordCreatedById => fmt.write_str("recordCreatedById"),
+            Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
-            Self::AdditionalMetadata(Some(path)) => write!(fmt, "additionalMetadata.{path}"),
-            Self::AdditionalMetadata(None) => fmt.write_str("additionalMetadata"),
+            Self::AdditionalMetadata => fmt.write_str("additionalMetadata"),
+            #[expect(
+                clippy::use_debug,
+                reason = "We don't have a `Display` impl for `OntologyEdgeKind` and this should \
+                          (a) never happen and (b) be easy to debug if it does happen. In the \
+                          future, this will become a compile-time check"
+            )]
+            Self::PropertyTypeEdge {
+                edge_kind, path, ..
+            } => write!(fmt, "<{edge_kind:?}>.{path}"),
         }
     }
 }
@@ -223,7 +293,8 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUrl,
     OwnedById,
-    UpdatedById,
+    RecordCreatedById,
+    RecordArchivedById,
     Title,
     Description,
     Type,
@@ -239,8 +310,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `updatedById`, `title`, `description`, \
-                                         `type`";
+                                         `ownedById`, `recordCreatedById`, `recordArchivedById`, \
+                                         `title`, `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -266,7 +337,8 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
+            DataTypeQueryToken::RecordCreatedById => DataTypeQueryPath::RecordCreatedById,
+            DataTypeQueryToken::RecordArchivedById => DataTypeQueryPath::RecordArchivedById,
             DataTypeQueryToken::BaseUrl => DataTypeQueryPath::BaseUrl,
             DataTypeQueryToken::VersionedUrl => DataTypeQueryPath::VersionedUrl,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

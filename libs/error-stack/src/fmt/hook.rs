@@ -64,8 +64,8 @@ crate::hook::context::impl_hook_context! {
     /// ### Example
     ///
     /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with nightly, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
     ///
     /// use error_stack::Report;
@@ -130,12 +130,12 @@ crate::hook::context::impl_hook_context! {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
     ///
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__emit_alt.snap")].assert_eq(&render(format!("{report:#?}")));
     /// #
     /// println!("{report:#?}");
@@ -168,8 +168,8 @@ crate::hook::context::impl_hook_context! {
     /// ### Example
     ///
     /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with nightly, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::Report;
@@ -210,7 +210,7 @@ crate::hook::context::impl_hook_context! {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_storage.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -255,8 +255,8 @@ impl<T> HookContext<T> {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with nightly, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::ErrorKind;
     ///
     /// use error_stack::Report;
@@ -296,7 +296,7 @@ impl<T> HookContext<T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_emit.snap")].assert_eq(&render(format!("{report:#?}")));
     /// #
     /// println!("{report:#?}");
@@ -314,8 +314,8 @@ impl<T> HookContext<T> {
     /// # Example
     ///
     /// ```rust
-    /// # // we only test with Rust 1.65, which means that `render()` is unused on earlier version
-    /// # #![cfg_attr(not(rust_1_65), allow(dead_code, unused_variables, unused_imports))]
+    /// # // we only test with nightly, which means that `render()` is unused on earlier version
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io;
     ///
     /// use error_stack::Report;
@@ -343,7 +343,7 @@ impl<T> HookContext<T> {
     /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
     /// # }
     /// #
-    /// # #[cfg(rust_1_65)]
+    /// # #[cfg(nightly)]
     /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__diagnostics_add.snap")].assert_eq(&render(format!("{report:?}")));
     /// #
     /// println!("{report:?}");
@@ -468,7 +468,7 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        fmt::{hook::HookContext, location::LocationDisplay},
+        fmt::{hook::HookContext, location::LocationAttachment},
         Report,
     };
 
@@ -507,7 +507,7 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        context.push_body(LocationDisplay::new(location, context.color_mode()).to_string());
+        context.push_body(LocationAttachment::new(location, context.color_mode()).to_string());
     }
 
     #[cfg(all(feature = "std", rust_1_65))]

@@ -160,7 +160,7 @@ impl Serialize for SerializeDefinitions<'_> {
 }
 
 pub struct Document {
-    id: TypeId,
+    pub(crate) id: TypeId,
     schemas: BTreeMap<TypeId, Schema>,
     references: BTreeMap<TypeId, Reference>,
 
@@ -184,9 +184,7 @@ impl Document {
     // new() ensures that an item of reference always exists
     #[must_use]
     pub fn schema(&self) -> &Schema {
-        self.schemas
-            .get(&self.id)
-            .expect("`new()` should have created a schema for the main schema")
+        &self.schemas[&self.id]
     }
 
     #[must_use]

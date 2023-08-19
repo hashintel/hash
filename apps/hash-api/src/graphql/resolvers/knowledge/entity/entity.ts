@@ -1,19 +1,28 @@
-import { Filter } from "@local/hash-graph-client";
+import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { mapSubgraph } from "@local/hash-subgraph/temp";
-import { ForbiddenError, UserInputError } from "apollo-server-express";
+import {
+  ApolloError,
+  ForbiddenError,
+  UserInputError,
+} from "apollo-server-express";
 
 import {
   archiveEntity,
   createEntityWithLinks,
+  getEntities,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
+import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
 import {
   createLinkEntity,
   isEntityLinkEntity,
@@ -21,12 +30,15 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { genId } from "../../../../util";
 import {
+  Mutation,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
+  MutationInferEntitiesArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
-  QueryQueryEntitiesArgs,
+  QueryResolvers,
   ResolverFn,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -92,75 +104,60 @@ export const createEntityResolver: ResolverFn<
   return mapEntityToGQL(entity);
 };
 
-export const queryEntitiesResolver: ResolverFn<
-  Promise<Subgraph>,
-  {},
-  LoggedInGraphQLContext,
-  QueryQueryEntitiesArgs
+export const queryEntitiesResolver: Extract<
+  QueryResolvers<LoggedInGraphQLContext>["queryEntities"],
+  Function
 > = async (
   _,
   {
-    rootEntityTypeIds,
+    operation,
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
     isOfType,
     hasLeftEntity,
     hasRightEntity,
   },
-  { dataSources },
+  { logger, dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
-
-  const filter: Filter = {
-    all: [
-      {
-        equal: [{ path: ["archived"] }, { parameter: false }],
-      },
-    ],
-  };
-
-  if (rootEntityTypeIds && rootEntityTypeIds.length > 0) {
-    filter.all.push({
-      any: rootEntityTypeIds.map((entityTypeId) => ({
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: entityTypeId },
-        ],
-      })),
-    });
+  if (operation.multiSort !== undefined && operation.multiSort !== null) {
+    throw new ApolloError(
+      "Sorting on queryEntities  results is not currently supported",
+    );
   }
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
-    },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
+  const filter = operation.multiFilter
+    ? bpMultiFilterToGraphFilter(operation.multiFilter)
+    : { any: [] };
+
+  if ("any" in filter && filter.any.length === 0) {
+    logger.warn(
+      "QueryEntities called with empty filter and OR operator, which means returning an empty subgraph. This is probably not what you want. Use multiFilter: { filters: [], operator: AND } to return all entities.",
+    );
+  }
+
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
       },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: null,
-          end: null,
-        },
-      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -177,6 +174,7 @@ export const getEntityResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
     isOfType,
     hasLeftEntity,
     hasRightEntity,
@@ -184,7 +182,6 @@ export const getEntityResolver: ResolverFn<
   { dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
@@ -198,38 +195,43 @@ export const getEntityResolver: ResolverFn<
     ],
   };
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      inheritsFrom: { outgoing: 0 },
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
-    },
-    temporalAxes: {
-      pinned: {
-        axis: "transactionTime",
-        timestamp: null,
-      },
-      variable: {
-        axis: "decisionTime",
-        interval: {
-          start: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
-          end: entityVersion
-            ? { kind: "inclusive", limit: entityVersion }
-            : null,
+  // If an entity version is specified, the result is constrained to that version.
+  // This is done by providing a time interval with the same start and end as given by the version.
+  const temporalAxes: QueryTemporalAxesUnresolved = entityVersion
+    ? {
+        pinned: {
+          axis: "transactionTime",
+          timestamp: null,
         },
+        variable: {
+          axis: "decisionTime",
+          interval: {
+            start: { kind: "inclusive", limit: entityVersion },
+            end: { kind: "inclusive", limit: entityVersion },
+          },
+        },
+      }
+    : currentTimeInstantTemporalAxes;
+
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
       },
+      temporalAxes,
     },
   });
 
-  return mapSubgraph(entitySubgraph);
+  return entitySubgraph;
 };
 
 export const updateEntityResolver: ResolverFn<
@@ -311,4 +313,33 @@ export const archiveEntityResolver: ResolverFn<
   await archiveEntity(context, { entity, actorId: user.accountId });
 
   return true;
+};
+
+export const inferEntitiesResolver: ResolverFn<
+  Mutation["inferEntities"],
+  null,
+  LoggedInGraphQLContext,
+  MutationInferEntitiesArgs
+> = async (_, { textInput, entityTypeIds }, { user, temporal }) => {
+  if (!temporal) {
+    throw new Error("Temporal client not available");
+  }
+
+  const status = await temporal.workflow.execute("inferEntities", {
+    taskQueue: "aipy",
+    args: [
+      {
+        textInput,
+        entityTypeIds,
+        actorId: user.accountId,
+      },
+    ],
+    workflowId: `inferEntities-${genId()}`,
+  });
+
+  if (status.code !== "OK") {
+    throw new Error(status.message);
+  }
+
+  return status.contents[0];
 };

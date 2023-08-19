@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
+import { schema } from "@local/hash-graphql-shared/graphql/type-defs/schema";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
@@ -11,17 +12,18 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { UploadableStorageProvider } from "../storage";
-import { TaskExecutor } from "../task-execution";
+import { TemporalClient } from "../temporal";
+import { VaultClient } from "../vault/index";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
-import { schema } from "./type-defs";
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
+  temporalClient?: TemporalClient;
+  vaultClient?: VaultClient;
   search?: SearchAdapter;
-  taskExecutor?: TaskExecutor;
   emailTransporter: EmailTransporter;
   logger: Logger;
   statsd?: StatsD;
@@ -31,9 +33,10 @@ export const createApolloServer = ({
   graphApi,
   cache,
   search,
-  taskExecutor,
   emailTransporter,
   uploadProvider,
+  temporalClient,
+  vaultClient,
   logger,
   statsd,
 }: CreateApolloServerParams) => {
@@ -52,9 +55,6 @@ export const createApolloServer = ({
     if (search) {
       sources.search = search;
     }
-    if (taskExecutor) {
-      sources.taskExecutor = taskExecutor;
-    }
     return sources;
   };
 
@@ -68,6 +68,8 @@ export const createApolloServer = ({
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",
       }),
+      temporal: temporalClient,
+      vault: vaultClient,
     }),
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
@@ -91,9 +93,17 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
+              const elapsed = performance.now() - startedAt;
+
+              // take the first part of the UA to help identify browser vs server requests
+              const userAgent =
+                ctx.context.req.headers["user-agent"]?.split(" ")[0];
+
               const msg = {
                 message: "graphql",
                 operation: willSendResponseCtx.operationName,
+                elapsed: `${elapsed.toFixed(2)}ms`,
+                userAgent,
               };
               if (willSendResponseCtx.errors) {
                 willSendResponseCtx.logger.error({
@@ -110,7 +120,6 @@ export const createApolloServer = ({
               } else {
                 willSendResponseCtx.logger.info(msg);
                 if (willSendResponseCtx.operationName) {
-                  const elapsed = performance.now() - startedAt;
                   statsd?.timing(
                     willSendResponseCtx.operationName,
                     elapsed,

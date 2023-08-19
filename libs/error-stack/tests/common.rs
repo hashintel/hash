@@ -49,9 +49,9 @@ impl fmt::Display for ContextA {
 
 impl Context for ContextA {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
-        demand.provide_ref(&self.0);
-        demand.provide_value(u64::from(self.0));
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_ref(&self.0);
+        request.provide_value(u64::from(self.0));
     }
 }
 
@@ -66,9 +66,9 @@ impl fmt::Display for ContextB {
 
 impl Context for ContextB {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
-        demand.provide_ref(&self.0);
-        demand.provide_value(i64::from(self.0));
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_ref(&self.0);
+        request.provide_value(i64::from(self.0));
     }
 }
 
@@ -93,8 +93,8 @@ impl fmt::Display for ErrorA {
 #[cfg(feature = "spantrace")]
 impl Context for ErrorA {
     #[cfg(nightly)]
-    fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
-        demand.provide_ref(&self.1);
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_ref(&self.1);
     }
 }
 
@@ -118,8 +118,8 @@ impl fmt::Display for ErrorB {
 
 #[cfg(all(nightly, feature = "std"))]
 impl std::error::Error for ErrorB {
-    fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
-        demand.provide_ref(&self.1);
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_ref(&self.1);
     }
 }
 

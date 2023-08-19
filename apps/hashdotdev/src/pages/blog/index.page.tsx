@@ -11,24 +11,18 @@ import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
 import { ComponentProps, Fragment, FunctionComponent } from "react";
 
-import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/blog-post";
-import { GradientContainer } from "../../components/gradient-container";
-import { FaIcon } from "../../components/icons/fa-icon";
+import { BlogPostAuthor } from "../../components/blog-post";
+import { ArrowUpRightFromSquareRegularIcon } from "../../components/icons/arrow-up-right-from-square-regular-icon";
 import { Link } from "../../components/link";
 import { PageLayout } from "../../components/page-layout";
 import { Subscribe } from "../../components/pre-footer";
 import { parseNameFromFileName } from "../../util/client-mdx-util";
-import { getAllPages, Page } from "../../util/mdx-util";
+import { getAllPages } from "../../util/mdx-util";
 import { NextPageWithLayout } from "../../util/next-types";
-import { BlogPostProps } from "./[...blog-slug].page";
+import { BlogIndividualPage } from "../shared/blog-posts-context";
+import { BlogPost, BlogPostAuthorWithPhotoSrc } from "./[...blog-slug].page";
+import { generateFeeds } from "./index.page/generate-feeds";
 import { getPhoto } from "./shared/get-photo";
-
-type BlogIndividualPage = Page<BlogPostProps> & {
-  photos: {
-    post?: BlogPostPagePhoto | null;
-    postSquare?: BlogPostPagePhoto | null;
-  };
-};
 
 type BlogPageListProps = {
   pages: BlogIndividualPage[];
@@ -43,7 +37,7 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   // Using try / catch prevents 500, but we might not need them in Next v12+.
   try {
     const pages = await Promise.all(
-      getAllPages<BlogPostProps>("blog")
+      getAllPages<BlogPost>("blog")
         .sort((pageA, pageB) => {
           const timeA = pageB.data.date
             ? new Date(pageB.data.date).getTime()
@@ -67,6 +61,8 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
           },
         })),
     );
+
+    await generateFeeds(pages);
 
     return {
       props: {
@@ -113,6 +109,7 @@ const PostImage: FunctionComponent<{
     <BlogPostLink page={page} sx={{ img: { borderRadius: "4px" } }}>
       <Image
         {...((square ? page.photos.postSquare : null) ?? page.photos.post)}
+        placeholder="blur"
         layout="responsive"
         {...(fill && {
           layout: "fill",
@@ -129,24 +126,30 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.authors ? (
-        <BlogPostAuthor>
-          {page.data.authors.map((author) => author.name).join(" & ")}
-        </BlogPostAuthor>
-      ) : null}
-      {page.data.title ? (
-        <Typography variant="hashHeading2">
-          <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {page.data.subtitle ? (
-        <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
-          {page.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor>
+        {page.data.authors.map((author) => author.name).join(" & ")}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading2">
+        <BlogPostLink page={page}>{page.data.title}</BlogPostLink>
+      </Typography>
+      <Typography variant="hashBodyCopy" sx={{ lineHeight: 1.5 }}>
+        {page.data.subtitle}
+      </Typography>
     </PostCopyContainer>
   </Stack>
 );
+
+const formatAuthorsName = (authors: BlogPostAuthorWithPhotoSrc[]): string => {
+  const authorNames = authors.map((author) => author.name);
+  const formattedAuthorsName =
+    authorNames.length > 1
+      ? authorNames
+          .slice(0, -1)
+          .join(", ")
+          .concat(` & ${authorNames.slice(-1)}`)
+      : authorNames.join(" & ");
+  return formattedAuthorsName;
+};
 
 const Post: FunctionComponent<{
   post: BlogIndividualPage;
@@ -164,25 +167,19 @@ const Post: FunctionComponent<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.authors ? (
-        <BlogPostAuthor small>
-          {post.data.authors.map((author) => author.name).join(" & ")}
-        </BlogPostAuthor>
-      ) : null}
-      {post.data.title ? (
-        <Typography variant="hashHeading4" color="gray.90">
-          <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
-        </Typography>
-      ) : null}
-      {post.data.subtitle ? (
-        <Typography
-          variant="hashSmallText"
-          color="gray.80"
-          sx={{ lineHeight: 1.5 }}
-        >
-          {post.data.subtitle}
-        </Typography>
-      ) : null}
+      <BlogPostAuthor small>
+        {formatAuthorsName(post.data.authors)}
+      </BlogPostAuthor>
+      <Typography variant="hashHeading4" color="gray.90">
+        <BlogPostLink page={post}>{post.data.title}</BlogPostLink>
+      </Typography>
+      <Typography
+        variant="hashSmallText"
+        color="gray.80"
+        sx={{ lineHeight: 1.5 }}
+      >
+        {post.data.subtitle}
+      </Typography>
     </PostCopyContainer>
     {displayPhoto ? (
       <Box
@@ -259,27 +256,35 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
   );
 
   return (
-    // @todo lighter gradient
     <>
       <NextSeo title="HASH Developer Blog" />
-      <GradientContainer py={{ xs: 9, md: 13 }}>
-        <Container>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography
-              mb={2}
-              variant="hashHeading3"
-              color="gray.90"
-              fontWeight={600}
-              component="h1"
-            >
-              HASH Developer Blog
-            </Typography>
-            <Stack
-              direction="column"
+      <Container>
+        <Stack direction="row" justifyContent="space-between">
+          <Typography
+            mb={2}
+            variant="hashHeading3"
+            color="gray.90"
+            fontWeight={600}
+            component="h1"
+          >
+            HASH Developer Blog
+          </Typography>
+          <Stack
+            direction="column"
+            sx={{
+              position: "relative",
+              top: 5,
+              display: { xs: "none", md: "block" },
+            }}
+          >
+            <Link
+              href="https://hash.ai/blog"
+              openInNew
               sx={{
-                position: "relative",
-                top: 5,
-                display: { xs: "none", md: "block" },
+                "&:hover .MuiTypography-hashSmallText": {
+                  opacity: 0.8,
+                  transition: "opacity 0.2s",
+                },
               }}
             >
               <Typography
@@ -289,90 +294,83 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
               >
                 Looking for our main blog?
               </Typography>
-              <Link href="https://hash.ai/blog" openInNew>
+
+              <Typography
+                variant="hashSmallText"
+                color="blue.100"
+                component="span"
+                sx={{
+                  opacity: 0.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                }}
+              >
+                Visit
                 <Typography
-                  variant="hashSmallText"
-                  color="blue.100"
                   component="span"
-                  sx={{
-                    opacity: 0.5,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-end",
-                    "&:hover": {
-                      opacity: 0.8,
-                      transition: "opacity 0.2s",
-                    },
-                  }}
+                  fontWeight={700}
+                  color="blue.100"
+                  variant="hashSmallText"
+                  ml={0.5}
+                  mr={0.8}
                 >
-                  Visit
-                  <Typography
-                    component="span"
-                    fontWeight={700}
-                    color="blue.100"
-                    variant="hashSmallText"
-                    ml={0.5}
-                    mr={0.8}
-                  >
-                    hash.ai/blog
-                  </Typography>
-                  <FaIcon
-                    name="arrow-up-right-from-square"
-                    type="regular"
-                    sx={{
-                      height: "0.8rem",
-                      width: "0.8rem",
-                    }}
-                  />
+                  hash.ai/blog
                 </Typography>
-              </Link>
-            </Stack>
-          </Stack>
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={4}
-            mb={{ xs: 4, md: 6 }}
-          >
-            <Box>
-              <Typography color="gray.70">
-                Stories and guides from developers in the community
+                <ArrowUpRightFromSquareRegularIcon
+                  sx={{
+                    height: "0.8rem",
+                    width: "0.8rem",
+                  }}
+                />
               </Typography>
-            </Box>
-            <Divider
-              sx={{
-                flex: 1,
-                display: { xs: "none", md: "initial" },
-              }}
-            />
+            </Link>
           </Stack>
-          {/** @todo subscribe box, spacing */}
-          <Stack direction="column" spacing={11}>
-            {groupedPages.map((row, idx) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <Fragment key={idx}>
-                {idx % 2 === 1 ? (
-                  <ThreePostsRow posts={row} />
-                ) : (
-                  <>
-                    <FourPostsRow
-                      posts={row}
-                      reverse={idx % 3 === 2}
-                      displayPhotos={idx === 0}
-                    />
-                    {/** @todo full width */}
-                    {idx === 0 ? (
-                      <Box>
-                        <Subscribe />
-                      </Box>
-                    ) : null}
-                  </>
-                )}
-              </Fragment>
-            ))}
-          </Stack>
-        </Container>
-      </GradientContainer>
+        </Stack>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={4}
+          mb={{ xs: 4, md: 6 }}
+        >
+          <Box>
+            <Typography color="gray.70">
+              Stories and guides from developers in the community
+            </Typography>
+          </Box>
+          <Divider
+            sx={{
+              flex: 1,
+              display: { xs: "none", md: "initial" },
+            }}
+          />
+        </Stack>
+        {/** @todo subscribe box, spacing */}
+        <Stack direction="column" spacing={11}>
+          {groupedPages.map((row, idx) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Fragment key={idx}>
+              {idx % 2 === 1 ? (
+                <ThreePostsRow posts={row} />
+              ) : (
+                <>
+                  <FourPostsRow
+                    posts={row}
+                    reverse={idx % 3 === 2}
+                    displayPhotos={idx === 0}
+                  />
+                  {/** @todo full width */}
+                  {idx === 0 ? (
+                    <Box>
+                      <Subscribe />
+                    </Box>
+                  ) : null}
+                </>
+              )}
+            </Fragment>
+          ))}
+        </Stack>
+      </Container>
     </>
   );
 };

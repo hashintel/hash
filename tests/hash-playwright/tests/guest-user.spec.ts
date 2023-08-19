@@ -6,7 +6,7 @@ test.beforeEach(async () => {
 });
 
 /**
- * @todo: Re-enable this playwright test when required backend functionality is fixed
+ * @todo: Re-enable this playwright test when resetting db functionality is fixed
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
 test.skip("guest user navigation to login and signup pages", async ({
@@ -63,7 +63,7 @@ test.skip("guest user navigation to login and signup pages", async ({
 });
 
 /**
- * @todo: Re-enable this playwright test when required backend functionality is fixed
+ * @todo: Re-enable this playwright test when resetting db functionality is fixed
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
 test.skip("guest user navigation to inaccessible pages", async ({ page }) => {

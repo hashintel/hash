@@ -16,11 +16,13 @@ async fn main() -> Result<(), GraphError> {
     match args.subcommand {
         Subcommand::Server(args) => subcommand::server(args).await,
         Subcommand::Migrate(args) => subcommand::migrate(args).await,
-        #[cfg(feature = "type-fetcher")]
         Subcommand::TypeFetcher(args) => subcommand::type_fetcher(args).await,
         Subcommand::Completions(ref args) => {
             subcommand::completions(args);
             Ok(())
         }
+        Subcommand::Snapshot(args) => subcommand::snapshot(args).await,
+        #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+        Subcommand::TestServer(args) => subcommand::test_server(args).await,
     }
 }

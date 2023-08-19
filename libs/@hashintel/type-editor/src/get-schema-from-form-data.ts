@@ -10,7 +10,14 @@ import { EntityTypeEditorFormData } from "./shared/form-types";
 
 export const getSchemaFromFormData = (
   data: EntityTypeEditorFormData,
-): Required<Pick<EntityType, "links" | "properties" | "required">> => {
+): Required<
+  Pick<
+    EntityType,
+    "allOf" | "description" | "links" | "properties" | "required"
+  >
+> => {
+  const allOf = data.allOf.map((versionedUrl) => ({ $ref: versionedUrl }));
+
   const properties = data.properties;
 
   const schemaProperties: Record<
@@ -72,6 +79,8 @@ export const getSchemaFromFormData = (
   }
 
   return {
+    allOf,
+    description: data.description,
     properties: schemaProperties,
     links,
     required,

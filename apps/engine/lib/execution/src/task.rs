@@ -97,7 +97,7 @@ pub trait StoreAccessValidator: Task {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
 }
 
-/// Unique identified for a [`Task`].
+/// Unique identifier for a [`Task`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct TaskId {

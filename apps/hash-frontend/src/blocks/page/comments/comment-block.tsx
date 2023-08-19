@@ -10,7 +10,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
-  Button,
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
@@ -39,6 +38,7 @@ import { useResolveComment } from "../../../components/hooks/use-resolve-comment
 import { useUpdateCommentText } from "../../../components/hooks/use-update-comment-text";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { Button } from "../../../shared/ui";
 import { CommentActionButtons } from "./comment-action-buttons";
 import { CommentBlockDeleteConfirmationDialog } from "./comment-block-delete-confirmation-dialog";
 import { CommentBlockMenu } from "./comment-block-menu";
@@ -90,7 +90,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       recordId: { entityId },
       // TODO: The provenance fields shouldn't be used for this
       //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
-      provenance: { updatedById: commentCreatedById },
+      provenance: { recordCreatedById: commentCreatedById },
     },
     hasText,
     author,

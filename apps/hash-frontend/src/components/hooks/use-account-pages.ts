@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import {
@@ -7,61 +7,36 @@ import {
   GetAccountPagesTreeQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { useWorkspaceShortnameByAccountId } from "./use-workspace-shortname-by-account-id";
-
-export type AccountPage = {
-  title: string;
-  entityId: EntityId;
-  ownerShortname: string;
-  parentPageEntityId?: EntityId | null;
-  index: string;
-};
 
 export type AccountPagesInfo = {
-  data: AccountPage[];
+  data: GetAccountPagesTreeQuery["pages"];
+  lastRootPageIndex: string | null;
   loading: boolean;
 };
 
-export const useAccountPages = (ownedById: OwnedById): AccountPagesInfo => {
+export const useAccountPages = (
+  ownedById: OwnedById,
+  includeArchived?: boolean,
+): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
-    variables: { ownedById },
+    variables: { ownedById, includeArchived },
   });
 
-  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
-    accountId: ownedById,
-  });
+  const pages = useMemo(() => {
+    return data?.pages ?? [];
+  }, [data?.pages]);
 
-  const accountPages = useMemo(() => {
-    if (!data || !ownerShortname) {
-      return [];
-    }
+  const lastRootPageIndex = useMemo(() => {
+    const rootPages = pages
+      .filter(({ parentPage }) => !parentPage)
+      .map(({ index }) => index)
+      .sort();
 
-    return data.pages.map(
-      ({
-        metadata: {
-          recordId: { entityId },
-        },
-        parentPage,
-        title,
-        index,
-      }): AccountPage => {
-        const pageEntityId = entityId;
-        const parentPageEntityId =
-          parentPage?.metadata.recordId.entityId ?? null;
+    return rootPages[rootPages.length - 1] ?? null;
+  }, [pages]);
 
-        return {
-          entityId: pageEntityId,
-          parentPageEntityId,
-          title,
-          ownerShortname,
-          index: index ?? "",
-        };
-      },
-    );
-  }, [data, ownerShortname]);
-
-  return { data: accountPages, loading };
+  return { data: pages, lastRootPageIndex, loading };
 };

@@ -16,6 +16,7 @@ import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createContext, createRef, useContext } from "react";
 
+import { getBlockDomId } from "../../shared/get-block-dom-id";
 import { BlockContext } from "./block-context";
 import { BlockHandle } from "./block-handle";
 import { BlockHighlight } from "./block-highlight";
@@ -24,9 +25,6 @@ import { CollabPositionIndicators } from "./collab-position-indicators";
 import { CreateBlockCommentButton } from "./comments/create-block-comment-button";
 import { InsertBlock } from "./insert-block";
 import styles from "./style.module.css";
-
-export const getBlockDomId = (blockEntityId: string) =>
-  `entity-${blockEntityId}`;
 
 /** used to detect whether or not a context value was provided */
 const nullBlockView = {};
@@ -370,7 +368,7 @@ export class BlockView implements NodeView {
         .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
           /**
-           * calculate nextPosition to correctly focus the to the component inside, not the wrapper
+           * calculate nextPosition to correctly focus the component inside, not the wrapper
            * */
           const $pos = tr.doc.resolve(newPosition + 1);
           const nextPosition = findComponentNode(

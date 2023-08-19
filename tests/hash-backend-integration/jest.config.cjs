@@ -1,4 +1,4 @@
-/** @type {import('jest').Config} */
+/** @type {import("jest").Config} */
 module.exports = {
   collectCoverage: process.env.TEST_COVERAGE === "true",
   collectCoverageFrom: [
@@ -15,11 +15,12 @@ module.exports = {
       "<rootDir>/../../libs/@local/hash-graphql-shared/src$1",
     "@local/hash-isomorphic-utils(.*)":
       "<rootDir>/../../libs/@local/hash-isomorphic-utils/src$1",
-    "@local/hash-graph-client": "<rootDir>/../../libs/@local/hash-graph-client",
+    "@local/hash-graph-client":
+      "<rootDir>/../../libs/@local/hash-graph-client/typescript",
   },
   setupFiles: ["@local/hash-backend-utils/environment"],
   testMatch: [
-    "<rootDir>/src/tests/model/knowledge/**",
     "<rootDir>/src/tests/graph/**",
+    "<rootDir>/src/tests/subgraph/**",
   ],
 };

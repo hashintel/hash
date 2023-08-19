@@ -1,0 +1,31 @@
+{
+  "title": "Status",
+  "type": "object",
+  "properties": {
+    "code": {
+      "$ref": "./status_definitions.json#/definitions/StatusCode",
+      "title": "code"
+    },
+    "message": {
+      "description": "A developer-facing description of the status.\n\nWhere possible, this should provide guiding advice for debugging and/or handling the error.",
+      "type": "string"
+    },
+    "contents": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "./status_definitions.json#/definitions/ErrorInfo"
+          },
+          {
+            "$ref": "./status_definitions.json#/definitions/RequestInfo"
+          },
+          {
+            "$ref": "./status_definitions.json#/definitions/ResourceInfo"
+          }
+        ]
+      }
+    }
+  },
+  "required": ["code", "contents"]
+}

@@ -1,124 +1,24 @@
-import { faArrowUpAZ, faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
+import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
-import {
-  Box,
-  Collapse,
-  Fade,
-  outlinedInputClasses,
-  Tooltip,
-} from "@mui/material";
+import { Box, Collapse, Tooltip } from "@mui/material";
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
-  FunctionComponent,
-  Ref,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useEntityTypesOptional } from "../../entity-types-context/hooks";
+import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
+import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
+import { PlusRegularIcon } from "../../icons/plus-regular";
+import { Link } from "../../ui";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
+import { SearchInput } from "./account-entity-type-list/search-input";
 import {
   SortActionsDropdown,
   SortType,
 } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
-
-type SearchInputProps = {
-  searchVisible: boolean;
-  searchInputRef: Ref<HTMLInputElement>;
-  showSearchInput: () => void;
-  // eslint-disable-next-line react/no-unused-prop-types -- @todo remove prop or use it in the component body
-  hideSearchInput: () => void;
-  onChangeText: (text: string) => void;
-};
-
-const SearchInput: FunctionComponent<SearchInputProps> = ({
-  searchVisible,
-  searchInputRef,
-  showSearchInput,
-  // hideSearchInput,
-  onChangeText,
-}) => (
-  <>
-    <Tooltip title="Search for types">
-      <IconButton
-        size="medium"
-        sx={({ palette }) => ({ color: palette.gray[50] })}
-        onClick={() => showSearchInput()}
-      >
-        {/* @todo-mui get a free icon that matches the design closely */}
-        <FontAwesomeIcon icon={faSearch} />
-      </IconButton>
-    </Tooltip>
-    <Fade in={searchVisible}>
-      <TextField
-        variant="outlined"
-        size="small"
-        placeholder="Search for types"
-        inputRef={searchInputRef}
-        onChange={(evt) => onChangeText(evt.target.value)}
-        sx={({ palette }) => ({
-          position: "absolute",
-          right: 0,
-          width: "204px",
-          height: "100%",
-          borderRadius: "4px",
-          backgroundColor: palette.white,
-          [`.${outlinedInputClasses.notchedOutline}`]: {
-            borderRadius: "4px",
-          },
-          [`.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]:
-            {
-              borderColor: palette.blue[60],
-            },
-        })}
-        InputProps={{
-          sx: ({ typography, palette }) => ({
-            ...typography.smallTextLabels,
-            color: palette.gray[80],
-            fontWeight: 500,
-            pl: 1.5,
-            pr: 1,
-            boxShadow: "none",
-            [`& .${outlinedInputClasses.input}`]: {
-              px: 0,
-              py: 0.875,
-              "&::placeholder": {
-                color: palette.gray[50],
-                opacity: 1,
-              },
-            },
-          }),
-
-          // Commented this out because "View All Types" is commented out
-          // Ideally the textfield is meant to appear on top of "View All Types"
-          // when the search icon is clicked, and should close when
-          // close search icon is clicked.
-          // Since "View All Types" isn't displayed at the moment, this
-          // text field will always be visible and as a result there is no need
-          // to show the close search icon.
-          // @todo uncomment when "View All Types" has been implemented
-          // endAdornment: (
-          //   <Tooltip title="Clear Search">
-          //     <IconButton onClick={hideSearchInput} size="small" unpadded>
-          //       <FontAwesomeIcon icon={faXmark} />
-          //     </IconButton>
-          //   </Tooltip>
-          // ),
-        }}
-      />
-    </Fade>
-  </>
-);
+import { ViewAllLink } from "./view-all-link";
 
 type AccountEntityTypeListProps = {
   ownedById: string;
@@ -128,28 +28,21 @@ export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ ownedById }) => {
   const [sortType, setSortType] = useState<SortType>("asc");
-  const [searchVisible, setSearchVisible] = useState(true);
+  const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const sortActionsPopupState = usePopupState({
     variant: "popover",
     popupId: "type-sort-actions-menu",
   });
 
-  useEffect(() => {
-    if (searchVisible) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchVisible]);
-
-  const allEntityTypes = useEntityTypesOptional();
+  const allEntityTypes = useLatestEntityTypesOptional();
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
       return allEntityTypes.filter(
         (root) =>
           isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.ownedById === ownedById,
+          root.metadata.custom.ownedById === ownedById,
       );
     }
 
@@ -180,13 +73,66 @@ export const AccountEntityTypeList: FunctionComponent<
     <Box>
       <NavLink
         title="Types"
-        endAdornmentProps={{
-          tooltipTitle: "Create new entity type",
-          href: `/new/types/entity-type`,
-          "data-testid": "create-entity-type-btn",
-        }}
+        endAdornment={
+          <Box display="flex" gap={1}>
+            <Tooltip title="Sort types" placement="top">
+              <IconButton
+                {...bindTrigger(sortActionsPopupState)}
+                size="small"
+                unpadded
+                rounded
+                sx={({ palette }) => ({
+                  color: palette.gray[80],
+                  ...(sortActionsPopupState.isOpen && {
+                    backgroundColor: palette.gray[30],
+                  }),
+                  svg: {
+                    fontSize: 13,
+                  },
+                })}
+              >
+                {sortType === "asc" ? (
+                  <ArrowDownAZRegularIcon />
+                ) : (
+                  <ArrowUpZARegularIcon />
+                )}
+              </IconButton>
+            </Tooltip>
+            <SortActionsDropdown
+              popupState={sortActionsPopupState}
+              setSortType={setSortType}
+              activeSortType={sortType}
+            />
+            <Link tabIndex={-1} href="/new/types/entity-type" noLinkStyle>
+              <Tooltip title="Create new entity type" sx={{ left: 5 }}>
+                <IconButton
+                  data-testid="create-entity-type-btn"
+                  size="small"
+                  unpadded
+                  rounded
+                  className="end-adornment-button"
+                  sx={({ palette }) => ({
+                    color: palette.gray[80],
+                  })}
+                >
+                  <PlusRegularIcon />
+                </IconButton>
+              </Tooltip>
+            </Link>
+          </Box>
+        }
       >
         <Box component="ul">
+          <TransitionGroup>
+            {filteredEntityTypes.map((root) => (
+              <Collapse key={root.schema.$id}>
+                <EntityTypeItem
+                  title={root.schema.title}
+                  entityTypeId={root.schema.$id}
+                />
+              </Collapse>
+            ))}
+          </TransitionGroup>
           <Box
             tabIndex={0}
             component="li"
@@ -213,75 +159,33 @@ export const AccountEntityTypeList: FunctionComponent<
               alignItems="center"
               flex={1}
               mr={0.25}
-              pl={3.5}
+              pl={2}
               position="relative"
             >
-              {/*
-                Commented this out because the functionality is not present yet
-                ("View All Pages" screen hasn't been designed/built)
-
-                @todo uncomment when this has been done
-              */}
-
-              {/* <Link
-                href="/"
-                noLinkStyle
-                tabIndex={-1}
+              <ViewAllLink
+                href="/types"
                 sx={{
                   mr: "auto",
+                  marginLeft: -1.5,
                   flex: 1,
+                  opacity: searchVisible ? 0 : 1,
+                  transition: ({ transitions }) =>
+                    transitions.create("opacity"),
                 }}
               >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={({ palette }) => ({
-                    fontWeight: 600,
-                    color: palette.gray[80],
-                  })}
-                >
-                  View All Types
-                </Typography>
-              </Link> */}
-
+                View all types
+              </ViewAllLink>
               <SearchInput
                 searchVisible={searchVisible}
-                searchInputRef={searchInputRef}
                 showSearchInput={() => setSearchVisible(true)}
-                hideSearchInput={() => setSearchVisible(false)}
+                hideSearchInput={() => {
+                  setSearchQuery("");
+                  setSearchVisible(false);
+                }}
                 onChangeText={(query) => setSearchQuery(query)}
               />
             </Box>
-            <Tooltip title="Sort types">
-              <IconButton
-                {...bindTrigger(sortActionsPopupState)}
-                sx={({ palette }) => ({
-                  color: palette.gray[50],
-                  ...(sortActionsPopupState.isOpen && {
-                    backgroundColor: palette.gray[30],
-                    color: palette.gray[80],
-                  }),
-                })}
-              >
-                {/* @todo-mui get a free icon that matches the design closely */}
-                <FontAwesomeIcon icon={faArrowUpAZ} />
-              </IconButton>
-            </Tooltip>
-            <SortActionsDropdown
-              popupState={sortActionsPopupState}
-              setSortType={setSortType}
-              activeSortType={sortType}
-            />
           </Box>
-          <TransitionGroup>
-            {filteredEntityTypes.map((root) => (
-              <Collapse key={root.schema.$id}>
-                <EntityTypeItem
-                  title={root.schema.title}
-                  entityTypeId={root.schema.$id}
-                />
-              </Collapse>
-            ))}
-          </TransitionGroup>
         </Box>
       </NavLink>
     </Box>

@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::{account::AccountId, time::TemporalBound},
     knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -82,7 +82,7 @@ async fn seed_db(
         .clone();
 
     let owned_by_id = OwnedById::new(account_id);
-    let actor_id = UpdatedById::new(account_id);
+    let actor_id = RecordCreatedById::new(account_id);
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
@@ -95,27 +95,24 @@ async fn seed_db(
 
     let link_entity_metadata_list = transaction
         .insert_entities_batched_by_type(
-            entity_metadata_list
-                .iter()
-                .flat_map(|entity_a_metadata| {
-                    entity_metadata_list.iter().map(|entity_b_metadata| {
-                        (
-                            owned_by_id,
-                            None,
-                            properties.clone(),
-                            Some(LinkData {
-                                left_entity_id: entity_a_metadata.record_id().entity_id,
-                                right_entity_id: entity_b_metadata.record_id().entity_id,
-                                order: EntityLinkOrder {
-                                    left_to_right: None,
-                                    right_to_left: None,
-                                },
-                            }),
-                            None,
-                        )
-                    })
+            entity_metadata_list.iter().flat_map(|entity_a_metadata| {
+                entity_metadata_list.iter().map(|entity_b_metadata| {
+                    (
+                        owned_by_id,
+                        None,
+                        properties.clone(),
+                        Some(LinkData {
+                            left_entity_id: entity_a_metadata.record_id().entity_id,
+                            right_entity_id: entity_b_metadata.record_id().entity_id,
+                            order: EntityLinkOrder {
+                                left_to_right: None,
+                                right_to_left: None,
+                            },
+                        }),
+                        None,
+                    )
                 })
-                .collect::<Vec<_>>(),
+            }),
             actor_id,
             &entity_type_id,
         )

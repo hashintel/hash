@@ -1,6 +1,7 @@
 [workspace]
 members = ["lib/*", "bin/*", "bench", "tests/*"]
 default-members = ["bin/*", "lib/*"]
+resolver = "2"
 
 [workspace.package]
 description = "The entity-graph query-layer for the HASH datastore"
@@ -11,6 +12,11 @@ authors = ["HASH"]
 license-file = "LICENSE.md"
 publish = false
 repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph"
+
+[workspace.dependencies]
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+hash-status = { path = "../../libs/@local/status/crate" }
+error-stack = { version = "0.3.1", features = ["spantrace"] }
 
 [profile.production]
 inherits = "release"

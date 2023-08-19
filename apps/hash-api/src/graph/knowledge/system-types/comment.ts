@@ -87,26 +87,26 @@ export const getCommentById: ImpureGraphFunction<
  */
 export const getCommentText: ImpureGraphFunction<
   {
-    comment: Comment;
+    commentEntityId: EntityId;
   },
   Promise<Entity>
-> = async (ctx, { comment }) => {
+> = async (ctx, { commentEntityId }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+    entityId: commentEntityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
   });
 
   const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
 
   if (unexpectedHasTextLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked text entities`,
+      `Critical: Comment with entityId ${commentEntityId} has more than one linked text entities`,
     );
   }
 
   if (!hasTextLink) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} doesn't have any linked text entities`,
+      `Critical: Comment with entityId ${commentEntityId} doesn't have any linked text entities`,
     );
   }
 
@@ -125,54 +125,55 @@ export const getCommentText: ImpureGraphFunction<
 export const createComment: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     author: User;
-    parent: Entity;
+    parentEntityId: EntityId;
     tokens: TextToken[];
   },
   Promise<Comment>
 > = async (ctx, params): Promise<Comment> => {
-  const { ownedById, actorId, tokens, parent, author } = params;
+  const { ownedById, actorId, tokens, parentEntityId, author } = params;
 
-  const entity = await createEntity(ctx, {
-    ownedById,
-    properties: {},
-    entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
-    actorId,
-  });
+  const [commentEntity, textEntity] = await Promise.all([
+    createEntity(ctx, {
+      ownedById,
+      properties: {},
+      entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
+      actorId,
+    }),
+    createEntity(ctx, {
+      ownedById,
+      properties: {
+        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
+      },
+      entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+      actorId,
+    }),
+  ]);
 
-  const textEntity = await createEntity(ctx, {
-    ownedById,
-    properties: {
-      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
-    },
-    entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
-    actorId,
-  });
+  await Promise.all([
+    createLinkEntity(ctx, {
+      linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+      leftEntityId: commentEntity.metadata.recordId.entityId,
+      rightEntityId: textEntity.metadata.recordId.entityId,
+      ownedById,
+      actorId,
+    }),
+    createLinkEntity(ctx, {
+      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+      leftEntityId: commentEntity.metadata.recordId.entityId,
+      rightEntityId: parentEntityId,
+      ownedById,
+      actorId,
+    }),
+    createLinkEntity(ctx, {
+      linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+      leftEntityId: commentEntity.metadata.recordId.entityId,
+      rightEntityId: author.entity.metadata.recordId.entityId,
+      ownedById,
+      actorId,
+    }),
+  ]);
 
-  await createLinkEntity(ctx, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
-    leftEntityId: entity.metadata.recordId.entityId,
-    rightEntityId: textEntity.metadata.recordId.entityId,
-    ownedById,
-    actorId,
-  });
-
-  await createLinkEntity(ctx, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
-    leftEntityId: entity.metadata.recordId.entityId,
-    rightEntityId: parent.metadata.recordId.entityId,
-    ownedById,
-    actorId,
-  });
-
-  await createLinkEntity(ctx, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.author,
-    leftEntityId: entity.metadata.recordId.entityId,
-    rightEntityId: author.entity.metadata.recordId.entityId,
-    ownedById,
-    actorId,
-  });
-
-  return getCommentFromEntity({ entity });
+  return getCommentFromEntity({ entity: commentEntity });
 };
 
 /**
@@ -184,24 +185,21 @@ export const createComment: ImpureGraphFunction<
  */
 export const updateCommentText: ImpureGraphFunction<
   {
-    comment: Comment;
+    commentEntityId: EntityId;
     actorId: AccountId;
     tokens: TextToken[];
   },
   Promise<void>
 > = async (ctx, params) => {
-  const { comment, actorId, tokens } = params;
+  const { commentEntityId, actorId, tokens } = params;
 
-  if (
-    actorId !==
-    extractOwnedByIdFromEntityId(comment.entity.metadata.recordId.entityId)
-  ) {
+  if (actorId !== extractOwnedByIdFromEntityId(commentEntityId)) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to edit the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
+      `Critical: account ${actorId} does not have permission to edit the comment with entityId ${commentEntityId}`,
     );
   }
 
-  const textEntity = await getCommentText(ctx, { comment });
+  const textEntity = await getCommentText(ctx, { commentEntityId });
 
   await updateEntityProperty(ctx, {
     entity: textEntity,
@@ -260,25 +258,25 @@ export const deleteComment: ImpureGraphFunction<
  * @param params.comment - the comment
  */
 export const getCommentParent: ImpureGraphFunction<
-  { comment: Comment },
+  { commentEntityId: EntityId },
   Promise<Entity>
-> = async (ctx, { comment }) => {
+> = async (ctx, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    entityId: commentEntityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
 
   if (!parentLink) {
     throw new Error(
-      `Critical: comment with entityId ${comment.entity.metadata.recordId.entityId} has no linked parent entity`,
+      `Critical: comment with entityId ${commentEntityId} has no linked parent entity`,
     );
   }
 
   if (unexpectedParentLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked parent entity`,
+      `Critical: Comment with entityId ${commentEntityId} has more than one linked parent entity`,
     );
   }
 
@@ -291,25 +289,25 @@ export const getCommentParent: ImpureGraphFunction<
  * @param params.comment - the comment
  */
 export const getCommentAuthor: ImpureGraphFunction<
-  { comment: Comment },
+  { commentEntityId: EntityId },
   Promise<User>
-> = async (ctx, { comment }) => {
+> = async (ctx, { commentEntityId }) => {
   const authorLinks = await getEntityOutgoingLinks(ctx, {
-    entity: comment.entity,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+    entityId: commentEntityId,
+    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.author.schema.$id,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
 
   if (!authorLink) {
     throw new Error(
-      `Critical: comment with entityId ${comment.entity.metadata.recordId.entityId} has no linked author entity`,
+      `Critical: comment with entityId ${commentEntityId} has no linked author entity`,
     );
   }
 
   if (unexpectedAuthorLinks.length > 0) {
     throw new Error(
-      `Critical: Comment with entityId ${comment.entity.metadata.recordId.entityId} has more than one linked author entity`,
+      `Critical: Comment with entityId ${commentEntityId} has more than one linked author entity`,
     );
   }
 
@@ -326,11 +324,11 @@ export const getCommentAuthor: ImpureGraphFunction<
  * @param params.comment - the comment
  */
 export const getCommentReplies: ImpureGraphFunction<
-  { comment: Comment },
+  { commentEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, { comment }) => {
+> = async (ctx, { commentEntityId }) => {
   const replyLinks = await getEntityIncomingLinks(ctx, {
-    entity: comment.entity,
+    entityId: commentEntityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
   });
 
@@ -358,8 +356,12 @@ export const resolveComment: ImpureGraphFunction<
 > = async (ctx, params): Promise<Comment> => {
   const { comment, actorId } = params;
 
-  const parent = await getCommentParent(ctx, { comment });
-  const author = await getCommentAuthor(ctx, { comment });
+  const commentEntityId = comment.entity.metadata.recordId.entityId;
+
+  const [parent, author] = await Promise.all([
+    getCommentParent(ctx, { commentEntityId }),
+    getCommentAuthor(ctx, { commentEntityId }),
+  ]);
 
   // Throw error if the user trying to resolve the comment is not the comment's author
   // or the author of the block the comment is attached to
@@ -369,7 +371,7 @@ export const resolveComment: ImpureGraphFunction<
     actorId !== extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
   ) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${comment.entity.metadata.recordId.entityId}`,
+      `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${commentEntityId}`,
     );
   }
 

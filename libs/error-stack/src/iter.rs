@@ -5,7 +5,6 @@ use alloc::{vec, vec::Vec};
 use core::marker::PhantomData;
 use core::{
     fmt,
-    fmt::Formatter,
     iter::FusedIterator,
     slice::{Iter, IterMut},
 };
@@ -104,7 +103,7 @@ impl<'r> Iterator for Frames<'r> {
 impl<'r> FusedIterator for Frames<'r> {}
 
 impl fmt::Debug for Frames<'_> {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
 }
@@ -205,7 +204,7 @@ impl<'r, T> fmt::Debug for RequestRef<'r, T>
 where
     T: ?Sized + fmt::Debug + 'static,
 {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
 }
@@ -263,7 +262,7 @@ impl<'r, T> fmt::Debug for RequestValue<'r, T>
 where
     T: fmt::Debug + 'static,
 {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
 }

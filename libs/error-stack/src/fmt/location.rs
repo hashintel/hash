@@ -1,28 +1,21 @@
-use core::{
-    fmt,
-    fmt::{Display, Formatter},
-    panic::Location,
-};
+use core::{fmt, panic::Location};
 
-use crate::fmt::{
-    color::{Color, DisplayStyle, Style},
-    ColorMode,
-};
+use crate::fmt::color::{Color, ColorMode, DisplayStyle, Style};
 
-pub(super) struct LocationDisplay<'a> {
-    location: &'a Location<'static>,
+pub(super) struct LocationAttachment<'a, 'loc> {
+    location: &'a Location<'loc>,
     mode: ColorMode,
 }
 
-impl<'a> LocationDisplay<'a> {
+impl<'a, 'loc> LocationAttachment<'a, 'loc> {
     #[must_use]
-    pub(super) const fn new(location: &'a Location<'static>, mode: ColorMode) -> Self {
+    pub(super) const fn new(location: &'a Location<'loc>, mode: ColorMode) -> Self {
         Self { location, mode }
     }
 }
 
-impl<'a> Display for LocationDisplay<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for LocationAttachment<'_, '_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let location = self.location;
 
         let mut style = Style::new();

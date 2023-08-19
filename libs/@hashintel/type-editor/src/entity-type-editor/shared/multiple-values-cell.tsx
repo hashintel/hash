@@ -9,6 +9,7 @@ import {
 } from "@hashintel/design-system";
 import {
   Box,
+  BoxProps,
   Checkbox,
   ClickAwayListener,
   Collapse,
@@ -54,7 +55,60 @@ const Frozen: FunctionComponent<
   return <>{frozenChildren}</>;
 };
 
-const MultipleValuesCellSummary = ({
+export const MultipleValuesControlContainer = ({
+  canToggle,
+  children,
+  isReadOnly,
+  menuOpen,
+  showSummary,
+  ...props
+}: PropsWithChildren<
+  {
+    canToggle: boolean;
+    isReadOnly: boolean;
+    menuOpen: boolean;
+    showSummary: boolean;
+  } & BoxProps
+>) => {
+  return (
+    <Box
+      sx={({ palette, transitions }) => ({
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        cursor: isReadOnly ? "default" : "pointer",
+        height: 1,
+        transition: transitions.create("border-color"),
+        border: 1,
+        borderColor: `${
+          menuOpen ? palette.gray[40] : "transparent"
+        } !important`,
+      })}
+      {...props}
+    >
+      <Box
+        sx={({ palette, transitions }) => ({
+          display: "inline-flex",
+          alignItems: "center",
+          borderRadius: canToggle ? "4px 30px 30px 4px" : "30px",
+          backgroundColor: "transparent",
+          transition: transitions.create(["padding", "background-color"]),
+          ...(showSummary
+            ? {
+                py: 0.5,
+                px: 0.75,
+                background: palette.gray[20],
+              }
+            : {}),
+        })}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+};
+
+export const MultipleValuesCellSummary = ({
   show,
   infinity,
   max,
@@ -188,7 +242,11 @@ export const MultipleValuesCell = ({
         }}
         width={MULTIPLE_VALUES_CELL_WIDTH}
       >
-        <Box
+        <MultipleValuesControlContainer
+          canToggle={canToggle}
+          isReadOnly={isReadonly}
+          menuOpen={multipleValuesMenuOpen}
+          showSummary={showSummary}
           onClick={() => {
             if (isReadonly) {
               return;
@@ -201,75 +259,46 @@ export const MultipleValuesCell = ({
               handleArrayChange(true);
             }
           }}
-          sx={({ palette, transitions }) => ({
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            cursor: isReadonly ? "default" : "pointer",
-            height: 1,
-            transition: transitions.create("border-color"),
-            border: 1,
-            borderColor: `${
-              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-            } !important`,
-          })}
           onMouseEnter={() => setHovered(!isReadonly)}
           onMouseLeave={() => setHovered(false)}
         >
-          <Box
-            sx={({ palette, transitions }) => ({
-              display: "inline-flex",
-              alignItems: "center",
-              borderRadius: canToggle ? "4px 30px 30px 4px" : "30px",
-              backgroundColor: "transparent",
-              transition: transitions.create(["padding", "background-color"]),
-              ...(showSummary
-                ? {
-                    py: 0.5,
-                    px: 0.75,
-                    background: palette.gray[20],
-                  }
-                : {}),
-            })}
-          >
-            {canToggle ? (
-              <Checkbox
-                {...arrayController.field}
-                checked={arrayController.field.value}
-                onChange={(evt) => {
-                  handleArrayChange(evt.target.checked);
-                }}
-                sx={{
-                  "+ *": {
-                    ml: 1,
-                  },
-                }}
-              />
-            ) : null}
-            <MultipleValuesCellSummary
-              show={showSummary}
-              infinity={infinity}
-              min={minValue}
-              max={maxValue}
+          {canToggle ? (
+            <Checkbox
+              {...arrayController.field}
+              checked={arrayController.field.value}
+              onChange={(evt) => {
+                handleArrayChange(evt.target.checked);
+              }}
+              sx={{
+                "+ *": {
+                  ml: 1,
+                },
+              }}
             />
-            {canToggle ? null : (
-              <Collapse
-                in={hovered || multipleValuesMenuOpen}
-                orientation="horizontal"
-              >
-                <FontAwesomeIcon
-                  icon={faEdit}
-                  sx={(theme) => ({
-                    fontSize: "13px",
-                    color: theme.palette.gray[70],
-                    ml: 0.5,
-                    display: "block",
-                  })}
-                />
-              </Collapse>
-            )}
-          </Box>
-        </Box>
+          ) : null}
+          <MultipleValuesCellSummary
+            show={showSummary}
+            infinity={infinity}
+            min={minValue}
+            max={maxValue}
+          />
+          {canToggle ? null : (
+            <Collapse
+              in={hovered || multipleValuesMenuOpen}
+              orientation="horizontal"
+            >
+              <FontAwesomeIcon
+                icon={faEdit}
+                sx={(theme) => ({
+                  fontSize: "13px",
+                  color: theme.palette.gray[70],
+                  ml: 0.5,
+                  display: "block",
+                })}
+              />
+            </Collapse>
+          )}
+        </MultipleValuesControlContainer>
         <Popper
           open={multipleValuesMenuOpen}
           anchorEl={anchorEl}
@@ -277,7 +306,7 @@ export const MultipleValuesCell = ({
           placement="bottom"
           sx={{
             width: 1,
-            zIndex: 1,
+            zIndex: ({ zIndex }) => zIndex.drawer + 2,
           }}
           transition
           // Attempt to prevent this messing with the edit bar scroll freezing
@@ -327,8 +356,11 @@ export const MultipleValuesCell = ({
                             field.onChange(target.value);
                           } else {
                             min = Math.max(0, min);
+                            const max = Number.isNaN(maxValue)
+                              ? 0
+                              : Number(maxValue);
 
-                            if (min > maxValue) {
+                            if (min > max) {
                               setValue(`${formPrefix}.maxValue`, min, {
                                 shouldDirty: true,
                               });
@@ -390,7 +422,11 @@ export const MultipleValuesCell = ({
                                 field.onChange(target.value);
                               } else {
                                 max = Math.max(max, 0);
-                                if (max < minValue) {
+
+                                const min = Number.isNaN(minValue)
+                                  ? 0
+                                  : Number(minValue);
+                                if (max < min) {
                                   setValue(`${formPrefix}.minValue`, max, {
                                     shouldDirty: true,
                                   });
@@ -442,7 +478,10 @@ export const MultipleValuesCell = ({
                     {...field}
                     checked={menuOpenFrozenInfinity}
                     onChange={(evt) => {
-                      if (typeof maxValue !== "number") {
+                      if (
+                        typeof maxValue !== "number" ||
+                        typeof minValue !== "number"
+                      ) {
                         setValue(
                           `${formPrefix}.maxValue`,
                           Math.max(

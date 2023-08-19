@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   createContext,
@@ -52,39 +53,40 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
   const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
 
-  const refetch = useCallback<RefetchAuthInfoFunction>(async () => {
-    const [subgraph, kratosSession] = await Promise.all([
-      getMe()
-        .then(({ data }) => data?.me)
-        .catch(() => undefined),
-      fetchKratosSession(),
-    ]);
+  const fetchAuthenticatedUser =
+    useCallback<RefetchAuthInfoFunction>(async () => {
+      const [subgraph, kratosSession] = await Promise.all([
+        getMe()
+          .then(({ data }) => data?.me)
+          .catch(() => undefined),
+        fetchKratosSession(),
+      ]);
 
-    if (!subgraph || !kratosSession) {
-      setAuthenticatedUser(undefined);
-      return {};
-    }
-    const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
+      if (!subgraph || !kratosSession) {
+        setAuthenticatedUser(undefined);
+        return {};
+      }
+      const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
 
-    const latestAuthenticatedUser = constructAuthenticatedUser({
-      userEntity,
-      subgraph,
-      kratosSession,
-    });
+      const latestAuthenticatedUser = constructAuthenticatedUser({
+        userEntity: userEntity as Entity<UserProperties>,
+        subgraph,
+        kratosSession,
+      });
 
-    setAuthenticatedUser(latestAuthenticatedUser);
+      setAuthenticatedUser(latestAuthenticatedUser);
 
-    return {
-      authenticatedUser: latestAuthenticatedUser,
-    };
-  }, [getMe]);
+      return {
+        authenticatedUser: latestAuthenticatedUser,
+      };
+    }, [getMe]);
 
   const value = useMemo(
     () => ({
       authenticatedUser,
-      refetch,
+      refetch: fetchAuthenticatedUser,
     }),
-    [authenticatedUser, refetch],
+    [authenticatedUser, fetchAuthenticatedUser],
   );
 
   return (

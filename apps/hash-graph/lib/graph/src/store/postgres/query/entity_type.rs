@@ -3,14 +3,18 @@ use std::iter::once;
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
-        table::{Column, EntityTypes, JsonField, OntologyIds, Relation},
+        table::{
+            Column, EntityTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,
+            OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
+        },
         PostgresQueryPath, PostgresRecord, Table,
     },
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresRecord for EntityTypeWithMetadata {
     fn base_table() -> Table {
-        Table::EntityTypes
+        Table::OntologyTemporalMetadata
     }
 }
 
@@ -18,23 +22,82 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::BaseUrl
-            | Self::Version
-            | Self::UpdatedById
-            | Self::OwnedById
-            | Self::AdditionalMetadata(_) => {
-                vec![Relation::EntityTypeIds]
-            }
-            Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
-                .chain(path.relations())
-                .collect(),
-            Self::Links(path) => once(Relation::EntityTypeLinks)
-                .chain(path.relations())
-                .collect(),
-            Self::InheritsFrom(path) => once(Relation::EntityTypeInheritance)
-                .chain(path.relations())
-                .collect(),
-            _ => vec![],
+            Self::OntologyId
+            | Self::VersionedUrl
+            | Self::Title
+            | Self::Description
+            | Self::Examples
+            | Self::Required
+            | Self::LabelProperty
+            | Self::Schema(_) => vec![Relation::EntityTypeIds],
+            Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
+            Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
+            Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
+            Self::TransactionTime | Self::RecordCreatedById | Self::RecordArchivedById => vec![],
+            Self::PropertyTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                path,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: EdgeDirection::Outgoing,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                path,
+                direction,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeInheritsFrom {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: *direction,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+                path,
+                direction,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsLinksOn {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: *direction,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityTypeEdge {
+                edge_kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path,
+                direction,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: *direction,
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::EntityEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::EntityIsOfType {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: EdgeDirection::Incoming,
+            })
+            .chain(path.relations())
+            .collect(),
+            _ => unreachable!("Invalid path: {self}"),
         }
     }
 
@@ -42,10 +105,16 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
         match self {
             Self::BaseUrl => Column::OntologyIds(OntologyIds::BaseUrl),
             Self::Version => Column::OntologyIds(OntologyIds::Version),
-            Self::OwnedById => Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(
-                JsonField::StaticText("owned_by_id"),
-            ))),
-            Self::UpdatedById => Column::OntologyIds(OntologyIds::UpdatedById),
+            Self::TransactionTime => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
+            }
+            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OwnedById),
+            Self::RecordCreatedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordCreatedById)
+            }
+            Self::RecordArchivedById => {
+                Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordArchivedById)
+            }
             Self::OntologyId => Column::EntityTypes(EntityTypes::OntologyId),
             Self::Schema(path) => path
                 .as_ref()
@@ -67,16 +136,13 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::Required => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
             }
-            Self::Links(path) | Self::InheritsFrom(path) => path.terminating_column(),
-            Self::Properties(path) => path.terminating_column(),
-            Self::AdditionalMetadata(path) => path.as_ref().map_or(
-                Column::OntologyIds(OntologyIds::AdditionalMetadata(None)),
-                |path| {
-                    Column::OntologyIds(OntologyIds::AdditionalMetadata(Some(JsonField::JsonPath(
-                        path,
-                    ))))
-                },
-            ),
+            Self::LabelProperty => Column::EntityTypes(EntityTypes::LabelProperty),
+            Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityTypeEdge { path, .. } => path.terminating_column(),
+            Self::EntityEdge { path, .. } => path.terminating_column(),
+            Self::AdditionalMetadata => {
+                Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata)
+            }
         }
     }
 }

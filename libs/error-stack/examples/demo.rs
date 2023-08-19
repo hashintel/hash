@@ -12,7 +12,7 @@
 
 use std::fmt;
 
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -25,13 +25,14 @@ impl fmt::Display for ParseExperimentError {
 
 impl Context for ParseExperimentError {}
 
+// Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
+#[allow(clippy::manual_try_fold)]
 fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimentError> {
     let values = description
         .split(' ')
         .map(|value| {
             value
                 .parse::<u64>()
-                .into_report()
                 .attach_printable_lazy(|| format!("{value:?} could not be parsed as experiment"))
         })
         .map(|value| value.map(|ok| (ok, 2 * ok)))
@@ -65,6 +66,8 @@ impl fmt::Display for ExperimentError {
 
 impl Context for ExperimentError {}
 
+// Reason: false-positive, try_fold is fail-fast, our implementation is fail-slow.
+#[allow(clippy::manual_try_fold)]
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],

@@ -10,27 +10,25 @@ import {
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import {
-  Button,
-  ButtonProps,
-  Chip,
-  FontAwesomeIcon,
-  StyledPlusCircleIcon,
-  TextField,
-} from "./main";
+import { Button, ButtonProps } from "./button";
+import { Chip } from "./chip";
+import { fluidFontClassName } from "./fluid-fonts";
+import { FontAwesomeIcon } from "./fontawesome-icon";
+import { StyledPlusCircleIcon } from "./icon-circle-plus";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
 import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option";
+import { TextField } from "./text-field";
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entityType" | "propertyType" | "entity" | "linkType";
+  variant: "entity type" | "property type" | "entity" | "link type";
 };
 
 const DropdownPropsContext =
@@ -87,14 +85,22 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
               </Typography>
             </>
           ) : null}
-          {variant === "entityType" ? (
-            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          {variant === "entity type" ? (
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : variant === "entity" ? (
-            <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
-          ) : variant === "linkType" ? (
-            <Chip color="turquoise" label="LINK TYPE" sx={{ ml: 1.5 }} />
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
+          ) : variant === "link type" ? (
+            <Chip
+              color="turquoise"
+              label={variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           ) : (
-            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+            <Chip
+              color="purple"
+              label={variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           )}
         </Button>
       ) : null}
@@ -103,7 +109,10 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
 };
 
 type OptionRenderData = {
-  $id: string;
+  /** a unique id for this option, which will be used as a key for the option */
+  uniqueId: string;
+  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
+  typeId: string;
   title: string;
   description?: string;
 };
@@ -121,6 +130,8 @@ type SelectorAutocompleteProps<
 > & {
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
+  /** Determines if a given option matches a selected value (defaults to strict equality) */
+  isOptionEqualToValue?: (option: T, value: T) => boolean;
   optionToRenderData: (option: T) => OptionRenderData;
   dropdownProps: TypeListSelectorDropdownProps;
   autoFocus?: boolean;
@@ -138,6 +149,7 @@ export const SelectorAutocomplete = <
   Multiple extends boolean | undefined = undefined,
 >({
   open,
+  isOptionEqualToValue,
   optionToRenderData,
   sx,
   inputRef,
@@ -240,11 +252,12 @@ export const SelectorAutocomplete = <
           return (
             <SelectorAutocompleteOption
               liProps={props}
-              key={optionRenderData.$id}
+              key={optionRenderData.uniqueId}
               {...optionRenderData}
             />
           );
         }}
+        isOptionEqualToValue={isOptionEqualToValue}
         popupIcon={null}
         disableClearable
         forcePopupIcon={false}
@@ -254,7 +267,11 @@ export const SelectorAutocomplete = <
         getOptionLabel={(opt) => optionToRenderData(opt).title}
         PaperComponent={TypeListSelectorDropdown}
         componentsProps={{
-          popper: { modifiers: allModifiers, anchorEl },
+          popper: {
+            modifiers: allModifiers,
+            anchorEl,
+            className: fluidFontClassName,
+          },
         }}
         {...rest}
       />

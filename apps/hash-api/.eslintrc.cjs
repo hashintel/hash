@@ -16,8 +16,7 @@ module.exports = {
       "canonical/filename-no-index",
     ]),
   },
-  ignorePatterns: [
-    ...require("@local/eslint-config/generate-ignore-patterns.cjs")(__dirname),
-    "src/collab/**/*",
-  ],
+  ignorePatterns: require("@local/eslint-config/generate-ignore-patterns.cjs")(
+    __dirname,
+  ),
 };

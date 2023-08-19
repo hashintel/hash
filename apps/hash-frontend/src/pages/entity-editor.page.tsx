@@ -1,5 +1,4 @@
 import { Array, ValueOrArray } from "@blockprotocol/type-system";
-import { Button } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -17,6 +16,7 @@ import { Container, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 import { NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 
@@ -56,7 +56,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: OwnedById }) => {
 
   useEffect(() => {
     if (!queryEntitiesSubgraph) {
-      void queryEntities({ data: {} }).then(({ data }) => {
+      void queryEntities({ data: { operation: {} } }).then(({ data }) => {
         setQueryEntitiesSubgraph(data);
       });
     }

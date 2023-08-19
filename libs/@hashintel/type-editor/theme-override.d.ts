@@ -7,6 +7,7 @@ declare module "@mui/material/styles" {
     xs: string;
     sm: string;
     md: string;
+    mdReverse: string;
     lg: string;
     xl: string;
     xxl: string;
@@ -136,6 +137,7 @@ declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
     primary: true;
     secondary: true;
+    secondary_quiet: true;
     tertiary: true;
     tertiary_quiet: true;
     warning: true;

@@ -1,0 +1,21 @@
+name: Scheduled production Vercel lambda warm-up
+
+on:
+  schedule:
+    - cron: "*/3 * * * *" ## Every 3 minutes
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  warm_up_production_site:
+    name: Warm up Vercel lambdas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/warm-up-vercel
+        with:
+          deployment-base-url: "https://app.hash.ai"

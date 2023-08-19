@@ -1,5 +1,7 @@
 /* eslint-disable import/first */
 // @todo have webpack polyfill this
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+
 require("setimmediate");
 
 import "./globals.scss";
@@ -9,7 +11,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope } from "@sentry/nextjs";
@@ -24,7 +26,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -34,7 +35,9 @@ import {
   constructAuthenticatedUser,
 } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
+import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import {
   RoutePageInfoProvider,
   RouteWorkspaceInfoProvider,
@@ -134,19 +137,21 @@ const App: FunctionComponent<AppProps> = ({
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <ModalProvider>
-              <RouteWorkspaceInfoProvider>
-                <RoutePageInfoProvider>
-                  <WorkspaceContextProvider>
-                    <SnackbarProvider maxSnack={3}>
-                      <EntityTypesContextProvider>
-                        {getLayout(<Component {...pageProps} />)}
-                      </EntityTypesContextProvider>
-                    </SnackbarProvider>
-                  </WorkspaceContextProvider>
-                </RoutePageInfoProvider>
-              </RouteWorkspaceInfoProvider>
-            </ModalProvider>
+            <RouteWorkspaceInfoProvider>
+              <RoutePageInfoProvider>
+                <WorkspaceContextProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    <EntityTypesContextProvider>
+                      <LatestPropertyTypesContextProvider>
+                        <SidebarContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </SidebarContextProvider>
+                      </LatestPropertyTypesContextProvider>
+                    </EntityTypesContextProvider>
+                  </SnackbarProvider>
+                </WorkspaceContextProvider>
+              </RoutePageInfoProvider>
+            </RouteWorkspaceInfoProvider>
           </ThemeProvider>
         </CacheProvider>
         {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
@@ -225,7 +230,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   await TypeSystemInitializer.initialize();
 
   const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntity,
+    userEntity: userEntity as Entity<UserProperties>,
     subgraph,
     kratosSession,
   });

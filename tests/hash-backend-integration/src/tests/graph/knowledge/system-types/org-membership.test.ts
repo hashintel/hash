@@ -1,3 +1,4 @@
+import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -10,9 +11,11 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
+import { resetGraph } from "../../../test-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -43,14 +46,24 @@ describe("OrgMembership", () => {
     testOrg = await createTestOrg(graphContext, "orgMembershipTest", logger);
   });
 
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: systemUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: testUser.kratosIdentityId,
+    });
+
+    await resetGraph();
+  });
+
   let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
     testOrgMembership = await createOrgMembership(graphContext, {
-      responsibility: "test",
-      org: testOrg,
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
       actorId: testUser.accountId,
-      user: testUser,
+      userEntityId: testUser.entity.metadata.recordId.entityId,
     });
   });
 

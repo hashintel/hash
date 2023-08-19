@@ -19,24 +19,28 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         <[T; N]>::reflection()
     }
 
-    fn visit_array<A>(self, mut v: A) -> Result<Self::Value, VisitorError>
+    fn visit_array<A>(self, array: A) -> Result<Self::Value, VisitorError>
     where
         A: ArrayAccess<'de>,
     {
-        v.set_bounded(N).change_context(VisitorError)?;
-        let size_hint = v.size_hint();
+        let mut array = array.into_bound(N).change_context(VisitorError)?;
+        let size_hint = array.size_hint();
 
         let mut result: Result<(), ArrayAccessError> = Ok(());
 
         #[allow(unsafe_code)]
-        // SAFETY: this is the same as `MaybeUninit::uninit_array()`, which is still unstable
-        let mut array = unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() };
+        #[allow(clippy::uninit_assumed_init)]
+        // SAFETY: `uninit_assumed_init` is fine here, as `[MaybeUninit<T>; N]` as no inhabitants,
+        // the code shown here is also present in 1) the rust docs and 2) as an OK example in the
+        // clippy docs. The code is the same as in `MaybeUninit::uninit_array()`, which is still
+        // unstable
+        let mut this: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
 
         let mut index = 0;
         let mut failed = false;
 
         loop {
-            let value = v.next::<T>();
+            let value = array.next::<T>();
 
             match value {
                 None => break,
@@ -47,7 +51,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                     unreachable!()
                 }
                 Some(Ok(value)) if !failed => {
-                    array[index].write(value);
+                    this[index].write(value);
                     index += 1;
                 }
                 Some(Ok(_)) => {
@@ -67,7 +71,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
             }
         }
 
-        if let Err(error) = v.end() {
+        if let Err(error) = array.end() {
             match &mut result {
                 Err(result) => result.extend_one(error),
                 result => *result = Err(error),
@@ -95,7 +99,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         // visit exactly `N` times and `v.end()` ensures that there aren't too many items.
         if result.is_err() {
             // we will error out, but as to not leak memory we drop all previously written items
-            for item in &mut array[0..index] {
+            for item in &mut this[0..index] {
                 #[allow(unsafe_code)]
                 // SAFETY: we only increment the pointer once we've written a value, the array is
                 // continuous, even if we error out, therefore
@@ -117,8 +121,13 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 // will have an error if:
                 // * at least a single item had an error
                 // * there are not enough items
-                let ret = unsafe { ptr::addr_of!(array).cast::<[T; N]>().read() };
-                mem::forget(array);
+                let ret = unsafe { ptr::addr_of!(this).cast::<[T; N]>().read() };
+                #[allow(clippy::mem_forget)]
+                // Reason: This is fine, we do **not** want to call the destructor, as we are
+                // simply casting from [MaybeUninit<T>; N] to [T; N], the memory
+                // layout is the same and we do not want to drop/deallocate it.
+                // (This is also what `array_assume_init` does)
+                mem::forget(this);
                 ret
             })
             .change_context(VisitorError)
@@ -154,8 +163,9 @@ impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N
 impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
     type Reflection = ArrayReflection<T::Reflection, N>;
 
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
-        de.deserialize_array(ArrayVisitor(PhantomData::default()))
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, DeserializeError> {
+        deserializer
+            .deserialize_array(ArrayVisitor(PhantomData))
             .change_context(DeserializeError)
     }
 }

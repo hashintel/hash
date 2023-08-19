@@ -1,6 +1,8 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon, Modal } from "@hashintel/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
+
+import { Button, Modal } from "../../../../../../shared/ui";
 
 interface EntityTypeUpdateModalProps {
   open: boolean;
@@ -22,11 +24,7 @@ export const EntityTypeUpdateModal = ({
   updatingVersion,
 }: EntityTypeUpdateModalProps) => {
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      contentStyle={{ p: "0px !important", border: 1, borderColor: "gray.20" }}
-    >
+    <Modal open={open} onClose={onClose}>
       <>
         <Box
           sx={{

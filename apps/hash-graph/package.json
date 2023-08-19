@@ -1,0 +1,32 @@
+{
+  "name": "@apps/hash-graph",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "The HASH Graph",
+  "type": "module",
+  "exports": {
+    "./type-defs/*": {
+      "types": "./type-defs/*.ts",
+      "default": "./type-defs/*.ts",
+      "node": "./type-defs/*.ts"
+    }
+  },
+  "scripts": {
+    "build": "echo to build the graph please follow the instructions in the README. This script is here to help orchestrate Turborepo.",
+    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --file docker/Dockerfile ../../",
+    "codegen:generate-openapi-specs": "just generate-openapi-specs",
+    "exe": "ts-node"
+  },
+  "dependencies": {
+    "@local/status": "0.0.0-private",
+    "ts-node": "10.9.1"
+  },
+  "devDependencies": {
+    "httpyac": "5.8.2",
+    "quicktype": "^16.0.43",
+    "typescript": "5.1.6"
+  }
+}

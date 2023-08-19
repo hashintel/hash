@@ -14,8 +14,9 @@ import { useWorkspaceByShortname } from "./use-workspace-by-shortname";
 
 export const useWorkspaceShortnameByEntityUuid = (params: {
   entityUuid: EntityUuid;
+  disabled?: boolean;
 }): { workspaceShortname?: string; loading: boolean } => {
-  const { entityUuid } = params;
+  const { entityUuid, disabled } = params;
 
   const [workspaceShortname, setWorkspaceShortname] = useState<string>();
   const [loading, setLoading] = useState<boolean>(false);
@@ -34,7 +35,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
 
   useEffect(() => {
     let cancelled = false;
-    if (systemUserOwnedById) {
+    if (systemUserOwnedById && !disabled) {
       void (async () => {
         setLoading(true);
 
@@ -44,7 +45,19 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
         );
 
         const { data: subgraph } = await getEntity({
-          data: { entityId },
+          data: {
+            entityId,
+            graphResolveDepths: {
+              constrainsLinkDestinationsOn: { outgoing: 0 },
+              constrainsLinksOn: { outgoing: 0 },
+              constrainsValuesOn: { outgoing: 0 },
+              constrainsPropertiesOn: { outgoing: 0 },
+              isOfType: { outgoing: 0 },
+              inheritsFrom: { outgoing: 0 },
+              hasLeftEntity: { incoming: 0, outgoing: 0 },
+              hasRightEntity: { incoming: 0, outgoing: 0 },
+            },
+          },
         });
 
         if (!subgraph) {
@@ -57,7 +70,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
 
         const shortname =
           entity.properties[
-            extractBaseUrl(types.propertyType.shortName.propertyTypeId)
+            extractBaseUrl(types.propertyType.shortname.propertyTypeId)
           ];
 
         if (!shortname) {
@@ -76,7 +89,7 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
     return () => {
       cancelled = true;
     };
-  }, [entityUuid, getEntity, systemUserOwnedById]);
+  }, [entityUuid, getEntity, systemUserOwnedById, disabled]);
 
   return { workspaceShortname, loading: loadingSystemUserWorkspace || loading };
 };

@@ -1,4 +1,4 @@
-import { Button } from "@hashintel/design-system";
+import { Button } from "../../../../../../../../../../shared/ui";
 
 export const MaxItemsReached = ({ limit }: { limit: number }) => {
   return (

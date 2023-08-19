@@ -1,0 +1,5 @@
+error: unrecognized `next` value, expected `remote`, `properties` or `this`, received "unknown"
+ --> tests/ui/fail/unknown_next.rs:5:22
+  |
+5 |     #[builder(next = "unknown")]
+  |                      ^^^^^^^^^
