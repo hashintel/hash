@@ -8306,10 +8306,13 @@ PERFORMANCE OF THIS SOFTWARE.
     }
     /** @ignore */
     function computeChunkOffsets(chunks) {
-      return chunks.reduce((offsets, chunk, index) => {
-        offsets[index + 1] = offsets[index] + chunk.length;
-        return offsets;
-      }, new Uint32Array(chunks.length + 1));
+      return chunks.reduce(
+        (offsets, chunk, index) => {
+          offsets[index + 1] = offsets[index] + chunk.length;
+          return offsets;
+        },
+        new Uint32Array(chunks.length + 1),
+      );
     }
     /** @ignore */
     function sliceChunks(chunks, offsets, begin, end) {

@@ -163,9 +163,8 @@ export const hashInstanceEntityTypeInitializer = async (
   const adminLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(context);
 
-  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
-    context,
-  );
+  const userEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -327,9 +326,8 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortname(context);
 
-  const emailPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.email(
-    context,
-  );
+  const emailPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.email(context);
 
   const kratosIdentityIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.kratosIdentityId(context);
@@ -485,17 +483,14 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
-  const titlePropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.title(
-    context,
-  );
+  const titlePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
 
-  const indexPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.index(
-    context,
-  );
+  const indexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(context);
 
-  const iconPropertyType = await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(
-    context,
-  );
+  const iconPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
 
   const containsLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(context);
@@ -503,9 +498,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
 
-  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
-    context,
-  );
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -664,17 +658,14 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const authorLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(context);
 
-  const userEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
-    context,
-  );
+  const userEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
 
-  const textEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
-    context,
-  );
+  const textEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.text(context);
 
-  const blockEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
-    context,
-  );
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 

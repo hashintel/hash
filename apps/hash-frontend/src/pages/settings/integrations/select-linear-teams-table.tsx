@@ -208,9 +208,9 @@ export const SelectLinearTeamsTable: FunctionComponent<{
 
   const handleSelectWorkspaceChange = useCallback(
     (params: {
-        linearOrganization: LinearOrganizationTeamsWithWorkspaces;
-        linearTeamId: string;
-      }) =>
+      linearOrganization: LinearOrganizationTeamsWithWorkspaces;
+      linearTeamId: string;
+    }) =>
       (entityIds: EntityId[]) =>
         setLinearOrganizations((prev) => {
           const { linearOrganization, linearTeamId } = params;
@@ -314,10 +314,11 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                     <SelectWorkspaces
                       selectedWorkspaceEntityIds={possibleWorkspaces
                         .map(({ entityRecordId: { entityId } }) => entityId)
-                        .filter((entityId) =>
-                          linearOrganization.teams
-                            .find(({ id }) => id === linearTeamId)
-                            ?.workspaceEntityIds.includes(entityId),
+                        .filter(
+                          (entityId) =>
+                            linearOrganization.teams
+                              .find(({ id }) => id === linearTeamId)
+                              ?.workspaceEntityIds.includes(entityId),
                         )}
                       possibleWorkspaces={possibleWorkspaces}
                       setSelectedWorkspaceEntityIds={handleSelectWorkspaceChange(

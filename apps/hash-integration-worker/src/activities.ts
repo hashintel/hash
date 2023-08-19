@@ -313,9 +313,7 @@ export const createLinearIntegrationActivities = ({
 
     return (
       await Promise.all(
-        (
-          await linearClient.projects().then(readNodes)
-        ).map(
+        (await linearClient.projects().then(readNodes)).map(
           async (project) =>
             await project
               .projectMilestones()

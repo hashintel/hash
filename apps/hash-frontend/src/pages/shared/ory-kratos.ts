@@ -74,10 +74,13 @@ export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
     .filter((attrs): attrs is UiNodeInputAttributes =>
       isUiNodeInputAttributes(attrs),
     )
-    .reduce((acc, attributes) => {
-      const { name, value } = attributes;
-      return { ...acc, [name]: value };
-    }, {} as Flows[T][1]);
+    .reduce(
+      (acc, attributes) => {
+        const { name, value } = attributes;
+        return { ...acc, [name]: value };
+      },
+      {} as Flows[T][1],
+    );
 
 const maybeGetCsrfTokenFromFlow = (flow: FlowValues) =>
   flow.ui.nodes
