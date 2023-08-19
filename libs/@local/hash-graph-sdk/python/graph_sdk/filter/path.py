@@ -182,7 +182,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
         return self.path.push(
             f"{EntityTypeQueryToken.children}({', '.join(args)})"
             if args
-            else EntityTypeQueryToken.children
+            else EntityTypeQueryToken.children,
         )
 
 
@@ -218,8 +218,8 @@ class EntityQueryPath(AbstractQueryPath):
             self.path.push(
                 f"{EntityQueryToken.type}({', '.join(args)})"
                 if args
-                else EntityQueryToken.type
-            )
+                else EntityQueryToken.type,
+            ),
         )
 
     def properties(self) -> UntypedQueryPath:

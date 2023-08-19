@@ -1,5 +1,4 @@
 [blockprotocol/blockprotocol repo]: https://github.com/blockprotocol/blockprotocol
-[repository guidelines]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_star]: https://github.com/hashintel/hash/tree/main/apps#
@@ -42,9 +41,9 @@ The application depends on a suite of constituent services, which are briefly de
 
 We will be moving the `engine` project to a [new home](https://github.com/hashintel/labs/tree/main/apps/sim-engine) in our [`labs` repository](https://github.com/hashintel/labs) shortly.
 
-| Subdirectory           | Description                                                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| [`engine`](engine)     | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
+| Subdirectory       | Description                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| [`engine`](engine) | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 
 ## Websites
 
