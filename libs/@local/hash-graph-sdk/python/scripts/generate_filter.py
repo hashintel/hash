@@ -608,6 +608,11 @@ module = ast.Module(
     type_ignores=[],
 )
 
-contents = ast.unparse(ast.fix_missing_locations(module))
+output = ast.unparse(ast.fix_missing_locations(module))
 
-(DIRECTORY / "graph_sdk" / "filter" / "path.py").write_text(contents)
+(DIRECTORY / "graph_sdk" / "filter" / "path.py").write_text(f"""
+# =========================================
+# THIS FILE IS GENERATED, DO NOT CHANGE IT!
+# =========================================
+
+{output}""")

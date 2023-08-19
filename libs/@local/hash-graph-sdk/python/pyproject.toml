@@ -32,6 +32,7 @@ preview = true
 
 [tool.ruff]
 select = ["ALL"]
+extend-exclude = ["graph_sdk/client/blocking.py", "graph_sdk/filter/path.py"]
 ignore = [
     "D203", # this conflicts with `D211`
     "D213", # this conflicts with `D212`
