@@ -1,3 +1,7 @@
+# =========================================
+# THIS FILE IS GENERATED, DO NOT CHANGE IT!
+# =========================================
+
 """Blocking API for the Graph SDK.
 
 This is just a thin wrapper around the async API.
@@ -6,21 +10,46 @@ This is just a thin wrapper around the async API.
 the problem with that approach however is that users loose the ability to look
 at the source code)
 """
+from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
+from graph_sdk.utils import async_to_sync
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import Self, TypeVar
 from uuid import UUID
-
+from graph_client import GraphClient as LowLevelClient
 from graph_client.models import (
+    CreateDataTypeRequest,
+    CreateEntityTypeRequest,
+    CreatePropertyTypeRequest,
+    DataType,
+    DataTypeStructuralQuery,
+    EntityStructuralQuery,
+    EntityType,
+    EntityTypeStructuralQuery,
+    LoadExternalDataTypeRequest,
+    LoadExternalEntityTypeRequest,
+    LoadExternalPropertyTypeRequest,
     MaybeListOfOntologyElementMetadata,
     OntologyElementMetadata,
+    OwnedById,
+    PropertyType,
+    PropertyTypeStructuralQuery,
+    RecordCreatedById,
     Subgraph,
+    UpdateDataType,
+    UpdateDataTypeRequest,
+    UpdateEntityType,
+    UpdateEntityTypeRequest,
+    UpdatePropertyType,
+    UpdatePropertyTypeRequest,
+    VersionedURL,
 )
 from graph_types import DataTypeSchema, EntityTypeSchema, PropertyTypeSchema
+from pydantic_core._pydantic_core import Url
 from yarl import URL
-
-from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
+from graph_sdk.client._compat import recast
 from graph_sdk.options import Options
 from graph_sdk.query import BaseFilter
-from graph_sdk.utils import async_to_sync
 
 T = TypeVar("T")
 
@@ -51,9 +80,7 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_data_type(url))
 
     def create_data_types(
-        self,
-        models: list[DataTypeSchema],
-        owned_by_id: UUID,
+        self, models: list[DataTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create data types."""
         return async_to_sync(self.inner.create_data_types(models, owned_by_id))
@@ -71,16 +98,13 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_property_type(url))
 
     def create_property_types(
-        self,
-        models: list[PropertyTypeSchema],
-        owned_by_id: UUID,
+        self, models: list[PropertyTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create property types."""
         return async_to_sync(self.inner.create_property_types(models, owned_by_id))
 
     def update_property_type(
-        self,
-        model: PropertyTypeSchema,
+        self, model: PropertyTypeSchema
     ) -> OntologyElementMetadata:
         """Update a property type."""
         return async_to_sync(self.inner.update_property_type(model))
@@ -94,9 +118,7 @@ class HASHClient:
         return async_to_sync(self.inner.load_external_entity_type(url))
 
     def create_entity_types(
-        self,
-        models: list[EntityTypeSchema],
-        owned_by_id: UUID,
+        self, models: list[EntityTypeSchema], owned_by_id: UUID
     ) -> MaybeListOfOntologyElementMetadata:
         """Create entity types."""
         return async_to_sync(self.inner.create_entity_types(models, owned_by_id))
