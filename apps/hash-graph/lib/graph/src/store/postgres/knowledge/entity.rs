@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 use tokio_postgres::GenericClient;
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
@@ -11,10 +12,7 @@ use uuid::Uuid;
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, RightBoundedTemporalInterval, Timestamp},
-    },
+    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{

@@ -9,12 +9,12 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use temporal_versioning::{
+    ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+};
 
 use crate::{
-    identifier::{
-        ontology::OntologyTypeVersion,
-        time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
-    },
+    identifier::ontology::OntologyTypeVersion,
     provenance::RecordCreatedById,
     snapshot::{
         account::AccountSender,

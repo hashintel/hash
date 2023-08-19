@@ -5,12 +5,12 @@ use async_trait::async_trait;
 use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
+use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, PropertyType};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    identifier::time::RightBoundedTemporalInterval,
     ontology::{
         OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,

@@ -832,7 +832,6 @@ dependencies = [
  "mime",
  "opentelemetry",
  "opentelemetry-otlp",
- "postgres-protocol",
  "postgres-types",
  "refinery",
  "regex",
@@ -840,6 +839,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tarpc",
+ "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
@@ -871,6 +871,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "temporal-versioning",
  "tokio",
  "tokio-postgres",
  "type-system",
@@ -888,6 +889,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
@@ -2285,6 +2287,19 @@ dependencies = [
  "redox_syscall",
  "rustix",
  "windows-sys",
+]
+
+[[package]]
+name = "temporal-versioning"
+version = "0.0.0"
+dependencies = [
+ "derivative",
+ "postgres-protocol",
+ "postgres-types",
+ "serde",
+ "time",
+ "tracing",
+ "utoipa",
 ]
 
 [[package]]

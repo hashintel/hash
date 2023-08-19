@@ -1,11 +1,12 @@
 use std::collections::hash_map::{RandomState, RawEntryMut};
 
 use serde::Serialize;
+use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint},

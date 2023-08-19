@@ -11,6 +11,7 @@ use std::iter::once;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
+use temporal_versioning::{LeftClosedTemporalInterval, TimeAxis, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     repr,
@@ -29,10 +30,7 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{
-        ontology::OntologyTypeRecordId,
-        time::{LeftClosedTemporalInterval, TimeAxis, TransactionTime},
-    },
+    identifier::ontology::OntologyTypeRecordId,
     provenance::{OwnedById, ProvenanceMetadata},
     store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
@@ -388,7 +386,7 @@ pub enum CustomOntologyMetadata {
         provenance: ProvenanceMetadata,
         temporal_versioning: OntologyTemporalMetadata,
         #[schema(value_type = String)]
-        #[serde(with = "crate::serde::time")]
+        #[serde(with = "temporal_versioning::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }

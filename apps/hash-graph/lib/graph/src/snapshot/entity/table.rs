@@ -1,11 +1,8 @@
 use postgres_types::ToSql;
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 
 use crate::{
-    identifier::{
-        knowledge::EntityEditionId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, LeftClosedTemporalInterval, TransactionTime},
-    },
+    identifier::{knowledge::EntityEditionId, ontology::OntologyTypeVersion},
     knowledge::{EntityProperties, EntityUuid, LinkOrder},
     provenance::{OwnedById, RecordCreatedById},
 };

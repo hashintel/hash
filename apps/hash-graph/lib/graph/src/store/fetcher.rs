@@ -7,6 +7,7 @@ use std::{
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use tarpc::context;
+use temporal_versioning::{DecisionTime, Timestamp};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
@@ -16,12 +17,7 @@ use type_system::{
 };
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, Timestamp},
-    },
+    identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeMetadata,

@@ -8,6 +8,9 @@ mod traversal_context;
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use temporal_versioning::{DecisionTime, Timestamp};
+use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -22,11 +25,16 @@ pub use self::{
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,
 };
+#[cfg(hash_graph_test_environment)]
+use crate::{
+    identifier::knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
+    knowledge::{EntityProperties, LinkOrder},
+    store::error::DeletionError,
+};
 use crate::{
     identifier::{
         account::AccountId,
         ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::{LeftClosedTemporalInterval, TransactionTime},
     },
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
@@ -39,15 +47,6 @@ use crate::{
         AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError,
         StoreError, UpdateError,
     },
-};
-#[cfg(hash_graph_test_environment)]
-use crate::{
-    identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityTemporalMetadata},
-        time::{DecisionTime, Timestamp},
-    },
-    knowledge::{EntityProperties, LinkOrder},
-    store::error::DeletionError,
 };
 
 /// A Postgres-backed store

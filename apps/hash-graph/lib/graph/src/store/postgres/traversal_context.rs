@@ -1,9 +1,10 @@
 use std::{collections::HashMap, hash::Hash};
 
 use error_stack::Result;
+use temporal_versioning::RightBoundedTemporalInterval;
 
 use crate::{
-    identifier::{knowledge::EntityEditionId, time::RightBoundedTemporalInterval},
+    identifier::knowledge::EntityEditionId,
     knowledge::{Entity, EntityQueryPath},
     ontology::{
         DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,

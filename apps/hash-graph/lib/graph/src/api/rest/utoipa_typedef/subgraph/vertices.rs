@@ -1,6 +1,7 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
 use serde::Serialize;
+use temporal_versioning::Timestamp;
 use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
@@ -9,7 +10,7 @@ use utoipa::{
 
 pub use self::vertex::*;
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
+    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
     subgraph::temporal_axes::VariableAxis,
 };
 

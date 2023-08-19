@@ -30,6 +30,10 @@ use axum::{
 };
 use error_stack::{IntoReport, Report, ResultExt};
 use include_dir::{include_dir, Dir};
+use temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
@@ -51,14 +55,7 @@ use crate::{
             MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::{
-            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, RightBoundedTemporalInterval,
-            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
-        },
-    },
+    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
     ontology::{
         domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
         EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
@@ -75,7 +72,10 @@ use crate::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
             GraphElementVertexId, PropertyTypeVertexId,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
     },
 };
 
