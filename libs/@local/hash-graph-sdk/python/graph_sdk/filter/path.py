@@ -1,17 +1,18 @@
+# =========================================
+# THIS FILE IS GENERATED, DO NOT CHANGE IT!
+# =========================================
+
 """Definitions for all path objects.
 
-This file is auto-generated. Do not edit!
-"""
+This file is auto-generated. Do not edit!"""
 from typing import Self
-
 from graph_client.models import (
     DataTypeQueryToken,
-    EntityQueryToken,
-    EntityTypeQueryToken,
     PropertyTypeQueryToken,
+    EntityTypeQueryToken,
+    EntityQueryToken,
 )
-
-from graph_sdk.filter.base import AbstractQueryPath, SelectorQueryPath, UntypedQueryPath
+from graph_sdk.filter.base import AbstractQueryPath, UntypedQueryPath, SelectorQueryPath
 from graph_sdk.query import Path
 
 
@@ -182,7 +183,7 @@ class EntityTypeQueryPath(AbstractQueryPath):
         return self.path.push(
             f"{EntityTypeQueryToken.children}({', '.join(args)})"
             if args
-            else EntityTypeQueryToken.children,
+            else EntityTypeQueryToken.children
         )
 
 
@@ -218,8 +219,8 @@ class EntityQueryPath(AbstractQueryPath):
             self.path.push(
                 f"{EntityQueryToken.type}({', '.join(args)})"
                 if args
-                else EntityQueryToken.type,
-            ),
+                else EntityQueryToken.type
+            )
         )
 
     def properties(self) -> UntypedQueryPath:

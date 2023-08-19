@@ -2,11 +2,17 @@
   "extends": ["//"],
   "pipeline": {
     "codegen:blocking": {
-      "inputs": ["./graph_sdk/client/concurrent.py"],
+      "inputs": [
+        "./graph_sdk/client/concurrent.py",
+        "./scripts/generate_blocking.py"
+      ],
       "outputs": ["./graph_sdk/client/blocking.py"]
     },
     "codegen:filter": {
-      "inputs": ["../../../../apps/hash-graph/openapi/openapi.json"],
+      "inputs": [
+        "../../../../apps/hash-graph/openapi/openapi.json",
+        "./scripts/generate_filter.py"
+      ],
       "outputs": ["./graph_sdk/filter/path.py"]
     },
     "codegen": {
