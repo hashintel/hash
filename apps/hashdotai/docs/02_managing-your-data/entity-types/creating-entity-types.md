@@ -27,9 +27,9 @@ Creating a new Entity Type lets you define the shape of some new data you want t
 
 1.  Click ‘Add a link type’ to define a link which can be created between Entities of this Entity Type. Like with Property Types, the Link Type window will suggest shared public Link Types you may wish to use. If you select to create a new Link Type, you’ll also need to give it a name and description.
 
-1.  Click “Create new link type”. Back in the Link Types table, you’ll notice that the Expected Entity Type field shows “* Anything”. This means that links of this type can be created with Entities of any type.
+1.  Click “Create new link type”. Back in the Link Types table, you’ll notice that the Expected Entity Type field shows “\* Anything”. This means that links of this type can be created with Entities of any type.
 
-1.  Click “* Anything” in the Expected Entity Types field. You’ll now see a set of suggested Entity Types which you can use to constrain this Link Type. You can’t create a new Entity Type from this interface. If you want to constraint this Link Type to an Entity Type which doesn’t exist yet, you will need to create it separately first.
+1.  Click “\* Anything” in the Expected Entity Types field. You’ll now see a set of suggested Entity Types which you can use to constrain this Link Type. You can’t create a new Entity Type from this interface. If you want to constraint this Link Type to an Entity Type which doesn’t exist yet, you will need to create it separately first.
 
 1.  Click “0 or more” under Allowed number of links back on the Link Type table. This field lets you define a minimum and maximum number of links of this Link Type.
 

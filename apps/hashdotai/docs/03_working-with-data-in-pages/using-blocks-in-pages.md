@@ -46,6 +46,7 @@ The [+] button, which appears above and below a Block on hover, also lets you in
 Since each block is different, and published by a different developer, they each have unique user experiences. However, they will typically follow one of two life cycles:
 
 1.  **Operating on existing data lifecycle**
+
     1.  The block will query your Workspace and ask you to select which Entity Types, Entities, or Links you want to use with it.
     1.  After you have selected which data to use, the block will render that data and give you further manipulation and rendering options, depending on what the block is for.
 

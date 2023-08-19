@@ -24,6 +24,7 @@ Entity Types in HASH are versioned, enabling your schemas to evolve with your kn
 1.  Click into one of those Entities and you’ll see a “Types” heading indicating that there’s a newer version of the Entity Type available. You can click the name of the Entity Type to go to its page and inspect the new version.
 
 1.  Click the update button to update this Entity to the new Entity Type version. A modal will pop up to make sure you understand the potential consequences of this update:
+
     1.  If Property Types or Link Types have been removed in the new version of the Entity Type, they will be removed from this Entity, along with any Data values.
     1.  If any Property Types’ Data Types have been changed, any existing Data values which don’t conform to the new Data Type will be removed or unset.
     1.  If existing Property Types have been changed from not required to required and the Entity doesn’t have a Data value set for those Property Types, you will still be able to upgrade the Entity Type. Data values will not be set automatically and no problems occur, but you should manually add values to make sure the Entity is compliant with its Entity Type.
