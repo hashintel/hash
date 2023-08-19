@@ -1031,7 +1031,7 @@ class QueryTemporalAxes(RootModel):
             " contain temporal data that is contained in the [`Interval`] of"
             " the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the"
             " [`PinnedTemporalAxis`].\n\n[`Subgraph`]:"
-            " crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
+            " crate::subgraph::Subgraph\n[`Interval`]: temporal_versioning::Interval"
         ),
     )
 
