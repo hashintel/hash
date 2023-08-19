@@ -1492,7 +1492,7 @@ describe("logged in user ", () => {
         await client.getAccountPagesTree({
           accountId: existingUser.accountId,
         })
-      ).map((page) => ({ children: undefined, ...page } as TreeElement));
+      ).map((page) => ({ children: undefined, ...page }) as TreeElement);
 
       const treePages = treeFromParentReferences(
         pages,
