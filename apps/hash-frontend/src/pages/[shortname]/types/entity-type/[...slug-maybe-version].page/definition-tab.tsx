@@ -41,8 +41,12 @@ export const DefinitionTab = ({
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
 
   const [entityTypeOptionsWithMetadata, entityTypeOptions] = useMemo(() => {
+    if (!entityTypesContext.entityTypes) {
+      return [];
+    }
+
     const entityTypesWithMetadata = Object.fromEntries(
-      (entityTypesContext.entityTypes ?? []).map((entityType) => [
+      entityTypesContext.entityTypes.map((entityType) => [
         entityType.schema.$id,
         entityType,
       ]),
@@ -66,6 +70,10 @@ export const DefinitionTab = ({
     ownedById ?? null,
     typesWithMetadata,
   );
+
+  if (!entityTypeOptions) {
+    return null;
+  }
 
   return (
     <EntityTypeEditor

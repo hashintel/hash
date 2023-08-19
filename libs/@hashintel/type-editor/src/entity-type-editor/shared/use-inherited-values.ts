@@ -95,7 +95,7 @@ const addInheritedValuesForEntityType = (
 export const useInheritedValues = (): InheritedValues => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
-  const { entityTypes } = useEntityTypesOptions();
+  const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   const directParentIds = useWatch({
     control,
@@ -105,11 +105,15 @@ export const useInheritedValues = (): InheritedValues => {
   return useMemo(() => {
     const inheritedValuesMap: ValueMap = { links: {}, properties: {} };
     for (const parent of directParentIds) {
-      addInheritedValuesForEntityType(parent, entityTypes, inheritedValuesMap);
+      addInheritedValuesForEntityType(
+        parent,
+        { ...entityTypes, ...linkTypes },
+        inheritedValuesMap,
+      );
     }
     return {
       links: Object.values(inheritedValuesMap.links),
       properties: Object.values(inheritedValuesMap.properties),
     };
-  }, [directParentIds, entityTypes]);
+  }, [directParentIds, entityTypes, linkTypes]);
 };

@@ -134,7 +134,9 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               color: ({ palette }) => palette.gray[60],
             }}
           />
-          <strong>This page was archived</strong>
+          <strong>
+            This {isItemEntityType(item) ? "type" : "page"} was archived
+          </strong>
           {archivedByUser ? (
             <>
               {" by "}

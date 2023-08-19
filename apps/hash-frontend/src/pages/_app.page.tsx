@@ -26,7 +26,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ModalProvider } from "react-modal-hook";
 
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -138,23 +137,21 @@ const App: FunctionComponent<AppProps> = ({
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <ModalProvider>
-              <RouteWorkspaceInfoProvider>
-                <RoutePageInfoProvider>
-                  <WorkspaceContextProvider>
-                    <SnackbarProvider maxSnack={3}>
-                      <EntityTypesContextProvider>
-                        <LatestPropertyTypesContextProvider>
-                          <SidebarContextProvider>
-                            {getLayout(<Component {...pageProps} />)}
-                          </SidebarContextProvider>
-                        </LatestPropertyTypesContextProvider>
-                      </EntityTypesContextProvider>
-                    </SnackbarProvider>
-                  </WorkspaceContextProvider>
-                </RoutePageInfoProvider>
-              </RouteWorkspaceInfoProvider>
-            </ModalProvider>
+            <RouteWorkspaceInfoProvider>
+              <RoutePageInfoProvider>
+                <WorkspaceContextProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    <EntityTypesContextProvider>
+                      <LatestPropertyTypesContextProvider>
+                        <SidebarContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </SidebarContextProvider>
+                      </LatestPropertyTypesContextProvider>
+                    </EntityTypesContextProvider>
+                  </SnackbarProvider>
+                </WorkspaceContextProvider>
+              </RoutePageInfoProvider>
+            </RouteWorkspaceInfoProvider>
           </ThemeProvider>
         </CacheProvider>
         {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}

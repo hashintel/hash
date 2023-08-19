@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 
 interface SectionEmptyStateProps {
   title: string;
-  titleIcon: ReactNode;
+  titleIcon?: ReactNode;
   description: string;
 }
 
