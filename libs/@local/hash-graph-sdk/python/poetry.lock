@@ -199,7 +199,7 @@ files = []
 develop = true
 
 [package.dependencies]
-pydantic = "^2.0"
+pydantic = "^2.1"
 pydantic_core = "^2.0"
 python-slugify = "^8.0"
 types-python-slugify = "^8.0"
