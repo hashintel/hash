@@ -26,7 +26,7 @@ use crate::{
             TraversalContext,
         },
         AsClient, ConflictBehavior, InsertionError, PostgresStore, PropertyTypeStore, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},

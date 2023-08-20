@@ -100,8 +100,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_data::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: graph_data::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
@@ -115,8 +115,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_data::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
@@ -130,8 +130,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordArchivedById`]: graph_data::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`EntityType::title()`].
     ///
@@ -422,7 +422,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`EntityType`]: type_system::PropertyType
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`Entity`]: graph_data::knowledge::entity::Entity
     EntityEdge {
         edge_kind: SharedEdgeKind,
         path: Box<EntityQueryPath<'p>>,

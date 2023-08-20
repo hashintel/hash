@@ -3,9 +3,6 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::{
-    identifier::account::AccountId,
-    knowledge::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
-    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -15,6 +12,11 @@ use graph::{
             VariableTemporalAxisUnresolved,
         },
     },
+};
+use graph_data::{
+    account::AccountId,
+    knowledge::entity::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
+    provenance::{OwnedById, RecordCreatedById},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};

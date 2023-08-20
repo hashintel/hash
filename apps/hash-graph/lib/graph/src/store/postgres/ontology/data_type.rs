@@ -22,7 +22,7 @@ use crate::{
         crud::Read,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,

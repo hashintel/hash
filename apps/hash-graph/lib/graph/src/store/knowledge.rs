@@ -16,7 +16,7 @@ use crate::{
 
 /// Describes the API of a store implementation for [Entities].
 ///
-/// [Entities]: crate::knowledge::Entity
+/// [Entities]: Entity
 #[async_trait]
 pub trait EntityStore: crud::Read<Entity> {
     /// Creates a new [`Entity`].

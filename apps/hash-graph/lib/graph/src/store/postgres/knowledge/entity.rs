@@ -26,7 +26,7 @@ use crate::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},

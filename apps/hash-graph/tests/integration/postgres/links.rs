@@ -1,4 +1,4 @@
-use graph::knowledge::{EntityLinkOrder, EntityProperties};
+use graph_data::knowledge::entity::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::url::{BaseUrl, VersionedUrl};
 

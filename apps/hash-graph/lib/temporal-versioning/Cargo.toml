@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+bytes = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true, optional = true }
 postgres-types = { workspace = true, features = ["with-time-0_3"], optional = true }
@@ -15,5 +16,5 @@ derivative = "2.2.0"
 postgres-protocol = { version = "0.6.5", default-features = false, optional = true }
 
 [features]
-postgres = ["dep:postgres-types", "dep:postgres-protocol", "dep:tracing"]
+postgres = ["dep:bytes", "dep:postgres-types", "dep:postgres-protocol", "dep:tracing"]
 utoipa = ["dep:utoipa"]

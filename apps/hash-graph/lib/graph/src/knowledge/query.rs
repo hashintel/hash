@@ -5,7 +5,7 @@ use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
-use temporal_versioning::{ClosedTemporalBound, TimeAxis};
+use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
 use utoipa::ToSchema;
 
 use crate::{
@@ -33,9 +33,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityUuid`]: crate::knowledge::EntityUuid
-    /// [`EntityId`]: crate::identifier::knowledge::EntityId
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`EntityUuid`]: graph_data::knowledge::entity::EntityUuid
+    /// [`EntityId`]: graph_data::knowledge::entity::EntityId
     Uuid,
     /// The [`OwnedById`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -48,9 +47,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    /// [`EntityId`]: crate::identifier::knowledge::EntityId
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`OwnedById`]: graph_data::provenance::OwnedById
+    /// [`EntityId`]: graph_data::knowledge::entity::EntityId
     OwnedById,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
@@ -63,9 +61,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
-    /// [`EntityRecordId`]: crate::identifier::knowledge::EntityRecordId
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`EntityEditionId`]: graph_data::knowledge::entity::EntityEditionId
+    /// [`EntityRecordId`]: graph_data::knowledge::entity::EntityRecordId
     EditionId,
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -74,9 +71,8 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
-    /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`EntityMetadata`]: graph_data::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_data::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -85,9 +81,8 @@ pub enum EntityQueryPath<'p> {
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: crate::knowledge::EntityMetadata
-    /// [`EntityTemporalMetadata`]: crate::identifier::knowledge::EntityTemporalMetadata
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`EntityMetadata`]: graph_data::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_data::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.
     ///
@@ -99,8 +94,6 @@ pub enum EntityQueryPath<'p> {
     /// assert_eq!(path, EntityQueryPath::Archived);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
     Archived,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
     ///
@@ -113,9 +106,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`RecordCreatedById`]: graph_data::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -154,15 +146,12 @@ pub enum EntityQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::PropertyType
-    /// [`Entity`]: crate::knowledge::Entity
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
         path: EntityTypeQueryPath<'p>,
         inheritance_depth: Option<u32>,
     },
     /// An edge between two [`Entities`][`Entity`] using a [`KnowledgeGraphEdgeKind`].
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
     ///
     ///
     /// # Left entity
@@ -185,7 +174,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id()`]: crate::knowledge::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id()`]: graph_data::knowledge::entity::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
@@ -208,7 +197,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id()`]: graph_data::knowledge::entity::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links
@@ -269,7 +258,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::left_to_right`]: crate::knowledge::EntityLinkOrder::left_to_right
+    /// [`EntityLinkOrder::left_to_right`]: graph_data::knowledge::entity::EntityLinkOrder::left_to_right
     LeftToRightOrder,
     /// Corresponds to [`EntityLinkOrder::right_to_left`].
     ///
@@ -282,7 +271,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::right_to_left`]: crate::knowledge::EntityLinkOrder::right_to_left
+    /// [`EntityLinkOrder::right_to_left`]: graph_data::knowledge::entity::EntityLinkOrder::right_to_left
     RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///
@@ -305,9 +294,6 @@ pub enum EntityQueryPath<'p> {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
-    /// [`Entity::properties`]: crate::knowledge::Entity::properties
     Properties(Option<JsonPath<'p>>),
 }
 

@@ -10,17 +10,20 @@ use clap::Parser;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use graph::{
     api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
-    identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::{
-        domain_validator::DomainValidator, PartialCustomEntityTypeMetadata,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
-    },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
+    ontology::domain_validator::DomainValidator,
     store::{
         error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, DatabaseConnectionInfo,
         EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
     },
+};
+use graph_data::{
+    account::AccountId,
+    ontology::{
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordCreatedById},
 };
 use regex::Regex;
 use reqwest::Client;

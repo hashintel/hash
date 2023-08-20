@@ -7,7 +7,7 @@ use graph_data::{
     account::AccountId,
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
+        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, OntologyTypeWithMetadata,
         PropertyTypeWithMetadata,
     },
@@ -24,7 +24,7 @@ use type_system::{
 };
 
 use crate::{
-    ontology::EntityTypeQueryPath,
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     snapshot::OntologyTypeSnapshotRecord,
     store::{
         crud::Read,
@@ -71,17 +71,11 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient, T> Read<OntologyTypeSnapshotRecord<T>> for PostgresStore<C>
-where
-    T: OntologyType<Representation: Send, Metadata = OntologyElementMetadata>,
-    OntologyTypeWithMetadata<T>: PostgresRecord,
-    for<'p> <OntologyTypeWithMetadata<T> as Record>::QueryPath<'p>:
-        OntologyQueryPath + PostgresQueryPath,
-{
-    type Record = OntologyTypeWithMetadata<T>;
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C> {
+    type Record = DataTypeWithMetadata;
 
     type ReadStream =
-        impl Stream<Item = Result<OntologyTypeSnapshotRecord<T>, QueryError>> + Send + Sync;
+        impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType>, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -89,46 +83,136 @@ where
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let base_url_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::base_url();
-        let version_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::version();
-        let schema_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::schema();
-        let record_created_by_id_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::record_created_by_id();
-        let record_archived_by_id_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::record_archived_by_id();
-        let additional_metadata_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
-        let transaction_time_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::transaction_time();
-
         let mut compiler = SelectCompiler::new(temporal_axes);
 
         let base_url_index = compiler.add_distinct_selection_with_ordering(
-            &base_url_path,
+            &DataTypeQueryPath::BaseUrl,
             Distinctness::Distinct,
             None,
         );
         let version_index = compiler.add_distinct_selection_with_ordering(
-            &version_path,
+            &DataTypeQueryPath::Version,
             Distinctness::Distinct,
             None,
         );
         // It's possible to have multiple records with the same transaction time. We order them
         // descending so that the most recent record is returned first.
         let transaction_time_index = compiler.add_distinct_selection_with_ordering(
-            &transaction_time_path,
+            &DataTypeQueryPath::TransactionTime,
             Distinctness::Distinct,
             Some(Ordering::Descending),
         );
-        let schema_index = compiler.add_selection_path(&schema_path);
+        let schema_index = compiler.add_selection_path(&DataTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
-            compiler.add_selection_path(&record_created_by_id_path);
+            compiler.add_selection_path(&DataTypeQueryPath::RecordCreatedById);
         let record_archived_by_id_path_index =
-            compiler.add_selection_path(&record_archived_by_id_path);
-        let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
+            compiler.add_selection_path(&DataTypeQueryPath::RecordArchivedById);
+        let additional_metadata_index =
+            compiler.add_selection_path(&DataTypeQueryPath::AdditionalMetadata);
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        let stream = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .map(|row| row.into_report().change_context(QueryError))
+            .and_then(move |row| async move {
+                let additional_metadata: AdditionalOntologyMetadata =
+                    row.get(additional_metadata_index);
+
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
+
+                let temporal_versioning = OntologyTemporalMetadata {
+                    transaction_time: row.get(transaction_time_index),
+                };
+
+                let custom_metadata = match additional_metadata {
+                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
+                        CustomOntologyMetadata::Owned {
+                            provenance,
+                            temporal_versioning,
+                            owned_by_id,
+                        }
+                    }
+                    AdditionalOntologyMetadata::External { fetched_at } => {
+                        CustomOntologyMetadata::External {
+                            provenance,
+                            temporal_versioning,
+                            fetched_at,
+                        }
+                    }
+                };
+
+                Ok(OntologyTypeSnapshotRecord {
+                    schema: serde_json::from_value(row.get(schema_index))
+                        .into_report()
+                        .change_context(QueryError)?,
+                    metadata: OntologyElementMetadata {
+                        record_id: OntologyTypeRecordId {
+                            base_url: BaseUrl::new(row.get(base_url_index))
+                                .into_report()
+                                .change_context(QueryError)?,
+                            version: row.get(version_index),
+                        },
+                        custom: custom_metadata,
+                    },
+                })
+            });
+        Ok(stream)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresStore<C> {
+    type Record = PropertyTypeWithMetadata;
+
+    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType>, QueryError>>
+        + Send
+        + Sync;
+
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(
+        &self,
+        filter: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let mut compiler = SelectCompiler::new(temporal_axes);
+
+        let base_url_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::BaseUrl,
+            Distinctness::Distinct,
+            None,
+        );
+        let version_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::Version,
+            Distinctness::Distinct,
+            None,
+        );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
+        let schema_index = compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None));
+        let record_created_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::RecordCreatedById);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::RecordArchivedById);
+        let additional_metadata_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();

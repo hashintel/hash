@@ -868,6 +868,7 @@ dependencies = [
  "criterion-macro",
  "futures",
  "graph",
+ "graph-data",
  "graph-test-data",
  "rand",
  "serde",
@@ -903,6 +904,7 @@ dependencies = [
  "error-stack",
  "futures",
  "graph",
+ "graph-data",
  "graph-test-data",
  "rand",
  "serde",
@@ -954,6 +956,7 @@ dependencies = [
  "error-stack",
  "futures",
  "graph",
+ "graph-data",
  "regex",
  "reqwest",
  "semver",
@@ -2311,6 +2314,7 @@ dependencies = [
 name = "temporal-versioning"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "derivative",
  "postgres-protocol",
  "postgres-types",
