@@ -77,7 +77,7 @@ impl Transpile for SelectStatement {
 mod tests {
     use std::borrow::Cow;
 
-    use graph_data::{
+    use graph_types::{
         knowledge::entity::Entity,
         ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     };
@@ -985,7 +985,7 @@ mod tests {
     }
 
     mod predefined {
-        use graph_data::{
+        use graph_types::{
             account::AccountId,
             knowledge::entity::{EntityId, EntityUuid},
             ontology::OntologyTypeVersion,

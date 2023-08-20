@@ -1,6 +1,6 @@
 pub mod subgraph;
 
-use graph_data::ontology::{EntityTypeMetadata, OntologyElementMetadata};
+use graph_types::ontology::{EntityTypeMetadata, OntologyElementMetadata};
 use serde::{Deserialize, Serialize};
 use type_system::repr;
 use utoipa::{

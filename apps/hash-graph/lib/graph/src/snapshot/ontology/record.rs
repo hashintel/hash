@@ -1,4 +1,4 @@
-use graph_data::ontology::OntologyType;
+use graph_types::ontology::OntologyType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

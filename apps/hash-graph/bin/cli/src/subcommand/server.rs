@@ -17,7 +17,7 @@ use graph::{
         EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
     },
 };
-use graph_data::{
+use graph_types::{
     account::AccountId,
     ontology::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,

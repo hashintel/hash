@@ -43,7 +43,7 @@ impl Transpile for WhereExpression {
 mod tests {
     use std::borrow::Cow;
 
-    use graph_data::ontology::DataTypeWithMetadata;
+    use graph_types::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::{

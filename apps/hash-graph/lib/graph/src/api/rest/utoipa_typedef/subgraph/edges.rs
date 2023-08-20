@@ -3,7 +3,7 @@ use std::{
     hash::Hash,
 };
 
-use graph_data::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
+use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::BaseUrl;
@@ -241,7 +241,7 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
-    use graph_data::{
+    use graph_types::{
         account::AccountId,
         knowledge::entity::{EntityId, EntityUuid},
         ontology::OntologyTypeVersion,

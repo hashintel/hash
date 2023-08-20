@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error_stack::Result;
-use graph_data::account::AccountId;
+use graph_types::account::AccountId;
 
 use crate::store::InsertionError;
 

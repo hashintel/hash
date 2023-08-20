@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use axum::{http::StatusCode, routing::post, Extension, Router};
-use graph_data::account::AccountId;
+use graph_types::account::AccountId;
 use utoipa::OpenApi;
 use uuid::Uuid;
 

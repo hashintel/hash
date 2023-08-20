@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error_stack::Result;
-use graph_data::{
+use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},

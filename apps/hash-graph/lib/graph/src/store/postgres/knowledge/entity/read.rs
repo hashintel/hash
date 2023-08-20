@@ -3,7 +3,7 @@ use std::{borrow::Cow, mem::swap, str::FromStr};
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
-use graph_data::{
+use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{

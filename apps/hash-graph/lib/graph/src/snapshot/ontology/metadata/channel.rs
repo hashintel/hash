@@ -9,7 +9,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_data::ontology::{CustomOntologyMetadata, OntologyElementMetadata};
+use graph_types::ontology::{CustomOntologyMetadata, OntologyElementMetadata};
 use uuid::Uuid;
 
 use crate::snapshot::{

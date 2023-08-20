@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use graph_data::ontology::EntityTypeWithMetadata;
+use graph_types::ontology::EntityTypeWithMetadata;
 
 use crate::{
     ontology::EntityTypeQueryPath,

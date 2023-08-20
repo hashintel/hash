@@ -6,7 +6,7 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-graph-data = { workspace = true, features = ["postgres", "utoipa"] }
+graph-types = { workspace = true, features = ["postgres", "utoipa"] }
 temporal-versioning = { workspace = true, features = ["postgres", "utoipa"] }
 type-fetcher = { path = "../type-fetcher" }
 

@@ -13,12 +13,12 @@ use graph::{
         },
     },
 };
-use graph_data::{
+use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, RecordCreatedById},
 };
-use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

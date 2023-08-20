@@ -10,7 +10,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_data::account::AccountId;
+use graph_types::account::AccountId;
 
 use crate::snapshot::{
     account::{AccountRow, AccountRowBatch},

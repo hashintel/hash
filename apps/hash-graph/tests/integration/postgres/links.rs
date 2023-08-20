@@ -1,5 +1,5 @@
-use graph_data::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::knowledge::{entity::EntityProperties, link::EntityLinkOrder};
 use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::DatabaseTestWrapper;

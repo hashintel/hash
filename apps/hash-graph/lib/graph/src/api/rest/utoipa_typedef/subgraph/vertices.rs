@@ -1,6 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
-use graph_data::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
+use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::BaseUrl;

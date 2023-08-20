@@ -1,4 +1,4 @@
-use graph_data::{
+use graph_types::{
     knowledge::{
         entity::{EntityEditionId, EntityProperties, EntityUuid},
         link::LinkOrder,

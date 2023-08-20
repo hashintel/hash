@@ -36,7 +36,7 @@ use graph::{
         },
     },
 };
-use graph_data::{
+use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},

@@ -1,4 +1,4 @@
-use graph_data::{
+use graph_types::{
     knowledge::entity::Entity,
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,

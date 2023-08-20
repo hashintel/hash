@@ -103,8 +103,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`OwnedById`]: graph_data::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: graph_data::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: graph_types::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
@@ -118,8 +118,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`RecordCreatedById`]: graph_data::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
@@ -133,8 +133,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`RecordArchivedById`]: graph_data::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
+    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///

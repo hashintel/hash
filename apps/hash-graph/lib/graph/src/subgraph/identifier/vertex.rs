@@ -1,6 +1,6 @@
 use std::collections::hash_map::{RandomState, RawEntryMut};
 
-use graph_data::{
+use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,

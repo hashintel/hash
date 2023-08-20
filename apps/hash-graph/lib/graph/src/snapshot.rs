@@ -10,7 +10,7 @@ mod restore;
 use async_trait::async_trait;
 use error_stack::{ensure, Context, IntoReport, Report, Result, ResultExt};
 use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
-use graph_data::knowledge::entity::Entity;
+use graph_types::knowledge::entity::Entity;
 use hash_status::StatusCode;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;

@@ -6,8 +6,8 @@ publish = false
 
 [dev-dependencies]
 graph = { path = "../../lib/graph" }
-graph-data = { workspace = true }
 graph-test-data = { workspace = true }
+graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
 
 error-stack = { workspace = true }

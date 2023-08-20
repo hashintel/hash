@@ -9,10 +9,10 @@ mod traversal_context;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
-use graph_data::knowledge::entity::{
+use graph_types::knowledge::entity::{
     EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata,
 };
-use graph_data::{
+use graph_types::{
     account::AccountId,
     knowledge::link::LinkOrder,
     ontology::{

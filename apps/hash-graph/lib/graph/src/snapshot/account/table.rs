@@ -1,4 +1,4 @@
-use graph_data::account::AccountId;
+use graph_types::account::AccountId;
 use postgres_types::ToSql;
 
 #[derive(Debug, ToSql)]

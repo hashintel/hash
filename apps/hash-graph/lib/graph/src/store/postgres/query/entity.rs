@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use graph_data::knowledge::entity::Entity;
+use graph_types::knowledge::entity::Entity;
 
 use crate::{
     knowledge::EntityQueryPath,

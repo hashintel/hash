@@ -6,7 +6,7 @@ mod read;
 
 #[cfg(hash_graph_test_environment)]
 use error_stack::{IntoReport, Result, ResultExt};
-use graph_data::ontology::OntologyType;
+use graph_types::ontology::OntologyType;
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
 

@@ -149,7 +149,7 @@ impl Transpile for Condition {
 mod tests {
     use std::borrow::Cow;
 
-    use graph_data::ontology::DataTypeWithMetadata;
+    use graph_types::ontology::DataTypeWithMetadata;
     use postgres_types::ToSql;
 
     use crate::{

@@ -9,7 +9,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_data::ontology::{OntologyElementMetadata, OntologyTypeVersion};
+use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
 use postgres_types::Json;
 use type_system::EntityType;
 use uuid::Uuid;

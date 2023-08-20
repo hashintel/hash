@@ -1,4 +1,4 @@
-use graph_data::{
+use graph_types::{
     ontology::OntologyTypeVersion,
     provenance::{OwnedById, RecordArchivedById, RecordCreatedById},
 };

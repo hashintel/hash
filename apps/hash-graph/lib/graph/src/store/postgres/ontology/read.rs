@@ -3,7 +3,7 @@ use std::{borrow::Cow, error::Error};
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
-use graph_data::{
+use graph_types::{
     account::AccountId,
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,

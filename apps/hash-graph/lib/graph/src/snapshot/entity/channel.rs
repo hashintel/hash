@@ -9,7 +9,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_data::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
+use graph_types::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
 };

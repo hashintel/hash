@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
 use error_stack::{bail, Context, IntoReport, Report, ResultExt};
-use graph_data::{
+use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::OntologyTypeVersion,
 };
@@ -316,7 +316,7 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use graph_data::{
+    use graph_types::{
         account::AccountId,
         knowledge::entity::{EntityId, EntityUuid},
         ontology::DataTypeWithMetadata,

@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use graph_data::knowledge::entity::Entity;
+use graph_types::knowledge::entity::Entity;
 use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
@@ -33,8 +33,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityUuid`]: graph_data::knowledge::entity::EntityUuid
-    /// [`EntityId`]: graph_data::knowledge::entity::EntityId
+    /// [`EntityUuid`]: graph_types::knowledge::entity::EntityUuid
+    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     Uuid,
     /// The [`OwnedById`] of the [`EntityId`] belonging to the [`Entity`].
     ///
@@ -47,8 +47,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`OwnedById`]: graph_data::provenance::OwnedById
-    /// [`EntityId`]: graph_data::knowledge::entity::EntityId
+    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     OwnedById,
     /// The [`EntityEditionId`] of the [`EntityRecordId`] belonging to the [`Entity`].
     ///
@@ -61,8 +61,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityEditionId`]: graph_data::knowledge::entity::EntityEditionId
-    /// [`EntityRecordId`]: graph_data::knowledge::entity::EntityRecordId
+    /// [`EntityEditionId`]: graph_types::knowledge::entity::EntityEditionId
+    /// [`EntityRecordId`]: graph_types::knowledge::entity::EntityRecordId
     EditionId,
     /// The decision time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -71,8 +71,8 @@ pub enum EntityQueryPath<'p> {
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_data::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_data::knowledge::entity::EntityTemporalMetadata
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
     /// The transaction time axis of the [`EntityTemporalMetadata`] belonging to the [`Entity`].
     ///
@@ -81,8 +81,8 @@ pub enum EntityQueryPath<'p> {
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
     /// [`StructuralQuery`]: crate::subgraph::query::StructuralQuery
-    /// [`EntityMetadata`]: graph_data::knowledge::entity::EntityMetadata
-    /// [`EntityTemporalMetadata`]: graph_data::knowledge::entity::EntityTemporalMetadata
+    /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
+    /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
     /// Whether or not the [`Entity`] is archived.
     ///
@@ -106,8 +106,8 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`RecordCreatedById`]: graph_data::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: graph_data::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -174,7 +174,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id()`]: graph_data::knowledge::link::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id()`]: graph_types::knowledge::link::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
@@ -197,7 +197,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id()`]: graph_data::knowledge::link::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id()`]: graph_types::knowledge::link::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links
@@ -258,7 +258,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::left_to_right`]: graph_data::knowledge::link::EntityLinkOrder::left_to_right
+    /// [`EntityLinkOrder::left_to_right`]: graph_types::knowledge::link::EntityLinkOrder::left_to_right
     LeftToRightOrder,
     /// Corresponds to [`EntityLinkOrder::right_to_left`].
     ///
@@ -271,7 +271,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::right_to_left`]: graph_data::knowledge::link::EntityLinkOrder::right_to_left
+    /// [`EntityLinkOrder::right_to_left`]: graph_types::knowledge::link::EntityLinkOrder::right_to_left
     RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///

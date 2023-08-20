@@ -5,7 +5,8 @@ use std::{
 };
 
 use graph::store::{AccountStore, AsClient, EntityStore};
-use graph_data::{
+use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{EntityProperties, EntityUuid},
@@ -13,7 +14,6 @@ use graph_data::{
     },
     provenance::{OwnedById, RecordCreatedById},
 };
-use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{repr, url::VersionedUrl, EntityType};
 use uuid::Uuid;
 

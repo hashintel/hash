@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use derivative::Derivative;
-use graph_data::{
+use graph_types::{
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };

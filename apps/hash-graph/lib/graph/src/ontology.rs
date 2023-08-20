@@ -8,7 +8,7 @@ mod property_type;
 use core::fmt;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use graph_data::ontology::{
+use graph_types::ontology::{
     DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType, PropertyTypeWithMetadata,
 };
 use serde::Deserialize;

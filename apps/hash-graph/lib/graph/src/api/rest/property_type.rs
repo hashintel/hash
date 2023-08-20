@@ -9,7 +9,7 @@ use axum::{
 };
 use error_stack::IntoReport;
 use futures::TryFutureExt;
-use graph_data::{
+use graph_types::{
     ontology::{
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
         PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,

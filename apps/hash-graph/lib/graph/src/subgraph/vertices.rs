@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use graph_data::{
+use graph_types::{
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };

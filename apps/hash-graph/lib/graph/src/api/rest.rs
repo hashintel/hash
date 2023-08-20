@@ -29,7 +29,7 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::{IntoReport, Report, ResultExt};
-use graph_data::{
+use graph_types::{
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,

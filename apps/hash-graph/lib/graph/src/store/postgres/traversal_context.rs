@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::Hash};
 
 use error_stack::Result;
-use graph_data::{
+use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };

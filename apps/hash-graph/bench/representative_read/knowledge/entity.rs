@@ -16,7 +16,7 @@ use graph::{
         },
     },
 };
-use graph_data::knowledge::entity::EntityUuid;
+use graph_types::knowledge::entity::EntityUuid;
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

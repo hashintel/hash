@@ -3,7 +3,7 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
-use graph_data::knowledge::entity::EntityId;
+use graph_types::knowledge::entity::EntityId;
 use temporal_versioning::LeftClosedTemporalInterval;
 
 use crate::subgraph::{

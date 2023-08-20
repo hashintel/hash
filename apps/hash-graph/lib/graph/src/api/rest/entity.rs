@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
-use graph_data::{
+use graph_types::{
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,

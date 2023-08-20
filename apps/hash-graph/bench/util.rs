@@ -4,7 +4,7 @@ use graph::store::{
     AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
     EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
 };
-use graph_data::{
+use graph_types::{
     account::AccountId,
     ontology::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,

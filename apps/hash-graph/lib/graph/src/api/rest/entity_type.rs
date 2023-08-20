@@ -9,7 +9,7 @@ use axum::{
     Extension, Router,
 };
 use futures::TryFutureExt;
-use graph_data::{
+use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, OntologyTypeReference, PartialCustomEntityTypeMetadata,

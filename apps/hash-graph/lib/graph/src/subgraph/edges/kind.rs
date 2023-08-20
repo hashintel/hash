@@ -103,11 +103,11 @@ pub enum KnowledgeGraphEdgeKind {
     /// The `reverse` of this would be the equivalent of saying an [`Entity`] has an outgoing
     /// `Link` [`Entity`].
     ///
-    /// [`Entity`]: graph_data::knowledge::entity::Entity
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     HasLeftEntity,
     /// This link [`Entity`] has another [`Entity`] on its 'right' endpoint.
     ///
-    /// [`Entity`]: graph_data::knowledge::entity::Entity
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     HasRightEntity,
 }
 
@@ -127,7 +127,7 @@ impl EdgeKind<EntityVertexId, EntityIdWithInterval> for KnowledgeGraphEdgeKind {
 pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`].
     ///
-    /// [`Entity`]: graph_data::knowledge::entity::Entity
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::EntityType
     IsOfType,
 }

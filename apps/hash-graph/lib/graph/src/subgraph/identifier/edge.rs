@@ -1,4 +1,4 @@
-use graph_data::knowledge::entity::EntityId;
+use graph_types::knowledge::entity::EntityId;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::LeftClosedTemporalInterval;
 use utoipa::ToSchema;
