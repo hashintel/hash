@@ -174,7 +174,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_entity_id()`]: graph_data::knowledge::entity::LinkData::left_entity_id
+    /// [`LinkData::left_entity_id()`]: graph_data::knowledge::link::LinkData::left_entity_id
     ///
     ///
     /// # Right entity
@@ -197,7 +197,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_entity_id()`]: graph_data::knowledge::entity::LinkData::right_entity_id
+    /// [`LinkData::right_entity_id()`]: graph_data::knowledge::link::LinkData::right_entity_id
     ///
     ///
     /// # Incoming links
@@ -258,7 +258,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::left_to_right`]: graph_data::knowledge::entity::EntityLinkOrder::left_to_right
+    /// [`EntityLinkOrder::left_to_right`]: graph_data::knowledge::link::EntityLinkOrder::left_to_right
     LeftToRightOrder,
     /// Corresponds to [`EntityLinkOrder::right_to_left`].
     ///
@@ -271,7 +271,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`EntityLinkOrder::right_to_left`]: graph_data::knowledge::entity::EntityLinkOrder::right_to_left
+    /// [`EntityLinkOrder::right_to_left`]: graph_data::knowledge::link::EntityLinkOrder::right_to_left
     RightToLeftOrder,
     /// Corresponds to [`Entity::properties`].
     ///
