@@ -15,7 +15,10 @@ use graph::{
 };
 use graph_data::{
     account::AccountId,
-    knowledge::entity::{EntityLinkOrder, EntityMetadata, EntityProperties, LinkData},
+    knowledge::{
+        entity::{EntityMetadata, EntityProperties},
+        link::{EntityLinkOrder, LinkData},
+    },
     provenance::{OwnedById, RecordCreatedById},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

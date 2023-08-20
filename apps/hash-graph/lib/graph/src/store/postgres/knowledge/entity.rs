@@ -5,9 +5,12 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use graph_data::{
-    knowledge::entity::{
-        Entity, EntityEditionId, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties,
-        EntityRecordId, EntityTemporalMetadata, EntityUuid, LinkData,
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
 };

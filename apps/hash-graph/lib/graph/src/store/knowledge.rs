@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use graph_data::{
-    knowledge::entity::{
-        Entity, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData,
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, RecordCreatedById},
 };

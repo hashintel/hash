@@ -5,9 +5,12 @@ use std::sync::Arc;
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
 use graph_data::{
-    knowledge::entity::{
-        Entity, EntityEditionId, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties,
-        EntityRecordId, EntityTemporalMetadata, EntityUuid, LinkData, LinkOrder,
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData, LinkOrder},
     },
     provenance::{OwnedById, RecordCreatedById},
 };

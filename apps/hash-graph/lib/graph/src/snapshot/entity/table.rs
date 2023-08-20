@@ -1,5 +1,8 @@
 use graph_data::{
-    knowledge::entity::{EntityEditionId, EntityProperties, EntityUuid, LinkOrder},
+    knowledge::{
+        entity::{EntityEditionId, EntityProperties, EntityUuid},
+        link::LinkOrder,
+    },
     ontology::OntologyTypeVersion,
     provenance::{OwnedById, RecordCreatedById},
 };

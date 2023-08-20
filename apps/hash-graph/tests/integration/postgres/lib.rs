@@ -38,8 +38,9 @@ use graph::{
 };
 use graph_data::{
     account::AccountId,
-    knowledge::entity::{
-        Entity, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData,
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,

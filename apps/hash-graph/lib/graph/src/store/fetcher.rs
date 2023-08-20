@@ -8,8 +8,9 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use graph_data::{
     account::AccountId,
-    knowledge::entity::{
-        Entity, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData,
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,

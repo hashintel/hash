@@ -7,7 +7,10 @@ use std::{
 use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_data::{
     account::AccountId,
-    knowledge::entity::{EntityLinkOrder, EntityProperties, EntityUuid, LinkData},
+    knowledge::{
+        entity::{EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
+    },
     provenance::{OwnedById, RecordCreatedById},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

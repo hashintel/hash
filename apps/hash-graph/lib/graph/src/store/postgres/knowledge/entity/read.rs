@@ -5,9 +5,12 @@ use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_data::{
     account::AccountId,
-    knowledge::entity::{
-        Entity, EntityEditionId, EntityId, EntityLinkOrder, EntityMetadata, EntityRecordId,
-        EntityTemporalMetadata, EntityUuid, LinkData,
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
 };

@@ -10,10 +10,11 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_data::knowledge::entity::{
-    EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata, LinkOrder,
+    EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata,
 };
 use graph_data::{
     account::AccountId,
+    knowledge::link::LinkOrder,
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,

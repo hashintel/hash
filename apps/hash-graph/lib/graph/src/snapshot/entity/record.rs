@@ -1,6 +1,7 @@
 use graph_data::{
-    knowledge::entity::{
-        Entity, EntityProperties, EntityRecordId, EntityTemporalMetadata, LinkData,
+    knowledge::{
+        entity::{Entity, EntityProperties, EntityRecordId, EntityTemporalMetadata},
+        link::LinkData,
     },
     provenance::ProvenanceMetadata,
 };
