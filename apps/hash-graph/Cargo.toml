@@ -31,7 +31,7 @@ utoipa = "3.3.0"
 uuid = { version = "1.4.1", default-features = false }
 serde = "1.0.183"
 serde_json = "1.0.104"
-time = { version = "0.3.23", default-features = false }
+time = { version = "0.3.26", default-features = false }
 tracing = "0.1.37"
 postgres-types = { version = "0.2.5", default-features = false }
 
