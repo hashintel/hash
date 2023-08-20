@@ -38,7 +38,7 @@ serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
 tokio = { version = "1.29.1", default-features = false }
-tokio-postgres = { version = "0.7.8", default-features = false }
+tokio-postgres = { version = "0.7.9", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
 tonic = "0.8.3"

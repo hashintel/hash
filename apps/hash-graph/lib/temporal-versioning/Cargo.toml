@@ -13,7 +13,7 @@ time = { workspace = true, features = ["serde", "parsing", "formatting", "macros
 tracing = { workspace = true, optional = true }
 
 derivative = "2.2.0"
-postgres-protocol = { version = "0.6.5", default-features = false, optional = true }
+postgres-protocol = { version = "0.6.6", default-features = false, optional = true }
 
 [features]
 postgres = ["dep:bytes", "dep:postgres-types", "dep:postgres-protocol", "dep:tracing"]
