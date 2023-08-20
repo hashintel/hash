@@ -20,7 +20,7 @@ utoipa = { workspace = true, features = ["uuid"] }
 tracing = { workspace = true }
 
 async-trait = "0.1.73"
-axum = "0.6.19"
+axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
 clap = { version = "4.3.16", features = ["derive", "env"], optional = true }
