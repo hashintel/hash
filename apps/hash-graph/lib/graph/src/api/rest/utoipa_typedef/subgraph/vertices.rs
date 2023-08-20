@@ -1,5 +1,6 @@
 use std::collections::{hash_map::Entry, BTreeMap, HashMap};
 
+use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::BaseUrl;
@@ -9,10 +10,7 @@ use utoipa::{
 };
 
 pub use self::vertex::*;
-use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
-    subgraph::temporal_axes::VariableAxis,
-};
+use crate::subgraph::temporal_axes::VariableAxis;
 
 pub mod vertex;
 

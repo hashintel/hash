@@ -10,9 +10,11 @@ use core::{
 use std::error::Error;
 
 #[cfg(feature = "postgres")]
+use bytes::BytesMut;
+#[cfg(feature = "postgres")]
 use postgres_protocol::types::{timestamp_from_sql, RangeBound};
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
+use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};

@@ -98,7 +98,7 @@ pub trait OntologyQueryPath {
 
     /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
+    /// [`OntologyTypeVersion`]: graph_types::ontology::OntologyTypeVersion
     fn version() -> Self;
 
     /// Returns the path identifying the transaction time.
@@ -106,12 +106,12 @@ pub trait OntologyQueryPath {
 
     /// Returns the path identifying the [`RecordCreatedById`].
     ///
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
     fn record_created_by_id() -> Self;
 
     /// Returns the path identifying the [`RecordArchivedById`].
     ///
-    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
+    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
     fn record_archived_by_id() -> Self;
 
     /// Returns the path identifying the schema.

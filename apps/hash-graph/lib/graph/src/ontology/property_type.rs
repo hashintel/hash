@@ -84,8 +84,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: graph_types::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
@@ -99,8 +99,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
@@ -114,8 +114,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::PropertyType
-    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`PropertyType::title()`].
     ///

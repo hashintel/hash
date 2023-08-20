@@ -1,7 +1,9 @@
 use std::iter::once;
 
+use graph_types::knowledge::entity::Entity;
+
 use crate::{
-    knowledge::{Entity, EntityQueryPath},
+    knowledge::EntityQueryPath,
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity,

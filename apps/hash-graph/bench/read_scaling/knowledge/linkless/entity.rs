@@ -3,9 +3,6 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::account::AccountId,
-    knowledge::{EntityMetadata, EntityProperties},
-    provenance::{OwnedById, RecordCreatedById},
     store::{query::Filter, AccountStore, EntityStore},
     subgraph::{
         edges::GraphResolveDepths,
@@ -17,6 +14,11 @@ use graph::{
     },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::{
+    account::AccountId,
+    knowledge::entity::{EntityMetadata, EntityProperties},
+    provenance::{OwnedById, RecordCreatedById},
+};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

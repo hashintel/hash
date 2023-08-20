@@ -1,13 +1,12 @@
+use graph_types::{
+    ontology::OntologyTypeVersion,
+    provenance::{OwnedById, RecordArchivedById, RecordCreatedById},
+};
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::repr;
 use uuid::Uuid;
-
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    provenance::{OwnedById, RecordArchivedById, RecordCreatedById},
-};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_ids")]

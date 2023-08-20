@@ -9,6 +9,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 [dependencies]
 graph = { path = "../../lib/graph", features = ["clap"] }
+graph-types = { workspace = true }
 type-fetcher = { path = "../../lib/type-fetcher" }
 
 error-stack = { workspace = true }

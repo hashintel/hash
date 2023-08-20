@@ -1,6 +1,7 @@
 use std::{borrow::Cow, error::Error, fmt, fmt::Write};
 
-use postgres_types::{private::BytesMut, IsNull, ToSql, Type};
+use bytes::BytesMut;
+use postgres_types::{IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize, Serializer};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]

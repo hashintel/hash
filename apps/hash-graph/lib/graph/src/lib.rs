@@ -13,8 +13,6 @@
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 
-mod shared;
-
 pub mod api;
 
 pub mod knowledge;
@@ -26,5 +24,3 @@ pub mod store;
 pub mod snapshot;
 
 pub mod logging;
-
-pub use self::shared::*;

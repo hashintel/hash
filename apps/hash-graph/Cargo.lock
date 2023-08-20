@@ -826,6 +826,7 @@ dependencies = [
  "error-stack",
  "futures",
  "graph-test-data",
+ "graph-types",
  "hash-status",
  "hyper",
  "include_dir",
@@ -868,6 +869,7 @@ dependencies = [
  "futures",
  "graph",
  "graph-test-data",
+ "graph-types",
  "rand",
  "serde",
  "serde_json",
@@ -886,6 +888,7 @@ dependencies = [
  "futures",
  "graph",
  "graph-test-data",
+ "graph-types",
  "rand",
  "serde",
  "serde_json",
@@ -900,6 +903,23 @@ dependencies = [
 [[package]]
 name = "graph-test-data"
 version = "0.0.0"
+
+[[package]]
+name = "graph-types"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "error-stack",
+ "graph-test-data",
+ "postgres-types",
+ "serde",
+ "serde_json",
+ "temporal-versioning",
+ "time",
+ "type-system",
+ "utoipa",
+ "uuid",
+]
 
 [[package]]
 name = "h2"
@@ -936,6 +956,7 @@ dependencies = [
  "error-stack",
  "futures",
  "graph",
+ "graph-types",
  "regex",
  "reqwest",
  "semver",
@@ -2293,6 +2314,7 @@ dependencies = [
 name = "temporal-versioning"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "derivative",
  "postgres-protocol",
  "postgres-types",
