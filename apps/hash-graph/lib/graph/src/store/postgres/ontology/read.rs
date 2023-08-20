@@ -3,6 +3,16 @@ use std::{borrow::Cow, error::Error};
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
+use graph_data::{
+    account::AccountId,
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
+        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeRecordId, OntologyTypeVersion, OntologyTypeWithMetadata,
+        PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use postgres_types::{FromSql, Type};
 use serde::Deserialize;
 use temporal_versioning::RightBoundedTemporalInterval;
@@ -14,16 +24,7 @@ use type_system::{
 };
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-    },
-    ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    ontology::EntityTypeQueryPath,
     snapshot::OntologyTypeSnapshotRecord,
     store::{
         crud::Read,

@@ -2,18 +2,20 @@ use std::iter;
 
 use async_trait::async_trait;
 use error_stack::Result;
-use type_system::{
-    url::{BaseUrl, VersionedUrl},
-    DataType, EntityType, PropertyType,
-};
-
-use crate::{
+use graph_data::{
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{RecordArchivedById, RecordCreatedById},
+};
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    DataType, EntityType, PropertyType,
+};
+
+use crate::{
     store::{crud, ConflictBehavior, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };

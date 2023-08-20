@@ -2,14 +2,17 @@ use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
 use error_stack::{bail, Context, IntoReport, Report, ResultExt};
+use graph_data::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::OntologyTypeVersion,
+};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
-    knowledge::{Entity, EntityQueryPath},
+    knowledge::EntityQueryPath,
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
@@ -313,16 +316,17 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
+    use graph_data::{
+        account::AccountId,
+        knowledge::entity::{EntityId, EntityUuid},
+        ontology::DataTypeWithMetadata,
+        provenance::OwnedById,
+    };
     use serde_json::json;
     use type_system::url::BaseUrl;
 
     use super::*;
-    use crate::{
-        identifier::account::AccountId,
-        knowledge::EntityUuid,
-        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
-        provenance::OwnedById,
-    };
+    use crate::ontology::DataTypeQueryPath;
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where

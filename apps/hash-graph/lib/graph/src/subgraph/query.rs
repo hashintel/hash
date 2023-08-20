@@ -1,6 +1,10 @@
 use std::fmt::Debug;
 
 use derivative::Derivative;
+use graph_data::{
+    knowledge::entity::Entity,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+};
 use serde::Deserialize;
 use utoipa::{
     openapi::{ObjectBuilder, Ref, RefOr, Schema},
@@ -8,8 +12,6 @@ use utoipa::{
 };
 
 use crate::{
-    knowledge::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::{query::Filter, Record},
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };

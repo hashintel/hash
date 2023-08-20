@@ -825,6 +825,7 @@ dependencies = [
  "derivative",
  "error-stack",
  "futures",
+ "graph-data",
  "graph-test-data",
  "hash-status",
  "hyper",
@@ -875,6 +876,23 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "type-system",
+ "uuid",
+]
+
+[[package]]
+name = "graph-data"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "error-stack",
+ "graph-test-data",
+ "postgres-types",
+ "serde",
+ "serde_json",
+ "temporal-versioning",
+ "time",
+ "type-system",
+ "utoipa",
  "uuid",
 ]
 

@@ -12,7 +12,7 @@ autobenches = false
 
 [dev-dependencies]
 graph = { path = "../lib/graph" }
-graph-test-data = { path = "../tests/test_data" }
+graph-test-data = { workspace = true }
 temporal-versioning = { workspace = true }
 
 type-system = { workspace = true }

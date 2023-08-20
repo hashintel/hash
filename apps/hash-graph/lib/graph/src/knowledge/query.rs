@@ -1,15 +1,23 @@
 use std::{fmt, str::FromStr};
 
+use graph_data::knowledge::entity::Entity;
 use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
+use temporal_versioning::{ClosedTemporalBound, TimeAxis};
 use utoipa::ToSchema;
 
 use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+    store::{
+        query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
+        Record,
+    },
+    subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::EntityVertexId,
+    },
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -491,6 +499,33 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(EntityQueryPathVisitor::new(0))
+    }
+}
+
+impl Record for Entity {
+    type QueryPath<'p> = EntityQueryPath<'p>;
+    type VertexId = EntityVertexId;
+
+    #[must_use]
+    fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
+        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
+            TimeAxis::DecisionTime => self
+                .metadata
+                .temporal_versioning()
+                .decision_time
+                .start()
+                .cast(),
+            TimeAxis::TransactionTime => self
+                .metadata
+                .temporal_versioning()
+                .transaction_time
+                .start()
+                .cast(),
+        };
+        EntityVertexId {
+            base_id: self.metadata.record_id().entity_id,
+            revision_id: timestamp,
+        }
     }
 }
 

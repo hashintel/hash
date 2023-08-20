@@ -1,13 +1,14 @@
+use graph_data::{
+    knowledge::entity::Entity,
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
+    },
+};
 use serde::Serialize;
 use type_system::url::BaseUrl;
 use utoipa::ToSchema;
 
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    knowledge::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-};
+use crate::subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(untagged)]

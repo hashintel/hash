@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use error_stack::Result;
+use graph_data::account::AccountId;
 
-use crate::{identifier::account::AccountId, store::InsertionError};
+use crate::store::InsertionError;
 
 /// Describes the API of a store implementation for accounts.
 #[async_trait]

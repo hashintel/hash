@@ -9,6 +9,13 @@ use axum::{
 };
 use error_stack::IntoReport;
 use futures::TryFutureExt;
+use graph_data::{
+    ontology::{
+        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
@@ -23,18 +30,14 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
-        PartialOntologyElementMetadata,
+        patch_id_and_parse, DataTypeQueryToken,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
         OntologyVersionDoesNotExist, StorePool,
     },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
-
 #[derive(OpenApi)]
 #[openapi(
     paths(

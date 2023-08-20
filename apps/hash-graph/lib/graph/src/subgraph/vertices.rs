@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{
-    knowledge::Entity,
+use graph_data::{
+    knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::identifier::{
-        DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId,
-    },
+};
+
+use crate::subgraph::identifier::{
+    DataTypeVertexId, EntityTypeVertexId, EntityVertexId, PropertyTypeVertexId,
 };
 
 #[derive(Default, Debug)]

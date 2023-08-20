@@ -9,6 +9,13 @@ use axum::{
 };
 use error_stack::IntoReport;
 use futures::TryFutureExt;
+use graph_data::{
+    ontology::{
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
+        PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
@@ -23,11 +30,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
-        PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, PropertyTypeQueryToken,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
         OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,

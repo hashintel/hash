@@ -1,13 +1,12 @@
+pub mod subgraph;
+
+use graph_data::ontology::{EntityTypeMetadata, OntologyElementMetadata};
 use serde::{Deserialize, Serialize};
 use type_system::repr;
 use utoipa::{
     openapi::{OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
-
-use crate::ontology::{EntityTypeMetadata, OntologyElementMetadata};
-
-pub mod subgraph;
 
 #[derive(Debug, Copy, Clone)]
 enum Action {

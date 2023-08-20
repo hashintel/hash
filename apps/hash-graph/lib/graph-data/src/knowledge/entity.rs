@@ -1,40 +1,26 @@
-mod query;
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{collections::HashMap, fmt, str::FromStr};
 
-use std::{collections::HashMap, error::Error, fmt};
-
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use postgres_types::{IsNull, Type};
-use serde::{Deserialize, Serialize};
-use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
-use tokio_postgres::types::{FromSql, ToSql};
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, IsNull, ToSql, Type};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
-use utoipa::ToSchema;
+#[cfg(feature = "utoipa")]
+use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
-    identifier::knowledge::{EntityId, EntityRecordId, EntityTemporalMetadata},
-    provenance::ProvenanceMetadata,
-    store::Record,
-    subgraph::identifier::EntityVertexId,
+    account::AccountId,
+    provenance::{OwnedById, ProvenanceMetadata},
 };
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    ToSchema,
-    FromSql,
-    ToSql,
-)]
-#[postgres(transparent)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
 pub struct EntityUuid(Uuid);
 
@@ -52,15 +38,14 @@ impl EntityUuid {
 
 impl fmt::Display for EntityUuid {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[repr(transparent)]
-#[postgres(transparent)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct LinkOrder(i32);
 
 impl LinkOrder {
@@ -73,10 +58,11 @@ impl LinkOrder {
 /// The properties of an entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[schema(value_type = Object)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema), schema(value_type = Object))]
 pub struct EntityProperties(HashMap<BaseUrl, serde_json::Value>);
 
+#[cfg(feature = "postgres")]
 impl ToSql for EntityProperties {
     postgres_types::accepts!(JSON, JSONB);
 
@@ -90,6 +76,7 @@ impl ToSql for EntityProperties {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl<'a> FromSql<'a> for EntityProperties {
     postgres_types::accepts!(JSON, JSONB);
 
@@ -113,7 +100,8 @@ impl EntityProperties {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields)]
 pub struct EntityLinkOrder {
     #[serde(
@@ -121,19 +109,20 @@ pub struct EntityLinkOrder {
         skip_serializing_if = "Option::is_none",
         rename = "leftToRightOrder"
     )]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub left_to_right: Option<LinkOrder>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "rightToLeftOrder"
     )]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub right_to_left: Option<LinkOrder>,
 }
 
 /// The associated information for 'Link' entities
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkData {
     pub left_entity_id: EntityId,
@@ -143,16 +132,17 @@ pub struct LinkData {
 }
 
 /// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 // TODO: deny_unknown_fields on other structs
-// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+// TODO: Make fields `pub` and restrict mutability when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
     record_id: EntityRecordId,
     temporal_versioning: EntityTemporalMetadata,
-    #[schema(value_type = String)]
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     entity_type_id: VersionedUrl,
     provenance: ProvenanceMetadata,
     archived: bool,
@@ -204,43 +194,114 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     pub properties: EntityProperties,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub metadata: EntityMetadata,
 }
 
-impl Record for Entity {
-    type QueryPath<'p> = EntityQueryPath<'p>;
-    type VertexId = EntityVertexId;
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EntityId {
+    pub owned_by_id: OwnedById,
+    pub entity_uuid: EntityUuid,
 }
 
-impl Entity {
-    #[must_use]
-    pub fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
-        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
-            TimeAxis::DecisionTime => self
-                .metadata
-                .temporal_versioning()
-                .decision_time
-                .start()
-                .cast(),
-            TimeAxis::TransactionTime => self
-                .metadata
-                .temporal_versioning()
-                .transaction_time
-                .start()
-                .cast(),
-        };
-        EntityVertexId {
-            base_id: self.metadata.record_id().entity_id,
-            revision_id: timestamp,
-        }
+pub const ENTITY_ID_DELIMITER: char = '~';
+
+impl fmt::Display for EntityId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "{}{}{}",
+            self.owned_by_id, ENTITY_ID_DELIMITER, self.entity_uuid
+        )
     }
+}
+
+impl Serialize for EntityId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for EntityId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .split_once(ENTITY_ID_DELIMITER)
+            .ok_or_else(|| {
+                de::Error::custom(format!(
+                    "failed to find `{ENTITY_ID_DELIMITER}` delimited string",
+                ))
+            })
+            .and_then(|(owned_by_id, entity_uuid)| {
+                Ok(Self {
+                    owned_by_id: OwnedById::new(AccountId::new(
+                        Uuid::from_str(owned_by_id).map_err(de::Error::custom)?,
+                    )),
+                    entity_uuid: EntityUuid::new(
+                        Uuid::from_str(entity_uuid).map_err(de::Error::custom)?,
+                    ),
+                })
+            })
+    }
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for EntityId {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityId",
+            openapi::Schema::Object(openapi::schema::Object::with_type(
+                openapi::SchemaType::String,
+            ))
+            .into(),
+        )
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTemporalMetadata {
+    pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
+    pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[repr(transparent)]
+pub struct EntityEditionId(Uuid);
+
+impl EntityEditionId {
+    #[must_use]
+    pub const fn new(id: Uuid) -> Self {
+        Self(id)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRecordId {
+    pub entity_id: EntityId,
+    pub edition_id: EntityEditionId,
 }
 
 #[cfg(test)]

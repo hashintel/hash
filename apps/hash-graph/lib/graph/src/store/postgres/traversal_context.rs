@@ -1,20 +1,20 @@
 use std::{collections::HashMap, hash::Hash};
 
 use error_stack::Result;
+use graph_data::{
+    knowledge::entity::{Entity, EntityEditionId},
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+};
 use temporal_versioning::RightBoundedTemporalInterval;
 
 use crate::{
-    identifier::knowledge::EntityEditionId,
-    knowledge::{Entity, EntityQueryPath},
-    ontology::{
-        DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
-        PropertyTypeQueryPath, PropertyTypeWithMetadata,
-    },
+    knowledge::EntityQueryPath,
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::{
         crud::Read,
         postgres::ontology::OntologyId,
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError,
+        AsClient, PostgresStore, QueryError, Record,
     },
     subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };

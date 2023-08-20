@@ -1,12 +1,15 @@
 use async_trait::async_trait;
 use error_stack::Result;
+use graph_data::{
+    knowledge::entity::{
+        Entity, EntityId, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData,
+    },
+    provenance::{OwnedById, RecordCreatedById},
+};
 use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::url::VersionedUrl;
 
 use crate::{
-    identifier::knowledge::EntityId,
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, RecordCreatedById},
     store::{crud, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };

@@ -1,6 +1,5 @@
+use graph_data::account::AccountId;
 use postgres_types::ToSql;
-
-use crate::identifier::account::AccountId;
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "accounts")]

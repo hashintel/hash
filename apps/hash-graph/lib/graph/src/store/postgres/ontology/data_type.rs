@@ -5,17 +5,19 @@ use async_trait::async_trait;
 use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
+use graph_data::{
+    ontology::{
+        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        PartialOntologyElementMetadata,
+    },
+    provenance::{RecordArchivedById, RecordCreatedById},
+};
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    ontology::{
-        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        PartialOntologyElementMetadata,
-    },
-    provenance::{RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{ontology::OntologyId, TraversalContext},

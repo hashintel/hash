@@ -1,7 +1,9 @@
 use std::iter::once;
 
+use graph_data::ontology::DataTypeWithMetadata;
+
 use crate::{
-    ontology::{DataTypeQueryPath, DataTypeWithMetadata},
+    ontology::DataTypeQueryPath,
     store::postgres::query::{
         table::{
             Column, DataTypes, JsonField, OntologyAdditionalMetadata, OntologyIds,

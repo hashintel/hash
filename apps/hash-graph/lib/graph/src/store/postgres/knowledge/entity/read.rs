@@ -3,6 +3,14 @@ use std::{borrow::Cow, mem::swap, str::FromStr};
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
+use graph_data::{
+    account::AccountId,
+    knowledge::entity::{
+        Entity, EntityEditionId, EntityId, EntityLinkOrder, EntityMetadata, EntityRecordId,
+        EntityTemporalMetadata, EntityUuid, LinkData,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+};
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
 };
@@ -11,13 +19,8 @@ use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-    },
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityQueryPath, EntityUuid, LinkData},
+    knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
         postgres::{

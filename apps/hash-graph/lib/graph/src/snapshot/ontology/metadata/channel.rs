@@ -9,18 +9,16 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_data::ontology::{CustomOntologyMetadata, OntologyElementMetadata};
 use uuid::Uuid;
 
-use crate::{
-    ontology::{CustomOntologyMetadata, OntologyElementMetadata},
-    snapshot::{
-        account::AccountSender,
-        ontology::{
-            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
-            OntologyOwnedMetadataRow, OntologyTypeMetadataRowBatch,
-        },
-        SnapshotRestoreError,
+use crate::snapshot::{
+    account::AccountSender,
+    ontology::{
+        table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
+        OntologyOwnedMetadataRow, OntologyTypeMetadataRowBatch,
     },
+    SnapshotRestoreError,
 };
 
 #[derive(Debug, Clone)]

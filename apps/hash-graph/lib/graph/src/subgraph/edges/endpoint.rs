@@ -3,14 +3,12 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
+use graph_data::knowledge::entity::EntityId;
 use temporal_versioning::LeftClosedTemporalInterval;
 
-use crate::{
-    identifier::knowledge::EntityId,
-    subgraph::{
-        identifier::{EdgeEndpoint, EntityIdWithInterval},
-        temporal_axes::VariableAxis,
-    },
+use crate::subgraph::{
+    identifier::{EdgeEndpoint, EntityIdWithInterval},
+    temporal_axes::VariableAxis,
 };
 
 pub trait EdgeEndpointSet: IntoIterator<Item = Self::EdgeEndpoint> {

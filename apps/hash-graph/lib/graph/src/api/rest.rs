@@ -29,6 +29,14 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::{IntoReport, Report, ResultExt};
+use graph_data::{
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, OntologyTypeVersion,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use include_dir::{include_dir, Dir};
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
@@ -55,13 +63,7 @@ use crate::{
             MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
-    identifier::ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-    ontology::{
-        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
-        EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, Selector,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{

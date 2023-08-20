@@ -9,21 +9,17 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_data::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
 };
 
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    provenance::RecordCreatedById,
-    snapshot::{
-        account::AccountSender,
-        entity::{
-            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch,
-            EntityTemporalMetadataRow,
-        },
-        EntitySnapshotRecord, SnapshotRestoreError,
+use crate::snapshot::{
+    account::AccountSender,
+    entity::{
+        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
     },
+    EntitySnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`EntitySnapshotRecord`]s.
