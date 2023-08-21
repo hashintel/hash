@@ -18,5 +18,6 @@ num-traits = "0.2.15"
 similar-asserts = { version = "1.4.2", default_features = false, features = ['serde'], optional = true }
 
 [features]
+std = ['deer/std']
 default = ['pretty']
-pretty = ['dep:similar-asserts']
+pretty = ['std', 'dep:similar-asserts']
