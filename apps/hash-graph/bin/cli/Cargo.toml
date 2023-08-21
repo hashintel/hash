@@ -16,7 +16,7 @@ error-stack = { workspace = true }
 type-system = { workspace = true }
 
 axum = "0.6.20"
-clap = { version = "4.3.16", features = ["cargo", "derive", "env", "wrap_help"] }
+clap = { version = "4.3.23", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.3.2"
 futures = { version = "0.3.28" }
 regex = "1.9.1"
