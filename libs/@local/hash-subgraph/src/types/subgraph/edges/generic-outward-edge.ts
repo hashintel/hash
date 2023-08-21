@@ -15,7 +15,8 @@ export type GenericOutwardEdge<
     | OntologyEdgeKind
     | SharedEdgeKind,
   Reversed extends boolean = boolean,
-  Endpoint extends GraphElementIdentifiers["identifier"] = GraphElementIdentifiers["identifier"],
+  Endpoint extends
+    GraphElementIdentifiers["identifier"] = GraphElementIdentifiers["identifier"],
 > = {
   kind: EdgeKind;
   reversed: Reversed;

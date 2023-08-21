@@ -57,7 +57,8 @@ pub enum DataTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
-    /// # use graph::{ontology::{DataTypeQueryPath, DataTypeWithMetadata}};
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph_types::ontology::DataTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<DataTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
@@ -103,8 +104,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: graph_types::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
@@ -118,8 +119,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
@@ -133,8 +134,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```
     ///
     /// [`DataType`]: type_system::DataType
-    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`DataType::title()`].
     ///

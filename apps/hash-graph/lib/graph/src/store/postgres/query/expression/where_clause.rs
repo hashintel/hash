@@ -43,9 +43,11 @@ impl Transpile for WhereExpression {
 mod tests {
     use std::borrow::Cow;
 
+    use graph_types::ontology::DataTypeWithMetadata;
+
     use super::*;
     use crate::{
-        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
+        ontology::DataTypeQueryPath,
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},

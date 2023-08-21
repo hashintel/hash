@@ -1,29 +1,20 @@
 use core::fmt;
 
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
-use tokio_postgres::types::{FromSql, ToSql};
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-use crate::identifier::account::AccountId;
+use crate::account::AccountId;
 
 macro_rules! define_provenance_id {
     ($name:tt) => {
         #[derive(
-            Debug,
-            Copy,
-            Clone,
-            PartialEq,
-            Eq,
-            Hash,
-            PartialOrd,
-            Ord,
-            Serialize,
-            Deserialize,
-            FromSql,
-            ToSql,
+            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
         )]
-        #[postgres(transparent)]
+        #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
         #[repr(transparent)]
         pub struct $name(AccountId);
 
@@ -50,6 +41,7 @@ macro_rules! define_provenance_id {
             }
         }
 
+        #[cfg(feature = "utoipa")]
         impl ToSchema<'_> for $name {
             fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
                 (stringify!($name), AccountId::schema().1)
@@ -62,10 +54,11 @@ define_provenance_id!(OwnedById);
 define_provenance_id!(RecordCreatedById);
 define_provenance_id!(RecordArchivedById);
 
-// TODO: Make fields `pub` when `#[feature(mut_restriction)]` is available.
+// TODO: Restrict field mutation when `#[feature(mut_restriction)]` is available.
 //   see https://github.com/rust-lang/rust/issues/105077
 //   see https://app.asana.com/0/0/1203977361907407/f
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ProvenanceMetadata {
     pub record_created_by_id: RecordCreatedById,

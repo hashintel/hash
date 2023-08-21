@@ -111,7 +111,10 @@ const generateSearchBody = (params: SearchParameters) => {
  * cluster.
  * */
 export class OpenSearch extends DataSource implements SearchAdapter {
-  constructor(private client: Client, private logger: Logger) {
+  constructor(
+    private client: Client,
+    private logger: Logger,
+  ) {
     super();
   }
 

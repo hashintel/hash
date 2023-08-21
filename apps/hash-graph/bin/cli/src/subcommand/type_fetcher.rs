@@ -78,7 +78,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             channel.execute(server.serve())
         })
         .buffer_unordered(255)
-        .for_each(|_| async {})
+        .for_each(|()| async {})
         .await;
 
     Ok(())

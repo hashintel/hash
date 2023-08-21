@@ -26,11 +26,11 @@ const ExampleUsage = ({ accountId }: { accountId: AccountId }) => {
 
   const getType = useCallback(
     (
-        fn:
-          | QueryDataTypesMessageCallback
-          | QueryPropertyTypesMessageCallback
-          | QueryEntityTypesMessageCallback,
-      ) =>
+      fn:
+        | QueryDataTypesMessageCallback
+        | QueryPropertyTypesMessageCallback
+        | QueryEntityTypesMessageCallback,
+    ) =>
       (_: any) => {
         void (async () => {
           const result = await fn({ data: {} });

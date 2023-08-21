@@ -9,24 +9,21 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
 use postgres_types::Json;
 use type_system::EntityType;
 use uuid::Uuid;
 
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    ontology::OntologyElementMetadata,
-    snapshot::{
-        ontology::{
-            entity_type::batch::EntityTypeRowBatch,
-            table::{
-                EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-                EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
-            },
-            OntologyTypeMetadataSender,
+use crate::snapshot::{
+    ontology::{
+        entity_type::batch::EntityTypeRowBatch,
+        table::{
+            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+            EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
         },
-        OntologyTypeSnapshotRecord, SnapshotRestoreError,
+        OntologyTypeMetadataSender,
     },
+    OntologyTypeSnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`EntityType`].

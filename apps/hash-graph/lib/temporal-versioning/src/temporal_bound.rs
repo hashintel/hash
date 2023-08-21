@@ -2,17 +2,14 @@ use std::ops::Bound;
 
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 
-use crate::{
-    identifier::time::{axis::TemporalTagged, Timestamp},
-    interval::IntervalBound,
-};
+use crate::{IntervalBound, TemporalTagged, Timestamp};
 
 // We cannot use `Clone(bound = "")` as the implementation with `Copy(bound = "")` is wrong
 // https://rust-lang.github.io/rust-clippy/master/index.html#/incorrect_clone_impl_on_copy_type
 // The implementation must simply be `*self` and no clone should occur.
-#[derive(Derivative, Serialize, Deserialize, ToSchema)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
@@ -22,11 +19,11 @@ use crate::{
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum TemporalBound<A> {
-    #[schema(title = "UnboundedBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "UnboundedBound"))]
     Unbounded,
-    #[schema(title = "InclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "InclusiveBound"))]
     Inclusive(Timestamp<A>),
-    #[schema(title = "ExclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
 }
 
@@ -75,7 +72,8 @@ impl<A> IntervalBound<Timestamp<A>> for TemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize, ToSchema)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
@@ -85,9 +83,9 @@ impl<A> IntervalBound<Timestamp<A>> for TemporalBound<A> {
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum LimitedTemporalBound<A> {
-    #[schema(title = "InclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "InclusiveBound"))]
     Inclusive(Timestamp<A>),
-    #[schema(title = "ExclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
 }
 
@@ -135,7 +133,8 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize, ToSchema)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
@@ -145,7 +144,7 @@ impl<A> IntervalBound<Timestamp<A>> for LimitedTemporalBound<A> {
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum ClosedTemporalBound<A> {
-    #[schema(title = "InclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "InclusiveBound"))]
     Inclusive(Timestamp<A>),
 }
 
@@ -192,7 +191,8 @@ impl<A> IntervalBound<Timestamp<A>> for ClosedTemporalBound<A> {
     }
 }
 
-#[derive(Derivative, Serialize, Deserialize, ToSchema)]
+#[derive(Derivative, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[derivative(
     Debug(bound = ""),
     Copy(bound = ""),
@@ -202,9 +202,9 @@ impl<A> IntervalBound<Timestamp<A>> for ClosedTemporalBound<A> {
 )]
 #[serde(rename_all = "camelCase", bound = "", tag = "kind", content = "limit")]
 pub enum OpenTemporalBound<A> {
-    #[schema(title = "ExclusiveBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "ExclusiveBound"))]
     Exclusive(Timestamp<A>),
-    #[schema(title = "UnboundedBound")]
+    #[cfg_attr(feature = "utoipa", schema(title = "UnboundedBound"))]
     Unbounded,
 }
 

@@ -1,6 +1,6 @@
 use core::{cmp::Ordering, ops::Bound};
 
-use super::Interval;
+use crate::interval::Interval;
 
 pub trait IntervalBound<T> {
     fn as_bound(&self) -> Bound<&T>;

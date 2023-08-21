@@ -1,13 +1,19 @@
 use core::fmt;
-use std::{cmp::Ordering, error::Error, marker::PhantomData, str::FromStr};
+#[cfg(feature = "postgres")]
+use std::error::Error;
+use std::{cmp::Ordering, marker::PhantomData, str::FromStr};
 
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
 use derivative::Derivative;
-use postgres_types::{private::BytesMut, FromSql, ToSql, Type};
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
+#[cfg(feature = "utoipa")]
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::axis::TemporalTagged;
+use crate::TemporalTagged;
 
 /// Opaque structure to represent a single point in time.
 ///
@@ -102,6 +108,7 @@ impl<A> FromStr for Timestamp<A> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl<'a> FromSql<'a> for Timestamp<()> {
     postgres_types::accepts!(TIMESTAMPTZ);
 
@@ -113,6 +120,7 @@ impl<'a> FromSql<'a> for Timestamp<()> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl<A> ToSql for Timestamp<A> {
     postgres_types::accepts!(TIMESTAMPTZ);
 
@@ -127,6 +135,7 @@ impl<A> ToSql for Timestamp<A> {
     }
 }
 
+#[cfg(feature = "utoipa")]
 impl<A> ToSchema<'_> for Timestamp<A> {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (

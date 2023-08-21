@@ -29,7 +29,19 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::{IntoReport, Report, ResultExt};
+use graph_types::{
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, OntologyTypeVersion,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use include_dir::{include_dir, Dir};
+use temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
@@ -51,20 +63,7 @@ use crate::{
             MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::{
-            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, RightBoundedTemporalInterval,
-            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
-        },
-    },
-    ontology::{
-        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
-        EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, Selector,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
@@ -75,7 +74,10 @@ use crate::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
             GraphElementVertexId, PropertyTypeVertexId,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
     },
 };
 

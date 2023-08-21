@@ -5,6 +5,7 @@
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
+  "automerge": true,
   "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
@@ -15,9 +16,7 @@
 
   "packageRules": [
     {
-      "enabled": true,
       "extends": ["packages:linters", "packages:test"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
@@ -37,15 +36,12 @@
       "reviewers": ["team:Rust"]
     },
     {
-      "enabled": true,
       "matchDepTypes": ["devDependencies"],
       "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
       "excludePackageNames": ["prettier-plugin-sql"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
       "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
@@ -57,7 +53,6 @@
       ]
     },
     {
-      "enabled": true,
       "groupName": "ESLint npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
@@ -66,75 +61,60 @@
         "^eslint-",
         "eslint$"
       ],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
-      "enabled": true,
       "groupName": "Jest npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^jest-", "jest$"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
-      "enabled": true,
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
       "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier", "prettier$"],
       "excludePackageNames": ["prettier-plugin-sql"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
       "groupName": "ProseMirror npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
     },
     {
-      "enabled": true,
       "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
-      "enabled": true,
       "groupName": "Signia npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@signia/"]
     },
     {
-      "enabled": true,
       "groupName": "Pydantic Python packages",
       "matchManagers": ["poetry"],
       "matchPackagePatterns": ["^pydantic"]
     },
     {
-      "enabled": true,
       "matchManagers": ["poetry"],
       "matchPackagePatterns": ["mypy", "ruff", "black"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
@@ -150,7 +130,6 @@
       "commitMessageExtra": "to nightly-{{newVersion}}",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"],
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
@@ -178,7 +157,6 @@
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
       "groupName": "`criterion` Rust crates",
-      "automerge": true,
       "dependencyDashboardApproval": false
     },
     {
@@ -212,7 +190,7 @@
     },
     {
       "matchManagers": ["cargo"],
-      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "matchFileNames": ["libs/error-stack/*"],
       "excludePackageNames": ["anyhow"]
     }
   ],

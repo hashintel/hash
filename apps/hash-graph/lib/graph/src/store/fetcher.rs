@@ -6,7 +6,22 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
+use graph_types::{
+    account::AccountId,
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
+    },
+    ontology::{
+        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyType, OntologyTypeReference, OntologyTypeVersion,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use tarpc::context;
+use temporal_versioning::{DecisionTime, Timestamp};
 use tokio::net::ToSocketAddrs;
 use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetcherClient, OntologyTypeRepr};
@@ -16,20 +31,7 @@ use type_system::{
 };
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, Timestamp},
-    },
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    ontology::{
-        domain_validator::DomainValidator, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
-        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
@@ -225,7 +227,7 @@ where
         .map(|subgraph| !subgraph.roots.is_empty())
     }
 
-    async fn collect_external_ontology_types<'o, T: crate::ontology::OntologyType + Sync>(
+    async fn collect_external_ontology_types<'o, T: OntologyType + Sync>(
         &self,
         ontology_type: &'o T,
     ) -> Result<Vec<OntologyTypeReference<'o>>, QueryError> {
@@ -381,7 +383,7 @@ where
         Ok(fetched_ontology_types)
     }
 
-    async fn insert_external_types<'o, T: crate::ontology::OntologyType + Sync + 'o>(
+    async fn insert_external_types<'o, T: OntologyType + Sync + 'o>(
         &mut self,
         ontology_types: impl IntoIterator<Item = (&'o T, RecordCreatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {

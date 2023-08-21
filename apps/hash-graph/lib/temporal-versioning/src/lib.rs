@@ -1,15 +1,20 @@
+#![feature(lint_reasons)]
+
+pub mod serde;
+
 mod axis;
-mod bound;
+mod bounds;
 mod interval;
+mod temporal_bound;
 mod timestamp;
 
 pub use self::{
     axis::{DecisionTime, TemporalTagged, TimeAxis, TransactionTime},
-    bound::{ClosedTemporalBound, LimitedTemporalBound, OpenTemporalBound, TemporalBound},
-    interval::RightBoundedTemporalIntervalUnresolved,
+    bounds::IntervalBound,
+    interval::Interval,
+    temporal_bound::{ClosedTemporalBound, LimitedTemporalBound, OpenTemporalBound, TemporalBound},
     timestamp::Timestamp,
 };
-use crate::interval::Interval;
 
 /// A temporal interval, where both bounds are either inclusive, exclusive, or unbounded.
 pub type TemporalInterval<A> = Interval<Timestamp<A>, TemporalBound<A>, TemporalBound<A>>;

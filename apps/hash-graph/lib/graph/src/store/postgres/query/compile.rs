@@ -1,10 +1,10 @@
 use std::{collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
+use temporal_versioning::TimeAxis;
 use tokio_postgres::row::RowIndex;
 
 use crate::{
-    identifier::time::TimeAxis,
     store::{
         postgres::query::{
             table::{EntityTemporalMetadata, OntologyIds, OntologyTemporalMetadata},

@@ -2,8 +2,7 @@ use std::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::TemporalBound,
-    knowledge::{EntityQueryPath, EntityUuid},
+    knowledge::EntityQueryPath,
     store::{
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityStore,
@@ -17,7 +16,9 @@ use graph::{
         },
     },
 };
+use graph_types::knowledge::entity::EntityUuid;
 use rand::{prelude::IteratorRandom, thread_rng};
+use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 
 use crate::util::Store;

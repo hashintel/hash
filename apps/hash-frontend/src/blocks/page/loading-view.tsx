@@ -27,7 +27,10 @@ export const ProsemirrorLoadingState = () => {
 export class LoadingView implements NodeView {
   dom: HTMLDivElement;
 
-  constructor(node: Node, private renderPortal: RenderPortal) {
+  constructor(
+    node: Node,
+    private renderPortal: RenderPortal,
+  ) {
     this.dom = document.createElement("div");
     this.update(node);
   }

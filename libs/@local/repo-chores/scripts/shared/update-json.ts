@@ -12,7 +12,7 @@ export const updateJson = async (
 
   transform(json);
 
-  const newRawJson = format(JSON.stringify(json), {
+  const newRawJson = await format(JSON.stringify(json), {
     filepath: jsonFilePath,
   });
 

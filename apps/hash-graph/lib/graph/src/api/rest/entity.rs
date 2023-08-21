@@ -4,6 +4,16 @@ use std::sync::Arc;
 
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
+use graph_types::{
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData, LinkOrder},
+    },
+    provenance::{OwnedById, RecordCreatedById},
+};
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
@@ -13,12 +23,7 @@ use crate::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
         utoipa_typedef::subgraph::Subgraph,
     },
-    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
-        LinkData, LinkOrder,
-    },
-    provenance::{OwnedById, RecordCreatedById},
+    knowledge::EntityQueryToken,
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         EntityStore, StorePool,

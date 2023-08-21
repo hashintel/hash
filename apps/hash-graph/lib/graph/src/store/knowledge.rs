@@ -1,21 +1,23 @@
 use async_trait::async_trait;
 use error_stack::Result;
+use graph_types::{
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
+    },
+    provenance::{OwnedById, RecordCreatedById},
+};
+use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::url::VersionedUrl;
 
 use crate::{
-    identifier::{
-        knowledge::EntityId,
-        time::{DecisionTime, Timestamp},
-    },
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, RecordCreatedById},
     store::{crud, InsertionError, QueryError, UpdateError},
     subgraph::{query::StructuralQuery, Subgraph},
 };
 
 /// Describes the API of a store implementation for [Entities].
 ///
-/// [Entities]: crate::knowledge::Entity
+/// [Entities]: Entity
 #[async_trait]
 pub trait EntityStore: crud::Read<Entity> {
     /// Creates a new [`Entity`].

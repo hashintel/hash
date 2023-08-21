@@ -9,6 +9,14 @@ use axum::{
     Extension, Router,
 };
 use futures::TryFutureExt;
+use graph_types::{
+    ontology::{
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomEntityTypeMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use type_system::{
@@ -31,11 +39,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeMetadata, EntityTypeQueryToken, EntityTypeWithMetadata,
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        patch_id_and_parse, EntityTypeQueryToken,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ConflictBehavior, EntityTypeStore, StorePool,

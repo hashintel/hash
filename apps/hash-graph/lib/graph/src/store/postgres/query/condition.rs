@@ -149,10 +149,11 @@ impl Transpile for Condition {
 mod tests {
     use std::borrow::Cow;
 
+    use graph_types::ontology::DataTypeWithMetadata;
     use postgres_types::ToSql;
 
     use crate::{
-        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
+        ontology::DataTypeQueryPath,
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},

@@ -316,9 +316,8 @@ const main = async () => {
     });
   });
 
-  const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher(
-    graphApi,
-  );
+  const integrationSyncBackWatcher =
+    await createIntegrationSyncBackWatcher(graphApi);
 
   void integrationSyncBackWatcher.start();
 
