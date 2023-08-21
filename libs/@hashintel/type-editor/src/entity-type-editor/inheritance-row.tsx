@@ -1,3 +1,4 @@
+import { EntityType } from "@blockprotocol/type-system/slim";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -59,6 +60,13 @@ export const InheritanceRow = () => {
     }
   };
 
+  const addParent = (parent: EntityType) => {
+    setValue("allOf", [...directParentEntityTypeIds, parent.$id], {
+      shouldDirty: true,
+    });
+    setSelectorVisibility(false);
+  };
+
   return (
     <Stack
       direction="row"
@@ -95,14 +103,8 @@ export const InheritanceRow = () => {
             variant: "entity type",
           }}
           inputRef={selectorInputRef}
-          onAdd={(value) => {
-            setValue("allOf", [...directParentEntityTypeIds, value.$id], {
-              shouldDirty: true,
-            });
-            setTypeSelectorSearchText("");
-            setTypeSelectorOpen(false);
-          }}
-          onCancel={() => setTypeSelectorOpen(false)}
+          onAdd={addParent}
+          onCancel={() => setSelectorVisibility(false)}
           onSearchTextChange={setTypeSelectorSearchText}
           options={entityTypeOptions}
           searchText={typeSelectorSearchText}
@@ -111,7 +113,7 @@ export const InheritanceRow = () => {
         />
       ) : (
         <Button
-          onClick={() => setSelectorVisibility(!typeSelectorOpen)}
+          onClick={() => setSelectorVisibility(true)}
           size="xs"
           variant="secondary_quiet"
         >

@@ -46,7 +46,7 @@ import {
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { useInheritedValues } from "./shared/use-inherited-values";
+import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
@@ -221,7 +221,7 @@ const InsertLinkField = (
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const links = useWatch({ control, name: "links" });
-  const { links: inheritedLinks } = useInheritedValues();
+  const { links: inheritedLinks } = useInheritedValuesForCurrentDraft();
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
   const linkTypes = Object.values(linkTypeOptions);
@@ -255,7 +255,7 @@ export const LinkListCard = () => {
 
   const isReadonly = useIsReadonly();
 
-  const { links: inheritedLinks } = useInheritedValues();
+  const { links: inheritedLinks } = useInheritedValuesForCurrentDraft();
 
   const fields = useMemo(
     () =>
@@ -373,7 +373,7 @@ export const LinkListCard = () => {
       </TableHead>
       <TableBody>
         {fields.map(({ field, row, index }) =>
-          "inheritedFrom" in field ? (
+          "inheritanceChain" in field ? (
             <InheritedLinkRow key={field.$id} inheritedLinkData={field} />
           ) : (
             <LinkTypeRow

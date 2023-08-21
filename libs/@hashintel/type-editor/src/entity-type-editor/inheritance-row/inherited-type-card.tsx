@@ -24,6 +24,7 @@ export const InheritedTypeCard = ({
     control,
     name: "allOf",
   });
+
   const upgradeToVersion = () => {
     if (!newVersion) {
       return;
