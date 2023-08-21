@@ -56,7 +56,12 @@ class EntityId(RootModel):
 
 
 class EntityProperties(BaseModel):
-    pass
+    """
+    The properties of an entity.
+
+    When expressed as JSON, this should validate against its respective entity type(s).
+    """
+
     model_config = ConfigDict(populate_by_name=True)
 
 
