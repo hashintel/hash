@@ -1,3 +1,8 @@
+import { OntologyTemporalMetadata } from "@local/hash-graph-client";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   EntityTypeRootType,
   EntityTypeWithMetadata,
@@ -6,22 +11,22 @@ import {
 } from "@local/hash-subgraph";
 
 import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../../../graph";
-import {
+  archiveEntityType,
   createEntityType,
   getEntityTypeSubgraphById,
+  unarchiveEntityType,
   updateEntityType,
 } from "../../../graph/ontology/primitive/entity-type";
 import {
+  MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
+  MutationUnarchiveEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
 } from "../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { dataSourcesToImpureGraphContext } from "../util";
 
 export const createEntityTypeResolver: ResolverFn<
@@ -55,6 +60,9 @@ export const queryEntityTypesResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
+    latestOnly = true,
+    includeArchived = false,
   },
   { dataSources },
   __,
@@ -62,17 +70,36 @@ export const queryEntityTypesResolver: ResolverFn<
   const { graphApi } = dataSources;
 
   const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
-    filter: {
-      equal: [{ path: ["version"] }, { parameter: "latest" }],
-    },
+    filter: latestOnly
+      ? {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        }
+      : { all: [] },
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
+      inheritsFrom,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
+    temporalAxes: includeArchived
+      ? {
+          pinned: {
+            axis: "decisionTime",
+            timestamp: null,
+          },
+          variable: {
+            axis: "transactionTime",
+            interval: {
+              start: {
+                kind: "unbounded",
+              },
+              end: null,
+            },
+          },
+        }
+      : currentTimeInstantTemporalAxes,
   });
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
@@ -81,7 +108,7 @@ export const queryEntityTypesResolver: ResolverFn<
 export const getEntityTypeResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetEntityTypeArgs
 > = async (
   _,
@@ -91,6 +118,7 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
   },
   { dataSources, user },
   __,
@@ -99,13 +127,14 @@ export const getEntityTypeResolver: ResolverFn<
 
   return await getEntityTypeSubgraphById(context, {
     entityTypeId,
-    actorId: user.accountId,
+    actorId: user?.accountId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       constrainsValuesOn,
       constrainsPropertiesOn,
       constrainsLinksOn,
       constrainsLinkDestinationsOn,
+      inheritsFrom,
     },
     temporalAxes: currentTimeInstantTemporalAxes,
   });
@@ -129,3 +158,25 @@ export const updateEntityTypeResolver: ResolverFn<
 
   return updatedEntityType;
 };
+
+export const archiveEntityTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchiveEntityTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  archiveEntityType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });
+
+export const unarchiveEntityTypeResolver: ResolverFn<
+  Promise<OntologyTemporalMetadata>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUnarchiveEntityTypeArgs
+> = async (_, params, { dataSources, user }) =>
+  unarchiveEntityType(dataSources, {
+    actorId: user.accountId,
+    ...params,
+  });

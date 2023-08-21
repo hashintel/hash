@@ -17,17 +17,10 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import {
-  areComponentsCompatible,
-  isHashTextBlock,
-} from "@local/hash-isomorphic-utils/blocks";
+import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import {
-  EntityPropertiesObject,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -42,10 +35,10 @@ import { useKey } from "rooks";
 
 import { useUsers } from "../../../components/hooks/use-users";
 import { EditEntityModal } from "../../../pages/[shortname]/entities/[entity-uuid].page/edit-entity-modal";
+import { getBlockDomId } from "../../../shared/get-block-dom-id";
 import { useFetchBlockSubgraph } from "../../use-fetch-block-subgraph";
 import { useUserBlocks } from "../../user-blocks";
 import { useBlockContext } from "../block-context";
-import { getBlockDomId } from "../block-view";
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";
@@ -76,36 +69,36 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
   const currentComponentId = blockEntity?.componentId as string | null;
+
+  // We previously limited blocks you can swap to based on the current block, but this makes for arguably poorer UX
+  // @todo figure out how users can swap to blocks with incompatible data expectations, without losing current block data
   const compatibleBlocks = useMemo(() => {
-    return Object.values(userBlocks).filter((block) =>
-      areComponentsCompatible(currentComponentId, block.meta.componentId),
-    );
-  }, [currentComponentId, userBlocks]);
+    return Object.values(userBlocks);
+  }, [userBlocks]);
 
   const entityId = blockEntity?.metadata.recordId.entityId ?? null;
 
   const menuItems = useMemo(() => {
     /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-    const hasChildEntity =
-      !!(blockEntity?.properties as DraftEntity["properties"] | undefined)
-        ?.entity &&
-      Object.keys(
-        (
-          (blockEntity!.properties as DraftEntity["properties"]).entity as {
-            properties: EntityPropertiesObject;
-          }
-        ).properties,
-      ).length > 0;
+    const hasChildEntityWithData =
+      Object.keys(blockEntity?.blockChildEntity?.properties ?? []).length > 0;
     const items = [
       ...(currentComponentId && !isHashTextBlock(currentComponentId)
         ? [
             {
               key: "set-entity",
-              title: hasChildEntity ? "Swap Entity" : "Add an entity",
+              title: hasChildEntityWithData ? "Swap Entity" : "Add an entity",
               icon: <FontAwesomeIcon icon={faAdd} />,
               subMenu: (
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
+                  childEntityEntityTypeId={
+                    blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
+                  }
+                  childEntityEntityId={
+                    blockEntity?.blockChildEntity?.metadata.recordId.entityId ??
+                    null
+                  }
                   closeParentContextMenu={() => popupState.close()}
                 />
               ),

@@ -33,7 +33,7 @@ export const useBlockProtocolQueryEntityTypes = (): {
         };
       }
 
-      const { graphResolveDepths } = data;
+      const { graphResolveDepths, latestOnly, includeArchived } = data;
 
       /**
        * @todo Add filtering to this query using structural querying.
@@ -47,7 +47,10 @@ export const useBlockProtocolQueryEntityTypes = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          inheritsFrom: { outgoing: 255 },
           ...graphResolveDepths,
+          latestOnly,
+          includeArchived,
         },
       });
 

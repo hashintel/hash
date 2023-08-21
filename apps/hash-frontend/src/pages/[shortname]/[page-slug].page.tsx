@@ -3,45 +3,35 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
-import {
-  getPageInfoQuery,
-  getPageQuery,
-} from "@local/hash-graphql-shared/queries/page.queries";
-import {
-  defaultBlockComponentIds,
-  fetchBlock,
-  HashBlock,
-} from "@local/hash-isomorphic-utils/blocks";
+import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
+import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
+  Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
-  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { alpha, Box, Collapse } from "@mui/material";
+import { Box } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
-import Head from "next/head";
 import { Router, useRouter } from "next/router";
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { NextSeo } from "next-seo";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-// import { useCollabPositionReporter } from "../../blocks/page/collab/use-collab-position-reporter";
-// import { useCollabPositions } from "../../blocks/page/collab/use-collab-positions";
-// import { useCollabPositionTracking } from "../../blocks/page/collab/use-collab-position-tracking";
 import { PageBlock } from "../../blocks/page/page-block";
-import {
-  PageContextProvider,
-  usePageContext,
-} from "../../blocks/page/page-context";
+import { PageContextProvider } from "../../blocks/page/page-context";
 import {
   PageSectionContainer,
   PageSectionContainerProps,
@@ -52,17 +42,12 @@ import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/use-account-pages";
-import { useArchivePage } from "../../components/hooks/use-archive-page";
 import { usePageComments } from "../../components/hooks/use-page-comments";
 import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import {
-  GetPageInfoQuery,
-  GetPageInfoQueryVariables,
-  QueryEntitiesQuery,
-} from "../../graphql/api-types.gen";
+import { QueryEntitiesQuery } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -76,36 +61,21 @@ import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
-import { Button } from "../../shared/ui/button";
+import {
+  isPageParsedUrlQuery,
+  parsePageUrlQueryParams,
+} from "../../shared/routing/route-page-info";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
 } from "../shared/top-context-bar";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
+import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
   pageEntityId: EntityId;
   blocks: HashBlock[];
-};
-
-type PageParsedUrlQuery = {
-  shortname: string;
-  "page-slug": string;
-};
-
-export const isPageParsedUrlQuery = (
-  queryParams: NextParsedUrlQuery,
-): queryParams is PageParsedUrlQuery =>
-  typeof queryParams.shortname === "string" &&
-  typeof queryParams["page-slug"] === "string";
-
-export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
-  const workspaceShortname = params.shortname.slice(1);
-
-  const pageEntityUuid = params["page-slug"] as EntityUuid;
-
-  return { workspaceShortname, pageEntityUuid };
 };
 
 /**
@@ -118,9 +88,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   req,
   params,
 }) => {
-  const fetchedBlocks = await Promise.all(
-    defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
-  );
+  // Fetching block metadata can significantly slow down the server render, so disabling for now
+  // const fetchedBlocks = await Promise.all(
+  //   defaultBlockComponentIds.map((componentId) => fetchBlock(componentId)),
+  // );
 
   if (!params || !isPageParsedUrlQuery(params)) {
     throw new Error(
@@ -155,9 +126,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
+        inheritsFrom: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
       context: { headers: { cookie } },
     })
@@ -166,10 +138,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   const workspaces = getRoots(workspacesSubgraph).map((entity) =>
     entity.metadata.entityTypeId === types.entityType.user.entityTypeId
       ? constructMinimalUser({
-          userEntity: entity,
+          userEntity: entity as Entity<UserProperties>,
         })
       : constructMinimalOrg({
-          orgEntity: entity,
+          orgEntity: entity as Entity<OrgProperties>,
         }),
   );
 
@@ -200,65 +172,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   return {
     props: {
       pageWorkspace,
-      blocks: fetchedBlocks,
+      blocks: [],
       pageEntityId,
     },
   };
-};
-
-export const PageNotificationBanner: FunctionComponent = () => {
-  const { pageEntityId } = usePageContext();
-  const [archivePage] = useArchivePage();
-
-  const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
-    getPageInfoQuery,
-    {
-      variables: {
-        entityId: pageEntityId,
-      },
-    },
-  );
-
-  const archived = data?.page.archived;
-
-  return (
-    <Collapse in={!!archived}>
-      <Box
-        sx={({ palette }) => ({
-          color: palette.common.white,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: 1,
-          background: palette.red[60],
-          padding: 1,
-        })}
-      >
-        This page is archived.
-        <Button
-          variant="secondary"
-          sx={({ palette }) => ({
-            marginLeft: 1.5,
-            minWidth: 0,
-            minHeight: 0,
-            paddingY: 0,
-            paddingX: 1.5,
-            background: "transparent",
-            color: palette.common.white,
-            borderColor: palette.common.white,
-            fontWeight: 400,
-            "&:hover": {
-              background: alpha(palette.gray[90], 0.08),
-            },
-          })}
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
-        >
-          Restore
-        </Button>
-      </Box>
-    </Collapse>
-  );
 };
 
 const generateCrumbsFromPages = ({
@@ -270,25 +187,31 @@ const generateCrumbsFromPages = ({
   pages: AccountPagesInfo["data"];
   ownerShortname: string;
 }) => {
-  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+  const pageMap = new Map(
+    pages.map((page) => [page.metadata.recordId.entityId, page]),
+  );
 
   let currentPage = pageMap.get(pageEntityId);
   let arr = [];
 
   while (currentPage) {
-    const pageEntityUuid = extractEntityUuidFromEntityId(currentPage.entityId);
+    const currentPageEntityId = currentPage.metadata.recordId.entityId;
+
+    const pageEntityUuid = extractEntityUuidFromEntityId(currentPageEntityId);
     arr.push({
       title: currentPage.title,
       href: constructPageRelativeUrl({
         workspaceShortname: ownerShortname,
         pageEntityUuid,
       }),
-      id: currentPage.entityId,
-      icon: <PageIcon entityId={currentPage.entityId} size="small" />,
+      id: currentPageEntityId,
+      icon: <PageIcon icon={currentPage.icon} size="small" />,
     });
 
-    if (currentPage.parentPageEntityId) {
-      currentPage = pageMap.get(currentPage.parentPageEntityId);
+    if (currentPage.parentPage) {
+      currentPage = pageMap.get(
+        currentPage.parentPage.metadata.recordId.entityId,
+      );
     } else {
       break;
     }
@@ -311,7 +234,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const { data: accountPages } = useAccountPages(pageOwnedById);
+  const { data: accountPages } = useAccountPages(pageOwnedById, true);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -401,23 +324,21 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   return (
     <>
-      <Head>
-        <title>{pageTitle} | Page | HASH</title>
-
-        {/*
-          Rendering favicon.png again even if it's already defined on _document.page.tsx,
-          because client-side navigation does not fallback to the default icon when visiting a page without an icon
-        */}
-        {icon ? (
-          <link
-            rel="icon"
-            href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
-          ${icon}</text></svg>`}
-          />
-        ) : (
-          <link rel="icon" type="image/png" href="/favicon.png" />
-        )}
-      </Head>
+      <NextSeo
+        key={pageEntityId}
+        title={pageTitle || "Untitled"}
+        additionalLinkTags={
+          icon
+            ? [
+                {
+                  rel: "icon",
+                  href: `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>
+          ${icon}</text></svg>`,
+                },
+              ]
+            : []
+        }
+      />
 
       <PageContextProvider pageEntityId={pageEntityId}>
         <Box
@@ -429,6 +350,17 @@ const Page: NextPageWithLayout<PageProps> = ({
           })}
         >
           <TopContextBar
+            actionMenuItems={
+              data.page.archived
+                ? undefined
+                : [
+                    <ArchiveMenuItem
+                      key={data.page.metadata.recordId.entityId}
+                      item={data.page}
+                    />,
+                  ]
+            }
+            item={data.page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: data.page.metadata.recordId.entityId,
@@ -436,7 +368,6 @@ const Page: NextPageWithLayout<PageProps> = ({
             })}
             scrollToTop={scrollToTop}
           />
-          <PageNotificationBanner />
         </Box>
 
         {!canvasPage && (
@@ -444,6 +375,7 @@ const Page: NextPageWithLayout<PageProps> = ({
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
+                icon={icon}
                 readonly={isReadonlyMode}
                 sx={({ breakpoints }) => ({
                   mb: 2,
@@ -527,6 +459,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 Page.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
+    grayBackground: false,
   });
 
 export default Page;

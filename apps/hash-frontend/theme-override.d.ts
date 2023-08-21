@@ -50,7 +50,7 @@ declare module "@mui/material/styles" {
     100: string;
   }
   interface Palette {
-    gray: PaletteValue;
+    gray: PaletteValue & { 5: string; 15: string };
     grey: undefined;
     blue: PaletteValue;
     purple: PaletteValue;
@@ -137,6 +137,7 @@ declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
     primary: true;
     secondary: true;
+    secondary_quiet: true;
     tertiary: true;
     tertiary_quiet: true;
     warning: true;

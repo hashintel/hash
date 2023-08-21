@@ -7,19 +7,18 @@ import {
   monorepoRootDir,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { Session } from "@ory/client";
+import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
-import express from "express";
+import express, { raw } from "express";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import { setupAgentRunner } from "./agents/runner";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import {
@@ -27,9 +26,19 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+  ImpureGraphContext,
+} from "./graph";
+import { User } from "./graph/knowledge/system-types/user";
+import { ensureLinearOrgExists } from "./graph/linear-org";
+import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
+import { linearWebhook } from "./integrations/linear/webhook";
+import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import { getAwsRegion } from "./lib/aws-config";
 import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
 import {
@@ -43,7 +52,22 @@ import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import { setupFileProxyHandler, setupStorageProviders } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
+import { createVaultClient, VaultClient } from "./vault";
+
+declare global {
+  namespace Express {
+    interface Request {
+      context: ImpureGraphContext & {
+        temporalClient?: TemporalClient;
+        vaultClient?: VaultClient;
+      };
+      session: Session | undefined;
+      user: User | undefined;
+    }
+  }
+}
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -123,11 +147,21 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
+  const temporalClient = await createTemporalClient(logger);
+
+  const vaultClient = createVaultClient();
+
   const context = { graphApi, uploadProvider };
 
   setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
+
+  if (process.env.LINEAR_CLIENT_ID) {
+    await ensureLinearOrgExists({ logger, context });
+
+    await ensureLinearTypesExist({ logger, context });
+  }
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
@@ -139,8 +173,20 @@ const main = async () => {
   // Potentially only in development mode
   app.use(helmet({ contentSecurityPolicy: false }));
 
-  // Parse request body as JSON - allow higher than the default 100kb limit
-  app.use(json({ limit: "16mb" }));
+  const jsonParser = json({
+    // default is 100kb
+    limit: "16mb",
+  });
+  const rawParser = raw({ type: "application/json" });
+
+  // Body parsing middleware
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/webhooks/")) {
+      // webhooks typically need the raw body for signature verification
+      return rawParser(req, res, next);
+    }
+    return jsonParser(req, res, next);
+  });
 
   // Set up authentication related middleware and routes
   setupAuth({ app, logger, context });
@@ -191,17 +237,28 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
 
-  const agentRunner = setupAgentRunner();
-
   const apolloServer = createApolloServer({
     graphApi,
     search,
     uploadProvider,
+    temporalClient,
+    vaultClient,
     cache: redis,
-    agentRunner,
     emailTransporter,
     logger,
     statsd,
+  });
+
+  // Make the data sources/clients available to REST controllers
+  // @todo figure out sharing of context between REST and GraphQL without repeating this
+  app.use((req, _res, next) => {
+    req.context = {
+      graphApi,
+      temporalClient,
+      uploadProvider,
+      vaultClient,
+    };
+    next();
   });
 
   app.get("/", (_, res) => res.send("Hello World"));
@@ -226,6 +283,11 @@ const main = async () => {
     next();
   });
 
+  // Integrations
+  app.get("/oauth/linear", oAuthLinear);
+  app.get("/oauth/linear/callback", oAuthLinearCallback);
+  app.post("/webhooks/linear", linearWebhook);
+
   // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
   // close active connections. This can result in the server hanging indefinitely. We
@@ -243,10 +305,9 @@ const main = async () => {
     cors: CORS_CONFIG,
   });
 
-  // Start the HTTP server before setting up collab
+  // Start the HTTP server before setting up the integration listener
   // This is done because the Redis client blocks when instantiated
   // and we must ensure that the health checks are available ASAP.
-  // It is not a problem to set up collab after the fact that we begin listening.
   await new Promise<void>((resolve) => {
     httpServer.listen({ port }, () => {
       logger.info(`Listening on port ${port}`);
@@ -255,17 +316,14 @@ const main = async () => {
     });
   });
 
-  // Connect to Redis queue for collab
-  const collabRedisClient = new AsyncRedisClient(logger, {
-    host: getRequiredEnv("HASH_REDIS_HOST"),
-    port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-  });
-  shutdown.addCleanup("collabRedisClient", async () =>
-    collabRedisClient.close(),
-  );
-  const collabRedisQueue = new RedisQueueExclusiveConsumer(collabRedisClient);
-  shutdown.addCleanup("collabRedisQueue", async () =>
-    collabRedisQueue.release(),
+  const integrationSyncBackWatcher =
+    await createIntegrationSyncBackWatcher(graphApi);
+
+  void integrationSyncBackWatcher.start();
+
+  shutdown.addCleanup(
+    "Integration sync back watcher",
+    integrationSyncBackWatcher.stop,
   );
 };
 

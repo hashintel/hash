@@ -16,7 +16,7 @@ impl Error for FetcherError {}
 
 impl fmt::Display for FetcherError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("the type fetcher encountered an error durlng execution: ")?;
+        fmt.write_str("the type fetcher encountered an error during execution: ")?;
 
         match self {
             Self::NetworkError(message) | Self::SerializationError(message) => {

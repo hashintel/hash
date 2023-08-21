@@ -6,6 +6,7 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { fluidFontClassName, theme } from "@hashintel/design-system";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
+import { InheritanceRow } from "./entity-type-editor/inheritance-row";
 import { LinkListCard } from "./entity-type-editor/link-list-card";
 import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
@@ -32,19 +33,19 @@ export type CustomizationOptions = {
    *  A callback to provide custom handling a user clicking a link to another type.
    *  If defined, default anchor behavior will be prevented on click.
    */
-  onNavigateToType?: (url: string) => void;
+  onNavigateToType?: (url: VersionedUrl) => void;
 };
 
 export type EntityTypeEditorProps = {
   customization?: CustomizationOptions;
   // the entity type being edited
   entityType: EntityType;
-  // The entity types available for constraining the destination of a link, INCLUDING those used on this entity
+  // The entity types available for (a) extending or (b) constraining the destination of a link, INCLUDING those used on this entity
   entityTypeOptions: Record<VersionedUrl, EntityType>;
   // The property types available for assigning to an entity type or property type object, INCLUDING those used on this entity
   propertyTypeOptions: Record<VersionedUrl, PropertyType>;
-  // functions for creating and updating entity and property types that the editor will call
-  ontologyFunctions: EditorOntologyFunctions;
+  // functions for creating and updating types. Pass 'null' if not available (editor will be forced into readonly)
+  ontologyFunctions: EditorOntologyFunctions | null;
   // whether or not the type editor should be in readonly mode
   readonly: boolean;
 };
@@ -59,7 +60,7 @@ export const EntityTypeEditor = ({
 }: EntityTypeEditorProps) => {
   return (
     <ThemeProvider theme={theme}>
-      <ReadonlyContext.Provider value={readonly}>
+      <ReadonlyContext.Provider value={readonly || !ontologyFunctions}>
         <CustomizationContext.Provider value={customization}>
           <OntologyFunctionsContext.Provider value={ontologyFunctions}>
             <EntityTypesOptionsContextProvider
@@ -69,6 +70,13 @@ export const EntityTypeEditor = ({
                 propertyTypeOptions={propertyTypeOptions}
               >
                 <Stack spacing={6.5} className={fluidFontClassName}>
+                  <Box>
+                    <Typography variant="h5" mb={2}>
+                      Extends
+                    </Typography>
+                    <InheritanceRow />
+                  </Box>
+
                   <Box>
                     <Typography variant="h5" mb={2}>
                       Properties of{" "}

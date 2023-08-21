@@ -1,26 +1,21 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  FontAwesomeIcon,
-  IconButton,
-  Modal,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton, Modal } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
 
+import { Button } from "../../../../../../shared/ui";
+
 interface ConvertTypeConfirmationModalProps {
-  popupState: PopupState;
+  onClose: () => void;
   onSubmit: () => void;
+  popupState: PopupState;
 }
 
 export const ConvertTypeConfirmationModal = ({
-  popupState,
+  onClose,
   onSubmit,
+  popupState,
 }: ConvertTypeConfirmationModalProps) => {
-  const onClose = () => {
-    popupState.close();
-  };
-
   return (
     <Modal
       {...bindDialog(popupState)}

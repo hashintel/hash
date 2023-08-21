@@ -122,6 +122,11 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 // * at least a single item had an error
                 // * there are not enough items
                 let ret = unsafe { ptr::addr_of!(this).cast::<[T; N]>().read() };
+                #[allow(clippy::mem_forget)]
+                // Reason: This is fine, we do **not** want to call the destructor, as we are
+                // simply casting from [MaybeUninit<T>; N] to [T; N], the memory
+                // layout is the same and we do not want to drop/deallocate it.
+                // (This is also what `array_assume_init` does)
                 mem::forget(this);
                 ret
             })

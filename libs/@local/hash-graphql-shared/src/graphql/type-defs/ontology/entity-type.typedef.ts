@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export const entityTypeTypedef = gql`
   scalar ConstructEntityTypeParams
   scalar EntityTypeWithMetadata
+  scalar BaseUrl
 
   extend type Query {
     """
@@ -13,6 +14,9 @@ export const entityTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
+      latestOnly: Boolean = true
+      includeArchived: Boolean = false
     ): Subgraph!
 
     """
@@ -24,6 +28,7 @@ export const entityTypeTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      inheritsFrom: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
@@ -37,6 +42,10 @@ export const entityTypeTypedef = gql`
       """
       ownedById: OwnedById
       entityType: ConstructEntityTypeParams!
+      """
+      The property which should be used as the label for entities of this type.
+      """
+      labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
 
     """
@@ -51,6 +60,30 @@ export const entityTypeTypedef = gql`
       New entity type schema contents to be used.
       """
       updatedEntityType: ConstructEntityTypeParams!
+      """
+      The property which should be used as the label for entities of this type.
+      """
+      labelProperty: BaseUrl
     ): EntityTypeWithMetadata!
+
+    """
+    Archive a entity type.
+    """
+    archiveEntityType(
+      """
+      The entity type versioned $id to archive.
+      """
+      entityTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
+
+    """
+    Unarchive a entity type.
+    """
+    unarchiveEntityType(
+      """
+      The entity type versioned $id to unarchive.
+      """
+      entityTypeId: VersionedUrl!
+    ): OntologyTemporalMetadata!
   }
 `;

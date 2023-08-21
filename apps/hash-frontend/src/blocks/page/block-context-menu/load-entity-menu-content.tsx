@@ -1,14 +1,14 @@
+import { useQuery } from "@apollo/client";
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
-import {
-  DraftEntity,
-  EntityStoreType,
-} from "@local/hash-isomorphic-utils/entity-store";
-import { EntityId } from "@local/hash-subgraph";
+import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
+import { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
   Box,
   InputAdornment,
@@ -26,31 +26,60 @@ import {
   useRef,
 } from "react";
 
+import {
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { queryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { generateEntityLabel } from "../../../lib/entities";
+import { entityHasEntityTypeByBaseUrlFilter } from "../../../shared/filters";
 import { MenuItem } from "../../../shared/ui";
 import { useBlockView } from "../block-view";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;
+  childEntityEntityTypeId: VersionedUrl | null;
+  childEntityEntityId: EntityId | null;
   closeParentContextMenu: () => void;
   popupState?: PopupState;
 };
 
 export const LoadEntityMenuContent: FunctionComponent<
   LoadEntityMenuContentProps
-> = ({ blockEntityId, closeParentContextMenu, popupState }) => {
+> = ({
+  blockEntityId,
+  childEntityEntityTypeId,
+  childEntityEntityId,
+  closeParentContextMenu,
+  popupState,
+}) => {
+  const { data: queryResult, loading } = useQuery<
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
+    variables: {
+      operation: {
+        multiFilter: {
+          filters: [
+            ...(childEntityEntityTypeId
+              ? [entityHasEntityTypeByBaseUrlFilter(childEntityEntityTypeId)]
+              : []),
+          ],
+          operator: "AND",
+        },
+      },
+      constrainsValuesOn: { outgoing: 0 },
+      constrainsPropertiesOn: { outgoing: 0 },
+      constrainsLinksOn: { outgoing: 0 },
+      constrainsLinkDestinationsOn: { outgoing: 0 },
+      inheritsFrom: { outgoing: 0 },
+      isOfType: { outgoing: 1 },
+      hasLeftEntity: { incoming: 0, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 0 },
+    },
+  });
+
   const blockView = useBlockView();
-  const loading: boolean = true;
-
-  // This depends on state external to react without subscribing to it
-  // and this can cause some bugs.
-  // @todo make this a subscription
-  // const entityStore = entityStorePluginState(blockView.editorView.state).store;
-
-  // savedEntity and blockEntity are the same. savedEntity variable
-  // is needed to get proper typing on blockEntity
-  // const savedEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
-  // const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const popupWasOpen = useRef<boolean>(false);
@@ -65,10 +94,11 @@ export const LoadEntityMenuContent: FunctionComponent<
   }, [popupState]);
 
   const swapEntity = useCallback(
-    (targetEntity: DraftEntity["properties"]["entity"]) => {
+    (targetEntity: Entity) => {
       if (!blockEntityId) {
         return;
       }
+
       /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
@@ -78,8 +108,31 @@ export const LoadEntityMenuContent: FunctionComponent<
     [blockView, blockEntityId],
   );
 
-  // TODO: get actual entities.
-  const filteredEntities = useMemo(() => [], []);
+  const filteredEntities = useMemo(() => {
+    const uniqueEntityIds = new Set();
+
+    const entities = queryResult?.queryEntities
+      ? getRoots<EntityRootType>(queryResult.queryEntities as any)
+      : [];
+
+    return entities.filter((entity) => {
+      const targetEntityId = entity.metadata.recordId.entityId;
+
+      // don't include the current entity the block is tied to
+      if (targetEntityId === childEntityEntityId) {
+        return false;
+      }
+
+      // don't include duplicates
+      if (uniqueEntityIds.has(targetEntityId)) {
+        return false;
+      }
+
+      uniqueEntityIds.add(targetEntityId);
+
+      return true;
+    });
+  }, [queryResult, childEntityEntityId]);
 
   return (
     <MenuList>
@@ -98,7 +151,7 @@ export const LoadEntityMenuContent: FunctionComponent<
                 <FontAwesomeIcon icon={faSearch} />
               </InputAdornment>
             ),
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+
             endAdornment: loading ? (
               <InputAdornment position="start">
                 <LoadingSpinner size={12} thickness={4} />
@@ -107,37 +160,38 @@ export const LoadEntityMenuContent: FunctionComponent<
           }}
         />
       </Box>
-      {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment */}
       {loading ? (
         <Box padding={2}>
           <LoadingSpinner size={16} thickness={4} />
         </Box>
       ) : null}
-      {filteredEntities.map((entity) => {
-        return (
-          <MenuItem
-            key={(entity as any).entityId}
-            onClick={() => {
-              swapEntity(entity);
-              closeParentContextMenu();
-            }}
-          >
-            <ListItemIcon>
-              <FontAwesomeIcon icon={faAsterisk} />
-            </ListItemIcon>
-            <Tooltip
-              title={JSON.stringify((entity as any).properties, undefined, 2)}
+      {queryResult &&
+        filteredEntities.map((entity) => {
+          return (
+            <MenuItem
+              key={entity.metadata.recordId.entityId}
+              onClick={() => {
+                swapEntity(entity);
+                closeParentContextMenu();
+              }}
             >
-              <ListItemText
-                primary={generateEntityLabel(entity)}
-                primaryTypographyProps={{
-                  noWrap: true,
-                }}
-              />
-            </Tooltip>
-          </MenuItem>
-        );
-      })}
+              <ListItemIcon>
+                <FontAwesomeIcon icon={faAsterisk} />
+              </ListItemIcon>
+              <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
+                <ListItemText
+                  primary={generateEntityLabel(
+                    queryResult.queryEntities as any,
+                    entity,
+                  )}
+                  primaryTypographyProps={{
+                    noWrap: true,
+                  }}
+                />
+              </Tooltip>
+            </MenuItem>
+          );
+        })}
     </MenuList>
   );
 };

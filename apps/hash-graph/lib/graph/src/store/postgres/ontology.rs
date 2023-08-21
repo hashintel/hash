@@ -4,15 +4,16 @@ mod ontology_id;
 mod property_type;
 mod read;
 
+#[cfg(hash_graph_test_environment)]
 use error_stack::{IntoReport, Result, ResultExt};
+use graph_types::ontology::OntologyType;
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::ontology_id::OntologyId;
-use crate::{
-    ontology::OntologyType,
-    store::{error::DeletionError, AsClient, PostgresStore},
-};
+use crate::store::PostgresStore;
+#[cfg(hash_graph_test_environment)]
+use crate::store::{error::DeletionError, AsClient};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
@@ -63,6 +64,18 @@ impl PostgresStore<Transaction<'_>> {
             .query(
                 r"
                     DELETE FROM ontology_external_metadata
+                    WHERE ontology_id = ANY($1)
+                ",
+                &[&ontology_ids],
+            )
+            .await
+            .into_report()
+            .change_context(DeletionError)?;
+
+        self.as_client()
+            .query(
+                r"
+                    DELETE FROM ontology_temporal_metadata
                     WHERE ontology_id = ANY($1)
                 ",
                 &[&ontology_ids],

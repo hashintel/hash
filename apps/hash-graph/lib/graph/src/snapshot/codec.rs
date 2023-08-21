@@ -14,13 +14,18 @@ use tokio_util::codec::{Decoder, Encoder, LinesCodec};
     Debug(bound = ""),
     Default(bound = ""),
     Copy(bound = ""),
-    Clone(bound = ""),
     Eq(bound = ""),
     PartialEq(bound = ""),
     Hash(bound = "")
 )]
 pub struct JsonLinesEncoder<T> {
     _marker: PhantomData<fn() -> T>,
+}
+
+impl<T> Clone for JsonLinesEncoder<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {

@@ -3,7 +3,9 @@ use std::{
     hash::Hash,
 };
 
+use graph_types::{knowledge::entity::EntityId, ontology::OntologyTypeVersion};
 use serde::Serialize;
+use temporal_versioning::Timestamp;
 use type_system::url::BaseUrl;
 use utoipa::{
     openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
@@ -12,7 +14,6 @@ use utoipa::{
 
 use crate::{
     api::rest::utoipa_typedef::subgraph::vertices::OntologyTypeVertexId,
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
     subgraph::{
         edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
         identifier::{
@@ -240,19 +241,20 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
+    use graph_types::{
+        account::AccountId,
+        knowledge::entity::{EntityId, EntityUuid},
+        ontology::OntologyTypeVersion,
+        provenance::OwnedById,
+    };
+    use temporal_versioning::{
+        ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+    };
     use type_system::url::BaseUrl;
     use uuid::Uuid;
 
     use crate::{
         api::rest::utoipa_typedef::subgraph::Edges,
-        identifier::{
-            account::AccountId,
-            knowledge::EntityId,
-            ontology::OntologyTypeVersion,
-            time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
-        },
-        knowledge::EntityUuid,
-        provenance::OwnedById,
         subgraph::{
             edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
             identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},

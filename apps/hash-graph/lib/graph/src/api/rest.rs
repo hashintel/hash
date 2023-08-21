@@ -18,7 +18,7 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{collections::HashMap, fs, io, sync::Arc};
+use std::{fs, io, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
@@ -29,12 +29,23 @@ use axum::{
     Extension, Json, Router,
 };
 use error_stack::{IntoReport, Report, ResultExt};
+use graph_types::{
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, OntologyTypeVersion,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use include_dir::{include_dir, Dir};
-use serde::Serialize;
+use temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
 use utoipa::{
     openapi::{
-        self, schema, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        SchemaFormat, SchemaType,
+        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
+        Schema, SchemaFormat, SchemaType,
     },
     Modify, OpenApi, ToSchema,
 };
@@ -49,22 +60,10 @@ use crate::{
                 OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices,
                 Subgraph, Vertex, Vertices,
             },
-            MaybeListOfOntologyElementMetadata,
+            MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::{
-            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, RightBoundedTemporalInterval,
-            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
-        },
-    },
-    ontology::{
-        domain_validator::DomainValidator, ExternalOntologyElementMetadata,
-        OntologyElementMetadata, OntologyTypeReference, OwnedOntologyElementMetadata, Selector,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
@@ -75,7 +74,10 @@ use crate::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
             GraphElementVertexId, PropertyTypeVertexId,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
     },
 };
 
@@ -198,10 +200,6 @@ where
         .merge(openapi_only_router())
 }
 
-#[expect(
-    clippy::unused_async,
-    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
-)]
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
@@ -230,18 +228,21 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         &OperationGraphTagAddon,
         &FilterSchemaAddon,
         &TimeSchemaAddon,
-        &OntologyTypeSchemaAddon,
     ),
     components(
         schemas(
             OwnedById,
             RecordCreatedById,
+            RecordArchivedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
+            OntologyTemporalMetadata,
+            CustomOntologyMetadata,
+            EntityTypeMetadata,
+            CustomEntityTypeMetadata,
             MaybeListOfOntologyElementMetadata,
-            OwnedOntologyElementMetadata,
-            ExternalOntologyElementMetadata,
+            MaybeListOfEntityTypeMetadata,
             EntityVertexId,
             EntityIdWithInterval,
             DataTypeVertexId,
@@ -382,6 +383,9 @@ impl Modify for MergeAddon {
 /// Any component that starts with `VAR_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
+/// Any component that starts with `SHARED_` will transform into a relative URL into the
+/// `./models/shared.json` file.
+///
 /// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
@@ -428,20 +432,31 @@ fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
             openapi::Schema::OneOf(one_of) => {
                 one_of.items.iter_mut().for_each(modify_schema_references);
             }
+            openapi::Schema::AllOf(all_of) => {
+                all_of.items.iter_mut().for_each(modify_schema_references);
+            }
             _ => (),
         },
     }
 }
 
 fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_SHARED: &str = "#/components/schemas/SHARED_";
 
-    if reference.ref_location.starts_with(REF_PREFIX) {
+    if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
         reference
             .ref_location
-            .replace_range(0..REF_PREFIX.len(), "./models/");
+            .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
+    };
+
+    if reference.ref_location.starts_with(REF_PREFIX_SHARED) {
+        reference.ref_location.replace_range(
+            0..REF_PREFIX_SHARED.len(),
+            "./models/shared.json#/definitions/",
+        );
     };
 }
 
@@ -474,13 +489,17 @@ struct FilterSchemaAddon;
 impl Modify for FilterSchemaAddon {
     #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        // This magically generates `any`, which is the closest representation we found working
-        // with the OpenAPI generator.
-        #[derive(Serialize, ToSchema)]
-        #[serde(untagged)]
-        #[expect(dead_code)]
-        enum Any {
-            Object(HashMap<String, Self>),
+        // This is a bit of hack, but basically, it adds a schema that is equivalent to "any value"
+        // `SchemaType::Value` indicates any generic JSON value.
+        struct Any;
+
+        impl ToSchema<'_> for Any {
+            fn schema() -> (&'static str, RefOr<Schema>) {
+                (
+                    "Any",
+                    Schema::Object(Object::with_type(SchemaType::Value)).into(),
+                )
+            }
         }
 
         if let Some(ref mut components) = openapi.components {
@@ -665,20 +684,6 @@ impl Modify for TimeSchemaAddon {
                     .0
                     .to_owned(),
                 RightBoundedTemporalIntervalUnresolved::<()>::schema().1,
-            );
-        }
-    }
-}
-
-/// Adds time-related structs to the `OpenAPI` schema.
-struct OntologyTypeSchemaAddon;
-
-impl Modify for OntologyTypeSchemaAddon {
-    fn modify(&self, openapi: &mut openapi::OpenApi) {
-        if let Some(ref mut components) = openapi.components {
-            components.schemas.insert(
-                "BaseUrl".to_owned(),
-                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }

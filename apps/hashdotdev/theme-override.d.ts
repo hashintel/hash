@@ -1,15 +1,33 @@
 import { CSSProperties } from "react";
 
 declare module "@mui/material/styles" {
+  interface PaletteValue {
+    10: string;
+    20: string;
+    30: string;
+    40: string;
+    50: string;
+    60: string;
+    70: string;
+    80: string;
+    90: string;
+    100: string;
+  }
+
   interface Palette {
     white: string;
     black: string;
-    purple: {
+    teal: PaletteValue;
+    turquoise: PaletteValue;
+    purple: PaletteValue & {
       600: string;
     };
-    blue: {
+    blue: PaletteValue & {
+      15: string;
+      25: string;
       700: string;
     };
+    mint: PaletteValue;
     yellow: {
       100: string;
       200: string;
@@ -121,6 +139,9 @@ declare module "@mui/material/Button" {
 
   interface ButtonPropsColorOverrides {
     default: true;
+    purple: true;
+    blue: true;
+    mint: true;
     // Disable defaults
     primary: false;
     secondary: false;

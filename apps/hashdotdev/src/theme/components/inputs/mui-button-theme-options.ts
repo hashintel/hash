@@ -1,10 +1,4 @@
-import {
-  alpha,
-  buttonClasses,
-  Components,
-  CSSObject,
-  Theme,
-} from "@mui/material";
+import { buttonClasses, Components, CSSObject, Theme } from "@mui/material";
 
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
@@ -35,10 +29,14 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => {
-      const { variant, size } = ownerState;
+      const { variant, size, color } = ownerState;
 
-      if (variant === "primarySquare" && size !== "large") {
-        throw new Error("primarySquare buttons must be large");
+      if (
+        variant === "primarySquare" &&
+        size !== "large" &&
+        size !== "medium"
+      ) {
+        throw new Error("primarySquare buttons must be large or medium");
       }
 
       const { typography } = theme;
@@ -46,7 +44,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const baseStyles: CSSObject = {
         textTransform: "none",
         lineHeight: 1,
-        border: "2px solid",
+        border: "1px solid",
         position: "relative",
         whiteSpace: "nowrap",
 
@@ -76,8 +74,53 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const focusVisibleStyles: CSSObject = {};
 
       const focusVisibleAfterStyles: CSSObject = {
-        borderColor: theme.palette.yellow[800],
+        borderColor:
+          color === "purple"
+            ? theme.palette.purple[80]
+            : theme.palette.yellow[800],
       };
+
+      if (variant === "primarySquare") {
+        const boxShadow = `inset 0px -2px 6px rgba(158, 217, 233, 0.20)`;
+
+        Object.assign(baseStyles, {
+          borderRadius: 4,
+          borderWidth: 1,
+          borderColor:
+            color === "purple"
+              ? theme.palette.purple[40]
+              : color === "blue"
+              ? theme.palette.blue[40]
+              : color === "mint"
+              ? theme.palette.mint[40]
+              : theme.palette.teal[40],
+          color: theme.palette.gray[90],
+          backgroundColor: theme.palette.white,
+          padding: theme.spacing("24px", "31px"),
+          fontWeight: 400,
+          boxShadow,
+          minHeight: 72,
+        });
+        Object.assign(hoverStyles, {
+          backgroundColor:
+            color === "purple"
+              ? theme.palette.purple[10]
+              : color === "blue"
+              ? theme.palette.blue[10]
+              : color === "mint"
+              ? theme.palette.mint[10]
+              : theme.palette.teal[10],
+          color: theme.palette.black,
+          boxShadow,
+        });
+        Object.assign(focusVisibleStyles, {
+          boxShadow: "none",
+        });
+        Object.assign(afterStyles, {
+          ...focusStyles(3, 7),
+          borderRadius: 10,
+        });
+      }
 
       switch (size) {
         case "large": {
@@ -86,33 +129,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
 
           if (variant === "primarySquare") {
-            const boxShadow = `inset 0px -2px 6px ${alpha(
-              theme.palette.yellow[500],
-              0.5,
-            )}`;
-
             Object.assign(baseStyles, {
-              borderRadius: 4,
-              borderWidth: 1,
-              borderColor: theme.palette.orange[400],
-              color: theme.palette.gray[90],
-              backgroundColor: theme.palette.white,
               padding: theme.spacing("24px", "31px"),
-              fontWeight: 400,
-              boxShadow,
-              minHeight: 72,
-            });
-            Object.assign(hoverStyles, {
-              backgroundColor: theme.palette.yellow[100],
-              color: theme.palette.black,
-              boxShadow,
-            });
-            Object.assign(focusVisibleStyles, {
-              boxShadow: "none",
-            });
-            Object.assign(afterStyles, {
-              ...focusStyles(3, 7),
-              borderRadius: 10,
             });
           } else {
             Object.assign(baseStyles, {
@@ -129,15 +147,13 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         case "medium": {
           Object.assign(baseStyles, {
             fontSize: typography.hashSmallText.fontSize,
-            minHeight: 42,
-            padding: theme.spacing("10px", "18px"),
-
-            ...(variant === "tertiary"
-              ? {
-                  minHeight: 33,
-                  padding: theme.spacing("6px", "16px"),
-                }
-              : {}),
+            minHeight: variant === "tertiary" ? 33 : 42,
+            padding:
+              variant === "primarySquare"
+                ? theme.spacing(1.75, 4)
+                : variant === "tertiary"
+                ? theme.spacing("6px", "16px")
+                : theme.spacing("10px", "18px"),
           });
           Object.assign(afterStyles, {
             ...focusStyles(buttonFocusBorderWidth, buttonFocusBorderOffset),
@@ -149,28 +165,68 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         case "primary": {
           Object.assign(baseStyles, {
             fontWeight: 600,
-            color: theme.palette.orange[800],
-            backgroundColor: theme.palette.yellow[300],
+            color:
+              color === "purple"
+                ? theme.palette.purple[80]
+                : color === "blue"
+                ? theme.palette.blue[80]
+                : theme.palette.teal[80],
+            backgroundColor:
+              color === "purple"
+                ? theme.palette.purple[20]
+                : color === "blue"
+                ? theme.palette.blue[15]
+                : theme.palette.teal[30],
             borderColor: size === "large" ? theme.palette.white : "transparent",
           });
           Object.assign(hoverStyles, {
-            color: theme.palette.orange[900],
-            backgroundColor: theme.palette.yellow[300],
-            borderColor: theme.palette.yellow[500],
+            color:
+              color === "purple"
+                ? theme.palette.purple[90]
+                : color === "blue"
+                ? theme.palette.blue[90]
+                : theme.palette.teal[90],
+            backgroundColor:
+              color === "purple"
+                ? theme.palette.purple[20]
+                : color === "blue"
+                ? theme.palette.blue[20]
+                : theme.palette.teal[20],
+            borderColor:
+              color === "purple"
+                ? theme.palette.purple[50]
+                : color === "blue"
+                ? theme.palette.blue[50]
+                : theme.palette.teal[50],
           });
           break;
         }
         case "secondary": {
           Object.assign(baseStyles, {
             fontWeight: 600,
-            color: theme.palette.orange[800],
+            color:
+              color === "purple"
+                ? theme.palette.purple[80]
+                : theme.palette.blue[80],
             backgroundColor: theme.palette.white,
-            borderColor: theme.palette.yellow[300],
+            borderColor:
+              color === "purple"
+                ? theme.palette.purple[20]
+                : theme.palette.blue[20],
           });
           Object.assign(hoverStyles, {
-            color: theme.palette.orange[900],
-            backgroundColor: theme.palette.yellow[100],
-            borderColor: theme.palette.yellow[400],
+            color:
+              color === "purple"
+                ? theme.palette.purple[90]
+                : theme.palette.blue[90],
+            backgroundColor:
+              color === "purple"
+                ? theme.palette.purple[10]
+                : theme.palette.blue[10],
+            borderColor:
+              color === "purple"
+                ? theme.palette.purple[40]
+                : theme.palette.blue[40],
           });
           break;
         }
@@ -206,11 +262,31 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             fontSize: 12,
             marginTop: 1,
             ...(ownerState.variant === "primary" && {
-              color: theme.palette.orange[600],
+              color:
+                color === "purple"
+                  ? theme.palette.purple[50]
+                  : color === "blue"
+                  ? theme.palette.blue[40]
+                  : theme.palette.teal[50],
+            }),
+            ...(ownerState.variant === "secondary" && {
+              color:
+                color === "purple"
+                  ? theme.palette.purple[40]
+                  : color === "blue"
+                  ? theme.palette.blue[40]
+                  : theme.palette.teal[30],
             }),
             ...(ownerState.variant === "primarySquare" && {
               fontSize: 24,
-              color: theme.palette.orange[500],
+              color:
+                color === "purple"
+                  ? theme.palette.purple[50]
+                  : color === "blue"
+                  ? theme.palette.blue[50]
+                  : color === "mint"
+                  ? theme.palette.mint[70]
+                  : theme.palette.teal[60],
             }),
             ...(ownerState.variant === "tertiary" && {
               color: theme.palette.gray[50],
@@ -221,7 +297,20 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           [`.${buttonClasses.startIcon}, .${buttonClasses.endIcon}`]: {
             "&>*:nth-of-type(1)": {
               ...(ownerState.variant === "primary" && {
-                color: theme.palette.orange[900],
+                color:
+                  color === "purple"
+                    ? theme.palette.purple[90]
+                    : color === "blue"
+                    ? theme.palette.blue[90]
+                    : theme.palette.teal[90],
+              }),
+              ...(ownerState.variant === "secondary" && {
+                color:
+                  color === "purple"
+                    ? theme.palette.purple[50]
+                    : color === "blue"
+                    ? theme.palette.blue[90]
+                    : theme.palette.teal[50],
               }),
               ...(ownerState.variant === "tertiary" && {
                 color: theme.palette.gray[70],

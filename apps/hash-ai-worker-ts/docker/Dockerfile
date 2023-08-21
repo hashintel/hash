@@ -10,6 +10,8 @@ FROM node:18.15-slim as installer
 
 WORKDIR /usr/local/src/
 
+RUN apt-get update && apt-get install -y --no-install-recommends default-jre-headless && rm -rf /var/lib/apt/lists/*
+
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 
@@ -28,11 +30,14 @@ WORKDIR /usr/local/src/apps/hash-ai-worker-ts
 ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
 CMD ["start"]
 
-# Run as a non-root user
-RUN groupadd --system --gid 60000 hash \
-    && useradd --system worker -g hash
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 60000 hash && \
+    useradd --system tsworker -G hash && \
+    install -d -m 0775 -o tsworker -g hash /log
 
-USER worker:hash
+USER tsworker:hash
 ENV NODE_ENV production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1

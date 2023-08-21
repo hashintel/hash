@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { HTMLProps, KeyboardEvent, MouseEvent, PropsWithChildren } from "react";
 
 import { useCustomizationSettings } from "../../shared/customization-context";
@@ -9,18 +10,20 @@ export const Link = ({
   const { onNavigateToType } = useCustomizationSettings();
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (onNavigateToType) {
+    if (onNavigateToType && props.href) {
       event.preventDefault();
-      onNavigateToType(props.href ?? "no href provided to link");
+      event.stopPropagation();
+      onNavigateToType(props.href as VersionedUrl);
     }
     props.onClick?.(event);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLAnchorElement>) => {
     if (event.key === "Enter" || event.key === " ") {
-      if (onNavigateToType) {
+      if (onNavigateToType && props.href) {
         event.preventDefault();
-        onNavigateToType(props.href ?? "no href provided to link");
+        event.stopPropagation();
+        onNavigateToType(props.href as VersionedUrl);
       }
     }
     props.onKeyDown?.(event);

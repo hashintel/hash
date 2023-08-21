@@ -92,6 +92,7 @@ impl Transpile for Function {
 pub enum Constant {
     Boolean(bool),
     String(&'static str),
+    UnsignedInteger(u32),
 }
 
 impl Transpile for Constant {
@@ -99,6 +100,7 @@ impl Transpile for Constant {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
             Self::String(value) => write!(fmt, "'{value}'"),
+            Self::UnsignedInteger(value) => write!(fmt, "{value}"),
         }
     }
 }
@@ -156,7 +158,7 @@ mod tests {
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
-            r#"MAX("ontology_id_with_metadata_0_0_0"."version") OVER (PARTITION BY "ontology_id_with_metadata_0_0_0"."base_url")"#
+            r#"MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url")"#
         );
     }
 
@@ -173,7 +175,7 @@ mod tests {
                     })
             ))))
             .transpile_to_string(),
-            r#"MIN("ontology_id_with_metadata_1_2_3"."version")"#
+            r#"MIN("ontology_ids_1_2_3"."version")"#
         );
     }
 }

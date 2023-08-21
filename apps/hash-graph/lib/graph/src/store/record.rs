@@ -1,4 +1,6 @@
-use crate::{identifier::time::TimeAxis, store::query::QueryPath, subgraph::identifier::VertexId};
+use temporal_versioning::TimeAxis;
+
+use crate::{store::query::QueryPath, subgraph::identifier::VertexId};
 
 /// A record persisted in the [`store`].
 ///

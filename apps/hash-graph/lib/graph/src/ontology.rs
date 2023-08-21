@@ -6,17 +6,15 @@ mod entity_type;
 mod property_type;
 
 use core::fmt;
-use std::iter::once;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json;
-use time::OffsetDateTime;
-use type_system::{
-    repr, url::VersionedUrl, DataType, DataTypeReference, EntityType, EntityTypeReference,
-    ParseDataTypeError, ParseEntityTypeError, ParsePropertyTypeError, PropertyType,
-    PropertyTypeReference,
+use graph_types::ontology::{
+    DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType, PropertyTypeWithMetadata,
 };
+use serde::Deserialize;
+use serde_json;
+use temporal_versioning::TimeAxis;
+use type_system::url::VersionedUrl;
 use utoipa::ToSchema;
 
 pub use self::{
@@ -25,8 +23,6 @@ pub use self::{
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::TimeAxis},
-    provenance::{OwnedById, ProvenanceMetadata},
     store::Record,
     subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
 };
@@ -58,6 +54,10 @@ impl fmt::Display for PatchAndParseError {
 ///   - "$id" already existed
 ///   - the [`serde_json::Value`] wasn't an 'Object'
 ///   - deserializing into `T` failed
+///
+/// # Panics
+///
+/// - if serializing the given [`VersionedUrl`] fails
 pub fn patch_id_and_parse<T: OntologyType>(
     id: &VersionedUrl,
     mut value: serde_json::Value,
@@ -90,250 +90,13 @@ pub fn patch_id_and_parse<T: OntologyType>(
     Ok(ontology_type)
 }
 
-fn serialize_ontology_type<T, S>(
-    ontology_type: &T,
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error>
-where
-    T: OntologyType + Clone,
-    S: Serializer,
-{
-    // This clone is necessary because `Serialize` requires us to take the param by reference here
-    //  even though we only use it in places where we could move
-    T::Representation::from(ontology_type.clone()).serialize(serializer)
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[allow(clippy::enum_variant_names)]
-pub enum OntologyTypeReference<'a> {
-    EntityTypeReference(&'a EntityTypeReference),
-    PropertyTypeReference(&'a PropertyTypeReference),
-    DataTypeReference(&'a DataTypeReference),
-}
-
-impl OntologyTypeReference<'_> {
-    #[must_use]
-    pub const fn url(&self) -> &VersionedUrl {
-        match self {
-            Self::EntityTypeReference(entity_type_ref) => entity_type_ref.url(),
-            Self::PropertyTypeReference(property_type_ref) => property_type_ref.url(),
-            Self::DataTypeReference(data_type_ref) => data_type_ref.url(),
-        }
-    }
-}
-
-pub trait OntologyType:
-    Sized + TryFrom<Self::Representation, Error = Self::ConversionError>
-{
-    type ConversionError: Context;
-    type Representation: From<Self> + Serialize + for<'de> Deserialize<'de>;
-    type WithMetadata: OntologyTypeWithMetadata<OntologyType = Self>;
-
-    fn id(&self) -> &VersionedUrl;
-
-    fn traverse_references(&self) -> Vec<OntologyTypeReference>;
-}
-
-impl OntologyType for DataType {
-    type ConversionError = ParseDataTypeError;
-    type Representation = repr::DataType;
-    type WithMetadata = DataTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUrl {
-        self.id()
-    }
-
-    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        vec![]
-    }
-}
-
-impl OntologyType for PropertyType {
-    type ConversionError = ParsePropertyTypeError;
-    type Representation = repr::PropertyType;
-    type WithMetadata = PropertyTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUrl {
-        self.id()
-    }
-
-    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        self.property_type_references()
-            .into_iter()
-            .map(OntologyTypeReference::PropertyTypeReference)
-            .chain(
-                self.data_type_references()
-                    .into_iter()
-                    .map(OntologyTypeReference::DataTypeReference),
-            )
-            .collect()
-    }
-}
-
-impl OntologyType for EntityType {
-    type ConversionError = ParseEntityTypeError;
-    type Representation = repr::EntityType;
-    type WithMetadata = EntityTypeWithMetadata;
-
-    fn id(&self) -> &VersionedUrl {
-        self.id()
-    }
-
-    fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        self.property_type_references()
-            .into_iter()
-            .map(OntologyTypeReference::PropertyTypeReference)
-            .chain(
-                self.inherits_from()
-                    .all_of()
-                    .iter()
-                    .map(OntologyTypeReference::EntityTypeReference),
-            )
-            .chain(self.link_mappings().into_iter().flat_map(
-                |(link_entity_type, destination_entity_type_constraint)| {
-                    {
-                        once(link_entity_type)
-                            .chain(destination_entity_type_constraint.unwrap_or_default())
-                    }
-                    .map(OntologyTypeReference::EntityTypeReference)
-                },
-            ))
-            .collect()
-    }
-}
-
-pub trait OntologyTypeWithMetadata: Record {
-    type OntologyType: OntologyType<WithMetadata = Self>;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
-
-    fn inner(&self) -> &Self::OntologyType;
-
-    fn metadata(&self) -> &OntologyElementMetadata;
-}
-
-// TODO: Flatten when `#[feature(mut_restriction)]` is available.
-//   see https://github.com/rust-lang/rust/issues/105077
-//   see https://app.asana.com/0/0/1203977361907407/f
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(untagged)]
-pub enum OntologyElementMetadata {
-    Owned(OwnedOntologyElementMetadata),
-    External(ExternalOntologyElementMetadata),
-}
-
-impl OntologyElementMetadata {
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        match self {
-            Self::Owned(owned) => owned.record_id(),
-            Self::External(external) => external.record_id(),
-        }
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        match self {
-            Self::Owned(owned) => owned.provenance_metadata,
-            Self::External(external) => external.provenance_metadata,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct OwnedOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    owned_by_id: OwnedById,
-}
-
-impl OwnedOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        owned_by_id: OwnedById,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            owned_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ExternalOntologyElementMetadata {
-    record_id: OntologyTypeRecordId,
-    #[serde(rename = "provenance")]
-    provenance_metadata: ProvenanceMetadata,
-    #[schema(value_type = String)]
-    #[serde(with = "crate::serde::time")]
-    fetched_at: OffsetDateTime,
-}
-
-impl ExternalOntologyElementMetadata {
-    #[must_use]
-    pub const fn new(
-        record_id: OntologyTypeRecordId,
-        provenance_metadata: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-    ) -> Self {
-        Self {
-            record_id,
-            provenance_metadata,
-            fetched_at,
-        }
-    }
-
-    #[must_use]
-    pub const fn record_id(&self) -> &OntologyTypeRecordId {
-        &self.record_id
-    }
-
-    #[must_use]
-    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
-        self.provenance_metadata
-    }
-
-    #[must_use]
-    pub const fn fetched_at(&self) -> OffsetDateTime {
-        self.fetched_at
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct DataTypeWithMetadata {
-    #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: DataType,
-    metadata: OntologyElementMetadata,
-}
-
 impl Record for DataTypeWithMetadata {
     type QueryPath<'p> = DataTypeQueryPath<'p>;
     type VertexId = DataTypeVertexId;
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+    #[must_use]
+    fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
+        let record_id = &self.metadata.record_id;
         DataTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -341,39 +104,13 @@ impl Record for DataTypeWithMetadata {
     }
 }
 
-impl OntologyTypeWithMetadata for DataTypeWithMetadata {
-    type OntologyType = DataType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PropertyTypeWithMetadata {
-    #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: PropertyType,
-    metadata: OntologyElementMetadata,
-}
-
 impl Record for PropertyTypeWithMetadata {
     type QueryPath<'p> = PropertyTypeQueryPath<'p>;
     type VertexId = PropertyTypeVertexId;
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+    #[must_use]
+    fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
+        let record_id = &self.metadata.record_id;
         PropertyTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
@@ -381,61 +118,16 @@ impl Record for PropertyTypeWithMetadata {
     }
 }
 
-impl OntologyTypeWithMetadata for PropertyTypeWithMetadata {
-    type OntologyType = PropertyType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
-pub struct EntityTypeWithMetadata {
-    #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
-    inner: EntityType,
-    metadata: OntologyElementMetadata,
-}
-
 impl Record for EntityTypeWithMetadata {
     type QueryPath<'p> = EntityTypeQueryPath<'p>;
     type VertexId = EntityTypeVertexId;
 
-    fn vertex_id(&self, _time_axis: TimeAxis) -> Self::VertexId {
-        let record_id = self.metadata().record_id();
+    #[must_use]
+    fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
+        let record_id = &self.metadata.record_id;
         EntityTypeVertexId {
             base_id: record_id.base_url.clone(),
             revision_id: record_id.version,
         }
-    }
-}
-
-impl OntologyTypeWithMetadata for EntityTypeWithMetadata {
-    type OntologyType = EntityType;
-
-    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-
-    fn inner(&self) -> &Self::OntologyType {
-        &self.inner
-    }
-
-    fn metadata(&self) -> &OntologyElementMetadata {
-        &self.metadata
     }
 }

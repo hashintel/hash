@@ -1,8 +1,9 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { callAgentRunnerResolver } from "./agents/call-agent-runner";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
+import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
+import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
@@ -18,6 +19,7 @@ import {
   archiveEntityResolver,
   createEntityResolver,
   getEntityResolver,
+  inferEntitiesResolver,
   queryEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
@@ -48,15 +50,19 @@ import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signe
 import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
+  archiveEntityTypeResolver,
   createEntityTypeResolver,
   getEntityTypeResolver,
   queryEntityTypesResolver,
+  unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
 } from "./ontology/entity-type";
 import {
+  archivePropertyTypeResolver,
   createPropertyTypeResolver,
   getPropertyTypeResolver,
   queryPropertyTypesResolver,
+  unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
@@ -88,6 +94,10 @@ export const resolvers = {
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
+    // Integration
+    getLinearOrganization: loggedInAndSignedUpMiddleware(
+      getLinearOrganizationResolver,
+    ),
   },
 
   Mutation: {
@@ -111,10 +121,21 @@ export const resolvers = {
     updatePropertyType: loggedInAndSignedUpMiddleware(
       updatePropertyTypeResolver,
     ),
+    archivePropertyType: loggedInAndSignedUpMiddleware(
+      archivePropertyTypeResolver,
+    ),
+    unarchivePropertyType: loggedInAndSignedUpMiddleware(
+      unarchivePropertyTypeResolver,
+    ),
     createEntityType: loggedInAndSignedUpMiddleware(createEntityTypeResolver),
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
+    archiveEntityType: loggedInAndSignedUpMiddleware(archiveEntityTypeResolver),
+    unarchiveEntityType: loggedInAndSignedUpMiddleware(
+      unarchiveEntityTypeResolver,
+    ),
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
+    inferEntities: loggedInAndSignedUpMiddleware(inferEntitiesResolver),
     updateEntity: loggedInMiddleware(updateEntityResolver),
     archiveEntity: loggedInMiddleware(archiveEntityResolver),
     createPage: loggedInAndSignedUpMiddleware(createPageResolver),
@@ -125,14 +146,15 @@ export const resolvers = {
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
-    // LLM Agents
-    callAgentRunner: loggedInAndSignedUpMiddleware(callAgentRunnerResolver),
+    createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
 
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
-    createOrg:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createOrgResolver),
+    // Integration
+    syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
+      syncLinearIntegrationWithWorkspacesMutation,
+    ),
   },
 
   JSONObject: JSONObjectResolver,

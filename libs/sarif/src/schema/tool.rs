@@ -232,10 +232,6 @@ impl<'s> ToolComponent<'s> {
     /// );
     /// ```
     #[must_use]
-    #[expect(
-        clippy::missing_const_for_fn,
-        reason = "destructor of `Option<Version>` cannot be evaluated at compile-time"
-    )]
     pub fn with_semantic_version(mut self, version: semver::Version) -> Self {
         self.semantic_version = Some(version);
         self

@@ -1,8 +1,9 @@
-import { Box } from "@mui/material";
+import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/system";
 import { FunctionComponent, ReactNode } from "react";
 
 import { Footer } from "./footer";
+import { GradientContainer } from "./gradient-container";
 import { Navbar } from "./navbar";
 import { PreFooter } from "./pre-footer";
 
@@ -11,7 +12,16 @@ import { PreFooter } from "./pre-footer";
 export const PageLayout: FunctionComponent<{
   children?: ReactNode;
   subscribe?: boolean;
-}> = ({ children, subscribe = true }) => {
+  recentBlogPosts?: boolean;
+  community?: boolean;
+  contentWrapperSx?: BoxProps["sx"];
+}> = ({
+  children,
+  subscribe = true,
+  recentBlogPosts = false,
+  community = true,
+  contentWrapperSx,
+}) => {
   const theme = useTheme();
 
   return (
@@ -54,10 +64,23 @@ export const PageLayout: FunctionComponent<{
     >
       <Navbar />
       <Box flexGrow={1} display="flex" flexDirection="column">
-        {children}
+        <GradientContainer
+          sx={[
+            { py: { xs: 6, md: 10 } },
+            ...(Array.isArray(contentWrapperSx)
+              ? contentWrapperSx
+              : [contentWrapperSx]),
+          ]}
+        >
+          {children}
+        </GradientContainer>
       </Box>
       <Box sx={{ flex: 1 }} />
-      <PreFooter subscribe={subscribe} />
+      <PreFooter
+        subscribe={subscribe}
+        recentBlogPosts={recentBlogPosts}
+        community={community}
+      />
       <Footer />
     </Box>
   );

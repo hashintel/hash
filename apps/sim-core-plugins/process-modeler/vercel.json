@@ -1,9 +1,0 @@
-{
-  "github": {
-    "silent": true,
-    "autoJobCancelation": true
-  },
-  "installCommand": "yarn install",
-  "buildCommand": "yarn build",
-  "outputDirectory": "./build"
-}

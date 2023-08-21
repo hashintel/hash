@@ -1,10 +1,9 @@
+use graph_types::knowledge::entity::EntityId;
 use serde::{Deserialize, Serialize};
+use temporal_versioning::LeftClosedTemporalInterval;
 use utoipa::ToSchema;
 
-use crate::{
-    identifier::{knowledge::EntityId, time::LeftClosedTemporalInterval},
-    subgraph::temporal_axes::VariableAxis,
-};
+use crate::subgraph::temporal_axes::VariableAxis;
 
 pub trait EdgeEndpoint {
     type BaseId;

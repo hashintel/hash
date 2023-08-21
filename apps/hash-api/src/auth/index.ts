@@ -1,6 +1,5 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { Session } from "@ory/client";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
@@ -9,19 +8,9 @@ import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
-  User,
 } from "../graph/knowledge/system-types/user";
 import { systemUserAccountId } from "../graph/system-user";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
-
-declare global {
-  namespace Express {
-    interface Request {
-      session: Session | undefined;
-      user: User | undefined;
-    }
-  }
-}
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 
@@ -121,9 +110,8 @@ const setupAuth = (params: {
           /** @todo: figure out if this should be handled here, or in the next.js app (when implementing 2FA) */
         }
         logger.debug(
-          `Kratos response error: Could not fetch session, got: [${
-            err.response?.status
-          }] ${JSON.stringify(err.response?.data)}`,
+          `Kratos response error: Could not fetch session, got: [${err.response
+            ?.status}] ${JSON.stringify(err.response?.data)}`,
         );
         return undefined;
       });

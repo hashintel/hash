@@ -45,7 +45,7 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
 export const createLinkEntity: ImpureGraphFunction<
   CreateLinkEntityParams,
   Promise<LinkEntity>
-> = async ({ graphApi }, params) => {
+> = async (context, params) => {
   const {
     ownedById,
     linkEntityType,
@@ -57,7 +57,7 @@ export const createLinkEntity: ImpureGraphFunction<
     properties = {},
   } = params;
 
-  if (!isEntityTypeLinkEntityType({ entityType: linkEntityType })) {
+  if (!(await isEntityTypeLinkEntityType(context, linkEntityType.schema))) {
     throw new Error(
       `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
     );
@@ -70,7 +70,7 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: metadata } = await graphApi.createEntity({
+  const { data: metadata } = await context.graphApi.createEntity({
     ownedById,
     linkData,
     actorId,

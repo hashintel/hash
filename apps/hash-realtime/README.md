@@ -20,8 +20,8 @@ The `realtime` service uses the following environment variables:
 - `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the
   [`search-loader`](../search-loader) service.
-- `HASH_COLLAB_QUEUE_NAME`: The name of the queue to push changes for collab in
-  the [`api`](../api) service.
+- `HASH_INTEGRATION_QUEUE_NAME`: The name of the queue to push changes for collab in
+  the [`api`](../api) service. (default: `integration`)
 
 Configuration for the tables to monitor and the queues to push messages to is defined
 in [`src/config.ts`](./src/config.ts). The service will push all insert/update/delete

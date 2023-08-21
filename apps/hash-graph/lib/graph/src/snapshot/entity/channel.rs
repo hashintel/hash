@@ -9,21 +9,17 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
+use temporal_versioning::{
+    ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+};
 
-use crate::{
-    identifier::{
-        ontology::OntologyTypeVersion,
-        time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
+use crate::snapshot::{
+    account::AccountSender,
+    entity::{
+        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
     },
-    provenance::RecordCreatedById,
-    snapshot::{
-        account::AccountSender,
-        entity::{
-            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch,
-            EntityTemporalMetadataRow,
-        },
-        EntitySnapshotRecord, SnapshotRestoreError,
-    },
+    EntitySnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`EntitySnapshotRecord`]s.
@@ -113,7 +109,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                                 .as_account_id(),
                         )
                     },
-                    |p| p.record_created_by_id(),
+                    |p| p.record_created_by_id,
                 ),
                 archived: entity.metadata.custom.archived.unwrap_or(false),
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),

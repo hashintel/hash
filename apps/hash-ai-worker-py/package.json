@@ -11,13 +11,13 @@
     "fix:ruff": "poetry run ruff app --fix",
     "lint:black": "poetry run black --check --diff --color app",
     "lint:lock-files": "poetry lock --check",
+    "lint:mypy": "poetry run mypy .",
     "lint:ruff": "poetry run ruff app",
-    "poetry:install-build-tools": "poetry install --no-root --no-interaction --only build-tools",
-    "poetry:install-dev": "poetry install --no-root --no-interaction --only main --only dev",
-    "poetry:install-lint-tools": "poetry install --no-root --no-interaction --only lint-tools",
-    "poetry:install-production": "poetry install --no-root --no-interaction --only main --only production",
-    "poetry:venv": "poetry install --no-root --no-interaction --only ,"
+    "poetry:install": "poetry install --no-root --no-interaction",
+    "poetry:install-production": "poetry install --no-root --no-interaction --only main"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@local/hash-graph-types": "0.0.0-private"
+  },
   "devDependencies": {}
 }

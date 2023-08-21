@@ -1,7 +1,7 @@
 import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
 import { EntityPropertiesObject } from "@local/hash-subgraph";
 import { Typography } from "@mui/material";
-import Head from "next/head";
+import { NextSeo } from "next-seo";
 import { ReactNode, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
@@ -39,9 +39,8 @@ export const EntityEditorPage = ({
 
   return (
     <>
-      <Head>
-        <title>{entityLabel} | Entity | HASH</title>
-      </Head>
+      <NextSeo title={`${entityLabel} | Entity`} />
+
       {isQueryEntity && (
         <QueryEditorToggle
           shouldShowQueryEditor={shouldShowQueryEditor}

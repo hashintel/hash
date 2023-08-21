@@ -5,6 +5,7 @@ import {
   Collapse,
   formHelperTextClasses,
   InputAdornment,
+  inputClasses,
   InputProps,
   outlinedInputClasses,
   TextField as MuiTextField,
@@ -67,10 +68,11 @@ export const getInputProps = ({
   return {
     sx: [
       ({ palette }) => ({
-        [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}`]:
+        [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}, &.${inputClasses.disabled} .${outlinedInputClasses.notchedOutline}`]:
           {
             borderColor: error ? palette.red[40] : palette.gray[30],
           },
+        [`&.${inputClasses.disabled}`]: { backgroundColor: palette.gray[20] },
         ...(multiline &&
           autoResize && {
             [`& .${outlinedInputClasses.input}`]: {

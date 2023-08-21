@@ -8,11 +8,12 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-co
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 
-import { AgentRunner } from "../agents/runner";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { UploadableStorageProvider } from "../storage";
+import { TemporalClient } from "../temporal";
+import { VaultClient } from "../vault/index";
 import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
@@ -20,8 +21,9 @@ export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: CacheAdapter;
   uploadProvider: UploadableStorageProvider;
+  temporalClient?: TemporalClient;
+  vaultClient?: VaultClient;
   search?: SearchAdapter;
-  agentRunner?: AgentRunner;
   emailTransporter: EmailTransporter;
   logger: Logger;
   statsd?: StatsD;
@@ -31,9 +33,10 @@ export const createApolloServer = ({
   graphApi,
   cache,
   search,
-  agentRunner,
   emailTransporter,
   uploadProvider,
+  temporalClient,
+  vaultClient,
   logger,
   statsd,
 }: CreateApolloServerParams) => {
@@ -52,9 +55,6 @@ export const createApolloServer = ({
     if (search) {
       sources.search = search;
     }
-    if (agentRunner) {
-      sources.agentRunner = agentRunner;
-    }
     return sources;
   };
 
@@ -68,6 +68,8 @@ export const createApolloServer = ({
       logger: logger.child({
         requestId: ctx.res.get("x-hash-request-id") ?? "",
       }),
+      temporal: temporalClient,
+      vault: vaultClient,
     }),
     // @todo: we may want to disable introspection at some point for production
     introspection: true,
@@ -91,9 +93,17 @@ export const createApolloServer = ({
                 // Ignore introspection queries from graphiql
                 return;
               }
+              const elapsed = performance.now() - startedAt;
+
+              // take the first part of the UA to help identify browser vs server requests
+              const userAgent =
+                ctx.context.req.headers["user-agent"]?.split(" ")[0];
+
               const msg = {
                 message: "graphql",
                 operation: willSendResponseCtx.operationName,
+                elapsed: `${elapsed.toFixed(2)}ms`,
+                userAgent,
               };
               if (willSendResponseCtx.errors) {
                 willSendResponseCtx.logger.error({
@@ -110,7 +120,6 @@ export const createApolloServer = ({
               } else {
                 willSendResponseCtx.logger.info(msg);
                 if (willSendResponseCtx.operationName) {
-                  const elapsed = performance.now() - startedAt;
                   statsd?.timing(
                     willSendResponseCtx.operationName,
                     elapsed,

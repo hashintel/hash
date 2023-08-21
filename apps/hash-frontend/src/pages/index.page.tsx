@@ -1,13 +1,13 @@
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   return (
-    <Container sx={{ pt: 7 }}>
+    <Box sx={{ pt: 7 }}>
       <Typography mb={3} variant="h2">
         Welcome to HASH
       </Typography>
@@ -44,13 +44,10 @@ const Page: NextPageWithLayout = () => {
           .
         </Typography>
       </Box>
-    </Container>
+    </Box>
   );
 };
 
-Page.getLayout = (page) =>
-  getLayoutWithSidebar(page, {
-    fullWidth: true,
-  });
+Page.getLayout = (page) => getLayoutWithSidebar(page);
 
 export default Page;

@@ -289,6 +289,10 @@ We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work
 
 ## Troubleshooting
 
+### Command not found: ruff
+
+Run `yarn poetry:install` before running `yarn lint` or `yarn fix` for the first time.
+
 ### eslint `parserOptions.project`
 
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
@@ -433,7 +437,7 @@ If the service should report metrics to a StatsD server, the following variables
 ### Others
 
 - `FRONTEND_URL`: URL of the frontend website for links (default: `http://localhost:3000`)
-- `HASH_COLLAB_QUEUE_NAME` The name of the Redis queue which updates to entities are published to (default: `collab`)
+- `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
 - `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)

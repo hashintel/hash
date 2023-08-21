@@ -6,15 +6,19 @@ export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
       textDecoration: "none",
       color: "inherit",
       ".MuiTypography-hashBodyCopy &": {
-        fontWeight: 700,
+        textDecoration: "none",
+        color: theme.palette.teal[80],
+        borderBottomColor: theme.palette.teal[80],
+        borderBottomWidth: 1,
+        borderBottomStyle: "solid",
         position: "relative",
         ":focus-visible": {
           border: "none",
-          outline: `2px solid ${theme.palette.yellow[800]}`,
+          outline: `2px solid ${theme.palette.teal[90]}`,
         },
         ":hover": {
-          backgroundColor: theme.palette.yellow[300],
-          color: theme.palette.yellow[1000],
+          color: theme.palette.teal[90],
+          borderBottomColor: theme.palette.teal[90],
           transition: "background-color 0.3s ease-in-out",
         },
       },

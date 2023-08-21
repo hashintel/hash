@@ -1,6 +1,10 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   AccountId,
   Entity,
   EntityId,
@@ -15,12 +19,7 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import {
-  currentTimeInstantTemporalAxes,
-  ImpureGraphFunction,
-  PureGraphFunction,
-  zeroedGraphResolveDepths,
-} from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
@@ -43,8 +42,6 @@ import {
   getBlockFromEntity,
 } from "./block";
 import { Comment } from "./comment";
-import { Org } from "./org";
-import { User } from "./user";
 
 export type Page = {
   title: string;
@@ -245,17 +242,26 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    workspace: User | Org;
+    accountId: AccountId;
+    includeArchived?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, params) => {
   const { graphApi } = ctx;
+  const { accountId, includeArchived = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery({
       filter: {
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+        all: [
+          {
+            equal: [
+              { path: ["type", "versionedUrl"] },
+              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            ],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: accountId }],
+          },
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -265,21 +271,11 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       getEntities(subgraph as Subgraph<EntityRootType>),
     );
 
-  const pages = pageEntities
-    /**
-     * @todo: filter the pages by their ownedById in the query instead once it's supported
-     * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
-     */
-    .filter(
-      (pageEntity) =>
-        extractOwnedByIdFromEntityId(pageEntity.metadata.recordId.entityId) ===
-        params.workspace.accountId,
-    )
-    .map((entity) => getPageFromEntity({ entity }));
+  const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 
   return await Promise.all(
     pages.map(async (page) => {
-      if (await isPageArchived(ctx, { page })) {
+      if (!includeArchived && (await isPageArchived(ctx, { page }))) {
         return [];
       }
       return page;
@@ -620,11 +616,11 @@ export const removeBlockFromPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
-  { page: Page },
+  { pageEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, { page }) => {
+> = async (ctx, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, {
-    pageEntityId: page.entity.metadata.recordId.entityId,
+    pageEntityId,
   });
 
   const comments = await Promise.all(

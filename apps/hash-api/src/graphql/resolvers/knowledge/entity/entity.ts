@@ -1,7 +1,10 @@
 import { Filter, QueryTemporalAxesUnresolved } from "@local/hash-graph-client";
 import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   Entity,
-  EntityRootType,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -13,12 +16,9 @@ import {
 } from "apollo-server-express";
 
 import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "../../../../graph";
-import {
   archiveEntity,
   createEntityWithLinks,
+  getEntities,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
@@ -30,9 +30,12 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { genId } from "../../../../util";
 import {
+  Mutation,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
+  MutationInferEntitiesArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
   QueryResolvers,
@@ -112,6 +115,7 @@ export const queryEntitiesResolver: Extract<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
     isOfType,
     hasLeftEntity,
     hasRightEntity,
@@ -119,11 +123,9 @@ export const queryEntitiesResolver: Extract<
   { logger, dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
-
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
     throw new ApolloError(
-      "Sorting on queryEntities results is not currently supported",
+      "Sorting on queryEntities  results is not currently supported",
     );
   }
 
@@ -133,26 +135,29 @@ export const queryEntitiesResolver: Extract<
 
   if ("any" in filter && filter.any.length === 0) {
     logger.warn(
-      "QueryEntities called with empty filter, which means returning an empty subgraph. This is probably not what you want.",
+      "QueryEntities called with empty filter and OR operator, which means returning an empty subgraph. This is probably not what you want. Use multiFilter: { filters: [], operator: AND } to return all entities.",
     );
   }
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  return entitySubgraph as Subgraph<EntityRootType>;
+  return entitySubgraph;
 };
 
 export const getEntityResolver: ResolverFn<
@@ -169,6 +174,7 @@ export const getEntityResolver: ResolverFn<
     constrainsPropertiesOn,
     constrainsLinksOn,
     constrainsLinkDestinationsOn,
+    inheritsFrom,
     isOfType,
     hasLeftEntity,
     hasRightEntity,
@@ -176,7 +182,6 @@ export const getEntityResolver: ResolverFn<
   { dataSources },
   __,
 ) => {
-  const { graphApi } = dataSources;
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
@@ -208,22 +213,25 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-    filter,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      isOfType,
-      hasLeftEntity,
-      hasRightEntity,
+  const entitySubgraph = await getEntities(dataSources, {
+    query: {
+      filter,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+        isOfType,
+        hasLeftEntity,
+        hasRightEntity,
+      },
+      temporalAxes,
     },
-    temporalAxes,
   });
 
-  return entitySubgraph as Subgraph<EntityRootType>;
+  return entitySubgraph;
 };
 
 export const updateEntityResolver: ResolverFn<
@@ -305,4 +313,33 @@ export const archiveEntityResolver: ResolverFn<
   await archiveEntity(context, { entity, actorId: user.accountId });
 
   return true;
+};
+
+export const inferEntitiesResolver: ResolverFn<
+  Mutation["inferEntities"],
+  null,
+  LoggedInGraphQLContext,
+  MutationInferEntitiesArgs
+> = async (_, { textInput, entityTypeIds }, { user, temporal }) => {
+  if (!temporal) {
+    throw new Error("Temporal client not available");
+  }
+
+  const status = await temporal.workflow.execute("inferEntities", {
+    taskQueue: "aipy",
+    args: [
+      {
+        textInput,
+        entityTypeIds,
+        actorId: user.accountId,
+      },
+    ],
+    workflowId: `inferEntities-${genId()}`,
+  });
+
+  if (status.code !== "OK") {
+    throw new Error(status.message);
+  }
+
+  return status.contents[0];
 };

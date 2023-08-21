@@ -18,10 +18,10 @@
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
 //! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
 //! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
-//! [`Display`] implementation, you may want to call [`demand.provide_ref(self)`] inside of
+//! [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
 //! [`Context::provide`].
 //!
-//! [`demand.provide_ref(self)`]: core::any::Demand::provide_ref
+//! [`request.provide_ref(self)`]: core::error::Request::provide_ref
 //!
 //! Hook functions need to be [`Fn`] and **not** [`FnMut`], which means they are unable to directly
 //! mutate state outside of the closure.
@@ -320,7 +320,7 @@ pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
-use location::LocationDisplay;
+use location::LocationAttachment;
 
 use crate::{
     fmt::{
@@ -824,6 +824,7 @@ impl Opaque {
     }
 }
 
+#[allow(clippy::needless_pass_by_ref_mut)]
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
     config: &mut Config,
@@ -863,7 +864,7 @@ fn debug_attachments_invoke<'a>(
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
                 .map(|location| {
-                    vec![LocationDisplay::new(location, config.color_mode()).to_string()]
+                    vec![LocationAttachment::new(location, config.color_mode()).to_string()]
                 }),
         })
         .flat_map(|body| {

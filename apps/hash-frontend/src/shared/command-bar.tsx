@@ -1,4 +1,5 @@
 import { Chip, TextField } from "@hashintel/design-system";
+import { OwnedById } from "@local/hash-subgraph/.";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -6,7 +7,6 @@ import {
   autocompleteClasses,
   AutocompleteRenderInputParams,
   Box,
-  createFilterOptions,
   Modal,
   Paper,
 } from "@mui/material";
@@ -15,6 +15,7 @@ import { useRouter } from "next/router";
 import {
   createContext,
   forwardRef,
+  FunctionComponent,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
@@ -22,106 +23,66 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useReducer,
   useRef,
   useState,
 } from "react";
 import { useKeys } from "rooks";
 
-// In order to make declaring the options easier, we use a type that doesn't require the path to be specified.
-// The path is added later by flattening the options
-type OptionWithoutPath = {
-  group: string;
-  label: string;
-  href?: string;
-  // Used to render a custom screen inside the popup when the option is selected
-  renderCustomScreen?: (option: OptionWithoutPath) => ReactNode;
-  // Used to render a submenu when the option is selected
-  options?: OptionWithoutPath[];
-  // Used to trigger a command when the option is selected
-  command?: (option: OptionWithoutPath) => void;
-};
+import { useAccountPages } from "../components/hooks/use-account-pages";
+import { useCreatePage } from "../components/hooks/use-create-page";
+import { WorkspaceContext } from "../pages/shared/workspace-context";
+// import { CheatSheet } from "./command-bar/cheat-sheet";
+import {
+  // childMenu,
+  CommandBarOption,
+  CommandBarOptionCommand,
+  createEntityOption,
+  createPageOption,
+  createTypeOption,
+  menu,
+} from "./command-bar/command-bar-options";
+import { HotKey } from "./command-bar/hot-key";
 
-type Option = OptionWithoutPath & { path: string[] };
+// childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
+//   command: () => {
+//     alert("Child");
+//   },
+// });
+
+// childMenu.addOption("Third", "General").activate({
+//   renderCustomScreen: () => <div>Custom screen</div>,
+// });
+
+// childMenu.addOption("Fourth", "General").activate({
+//   asyncCommand: async (input) => {
+//     return new Promise((resolve) => {
+//       setTimeout(resolve, 1_000);
+//     }).then(() => {
+//       return new CommandBarOption(null, input, "General").setCommand({
+//         renderCustomScreen: () => <div>Custom screen 2 {input}</div>,
+//       });
+//     });
+//   },
+// });
+
+export const useCommandBarOption = (
+  option: CommandBarOption,
+  command?: CommandBarOptionCommand,
+) => {
+  useEffect(() => {
+    const deactivate = option.activate(command);
+
+    return () => {
+      deactivate();
+    };
+  }, [option, command]);
+};
 
 // The state of the command bar is not immediately reset when exited via the backdrop or command+K.
 // This is the number of milliseconds to wait before resetting the state when exited in this way.
 // The state is immediately reset when exited via the escape key or by selecting an option.
 const RESET_BAR_TIMEOUT = 5_000;
-
-const defaultFilterOptions = createFilterOptions<Option>();
-
-// These are the options that are displayed in the command bar
-const allOptions: OptionWithoutPath[] = [
-  {
-    group: "Blocks",
-    label: "Find a block…",
-    options: [
-      {
-        group: "General",
-        label: "Option A",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "General",
-        label: "Option B",
-        renderCustomScreen: ({ label }) => <div>You selected {label}</div>,
-      },
-      {
-        group: "Other",
-        label: "Option C",
-        href: "https://google.com/",
-      },
-      {
-        group: "Other",
-        label: "Option D",
-        href: "/",
-      },
-    ],
-  },
-  {
-    group: "Blocks",
-    label: "Generate new block with AI…",
-    command(option) {
-      // eslint-disable-next-line no-alert
-      alert(`You picked option ${option.label}`);
-    },
-  },
-  {
-    group: "Entities",
-    label: "Search for an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Insert a link to an entity…",
-    href: "/",
-  },
-  {
-    group: "Entities",
-    label: "Create new entity…",
-    href: "/",
-  },
-  {
-    group: "Types",
-    label: "Create new type…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Find an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Create an app…",
-    href: "/",
-  },
-  {
-    group: "Apps",
-    label: "Generate new app…",
-    href: "/",
-  },
-];
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
 const CenterContainer = forwardRef(({ children }: PropsWithChildren, ref) => (
@@ -179,31 +140,6 @@ const CustomPaperComponent = ({
   );
 };
 
-// Use the path of the selected option to find the option that renders a custom screen
-const getSelectedOptions = (
-  selectedOptionPath: string[],
-  options: OptionWithoutPath[],
-) => {
-  let selectedOptions = options;
-  let selectedOption = null;
-  for (const path of selectedOptionPath) {
-    const next = selectedOptions.find((option) => option.label === path);
-
-    if (next) {
-      if (next.options) {
-        selectedOptions = next.options;
-      } else if (next.renderCustomScreen) {
-        selectedOption = next;
-        break;
-      }
-    } else {
-      break;
-    }
-  }
-
-  return selectedOption;
-};
-
 type DelayedCallbackTiming = "immediate" | "delayed";
 
 // This hook is used to optionally delay the execution of a callback until a certain amount of time has passed
@@ -256,27 +192,18 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   return [handler, cancel] as const;
 };
 
-// Flattens the options into a single array, with a path property that contains the path to the option
-const flattenOptions = (
-  options: OptionWithoutPath[],
-  parentOption?: Option,
-): Option[] => {
-  return options.flatMap((option) => {
-    const nextOption = {
-      ...option,
-      path: parentOption ? [...parentOption.path, parentOption.label] : [],
-    };
+// borrowed from rooks
+const doesIdentifierMatchKeyboardEvent = (
+  error: KeyboardEvent,
+  identifier: number | string,
+): boolean =>
+  error.key === identifier ||
+  error.code === identifier ||
+  error.keyCode === identifier ||
+  error.which === identifier ||
+  error.charCode === identifier;
 
-    return [
-      nextOption,
-      ...flattenOptions(nextOption.options ?? [], nextOption),
-    ];
-  });
-};
-
-const flattenedOptions = flattenOptions(allOptions);
-
-export const CommandBar = () => {
+export const CommandBar: FunctionComponent = () => {
   const popupState = usePopupState({
     popupId: "kbar",
     variant: "popover",
@@ -284,71 +211,118 @@ export const CommandBar = () => {
 
   const router = useRouter();
 
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
+  const [createUntitledPage] = useCreatePage(
+    activeWorkspaceAccountId as OwnedById,
+  );
+  const { lastRootPageIndex } = useAccountPages(
+    activeWorkspaceAccountId as OwnedById,
+  );
+
   const [inputValue, setInputValue] = useState("");
-  const [selectedOptionPath, setSelectedOptionPath] = useState<string[]>([]);
+  const [selectedOptionPath, setSelectedOptionPath] = useState<
+    CommandBarOption[]
+  >([]);
 
   const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
     setInputValue("");
   }, RESET_BAR_TIMEOUT);
 
-  const closeBar = (timing: DelayedCallbackTiming) => {
-    popupState.close();
-    resetBar(timing);
-  };
+  const closeBar = useCallback(
+    (timing: DelayedCallbackTiming) => {
+      popupState.close();
+      resetBar(timing);
+    },
+    [popupState, resetBar],
+  );
+
+  useEffect(() => {
+    const handler = () => {
+      closeBar("immediate");
+    };
+    router.events.on("routeChangeStart", handler);
+    return () => {
+      router.events.off("routeChangeStart", handler);
+    };
+  }, [router.events, closeBar]);
 
   useKeys(["Meta", "k"], () => {
     if (popupState.isOpen) {
       closeBar("delayed");
     } else {
       cancelReset();
-
       popupState.open();
     }
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const selectedOption = getSelectedOptions(selectedOptionPath, allOptions);
-  const customScreen = selectedOption?.renderCustomScreen?.(selectedOption);
+  const triggerOption = useCallback(
+    (option: CommandBarOption) => {
+      const command = option.getCommand();
+
+      if (command) {
+        if (
+          command.options ||
+          command.renderCustomScreen ||
+          command.asyncCommand
+        ) {
+          cancelReset();
+          popupState.open();
+
+          setSelectedOptionPath((current) => [...current, option]);
+        } else {
+          closeBar("immediate");
+
+          if (command.command) {
+            command.command(option);
+          }
+
+          if (command.href) {
+            if (command.href.startsWith("https:")) {
+              // Uses noopener to prevent the new tab from accessing the window.opener property
+              window.open(command.href, "_blank", "noopener");
+            } else {
+              void router.push(command.href);
+            }
+          }
+        }
+      }
+    },
+    [cancelReset, closeBar, popupState, router],
+  );
 
   const handleChange = (
     _: unknown,
     __: unknown,
     reason: AutocompleteChangeReason,
-    details: AutocompleteChangeDetails<Option> | undefined,
+    details: AutocompleteChangeDetails<CommandBarOption> | undefined,
   ) => {
     if (details && reason === "selectOption") {
       const option = details.option;
-
-      if (option.options || option.renderCustomScreen) {
-        setSelectedOptionPath([...selectedOptionPath, option.label]);
-      } else {
-        closeBar("immediate");
-
-        if (option.command) {
-          option.command(option);
-        }
-
-        if (option.href) {
-          if (option.href.startsWith("https:")) {
-            // Uses noopener to prevent the new tab from accessing the window.opener property
-            window.open(option.href, "_blank", "noopener");
-          } else {
-            void router.push(option.href);
-          }
-        }
-      }
+      triggerOption(option);
     }
   };
+
+  const selectedOption = selectedOptionPath[selectedOptionPath.length - 1];
+  const selectedCommand = selectedOption?.getCommand();
+
+  const activeMenu =
+    selectedOptionPath.length > 0 ? selectedCommand?.options : menu;
+
+  const customScreen = selectedOption
+    ? selectedCommand?.renderCustomScreen?.(selectedOption)
+    : null;
 
   // This is used to render the input with the selected options as chips
   const renderInput = (props: AutocompleteRenderInputParams) => (
     <>
-      {selectedOptionPath.map((path, index) => (
+      {selectedOptionPath.map(({ label }, index) => (
         <Chip
-          key={path}
-          label={path}
+          key={label}
+          label={label}
           onDelete={() =>
             setSelectedOptionPath(selectedOptionPath.slice(0, index))
           }
@@ -360,8 +334,32 @@ export const CommandBar = () => {
         inputRef={inputRef}
         onKeyDown={(evt) => {
           // If the user presses backspace and there is no input value, then go back to the previous selectedOption
-          if (evt.key === "Backspace" && !inputRef.current?.value) {
-            setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+          switch (evt.key) {
+            case "Backspace":
+              if (!inputRef.current?.value) {
+                setSelectedOptionPath(selectedOptionPath.slice(0, -1));
+              }
+              break;
+            case "Enter":
+              if (!inputValue) {
+                return;
+              }
+
+              if (selectedCommand?.asyncCommand) {
+                setInputValue("");
+
+                void selectedCommand
+                  .asyncCommand(inputValue)
+                  .then((nextOption) => {
+                    if (nextOption) {
+                      setSelectedOptionPath((current) =>
+                        current[current.length - 1] === selectedOption
+                          ? [...current, nextOption]
+                          : current,
+                      );
+                    }
+                  });
+              }
           }
         }}
         {...props}
@@ -369,52 +367,141 @@ export const CommandBar = () => {
     </>
   );
 
-  return (
-    <Modal open={popupState.isOpen} onClose={closeBar}>
-      <CenterContainer>
-        <CustomScreenContext.Provider value={customScreen}>
-          <Autocomplete
-            options={flattenedOptions}
-            sx={{ width: "100%" }}
-            renderInput={renderInput}
-            PaperComponent={CustomPaperComponent}
-            onChange={handleChange}
-            groupBy={(option) => option.group}
-            getOptionLabel={(option) => option.label}
-            // The popup should always be open when the modal is open
-            open
-            popupIcon={null}
-            // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
-            disableCloseOnSelect
-            // The first option should be highlighted by default to make activating the first option quicker
-            autoHighlight
-            // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
-            value={null}
-            inputValue={inputValue}
-            onInputChange={(_, value, reason) => {
-              setInputValue(reason === "reset" ? "" : value);
-            }}
-            filterOptions={(optionsToFilter, state) =>
-              // Combine the default filtering with filtering by the selectedOptionPath
-              // so that only options that are in the selectedOptionPath are shown
-              defaultFilterOptions(
-                optionsToFilter.filter(
-                  (option) =>
-                    JSON.stringify(option.path) ===
-                    JSON.stringify(selectedOptionPath),
-                ),
-                state,
-              )
+  const [, forceRender] = useReducer((val: number) => val + 1, 0);
+
+  useEffect(() => {
+    const remove = menu.addListener(forceRender);
+    const mapping: Record<string, boolean | undefined> = {};
+
+    // adapted from rooks to handle multiple sets of keys
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // First detect the key that was pressed;
+      for (const option of menu.options) {
+        let areAllKeysFromListPressed = false;
+
+        if (option.keysList && option.isActive()) {
+          for (const identifier of option.keysList) {
+            if (doesIdentifierMatchKeyboardEvent(event, identifier)) {
+              mapping[identifier] = true;
             }
-            onClose={(_, reason) => {
-              // Prevent the autocomplete from closing when the user clicks on the input
-              if (reason !== "toggleInput") {
-                closeBar(reason === "escape" ? "immediate" : "delayed");
+          }
+
+          if (
+            option.keysList.every((identifier) => Boolean(mapping[identifier]))
+          ) {
+            areAllKeysFromListPressed = true;
+          }
+
+          if (areAllKeysFromListPressed) {
+            event.preventDefault();
+            triggerOption(option);
+
+            for (const key of Object.keys(mapping)) {
+              delete mapping[key];
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      for (const option of menu.options) {
+        for (const identifier of option.keysList ?? []) {
+          if (doesIdentifierMatchKeyboardEvent(event, identifier)) {
+            mapping[identifier] = undefined;
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+      remove();
+    };
+  });
+
+  useEffect(() => {
+    createEntityOption.activate({
+      command: () => {
+        void router.push("/new/entity");
+      },
+    });
+
+    createTypeOption.activate({
+      command: () => {
+        void router.push("/new/types/entity-type");
+      },
+    });
+  }, [router]);
+
+  useEffect(() => {
+    createPageOption.activate({
+      command: async () => {
+        await createUntitledPage(lastRootPageIndex);
+      },
+    });
+  }, [createUntitledPage, lastRootPageIndex]);
+
+  return (
+    <>
+      <Modal open={popupState.isOpen} onClose={closeBar}>
+        <CenterContainer>
+          <CustomScreenContext.Provider value={customScreen}>
+            <Autocomplete
+              options={
+                activeMenu?.subOptions.filter((option) => option.isActive()) ??
+                []
               }
-            }}
-          />
-        </CustomScreenContext.Provider>
-      </CenterContainer>
-    </Modal>
+              sx={{ width: "100%" }}
+              renderInput={renderInput}
+              PaperComponent={CustomPaperComponent}
+              onChange={handleChange}
+              groupBy={(option) => option.group}
+              getOptionLabel={(option) => option.label}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <HotKey keysList={option.keysList} label={option.label} />
+                </li>
+              )}
+              // The popup should always be open when the modal is open
+              open
+              popupIcon={null}
+              // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
+              disableCloseOnSelect
+              // The first option should be highlighted by default to make activating the first option quicker
+              autoHighlight
+              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
+              value={null}
+              inputValue={inputValue}
+              onInputChange={(_, value, reason) => {
+                setInputValue(reason === "reset" ? "" : value);
+              }}
+              noOptionsText={
+                selectedCommand?.asyncCommand
+                  ? inputValue
+                    ? "Press Enter to run command"
+                    : "Type your prompt and press enter"
+                  : undefined
+              }
+              onClose={(_, reason) => {
+                // Prevent the autocomplete from closing when the user clicks on the input
+                if (
+                  reason !== "toggleInput" &&
+                  (reason !== "blur" || !selectedCommand?.renderCustomScreen)
+                ) {
+                  closeBar(reason === "escape" ? "immediate" : "delayed");
+                }
+              }}
+            />
+          </CustomScreenContext.Provider>
+        </CenterContainer>
+      </Modal>
+      {/* <CheatSheet /> */}
+    </>
   );
 };

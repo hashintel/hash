@@ -35,7 +35,7 @@ Contains the source code for software development libraries which HASH has publi
 
 ## Internal Libraries
 
-Although open-source, the following libraries were developed for internal use and may be subject to breaking changes. External consumers should be especially careful when using or upgrading these.
+Although published to package managers, the following libraries were developed for internal use and may be subject to breaking changes. External consumers should be especially careful when using or upgrading these.
 
 | Directory                        | Language(s) | Publication URL                                                     | Docs URL      | Description                                                                                          |
 | -------------------------------- | ----------- | ------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------- |

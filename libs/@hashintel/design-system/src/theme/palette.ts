@@ -25,7 +25,9 @@ type CustomColorsType = {
 
 export const customColors = {
   gray: {
+    5: "#F9FBFC",
     10: "#F7FAFC",
+    15: "#F2F8FD",
     20: "#EBF2F7",
     30: "#DDE7F0",
     40: "#C1CFDE",

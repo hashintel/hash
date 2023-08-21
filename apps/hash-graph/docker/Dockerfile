@@ -31,7 +31,8 @@ COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN yarn install --frozen-lockfile --prefer-offline && \
+RUN yarn config set network-timeout 300000 && \
+    yarn install --frozen-lockfile --prefer-offline && \
     yarn cache clean
 
 COPY --from=base /app/out/full/ .
@@ -61,7 +62,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
 RUN mkdir -p /out/etc/ \
  && echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd \
  && echo 'hash:x:60000:' > /out/etc/group \
- && install -d -m 0775 -o 61000 -g 60000 /out/log \
+ && install -d -m 0775 -o 61000 -g 60000 /out/logs \
  && cp /usr/local/cargo/bin/hash-graph /out/hash-graph
 
 

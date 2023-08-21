@@ -72,7 +72,7 @@ runs:
         VAULT_ADDR: ${{ inputs.vault-address }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars -refresh=false| tee cmd.out
+      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
 
     - uses: actions/github-script@v6
       with:

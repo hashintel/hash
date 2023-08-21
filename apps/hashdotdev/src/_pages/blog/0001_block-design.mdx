@@ -7,6 +7,8 @@ postPhoto: blog/0001_block-design/DesignGuidelines_Cover.png
 title: "Design guidelines for building blocks with the Block Protocol"
 subtitle: "How to make your blocks feel intuitive, easy to use, and beautiful across every application."
 date: "2022-04-24"
+categories:
+  - Block Protocol
 ---
 
 This guide is for developers who want to build blocks with the [Block Protocol](https://blockprotocol.org). The protocol allows you to build blocks that will work in any application that also follows the protocol. It acts as the communication layer between an application and a block. The block and the application don't need to know anything about how the other is built. They only need to follow the protocol to work seamlessly together.
@@ -126,8 +128,9 @@ We also included a scale for spacing that sets the base as `1rem` (16px) and cal
 ```css
 --spacing-base: 1rem;
 --space-1: calc(var(--spacing-base) * 0.25);
---space-2: calc(var(--spacing-base) * 0.5)
---space-3: calc(var(--spacing-base) * 0.75);
+--space-2: calc(var(--spacing-base) * 0.5) --space-3: calc(
+    var(--spacing-base) * 0.75
+  );
 --space-4: var(--spacing-base);
 --space-5: calc(var(--spacing-base) * 1.5);
 --space-6: calc(var(--spacing-base) * 2);

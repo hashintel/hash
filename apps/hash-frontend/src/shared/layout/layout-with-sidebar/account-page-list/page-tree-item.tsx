@@ -28,7 +28,8 @@ export interface PageTreeItemProps {
   expandable: boolean;
   collapsed: boolean;
   createSubPage: () => Promise<void>;
-  archivePage: (value: boolean, pageEntityId: EntityId) => Promise<void>;
+  icon?: string | null;
+  archivePage: (pageEntityId: EntityId) => Promise<void>;
   onCollapse?: () => void;
   dragProps?: DragProps;
 }
@@ -54,6 +55,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
       onCollapse,
       expanded,
       collapsed,
+      icon,
       dragProps = {},
     }: PageTreeItemProps,
     ref,
@@ -147,6 +149,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           <PageIconButton
             hasDarkBg={selected}
             entityId={pageEntityId}
+            icon={icon}
             size="small"
             onClick={stopEvent}
             popoverProps={{ onClick: stopEvent }}

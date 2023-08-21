@@ -1,17 +1,28 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+#[cfg(hash_graph_test_environment)]
+use error_stack::IntoReport;
+use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::EntityType;
+use graph_types::{
+    ontology::{
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
+use temporal_versioning::RightBoundedTemporalInterval;
+use type_system::{
+    url::{BaseUrl, VersionedUrl},
+    EntityType,
+};
 
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
 use crate::{
-    identifier::time::RightBoundedTemporalInterval,
-    ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
-    provenance::RecordCreatedById,
     store::{
         crud::Read,
-        error::DeletionError,
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
@@ -78,7 +89,9 @@ impl<C: AsClient> PostgresStore<C> {
                 property_type_queue.extend(
                     self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                         traversal_data,
-                        ReferenceTable::EntityTypeConstrainsPropertiesOn,
+                        ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                            inheritance_depth: None,
+                        },
                     )
                     .await?
                     .flat_map(|edge| {
@@ -101,15 +114,21 @@ impl<C: AsClient> PostgresStore<C> {
             for (edge_kind, table) in [
                 (
                     OntologyEdgeKind::InheritsFrom,
-                    ReferenceTable::EntityTypeInheritsFrom,
+                    ReferenceTable::EntityTypeInheritsFrom {
+                        inheritance_depth: None,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
-                    ReferenceTable::EntityTypeConstrainsLinksOn,
+                    ReferenceTable::EntityTypeConstrainsLinksOn {
+                        inheritance_depth: None,
+                    },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn,
+                    ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
+                        inheritance_depth: None,
+                    },
                 ),
             ] {
                 if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
@@ -192,25 +211,32 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, entity_types))]
     async fn create_entity_types(
         &mut self,
-        entity_types: impl IntoIterator<
-            Item = (
-                EntityType,
-                impl Borrow<OntologyElementMetadata> + Send + Sync,
-            ),
-            IntoIter: Send,
-        > + Send,
+        entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let mut inserted_entity_types = Vec::with_capacity(entity_types.size_hint().0);
+        let mut inserted_entity_types = Vec::new();
+        let mut inserted_entity_type_metadata =
+            Vec::with_capacity(inserted_entity_types.capacity());
         for (schema, metadata) in entity_types {
-            if let Some(ontology_id) = transaction
-                .create(schema.clone(), metadata.borrow(), on_conflict)
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom.common, on_conflict)
                 .await?
             {
+                transaction
+                    .insert_entity_type_with_id(
+                        ontology_id,
+                        schema.clone(),
+                        metadata.custom.label_property.as_ref(),
+                    )
+                    .await?;
+
                 inserted_entity_types.push((ontology_id, schema));
+                inserted_entity_type_metadata
+                    .push(EntityTypeMetadata::from_partial(metadata, transaction_time));
             }
         }
 
@@ -230,7 +256,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_entity_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -254,11 +280,21 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.entity_types =
                 Read::<EntityTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|entity_type| (entity_type.vertex_id(time_axis), entity_type))
+                    .filter_map(|entity_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(entity_type.vertex_id(time_axis))
+                            .then(|| (entity_type.vertex_id(time_axis), entity_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.entity_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());
@@ -300,15 +336,34 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError> {
+        label_property: Option<BaseUrl>,
+    ) -> Result<EntityTypeMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        // This clone is currently necessary because we extract the references as we insert them.
-        // We can only insert them after the type has been created, and so we currently extract them
-        // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (ontology_id, metadata) = transaction
-            .update::<EntityType>(entity_type.clone(), record_created_by_id)
+        let url = entity_type.id();
+        let record_id = OntologyTypeRecordId::from(url.clone());
+
+        let (ontology_id, owned_by_id, transaction_time) = transaction
+            .update_owned_ontology_id(url, record_created_by_id)
             .await?;
+        transaction
+            .insert_entity_type_with_id(ontology_id, entity_type.clone(), label_property.as_ref())
+            .await
+            .change_context(UpdateError)?;
+
+        let metadata = PartialEntityTypeMetadata {
+            record_id,
+            custom: PartialCustomEntityTypeMetadata {
+                common: PartialCustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id,
+                        record_archived_by_id: None,
+                    },
+                    owned_by_id,
+                },
+                label_property,
+            },
+        };
 
         transaction
             .insert_entity_type_references(&entity_type, ontology_id)
@@ -324,6 +379,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(metadata)
+        Ok(EntityTypeMetadata::from_partial(metadata, transaction_time))
+    }
+
+    async fn archive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id, record_archived_by_id).await
+    }
+
+    async fn unarchive_entity_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

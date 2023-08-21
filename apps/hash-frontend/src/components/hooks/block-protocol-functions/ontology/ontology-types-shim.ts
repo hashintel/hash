@@ -119,6 +119,8 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type QueryEntityTypesRequest = {
+  latestOnly?: boolean;
+  includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<
       Subgraph["depths"],
@@ -131,7 +133,7 @@ export type QueryEntityTypesRequest = {
 };
 
 export type QueryEntityTypesMessageCallback = MessageCallback<
-  QueryEntityTypesRequest,
+  QueryEntityTypesRequest & { latestOnly?: boolean },
   null,
   MessageReturn<Subgraph<EntityTypeRootType>>,
   ReadOrModifyResourceError

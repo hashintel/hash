@@ -27,6 +27,6 @@
   "devDependencies": {
     "httpyac": "5.8.2",
     "quicktype": "^16.0.43",
-    "typescript": "5.0.4"
+    "typescript": "5.1.6"
   }
 }

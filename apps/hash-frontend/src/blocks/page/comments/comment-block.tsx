@@ -10,7 +10,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
-  Button,
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
@@ -39,6 +38,7 @@ import { useResolveComment } from "../../../components/hooks/use-resolve-comment
 import { useUpdateCommentText } from "../../../components/hooks/use-update-comment-text";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { Button } from "../../../shared/ui";
 import { CommentActionButtons } from "./comment-action-buttons";
 import { CommentBlockDeleteConfirmationDialog } from "./comment-block-delete-confirmation-dialog";
 import { CommentBlockMenu } from "./comment-block-menu";

@@ -10,13 +10,11 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::account::AccountId;
 
-use crate::{
-    identifier::account::AccountId,
-    snapshot::{
-        account::{AccountRow, AccountRowBatch},
-        SnapshotRestoreError,
-    },
+use crate::snapshot::{
+    account::{AccountRow, AccountRowBatch},
+    SnapshotRestoreError,
 };
 
 /// A sink to insert [`AccountId`]s.

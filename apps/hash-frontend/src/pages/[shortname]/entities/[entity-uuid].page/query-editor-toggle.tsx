@@ -1,5 +1,6 @@
-import { Button } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+
+import { Button } from "../../../../shared/ui";
 
 export const QueryEditorToggle = ({
   shouldShowQueryEditor,

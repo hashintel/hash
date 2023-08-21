@@ -1,4 +1,11 @@
-import { Box, Container, Divider, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Divider,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
@@ -10,9 +17,12 @@ import { Logo } from "./logo";
 import { Spacer } from "./spacer";
 
 const FooterLink: FunctionComponent<
-  { href: string } & Omit<ComponentProps<typeof Typography>, "variant">
-> = ({ href, sx = [], children, ...props }) => (
-  <Link href={href}>
+  { href: string; openInNew?: boolean } & Omit<
+    ComponentProps<typeof Typography>,
+    "variant"
+  >
+> = ({ href, openInNew, sx = [], children, ...props }) => (
+  <Link href={href} openInNew={openInNew}>
     <Typography
       {...props}
       sx={[
@@ -26,7 +36,7 @@ const FooterLink: FunctionComponent<
   </Link>
 );
 
-const FooterLinkWithLabel: FunctionComponent<
+const _FooterLinkWithLabel: FunctionComponent<
   ComponentProps<typeof FooterLink> & {
     type: "open" | "fair";
   }
@@ -84,7 +94,7 @@ export const Footer: FunctionComponent = () => (
         lg: 8,
       },
       background: "linear-gradient(359.56deg, #FFFFFF 59.36%, #F7F8FA 99.57%)",
-      boxShadow: "0px -2px 16px rgba(254, 177, 115, 0.2)",
+      boxShadow: "0px -2px 16px rgba(36, 189, 224, 0.21)",
       borderTop: 4,
       borderColor: "white",
 
@@ -121,34 +131,98 @@ export const Footer: FunctionComponent = () => (
             </Stack>
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={{ xs: 6, md: 10 }}>
-          <FooterSection label="Resources">
-            <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
-            <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
-            <FooterLink href="https://hash.ai/legal/terms">Terms</FooterLink>
-            <FooterLink href="https://hash.ai/legal/privacy">
-              Privacy
-            </FooterLink>
-          </FooterSection>
-          <FooterSection label="Our projects">
-            <FooterLinkWithLabel type="open" href="https://blockprotocol.org">
-              Block Protocol
-            </FooterLinkWithLabel>
-            <FooterLinkWithLabel type="open" href="https://hash.ai">
-              HASH
-            </FooterLinkWithLabel>
-            <FooterLinkWithLabel
-              type="fair"
-              href="https://hash.ai/platform/engine"
-            >
-              HASH Engine
-            </FooterLinkWithLabel>
-            <FooterLink href="https://hash.ai/platform/core">
-              HASH Core
-            </FooterLink>
-          </FooterSection>
-        </Stack>
+        <Grid
+          container
+          width="100%"
+          spacing={{ xs: 0, md: 3 }}
+          gap={{ xs: 3, md: 0 }}
+          justifyContent={{ xs: "space-between", sm: "flex-start" }}
+        >
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Resources">
+              <FooterLink href="/blog">Blog</FooterLink>
+              <FooterLink href="/roadmap">Roadmap</FooterLink>
+              {/* @todo: add docs pages */}
+              {/* <FooterLink href="/docs">Docs</FooterLink> */}
+              {/* @todo: add tutorials pages */}
+              {/* <FooterLink href="/tutorials">Tutorials</FooterLink> */}
+            </FooterSection>
+          </Grid>
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Projects">
+              <FooterLink href="https://blockprotocol.org">
+                <Box
+                  component="span"
+                  sx={{
+                    color: ({ palette }) => palette.purple[60],
+                    fontWeight: 700,
+                    marginRight: 1,
+                  }}
+                >
+                  Þ
+                </Box>
+                Block Protocol
+              </FooterLink>
+              <FooterLink href="https://hash.ai">
+                <Box
+                  component="span"
+                  sx={{
+                    color: ({ palette }) => palette.blue[70],
+                    fontWeight: 700,
+                    marginRight: 1,
+                  }}
+                >
+                  #
+                </Box>
+                HASH
+              </FooterLink>
+              {/* @todo: add docs page */}
+              {/* <FooterLink href="/docs/getting-started">
+                <Box component="span" sx={{ marginRight: 1 }}>
+                  <FaIcon
+                    name="chevron-right"
+                    type="solid"
+                    sx={{
+                      color: ({ palette }) => palette.teal[50],
+                      fontSize: 14,
+                    }}
+                  />
+                </Box>
+                See all projects
+              </FooterLink> */}
+            </FooterSection>
+          </Grid>
+          <Grid item lg={4} md={6}>
+            <FooterSection label="Get Involved">
+              {/* @todo: add docs page */}
+              {/* <FooterLink href="/docs/getting-started">Getting started</FooterLink> */}
+              {/* @todo: fix href */}
+              {/* <FooterLink href="/">Contribute</FooterLink> */}
+              <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
+            </FooterSection>
+          </Grid>
+        </Grid>
       </Stack>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row-reverse",
+          columnGap: 3,
+          marginTop: 2,
+          "> a > p": {
+            fontSize: 12,
+            textTransform: "uppercase",
+            color: ({ palette }) => palette.gray[50],
+          },
+        }}
+      >
+        <FooterLink href="https://hash.ai/legal/privacy" openInNew>
+          Privacy
+        </FooterLink>
+        <FooterLink href="https://hash.ai/legal/terms" openInNew>
+          Legal
+        </FooterLink>
+      </Box>
     </Container>
   </Box>
 );

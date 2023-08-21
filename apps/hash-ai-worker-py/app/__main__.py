@@ -8,7 +8,13 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.activities import complete
-from app.workflows import DemoWorkflowPy
+from app.encoding import pydantic_data_converter
+from app.workflows import (
+    DataTypeWorkflow,
+    EntityTypeWorkflow,
+    InferEntitiesWorkflow,
+    PropertyTypeWorkflow,
+)
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
@@ -20,14 +26,21 @@ async def run_worker(stop_event: asyncio.Event) -> None:
     temporal_port = os.environ.get("HASH_TEMPORAL_PORT") or "7233"
     temporal_target = f"{temporal_host}:{temporal_port}"
 
-    client = await Client.connect(temporal_target, namespace="default")
+    client = await Client.connect(
+        temporal_target,
+        namespace="HASH",
+        data_converter=pydantic_data_converter,
+    )
 
     worker = Worker(
         client,
         task_queue="aipy",
         # Register workflows
         workflows=[
-            DemoWorkflowPy,
+            DataTypeWorkflow,
+            PropertyTypeWorkflow,
+            EntityTypeWorkflow,
+            InferEntitiesWorkflow,
         ],
         # Register activities
         activities=[
@@ -53,7 +66,7 @@ async def main() -> None:
     runner = web.AppRunner(app)
     await runner.setup()
     port = 4200
-    site = web.TCPSite(runner, "::", port)
+    site = web.TCPSite(runner, "127.0.0.1", port)
     print(f"HTTP server listening on port {port}")  # noqa: T201
 
     stop_worker = asyncio.Event()

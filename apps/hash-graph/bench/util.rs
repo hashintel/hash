@@ -1,13 +1,16 @@
 use std::mem::ManuallyDrop;
 
-use graph::{
-    identifier::account::AccountId,
-    ontology::{OntologyElementMetadata, OwnedOntologyElementMetadata},
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+use graph::store::{
+    AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+    EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+};
+use graph_types::{
+    account::AccountId,
+    ontology::{
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata,
     },
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -198,14 +201,16 @@ pub async fn seed<D, P, E, C>(
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
-            .create_data_type(
-                data_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    data_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_data_type(data_type.clone(), PartialOntologyElementMetadata {
+                record_id: data_type.id().clone().into(),
+                custom: PartialCustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            })
             .await
         {
             Ok(_) => {}
@@ -229,14 +234,16 @@ pub async fn seed<D, P, E, C>(
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
-            .create_property_type(
-                property_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    property_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_property_type(property_type.clone(), PartialOntologyElementMetadata {
+                record_id: property_type.id().clone().into(),
+                custom: PartialCustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
+                    owned_by_id: OwnedById::new(account_id),
+                },
+            })
             .await
         {
             Ok(_) => {}
@@ -260,21 +267,26 @@ pub async fn seed<D, P, E, C>(
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
-            .create_entity_type(
-                entity_type.clone(),
-                &OntologyElementMetadata::Owned(OwnedOntologyElementMetadata::new(
-                    entity_type.id().clone().into(),
-                    ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    OwnedById::new(account_id),
-                )),
-            )
+            .create_entity_type(entity_type.clone(), PartialEntityTypeMetadata {
+                record_id: entity_type.id().clone().into(),
+                custom: PartialCustomEntityTypeMetadata {
+                    common: PartialCustomOntologyMetadata::Owned {
+                        provenance: ProvenanceMetadata {
+                            record_created_by_id: RecordCreatedById::new(account_id),
+                            record_archived_by_id: None,
+                        },
+                        owned_by_id: OwnedById::new(account_id),
+                    },
+                    label_property: None,
+                },
+            })
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(entity_type, RecordCreatedById::new(account_id))
+                        .update_entity_type(entity_type, RecordCreatedById::new(account_id), None)
                         .await
                         .expect("failed to update entity type");
                 } else {

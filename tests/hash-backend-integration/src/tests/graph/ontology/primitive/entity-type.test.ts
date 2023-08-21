@@ -1,9 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
-  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
@@ -21,6 +19,10 @@ import {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
 } from "@local/hash-graphql-shared/graphql/types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -210,7 +212,7 @@ describe("Entity type CRU", () => {
   it("can update an entity type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdEntityType.metadata) &&
-        createdEntityType.metadata.provenance.recordCreatedById,
+        createdEntityType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
     const updatedEntityType = await updateEntityType(graphContext, {
@@ -221,7 +223,7 @@ describe("Entity type CRU", () => {
 
     expect(
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
-        updatedEntityType.metadata.provenance.recordCreatedById,
+        updatedEntityType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser2.accountId);
   });
 

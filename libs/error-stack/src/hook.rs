@@ -27,7 +27,7 @@ impl Report<()> {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust
     /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
     /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
     /// use std::io::{Error, ErrorKind};
@@ -71,18 +71,17 @@ impl Report<()> {
     /// This example showcases the ability of hooks to be invoked for values provided via the
     /// Provider API using [`Error::provide`].
     ///
-    /// ```
+    /// ```rust
     /// # // this is a lot of boilerplate, if you find a better way, please change this!
     /// # // with #![cfg(nightly)] docsrs will complain that there's no main in non-nightly
-    /// # #![cfg_attr(nightly, feature(error_generic_member_access, provide_any))]
+    /// # #![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
     /// # const _: &'static str = r#"
-    /// #![feature(error_generic_member_access, provide_any)]
+    /// #![feature(error_generic_member_access)]
     /// # "#;
     ///
     /// # #[cfg(nightly)]
     /// # mod nightly {
-    /// use std::any::Demand;
-    /// use std::error::Error;
+    /// use std::error::{Request, Error};
     /// use std::fmt::{Display, Formatter};
     /// use error_stack::{Report, report};
     ///
@@ -104,7 +103,7 @@ impl Report<()> {
     /// }
     ///
     /// impl Error for UserError {
-    ///  fn provide<'a>(&'a self, req: &mut Demand<'a>) {
+    ///  fn provide<'a>(&'a self, req: &mut Request<'a>) {
     ///    req.provide_value(Suggestion("try better next time!"));
     ///    req.provide_ref(&self.code);
     ///  }

@@ -9,23 +9,21 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::ontology::{OntologyElementMetadata, OntologyTypeVersion};
 use postgres_types::Json;
 use type_system::EntityType;
 use uuid::Uuid;
 
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    snapshot::{
-        ontology::{
-            entity_type::batch::EntityTypeRowBatch,
-            table::{
-                EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-                EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
-            },
-            OntologyTypeMetadataSender,
+use crate::snapshot::{
+    ontology::{
+        entity_type::batch::EntityTypeRowBatch,
+        table::{
+            EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
+            EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
         },
-        OntologyTypeSnapshotRecord, SnapshotRestoreError,
+        OntologyTypeMetadataSender,
     },
+    OntologyTypeSnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`EntityType`].
@@ -75,11 +73,15 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         Poll::Ready(Ok(()))
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Add better functions to the `type-system` crate to easier read link mappings"
+    )]
     fn start_send(
         mut self: Pin<&mut Self>,
-        ontology_type: OntologyTypeSnapshotRecord<EntityType>,
+        entity_type: OntologyTypeSnapshotRecord<EntityType>,
     ) -> Result<(), Self::Error> {
-        let entity_type = EntityType::try_from(ontology_type.schema)
+        let schema = EntityType::try_from(entity_type.schema)
             .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to entity type")?;
@@ -87,10 +89,13 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         let ontology_id = Uuid::new_v4();
 
         self.metadata
-            .start_send_unpin((ontology_id, ontology_type.metadata))
+            .start_send_unpin((ontology_id, OntologyElementMetadata {
+                record_id: entity_type.metadata.record_id,
+                custom: entity_type.metadata.custom.common,
+            }))
             .attach_printable("could not send metadata")?;
 
-        let inherits_from: Vec<_> = entity_type
+        let inherits_from: Vec<_> = schema
             .inherits_from()
             .all_of()
             .iter()
@@ -111,7 +116,7 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                 .attach_printable("could not send inherits from edge")?;
         }
 
-        let properties: Vec<_> = entity_type
+        let properties: Vec<_> = schema
             .property_type_references()
             .into_iter()
             .map(|entity_type_ref| {
@@ -132,7 +137,7 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         }
 
         // TODO: Add better functions to the `type-system` crate to easier read link mappings
-        let link_mappings = entity_type.link_mappings();
+        let link_mappings = schema.link_mappings();
 
         let links: Vec<_> = link_mappings
             .keys()
@@ -176,7 +181,12 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(entity_type.into()),
+                schema: Json(schema.into()),
+                label_property: entity_type
+                    .metadata
+                    .custom
+                    .label_property
+                    .map(|label_property| label_property.to_string()),
             })
             .into_report()
             .change_context(SnapshotRestoreError::Read)

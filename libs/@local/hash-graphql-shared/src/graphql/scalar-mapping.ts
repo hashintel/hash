@@ -1,4 +1,6 @@
 export const scalars = {
+  BaseUrl: "@blockprotocol/type-system#BaseUrl",
+
   Date: "string",
 
   JSONObject: "@blockprotocol/core#JsonObject",
@@ -43,6 +45,5 @@ export const scalars = {
   EntityUuid: "@local/hash-subgraph#EntityUuid",
   Uuid: "@local/hash-subgraph#Uuid",
 
-  AgentTypeInput: "@apps/hash-agents#AgentTypeInput",
-  AgentTypeOutput: "@apps/hash-agents#AgentTypeOutput",
+  OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 };

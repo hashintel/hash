@@ -10,7 +10,7 @@ export const orgTypedef = gql`
 
   extend type Mutation {
     """
-    Create an organization.
+    Create an organization. The creator will be automatically added as an org member.
     """
     createOrg(
       """
@@ -24,7 +24,11 @@ export const orgTypedef = gql`
       """
       The size of the organization.
       """
-      orgSize: OrgSize!
+      orgSize: OrgSize
+      """
+      The website of the organization.
+      """
+      website: String
       """
       The depths that \`hasLeftEntity\` edges are resolved to.
       """

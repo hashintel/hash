@@ -8,9 +8,10 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import pluralize from "pluralize";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, ReactElement, useState } from "react";
 
 import { useFrozenValue } from "../../../frozen";
+import { ArrowUpRightIcon } from "../../../icons/arrow-up-right-icon";
 import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {
@@ -29,7 +30,7 @@ const EntityTypeMenuItem = ({
   popupState,
 }: {
   title: string;
-  icon: IconDefinition;
+  icon: IconDefinition | ReactElement;
   faded?: boolean;
   popupState: PopupState;
 } & (
@@ -43,7 +44,7 @@ const EntityTypeMenuItem = ({
       onClick={onClick ?? popupState.close}
     >
       <ListItemIcon>
-        <FontAwesomeIcon icon={icon} />
+        {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}
       </ListItemIcon>
       <ListItemText primary={title} />
     </MenuItem>
@@ -80,6 +81,12 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
             popupState.close();
           }, 2000);
         }}
+      />
+      <EntityTypeMenuItem
+        title="Extend this type"
+        icon={<ArrowUpRightIcon sx={{ fontSize: 16 }} />}
+        href={`/new/types/entity-type?extends=${entityTypeId}`}
+        popupState={popupState}
       />
     </Menu>
   );
