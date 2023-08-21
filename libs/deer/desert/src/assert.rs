@@ -1,3 +1,5 @@
+#[cfg(feature = "pretty")]
+use alloc::format;
 use core::fmt::Debug;
 
 use deer::{
