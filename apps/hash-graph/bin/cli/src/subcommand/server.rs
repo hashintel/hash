@@ -7,7 +7,7 @@ use std::{
 };
 
 use clap::Parser;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use graph::{
     api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
     logging::{init_logger, LoggingArgs},
@@ -63,8 +63,10 @@ impl TryFrom<ApiAddress> for SocketAddr {
     type Error = Report<AddrParseError>;
 
     fn try_from(address: ApiAddress) -> Result<Self, AddrParseError> {
-        let address = address.to_string();
-        address.parse().into_report().attach_printable(address)
+        address
+            .to_string()
+            .parse::<Self>()
+            .attach_printable(address)
     }
 }
 
@@ -330,13 +332,11 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             }
             if path.is_file() {
                 fs::remove_file(&path)
-                    .into_report()
                     .change_context(GraphError)
                     .attach_printable("could not remove old OpenAPI file")
                     .attach_printable_lazy(|| path.display().to_string())?;
             } else {
                 fs::remove_dir_all(&path)
-                    .into_report()
                     .change_context(GraphError)
                     .attach_printable("could not remove old OpenAPI file")
                     .attach_printable_lazy(|| path.display().to_string())?;
@@ -382,7 +382,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     });
 
     tracing::info!("Listening on {}", args.api_address);
-    axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
+    axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
@@ -398,9 +398,7 @@ pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
         Client::new().head(&request_url).send(),
     )
     .await
-    .into_report()
     .change_context(HealthcheckError::Timeout)?
-    .into_report()
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())

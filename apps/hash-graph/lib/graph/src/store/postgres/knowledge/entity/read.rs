@@ -1,7 +1,7 @@
 use std::{borrow::Cow, mem::swap, str::FromStr};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
     account::AccountId,
@@ -131,13 +131,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let entity_type_id = VersionedUrl::from_str(row.get(type_id_index))
-                    .into_report()
-                    .change_context(QueryError)?;
+                let entity_type_id =
+                    VersionedUrl::from_str(row.get(type_id_index)).change_context(QueryError)?;
 
                 let link_data = {
                     let left_owned_by_id: Option<AccountId> =
@@ -330,7 +328,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {
@@ -429,7 +426,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {
