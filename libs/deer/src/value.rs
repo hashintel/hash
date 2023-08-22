@@ -1,6 +1,4 @@
-#[cfg(any(nightly, feature = "std"))]
-use error_stack::{Report, Result};
-use error_stack::ResultExt;
+use error_stack::{Report, Result, ResultExt};
 use num_traits::NumCast;
 
 use crate::{
