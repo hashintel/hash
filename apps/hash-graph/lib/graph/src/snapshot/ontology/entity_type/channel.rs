@@ -3,7 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
@@ -50,39 +50,29 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.metadata.poll_ready_unpin(cx))
             .attach_printable("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
         ready!(self.inherits_from.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll inherits from edge sender")?;
         ready!(self.constrains_properties.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains properties edge sender")?;
         ready!(self.constrains_links.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains links edge sender")?;
         ready!(self.constrains_link_destinations.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains link destinations edge sender")?;
 
         Poll::Ready(Ok(()))
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "Add better functions to the `type-system` crate to easier read link mappings"
-    )]
     fn start_send(
         mut self: Pin<&mut Self>,
         entity_type: OntologyTypeSnapshotRecord<EntityType>,
     ) -> Result<(), Self::Error> {
         let schema = EntityType::try_from(entity_type.schema)
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to entity type")?;
 
@@ -111,7 +101,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         if !inherits_from.is_empty() {
             self.inherits_from
                 .start_send_unpin(inherits_from)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send inherits from edge")?;
         }
@@ -131,7 +120,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         if !properties.is_empty() {
             self.constrains_properties
                 .start_send_unpin(properties)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send constrains properties edge")?;
         }
@@ -153,7 +141,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         if !links.is_empty() {
             self.constrains_links
                 .start_send_unpin(links)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send constrains links edge")?;
         }
@@ -173,7 +160,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         if !link_destinations.is_empty() {
             self.constrains_link_destinations
                 .start_send_unpin(link_destinations)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send constrains link destinations edge")?;
         }
@@ -188,7 +174,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     .label_property
                     .map(|label_property| label_property.to_string()),
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
@@ -199,23 +184,18 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.metadata.poll_flush_unpin(cx))
             .attach_printable("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
         ready!(self.inherits_from.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush inherits from edge sender")?;
         ready!(self.constrains_properties.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains properties edge sender")?;
         ready!(self.constrains_links.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains links edge sender")?;
         ready!(self.constrains_link_destinations.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains link destinations edge sender")?;
 
@@ -226,23 +206,18 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.metadata.poll_close_unpin(cx))
             .attach_printable("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
         ready!(self.inherits_from.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close inherits from edge sender")?;
         ready!(self.constrains_properties.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains properties edge sender")?;
         ready!(self.constrains_links.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains links edge sender")?;
         ready!(self.constrains_link_destinations.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains link destinations edge sender")?;
 

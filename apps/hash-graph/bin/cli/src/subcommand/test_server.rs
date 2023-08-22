@@ -71,9 +71,7 @@ pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
         Client::new().head(&request_url).send(),
     )
     .await
-    .into_report()
     .change_context(HealthcheckError::Timeout)?
-    .into_report()
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())
