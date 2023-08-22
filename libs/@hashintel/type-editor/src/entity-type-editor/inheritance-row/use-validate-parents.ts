@@ -126,7 +126,7 @@ export const useValidateParents = (): ((args: {
             i + 1
           ) {
             throw new Error(
-              `Cannot create a cycle by having ${currentType.title} extend itself.`,
+              `You cannot create a cycle by having ${currentType.title} extend itself.`,
             );
           }
 
@@ -137,7 +137,7 @@ export const useValidateParents = (): ((args: {
             isLinkChain = true;
           } else if (isLinkChain) {
             throw new Error(
-              `Cannot have link type inherit from non-link type ${currentType.title}.`,
+              `You cannot have link type extend non-link type ${currentType.title}.`,
             );
           }
 
@@ -149,7 +149,7 @@ export const useValidateParents = (): ((args: {
           areChainsLinkChains.includes(false)
         ) {
           throw new Error(
-            "You cannot have both link types and non-link types as parents",
+            "You cannot extend both link types and non-link types.",
           );
         }
       }
