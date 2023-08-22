@@ -35,9 +35,6 @@ time = { version = "0.3.25", default-features = false }
 tracing = "0.1.37"
 postgres-types = { version = "0.2.6", default-features = false }
 
-[patch.crates-io]
-error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935" }
-
 [profile.production]
 inherits = "release"
 lto = "fat"

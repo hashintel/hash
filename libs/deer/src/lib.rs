@@ -1,7 +1,6 @@
 #![cfg_attr(
     nightly,
     feature(
-        provide_any,
         error_in_core,
         error_generic_member_access,
         saturating_int_impl,
