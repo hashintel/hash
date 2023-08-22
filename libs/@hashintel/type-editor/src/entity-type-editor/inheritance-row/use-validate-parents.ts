@@ -81,7 +81,7 @@ export const useValidateParents = ({
       areChainsLinkChains.includes(false)
     ) {
       throw new Error(
-        "You cannot add a non-link type as a parent of a link type",
+        "You cannot have both link types and non-link types as parents",
       );
     }
   }
