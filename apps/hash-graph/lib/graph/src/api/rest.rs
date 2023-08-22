@@ -28,7 +28,7 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use graph_types::{
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
@@ -293,22 +293,18 @@ impl OpenApiDocumentation {
     pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
         let openapi = Self::openapi();
         let path = path.as_ref();
-        fs::create_dir_all(path)
-            .into_report()
-            .attach_printable_lazy(|| path.display().to_string())?;
+        fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
         serde_json::to_writer_pretty(
             io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
-                    .into_report()
                     .attach_printable("could not write openapi.json")
                     .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
             ),
             &openapi,
         )
-        .map_err(io::Error::from)
-        .into_report()?;
+        .map_err(io::Error::from)?;
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
@@ -318,7 +314,6 @@ impl OpenApiDocumentation {
 
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
-            .into_report()
             .attach_printable("could not create directory")
             .attach_printable_lazy(|| model_path_dir.display().to_string())?;
 
@@ -326,7 +321,6 @@ impl OpenApiDocumentation {
             let model_path_source = model_def_path.join(file.path());
             let model_path_target = model_path_dir.join(file.path());
             fs::copy(&model_path_source, &model_path_target)
-                .into_report()
                 .attach_printable("could not copy file")
                 .attach_printable_lazy(|| model_path_source.display().to_string())
                 .attach_printable_lazy(|| model_path_target.display().to_string())?;

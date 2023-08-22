@@ -5,7 +5,7 @@ mod property_type;
 mod read;
 
 #[cfg(hash_graph_test_environment)]
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use graph_types::ontology::OntologyType;
 use tokio_postgres::Transaction;
 use type_system::{DataType, EntityType, PropertyType};
@@ -57,7 +57,6 @@ impl PostgresStore<Transaction<'_>> {
                 &[&ontology_ids],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         self.as_client()
@@ -69,7 +68,6 @@ impl PostgresStore<Transaction<'_>> {
                 &[&ontology_ids],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         self.as_client()
@@ -81,7 +79,6 @@ impl PostgresStore<Transaction<'_>> {
                 &[&ontology_ids],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         let base_urls = self
@@ -95,7 +92,6 @@ impl PostgresStore<Transaction<'_>> {
                 &[&ontology_ids],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
@@ -110,7 +106,6 @@ impl PostgresStore<Transaction<'_>> {
                 &[&base_urls],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         Ok(())

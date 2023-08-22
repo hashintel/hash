@@ -5,7 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::{
@@ -144,7 +144,6 @@ where
         let transport =
             tarpc::serde_transport::tcp::connect(&connection_info.address, Json::default)
                 .await
-                .into_report()
                 .change_context(StoreError)
                 .attach_printable("Could not connect to type fetcher")?;
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
@@ -281,17 +280,14 @@ where
             let ontology_types = fetcher
                 .fetch_ontology_types(context::current(), ontology_urls)
                 .await
-                .into_report()
                 .change_context(StoreError)?
-                .into_report()
                 .change_context(StoreError)?;
 
             for (ontology_type, fetched_at) in ontology_types {
                 match ontology_type {
                     OntologyTypeRepr::DataType(data_type_repr) => {
-                        let data_type = DataType::try_from(data_type_repr)
-                            .into_report()
-                            .change_context(StoreError)?;
+                        let data_type =
+                            DataType::try_from(data_type_repr).change_context(StoreError)?;
                         let metadata = PartialOntologyElementMetadata {
                             record_id: data_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External {
@@ -316,9 +312,8 @@ where
                             .push((data_type, metadata));
                     }
                     OntologyTypeRepr::PropertyType(property_type) => {
-                        let property_type = PropertyType::try_from(property_type)
-                            .into_report()
-                            .change_context(StoreError)?;
+                        let property_type =
+                            PropertyType::try_from(property_type).change_context(StoreError)?;
                         let metadata = PartialOntologyElementMetadata {
                             record_id: property_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External {
@@ -343,9 +338,8 @@ where
                             .push((property_type, metadata));
                     }
                     OntologyTypeRepr::EntityType(entity_type) => {
-                        let entity_type = EntityType::try_from(entity_type)
-                            .into_report()
-                            .change_context(StoreError)?;
+                        let entity_type =
+                            EntityType::try_from(entity_type).change_context(StoreError)?;
                         let metadata = PartialOntologyElementMetadata {
                             record_id: entity_type.id().clone().into(),
                             custom: PartialCustomOntologyMetadata::External {
