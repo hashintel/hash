@@ -1,7 +1,7 @@
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
     snapshot::SnapshotEntry,
@@ -55,7 +55,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
     let router = graph::api::rest::test_server::routes(pool);
 
     tracing::info!("Listening on {}", args.api_address);
-    axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
+    axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
         .serve(router.into_make_service_with_connect_info::<std::net::SocketAddr>())
         .await
         .expect("failed to start server");
