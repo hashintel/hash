@@ -243,15 +243,18 @@ export const useEntityTypeValue = (
 
   const completedRef = useRef<VersionedUrl | null>(null);
 
-  useLayoutEffect(() => {
-    if (
-      stateEntityType &&
-      completedRef.current !== stateEntityType.schema.$id
-    ) {
-      completedRef.current = stateEntityType.schema.$id;
-      onCompleted?.(stateEntityType);
-    }
-  });
+  // Ideally this side effect would be in a useLayoutEffect, but doing so causes a bug:
+  // 1. Be viewing an entity type which relies on a non-latest property type
+  // 2. Switch to an entity type which doesn't refer to that property type, and:
+  //    – propertyTypes is updated to _not_ contain that non-latest property type, since it's not relevant to the new entity type
+  //    - the propertyTypeOptions given to the type editor of 'all latest property types' also doesn't contain it
+  //    - state update for property type options reaches the type editor before the form data is reset in onCompleted,
+  //        causing the type editor to crash because its form data refers to a property type it hasn't been provided with
+  // Having this fire during the render avoids the bug by resetting the form state with the type data state
+  if (stateEntityType && completedRef.current !== stateEntityType.schema.$id) {
+    completedRef.current = stateEntityType.schema.$id;
+    onCompleted?.(stateEntityType);
+  }
 
   const entityTypeUnavailable = entityTypesLoading && !stateEntityType;
 
