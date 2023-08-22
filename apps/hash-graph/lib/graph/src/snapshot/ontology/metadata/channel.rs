@@ -3,7 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
@@ -37,19 +37,15 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
         ready!(self.account.poll_ready_unpin(cx))
             .attach_printable("could not poll account sender")?;
         ready!(self.id.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll temporal metadata sender")?;
         ready!(self.owned_metadata.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll owned metadata sender")?;
         ready!(self.external_metadata.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll external metadata sender")?;
 
@@ -71,7 +67,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                         ontology_id,
                         owned_by_id,
                     })
-                    .into_report()
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;
                 (provenance, temporal_versioning)
@@ -86,7 +81,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                         ontology_id,
                         fetched_at,
                     })
-                    .into_report()
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send external metadata")?;
                 (provenance, temporal_versioning)
@@ -103,7 +97,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 base_url: metadata.record_id.base_url.as_str().to_owned(),
                 version: metadata.record_id.version,
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send id")?;
 
@@ -114,7 +107,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 record_created_by_id: provenance.record_created_by_id,
                 record_archived_by_id: provenance.record_archived_by_id,
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send temporal metadata")?;
 
@@ -125,19 +117,15 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
         ready!(self.account.poll_flush_unpin(cx))
             .attach_printable("could not flush account sender")?;
         ready!(self.id.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush temporal metadata sender")?;
         ready!(self.owned_metadata.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush owned metadata sender")?;
         ready!(self.external_metadata.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush external metadata sender")?;
 
@@ -148,19 +136,15 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
         ready!(self.account.poll_close_unpin(cx))
             .attach_printable("could not close account sender")?;
         ready!(self.id.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
         ready!(self.temporal_metadata.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close temporal metadata sender")?;
         ready!(self.owned_metadata.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close owned metadata sender")?;
         ready!(self.external_metadata.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close external metadata sender")?;
 

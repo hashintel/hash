@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -59,7 +59,6 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
         Ok(())
@@ -79,7 +78,6 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         &[entity_types],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity type schemas", rows.len());
@@ -96,7 +94,6 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         &[entity_types],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity type inheritance", rows.len());
@@ -113,7 +110,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         &[properties],
                     )
                     .await
-                    .into_report()
+
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity type property constrains", rows.len());
@@ -130,7 +127,6 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         &[links],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity type link constrains", rows.len());
@@ -147,7 +143,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         &[links],
                     )
                     .await
-                    .into_report()
+
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!(
@@ -206,7 +202,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                 ",
             )
             .await
-            .into_report()
+
             .change_context(InsertionError)?;
         Ok(())
     }

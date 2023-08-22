@@ -7,7 +7,6 @@ use axum::{
     routing::{post, put},
     Extension, Router,
 };
-use error_stack::IntoReport;
 use futures::TryFutureExt;
 use graph_types::{
     ontology::{
@@ -135,7 +134,7 @@ where
     let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
-        let data_type: DataType = schema.try_into().into_report().map_err(|report| {
+        let data_type: DataType = schema.try_into().map_err(|report| {
             tracing::error!(error=?report, "Couldn't convert schema to Data Type");
             StatusCode::UNPROCESSABLE_ENTITY
             // TODO - We should probably return more information to the client

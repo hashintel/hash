@@ -3,7 +3,7 @@ mod read;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     knowledge::{
         entity::{
@@ -205,7 +205,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ",
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         Ok(())
@@ -243,7 +242,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         let link_order = if let Some(link_data) = link_data {
@@ -266,7 +264,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
 
             transaction
@@ -288,7 +285,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
 
             link_data.order
@@ -336,7 +332,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?
         } else {
             transaction
@@ -360,7 +355,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?
         };
 
@@ -588,7 +582,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .into_report()
             .change_context(UpdateError)?
             .is_none()
         {
@@ -652,7 +645,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 )
                 .await
         }
-        .into_report()
         .change_context(UpdateError)?;
         let row = optional_row.ok_or_else(|| {
             Report::new(RaceConditionOnUpdate)
@@ -713,7 +705,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .get(0);
 
@@ -733,7 +724,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 &[&edition_id, &entity_type_ontology_id],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(edition_id)

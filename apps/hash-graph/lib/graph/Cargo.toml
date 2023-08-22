@@ -37,7 +37,7 @@ semver = { version = "1.0.18", default-features = false, features = ["serde"] }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
-tokio = { version = "1.29.1", default-features = false }
+tokio = { version = "1.32.0", default-features = false }
 tokio-postgres = { version = "0.7.9", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
@@ -54,7 +54,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 graph-test-data = { workspace = true }
 
 criterion = "0.5.1"
-tokio = { version = "1.29.1", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros", "tracing"] }
 
 [features]
 test-server = []

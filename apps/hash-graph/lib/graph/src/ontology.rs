@@ -7,7 +7,7 @@ mod property_type;
 
 use core::fmt;
 
-use error_stack::{Context, IntoReport, Result, ResultExt};
+use error_stack::{Context, Result, ResultExt};
 use graph_types::ontology::{
     DataTypeWithMetadata, EntityTypeWithMetadata, OntologyType, PropertyTypeWithMetadata,
 };
@@ -68,24 +68,18 @@ pub fn patch_id_and_parse<T: OntologyType>(
             serde_json::to_value(id).expect("failed to deserialize id"),
         ) {
             return Err(PatchAndParseError)
-                .into_report()
                 .attach_printable("schema already had an $id")
                 .attach_printable(previous_val);
         }
     } else {
         return Err(PatchAndParseError)
-            .into_report()
             .attach_printable("unexpected schema format, couldn't parse as object")
             .attach_printable(value);
     }
 
-    let ontology_type_repr: T::Representation = serde_json::from_value(value)
-        .into_report()
-        .change_context(PatchAndParseError)?;
-    let ontology_type: T = ontology_type_repr
-        .try_into()
-        .into_report()
-        .change_context(PatchAndParseError)?;
+    let ontology_type_repr: T::Representation =
+        serde_json::from_value(value).change_context(PatchAndParseError)?;
+    let ontology_type = T::try_from(ontology_type_repr).change_context(PatchAndParseError)?;
 
     Ok(ontology_type)
 }

@@ -1,8 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
@@ -179,7 +177,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ",
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         let entity_types = transaction
@@ -192,7 +189,6 @@ impl<C: AsClient> PostgresStore<C> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
