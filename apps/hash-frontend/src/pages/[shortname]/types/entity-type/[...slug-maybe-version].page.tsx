@@ -379,6 +379,7 @@ const Page: NextPageWithLayout = () => {
 
       {previewEntityTypeUrl ? (
         <TypePreviewSlide
+          key={previewEntityTypeUrl}
           onClose={() => setPreviewEntityTypeUrl(null)}
           onNavigateToType={onNavigateToType}
           typeUrl={previewEntityTypeUrl}
