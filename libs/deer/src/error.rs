@@ -57,14 +57,14 @@
 
 use alloc::{boxed::Box, format, string::String};
 #[cfg(nightly)]
-use core::any::Demand;
+use core::error::Request;
 use core::{
     any::Any,
     fmt::{self, Debug, Display, Formatter},
 };
 
 pub use duplicate::{DuplicateField, DuplicateFieldError, DuplicateKey, DuplicateKeyError};
-use error_stack::{Context, Frame, IntoReport, Report, Result};
+use error_stack::{Context, Frame, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ObjectLengthError, ReceivedKey,
     ReceivedLength,
@@ -229,9 +229,9 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
     {
         let key = <T as ErrorProperty>::key();
 
-        map.serialize_entry(key, &value)
-            .map_err(|err| SerdeSerializeError::new(&err))
-            .into_report()
+        Ok(map
+            .serialize_entry(key, &value)
+            .map_err(|err| SerdeSerializeError::new(&err))?)
     }
 }
 
@@ -266,7 +266,7 @@ pub trait Variant: Sized + Debug + Display + Send + Sync + 'static {
 
     #[cfg(nightly)]
     #[allow(unused_variables)]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {}
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {}
 
     fn into_error(self) -> Error {
         Error::new(self)
@@ -281,7 +281,7 @@ pub struct Error {
     display: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
     debug: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
     #[cfg(nightly)]
-    provide: for<'a> fn(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>),
+    provide: for<'a> fn(error: &'a Box<dyn Any + Send + Sync>, request: &mut Request<'a>),
 }
 
 impl Debug for Error {
@@ -316,13 +316,13 @@ fn impl_debug<E: Variant>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatte
 }
 
 #[cfg(nightly)]
-fn impl_provide<'a, E: Variant>(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>) {
+fn impl_provide<'a, E: Variant>(error: &'a Box<dyn Any + Send + Sync>, request: &mut Request<'a>) {
     let error: &E = error
         .downcast_ref()
         .expect("`impl_provide` should only be called on corresponding `Error`");
 
-    demand.provide_ref(error);
-    error.provide(demand);
+    request.provide_ref(error);
+    error.provide(request);
 }
 
 impl Error {
@@ -387,8 +387,8 @@ impl Error {
 
 #[cfg(nightly)]
 impl core::error::Error for Error {
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        (self.provide)(&self.variant, demand);
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        (self.provide)(&self.variant, request);
     }
 }
 

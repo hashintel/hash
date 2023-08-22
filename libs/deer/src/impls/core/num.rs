@@ -147,7 +147,6 @@ macro_rules! num_try_from {
     ($primitive:ident:: $visit:ident) => {
         fn $visit(self, value: $primitive) -> Result<Self::Value, VisitorError> {
             Self::Value::try_from(value)
-                .into_report()
                 .change_context(ValueError.into_error())
                 .attach(ExpectedType::new(self.expecting()))
                 .attach(ReceivedValue::new(value))
