@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/type-system/slim";
+import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -13,10 +13,15 @@ import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
 import { InheritedTypeCard } from "./inheritance-row/inherited-type-card";
+import { useValidateParents } from "./inheritance-row/use-validate-parents";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 
-export const InheritanceRow = () => {
+export const InheritanceRow = ({
+  entityTypeId,
+}: {
+  entityTypeId: VersionedUrl;
+}) => {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
 
   const selectorInputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +32,16 @@ export const InheritanceRow = () => {
   const directParentEntityTypeIds = useWatch({
     control,
     name: "allOf",
+  });
+
+  const properties = useWatch({
+    control,
+    name: "properties",
+  });
+
+  const links = useWatch({
+    control,
+    name: "links",
   });
 
   const { entityTypes, linkTypes } = useEntityTypesOptions();
@@ -51,6 +66,8 @@ export const InheritanceRow = () => {
 
   const isReadonly = useIsReadonly();
 
+  const validateParents = useValidateParents();
+
   const setSelectorVisibility = (shouldBeVisible: boolean) => {
     if (shouldBeVisible) {
       setTypeSelectorOpen(true);
@@ -61,7 +78,16 @@ export const InheritanceRow = () => {
   };
 
   const addParent = (parent: EntityType) => {
-    setValue("allOf", [...directParentEntityTypeIds, parent.$id], {
+    const proposedParentIds = [...directParentEntityTypeIds, parent.$id];
+
+    validateParents({
+      childEntityTypeId: entityTypeId,
+      childLinksIds: links.map((link) => link.$id),
+      childPropertiesIds: properties.map((property) => property.$id),
+      directParentIds: proposedParentIds,
+    });
+
+    setValue("allOf", proposedParentIds, {
       shouldDirty: true,
     });
     setSelectorVisibility(false);
@@ -74,11 +100,13 @@ export const InheritanceRow = () => {
       sx={{ height: TYPE_SELECTOR_HEIGHT }}
     >
       {directParents.length > 0 ? (
-        directParents.map((type) => (
-          <Box key={type.$id} sx={{ mr: 2 }}>
-            <InheritedTypeCard entityType={type} />
-          </Box>
-        ))
+        directParents.map((type) => {
+          return (
+            <Box key={type.$id} sx={{ mr: 2 }}>
+              <InheritedTypeCard entityType={type} />
+            </Box>
+          );
+        })
       ) : (
         <Box
           sx={({ palette }) => ({

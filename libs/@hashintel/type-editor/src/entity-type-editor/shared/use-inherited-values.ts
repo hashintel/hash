@@ -3,7 +3,7 @@ import {
   extractBaseUrl,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { useMemo } from "react";
+import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { getFormDataFromSchema } from "../../get-form-data-from-schema";
@@ -112,33 +112,34 @@ const addInheritedValuesForEntityType = (
   }
 };
 
-export const useInheritedValues = ({
-  directParentIds,
-}: {
+export const useGetInheritedValues = (): ((args: {
   directParentIds: VersionedUrl[];
-}): InheritedValues => {
+}) => InheritedValues) => {
   const { entityTypes, linkTypes } = useEntityTypesOptions();
 
-  return useMemo(() => {
-    const inheritedValuesMap: ValueMap = {
-      inheritanceChains: [],
-      links: {},
-      properties: {},
-    };
-    for (const parentId of directParentIds) {
-      addInheritedValuesForEntityType(
-        parentId,
-        { ...entityTypes, ...linkTypes },
-        inheritedValuesMap,
-      );
-    }
+  return useCallback(
+    ({ directParentIds }) => {
+      const inheritedValuesMap: ValueMap = {
+        inheritanceChains: [],
+        links: {},
+        properties: {},
+      };
+      for (const parentId of directParentIds) {
+        addInheritedValuesForEntityType(
+          parentId,
+          { ...entityTypes, ...linkTypes },
+          inheritedValuesMap,
+        );
+      }
 
-    return {
-      inheritanceChains: Object.values(inheritedValuesMap.inheritanceChains),
-      links: Object.values(inheritedValuesMap.links),
-      properties: Object.values(inheritedValuesMap.properties),
-    };
-  }, [directParentIds, entityTypes, linkTypes]);
+      return {
+        inheritanceChains: Object.values(inheritedValuesMap.inheritanceChains),
+        links: Object.values(inheritedValuesMap.links),
+        properties: Object.values(inheritedValuesMap.properties),
+      };
+    },
+    [entityTypes, linkTypes],
+  );
 };
 
 export const useInheritedValuesForCurrentDraft = () => {
@@ -149,5 +150,7 @@ export const useInheritedValuesForCurrentDraft = () => {
     name: "allOf",
   });
 
-  return useInheritedValues({ directParentIds });
+  const getInheritedValues = useGetInheritedValues();
+
+  return getInheritedValues({ directParentIds });
 };
