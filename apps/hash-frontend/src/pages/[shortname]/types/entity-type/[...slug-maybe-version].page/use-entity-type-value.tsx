@@ -133,6 +133,7 @@ const getPropertyTypesForEntityType = (
   return propertyTypesMap;
 };
 
+// @todo rethink this from scratch, it's probably more complicated than it needs to be
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: number | null,
