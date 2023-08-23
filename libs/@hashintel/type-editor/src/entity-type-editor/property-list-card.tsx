@@ -29,6 +29,7 @@ import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { usePropertyTypesOptions } from "../shared/property-types-options-context";
 import { useIsReadonly } from "../shared/read-only-context";
+import { linkEntityTypeUrl } from "../shared/urls";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { InheritedPropertyRow } from "./property-list-card/inherited-property-row";
 import { PropertyRow } from "./property-list-card/property-row";
@@ -209,7 +210,11 @@ const InsertPropertyField = (
     useInheritedValuesForCurrentDraft();
 
   const filteredPropertyTypes = useFilterTypeOptions({
-    typesToExclude: [...properties, ...inheritedProperties],
+    typesToExclude: [
+      ...properties,
+      ...inheritedProperties,
+      { $id: linkEntityTypeUrl },
+    ],
     typeOptions: propertyTypes,
   });
 

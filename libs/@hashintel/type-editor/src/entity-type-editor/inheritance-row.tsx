@@ -14,6 +14,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useIsReadonly } from "../shared/read-only-context";
+import { linkEntityTypeUrl } from "../shared/urls";
 import { InheritedTypeCard } from "./inheritance-row/inherited-type-card";
 import { useValidateParents } from "./inheritance-row/use-validate-parents";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
@@ -55,8 +56,10 @@ export const InheritanceRow = ({
       ...Object.values(linkTypes),
     ];
 
-    const parents = typesArray.filter((type) =>
-      directParentEntityTypeIds.includes(type.$id),
+    const parents = typesArray.filter(
+      (type) =>
+        type.$id !== linkEntityTypeUrl &&
+        directParentEntityTypeIds.includes(type.$id),
     );
 
     return { entityTypesArray: typesArray, directParents: parents };
@@ -64,7 +67,7 @@ export const InheritanceRow = ({
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    typesToExclude: directParents,
+    typesToExclude: [...directParents, { $id: linkEntityTypeUrl }],
   });
 
   const isReadonly = useIsReadonly();
