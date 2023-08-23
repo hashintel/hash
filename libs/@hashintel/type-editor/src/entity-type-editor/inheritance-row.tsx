@@ -57,10 +57,12 @@ export const InheritanceRow = ({
   const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   const { entityTypesArray, directParents } = useMemo(() => {
-    const typesArray = [
-      ...Object.values(entityTypes),
-      ...Object.values(linkTypes),
-    ];
+    const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
+
+    const typesArray = Object.values(linkTypes);
+    if (!isLinkType) {
+      typesArray.push(...Object.values(entityTypes));
+    }
 
     const parents = typesArray.filter(
       (type) =>
