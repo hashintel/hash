@@ -39,4 +39,4 @@ And remember: anything inside a directory titled `_h` (no matter how deeply nest
 
 ## 3. Questions
 
-If you have any questions please [contact us].
+If you require an alternative license, or have any other questions, please [contact us].
