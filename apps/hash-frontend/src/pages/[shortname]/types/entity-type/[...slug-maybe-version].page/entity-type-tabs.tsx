@@ -1,10 +1,5 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import {
-  EntityTypeEditorFormData,
-  useEntityTypeFormContext,
-  useEntityTypeFormWatch,
-} from "@hashintel/type-editor";
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 
@@ -19,12 +14,6 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
 
   const entityType = useEntityType();
-
-  const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
-  const propertiesCount = useEntityTypeFormWatch({
-    control,
-    name: "properties.length",
-  });
 
   const { entities, loading } = useEntityTypeEntities();
 
