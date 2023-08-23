@@ -1,9 +1,22 @@
+[contributing]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
+[creative commons attribution-noncommercial-sharealike 4.0 international]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md
+[gnu affero general public license 3.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md
+[hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hashdotdesign
+[hash brand terms]: https://hash.ai/about/brand?utm_medium=organic&utm_source=github_readme_hashdotdesign
+[license]: https://github.com/hashintel/hash/blob/main/LICENSE.md
+
 # License
 
-The [hash.design](https://hash.design) website is dedicated to designers.
+## Background
 
-Markdown files (those suffixed `.md`) containing content displayed on the [hash.design](https://hash.design/) website are available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md) license.
+The [hash.design] website is dedicated to designers.
 
-All other files are released under the [GNU Affero General Public License 3.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md), or as otherwise disclaimed in line with our root repository [LICENSE](https://github.com/hashintel/hash/blob/main/LICENSE.md).
+## Terms
 
-For more information about contributing to the HASH developer website, see our repo-wide [CONTRIBUTING](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) guide.
+- Markdown files (those suffixed `.md`) containing content displayed on the [hash.design] website are available under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International] license.
+- Brand assets are governed by the [HASH Brand Terms].
+- All other files are released under the [GNU Affero General Public License 3.0], or as otherwise disclaimed in line with our root repository [LICENSE].
+
+## Further Information
+
+For more information about contributing to [hash.design], see our repo-wide [CONTRIBUTING] guide.
