@@ -20,13 +20,19 @@ import { useValidateParents } from "./inheritance-row/use-validate-parents";
 import { TypeSelector } from "./shared/insert-property-field/type-selector";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
 
+type ModalData = {
+  callback?: () => void;
+  calloutMessage: string;
+  type: "info" | "warning";
+};
+
 export const InheritanceRow = ({
   entityTypeId,
 }: {
   entityTypeId: VersionedUrl;
 }) => {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
 
   const selectorInputRef = useRef<HTMLInputElement>(null);
   const [typeSelectorSearchText, setTypeSelectorSearchText] = useState("");
@@ -58,6 +64,7 @@ export const InheritanceRow = ({
 
     const parents = typesArray.filter(
       (type) =>
+        // We intentionally hide the special Block Protocol Link entity from being displayed as a parent
         type.$id !== linkEntityTypeUrl &&
         directParentEntityTypeIds.includes(type.$id),
     );
@@ -94,14 +101,56 @@ export const InheritanceRow = ({
         directParentIds: proposedParentIds,
       });
     } catch (error) {
-      setErrorMessage((error as Error).message);
+      setModalData({
+        calloutMessage: (error as Error).message,
+        type: "warning",
+      });
       return;
     }
 
-    setValue("allOf", proposedParentIds, {
-      shouldDirty: true,
-    });
-    setSelectorVisibility(false);
+    const setNewParents = () => {
+      setValue("allOf", proposedParentIds, {
+        shouldDirty: true,
+      });
+      setSelectorVisibility(false);
+    };
+
+    if (proposedParentIds.length === 1 && linkTypes[proposedParentIds[0]!]) {
+      setModalData({
+        callback: setNewParents,
+        calloutMessage:
+          "You are adding a link type as a parent, which will make future versions of this type a link type.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setNewParents();
+  };
+
+  const removeParent = (parent: EntityType) => {
+    const proposedNewParents = directParentEntityTypeIds.filter(
+      (id) => id !== parent.$id,
+    );
+
+    const setNewParents = () => {
+      setValue("allOf", proposedNewParents, { shouldDirty: true });
+    };
+
+    if (
+      proposedNewParents.length === 0 &&
+      directParentEntityTypeIds.find((id) => linkTypes[id])
+    ) {
+      setModalData({
+        callback: setNewParents,
+        calloutMessage:
+          "Removing this parent, a link type, will mean future versions of this type are not link types.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setNewParents();
   };
 
   return (
@@ -115,7 +164,10 @@ export const InheritanceRow = ({
           directParents.map((type) => {
             return (
               <Box key={type.$id} sx={{ mr: 2 }}>
-                <InheritedTypeCard entityType={type} />
+                <InheritedTypeCard
+                  entityType={type}
+                  onRemove={() => removeParent(type)}
+                />
               </Box>
             );
           })
@@ -171,18 +223,35 @@ export const InheritanceRow = ({
           </Button>
         )}
       </Stack>
-      <Modal open={errorMessage !== null} onClose={() => setErrorMessage(null)}>
-        <Stack spacing={3}>
-          <Callout type="warning">{errorMessage}</Callout>
-          <Button
-            autoFocus
-            onClick={() => setErrorMessage(null)}
-            sx={{ margin: "0 auto", width: "auto" }}
-          >
-            Close
-          </Button>
-        </Stack>
-      </Modal>
+      {modalData && (
+        <Modal open onClose={() => setModalData(null)}>
+          <Stack spacing={3}>
+            <Callout type={modalData.type}>{modalData.calloutMessage}</Callout>
+            <Stack direction="row" spacing={2} justifyContent="space-between">
+              {modalData.callback && (
+                <Button
+                  autoFocus
+                  onClick={() => {
+                    modalData.callback?.();
+                    setModalData(null);
+                  }}
+                  sx={{ width: "50%" }}
+                >
+                  Continue
+                </Button>
+              )}
+              <Button
+                autoFocus={!modalData.callback}
+                onClick={() => setModalData(null)}
+                variant={modalData.callback ? "secondary" : "primary"}
+                sx={{ width: modalData.callback ? "50%" : "100%" }}
+              >
+                {modalData.callback ? "Cancel" : "Close"}
+              </Button>
+            </Stack>
+          </Stack>
+        </Modal>
+      )}
     </>
   );
 };
