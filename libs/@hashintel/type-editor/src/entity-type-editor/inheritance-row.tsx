@@ -120,7 +120,7 @@ export const InheritanceRow = ({
         callback: setNewParents,
         calloutMessage:
           "You are adding a link type as a parent, which will make future versions of this type a link type.",
-        type: "warning",
+        type: "info",
       });
       return;
     }
@@ -145,7 +145,7 @@ export const InheritanceRow = ({
         callback: setNewParents,
         calloutMessage:
           "Removing this parent, a link type, will mean future versions of this type are not link types.",
-        type: "warning",
+        type: "info",
       });
       return;
     }
