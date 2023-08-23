@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/type-system/slim";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
+  AsteriskRegularIcon,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
@@ -46,6 +47,7 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
+import { TypeSelectorType } from "./shared/insert-property-field/type-selector";
 import {
   InsertTypeField,
   InsertTypeFieldProps,
@@ -199,13 +201,24 @@ export const PropertyTypeRow = ({
 };
 
 const InsertPropertyField = (
-  props: Omit<InsertTypeFieldProps<PropertyType>, "options" | "variant">,
+  props: Omit<
+    InsertTypeFieldProps<PropertyType & Pick<TypeSelectorType, "Icon">>,
+    "options" | "variant"
+  >,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const properties = useWatch({ control, name: "properties" });
 
   const propertyTypeOptions = usePropertyTypesOptions();
-  const propertyTypes = Object.values(propertyTypeOptions);
+  const propertyTypes = useMemo(
+    () =>
+      Object.values(propertyTypeOptions).map((type) => ({
+        ...type,
+        Icon: AsteriskRegularIcon,
+      })),
+    [propertyTypeOptions],
+  );
+
   const { properties: inheritedProperties } =
     useInheritedValuesForCurrentDraft();
 

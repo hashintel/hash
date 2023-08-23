@@ -1,9 +1,13 @@
 import { EntityType } from "@blockprotocol/type-system";
-import { SelectorAutocomplete } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  LinkIcon,
+  SelectorAutocomplete,
+} from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
-import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
@@ -11,7 +15,7 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const entityTypes = useLatestEntityTypesOptional();
+  const { entityTypes, isLinkTypeLookup } = useEntityTypesContextRequired();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
@@ -32,6 +36,7 @@ export const EntityTypeSelector: FunctionComponent<{
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
+        Icon: isLinkTypeLookup?.[$id] ? LinkIcon : AsteriskRegularIcon,
         typeId: $id,
         title,
         description,

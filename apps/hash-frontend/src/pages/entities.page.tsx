@@ -1,4 +1,5 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
+import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { isBaseUrl, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -19,7 +20,6 @@ import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-contex
 import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { AsteriskLightIcon } from "../shared/icons/asterisk-light-icon";
-import { AsteriskRegularIcon } from "../shared/icons/asterisk-regular-icon";
 import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regular-icon";
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
