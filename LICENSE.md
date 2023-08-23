@@ -17,11 +17,11 @@ In the interests of transparency, certain proprietary code is also made availabl
 
 **The following rules apply on the `main` branch only.** The license for a particular work is defined with following prioritized rules (precedence established top-to-bottom):
 
-1.  If present: license information directly present in the file
-1.  If a file exists directly or indirectly inside a directory titled `_h`: it is available under the [HASH License] only
-1.  If present: `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
-1.  If present: first `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
-1.  Otherwise: defaults to dual-release under the [MIT License] and [Apache License 2.0], at your option
+1.  **If present:** license information directly present in the file
+1.  **If a file exists directly or indirectly inside a directory titled `_h`:** available under the [HASH License] only
+1.  **If present:** `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
+1.  **If present:** first `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
+1.  **Otherwise:** defaults to dual-release under the [MIT License] and [Apache License 2.0], at your option
 
 Files and work on branches other than `main` may be unlicensed. By default you should assume that all rights are reserved, and should reach out to the branch author to clarify if in any doubt.
 
