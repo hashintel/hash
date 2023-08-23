@@ -26,18 +26,18 @@ Subscription Agreement], linked to from `https://hash.ai/legal`.
 "**HASH Terms**" shall mean the [HASH Global Terms of Service], available at
 `https://hash.ai/legal/terms`.
 
-“**License**” shall mean the terms and conditions for use, reproduction, and
-distribution as defined by Sections 1 through 4 of this document.
-
-“**Licensor**” shall mean the copyright owner or entity authorized by the copyright
-owner that is granting the License.
-
 “**Legal Entity**” shall mean the union of the acting entity and all other entities
 that control, are controlled by, or are under common control with that entity.
 For the purposes of this definition, “control” means **(i)** the power, direct or
 indirect, to cause the direction or management of such entity, whether by
 contract or otherwise, or **(ii)** ownership of fifty percent (50%) or more of the
 outstanding shares, or **(iii)** beneficial ownership of such entity.
+
+“**License**” shall mean the terms and conditions for use, reproduction, and
+distribution as defined by Sections 1 through 4 of this document.
+
+“**Licensor**” shall mean the copyright owner or entity authorized by the copyright
+owner that is granting the License.
 
 "**Software**" shall mean any software and associated documentation files covered
 by this License.
