@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
+import { useAuthenticatedUser } from "./auth-info-context";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
 
@@ -57,6 +58,10 @@ type CreateEntityTypeFormProps = {
   onCancel: () => void;
 };
 
+const extractNamespaceFromVersionedUrl = (versionedUrl: VersionedUrl) => {
+  return new URL(versionedUrl).pathname.split("/")[1]!.replace(/@/, "");
+};
+
 export const CreateEntityTypeForm = ({
   afterSubmit,
   initialData,
@@ -83,6 +88,8 @@ export const CreateEntityTypeForm = ({
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
+
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const { extendsEntityTypeId } = initialData;
 
@@ -133,6 +140,21 @@ export const CreateEntityTypeForm = ({
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;
 
+  const parentWebName = parentType
+    ? extractNamespaceFromVersionedUrl(parentType.schema.$id)
+    : undefined;
+
+  const crossWebAction =
+    parentType && parentWebName !== activeWorkspace.shortname;
+
+  const potentiallyUndesiredCrossWebAction =
+    crossWebAction &&
+    authenticatedUser.memberOf.find(
+      (org) =>
+        org.shortname === parentWebName ||
+        org.shortname === activeWorkspace.shortname,
+    );
+
   return (
     <Box
       component="form"
@@ -178,13 +200,18 @@ export const CreateEntityTypeForm = ({
       >
         {parentType && (
           <Callout
-            type="info"
+            type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
             sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
           >
-            You are extending <strong>{parentType.schema.title}</strong> to
-            create a new entity type in the
-            <strong> @{activeWorkspace.shortname} </strong>
-            workspace.
+            You are extending the <strong>{parentType.schema.title}</strong>{" "}
+            entity type from <strong>@{parentWebName}</strong>
+            {" to create a new entity type within "}
+            {crossWebAction ? (
+              <strong>@{activeWorkspace.shortname}</strong>
+            ) : (
+              "the same web"
+            )}
+            .
           </Callout>
         )}
         <TextField
@@ -215,6 +242,7 @@ export const CreateEntityTypeForm = ({
                 : true;
             },
           })}
+          autoFocus
           required
           label="Singular Name"
           type="text"
