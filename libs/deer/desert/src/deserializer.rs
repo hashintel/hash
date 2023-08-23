@@ -10,7 +10,7 @@ use deer::{
     value::NoneDeserializer,
     Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 use crate::{
@@ -148,7 +148,6 @@ impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
 
         let visit_try = |value: core::result::Result<u64, TryFromIntError>| {
             value
-                .into_report()
                 .change_context(ValueError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
         };
