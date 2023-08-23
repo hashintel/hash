@@ -25,7 +25,8 @@ const Page: NextPageWithLayout = () => {
           to see what lies ahead.
         </Typography>
         <Typography>
-          HASH is stil pre-v1. As such, your feedback is greatly appreciated. Join our{" "}
+          HASH is stil pre-v1. As such, your feedback is greatly appreciated.
+          Join our{" "}
           <Link href="https://hash.ai/discord?utm_medium=organic&utm_source=hash-app_home-page">
             community forum
           </Link>{" "}
