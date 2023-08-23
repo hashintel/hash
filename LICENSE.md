@@ -1,18 +1,29 @@
+[apache license 2.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-APACHE.md
+[elastic license 2.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-ELASTIC.md
+[gnu affero general public license 3.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md
+[mit license]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-MIT.md
+[hash license]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-HASH.md
+
 # License
 
-The HASH monorepo relies upon multiple different licenses. Source code in this repository is variously licensed under either:
-- the [MIT License](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-MIT.md) and [Apache License 2.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-APACHE.md) dually (default);
-- the [GNU Affero General Public License 3.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md); or
-- the [Elastic License 2.0](https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-ELASTIC.md).
+The vast majority of the HASH monorepo contains **open-source code** variously licensed under either:
+- the [MIT License] and [Apache License 2.0] dually (default);
+- the [GNU Affero General Public License 3.0]; or
+- the [Elastic License 2.0].
+
+In the interests of transparency, certain proprietary code is also made available under the source-available [HASH License].
 
 ## License Determination
 
-The license for a particular work is defined with following prioritized rules:
+**The following rules apply on the `main` branch only.** The license for a particular work is defined with following prioritized rules (precedence established top-to-bottom):
 
-1.  License information directly present in the file
-1.  `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
-1.  First `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
-1.  **On the `main` branch only:** otherwise defaults to dual-release under the MIT License and Apache License 2.0, at your option
+1.  If present: license information directly present in the file
+1.  If a file exists directly or indirectly inside a directory titled `_h`: it is available under the [HASH License] only
+1.  If present: `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
+1.  If present: first `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
+1.  Otherwise: defaults to dual-release under the [MIT License] and [Apache License 2.0], at your option
+
+Files and work on branches other than `main` may be unlicensed. By default you should assume that all rights are reserved, and should reach out to the branch author to clarify if in any doubt.
 
 ## Quick Reference
 
