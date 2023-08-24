@@ -104,11 +104,11 @@ The [Block Protocol type system](https://blockprotocol.org/docs/types) outlines 
 - A **standard entity** is absolutely anything that isn't a link entity. You can use it to refer to physical things, concepts, ideas, events, or anything else you like.
 - If you're familiar with graph theory, you can think of standard entities as vertices, and link entities as edges.
 
-1.  **Properties** contain data associated with some particular aspect of an entity.
+2.  **Properties** contain data associated with some particular aspect of an entity.
 
 - **Property types** describe the possible values that can be associated with a property, by way of reference to _data types_ and other property types.
 
-1.  **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
+3.  **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
 
 - Support for user-definition of "non-primitive" data types (e.g. numbers within a certain range, or strings matching a certain pattern) which are not already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph) is planned ([draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355)).
 
