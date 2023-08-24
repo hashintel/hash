@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   LoadingSpinner,
   OntologyChip,
+  OntologyIcon,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {
@@ -150,6 +151,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                         style={{ textDecoration: "none" }}
                       >
                         <OntologyChip
+                          icon={<OntologyIcon />}
                           domain={ontology.domain}
                           path={
                             <Typography
