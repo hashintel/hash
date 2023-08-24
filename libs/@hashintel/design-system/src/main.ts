@@ -2,6 +2,7 @@ export * from "./autocomplete";
 export * from "./autocomplete-dropdown";
 export * from "./avatar";
 export * from "./button";
+export * from "./callout";
 export * from "./chip";
 export * from "./chip-group";
 export * from "./constants";

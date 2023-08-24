@@ -157,7 +157,7 @@ export const PropertyRow = ({
     };
   }, []);
 
-  const inherited = "inheritedFrom" in maybeInheritanceData;
+  const inherited = "inheritanceChain" in maybeInheritanceData;
 
   const readonlyMessage = generateReadonlyMessage(
     inherited

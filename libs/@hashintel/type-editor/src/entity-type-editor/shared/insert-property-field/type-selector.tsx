@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   SelectorAutocomplete,
   TypeListSelectorDropdownProps,
@@ -7,7 +8,7 @@ import { PopupState } from "material-ui-popup-state/hooks";
 import { Ref, useRef, useState } from "react";
 
 export type TypeSelectorType = {
-  $id: string;
+  $id: VersionedUrl;
   title: string;
   description?: string;
 };

@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
@@ -112,7 +113,7 @@ type OptionRenderData = {
   /** a unique id for this option, which will be used as a key for the option */
   uniqueId: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: string;
+  typeId: VersionedUrl;
   title: string;
   description?: string;
 };

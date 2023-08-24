@@ -3,8 +3,7 @@ import {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { Callout, TextField } from "@hashintel/design-system";
 import {
   Box,
   formHelperTextClasses,
@@ -12,7 +11,6 @@ import {
   Stack,
   SxProps,
   Theme,
-  Typography,
 } from "@mui/material";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -179,35 +177,15 @@ export const CreateEntityTypeForm = ({
         spacing={3}
       >
         {parentType && (
-          <Stack
-            alignItems="center"
-            direction="row"
-            sx={({ palette }) => ({
-              background: palette.yellow[20],
-              border: `1px solid ${palette.yellow[40]}`,
-              px: 2.5,
-              py: 2,
-              width: { md: inModal ? "100%" : formItemWidth },
-            })}
+          <Callout
+            type="info"
+            sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
           >
-            <FontAwesomeIcon
-              icon={faWarning}
-              sx={({ palette }) => ({
-                color: palette.yellow[70],
-                fontSize: 32,
-                mr: 3,
-              })}
-            />
-            <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({ color: palette.gray[80] })}
-            >
-              You are extending <strong>{parentType.schema.title}</strong> to
-              create a new entity type in the
-              <strong> @{activeWorkspace.shortname} </strong>
-              workspace.
-            </Typography>
-          </Stack>
+            You are extending <strong>{parentType.schema.title}</strong> to
+            create a new entity type in the
+            <strong> @{activeWorkspace.shortname} </strong>
+            workspace.
+          </Callout>
         )}
         <TextField
           {...register("name", {

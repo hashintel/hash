@@ -1,4 +1,7 @@
-import { validateVersionedUrl } from "@blockprotocol/type-system/slim";
+import {
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import {
   Box,
   Stack,
@@ -11,7 +14,7 @@ import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
 
 import { OntologyIcon } from "./ontology-icon";
 
-export const parseUrlForOntologyChip = (url: string) => {
+export const parseUrlForOntologyChip = (url: VersionedUrl) => {
   const validationResult = validateVersionedUrl(url);
   if (validationResult.type === "Err") {
     throw new Error(

@@ -54,7 +54,7 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { useInheritedValues } from "./shared/use-inherited-values";
+import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 
@@ -205,7 +205,8 @@ const InsertPropertyField = (
 
   const propertyTypeOptions = usePropertyTypesOptions();
   const propertyTypes = Object.values(propertyTypeOptions);
-  const { properties: inheritedProperties } = useInheritedValues();
+  const { properties: inheritedProperties } =
+    useInheritedValuesForCurrentDraft();
 
   const filteredPropertyTypes = useFilterTypeOptions({
     typesToExclude: [...properties, ...inheritedProperties],
@@ -246,7 +247,8 @@ export const PropertyListCard = () => {
 
   const isReadonly = useIsReadonly();
 
-  const { properties: inheritedProperties } = useInheritedValues();
+  const { properties: inheritedProperties } =
+    useInheritedValuesForCurrentDraft();
 
   const fields = useMemo(
     () =>
@@ -368,7 +370,7 @@ export const PropertyListCard = () => {
       </TableHead>
       <TableBody>
         {fields.map(({ field, index }) =>
-          "inheritedFrom" in field ? (
+          "inheritanceChain" in field ? (
             <InheritedPropertyRow
               key={field.$id}
               inheritedPropertyData={field}

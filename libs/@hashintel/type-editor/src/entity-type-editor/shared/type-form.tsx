@@ -38,6 +38,7 @@ import {
 } from "react";
 import {
   DeepPartial,
+  DefaultValues,
   FormProvider,
   useForm,
   useFormContext,
@@ -239,7 +240,7 @@ export type TypeFormProps<T extends TypeFormDefaults = TypeFormDefaults> = {
   onSubmit: (data: T) => Promise<void> | void;
   submitButtonProps: TypeFormSubmitProps;
   disabledFields?: (keyof DeepPartial<T>)[];
-  getDefaultValues: () => DeepPartial<T>;
+  getDefaultValues: () => DefaultValues<T>;
   getDirtyFields?: () => DeepPartial<T>;
 };
 
