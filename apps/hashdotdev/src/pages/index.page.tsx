@@ -237,10 +237,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              The <i>Block Protocol</i> (<strong>Þ</strong>) is an open standard for
-              creating <strong>blocks</strong> which work in any application, without
-              either block or app requiring any special knowledge of one
-              another (beyond support for the Þ itself).
+              The <i>Block Protocol</i> (<strong>Þ</strong>) is an open standard
+              for creating <strong>blocks</strong> which work in any
+              application, without either block or app requiring any special
+              knowledge of one another (beyond support for the Þ itself).
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
@@ -339,8 +339,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              <i>HASH</i> is our open-source, all-in-one workspace
-              platform built around structured data and interactive blocks.
+              <i>HASH</i> is our open-source, all-in-one workspace platform
+              built around structured data and interactive blocks.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
               <Box component="li">
@@ -368,7 +368,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Combine blocks, types and flows to create <strong>apps</strong>
+                  Combine blocks, types and flows to create{" "}
+                  <strong>apps</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">
