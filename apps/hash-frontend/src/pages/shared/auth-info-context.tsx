@@ -8,7 +8,6 @@ import {
   ReactElement,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -45,11 +44,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 }) => {
   const [authenticatedUser, setAuthenticatedUser] = useState<
     AuthenticatedUser | undefined
-  >(initialAuthenticatedUser);
-
-  useEffect(() => {
-    setAuthenticatedUser(initialAuthenticatedUser);
-  }, [initialAuthenticatedUser]);
+  >(initialAuthenticatedUser); // use the initial server-sent data to start – after that, the client controls the value
 
   const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
 
