@@ -229,7 +229,10 @@ export const useEntityTypeValue = (
     PropertyTypeWithMetadata
   > | null>(null);
 
-  const propertyTypes = useMemo(() => {
+  const propertyTypes = useMemo<Record<
+    VersionedUrl,
+    PropertyTypeWithMetadata
+  > | null>(() => {
     if (!stateEntityType || !entityTypesSubgraph) {
       return null;
     }
