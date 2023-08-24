@@ -4,6 +4,16 @@ use std::sync::Arc;
 
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
+use graph_types::{
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData, LinkOrder},
+    },
+    provenance::{OwnedById, RecordCreatedById},
+};
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
@@ -13,12 +23,7 @@ use crate::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
         utoipa_typedef::subgraph::Subgraph,
     },
-    identifier::knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
-        LinkData, LinkOrder,
-    },
-    provenance::{OwnedById, RecordCreatedById},
+    knowledge::EntityQueryToken,
     store::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         EntityStore, StorePool,
@@ -77,7 +82,7 @@ impl RoutedResource for EntityResource {
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
     properties: EntityProperties,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
     #[schema(nullable = false)]
@@ -182,12 +187,12 @@ async fn get_entities_by_query<P: StorePool + Send>(
         .map(|subgraph| Json(subgraph.into()))
 }
 
-#[derive(Debug, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     properties: EntityProperties,
     entity_id: EntityId,
-    #[schema(value_type = String)]
+    #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     actor_id: RecordCreatedById,
     #[serde(flatten)]

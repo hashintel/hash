@@ -126,7 +126,8 @@ export const getRightEntityForLinkEntity = (
  *   of time in the {@link Subgraph}
  */
 export const getOutgoingLinkAndTargetEntities = <
-  LinkAndRightEntities extends LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
+  LinkAndRightEntities extends
+    LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,

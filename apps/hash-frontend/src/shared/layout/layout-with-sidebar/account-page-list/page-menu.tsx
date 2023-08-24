@@ -17,7 +17,7 @@ type PageMenuProps = {
   popupState: PopupState;
   entityId: EntityId;
   createSubPage: () => Promise<void>;
-  archivePage: (value: boolean, pageEntityId: EntityId) => Promise<void>;
+  archivePage: (pageEntityId: EntityId) => Promise<void>;
   onClose: () => void;
   anchorPosition?: PopoverPosition;
   pagePath: string;
@@ -78,7 +78,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await archivePage(true, entityId);
+            await archivePage(entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("Error archiving page: ", err);

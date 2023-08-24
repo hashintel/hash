@@ -4,19 +4,17 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::account::AccountId;
 
-use crate::{
-    identifier::account::AccountId,
-    snapshot::{
-        account::{AccountRow, AccountRowBatch},
-        SnapshotRestoreError,
-    },
+use crate::snapshot::{
+    account::{AccountRow, AccountRowBatch},
+    SnapshotRestoreError,
 };
 
 /// A sink to insert [`AccountId`]s.
@@ -38,7 +36,6 @@ impl Sink<AccountId> for AccountSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.id.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll account sender")?;
 
@@ -48,7 +45,6 @@ impl Sink<AccountId> for AccountSender {
     fn start_send(mut self: Pin<&mut Self>, item: AccountId) -> StdResult<(), Self::Error> {
         self.id
             .start_send_unpin(AccountRow { account_id: item })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send account")
     }
@@ -58,7 +54,6 @@ impl Sink<AccountId> for AccountSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.id.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush account sender")?;
 
@@ -70,7 +65,6 @@ impl Sink<AccountId> for AccountSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.id.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close account sender")?;
 

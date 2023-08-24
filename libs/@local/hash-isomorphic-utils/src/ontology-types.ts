@@ -8,6 +8,13 @@ import { frontendUrl } from "./environment";
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
 /**
+ * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
+ * run `yarn generate-system-types` to update their TypeScript representation
+ *
+ * @todo enforce this in CI – H-308
+ */
+
+/**
  * Generate the base identifier of a type (its un-versioned URL).
  *
  * @param [domain] - the domain of the type, defaults the frontend url.
@@ -220,10 +227,6 @@ const systemPropertyTypes = {
   orgProvidedInfo: {
     title: "Organization Provided Information",
     description: undefined,
-  },
-  responsibility: {
-    title: "Responsibility",
-    description: `The user's responsibility at the organization (e.g. "Marketing", "Sales", "Engineering", etc.)`,
   },
   componentId: {
     title: "Component Id",
@@ -800,7 +803,9 @@ type TypeDefinition = {
   description?: string;
 };
 
-type EntityTypeDefinition = TypeDefinition & { entityTypeId: VersionedUrl };
+export type EntityTypeDefinition = TypeDefinition & {
+  entityTypeId: VersionedUrl;
+};
 
 type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUrl };
 

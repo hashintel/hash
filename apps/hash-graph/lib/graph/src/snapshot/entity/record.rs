@@ -1,11 +1,12 @@
-use serde::{Deserialize, Serialize};
-use type_system::url::VersionedUrl;
-
-use crate::{
-    identifier::knowledge::{EntityRecordId, EntityTemporalMetadata},
-    knowledge::{Entity, EntityProperties, LinkData},
+use graph_types::{
+    knowledge::{
+        entity::{Entity, EntityProperties, EntityRecordId, EntityTemporalMetadata},
+        link::LinkData,
+    },
     provenance::ProvenanceMetadata,
 };
+use serde::{Deserialize, Serialize};
+use type_system::url::VersionedUrl;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

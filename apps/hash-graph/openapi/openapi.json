@@ -111,6 +111,49 @@
         }
       }
     },
+    "/data-types/archive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "archive_data_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveDataTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated data type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Data type ID was not found"
+          },
+          "409": {
+            "description": "Data type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/load": {
       "post": {
         "tags": [
@@ -181,6 +224,49 @@
           },
           "422": {
             "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/data-types/unarchive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "unarchive_data_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchiveDataTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The temporal metadata of the updated data type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Data type ID was not found"
+          },
+          "409": {
+            "description": "Data type ID already exists and is not archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -405,6 +491,49 @@
         }
       }
     },
+    "/entity-types/archive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
+        "operationId": "archive_entity_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveEntityTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity type ID was not found"
+          },
+          "409": {
+            "description": "Entity type ID is already archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entity-types/load": {
       "post": {
         "tags": [
@@ -503,6 +632,49 @@
         }
       }
     },
+    "/entity-types/unarchive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "unarchive_entity_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchiveEntityTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The temporal metadata of the updated entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity type ID was not found"
+          },
+          "409": {
+            "description": "Entity type ID already exists and is not archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/property-types": {
       "post": {
         "tags": [
@@ -571,6 +743,49 @@
           },
           "404": {
             "description": "Base property type ID was not found"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/property-types/archive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "archive_property_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchivePropertyTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The metadata of the updated property type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Property type ID was not found"
+          },
+          "409": {
+            "description": "Property type ID is already archived"
           },
           "422": {
             "description": "Provided request body is invalid"
@@ -657,6 +872,49 @@
           }
         }
       }
+    },
+    "/property-types/unarchive": {
+      "put": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "unarchive_property_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchivePropertyTypeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The temporal metadata of the updated property type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OntologyTemporalMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Property type ID was not found"
+          },
+          "409": {
+            "description": "Property type ID already exists and is not archived"
+          },
+          "422": {
+            "description": "Provided request body is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -665,8 +923,50 @@
         "type": "string",
         "format": "uuid"
       },
-      "BaseUrl": {
-        "type": "string"
+      "ArchiveDataTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToArchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
+          "typeToArchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
+      },
+      "ArchiveEntityTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToArchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
+          "typeToArchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
+      },
+      "ArchivePropertyTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToArchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordArchivedById"
+          },
+          "typeToArchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
       },
       "ClosedTemporalBound": {
         "oneOf": [
@@ -736,7 +1036,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
           "entityUuid": {
             "allOf": [
@@ -772,12 +1072,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -830,13 +1125,15 @@
         "oneOf": [
           {
             "type": "object",
+            "title": "CustomOwnedEntityTypeMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "ownedById"
             ],
             "properties": {
               "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
+                "$ref": "./models/shared.json#/definitions/BaseUrl"
               },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -851,8 +1148,10 @@
           },
           {
             "type": "object",
+            "title": "CustomExternalEntityTypeMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "fetchedAt"
             ],
             "properties": {
@@ -860,7 +1159,7 @@
                 "type": "string"
               },
               "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
+                "$ref": "./models/shared.json#/definitions/BaseUrl"
               },
               "provenance": {
                 "$ref": "#/components/schemas/ProvenanceMetadata"
@@ -879,6 +1178,7 @@
             "title": "CustomOwnedOntologyElementMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "ownedById"
             ],
             "properties": {
@@ -889,12 +1189,7 @@
                 "$ref": "#/components/schemas/ProvenanceMetadata"
               },
               "temporalVersioning": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           },
@@ -903,6 +1198,7 @@
             "title": "CustomExternalOntologyElementMetadata",
             "required": [
               "provenance",
+              "temporalVersioning",
               "fetchedAt"
             ],
             "properties": {
@@ -913,12 +1209,7 @@
                 "$ref": "#/components/schemas/ProvenanceMetadata"
               },
               "temporalVersioning": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/OntologyTemporalMetadata"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/OntologyTemporalMetadata"
               }
             }
           }
@@ -933,6 +1224,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "type"
@@ -965,7 +1257,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -1004,12 +1296,12 @@
           "incoming": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           },
           "outgoing": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
@@ -1125,7 +1417,8 @@
         }
       },
       "EntityProperties": {
-        "type": "object"
+        "type": "object",
+        "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
       },
       "EntityQueryToken": {
         "type": "string",
@@ -1219,6 +1512,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "examples",
@@ -1226,7 +1520,8 @@
           "required",
           "labelProperty",
           "links",
-          "inheritsFrom"
+          "inheritsFrom",
+          "children"
         ]
       },
       "EntityTypeStructuralQuery": {
@@ -1256,7 +1551,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -1719,7 +2014,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "dataTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -1734,7 +2029,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "entityTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -1749,7 +2044,7 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "propertyTypeId": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -1877,14 +2172,14 @@
           "version": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
       "OntologyTypeVersion": {
         "type": "integer",
         "format": "int32",
-        "minimum": 0.0
+        "minimum": 0
       },
       "OntologyTypeVertexId": {
         "oneOf": [
@@ -2022,7 +2317,7 @@
           "outgoing": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
@@ -2039,6 +2334,7 @@
           "versionedUrl",
           "ownedById",
           "recordCreatedById",
+          "recordArchivedById",
           "title",
           "description",
           "dataTypes",
@@ -2072,7 +2368,7 @@
         ],
         "properties": {
           "baseId": {
-            "$ref": "#/components/schemas/BaseUrl"
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "revisionId": {
             "$ref": "#/components/schemas/OntologyTypeVersion"
@@ -2100,6 +2396,14 @@
           "recordCreatedById"
         ],
         "properties": {
+          "recordArchivedById": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordArchivedById"
+              }
+            ],
+            "nullable": true
+          },
           "recordCreatedById": {
             "$ref": "#/components/schemas/RecordCreatedById"
           }
@@ -2117,6 +2421,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "PinnedTransactionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2133,6 +2438,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "VariableDecisionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2158,6 +2464,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "PinnedDecisionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2174,6 +2481,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "VariableTransactionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2190,7 +2498,7 @@
             }
           }
         ],
-        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
+        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: temporal_versioning::Interval"
       },
       "QueryTemporalAxesUnresolved": {
         "oneOf": [
@@ -2204,6 +2512,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "UnresolvedPinnedTransactionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2219,6 +2528,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "UnresolvedVariableDecisionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2244,6 +2554,7 @@
             "properties": {
               "pinned": {
                 "type": "object",
+                "title": "UnresolvedPinnedDecisionAxis",
                 "required": [
                   "axis",
                   "timestamp"
@@ -2259,6 +2570,7 @@
               },
               "variable": {
                 "type": "object",
+                "title": "UnresolvedVariableTransactionAxis",
                 "required": [
                   "axis",
                   "interval"
@@ -2276,6 +2588,10 @@
           }
         ],
         "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in queries\nthat return [`Subgraph`]s.\n\nThe [`VariableTemporalAxisUnresolved`] is optionally bounded, in the absence of provided\nbounds an inclusive bound at the timestamp at point of resolving is assumed.\n\n[`Subgraph`]: crate::subgraph::Subgraph"
+      },
+      "RecordArchivedById": {
+        "type": "string",
+        "format": "uuid"
       },
       "RecordCreatedById": {
         "type": "string",
@@ -2424,6 +2740,51 @@
           "transactionTime"
         ]
       },
+      "UnarchiveDataTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToUnarchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "typeToUnarchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
+      },
+      "UnarchiveEntityTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToUnarchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "typeToUnarchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
+      },
+      "UnarchivePropertyTypeRequest": {
+        "type": "object",
+        "required": [
+          "typeToUnarchive",
+          "actorId"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/RecordCreatedById"
+          },
+          "typeToUnarchive": {
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+          }
+        }
+      },
       "UnresolvedRightBoundedTemporalInterval": {
         "type": "object",
         "required": [
@@ -2464,7 +2825,7 @@
             "$ref": "./models/update_data_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2493,7 +2854,7 @@
                 "$ref": "#/components/schemas/EntityId"
               },
               "entityTypeId": {
-                "type": "string"
+                "$ref": "./models/shared.json#/definitions/VersionedUrl"
               },
               "properties": {
                 "$ref": "#/components/schemas/EntityProperties"
@@ -2514,18 +2875,13 @@
             "$ref": "#/components/schemas/RecordCreatedById"
           },
           "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
+            "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
           "schema": {
             "$ref": "./models/update_entity_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },
@@ -2544,7 +2900,7 @@
             "$ref": "./models/update_property_type.json"
           },
           "typeToUpdate": {
-            "type": "string"
+            "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
         }
       },

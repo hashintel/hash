@@ -8,11 +8,11 @@ import {
 import { isTopWindow } from "./util";
 
 type UseRemoteBlockHook = {
-  (url: string, crossFrame?: boolean, onBlockLoaded?: () => void): [
-    boolean,
-    Error | undefined,
-    UnknownBlock | undefined,
-  ];
+  (
+    url: string,
+    crossFrame?: boolean,
+    onBlockLoaded?: () => void,
+  ): [boolean, Error | undefined, UnknownBlock | undefined];
 };
 
 type UseRemoteComponentState = {

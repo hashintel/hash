@@ -1,5 +1,7 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
+import { Button } from "../../../../../../../../../../shared/ui";
 
 export const AddAnotherButton = ({
   onClick,

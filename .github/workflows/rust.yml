@@ -228,6 +228,11 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install Poetry dependencies
+        working-directory: ${{ matrix.directory }}
+        if: matrix.directory == 'apps/hash-graph'
+        run: just yarn poetry:install
+
       - name: Run tests
         working-directory: ${{ matrix.directory }}
         run: just test --no-fail-fast
@@ -348,7 +353,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@v2
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks@0.17.0
+          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
@@ -372,7 +377,8 @@ jobs:
           # Only run semver checks if this is not the initial release
           grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
 
-          cargo +${{ matrix.toolchain }} semver-checks check-release
+          # Temporarily disabled as `error-stack@0.3.1` does not compile on the current nightly toolchain
+          # cargo +${{ matrix.toolchain }} semver-checks check-release
 
       - name: Publish (dry run)
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

@@ -139,13 +139,13 @@ The CLI binary handles parsing a HASH project, and the lifetime of the engine fo
 Then, run the CLI using:
 
 ```shell
-cargo run --bin cli -- <CLI ARGS>
+cargo run --bin cli -- $CLI_ARGS
 ```
 
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 
 ```shell
-cargo run --bin cli -- <CLI ARGS> -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>
+cargo run --bin cli -- $CLI_ARGS -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps $NUM_STEPS
 ```
 
 ## Quick Start Guide
@@ -204,7 +204,7 @@ unzip my-project.zip -d my-hash-project
 To run the simulation, [build the binaries](#project-setup--building) and pass the project location as a CLI argument:
 
 ```shell
-cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS>
+cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps $NUM_STEPS
 ```
 
 In order to see more logging information while the simulation is running, you can modify the [Rust logging level](https://docs.rs/log/latest/log/enum.Level.html) by exporting `RUST_LOG` before running, e.g.:
@@ -217,7 +217,7 @@ If your simulation requires a lot of memory and uses JavaScript behaviors, the J
 As a first step, you can provide a larger heap size to the runner:
 
 ```shell
-cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
+cargo run --bin cli -- --js-runner-max-heap-size $NEW_SIZE_IN_MB $CLI_ARGS
 ```
 
 This will increase the heap size, but you may still run into limitations beyond 4GB.

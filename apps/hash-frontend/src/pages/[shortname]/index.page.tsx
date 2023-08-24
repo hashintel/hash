@@ -1,4 +1,5 @@
 import { Avatar } from "@hashintel/design-system";
+import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
@@ -7,6 +8,7 @@ import { useMemo } from "react";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { Link } from "../../shared/ui/link";
 
 const menuBarHeight = 60;
 
@@ -46,6 +48,9 @@ const Page: NextPageWithLayout = () => {
   }, [profileShortname, users, orgs]);
 
   const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
+
+  const websiteUrl =
+    profile && "website" in profile && sanitizeHref(profile.website);
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
@@ -92,17 +97,21 @@ const Page: NextPageWithLayout = () => {
               </Box>
               {profile ? (
                 <Typography
-                  sx={{
-                    /** @todo: add this color to the MUI theme system */
-                    color: "#0775E3",
+                  sx={({ palette }) => ({
+                    color: palette.blue[70],
                     fontSize: 20,
                     fontWeight: 600,
-                  }}
+                  })}
                 >
                   @{profile.shortname}
                 </Typography>
               ) : (
                 <Skeleton height={30} width={150} />
+              )}
+              {websiteUrl && (
+                <Link href={websiteUrl} sx={{ mt: 1 }}>
+                  {websiteUrl.replace(/^http(s?):\/\//, "").replace(/\/$/, "")}
+                </Link>
               )}
             </Grid>
             <Grid item>{/* @todo: implement the profile page bio */}</Grid>

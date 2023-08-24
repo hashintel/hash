@@ -1,16 +1,16 @@
 use std::mem::ManuallyDrop;
 
-use graph::{
-    identifier::account::AccountId,
+use graph::store::{
+    AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+    EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+};
+use graph_types::{
+    account::AccountId,
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        OntologyElementMetadata,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
-    },
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -183,7 +183,6 @@ impl Drop for StoreWrapper {
     }
 }
 
-#[expect(clippy::needless_pass_by_ref_mut, reason = "False positive")]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
@@ -202,11 +201,13 @@ pub async fn seed<D, P, E, C>(
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
         match store
-            .create_data_type(data_type.clone(), &OntologyElementMetadata {
+            .create_data_type(data_type.clone(), PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
-                custom: CustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    temporal_versioning: None,
+                custom: PartialCustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -233,11 +234,13 @@ pub async fn seed<D, P, E, C>(
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
 
         match store
-            .create_property_type(property_type.clone(), &OntologyElementMetadata {
+            .create_property_type(property_type.clone(), PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
-                custom: CustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                    temporal_versioning: None,
+                custom: PartialCustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id: RecordCreatedById::new(account_id),
+                        record_archived_by_id: None,
+                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             })
@@ -264,12 +267,14 @@ pub async fn seed<D, P, E, C>(
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");
 
         match store
-            .create_entity_type(entity_type.clone(), &EntityTypeMetadata {
+            .create_entity_type(entity_type.clone(), PartialEntityTypeMetadata {
                 record_id: entity_type.id().clone().into(),
-                custom: CustomEntityTypeMetadata {
-                    common: CustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata::new(RecordCreatedById::new(account_id)),
-                        temporal_versioning: None,
+                custom: PartialCustomEntityTypeMetadata {
+                    common: PartialCustomOntologyMetadata::Owned {
+                        provenance: ProvenanceMetadata {
+                            record_created_by_id: RecordCreatedById::new(account_id),
+                            record_archived_by_id: None,
+                        },
                         owned_by_id: OwnedById::new(account_id),
                     },
                     label_property: None,

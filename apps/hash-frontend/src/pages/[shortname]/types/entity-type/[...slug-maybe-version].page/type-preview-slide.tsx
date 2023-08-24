@@ -40,7 +40,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
-    defaultValues: { properties: [], links: [] },
+    defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { reset } = formMethods;
 
@@ -58,7 +58,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
     version,
     routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
-      reset(getFormDataFromSchema(fetchedEntityType));
+      reset(getFormDataFromSchema(fetchedEntityType.schema));
     },
   );
 
@@ -66,7 +66,9 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
 
   const entityTypesContext = useEntityTypesContextRequired();
 
-  const ontology = parseUrlForOntologyChip(remoteEntityType?.$id ?? "");
+  const ontology = remoteEntityType
+    ? parseUrlForOntologyChip(remoteEntityType.schema.$id)
+    : undefined;
 
   const entityTypeOptions = useMemo(
     () =>
@@ -111,9 +113,13 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
             position: "absolute",
             top: 0,
             right: 0,
+            overflowY: "auto",
           }}
         >
-          {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (
+          {loadingNamespace ||
+          loadingRemoteEntityType ||
+          !remoteEntityType ||
+          !ontology ? (
             <Box
               sx={{
                 display: "flex",
@@ -129,11 +135,18 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
           ) : (
             <Box padding={8}>
               <EntityTypeFormProvider {...formMethods}>
-                <EntityTypeContext.Provider value={remoteEntityType}>
+                <EntityTypeContext.Provider value={remoteEntityType.schema}>
                   <EntityTypeHeader
+                    isDraft={false}
+                    isPreviewSlide
+                    isLink={
+                      !!entityTypesContext.isLinkTypeLookup?.[
+                        remoteEntityType.schema.$id
+                      ]
+                    }
                     ontologyChip={
                       <Link
-                        href={remoteEntityType.$id}
+                        href={remoteEntityType.schema.$id}
                         target="_blank"
                         style={{ textDecoration: "none" }}
                       >
@@ -152,12 +165,12 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                         />
                       </Link>
                     }
-                    entityType={remoteEntityType}
+                    entityType={remoteEntityType.schema}
                     isReadonly
                   />
                   <EntityTypeEditor
                     customization={{ onNavigateToType }}
-                    entityType={remoteEntityType}
+                    entityType={remoteEntityType.schema}
                     entityTypeOptions={entityTypeOptions}
                     ontologyFunctions={null}
                     propertyTypeOptions={propertyTypeOptions}

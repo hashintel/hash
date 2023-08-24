@@ -17,6 +17,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { IconButton } from "@hashintel/design-system";
 import {
   AccountId,
   EntityUuid,
@@ -24,7 +25,7 @@ import {
   isEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import { Box, Collapse } from "@mui/material";
+import { Box, Collapse, Tooltip } from "@mui/material";
 import {
   FunctionComponent,
   useCallback,
@@ -41,7 +42,9 @@ import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-pa
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
 import { useWorkspaceShortnameByAccountId } from "../../../../components/hooks/use-workspace-shortname-by-account-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
+import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
+import { ViewAllLink } from "../view-all-link";
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
@@ -82,7 +85,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     accountId as OwnedById,
   );
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
-  const [archivePage, { loading: archivePageLoading }] = useArchivePage();
+  const { archivePage, loading: archivePageLoading } = useArchivePage();
 
   const loading =
     pagesLoading ||
@@ -353,12 +356,23 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       >
         <NavLink
           title="Pages"
-          endAdornmentProps={{
-            tooltipTitle: "Create new Page",
-            onClick: addPage,
-            "data-testid": "create-page-btn",
-            loading,
-          }}
+          loading={loading}
+          endAdornment={
+            <Tooltip title="Create new Page">
+              <IconButton
+                size="small"
+                unpadded
+                rounded
+                className="end-adornment-button"
+                onClick={addPage}
+                sx={({ palette }) => ({
+                  color: palette.gray[80],
+                })}
+              >
+                <PlusRegularIcon />
+              </IconButton>
+            </Tooltip>
+          }
         >
           {pagesLoading ? (
             <PagesLoadingState />
@@ -370,6 +384,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             </Box>
           )}
         </NavLink>
+        <ViewAllLink href="/pages" sx={{ marginLeft: 1 }}>
+          View all pages
+        </ViewAllLink>
       </SortableContext>
     </DndContext>
   );

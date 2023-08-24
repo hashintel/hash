@@ -1,5 +1,5 @@
 {
-  "$id": "https://blockprotocol.org/type-system/0.2/schema/meta/data-type",
+  "title": "Data Type",
   "description": "Specifies the structure of a Data Type",
   "type": "object",
   "properties": {
@@ -10,12 +10,21 @@
       ]
     },
     "kind": {
+      "type": "string",
       "enum": ["dataType"]
     },
-    "$id": { "type": "string", "format": "uri" },
-    "title": { "type": "string" },
-    "description": { "type": "string" },
-    "type": { "type": "string" }
+    "$id": {
+      "$ref": "./shared.json#/definitions/VersionedUrl"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    }
   },
   "required": ["$schema", "kind", "$id", "title", "type"],
   "additionalProperties": true

@@ -1,7 +1,9 @@
 use std::iter::once;
 
+use graph_types::knowledge::entity::Entity;
+
 use crate::{
-    knowledge::{Entity, EntityQueryPath},
+    knowledge::EntityQueryPath,
     store::postgres::query::{
         table::{
             Column, EntityEditions, EntityHasLeftEntity, EntityHasRightEntity,
@@ -34,8 +36,11 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path,
+                inheritance_depth,
             } => once(Relation::Reference {
-                table: ReferenceTable::EntityIsOfType,
+                table: ReferenceTable::EntityIsOfType {
+                    inheritance_depth: *inheritance_depth,
+                },
                 direction: EdgeDirection::Outgoing,
             })
             .chain(path.relations())

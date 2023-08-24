@@ -6,6 +6,20 @@ All notable changes to `error-stack` will be documented in this file.
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
+## [0.4.0](https://github.com/hashintel/hash/tree/error-stack%400.4.0/libs/error-stack) - 2023-08-23
+
+### Breaking Changes
+
+- Add `ResultExt::Context` as associated type ([#2883](https://github.com/hashintel/hash/pull/2883))
+
+### Features
+
+- Implement `ResultExt` for `Result` even if the `Err`-variant is not `Report<C>` but only `C: Context` ([#2883](https://github.com/hashintel/hash/pull/2883))
+
+### Deprecations
+
+- `IntoReport`: Use `ReportExt` or `From` via `Result::map_err(Report::from)` instead ([#2883](https://github.com/hashintel/hash/pull/2883))
+
 ## [0.3.1](https://github.com/hashintel/hash/tree/error-stack%400.3.1/libs/error-stack) - 2023-02-08
 
 - Fix multiline attachments not being aligned ([#2022](https://github.com/hashintel/hash/pull/2022))

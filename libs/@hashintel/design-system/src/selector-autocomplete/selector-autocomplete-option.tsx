@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Box, Typography } from "@mui/material";
 import clsx from "clsx";
 import { HTMLAttributes } from "react";
@@ -14,7 +15,7 @@ export const SelectorAutocompleteOption = ({
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
   title: string;
-  typeId: string;
+  typeId: VersionedUrl;
 }) => {
   const ontology = parseUrlForOntologyChip(typeId);
 

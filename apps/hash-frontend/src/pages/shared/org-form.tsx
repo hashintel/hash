@@ -58,7 +58,7 @@ const Label = ({
 };
 
 const InputGroup = ({ children }: PropsWithChildren) => {
-  return <Box mt={3}>{children}</Box>;
+  return <Box mb={3}>{children}</Box>;
 };
 
 export type OrgFormData = Omit<
@@ -86,9 +86,10 @@ export const OrgForm = ({
 
   const {
     control,
-    formState: { errors, isValid, touchedFields },
+    formState: { errors, isDirty, isValid, touchedFields },
     handleSubmit,
     register,
+    reset,
     watch,
   } = useForm<OrgFormData>({
     mode: "all",
@@ -127,8 +128,10 @@ export const OrgForm = ({
     }
   });
 
+  const isSubmitEnabled = isValid && !loading && isDirty;
+
   return (
-    <Box component="form" onSubmit={innerSubmit} sx={{ background: "white" }}>
+    <Box component="form" onSubmit={innerSubmit} sx={{ px: 5, py: 4 }}>
       <InputGroup>
         <Label
           label="Display name"
@@ -158,11 +161,12 @@ export const OrgForm = ({
             control={control}
             name="shortname"
             rules={{
-              validate: validateShortname,
+              validate: initialOrg ? () => true : validateShortname,
             }}
             render={({ field }) => (
               <TextField
                 autoComplete="off"
+                defaultValue={initialOrg?.shortname ?? ""}
                 disabled={!!initialOrg}
                 error={!!shortnameError}
                 helperText={shortnameError}
@@ -202,6 +206,20 @@ export const OrgForm = ({
           </span>
         </Box>
       </InputGroup>
+      {initialOrg && (
+        <InputGroup>
+          <Label
+            label="Description"
+            hint="Provide a brief description of your organization"
+            htmlFor="description"
+          />
+          <TextField
+            id="description"
+            sx={{ width: 400 }}
+            {...register("description", { required: false })}
+          />
+        </InputGroup>
+      )}
       <InputGroup>
         <Label
           label="Website"
@@ -209,16 +227,48 @@ export const OrgForm = ({
           htmlFor="website"
         />
         <TextField
-          id="name"
+          id="website"
           placeholder="https://acme.com"
           sx={{ width: 400 }}
+          inputProps={{
+            pattern: "http(s?)://.*",
+            title:
+              "Please enter a valid URL, starting with https:// or http://",
+            type: "url",
+          }}
           {...register("website", { required: false })}
         />
       </InputGroup>
+      {initialOrg && (
+        <InputGroup>
+          <Label
+            label="Location"
+            hint="Where is your organization based?"
+            htmlFor="location"
+          />
+          <TextField
+            id="location"
+            sx={{ width: 400 }}
+            {...register("location", { required: false })}
+          />
+        </InputGroup>
+      )}
       <Box mt={3}>
-        <Button disabled={!isValid || loading} type="submit">
-          {submitLabel}
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button disabled={!isSubmitEnabled} type="submit">
+            {submitLabel}
+          </Button>
+          {initialOrg && (
+            <Button
+              disabled={!isDirty}
+              onClick={() => reset(initialOrg)}
+              type="button"
+              variant="tertiary"
+            >
+              Discard changes
+            </Button>
+          )}
+        </Stack>
         {submissionError && (
           <Typography
             sx={{

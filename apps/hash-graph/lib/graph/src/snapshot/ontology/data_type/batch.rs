@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -25,7 +25,6 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
         Ok(())
@@ -45,7 +44,6 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                         &[data_types],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} data type schemas", rows.len());
@@ -65,7 +63,6 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         Ok(())
     }

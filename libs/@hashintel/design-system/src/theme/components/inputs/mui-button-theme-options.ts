@@ -45,6 +45,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // .Mui-disabled CSS styling applied to the button
       const disabledStyles: CSSObject = {
         background: theme.palette.gray[20],
+        borderColor: theme.palette.gray[20],
         color: theme.palette.gray[50],
       };
 
@@ -123,6 +124,20 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
         hoverStyles = {
           ...hoverStyles,
+          background: theme.palette.blue[20],
+        };
+      } else if (variant === "secondary_quiet") {
+        baseStyles = {
+          ...baseStyles,
+          border: "1px solid transparent",
+          color: theme.palette.gray[90],
+          background: "transparent",
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          borderColor: theme.palette.blue[70],
+          color: theme.palette.blue[70],
           background: theme.palette.blue[20],
         };
       } else if (variant === "tertiary") {
@@ -227,6 +242,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           minHeight: 34,
           minWidth: 52,
           ...theme.typography.smallTextLabels,
+          fontSize:
+            variant === "secondary_quiet"
+              ? "var(--step--2)"
+              : theme.typography.smallTextLabels.fontSize,
         }),
         fontWeight: 600,
         ...(["tertiary", "tertiary_quiet"].includes(variant ?? "primary") && {

@@ -1,5 +1,8 @@
 import { BaseUrl, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityTypeAndParentsById,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { PropertyRow } from "../types";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
@@ -9,19 +12,17 @@ export const generatePropertyRowsFromEntity = (
 ): PropertyRow[] => {
   const entity = getRoots(entitySubgraph)[0]!;
 
-  const entityType = getEntityTypeById(
+  const entityTypeAndAncestors = getEntityTypeAndParentsById(
     entitySubgraph,
     entity.metadata.entityTypeId,
   );
 
-  if (!entityType) {
-    return [];
-  }
+  const requiredPropertyTypes = entityTypeAndAncestors.flatMap(
+    (type) => (type.schema.required ?? []) as BaseUrl[],
+  );
 
-  const requiredPropertyTypes = (entityType.schema.required ?? []) as BaseUrl[];
-
-  return Object.keys(entityType.schema.properties).map(
-    (propertyTypeBaseUrl) => {
+  return entityTypeAndAncestors.flatMap((entityType) =>
+    Object.keys(entityType.schema.properties).map((propertyTypeBaseUrl) => {
       const property = entityType.schema.properties[propertyTypeBaseUrl];
 
       if (!property) {
@@ -36,6 +37,6 @@ export const generatePropertyRowsFromEntity = (
         requiredPropertyTypes,
         propertyOnEntityTypeSchema: property,
       });
-    },
+    }),
   );
 };

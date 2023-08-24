@@ -1,10 +1,13 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{
-        ontology::{OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
+        ontology::{
+            table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
+            OntologyOwnedMetadataRow,
+        },
         WriteBatch,
     },
     store::{AsClient, InsertionError, PostgresStore},
@@ -12,6 +15,7 @@ use crate::{
 
 pub enum OntologyTypeMetadataRowBatch {
     Ids(Vec<OntologyIdRow>),
+    TemporalMetadata(Vec<OntologyTemporalMetadataRow>),
     OwnedMetadata(Vec<OntologyOwnedMetadataRow>),
     ExternalMetadata(Vec<OntologyExternalMetadataRow>),
 }
@@ -27,7 +31,11 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                     CREATE TEMPORARY TABLE ontology_ids_tmp
                         (LIKE ontology_ids INCLUDING ALL)
                        ON COMMIT DROP;
-                    ALTER TABLE ontology_ids_tmp
+
+                    CREATE TEMPORARY TABLE ontology_temporal_metadata_tmp
+                        (LIKE ontology_temporal_metadata INCLUDING ALL)
+                        ON COMMIT DROP;
+                    ALTER TABLE ontology_temporal_metadata_tmp
                         ALTER COLUMN transaction_time
                         SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
@@ -41,7 +49,6 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
         Ok(())
@@ -61,10 +68,25 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         &[ontology_ids],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} ontology ids", rows.len());
+                }
+            }
+            Self::TemporalMetadata(ontology_temporal_metadata) => {
+                let rows = client
+                    .query(
+                        r"
+                            INSERT INTO ontology_temporal_metadata_tmp
+                            SELECT * FROM UNNEST($1::ontology_temporal_metadata[])
+                            RETURNING 1;
+                        ",
+                        &[ontology_temporal_metadata],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} ontology temporal metadata", rows.len());
                 }
             }
             Self::OwnedMetadata(ontology_owned_metadata) => {
@@ -78,7 +100,6 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         &[ontology_owned_metadata],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} ontology owned metadata", rows.len());
@@ -95,7 +116,6 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         &[ontology_external_metadata],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} ontology external metadata", rows.len());
@@ -113,12 +133,13 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                 r"
                     INSERT INTO base_urls                  SELECT DISTINCT base_url FROM ontology_ids_tmp;
                     INSERT INTO ontology_ids               SELECT * FROM ontology_ids_tmp;
+                    INSERT INTO ontology_temporal_metadata SELECT * FROM ontology_temporal_metadata_tmp;
                     INSERT INTO ontology_owned_metadata    SELECT * FROM ontology_owned_metadata_tmp;
                     INSERT INTO ontology_external_metadata SELECT * FROM ontology_external_metadata_tmp;
                 ",
             )
             .await
-            .into_report()
+
             .change_context(InsertionError)?;
         Ok(())
     }

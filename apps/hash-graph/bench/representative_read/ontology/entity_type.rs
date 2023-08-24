@@ -1,6 +1,5 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    identifier::time::TemporalBound,
     store::{query::Filter, EntityTypeStore},
     subgraph::{
         edges::GraphResolveDepths,
@@ -12,6 +11,7 @@ use graph::{
     },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
+use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::url::VersionedUrl;
 

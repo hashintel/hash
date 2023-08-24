@@ -1,10 +1,21 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
+use graph_types::{
+    account::AccountId,
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
+        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        OntologyTypeRecordId, OntologyTypeVersion, OntologyTypeWithMetadata,
+        PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use postgres_types::{FromSql, Type};
 use serde::Deserialize;
+use temporal_versioning::RightBoundedTemporalInterval;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
 use type_system::{
@@ -13,24 +24,15 @@ use type_system::{
 };
 
 use crate::{
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::RightBoundedTemporalInterval,
-    },
-    ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyType, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     snapshot::OntologyTypeSnapshotRecord,
     store::{
         crud::Read,
         postgres::{
             ontology::OntologyId,
             query::{
-                Distinctness, ForeignKeyReference, PostgresQueryPath, PostgresRecord,
-                ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
+                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
             },
         },
         query::{Filter, OntologyQueryPath},
@@ -49,7 +51,7 @@ enum AdditionalOntologyMetadata {
         owned_by_id: OwnedById,
     },
     External {
-        #[serde(with = "crate::serde::time")]
+        #[serde(with = "temporal_versioning::serde::time")]
         fetched_at: OffsetDateTime,
     },
 }
@@ -69,17 +71,11 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient, T> Read<OntologyTypeSnapshotRecord<T>> for PostgresStore<C>
-where
-    T: OntologyType<Representation: Send, Metadata = OntologyElementMetadata>,
-    OntologyTypeWithMetadata<T>: PostgresRecord,
-    for<'p> <OntologyTypeWithMetadata<T> as Record>::QueryPath<'p>:
-        OntologyQueryPath + PostgresQueryPath,
-{
-    type Record = OntologyTypeWithMetadata<T>;
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C> {
+    type Record = DataTypeWithMetadata;
 
     type ReadStream =
-        impl Stream<Item = Result<OntologyTypeSnapshotRecord<T>, QueryError>> + Send + Sync;
+        impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType>, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -87,36 +83,32 @@ where
         filter: &Filter<Self::Record>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let base_url_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::base_url();
-        let version_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::version();
-        let schema_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::schema();
-        let record_created_by_id_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::record_created_by_id();
-        let additional_metadata_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::additional_metadata();
-        let transaction_time_path =
-            <<Self::Record as Record>::QueryPath<'static> as OntologyQueryPath>::transaction_time();
-
         let mut compiler = SelectCompiler::new(temporal_axes);
 
         let base_url_index = compiler.add_distinct_selection_with_ordering(
-            &base_url_path,
+            &DataTypeQueryPath::BaseUrl,
             Distinctness::Distinct,
             None,
         );
         let version_index = compiler.add_distinct_selection_with_ordering(
-            &version_path,
+            &DataTypeQueryPath::Version,
             Distinctness::Distinct,
             None,
         );
-        let schema_index = compiler.add_selection_path(&schema_path);
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &DataTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
+        let schema_index = compiler.add_selection_path(&DataTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
-            compiler.add_selection_path(&record_created_by_id_path);
-        let additional_metadata_index = compiler.add_selection_path(&additional_metadata_path);
-        let transaction_time_index = compiler.add_selection_path(&transaction_time_path);
+            compiler.add_selection_path(&DataTypeQueryPath::RecordCreatedById);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&DataTypeQueryPath::RecordArchivedById);
+        let additional_metadata_index =
+            compiler.add_selection_path(&DataTypeQueryPath::AdditionalMetadata);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -125,16 +117,20 @@ where
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
 
-                let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
-                    row.get(record_created_by_id_path_index),
-                ));
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
 
                 let temporal_versioning = OntologyTemporalMetadata {
                     transaction_time: row.get(transaction_time_index),
@@ -144,14 +140,14 @@ where
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         CustomOntologyMetadata::Owned {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             owned_by_id,
                         }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             fetched_at,
                         }
                     }
@@ -159,12 +155,111 @@ where
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
-                        .into_report()
                         .change_context(QueryError)?,
                     metadata: OntologyElementMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
-                                .into_report()
+                                .change_context(QueryError)?,
+                            version: row.get(version_index),
+                        },
+                        custom: custom_metadata,
+                    },
+                })
+            });
+        Ok(stream)
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresStore<C> {
+    type Record = PropertyTypeWithMetadata;
+
+    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType>, QueryError>>
+        + Send
+        + Sync;
+
+    #[tracing::instrument(level = "info", skip(self, filter))]
+    async fn read(
+        &self,
+        filter: &Filter<Self::Record>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<Self::ReadStream, QueryError> {
+        let mut compiler = SelectCompiler::new(temporal_axes);
+
+        let base_url_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::BaseUrl,
+            Distinctness::Distinct,
+            None,
+        );
+        let version_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::Version,
+            Distinctness::Distinct,
+            None,
+        );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &PropertyTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
+        let schema_index = compiler.add_selection_path(&PropertyTypeQueryPath::Schema(None));
+        let record_created_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::RecordCreatedById);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::RecordArchivedById);
+        let additional_metadata_index =
+            compiler.add_selection_path(&PropertyTypeQueryPath::AdditionalMetadata);
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        let stream = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .change_context(QueryError)?
+            .map(|row| row.change_context(QueryError))
+            .and_then(move |row| async move {
+                let additional_metadata: AdditionalOntologyMetadata =
+                    row.get(additional_metadata_index);
+
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
+
+                let temporal_versioning = OntologyTemporalMetadata {
+                    transaction_time: row.get(transaction_time_index),
+                };
+
+                let custom_metadata = match additional_metadata {
+                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
+                        CustomOntologyMetadata::Owned {
+                            provenance,
+                            temporal_versioning,
+                            owned_by_id,
+                        }
+                    }
+                    AdditionalOntologyMetadata::External { fetched_at } => {
+                        CustomOntologyMetadata::External {
+                            provenance,
+                            temporal_versioning,
+                            fetched_at,
+                        }
+                    }
+                };
+
+                Ok(OntologyTypeSnapshotRecord {
+                    schema: serde_json::from_value(row.get(schema_index))
+                        .change_context(QueryError)?,
+                    metadata: OntologyElementMetadata {
+                        record_id: OntologyTypeRecordId {
+                            base_url: BaseUrl::new(row.get(base_url_index))
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
@@ -202,13 +297,20 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             Distinctness::Distinct,
             None,
         );
+        // It's possible to have multiple records with the same transaction time. We order them
+        // descending so that the most recent record is returned first.
+        let transaction_time_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::TransactionTime,
+            Distinctness::Distinct,
+            Some(Ordering::Descending),
+        );
         let schema_index = compiler.add_selection_path(&EntityTypeQueryPath::Schema(None));
         let record_created_by_id_path_index =
             compiler.add_selection_path(&EntityTypeQueryPath::RecordCreatedById);
+        let record_archived_by_id_path_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::RecordArchivedById);
         let additional_metadata_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata(None));
-        let transaction_time_index =
-            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
+            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
 
         compiler.add_filter(filter);
@@ -218,16 +320,20 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
 
-                let provenance = ProvenanceMetadata::new(RecordCreatedById::new(
-                    row.get(record_created_by_id_path_index),
-                ));
+                let provenance = ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(
+                        row.get(record_created_by_id_path_index),
+                    ),
+                    record_archived_by_id: row
+                        .get::<_, Option<AccountId>>(record_archived_by_id_path_index)
+                        .map(RecordArchivedById::new),
+                };
 
                 let temporal_versioning = OntologyTemporalMetadata {
                     transaction_time: row.get(transaction_time_index),
@@ -237,14 +343,14 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                     AdditionalOntologyMetadata::Owned { owned_by_id } => {
                         CustomOntologyMetadata::Owned {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             owned_by_id,
                         }
                     }
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
-                            temporal_versioning: Some(temporal_versioning),
+                            temporal_versioning,
                             fetched_at,
                         }
                     }
@@ -254,17 +360,14 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                     .get::<_, Option<String>>(label_property_index)
                     .map(BaseUrl::new)
                     .transpose()
-                    .into_report()
                     .change_context(QueryError)?;
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
-                        .into_report()
                         .change_context(QueryError)?,
                     metadata: EntityTypeMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
-                                .into_report()
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
@@ -297,11 +400,7 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(DataTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: DataType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -327,11 +426,7 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(PropertyTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -357,11 +452,7 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(EntityTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: EntityType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -428,9 +519,8 @@ impl<C: AsClient> PostgresStore<C> {
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .map_ok(move |row| {
                 (
                     VersionedUrl {
@@ -467,6 +557,17 @@ impl<C: AsClient> PostgresStore<C> {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
 
+        let depth = reference_table
+            .inheritance_depth_column()
+            .and_then(Column::inheritance_depth);
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => {
+                Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
+            }
+            _ => Cow::Borrowed(""),
+        };
+
         Ok(self
             .client
             .as_client()
@@ -490,13 +591,14 @@ impl<C: AsClient> PostgresStore<C> {
                           ON filter.id = source.ontology_id
 
                         JOIN ontology_ids as target
-                          ON {target} = target.ontology_id;
+                          ON {target} = target.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[&record_ids.ontology_ids],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {

@@ -7,20 +7,23 @@ use std::{
 };
 
 use clap::Parser;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use graph::{
     api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies},
-    identifier::account::AccountId,
     logging::{init_logger, LoggingArgs},
-    ontology::{
-        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
-        EntityTypeMetadata, OntologyElementMetadata,
-    },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
+    ontology::domain_validator::DomainValidator,
     store::{
         error::VersionedUrlAlreadyExists, AccountStore, DataTypeStore, DatabaseConnectionInfo,
         EntityTypeStore, FetchingPool, PostgresStorePool, StorePool,
     },
+};
+use graph_types::{
+    account::AccountId,
+    ontology::{
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordCreatedById},
 };
 use regex::Regex;
 use reqwest::Client;
@@ -60,8 +63,10 @@ impl TryFrom<ApiAddress> for SocketAddr {
     type Error = Report<AddrParseError>;
 
     fn try_from(address: ApiAddress) -> Result<Self, AddrParseError> {
-        let address = address.to_string();
-        address.parse().into_report().attach_printable(address)
+        address
+            .to_string()
+            .parse::<Self>()
+            .attach_printable(address)
     }
 }
 
@@ -235,17 +240,19 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
 
-        let data_type_metadata = OntologyElementMetadata {
+        let data_type_metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
-            custom: CustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
-                temporal_versioning: None,
+            custom: PartialCustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
 
         if let Err(error) = connection
-            .create_data_type(data_type, &data_type_metadata)
+            .create_data_type(data_type, data_type_metadata)
             .await
             .change_context(GraphError)
         {
@@ -274,12 +281,14 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         Vec::default(),
     );
 
-    let link_entity_type_metadata = EntityTypeMetadata {
+    let link_entity_type_metadata = PartialEntityTypeMetadata {
         record_id: link_entity_type.id().clone().into(),
-        custom: CustomEntityTypeMetadata {
-            common: CustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata::new(RecordCreatedById::new(root_account_id)),
-                temporal_versioning: None,
+        custom: PartialCustomEntityTypeMetadata {
+            common: PartialCustomOntologyMetadata::External {
+                provenance: ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(root_account_id),
+                    record_archived_by_id: None,
+                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
             label_property: None,
@@ -289,7 +298,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let title = link_entity_type.title().to_owned();
 
     if let Err(error) = connection
-        .create_entity_type(link_entity_type, &link_entity_type_metadata)
+        .create_entity_type(link_entity_type, link_entity_type_metadata)
         .await
     {
         if error.contains::<VersionedUrlAlreadyExists>() {
@@ -323,13 +332,11 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             }
             if path.is_file() {
                 fs::remove_file(&path)
-                    .into_report()
                     .change_context(GraphError)
                     .attach_printable("could not remove old OpenAPI file")
                     .attach_printable_lazy(|| path.display().to_string())?;
             } else {
                 fs::remove_dir_all(&path)
-                    .into_report()
                     .change_context(GraphError)
                     .attach_printable("could not remove old OpenAPI file")
                     .attach_printable_lazy(|| path.display().to_string())?;
@@ -375,7 +382,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     });
 
     tracing::info!("Listening on {}", args.api_address);
-    axum::Server::bind(&args.api_address.try_into().change_context(GraphError)?)
+    axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
         .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
@@ -391,9 +398,7 @@ pub async fn healthcheck(address: ApiAddress) -> Result<(), HealthcheckError> {
         Client::new().head(&request_url).send(),
     )
     .await
-    .into_report()
     .change_context(HealthcheckError::Timeout)?
-    .into_report()
     .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())

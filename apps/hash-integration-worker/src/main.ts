@@ -2,11 +2,18 @@ import * as http from "node:http";
 import * as path from "node:path";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-types";
 import { NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import * as activities from "./activities";
 import { createGraphClient } from "./graph";
+import * as workflows from "./workflows";
+
+// This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
+// They must be individually exported from the file, and it's impossible to check completeness of exports in the file itself
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const exportMap: WorkflowTypeMap = workflows;
 
 export const monorepoRootDir = path.resolve(__dirname, "../../..");
 

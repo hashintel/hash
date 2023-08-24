@@ -44,4 +44,6 @@ export const scalars = {
 
   EntityUuid: "@local/hash-subgraph#EntityUuid",
   Uuid: "@local/hash-subgraph#Uuid",
+
+  OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 };

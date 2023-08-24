@@ -37,6 +37,7 @@ export {
   getEntityRevisionsByEntityId,
 } from "./stdlib/subgraph/element/entity";
 export {
+  getEntityTypeAndParentsById,
   getEntityTypeById,
   getEntityTypeByVertexId,
   getEntityTypes,

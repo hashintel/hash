@@ -63,7 +63,7 @@ use crate::{
 /// consists of. Therefore it isn't guaranteed that [`request_ref()`] will only ever return a single
 /// [`Backtrace`] or [`SpanTrace`].
 ///
-/// [`provide`]: core::any::Provider::provide
+/// [`provide`]: core::error::Error::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
 /// [`attach()`]: Self::attach
 /// [`extend_one()`]: Self::extend_one
@@ -81,30 +81,26 @@ use crate::{
 ///
 /// ## Provide a context for an error
 ///
-/// ```
-/// # #[cfg(all(not(miri), feature = "std"))] {
-/// use error_stack::{IntoReport, ResultExt, Result};
+/// ```rust
+/// use error_stack::{ResultExt, Result};
 ///
 /// # #[allow(dead_code)]
 /// # fn fake_main() -> Result<String, std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .into_report()
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
 /// # }; Ok(content) }
-/// # }
 /// ```
 ///
 /// ## Enforce a context for an error
 ///
-/// ```
+/// ```rust
 /// use std::{fmt, path::{Path, PathBuf}};
 ///
-/// # #[cfg_attr(any(miri, not(feature = "std")), allow(unused_imports))]
-/// use error_stack::{Context, IntoReport, Report, ResultExt};
+/// use error_stack::{Context, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// # #[derive(PartialEq)]
@@ -148,10 +144,7 @@ use crate::{
 ///
 /// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
-///     # #[cfg(any(miri, not(feature = "std")))]
-///     # return Err(error_stack::report!(ConfigError::IoError).attach_printable("Not supported"));
-///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).into_report().change_context(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).change_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
@@ -212,24 +205,23 @@ use crate::{
 ///
 /// ## Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
-/// ```should_panic
-/// use error_stack::{IntoReport, ResultExt, Result};
+/// ```rust,should_panic
+/// use error_stack::{ResultExt, Result};
 ///
 /// # #[allow(unused_variables)]
 /// # fn main() -> Result<(), std::io::Error> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .into_report()
 ///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
-///         # #[cfg(all(nightly, feature = "std"))]
+///         # #[cfg(nightly)]
 ///         for backtrace in err.request_ref::<std::backtrace::Backtrace>() {
 ///             println!("backtrace: {backtrace}");
 ///         }
 ///
-///         # #[cfg(all(nightly, feature = "spantrace"))]
+///         # #[cfg(nightly)]
 ///         for span_trace in err.request_ref::<tracing_error::SpanTrace>() {
 ///             println!("span trace: {span_trace}")
 ///         }
@@ -277,7 +269,7 @@ impl<C> Report<C> {
     #[track_caller]
     pub(crate) fn from_frame(frame: Frame) -> Self {
         #[cfg(nightly)]
-        let location = core::any::request_ref::<Location>(&frame)
+        let location = core::error::request_ref::<Location>(&frame.as_error())
             .is_none()
             .then_some(Location::caller());
 
@@ -285,7 +277,7 @@ impl<C> Report<C> {
         let location = Some(Location::caller());
 
         #[cfg(all(nightly, feature = "std"))]
-        let backtrace = core::any::request_ref::<Backtrace>(&frame)
+        let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
             .then(Backtrace::capture);
@@ -294,7 +286,7 @@ impl<C> Report<C> {
         let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = core::any::request_ref::<SpanTrace>(&frame)
+        let span_trace = core::error::request_ref::<SpanTrace>(&frame.as_error())
             .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
             .is_none()
             .then(SpanTrace::capture);
@@ -341,7 +333,7 @@ impl<C> Report<C> {
     ///     path::Path,
     /// };
     ///
-    /// use error_stack::{Context, Report, IntoReport, ResultExt};
+    /// use error_stack::{Context, Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
@@ -363,7 +355,6 @@ impl<C> Report<C> {
     ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
     ///     # #[cfg(all(not(miri), feature = "std"))]
     ///     std::fs::read_to_string(path.as_ref())
-    ///         .into_report()
     ///         .change_context(IoError)
     /// }
     ///
@@ -427,10 +418,9 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// # #[cfg(all(feature = "std", not(miri)))] {
     /// use std::{fmt, fs};
     ///
-    /// use error_stack::{IntoReport, ResultExt};
+    /// use error_stack::ResultExt;
     ///
     /// #[derive(Debug)]
     /// pub struct Suggestion(&'static str);
@@ -442,7 +432,6 @@ impl<C> Report<C> {
     /// }
     ///
     /// let error = fs::read_to_string("config.txt")
-    ///     .into_report()
     ///     .attach(Suggestion("better use a file which exists next time!"));
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
@@ -451,7 +440,7 @@ impl<C> Report<C> {
     ///
     /// # #[cfg(nightly)]
     /// assert_eq!(suggestion.0, "better use a file which exists next time!");
-    /// # }
+    /// ```
     #[track_caller]
     pub fn attach_printable<A>(mut self, attachment: A) -> Self
     where
@@ -520,14 +509,14 @@ impl<C> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(&self.frames)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](core::any::Provider::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(&self.frames)
@@ -540,19 +529,17 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, io, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
     /// assert!(report.contains::<io::Error>());
-    /// # }
     /// ```
     #[must_use]
     pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
@@ -567,22 +554,20 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// use std::io;
     ///
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
     /// let io_error = report.downcast_ref::<io::Error>().unwrap();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
-    /// # }
     /// ```
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
@@ -610,22 +595,20 @@ impl<C> Report<C> {
     /// ## Example
     ///
     /// ```rust
-    /// # #[cfg(all(not(miri), feature = "std"))] {
     /// # use std::{fs, path::Path};
-    /// # use error_stack::{IntoReport, Report};
+    /// # use error_stack::Report;
     /// use std::io;
     ///
     /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
     ///     # const _: &str = stringify! {
     ///     ...
     ///     # };
-    ///     # fs::read_to_string(path.as_ref()).into_report()
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
     /// }
     ///
     /// let report = read_file("test.txt").unwrap_err();
     /// let io_error = report.current_context();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
-    /// # }
     /// ```
     #[must_use]
     pub fn current_context(&self) -> &C

@@ -1,9 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
-  currentTimeInstantTemporalAxes,
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-  zeroedGraphResolveDepths,
 } from "@apps/hash-api/src/graph";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
@@ -17,6 +15,10 @@ import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,

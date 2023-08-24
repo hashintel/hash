@@ -1,15 +1,18 @@
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use derivative::Derivative;
-use error_stack::{bail, Context, IntoReport, Report, ResultExt};
+use error_stack::{bail, Context, Report, ResultExt};
+use graph_types::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::OntologyTypeVersion,
+};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion},
-    knowledge::{Entity, EntityQueryPath},
+    knowledge::EntityQueryPath,
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         Record,
@@ -252,22 +255,19 @@ impl Parameter<'_> {
                         expected,
                     })
                 })?;
-                *self =
-                    Parameter::Number(i32::try_from(number).into_report().change_context_lazy(
-                        || ParameterConversionError {
-                            actual: self.to_owned(),
-                            expected: ParameterType::OntologyTypeVersion,
-                        },
-                    )?);
+                *self = Parameter::Number(i32::try_from(number).change_context_lazy(|| {
+                    ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected: ParameterType::OntologyTypeVersion,
+                    }
+                })?);
             }
             (Parameter::Number(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    u32::try_from(*number)
-                        .into_report()
-                        .change_context_lazy(|| ParameterConversionError {
-                            actual: self.to_owned(),
-                            expected: ParameterType::OntologyTypeVersion,
-                        })?,
+                    u32::try_from(*number).change_context_lazy(|| ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected: ParameterType::OntologyTypeVersion,
+                    })?,
                 ));
             }
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
@@ -290,12 +290,12 @@ impl Parameter<'_> {
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
-                *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
-                    || ParameterConversionError {
+                *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {
+                    ParameterConversionError {
                         actual: self.to_owned(),
                         expected: ParameterType::Uuid,
-                    },
-                )?);
+                    }
+                })?);
             }
 
             // Fallback
@@ -313,16 +313,17 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
+    use graph_types::{
+        account::AccountId,
+        knowledge::entity::{EntityId, EntityUuid},
+        ontology::DataTypeWithMetadata,
+        provenance::OwnedById,
+    };
     use serde_json::json;
     use type_system::url::BaseUrl;
 
     use super::*;
-    use crate::{
-        identifier::account::AccountId,
-        knowledge::EntityUuid,
-        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
-        provenance::OwnedById,
-    };
+    use crate::ontology::DataTypeQueryPath;
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where

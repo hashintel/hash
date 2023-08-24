@@ -79,7 +79,9 @@
       display: flex;
       justify-content: center;
       word-break: break-word;
-      transition: 0.3s text-align ease-in-out, 0.3s border-color ease-in-out;
+      transition:
+        0.3s text-align ease-in-out,
+        0.3s border-color ease-in-out;
 
       &:focus {
         width: 100%;

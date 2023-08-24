@@ -104,7 +104,6 @@ const createNewBobWithOrg = async () => {
   await bobUser.joinOrg(db, {
     updatedByAccountId: bobUser.accountId,
     org: bobOrg,
-    responsibility: "CEO",
   });
 
   return { bobUser, bobOrg };
@@ -145,7 +144,6 @@ beforeAll(async () => {
   await existingUser.joinOrg(db, {
     updatedByAccountId: existingUser.accountId,
     org: existingOrg,
-    responsibility: "CEO",
   });
 });
 
@@ -294,7 +292,6 @@ describe("logged in user ", () => {
         shortname: "bigco2",
         orgSize: OrgSize.TwoHundredAndFiftyPlus,
       },
-      responsibility: "CEO",
     };
 
     const gqlOrg = await client.createOrg(variables);
@@ -488,8 +485,6 @@ describe("logged in user ", () => {
       inviteeEmailAddress,
     });
 
-    const responsibility = "CTO";
-
     const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
       assertDerivedPayloadType: "orgInvitation",
     }).derivedPayload;
@@ -497,7 +492,6 @@ describe("logged in user ", () => {
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: { invitationEmailToken: invitationLinkToken },
-      responsibility,
     });
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
@@ -520,14 +514,11 @@ describe("logged in user ", () => {
 
     const [invitation] = await bobOrg.getInvitationLinks(db);
 
-    const responsibility = "CTO";
-
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: {
         invitationLinkToken: invitation.properties.accessToken,
       },
-      responsibility,
     });
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
@@ -1501,7 +1492,7 @@ describe("logged in user ", () => {
         await client.getAccountPagesTree({
           accountId: existingUser.accountId,
         })
-      ).map((page) => ({ children: undefined, ...page } as TreeElement));
+      ).map((page) => ({ children: undefined, ...page }) as TreeElement);
 
       const treePages = treeFromParentReferences(
         pages,

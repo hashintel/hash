@@ -5,9 +5,9 @@ import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestPropertyTypes } from "../../../../../shared/latest-property-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
-import { useLatestPropertyTypes } from "./shared/latest-property-types-context";
 
 type DefinitionTabProps = {
   ownedById?: OwnedById;
@@ -41,8 +41,12 @@ export const DefinitionTab = ({
   }, [entityTypeAndPropertyTypes, possiblyIncompletePropertyTypeOptions]);
 
   const [entityTypeOptionsWithMetadata, entityTypeOptions] = useMemo(() => {
+    if (!entityTypesContext.entityTypes) {
+      return [];
+    }
+
     const entityTypesWithMetadata = Object.fromEntries(
-      (entityTypesContext.entityTypes ?? []).map((entityType) => [
+      entityTypesContext.entityTypes.map((entityType) => [
         entityType.schema.$id,
         entityType,
       ]),
@@ -66,6 +70,10 @@ export const DefinitionTab = ({
     ownedById ?? null,
     typesWithMetadata,
   );
+
+  if (!entityTypeOptions) {
+    return null;
+  }
 
   return (
     <EntityTypeEditor

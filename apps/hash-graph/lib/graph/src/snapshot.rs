@@ -8,8 +8,9 @@ mod ontology;
 mod restore;
 
 use async_trait::async_trait;
-use error_stack::{ensure, Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use graph_types::knowledge::entity::Entity;
 use hash_status::StatusCode;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
@@ -22,7 +23,6 @@ pub use self::{
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
-    knowledge::Entity,
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
     store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
 };
@@ -272,7 +272,6 @@ impl<C: AsClient> SnapshotStore<C> {
 
         read_thread
             .await
-            .into_report()
             .change_context(SnapshotRestoreError::Read)??;
 
         let mut found_metadata = false;
