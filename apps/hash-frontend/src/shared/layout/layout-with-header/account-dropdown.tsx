@@ -45,7 +45,9 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   return (
     <Box>
       <Tooltip
-        componentsProps={{ tooltip: { sx: { p: 1.5 } } }}
+        componentsProps={{
+          tooltip: { sx: { p: 1.5 } },
+        }}
         title={
           <>
             <Typography
