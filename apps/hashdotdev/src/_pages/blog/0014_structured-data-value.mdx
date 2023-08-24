@@ -5,7 +5,7 @@ authors:
     photo: blog/authors/david-wilkinson.jpg
 postPhoto: blog/0014_structured-data-value/14_structured-data-value.webp
 title: "The long-term value of structured data"
-subtitle: "Structured data's diminished but persistent value in a world with large machine learning models"
+subtitle: "Structured data's evolving, persistent value in a world with large machine learning models"
 date: "2023-04-01"
 ---
 
@@ -13,35 +13,35 @@ date: "2023-04-01"
 
 Advocates for a machine-readable **semantic web**, have long argued in favour of structured data **markup** (e.g. Microformats/RDFa) and **mapping** (JSON-LD).
 
-And yet we now live in a world in which 'foundation' models, both large _language_ (LLM) and _multimodal_ (LMM) are able to thrive when faced with nothing more than the web's vast soup of unstructured information.
+And yet we now live in a world in which 'foundation' models, such as large _language_ (LLM) and _multimodal_ (LMM) models, are able to thrive when faced with messy data, courtesy of their impressive ability to find patterns within unstructured soup.
 
-With the original vision of the semantic web now well on its way to at least being partially fulfilled by these new models, it's worth asking what the value of structured data is.
+With the original vision of the semantic web arguably now well on its way to being fulfilled - at least partially - by these new models, it's worth asking what the point of continuing to structure data actually is.
 
-While structured data was supposed to make the web "machine readable", there was always an incentives problem. Why give that away for free, if you only care about people reading your website? It was generally always more effort to add structured data markup than it was worth. Even when Google began favouring websites that provided structured data to the search engine for featuring as 'rich snippets' in its results pages, adoption remained limited and patchy.
+While structured data was always supposed to make the web "machine readable", there was always an incentives problem. Why give that away for free, if you only care about people reading your website? It was generally always more effort to add structured data markup than it was worth. Even when Google began favouring websites that provided structured data to the search engine (allowing them in turn to feature elements of pages as 'rich snippets' directly in search results pages) adoption remained limited and patchy.
 
-We created the [Block Protocol](https://blockprotocol.org/) because we believed (and still believe) that block-based interfaces in content management systems can make it as easy, _or easier_, to capture information in a cleanly-typed, strucuted fashion than manually inserting it from scratch. For example, the Mapbox-enabled [Address block](https://blockprotocol.org/@hash/blocks/address) with its search and autofill capabilities makes it _quicker_ to enter a location, store it as structured data, and serve JSON-LD on a webpage than it would be to simply enter a full address out _manually_ by hand as unstructured text. Win-win all round.
+We created the [Block Protocol](https://blockprotocol.org/) because we believed (and still believe) that block-based interfaces in content management systems can make it as easy, _or even easier_, to capture information in a cleanly-typed and structured fashion than it can be to manually insert it from scratch. For example, the Mapbox-enabled [Address block](https://blockprotocol.org/@hash/blocks/address) with its search and autofill capabilities makes it _quicker_ to enter a location, store it as structured data, and serve JSON-LD on a webpage than it would be to simply enter a full address out _manually_ by hand as unstructured text. In addition, you (optionally) get to insert a nice map! A win-win all round.
 
-**Does that matter any more?** For the semantic web: probably not. The semantic web's vision of an internet that is both human and machine-readable will happen now. Foundation models will structure the unstructured web for us. This is what they excel at: ascertaining patterns and structure, without the need for markup or mapping. Simply throw more parameters at them, and there are (to date) really no diminishing returns to scale.
+**Does that matter any more?** For the semantic web: probably not. The semantic web's vision of an internet that is both human and machine-readable will happen now. Foundation models will structure the unstructured web for us... or at least the parts of it that we or they can access. This is what those large models excel at: ascertaining patterns and structure, without the need for markup or mapping. Whether more slowly over time, or in an accelerating fashion, these models will continue to improve.
 
-**But the value of structured data isn't going away.** That, after all, is what foundation models are doing. They're learning the structure of things, and then calculating answers to specific questions, in accordance with those understood structures.
-
-The real question is whether having data _pre-structured_ data will continue to yield benefits.
+**But the value of structured data isn't going away.** That, after all, is what foundation models are doing. They're learning the structure of things, and then calculating answers to specific questions, in accordance with those understood structures. We humans rely on structure. Our thoughts, plans are actions are predicated upon it. So the _real_ question is not "does structured data matter?", but "does having **pre-structured** data continue to yield benefits?"
 
 ## Decreasing value
 
-For believers in the semantic web, there will be decreasingly little to be gained from publishing your own structured data, and rapidly diminishing need. While Google continues to favour those who do in its search ranking algorithms there will be some incentive, but publisher self-declaration will no longer be the main (or perhaps even best) way for scrapers to classify and extract structured data from a webpage.
+In the semantic web use-case, there will be decreasingly little to be gained from publishing your own structured data, and rapidly diminishing need. While Google continues to favour those who publish structured markup in its search ranking algorithms there will be some incentive to do so, but publisher self-declaration will no longer be the main (or perhaps even best) way for search engines and other scrapers to classify and extract structured data from a webpage.
 
-Foundation models are, and will increasingly be, used to classify scraped data according to existing schemas, and discover new ways to categorize data. This information will be used to produce the neatly structured datasets that power search engines' own "rich snippets", providing more information directly to users on search results pages, eliminating the need for them to click through onto providers' websites.
+Foundation models are, and will increasingly be, used to classify scraped data according to existing schemas, and discover new ways to categorize data. This information will be used to produce the neatly structured datasets that power search engines' own "rich snippets", providing more information directly to users on search results pages, and eliminating the need for them to click through onto providers' websites.
 
-This is true even in a world in which search engines _do not_ use user's search queries as direct prompts for foundation models. Today, doing so would cost more, and take longer. The average Google search result returns in under half a second, while many responses to GPT-4 prompts can take upwards of 5 seconds to generate. The continued use of structured data _by search engines_ enables them to currently deliver results more efficiently.
+This is true even in a world in which search engines _don't_ use user's search queries as direct prompts for foundation models. Today, doing so costs more and takes longer than running a traditional search query. The average Google search result returns to the user in under half a second, while many responses to GPT-4 prompts can take upwards of 5 seconds to generate. The continued use of pre-structured data by search engines enables them to deliver results more efficiently.
 
-But let's not be lazy. It's easy to imagine a future in which time-to-results and marginal costs do decrease dramatically. Compute and model runtime costs will come down, existing models will be optimized, and new models will develop. What then?
+But let's not be lazy. Let's imagine a future in which time-to-results and marginal costs do decrease dramatically. Compute and model runtime costs have come down, existing models have been optimized, and new models have been developed. What then? And what about other use cases?
 
 ## Enduring value
 
-Right now, one of the things structure affords is the ability to browse in an undirected, but logically coherent fashion. It aides in open-ended exploration of problem spaces and information, and helps us draw meaning from information, and learn incrementally. While large models may learn well from unstructured data, they will still learn better from structured data.
+Right now, one of the things structure affords is the ability to browse in an undirected, but logically coherent fashion. It aides in open-ended exploration of problem spaces and information, and helps us draw meaning from information, learning incrementally. While we may be able to explore a topic with a large language model as our aide, its answers might guide us down particular paths it (or its creators) are biased towards. This is a real risk with the kind of RLHF (reinforcement learning with human feedback) used to produce many foundation models today. Conversely, being able to see raw structured information for yourself and find your own patterns and meaning in it might take a lot longer than the 5 seconds that an OpenAI query might take to return, but the bias you bring to the information will be your own. Combining forms of analysis may prove commonplace.
 
-Business software - and software in general - currently operate atop structured data. Your ERP, accounting software, CRM, CMS, knowledge-base and communications software all use them. The tools _you use_ for unstructured note-taking themselves under the hood rely on structured data (schemas) to store information. All consumer and business software is built alike atop notions of structured data. It's how software works. And all of these apps and services are connected by a smörgåsbord of highly structured protocols that underpin the modern internet as we know it today.
+While large models learn well from unstructured data, they still learn better from structured data, and in particular high-quality, curated sets of data. It's one of the reasons that high-quality corpuses (such as that of Stack Overflow) are weighted so highly in the training texts that large language models use. And as the internet becomes increasingly full of convincing-sounding machine-generated content that can be hard or impossible to distinguish from stuff written by actual human experts, it stands to reason that training new foundation models will become more difficult in the future. While machine-generated synthetic data has many benefits, its presence in [too large a quantity](https://arxiv.org/abs/2307.01850) can degrade the quality (precision) and diversity (recall) of generative models trained using them. [HASH](https://hash.ai/) ensures that the provenance of information in a user or organization's web (their graph of data) is clear, and generated outputs are (internally at least) marked as such.
+
+Business software, and software in general, both currently operate atop structured data. Your ERP, accounting software, CRM, CMS, knowledge-base and communications software all use them. The tools you use for _unstructured_ note-taking rely on structured databases and schemas to store that information under the hood. Literally all consumer and business software is built atop information structures and structured data. That's just how software works. And absolutely all of these apps and services are today connected by a smörgåsbord of highly structured protocols that underpin operating systems as we know them, and the very internet itself.
 
 Explicitly created and defined structures will continue to have relevance in a world of powerful foundation models which are capable of inferring structure on demand.
 
@@ -59,40 +59,50 @@ These features of pre-structured data, combined with foundation models, will unl
 
 With thanks to both foundation models _and_ pre-structured data, we may finally see certain frontiers unlocked. One thing we're betting on at HASH is that **simulation** will finally come of age, as a widely-used tool for everyday decisionmaking.
 
-HASH _began life_ building agent-based modeling software. We encountered two main problems in convincing folks to adopt predictive, "generative" AI and simulations in their businesses... _back in 2019._
+HASH _began life_ building agent-based modeling software. Back in 2019, we encountered two main problems in convincing folks to adopt predictive, "generative" AI and simulations in their businesses...
 
-First, the shape of folks' existing data. Of all the folks we engaged with, generally speaking _none_ had data easily available in nice, neat agent-mappable form. The closest we encountered were enteprises who'd deployed software like Palantir's and developed ["dynamic ontologies"](https://hash.ai/glossary/schemas), but even these rarely represented their entire organization's set of information in a semantic way. In the last year or so, the term "semantic layer" has become vogue term in some corners of Silicon Valley to refer to the ideal of a business whose data is enitrely neatly mapped to real-world "entities", but it remains an ambition for many, as opposed to a realized state of affairs. **We now believe foundation models will help organizations quickly 'type' their data and convert what they have to 'entities' suitable for use in simulations.**
+### The shape of data
 
-Second, simulations have historically required handoff between:
+The first big blocker we encountered was the shape of folks' existing data. Of all the folks we engaged with, generally speaking _none_ had data easily available in nice, neat agent-mappable form. The closest we encountered were enteprises who'd deployed software like Palantir's and developed ["dynamic ontologies"](https://hash.ai/glossary/schemas), but even these rarely represented their entire organization's set of information in a semantically meaningful way. In the last couple of years, the term "semantic layer" has become vogue term in some corners of Silicon Valley, and is used to refer to the ideal of a business whose data is enitrely neatly mapped to real-world "entities". This remains an ambition for many, as opposed to a realized state of affairs, and has taken a bit of a backburner to more hypey AI trends of late. Nevertheless, we now believe that **foundation models will help organizations quickly 'type' their data and convert what they have to 'entities'** suitable for use in many contexts, including simulation.
 
-1.  data engineers and analysts who make the data available which is required to instantiate 'agents' in a simulation, and hydrate them with 'properties' that describe them accurately
-2.  programmers who're able to encode subject matter expertise _in code_ that provides 'behavioral logic' to the agents, and environment within which they reside
-3.  domain experts, who understand how the target system functions, and can actually provide the subject matter expertise and model design required.
+### The cost of coordination
 
-The number of different stakeholders, and multi-party communication/coordination involved in a single iteration loop required to make simulation models accurate _and useful_ often proved killer to getting simulations off the ground. With data structuring and availability problems potentially already solved by foundation models (as outlined above), **we believe foundation models' further potential lies in enabling domain experts to bypass programmers and iterate on simulation logic directly.** Behaviors within simulations are generally relatively simple, standalone things. Natural language behavior developement seems eminently achievable using current-generation (e.g. GPT-4) models.
+The second major blocker to mainstream development and adoption of simulation is one of coordination. Simulations have historically required handoff between:
 
-The role of structured data in all this is simple.
+1.  data engineers and analysts who make the data available which is required to instantiate 'agents' in a simulation, and hydrate them with 'properties' that describe them accurately;
+2.  programmers who're able to encode subject matter expertise _in code_ that provides 'behavioral logic' to the agents, and environment within which they reside;
+3.  domain experts, who understand how the target system functions, and can actually provide the subject matter expertise and model design required;
+4.  data scientists, who run the actual experiments required to derive real insight from probabilistic models; and
+5.  decision makers, who are understandably deeply skeptical of whiz-bang simulation models that promise to predict the future. It's "shit in, shit out" with these things, and with so many steps and people involved, by the time a model has been built and experiments run it's entirely fair (and a good idea) to have questions about model integrity.
 
-**Predictive simulations of real-world things are extremely easy to get wrong.** Many interesting systems that users typically want to simulate end up being "complex systems" in some respect, demonstrating some degree of nonlinearity due to emergent or adaptive behaviors.
+The number of different stakeholders, and amount of multi-party communication involved in a single iteration loop required to make simulation models accurate _and useful_ often proved killer to getting simulations off the ground. The average model has historically required many such iterations.
 
-**Complex systems are typically extremely sensitive to their initial conditions.** Ensuring an as close to accurate starting or "initial state" is therefore key. Pre-structured data, especially if tested and reviewed, or produced in accordance with a well-understood process or pipeline, can improve confidence in this.
+Now, with the picture around data structuring and availability much improved by foundation models (as outlined above), we believe such models' further potential lies in **enabling domain experts to bypass programmers and iterate on simulation logic directly.** Behaviors within simulations are generally relatively simple, standalone things. Natural language behavior developement seems eminently achievable using current-generation (e.g. GPT-4 or fine-tuned GPT-3.5) models alone.
 
-**Structured data can be used for verification and validation, in addition to improving the accuracy of a simulation's initial state.** Structured data can be used to backtest simulation experiments, as well as test out the accuracy and correctness of individual behaviors themselves. In a world where behaviors and whole simulation models may be generated by foundation models, this provides humans with an improved sense of their likely correctness.
+### Structure and simulation
 
-## More for humans than machines
+The role of structured data in all of this is quite simple.
 
-All this serves to highlight an interesting possibility. If to date structured data has existed for the benefit of _machines_, is it possible that in the future its primary use will in fact be to us, _humans_, in verifying and validating the outputs of machine-generated models: simulation, language, multimodal, or other?
+**Predictive simulations of real-world things are extremely easy to get wrong.** Many interesting systems that users typically want to simulate end up being "complex systems" in some respect, demonstrating some degree of nonlinearity due to emergent or adaptive behaviors. This is both because (a) any system involving a human is inherently complex, and because (b) "closed systems" (the only ones we can fully model without doubt, where all parameters and environmental variables are known) quite simply do not exist in the real world. Simulations are simplifications of the real world: downsized, abstracted, or analogical.
 
-Inherently tied to the idea of structured data are _types_. Data may be of a certain 'type' if it follows a set of rules established by that type.
+**Complex systems are typically extremely sensitive to their initial conditions.** Ensuring an "as close to accurate" initial simulation starting point is therefore key. Pre-structured data, especially if tested and reviewed, or produced in accordance with a well-understood process or pipeline, can improve confidence in this. The more volatile a simulation target is, the greater the degree to which realtime or timely data availability matters in turn.
+
+**Structured data can be used for verification and validation, in addition to improving the accuracy of a simulation's initial state.** Structured data can be used to backtest simulation experiments, as well as to test the accuracy and correctness of individual behaviors themselves. In a world where behaviors and whole simulation models may be generated by foundation models, having a concrete picture of reality to compare to provides humans with an improved sense of a model's likely correctness.
+
+### More for humans than machines
+
+All this serves to highlight an interesting possibility. If to date structured data has existed for the benefit of _machines_, is it possible that in the future its primary use will in fact be to us, _humans_, in verifying and validating the outputs of generative AI models: simulation, language, multimodal, or other?
+
+Inherently tied to the idea of structured data is the idea of **typing** information. Data may be of a certain 'type' if it follows a set of rules established by that type.
 
 The [Block Protocol type system](https://blockprotocol.org/docs/types) outlines three different kinds of types which can help us think about structured data: entity types, property types, and data types.
 
 1.  **Entities** (semantic 'things' in a database) have entity types.
 
-- **Entity types** describe the _properties_ and type(s) of any entity, including both _link entities_ and _normal entities_.
-- **Link entities** are the relationships, or 'things' that connect other entities. For example, one `Person` entity may be connected by a link entity called `Has Spouse` to another `Person`.
-- **Normal entities** is the term used to described all other entities.
-- Right now, entities can only have one entity type, but support for entities with multiple entity types is coming soon.
+- **Entity types** describe the _properties_ and type(s) of any entity, including both special-cased _link entities_ and ordinary, plain old _standard entities_.
+- A **link entity** corresponds to the relationship, or 'thing' that connects other entities. For example, a standard entity `Person` may be connected by a link entity called `Spouse` to another standard entity `Person`.
+- A **standard entity** is absolutely anything that isn't a link entity. You can use it to refer to physical things, concepts, ideas, events, or anything else you like.
+- If you're familiar with graph theory, you can think of standard entities as vertices, and link entities as edges.
 
 1.  **Properties** contain data associated with some particular aspect of an entity.
 
@@ -102,16 +112,18 @@ The [Block Protocol type system](https://blockprotocol.org/docs/types) outlines 
 
 - Support for defining "custom" data types (e.g. numbers within a certain range, or strings matching a certain pattern) which are not already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph) is planned.
 
-The open-source [HASH type editor](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/type-editor) makes it easy to create and edit Block Protocol types.
+Entity types (including those that describe both standard entities and link entities) can inherit from one another, resulting in a composable type system. The [HASH type editor](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/type-editor), available as a standalone open-source library as well as embedded within [HASH](https://hash.ai/) makes it easy to create and edit these types, allowing them to be used internally or made publicly available for others to standardize on, extend themselves, and so on. Even where entity type definitions differ, common use of property types (which retain common semantic meaning across their use with different kinds of entities) and data types (which allow for the validation of inputs) aide interoperability and crosswalking.
 
-Defining types in the first place, and the act of typing data, minimizes the potential for errors, improves the readability or intelligibility of data, and can enable the optimized processing of information. A piece of information's type can be used to ascertain specific meaning and purpose, as well as confirm its validity.
-
-Asking for model outputs in a set of user-created types improves confidence in those outputs.
+Defining types in the first place, and the act of typing data, minimizes the potential for errors, improves the readability or intelligibility of data, and can enable the optimized processing of information. Information's entity or property type can be used to ascertain context and meaning, while data types are able to confirm its basic plausability (if not actual correctness).
 
 Building a simulation or other model from a set of strongly typed data equally improves reliability.
 
 In all agent-to-agent communications (human-human, machine-machine, and human-machine), ontologies of types enable improved mutual understanding by formalizing and standardizing definitions of things and streamlining communication around them.
 
-In a world where it is easier than ever to create new [blocks](https://blockprotocol.org/hub) and [simulations](https://hash.ai/platform/core) with natural language code generators, the potential for a proliferation of standalone software that is **difficult to rely on** or **interconnect in predictable and verifiable ways** becomes huge. We believe the Block Protocol type system will help avert a future in which low-quality, siloed user interfaces operating on hard-to-translate data become commonplace.
+Asking for model outputs to be provided in accordance with sets of user-created types helps keep generative models focused, and improves the usability of their outputs. The fact that OpenAI raced to release [function calling](https://platform.openai.com/docs/guides/gpt/function-calling) before making fine-tuning generally available with its GPT-3.5 and GPT-4 models was indicative of the demand for structured outputs from generative models, and the difficulty current-generation foundation models have (absent fine-tuning) to reliably adhere to even _explicit_ system prompts and user instructions.
 
-The world needs trustworthy software, and the need for a [protocol for blocks](https://blockprotocol.org/) is greater now than ever. Even as the barriers plummet to using exciting, hitherto inaccessible technologies like simulation, the world still needs structured data.
+In a world where it is easier than ever to create new [blocks](https://blockprotocol.org/hub) and [simulations](https://hash.ai/simulation) with natural language code generators, the potential for a proliferation of standalone software that is **difficult to rely on** or **interconnect in predictable and verifiable ways** becomes huge.
+
+We believe that the Block Protocol type system will help avert a future in which low-quality, siloed user interfaces operating on hard-to-translate data becomes commonplace.
+
+The world needs trustworthy software, and [a better way to capture and use structured data](https://hash.ai/) is more important now than ever.
