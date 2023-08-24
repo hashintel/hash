@@ -59,10 +59,12 @@ export const InheritanceRow = ({
   const { entityTypesArray, directParents } = useMemo(() => {
     const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
 
-    const typesArray = Object.values(linkTypes);
-    if (!isLinkType) {
-      typesArray.push(...Object.values(entityTypes));
-    }
+    // If something has a link type as a parent, it cannot have a non-link type parent, and vice versa
+    const typesArray = isLinkType
+      ? Object.values(linkTypes)
+      : directParentEntityTypeIds.length
+      ? Object.values(entityTypes)
+      : [...Object.values(entityTypes), ...Object.values(linkTypes)];
 
     const parents = typesArray.filter(
       (type) =>
