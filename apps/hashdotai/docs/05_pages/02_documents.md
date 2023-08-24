@@ -1,9 +1,5 @@
----
-title: Using Blocks in Pages
-slug: hash/working-with-data-in-pages/using-blocks-in-pages
-objectId: ???
-description: Using Blocks in Pages
----
+
+
 
 # Using Blocks in Pages {#using-blocks-in-pages}
 
@@ -51,6 +47,7 @@ Since each block is different, and published by a different developer, they each
     1.  After you have selected which data to use, the block will render that data and give you further manipulation and rendering options, depending on what the block is for.
 
 1.  **Creating new data lifecycle**
+
     1.  The block will query your Workspace for the relevant Entity Type(s) it needs to create new data, creating them if it doesn’t find them.
     1.  The block will then go into an editing mode (e.g. writing, drawing, creating a diagram), creating and updating new Entities and Links as necessary to save the data which you create.
 

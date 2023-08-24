@@ -1,6 +1,6 @@
 ---
 title: Managing your data
-slug: hash/managing-your-data
+slug: managing-data
 objectId: ???
 description: Managing your data in HASH
 ---
