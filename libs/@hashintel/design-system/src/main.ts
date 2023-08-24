@@ -12,6 +12,7 @@ export * from "./fontawesome-icon";
 export * from "./form-inline";
 export * from "./icon-arrow-right";
 export * from "./icon-asterisk-regular";
+export * from "./icon-barcode";
 export * from "./icon-button";
 export * from "./icon-circle-plus";
 export * from "./icon-graph";

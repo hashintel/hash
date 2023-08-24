@@ -34,7 +34,7 @@ export const parseUrlForOntologyChip = (url: VersionedUrl) => {
 const OntologyChip: ForwardRefRenderFunction<
   HTMLDivElement,
   {
-    domain: ReactNode;
+    domain: string;
     path: ReactNode;
     sx?: SxProps<Theme>;
   }
@@ -45,7 +45,7 @@ const OntologyChip: ForwardRefRenderFunction<
     sx = [],
     ...props
   }: {
-    domain: ReactNode;
+    domain: string;
     path: ReactNode;
     sx?: SxProps<Theme>;
   },

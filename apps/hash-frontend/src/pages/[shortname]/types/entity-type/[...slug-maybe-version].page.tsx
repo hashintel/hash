@@ -1,11 +1,7 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import {
-  FontAwesomeIcon,
-  IconRainbowHash,
-  OntologyChip,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, OntologyChip } from "@hashintel/design-system";
 import {
   EntityTypeEditorFormData,
   EntityTypeFormProvider,

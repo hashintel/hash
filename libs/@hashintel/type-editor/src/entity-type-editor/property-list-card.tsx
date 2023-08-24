@@ -5,8 +5,8 @@ import {
 } from "@blockprotocol/type-system/slim";
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
-  AsteriskRegularIcon,
   FontAwesomeIcon,
+  PropertyTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import { Box, Checkbox, TableBody, TableCell, TableHead } from "@mui/material";
@@ -214,7 +214,7 @@ const InsertPropertyField = (
     () =>
       Object.values(propertyTypeOptions).map((type) => ({
         ...type,
-        Icon: AsteriskRegularIcon,
+        Icon: PropertyTypeIcon,
       })),
     [propertyTypeOptions],
   );

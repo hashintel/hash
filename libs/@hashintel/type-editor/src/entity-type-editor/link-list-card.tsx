@@ -1,7 +1,7 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  AsteriskRegularIcon,
   GraphIcon,
+  LinkTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import { Box, TableBody, TableCell, TableHead } from "@mui/material";
@@ -233,7 +233,7 @@ const InsertLinkField = (
     () =>
       Object.values(linkTypeOptions).map((type) => ({
         ...type,
-        Icon: AsteriskRegularIcon,
+        Icon: LinkTypeIcon,
       })),
     [linkTypeOptions],
   );

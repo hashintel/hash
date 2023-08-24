@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
+import { Box, Stack, SvgIconProps, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
 import { FunctionComponent, HTMLAttributes } from "react";
 
@@ -33,7 +33,7 @@ export const SelectorAutocompleteOption = ({
           width="100%"
           display="flex"
           alignItems="center"
-          mb={0.5}
+          mb={0.8}
           whiteSpace="nowrap"
         >
           <Box
@@ -46,45 +46,64 @@ export const SelectorAutocompleteOption = ({
               <Stack
                 direction="row"
                 sx={({ palette }) => ({
+                  alignItems: "center",
                   background: palette.gray[10],
-                  borderRadius: "100%",
-                  pl: 3,
-                  pr: 2,
+                  border: `1px solid ${palette.gray[30]}`,
+                  borderRadius: 4,
+                  height: 26,
                 })}
               >
-                <Icon sx={({ palette }) => { fill: }}/>
+                <Box
+                  sx={({ palette }) => ({
+                    alignItems: "center",
+                    background: "white",
+                    borderRight: `1px solid ${palette.gray[30]}`,
+                    borderRadius: 4,
+                    display: "flex",
+                    px: 1.2,
+                    height: "100%",
+                  })}
+                >
+                  <Icon sx={{ fontSize: 14 }} />
+                </Box>
                 <Typography
                   variant="smallTextLabels"
-                  fontWeight={500}
-                  color="black"
+                  sx={({ palette }) => ({
+                    color: palette.black,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    px: 1.2,
+                  })}
                 >
                   {title}
                 </Typography>
               </Stack>
             ) : (
-              <Typography
-                variant="smallTextLabels"
-                fontWeight={500}
-                mr={0.5}
-                color="black"
-              >
+              <Typography variant="smallTextLabels" fontWeight={500} mr={0.5}>
                 {title}
               </Typography>
             )}
           </Box>
-          <OntologyChip
-            {...ontology}
-            path={
-              <Typography
-                component="span"
-                fontWeight="bold"
-                color={(theme) => theme.palette.blue[70]}
-              >
-                {ontology.path}
-              </Typography>
-            }
-            sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
-          />
+          <Tooltip title={typeId}>
+            <OntologyChip
+              {...ontology}
+              path={
+                <Typography
+                  component="span"
+                  fontWeight="bold"
+                  color={(theme) => theme.palette.blue[70]}
+                >
+                  {ontology.path}
+                </Typography>
+              }
+              sx={({ palette }) => ({
+                border: `1px solid ${palette.gray[30]}`,
+                flexShrink: 1,
+                ml: 1.25,
+                mr: 2,
+              })}
+            />
+          </Tooltip>
         </Box>
         <Typography
           component={Box}

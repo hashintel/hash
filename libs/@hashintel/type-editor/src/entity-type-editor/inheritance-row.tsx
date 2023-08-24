@@ -1,11 +1,11 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
-  AsteriskRegularIcon,
   Button,
   Callout,
+  EntityTypeIcon,
   FontAwesomeIcon,
-  LinkIcon,
+  LinkTypeIcon,
   Modal,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
@@ -62,11 +62,11 @@ export const InheritanceRow = ({
     const typesArray = [
       ...Object.values(entityTypes).map((type) => ({
         ...type,
-        Icon: LinkIcon,
+        Icon: LinkTypeIcon,
       })),
       ...Object.values(linkTypes).map((type) => ({
         ...type,
-        Icon: AsteriskRegularIcon,
+        Icon: EntityTypeIcon,
       })),
     ];
 

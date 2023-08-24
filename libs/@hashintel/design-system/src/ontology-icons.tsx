@@ -1,21 +1,59 @@
+import { SvgIconProps } from "@mui/material";
+import { FunctionComponent } from "react";
+
 import { AsteriskRegularIcon } from "./icon-asterisk-regular";
+import { BarcodeIcon } from "./icon-barcode";
 import { InputPipeIcon } from "./icon-input-pipe";
 import { LinkIcon } from "./icon-link";
 
-export const EntityTypeIcon = ({ fontSize }: { fontSize?: number }) => (
+export const DataTypeIcon: FunctionComponent<SvgIconProps> = ({
+  sx,
+  ...props
+}) => (
+  <BarcodeIcon
+    sx={[
+      ({ palette }) => ({ color: palette.pink[80] }),
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
+  />
+);
+
+export const EntityTypeIcon: FunctionComponent<SvgIconProps> = ({
+  sx,
+  ...props
+}) => (
   <AsteriskRegularIcon
-    sx={({ palette }) => ({ color: palette.blue[70], fontSize })}
+    sx={[
+      ({ palette }) => ({ color: palette.blue[70] }),
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
   />
 );
 
-export const LinkTypeIcon = ({ fontSize }: { fontSize?: number }) => (
+export const LinkTypeIcon: FunctionComponent<SvgIconProps> = ({
+  sx,
+  ...props
+}) => (
   <LinkIcon
-    sx={({ palette }) => ({ color: palette.turquoise[60], fontSize })}
+    sx={[
+      ({ palette }) => ({ color: palette.turquoise[60] }),
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
   />
 );
 
-export const PropertyTypeIcon = ({ fontSize }: { fontSize?: number }) => (
+export const PropertyTypeIcon: FunctionComponent<SvgIconProps> = ({
+  sx,
+  ...props
+}) => (
   <InputPipeIcon
-    sx={({ palette }) => ({ color: palette.purple[60], fontSize })}
+    sx={[
+      ({ palette }) => ({ color: palette.purple[60] }),
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+    {...props}
   />
 );

@@ -1,7 +1,7 @@
 import { EntityType } from "@blockprotocol/type-system";
 import {
-  AsteriskRegularIcon,
-  LinkIcon,
+  EntityTypeIcon,
+  LinkTypeIcon,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
@@ -36,7 +36,7 @@ export const EntityTypeSelector: FunctionComponent<{
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
-        Icon: isLinkTypeLookup?.[$id] ? LinkIcon : AsteriskRegularIcon,
+        Icon: isLinkTypeLookup?.[$id] ? LinkTypeIcon : EntityTypeIcon,
         typeId: $id,
         title,
         description,
