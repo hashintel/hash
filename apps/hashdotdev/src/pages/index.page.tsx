@@ -238,9 +238,9 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
           >
             <HomePageBodyTypography>
               The <i>Block Protocol</i> (<strong>Þ</strong>) is an open standard
-              for creating <strong>blocks</strong> which work in any
-              application, without either block or app requiring any special
-              knowledge of one another (beyond support for the Þ itself).
+              for creating <strong>blocks</strong> which work across applications,
+              without either block or app requiring any special knowledge of one
+              another (only of the Þ itself).
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
@@ -260,7 +260,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Link>
               ), enabling their users to discover and insert blocks at runtime,
               expanding the utility of applications that support the protocol
-              way beyond their original programming.
+              well beyond their original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
