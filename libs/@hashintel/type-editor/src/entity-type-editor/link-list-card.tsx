@@ -227,7 +227,7 @@ const InsertLinkField = (
   const linkTypes = Object.values(linkTypeOptions);
 
   const filteredLinkTypes = useFilterTypeOptions({
-    typesToExclude: [...links, ...inheritedLinks],
+    typesToExclude: [...links, ...inheritedLinks, { $id: linkEntityTypeUrl }],
     typeOptions: linkTypes,
   });
 

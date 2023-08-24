@@ -20,7 +20,10 @@ export const useEntityTypesOptionsContextValue = (
     const nonLinkEntityTypesRecord: EntityTypesByVersionedUrl = {};
 
     for (const entityType of Object.values(entityTypes)) {
-      let targetRecord = nonLinkEntityTypesRecord;
+      let targetRecord =
+        entityType.$id === linkEntityTypeUrl
+          ? linkEntityTypesRecord
+          : nonLinkEntityTypesRecord;
       let parentRefObjects = entityType.allOf ?? [];
       while (parentRefObjects.length) {
         if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {
