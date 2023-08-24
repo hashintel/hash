@@ -62,11 +62,11 @@ export const InheritanceRow = ({
     const typesArray = [
       ...Object.values(entityTypes).map((type) => ({
         ...type,
-        Icon: LinkTypeIcon,
+        Icon: EntityTypeIcon,
       })),
       ...Object.values(linkTypes).map((type) => ({
         ...type,
-        Icon: EntityTypeIcon,
+        Icon: LinkTypeIcon,
       })),
     ];
 
