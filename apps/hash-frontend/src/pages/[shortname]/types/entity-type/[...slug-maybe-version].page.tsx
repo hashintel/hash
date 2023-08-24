@@ -1,7 +1,10 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, OntologyChip } from "@hashintel/design-system";
+import {
+  EntityTypeIcon,
+  LinkTypeIcon,
+  OntologyChip,
+} from "@hashintel/design-system";
 import {
   EntityTypeEditorFormData,
   EntityTypeFormProvider,
@@ -266,7 +269,19 @@ const Page: NextPageWithLayout = () => {
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                    icon: entityTypeIsLink ? (
+                      <LinkTypeIcon
+                        sx={({ palette }) => ({
+                          stroke: palette.gray[50],
+                        })}
+                      />
+                    ) : (
+                      <EntityTypeIcon
+                        sx={({ palette }) => ({
+                          fill: palette.gray[50],
+                        })}
+                      />
+                    ),
                   },
                 ]}
                 scrollToTop={() => {}}

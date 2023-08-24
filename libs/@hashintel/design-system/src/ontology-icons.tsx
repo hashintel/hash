@@ -12,7 +12,7 @@ export const DataTypeIcon: FunctionComponent<SvgIconProps> = ({
 }) => (
   <BarcodeIcon
     sx={[
-      ({ palette }) => ({ color: palette.pink[80] }),
+      ({ palette }) => ({ fill: palette.pink[80] }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
     {...props}
@@ -25,7 +25,7 @@ export const EntityTypeIcon: FunctionComponent<SvgIconProps> = ({
 }) => (
   <AsteriskRegularIcon
     sx={[
-      ({ palette }) => ({ color: palette.blue[70] }),
+      ({ palette }) => ({ fill: palette.blue[70] }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
     {...props}
@@ -38,7 +38,7 @@ export const LinkTypeIcon: FunctionComponent<SvgIconProps> = ({
 }) => (
   <LinkIcon
     sx={[
-      ({ palette }) => ({ color: palette.turquoise[60] }),
+      ({ palette }) => ({ stroke: palette.turquoise[60] }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
     {...props}
