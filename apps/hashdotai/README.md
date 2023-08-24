@@ -1,12 +1,10 @@
 [`docs`]: https://github.com/hashintel/hash/tree/main/apps/hashdotai/docs
 [`glossary`]: https://github.com/hashintel/hash/tree/main/apps/hashdotai/glossary
 [`internal` monorepo]: https://github.com/hashintel/internal
-[contributing]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hashdotai
 [hash.ai/docs]: https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_hashdotai
 [hash.ai/glossary]: https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_hashdotai
 [mdx]: https://mdxjs.com/?utm_source=hash&utm_medium=github&utm_id=hashdotai&utm_content=readme-file
-
 
 # `hashdotai`
 

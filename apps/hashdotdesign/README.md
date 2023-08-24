@@ -18,4 +18,3 @@ Included packages:
 For more information about contributing to any of design systems, components, or the [hash.design] site itself, see our repo-level [CONTRIBUTING] guide.
 
 If you require an alternative license, or have any other questions, please [contact us].
- 
