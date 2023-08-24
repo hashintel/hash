@@ -230,6 +230,12 @@ export const OrgForm = ({
           id="website"
           placeholder="https://acme.com"
           sx={{ width: 400 }}
+          inputProps={{
+            pattern: "http(s?)://.*",
+            title:
+              "Please enter a valid URL, starting with https:// or http://",
+            type: "url",
+          }}
           {...register("website", { required: false })}
         />
       </InputGroup>
