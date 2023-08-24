@@ -1,3 +1,4 @@
+[contact us]: https://hash.ai/contact?utm_medium=organic&utm_source=github_readme_hashdotdesign
 [contributing]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
 [creative commons attribution-noncommercial-sharealike 4.0 international]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md
 [gnu affero general public license 3.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md
@@ -20,3 +21,6 @@ The [hash.design] website is dedicated to designers.
 ## Further Information
 
 For more information about contributing to [hash.design], see our repo-wide [CONTRIBUTING] guide.
+
+If you require an alternative license, or have any other questions, please [contact us].
+ 
