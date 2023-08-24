@@ -1,9 +1,9 @@
-[contact us]: https://hash.ai/contact?utm_medium=organic&utm_source=github_readme_hashdotdesign
+[contact us]: https://hash.ai/contact?utm_medium=organic&utm_source=github_license_hashdotdesign
 [contributing]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
 [creative commons attribution-noncommercial-sharealike 4.0 international]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-CC.md
 [gnu affero general public license 3.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md
-[hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hashdotdesign
-[hash brand terms]: https://hash.ai/about/brand?utm_medium=organic&utm_source=github_readme_hashdotdesign
+[hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_license_hashdotdesign
+[hash brand terms]: https://hash.ai/about/brand?utm_medium=organic&utm_source=github_license_hashdotdesign
 [license]: https://github.com/hashintel/hash/blob/main/LICENSE.md
 
 # License
@@ -23,4 +23,3 @@ The [hash.design] website is dedicated to designers.
 For more information about contributing to [hash.design], see our repo-wide [CONTRIBUTING] guide.
 
 If you require an alternative license, or have any other questions, please [contact us].
- 
