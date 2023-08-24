@@ -1,9 +1,12 @@
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Table, TableBody, TableHead, TableRow } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { NextPageWithLayout } from "../../../shared/layout";
+import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { OrgRow } from "./index.page/org-row";
@@ -26,7 +29,23 @@ const OrganizationListPage: NextPageWithLayout = () => {
     <>
       <NextSeo title="Organizations" />
 
-      <OrgSettingsContainer header={<>Organizations</>} ref={topRef}>
+      <OrgSettingsContainer
+        topRightElement={
+          <Button
+            href="/settings/organizations/new"
+            size="small"
+            variant="tertiary"
+          >
+            Create organization
+            <FontAwesomeIcon
+              icon={faPlus}
+              sx={({ palette }) => ({ fill: palette.gray[50], ml: 3 })}
+            />
+          </Button>
+        }
+        header={<>Organizations</>}
+        ref={topRef}
+      >
         <Table
           sx={{
             borderRadius: 1,
