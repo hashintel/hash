@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import clsx from "clsx";
 import { HTMLAttributes } from "react";
 
@@ -40,14 +40,23 @@ export const SelectorAutocompleteOption = ({
             display="flex"
             alignItems="center"
           >
-            <Typography
-              variant="smallTextLabels"
-              fontWeight={500}
-              mr={0.5}
-              color="black"
+            <Stack
+              direction="row"
+              sx={({ palette }) => ({
+                background: palette.gray[10],
+                borderRadius: "100%",
+                pl: 3,
+                pr: 2,
+              })}
             >
-              {title}
-            </Typography>
+              <Typography
+                variant="smallTextLabels"
+                fontWeight={500}
+                color="black"
+              >
+                {title}
+              </Typography>
+            </Stack>
           </Box>
           <OntologyChip
             {...ontology}

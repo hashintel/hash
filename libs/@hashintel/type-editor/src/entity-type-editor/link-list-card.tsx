@@ -1,5 +1,5 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
+import { GraphIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -336,7 +336,7 @@ export const LinkListCard = () => {
                 });
               }
         }
-        icon={<LinkIcon />}
+        icon={<GraphIcon />}
         headline={isReadonly ? <>No links defined</> : <>Add a link</>}
         description={
           <>

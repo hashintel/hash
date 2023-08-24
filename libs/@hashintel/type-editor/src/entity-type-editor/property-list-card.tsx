@@ -333,7 +333,7 @@ export const PropertyListCard = () => {
                 });
               }
         }
-        icon={<FontAwesomeIcon icon={faList} />}
+        icon={<FontAwesomeIcon icon={faList} sx={{ fontSize: 24 }} />}
         headline={isReadonly ? <>No properties defined</> : <>Add a property</>}
         description={
           <>

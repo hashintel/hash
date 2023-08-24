@@ -3,8 +3,8 @@ import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
+  IconRainbowHash,
   OntologyChip,
-  OntologyIcon,
 } from "@hashintel/design-system";
 import {
   EntityTypeEditorFormData,
@@ -308,7 +308,6 @@ const Page: NextPageWithLayout = () => {
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        icon={<OntologyIcon />}
                         domain="hash.ai"
                         path={
                           <>

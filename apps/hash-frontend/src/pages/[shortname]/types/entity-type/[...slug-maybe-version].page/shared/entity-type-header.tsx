@@ -1,11 +1,10 @@
 import { EntityType, extractVersion } from "@blockprotocol/type-system/slim";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { FontAwesomeIcon, LinkIcon } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 
 import { ArrowUpRightIcon } from "../../../../../../shared/icons/arrow-up-right-icon";
-import { LinkedIcon } from "../../../../../../shared/icons/linked-icon";
 import { Button, Link, Modal } from "../../../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../../../../shared/create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";
@@ -70,7 +69,7 @@ export const EntityTypeHeader = ({
                 placement="top"
               >
                 <Box display="inline-flex">
-                  <LinkedIcon
+                  <LinkIcon
                     sx={({ palette }) => ({
                       fontSize: 40,
                       mr: 2,
