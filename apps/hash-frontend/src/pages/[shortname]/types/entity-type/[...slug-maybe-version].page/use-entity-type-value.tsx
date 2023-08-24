@@ -224,6 +224,11 @@ export const useEntityTypeValue = (
     setStateEntityType(contextEntityType);
   }
 
+  const propertyTypesRef = useRef<Record<
+    VersionedUrl,
+    PropertyTypeWithMetadata
+  > | null>(null);
+
   const propertyTypes = useMemo(() => {
     if (!stateEntityType || !entityTypesSubgraph) {
       return null;
@@ -234,8 +239,23 @@ export const useEntityTypeValue = (
       entityTypesSubgraph,
     );
 
-    return Object.fromEntries(relevantPropertiesMap);
+    return {
+      // We add the previous property types to the new ones here to avoid the following bug (H-551):
+      // 1. Be viewing an entity type which relies on a non-latest property type
+      // 2. Switch to an entity type which doesn't refer to that property type, and:
+      //    – propertyTypes is updated to _not_ contain that non-latest property type, since it's not relevant to the new entity type
+      //    - the propertyTypeOptions given to the type editor of 'all latest property types' also doesn't contain it
+      //    - state update for property type options reaches the type editor before the form data is reset in onCompleted,
+      //        causing the type editor to crash because its form data refers to a property type it hasn't been provided with
+      // Ideally we would not have the form data and property type options be out of sync, but it requires more thought/work
+      ...Object.fromEntries(relevantPropertiesMap),
+      ...(propertyTypesRef.current ? propertyTypesRef.current : {}),
+    };
   }, [stateEntityType, entityTypesSubgraph]);
+
+  useLayoutEffect(() => {
+    propertyTypesRef.current = propertyTypes;
+  });
 
   const stateEntityTypeRef = useRef(stateEntityType);
   useLayoutEffect(() => {
@@ -244,14 +264,12 @@ export const useEntityTypeValue = (
 
   const completedRef = useRef<VersionedUrl | null>(null);
 
-  // Ideally this side effect would be in a useLayoutEffect, but doing so causes a bug:
-  // 1. Be viewing an entity type which relies on a non-latest property type
-  // 2. Switch to an entity type which doesn't refer to that property type, and:
-  //    – propertyTypes is updated to _not_ contain that non-latest property type, since it's not relevant to the new entity type
-  //    - the propertyTypeOptions given to the type editor of 'all latest property types' also doesn't contain it
-  //    - state update for property type options reaches the type editor before the form data is reset in onCompleted,
-  //        causing the type editor to crash because its form data refers to a property type it hasn't been provided with
-  // Having this fire during the render avoids the bug by resetting the form state with the type data state
+  // Ideally this side effect would be in a useLayoutEffect, but for some reason having it in an effect can cause
+  // to the bug described above (see mention of H-551 above), even with the property type option merging.
+  //
+  // Moving it back into a useLayoutEffect also causes a bug with the property table loading, which was previously
+  // fixed by a patch in https://github.com/hashintel/hash/pull/2012, but that patch _also_ seems to contribute to the bug.
+  // @todo figure out what the issue in interaction between react-hook-form's form data, and the property options in React state
   if (stateEntityType && completedRef.current !== stateEntityType.schema.$id) {
     completedRef.current = stateEntityType.schema.$id;
     onCompleted?.(stateEntityType);
