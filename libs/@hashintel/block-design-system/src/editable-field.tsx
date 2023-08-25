@@ -127,7 +127,7 @@ export const EditableField = ({
                   component="span"
                   sx={{ display: "inline-flex", verticalAlign: "middle" }}
                 >
-                  <PenIcon sx={{ fontSize: "inherit" }} />
+                  <PenIcon sx={{ fontSize: 16, mb: 0.6 }} />
                 </Box>
               </>
             )}
@@ -191,7 +191,7 @@ export const EditableField = ({
               inputRef.current?.focus();
             }}
             sx={{
-              padding: 0.5,
+              padding: 1.1,
             }}
           >
             <PenToSquareIcon
