@@ -1,15 +1,27 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { forwardRef, PropsWithChildren, ReactElement } from "react";
 
 export const OrgSettingsContainer = forwardRef<
   HTMLSpanElement,
-  PropsWithChildren<{ header: string | ReactElement; sectionLabel?: string }>
->(({ children, header, sectionLabel }, ref) => {
+  PropsWithChildren<{
+    topRightElement?: ReactElement;
+    header: string | ReactElement;
+    sectionLabel?: string;
+  }>
+>(({ topRightElement, children, header, sectionLabel }, ref) => {
   return (
     <>
-      <Typography ref={ref} variant="h2" mb={4} mt={-1} fontWeight="bold">
-        {header}
-      </Typography>
+      <Stack
+        direction="row"
+        alignItems="center"
+        mb={4}
+        justifyContent="space-between"
+      >
+        <Typography ref={ref} variant="h2" mt={-1} fontWeight="bold">
+          {header}
+        </Typography>
+        {topRightElement}
+      </Stack>
       {sectionLabel && (
         <Typography component="h4" variant="mediumCaps" mb={2}>
           {sectionLabel}

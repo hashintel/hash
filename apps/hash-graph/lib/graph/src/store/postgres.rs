@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::entity::{
     EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata,
@@ -81,7 +81,7 @@ where
                         &base_url.as_str(),
                     ])
                     .await
-                    .into_report()
+                    .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
                         Some(&SqlState::UNIQUE_VIOLATION) => report
                             .change_context(BaseUrlAlreadyExists)
@@ -104,7 +104,6 @@ where
                         &[&base_url.as_str()],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?
                     .is_some();
 
@@ -132,7 +131,6 @@ where
                         .as_client()
                         .query_one(query, &[&base_url.as_str()])
                         .await
-                        .into_report()
                         .change_context(InsertionError)
                         .map(|row| row.get(0))?;
 
@@ -179,7 +177,7 @@ where
         self.as_client()
             .query_opt(query, &[&record_id.base_url.as_str(), &record_id.version])
             .await
-            .into_report()
+            .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
@@ -209,7 +207,6 @@ where
         self.as_client()
             .query_one(query, &[&ontology_id, &record_created_by_id])
             .await
-            .into_report()
             .change_context(InsertionError)
             .map(|row| row.get(0))
     }
@@ -240,7 +237,6 @@ where
                 &record_archived_by_id,
             ])
             .await
-            .into_report()
             .change_context(UpdateError)?;
         if let Some(row) = optional {
             Ok(OntologyTemporalMetadata {
@@ -260,7 +256,6 @@ where
                     &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
                 )
                 .await
-                .into_report()
                 .change_context(UpdateError)?
                 .get(0);
 
@@ -303,7 +298,7 @@ where
                     &record_created_by_id,
                 ])
                 .await
-                .into_report()
+                .map_err(Report::new)
                 .map_err(|report| match report.current_context().code() {
                     Some(&SqlState::EXCLUSION_VIOLATION) => report
                         .change_context(VersionedUrlAlreadyExists)
@@ -337,7 +332,6 @@ where
         self.as_client()
             .query(query, &[&ontology_id, &owned_by_id])
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(())
@@ -358,7 +352,6 @@ where
         self.as_client()
             .query(query, &[&ontology_id, &fetched_at])
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(())
@@ -381,9 +374,7 @@ where
         T::Representation: Send,
     {
         let value_repr = T::Representation::from(database_type);
-        let value = serde_json::to_value(value_repr)
-            .into_report()
-            .change_context(InsertionError)?;
+        let value = serde_json::to_value(value_repr).change_context(InsertionError)?;
         // Generally bad practice to construct a query without preparation, but it's not possible to
         // pass a table name as a parameter and `T::table()` is well-defined, so this is a safe
         // usage.
@@ -402,7 +393,6 @@ where
                 &[&ontology_id, &value],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .map(|row| row.get(0)))
     }
@@ -421,9 +411,7 @@ where
         label_property: Option<&BaseUrl>,
     ) -> Result<Option<OntologyId>, InsertionError> {
         let value_repr = repr::EntityType::from(entity_type);
-        let value = serde_json::to_value(value_repr)
-            .into_report()
-            .change_context(InsertionError)?;
+        let value = serde_json::to_value(value_repr).change_context(InsertionError)?;
 
         let label_property = label_property.map(BaseUrl::as_str);
 
@@ -439,7 +427,6 @@ where
                 &[&ontology_id, &value, &label_property],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .map(|row| row.get(0)))
     }
@@ -469,7 +456,7 @@ where
                     ],
             )
                 .await
-                .into_report()
+
                 .change_context(InsertionError)?;
         }
 
@@ -492,7 +479,7 @@ where
                     ],
             )
                 .await
-                .into_report()
+
                 .change_context(InsertionError)?;
         }
 
@@ -524,7 +511,7 @@ where
                     ],
                 )
             .await
-                .into_report()
+
                 .change_context(InsertionError)?;
         }
 
@@ -547,7 +534,7 @@ where
                     ],
             )
                 .await
-                .into_report()
+
                 .change_context(InsertionError)?;
         }
 
@@ -572,7 +559,7 @@ where
                     ],
             )
             .await
-                .into_report()
+
                 .change_context(InsertionError)?;
 
             if let Some(destinations) = destinations {
@@ -595,7 +582,7 @@ where
                         ],
                 )
                 .await
-                .into_report()
+
                 .change_context(InsertionError)?;
                 }
             }
@@ -676,7 +663,6 @@ where
                 &[&url.base_url.as_str(), &version],
             )
             .await
-            .into_report()
             .change_context(QueryError)
             .attach_printable_lazy(|| url.clone())?
             .get(0))
@@ -692,7 +678,6 @@ where
             self.as_mut_client()
                 .transaction()
                 .await
-                .into_report()
                 .change_context(StoreError)?,
         ))
     }
@@ -848,7 +833,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 &[&url.base_url.as_str(), &i64::from(url.version - 1)],
             )
             .await
-            .into_report()
             .change_context(UpdateError)?
             .map(|row| row.get(0))
         else {
@@ -865,7 +849,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &[&url.base_url.as_str(), &i64::from(url.version - 1)],
                 )
                 .await
-                .into_report()
                 .change_context(UpdateError)
                 .map(|row| row.get(0))?;
             return Err(if exists {
@@ -903,22 +886,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ///
     /// - if the underlying client cannot commit the transaction
     pub async fn commit(self) -> Result<(), StoreError> {
-        self.client
-            .commit()
-            .await
-            .into_report()
-            .change_context(StoreError)
+        self.client.commit().await.change_context(StoreError)
     }
 
     /// # Errors
     ///
     /// - if the underlying client cannot rollback the transaction
     pub async fn rollback(self) -> Result<(), StoreError> {
-        self.client
-            .rollback()
-            .await
-            .into_report()
-            .change_context(StoreError)
+        self.client.rollback().await.change_context(StoreError)
     }
 
     #[doc(hidden)]
@@ -936,7 +911,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ) FROM STDIN BINARY",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
 
@@ -946,16 +920,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .as_mut()
                 .write(&[&entity_id.owned_by_id, &entity_id.entity_uuid])
                 .await
-                .into_report()
                 .change_context(InsertionError)
                 .attach_printable(entity_id.entity_uuid)?;
         }
 
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)
+        writer.finish().await.change_context(InsertionError)
     }
 
     #[doc(hidden)]
@@ -974,7 +943,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ) FROM STDIN BINARY",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID]);
 
@@ -984,15 +952,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .as_mut()
                 .write(&[&entity_edition_id, &entity_type_ontology_id])
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
         }
 
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)
+        writer.finish().await.change_context(InsertionError)
     }
 
     #[doc(hidden)]
@@ -1013,7 +976,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ) FROM STDIN BINARY",
             ))
             .await
-            .into_report()
             .change_context(InsertionError)?;
         let writer =
             BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::UUID, Type::UUID]);
@@ -1029,16 +991,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &link_entity_id.entity_uuid,
                 ])
                 .await
-                .into_report()
                 .change_context(InsertionError)
                 .attach_printable(entity_id.entity_uuid)?;
         }
 
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)
+        writer.finish().await.change_context(InsertionError)
     }
 
     #[doc(hidden)]
@@ -1062,7 +1019,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 );",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         let sink = self
@@ -1077,7 +1033,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ) FROM STDIN BINARY",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[
             Type::JSONB,
@@ -1088,9 +1043,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         ]);
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
-            let properties = serde_json::to_value(properties)
-                .into_report()
-                .change_context(InsertionError)?;
+            let properties = serde_json::to_value(properties).change_context(InsertionError)?;
 
             writer
                 .as_mut()
@@ -1102,15 +1055,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &false,
                 ])
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
         }
 
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        writer.finish().await.change_context(InsertionError)?;
 
         let entity_edition_ids = self
             .client
@@ -1135,7 +1083,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .into_iter()
             .map(|row| EntityEditionId::new(row.get(0)))
@@ -1144,7 +1091,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client
             .simple_query("DROP TABLE entity_editions_temp;")
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(entity_edition_ids)
@@ -1169,7 +1115,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 );",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         let sink = self
@@ -1183,7 +1128,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ) FROM STDIN BINARY",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[
             Type::UUID,
@@ -1202,15 +1146,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &decision_time,
                 ])
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
         }
 
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
+        writer.finish().await.change_context(InsertionError)?;
 
         let entity_versions = self
             .client
@@ -1236,7 +1175,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .into_iter()
             .map(|row| EntityTemporalMetadata {
@@ -1248,7 +1186,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client
             .simple_query("DROP TABLE entity_temporal_metadata_temp;")
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(entity_versions)
@@ -1269,7 +1206,6 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 &[&account_id],
             )
             .await
-            .into_report()
             .change_context(InsertionError)
             .attach_printable(account_id)?;
 
@@ -1285,7 +1221,6 @@ impl<C: AsClient> PostgresStore<C> {
             .client()
             .simple_query("DELETE FROM accounts;")
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         Ok(())

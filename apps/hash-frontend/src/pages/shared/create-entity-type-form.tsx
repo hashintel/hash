@@ -3,8 +3,7 @@ import {
   EntityType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { Callout, TextField } from "@hashintel/design-system";
 import {
   Box,
   formHelperTextClasses,
@@ -12,7 +11,6 @@ import {
   Stack,
   SxProps,
   Theme,
-  Typography,
 } from "@mui/material";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -23,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
+import { useAuthenticatedUser } from "./auth-info-context";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
 
@@ -59,6 +58,10 @@ type CreateEntityTypeFormProps = {
   onCancel: () => void;
 };
 
+const extractNamespaceFromVersionedUrl = (versionedUrl: VersionedUrl) => {
+  return new URL(versionedUrl).pathname.split("/")[1]!.replace(/@/, "");
+};
+
 export const CreateEntityTypeForm = ({
   afterSubmit,
   initialData,
@@ -85,6 +88,8 @@ export const CreateEntityTypeForm = ({
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { activeWorkspace } = useContext(WorkspaceContext);
   const generateTypeUrlsForUser = useGenerateTypeUrlsForUser();
+
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const { extendsEntityTypeId } = initialData;
 
@@ -135,6 +140,21 @@ export const CreateEntityTypeForm = ({
 
   const formItemWidth = `min(calc(100% - ${HELPER_TEXT_WIDTH + 52}px), 600px)`;
 
+  const parentWebName = parentType
+    ? extractNamespaceFromVersionedUrl(parentType.schema.$id)
+    : undefined;
+
+  const crossWebAction =
+    parentType && parentWebName !== activeWorkspace.shortname;
+
+  const potentiallyUndesiredCrossWebAction =
+    crossWebAction &&
+    authenticatedUser.memberOf.find(
+      (org) =>
+        org.shortname === parentWebName ||
+        org.shortname === activeWorkspace.shortname,
+    );
+
   return (
     <Box
       component="form"
@@ -179,35 +199,20 @@ export const CreateEntityTypeForm = ({
         spacing={3}
       >
         {parentType && (
-          <Stack
-            alignItems="center"
-            direction="row"
-            sx={({ palette }) => ({
-              background: palette.yellow[20],
-              border: `1px solid ${palette.yellow[40]}`,
-              px: 2.5,
-              py: 2,
-              width: { md: inModal ? "100%" : formItemWidth },
-            })}
+          <Callout
+            type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
+            sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
           >
-            <FontAwesomeIcon
-              icon={faWarning}
-              sx={({ palette }) => ({
-                color: palette.yellow[70],
-                fontSize: 32,
-                mr: 3,
-              })}
-            />
-            <Typography
-              variant="smallTextLabels"
-              sx={({ palette }) => ({ color: palette.gray[80] })}
-            >
-              You are extending <strong>{parentType.schema.title}</strong> to
-              create a new entity type in the
-              <strong> @{activeWorkspace.shortname} </strong>
-              workspace.
-            </Typography>
-          </Stack>
+            You are extending the <strong>{parentType.schema.title}</strong>{" "}
+            entity type from <strong>@{parentWebName}</strong>
+            {" to create a new entity type within "}
+            {crossWebAction ? (
+              <strong>@{activeWorkspace.shortname}</strong>
+            ) : (
+              "the same web"
+            )}
+            .
+          </Callout>
         )}
         <TextField
           {...register("name", {
@@ -237,6 +242,7 @@ export const CreateEntityTypeForm = ({
                 : true;
             },
           })}
+          autoFocus
           required
           label="Singular Name"
           type="text"

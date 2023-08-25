@@ -1,7 +1,7 @@
 use std::{borrow::Cow, error::Error};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
     account::AccountId,
@@ -117,9 +117,8 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
@@ -156,12 +155,10 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
-                        .into_report()
                         .change_context(QueryError)?,
                     metadata: OntologyElementMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
-                                .into_report()
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
@@ -221,9 +218,8 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
@@ -260,12 +256,10 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
-                        .into_report()
                         .change_context(QueryError)?,
                     metadata: OntologyElementMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
-                                .into_report()
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
@@ -326,9 +320,8 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
                 let additional_metadata: AdditionalOntologyMetadata =
                     row.get(additional_metadata_index);
@@ -367,17 +360,14 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                     .get::<_, Option<String>>(label_property_index)
                     .map(BaseUrl::new)
                     .transpose()
-                    .into_report()
                     .change_context(QueryError)?;
 
                 Ok(OntologyTypeSnapshotRecord {
                     schema: serde_json::from_value(row.get(schema_index))
-                        .into_report()
                         .change_context(QueryError)?,
                     metadata: EntityTypeMetadata {
                         record_id: OntologyTypeRecordId {
                             base_url: BaseUrl::new(row.get(base_url_index))
-                                .into_report()
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
@@ -410,11 +400,7 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(DataTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: DataType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -440,11 +426,7 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(PropertyTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -470,11 +452,7 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
                 .await?
                 .and_then(|record| async move {
                     Ok(EntityTypeWithMetadata {
-                        schema: record
-                            .schema
-                            .try_into()
-                            .into_report()
-                            .change_context(QueryError)?,
+                        schema: EntityType::try_from(record.schema).change_context(QueryError)?,
                         metadata: record.metadata,
                     })
                 });
@@ -541,9 +519,8 @@ impl<C: AsClient> PostgresStore<C> {
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .map_ok(move |row| {
                 (
                     VersionedUrl {
@@ -622,7 +599,6 @@ impl<C: AsClient> PostgresStore<C> {
                 &[&record_ids.ontology_ids],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {

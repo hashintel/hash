@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -25,7 +25,6 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(())
@@ -46,7 +45,6 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                         &[accounts],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} accounts", rows.len());
@@ -66,7 +64,6 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         Ok(())
     }

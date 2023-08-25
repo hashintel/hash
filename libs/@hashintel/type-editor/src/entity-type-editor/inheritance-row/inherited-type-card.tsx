@@ -5,13 +5,16 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { EntityTypeEditorFormData } from "../../shared/form-types";
+import { useIsReadonly } from "../../shared/read-only-context";
 import { Link } from "../shared/link";
 import { useTypeVersions } from "../shared/use-type-versions";
 
 export const InheritedTypeCard = ({
+  onRemove,
   entityType,
 }: {
   entityType: Pick<EntityType, "$id" | "title">;
+  onRemove: () => void;
 }) => {
   const { $id, title } = entityType;
   const { entityTypes } = useEntityTypesOptions();
@@ -19,11 +22,14 @@ export const InheritedTypeCard = ({
   const [currentVersion, latestVersion] = useTypeVersions($id, entityTypes);
   const newVersion = currentVersion < latestVersion ? latestVersion : undefined;
 
+  const isReadOnly = useIsReadonly();
+
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
   const directParentEntityTypeIds = useWatch({
     control,
     name: "allOf",
   });
+
   const upgradeToVersion = () => {
     if (!newVersion) {
       return;
@@ -43,17 +49,9 @@ export const InheritedTypeCard = ({
     );
   };
 
-  const removeType = () => {
-    setValue(
-      "allOf",
-      directParentEntityTypeIds.filter((id) => id !== $id),
-      { shouldDirty: true },
-    );
-  };
-
   return (
     <TypeCard
-      onDelete={removeType}
+      onDelete={isReadOnly ? undefined : onRemove}
       LinkComponent={Link}
       newVersionConfig={
         newVersion

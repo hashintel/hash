@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -58,7 +58,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
         Ok(())
@@ -73,12 +72,12 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         r"
                             INSERT INTO entity_ids_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_ids[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ids],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity ids", rows.len());
@@ -90,12 +89,12 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         r"
                             INSERT INTO entity_editions_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_editions_tmp[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[editions],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity editions", rows.len());
@@ -112,7 +111,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         &[temporal_metadata],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity temporal metadata", rows.len());
@@ -129,7 +127,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         &[links],
                     )
                     .await
-                    .into_report()
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity links", rows.len());
@@ -186,7 +183,6 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             ",
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
         Ok(())
     }

@@ -148,7 +148,7 @@ export const WorkspaceSwitcher: FunctionComponent<
           },
           {
             title: "Create an organization",
-            href: "/new/organization",
+            href: "/settings/organizations/new",
           },
         ].map(({ title, href }, index) => (
           // eslint-disable-next-line react/no-array-index-key

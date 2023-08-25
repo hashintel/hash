@@ -4,7 +4,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, UnboundedReceiver, UnboundedSender},
     stream::{select_all, BoxStream, SelectAll},
@@ -36,7 +36,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll metadata sender")?;
         ready!(self.data_type.poll_ready_unpin(cx))
@@ -56,7 +55,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::Snapshot(snapshot) => self
                 .metadata
                 .start_send_unpin(snapshot)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send snapshot metadata"),
             SnapshotEntry::DataType(data_type) => self
@@ -83,7 +81,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush metadata sender")?;
         ready!(self.data_type.poll_flush_unpin(cx))
@@ -103,7 +100,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.metadata.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close metadata sender")?;
         ready!(self.data_type.poll_close_unpin(cx))

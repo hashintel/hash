@@ -7,8 +7,7 @@ export const InheritedPropertyRow = ({
 }: {
   inheritedPropertyData: InheritedValues["properties"][0];
 }) => {
-  const { $id, inheritanceChain, inheritedFrom, required, array } =
-    inheritedPropertyData;
+  const { $id, inheritanceChain, required, array } = inheritedPropertyData;
 
   const propertyTypeOptions = usePropertyTypesOptions();
   const propertySchema = propertyTypeOptions[$id];
@@ -20,7 +19,6 @@ export const InheritedPropertyRow = ({
   return (
     <PropertyRow
       inheritanceChain={inheritanceChain}
-      inheritedFrom={inheritedFrom}
       property={propertySchema}
       isArray={array}
       isRequired={required}

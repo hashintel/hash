@@ -1,5 +1,9 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { useMemo } from "react";
+import {
+  EntityType,
+  extractBaseUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
+import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { getFormDataFromSchema } from "../../get-form-data-from-schema";
@@ -12,31 +16,34 @@ import {
 
 export type InheritanceData = {
   /**
-   * The titles of entity types in the chain this type is inherited via.
-   * This is a convenience for displaying the inheritance chain to the user in tooltips.
+   * The entity types in the chain this type is inherited via, starting with the child,
+   * and ending with the entity type which references this type.
    *
    * e.g. for inherited properties for Dog, which inherits from Animal, which inherits from LivingThing,
-   *   the inheritance chain where inheritedFrom is LivingThing would be ["Animal", "LivingThing"]
+   *   the inheritance chain for a property referenced by LivingThing would be [Dog, Animal, LivingThing]
    */
-  inheritanceChain: string[];
-  /**
-   * The entity type this type is inherited from.
-   */
-  inheritedFrom: EntityType;
+  inheritanceChain: EntityType[];
 };
 
 /**
  * Inherited links and properties, each including:
  * 1. The usual form data for links and properties (they won't be edited, but it's convenient given the component design)
  * 2. Additional inheritance information to mark them as inherited, and for use in tooltips etc
+ *
+ * Also includes an array of inheritance chains, e.g. each path from the child to an entity type with no further parents,
+ *    represented as an array containing each parent along the path
  */
 export type InheritedValues = {
+  inheritanceChains: EntityType[][];
   links: (EntityTypeEditorLinkData & InheritanceData)[];
   properties: (EntityTypeEditorPropertyData & InheritanceData)[];
 };
 
 type ValueMap = {
+  inheritanceChains: EntityType[][];
+  // A map between a link's id -> its form data, and where it's inherited from
   links: Record<VersionedUrl, InheritedValues["links"][0]>;
+  // A map between a property's id -> its form data, and where it's inherited from
   properties: Record<VersionedUrl, InheritedValues["properties"][0]>;
 };
 
@@ -50,7 +57,7 @@ const addInheritedValuesForEntityType = (
   entityTypeId: VersionedUrl,
   entityTypeOptions: Record<VersionedUrl, EntityType>,
   inheritedValuesMap: ValueMap,
-  inheritanceChain: string[] = [],
+  inheritanceChainToHere: EntityType[] = [],
 ) => {
   const entity = entityTypeOptions[entityTypeId];
 
@@ -60,7 +67,7 @@ const addInheritedValuesForEntityType = (
     );
   }
 
-  const newInheritanceChain = [...inheritanceChain, entity.title];
+  const newInheritanceChain = [...inheritanceChainToHere, entity];
 
   const { properties, links } = getFormDataFromSchema(entity);
 
@@ -68,52 +75,82 @@ const addInheritedValuesForEntityType = (
     // eslint-disable-next-line no-param-reassign
     inheritedValuesMap.links[link.$id] = {
       ...link,
-      inheritedFrom: entity,
       inheritanceChain: newInheritanceChain,
     };
   }
 
   for (const property of properties) {
+    if (
+      Object.keys(inheritedValuesMap.properties).find((versionedUrl) =>
+        versionedUrl.startsWith(extractBaseUrl(property.$id)),
+      )
+    ) {
+      throw new Error(
+        `Duplicate property ${property.$id} found in inheritance chain`,
+      );
+    }
+
     // eslint-disable-next-line no-param-reassign
     inheritedValuesMap.properties[property.$id] = {
       ...property,
-      inheritedFrom: entity,
       inheritanceChain: newInheritanceChain,
     };
   }
 
-  (entity.allOf ?? []).map(({ $ref }) =>
-    addInheritedValuesForEntityType(
-      $ref,
-      entityTypeOptions,
-      inheritedValuesMap,
-      newInheritanceChain,
-    ),
+  if (!entity.allOf?.length) {
+    // we have reached a root entity type, add the inheritance chain to the map
+    inheritedValuesMap.inheritanceChains.push(newInheritanceChain);
+  } else {
+    entity.allOf.map(({ $ref }) =>
+      addInheritedValuesForEntityType(
+        $ref,
+        entityTypeOptions,
+        inheritedValuesMap,
+        newInheritanceChain,
+      ),
+    );
+  }
+};
+
+export const useGetInheritedValues = (): ((args: {
+  directParentIds: VersionedUrl[];
+}) => InheritedValues) => {
+  const { entityTypes, linkTypes } = useEntityTypesOptions();
+
+  return useCallback(
+    ({ directParentIds }) => {
+      const inheritedValuesMap: ValueMap = {
+        inheritanceChains: [],
+        links: {},
+        properties: {},
+      };
+      for (const parentId of directParentIds) {
+        addInheritedValuesForEntityType(
+          parentId,
+          { ...entityTypes, ...linkTypes },
+          inheritedValuesMap,
+        );
+      }
+
+      return {
+        inheritanceChains: Object.values(inheritedValuesMap.inheritanceChains),
+        links: Object.values(inheritedValuesMap.links),
+        properties: Object.values(inheritedValuesMap.properties),
+      };
+    },
+    [entityTypes, linkTypes],
   );
 };
 
-export const useInheritedValues = (): InheritedValues => {
+export const useInheritedValuesForCurrentDraft = () => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
-
-  const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   const directParentIds = useWatch({
     control,
     name: "allOf",
   });
 
-  return useMemo(() => {
-    const inheritedValuesMap: ValueMap = { links: {}, properties: {} };
-    for (const parent of directParentIds) {
-      addInheritedValuesForEntityType(
-        parent,
-        { ...entityTypes, ...linkTypes },
-        inheritedValuesMap,
-      );
-    }
-    return {
-      links: Object.values(inheritedValuesMap.links),
-      properties: Object.values(inheritedValuesMap.properties),
-    };
-  }, [directParentIds, entityTypes, linkTypes]);
+  const getInheritedValues = useGetInheritedValues();
+
+  return getInheritedValues({ directParentIds });
 };

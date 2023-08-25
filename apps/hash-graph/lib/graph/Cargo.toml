@@ -23,7 +23,7 @@ async-trait = "0.1.73"
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.3.23", features = ["derive", "env"], optional = true }
+clap = { version = "4.4.0", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 futures = "0.3.28"
 hyper = "0.14.27"
@@ -43,7 +43,7 @@ tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
 tonic = "0.8.3"
 tower = "0.4.13"
-tower-http = { version = "0.4.2", features = ["trace"] }
+tower-http = { version = "0.4.3", features = ["trace"] }
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.18.0"
