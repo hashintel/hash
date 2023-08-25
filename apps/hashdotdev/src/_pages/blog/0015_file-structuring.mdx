@@ -211,7 +211,7 @@ Even with imperfect wiring between certain imports and exports, partial adoption
 
 ## Walk-through
 
-To understand how the rules work, let’s create a new project that consists of a single file 🌱
+To understand how the rules apply, let’s create a new project that consists of a single file 🌱
 
 ```txt
 hello.js
@@ -229,7 +229,7 @@ hello/
 ```
 
 Putting `calculate-x` in `hello` subfolder signals that the new file can only be used inside `hello.js`.
-If we add another ’private’ piece of logic for `hello.js`, (e.g. `calculate-y`), it also goes into the same folder:
+If we add another ’private’ piece of logic for `hello.js`, (e.g. `calculate-y`), it also gets placed inside the same folder:
 
 ```txt
 hello.js
@@ -240,8 +240,7 @@ hello/
 
 By convention, only `hello.js` is allowed to import from `calculate-x` and `calculate-y`.
 
-Now imagine that we want to introduce a new function called `doCommonThing()` and also a concept named `bar` that would be used inside both `calculateX()` and `calculateY()` .
-Based on where these new resources are used, they belong to `hello/shared/`:
+Now imagine that we want to introduce a new function called `doCommonThing()`, and a separate new concept named `bar`, which will be used inside both `calculateX()` and `calculateY()`. Based on where these new resources are used, they belong in `hello/shared/`:
 
 ```txt
 hello.js
@@ -253,8 +252,7 @@ hello/
   calculate-y.js
 ```
 
-Let’s assume that `doCommonThing` has an internal function `a` that would benefit from its own unit tests for confidence.
-We get:
+Let’s assume that `doCommonThing` has an internal function `a` that would benefit from its own unit tests for confidence. We get:
 
 ```txt
 hello.js
@@ -269,9 +267,7 @@ hello/
   calculate-y.js
 ```
 
-Finally, let’s imagine that we’ve introduced another entry point called `hi.js` which depends on the concept of `bar`, but does not use `calculate-x`, `calculate-y` or `do-common-thing`.
-In this case, `hello/shared/bar.js` is moved closer to the root of the tree into to a new `shared` folder.
-Import paths are updated accordingly.
+Finally, let’s imagine that we’ve introduced another entry point called `hi.js` which depends on the concept of `bar`, but does not use `calculate-x`, `calculate-y` or `do-common-thing`. In this case, `hello/shared/bar.js` is moved closer to the root of the tree, and into to a new `shared` folder. Import paths are updated accordingly.
 
 ```txt
 shared/
@@ -288,11 +284,9 @@ hello/
 hi.js
 ```
 
-At each moment in time, files and folders communicate the ‘current truth’ on the relationship between various parts of the codebase.
-This ability is preserved with scale.
-🌳
+At each moment in time, files and folders communicate the ‘current truth’ of the relationship between various parts of the codebase. This ability is preserved with scale. 🌳
 
-## Examples
+## Examples of fractal tree structuring
 
-- [Þ → libs/blockprotocol](https://github.com/blockprotocol/blockprotocol/tree/main/libs/blockprotocol)
-- [# → @hashintel/design-system](https://github.com/hashintel/hash/tree/main/libs/@hashintel/design-system)
+- In [Þ → libs/blockprotocol](https://github.com/blockprotocol/blockprotocol/tree/main/libs/blockprotocol)
+- In [# → @hashintel/design-system](https://github.com/hashintel/hash/tree/main/libs/@hashintel/design-system)
