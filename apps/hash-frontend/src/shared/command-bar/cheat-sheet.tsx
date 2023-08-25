@@ -1,6 +1,5 @@
 import { Box, Typography } from "@mui/material";
 import { useEffect, useReducer, useState } from "react";
-import { useKeys } from "rooks";
 
 import { Modal } from "../ui/modal";
 import { CommandBarOption, menu } from "./command-bar-options";
@@ -32,20 +31,25 @@ export const CheatSheet = () => {
     {},
   );
 
-  useKeys(
-    ["?"],
-    (evt) => {
-      // Hack to detect if pressed inside an input or textarea
-      if (
-        evt.target &&
-        !("defaultValue" in evt.target) &&
-        !(evt.target as HTMLElement).isContentEditable
-      ) {
-        setOpen(true);
-      }
-    },
-    {},
-  );
+  /**
+   * @todo reinstate this
+   * when doing so, check if https://github.com/imbhargav5/rooks/issues/1730 has been fixed
+   * if it has, upgrade rooks. if not, either implement our own version of useKeys (command-bar has one) or patch rooks
+   */
+  // useKeys(
+  //   ["?"],
+  //   (evt) => {
+  //     // Hack to detect if pressed inside an input or textarea
+  //     if (
+  //       evt.target &&
+  //       !("defaultValue" in evt.target) &&
+  //       !(evt.target as HTMLElement).isContentEditable
+  //     ) {
+  //       setOpen(true);
+  //     }
+  //   },
+  //   {},
+  // );
 
   return (
     <Modal open={open} onClose={() => setOpen(false)}>
