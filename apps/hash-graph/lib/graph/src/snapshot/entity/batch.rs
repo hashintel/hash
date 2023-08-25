@@ -72,6 +72,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         r"
                             INSERT INTO entity_ids_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_ids[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ids],
@@ -88,6 +89,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         r"
                             INSERT INTO entity_editions_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_editions_tmp[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[editions],
