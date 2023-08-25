@@ -339,7 +339,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              HASH is an open-source, all-in-one platform for working
+              HASH is an open source, all-in-one platform for working
               with information, built around blocks.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
