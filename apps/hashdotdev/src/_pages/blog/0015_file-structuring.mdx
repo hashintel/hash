@@ -193,7 +193,7 @@ Just like ‘mini-libraries’, tree entry points can share resources with one a
 
 When supporting multiple entry points, try to keep their names distinct from the ‘mini-libraries’ of the fractal tree. This can be achieved through file name suffixing: e.g. `dashboard.page.jsx`; `login.handler.js`; `do-something.script.js`; `foo.test.js`.
 
-### Rule #8: Co-locate unit tests with covered files
+### Rule 8: Co-locate unit tests with covered files
 
 To cover `path/to/foo.js` with unit tests, create `path/to/foo.test.js`. Placing unit tests into subfolders (e.g. `path/to/__test__/foo.test.js`) makes it harder to sync tests and see what files have tests.
 
@@ -201,7 +201,7 @@ If `foo.test.js` becomes too big, explore writing tests for individual ‘mini-l
 
 Higher-level integration, system, or end-to-end tests that cover a whole project (i.e. a library or an app) should be placed outside of the root of the source tree, and form their own independent ‘fractal forest’.
 
-### Rule #9: Exceptions are undesired but are not prohibited
+### Rule 9: Exceptions are undesired but are not prohibited
 
 The above rules are there to organize complex projects, but they don’t require an exhaustive opt-in. A fractal tree structure may be adhered to only in selected parts of a codebase, in part or whole, and gradually migrated to over time.
 
@@ -271,16 +271,16 @@ Finally, let’s imagine that we’ve introduced another entry point called `hi.
 
 ```txt
 shared/
-  bar.js
+╰╴ bar.js
 hello.js
 hello/
-  shared/
-    do-common-thing.js
-    do-common-thing/
-      a.js
-      a.test.js
-  calculate-x.js
-  calculate-y.js
+╰╴ shared/
+   │├╴ do-common-thing.js
+   │╰╴ do-common-thing/
+   │   ├╴ a.js
+   │   ╰╴ a.test.js
+   ├╴ calculate-x.js
+   ╰╴ calculate-y.js
 hi.js
 ```
 
