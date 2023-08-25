@@ -224,8 +224,8 @@ If the file becomes too big or if `calculateX` needs unit testing, we can extrac
 ```txt
 hello.js
 hello/
-  calculate-x.js
-  calculate-x.test.js (optional)
+├╴ calculate-x.js
+╰╴ calculate-x.test.js (optional)
 ```
 
 Putting `calculate-x` in `hello` subfolder signals that the new file can only be used inside `hello.js`.
@@ -234,8 +234,8 @@ If we add another ’private’ piece of logic for `hello.js`, (e.g. `calculate-
 ```txt
 hello.js
 hello/
-  calculate-x.js
-  calculate-y.js
+├╴ calculate-x.js
+╰╴ calculate-y.js
 ```
 
 By convention, only `hello.js` is allowed to import from `calculate-x` and `calculate-y`.
@@ -245,11 +245,11 @@ Now imagine that we want to introduce a new function called `doCommonThing()`, a
 ```txt
 hello.js
 hello/
-  shared/
-    bar.js
-    do-common-thing.js
-  calculate-x.js
-  calculate-y.js
+├╴ shared/
+│  ├╴ bar.js
+│  ╰╴ do-common-thing.js
+├╴ calculate-x.js
+╰╴ calculate-y.js
 ```
 
 Let’s assume that `doCommonThing` has an internal function `a` that would benefit from its own unit tests for confidence. We get:
@@ -257,14 +257,14 @@ Let’s assume that `doCommonThing` has an internal function `a` that would bene
 ```txt
 hello.js
 hello/
-  shared/
-    bar.js
-    do-common-thing.js
-    do-common-thing/
-      a.js
-      a.test.js
-  calculate-x.js
-  calculate-y.js
+├╴ shared/
+│  ├╴ bar.js
+│  ├╴ do-common-thing.js
+│  ╰╴ do-common-thing/
+│     ├╴ a.js
+│     ╰╴ a.test.js
+├╴ calculate-x.js
+╰╴ calculate-y.js
 ```
 
 Finally, let’s imagine that we’ve introduced another entry point called `hi.js` which depends on the concept of `bar`, but does not use `calculate-x`, `calculate-y` or `do-common-thing`. In this case, `hello/shared/bar.js` is moved closer to the root of the tree, and into to a new `shared` folder. Import paths are updated accordingly.
@@ -274,13 +274,13 @@ shared/
 ╰╴ bar.js
 hello.js
 hello/
-╰╴ shared/
-   │├╴ do-common-thing.js
-   │╰╴ do-common-thing/
-   │   ├╴ a.js
-   │   ╰╴ a.test.js
-   ├╴ calculate-x.js
-   ╰╴ calculate-y.js
+├╴ shared/
+│  ├╴ do-common-thing.js
+│  ╰╴ do-common-thing/
+│     ├╴ a.js
+│     ╰╴ a.test.js
+├╴ calculate-x.js
+╰╴ calculate-y.js
 hi.js
 ```
 
