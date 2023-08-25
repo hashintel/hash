@@ -3,7 +3,9 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   Callout,
+  EntityTypeIcon,
   FontAwesomeIcon,
+  LinkTypeIcon,
   Modal,
   TYPE_SELECTOR_HEIGHT,
 } from "@hashintel/design-system";
@@ -58,13 +60,22 @@ export const InheritanceRow = ({
 
   const { entityTypesArray, directParents } = useMemo(() => {
     const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
+    const entityTypeOptions = Object.values(entityTypes).map((type) => ({
+      ...type,
+      Icon: EntityTypeIcon,
+    }));
+
+    const linkTypeOptions = Object.values(linkTypes).map((type) => ({
+      ...type,
+      Icon: LinkTypeIcon,
+    }));
 
     // If something has a link type as a parent, it cannot have a non-link type parent, and vice versa
     const typesArray = isLinkType
-      ? Object.values(linkTypes)
+      ? linkTypeOptions
       : directParentEntityTypeIds.length
-      ? Object.values(entityTypes)
-      : [...Object.values(entityTypes), ...Object.values(linkTypes)];
+      ? entityTypeOptions
+      : [...entityTypeOptions, ...linkTypeOptions];
 
     const parents = typesArray.filter(
       (type) =>

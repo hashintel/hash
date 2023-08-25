@@ -6,9 +6,17 @@ import {
   outlinedInputClasses,
   PaperProps,
   PopperProps,
+  SvgIconProps,
   Typography,
 } from "@mui/material";
-import { createContext, Ref, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  FunctionComponent,
+  Ref,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { Button, ButtonProps } from "./button";
@@ -114,6 +122,7 @@ type OptionRenderData = {
   uniqueId: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
   typeId: VersionedUrl;
+  Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
   description?: string;
 };

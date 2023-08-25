@@ -1,4 +1,4 @@
-import { LinkIcon } from "@hashintel/design-system";
+import { GraphIcon } from "@hashintel/design-system";
 import {
   Divider,
   Paper,
@@ -106,7 +106,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
             focusEditorView();
           }}
         >
-          <LinkIcon
+          <GraphIcon
             sx={{
               fill: "inherit",
               fontSize: 16,
