@@ -16,8 +16,8 @@ error-stack = { workspace = true }
 type-system = { workspace = true }
 
 axum = "0.6.20"
-clap = { version = "4.3.24", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.3.2"
+clap = { version = "4.4.0", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.4.0"
 futures = { version = "0.3.28" }
 regex = "1.9.3"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
