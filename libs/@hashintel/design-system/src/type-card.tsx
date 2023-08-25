@@ -67,9 +67,9 @@ export const TypeCard = ({
           height: 40,
           display: "flex",
           alignItems: "center",
+          justifyContent: "flex-start",
           px: 1.5,
           py: 1.25,
-          gap: 1.25,
           color: ({ palette }) => palette.black,
           backgroundColor: newVersionConfig ? "yellow.10" : "white",
           "&:hover": {
@@ -78,9 +78,9 @@ export const TypeCard = ({
         }}
       >
         <FontAwesomeIcon icon={faAsterisk} />
-        <Typography variant="smallTextLabels" fontWeight={600}>
+        <Typography variant="smallTextLabels" fontWeight={600} ml={1.5}>
           {title}
-          <Typography variant="microText" color="gray.50">
+          <Typography variant="microText" color="gray.50" ml={0.5}>
             {` v${version}`}
           </Typography>
         </Typography>
@@ -108,6 +108,7 @@ export const TypeCard = ({
                   color: "blue.70",
                   backgroundColor: "blue.20",
                 },
+                ml: 1,
               }}
             >
               <FontAwesomeIcon icon={faArrowsRotate} />
@@ -122,7 +123,7 @@ export const TypeCard = ({
                 event.stopPropagation();
                 onDelete();
               }}
-              sx={{ "&:hover": { background: "none" }, padding: 0 }}
+              sx={{ "&:hover": { background: "none" }, ml: 1, padding: 0 }}
             >
               <CloseIcon
                 sx={({ palette }) => ({

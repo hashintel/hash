@@ -1,26 +1,26 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::{url::VersionedUrl, DataType};
-
-#[cfg(hash_graph_test_environment)]
-use crate::store::error::DeletionError;
-use crate::{
-    identifier::time::RightBoundedTemporalInterval,
+use graph_types::{
     ontology::{
         DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         PartialOntologyElementMetadata,
     },
     provenance::{RecordArchivedById, RecordCreatedById},
+};
+use temporal_versioning::RightBoundedTemporalInterval;
+use type_system::{url::VersionedUrl, DataType};
+
+#[cfg(hash_graph_test_environment)]
+use crate::store::error::DeletionError;
+use crate::{
     store::{
         crud::Read,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
@@ -64,7 +64,6 @@ impl<C: AsClient> PostgresStore<C> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))

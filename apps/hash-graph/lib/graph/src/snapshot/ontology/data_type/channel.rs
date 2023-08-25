@@ -3,7 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
@@ -39,7 +39,6 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.metadata.poll_ready_unpin(cx))
             .attach_printable("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
 
@@ -51,7 +50,6 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ontology_type: OntologyTypeSnapshotRecord<DataType>,
     ) -> Result<(), Self::Error> {
         let data_type = DataType::try_from(ontology_type.schema)
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to data type")?;
 
@@ -65,7 +63,6 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
                 ontology_id,
                 schema: Json(data_type.into()),
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
@@ -76,7 +73,6 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.metadata.poll_flush_unpin(cx))
             .attach_printable("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
 
@@ -87,7 +83,6 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.metadata.poll_close_unpin(cx))
             .attach_printable("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
 

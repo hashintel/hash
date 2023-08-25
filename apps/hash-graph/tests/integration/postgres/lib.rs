@@ -16,22 +16,8 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::{
-        account::AccountId,
-        knowledge::EntityId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp},
-    },
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
-        LinkData,
-    },
-    ontology::{
-        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
-        OntologyElementMetadata, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
-        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    knowledge::EntityQueryPath,
+    ontology::EntityTypeQueryPath,
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
@@ -50,6 +36,20 @@ use graph::{
         },
     },
 };
+use graph_types::{
+    account::AccountId,
+    knowledge::{
+        entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
+    },
+    ontology::{
+        DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        OntologyTypeVersion, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
+        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+};
+use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{repr, url::VersionedUrl, DataType, EntityType, PropertyType};

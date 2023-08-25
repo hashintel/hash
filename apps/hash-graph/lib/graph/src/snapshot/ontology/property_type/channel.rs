@@ -3,29 +3,27 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::ontology::OntologyTypeVersion;
 use postgres_types::Json;
 use type_system::PropertyType;
 use uuid::Uuid;
 
-use crate::{
-    identifier::ontology::OntologyTypeVersion,
-    snapshot::{
-        ontology::{
-            property_type::batch::PropertyTypeRowBatch,
-            table::{
-                PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
-                PropertyTypeRow,
-            },
-            OntologyTypeMetadataSender,
+use crate::snapshot::{
+    ontology::{
+        property_type::batch::PropertyTypeRowBatch,
+        table::{
+            PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
+            PropertyTypeRow,
         },
-        OntologyTypeSnapshotRecord, SnapshotRestoreError,
+        OntologyTypeMetadataSender,
     },
+    OntologyTypeSnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`PropertyType`].
@@ -50,15 +48,12 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.metadata.poll_ready_unpin(cx))
             .attach_printable("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
         ready!(self.constrains_values.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains values edge sender")?;
         ready!(self.constrains_properties.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains properties edge sender")?;
 
@@ -70,7 +65,6 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ontology_type: OntologyTypeSnapshotRecord<PropertyType>,
     ) -> Result<(), Self::Error> {
         let property_type = PropertyType::try_from(ontology_type.schema)
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to property type")?;
 
@@ -95,7 +89,6 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         if !values.is_empty() {
             self.constrains_values
                 .start_send_unpin(values)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send constrains values edge")?;
         }
@@ -115,7 +108,6 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         if !properties.is_empty() {
             self.constrains_properties
                 .start_send_unpin(properties)
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send constrains properties edge")?;
         }
@@ -125,7 +117,6 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
                 ontology_id,
                 schema: Json(property_type.into()),
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
@@ -136,15 +127,12 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.metadata.poll_flush_unpin(cx))
             .attach_printable("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
         ready!(self.constrains_values.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains values edge sender")?;
         ready!(self.constrains_properties.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains properties edge sender")?;
 
@@ -155,15 +143,12 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.metadata.poll_close_unpin(cx))
             .attach_printable("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
         ready!(self.constrains_values.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains values edge sender")?;
         ready!(self.constrains_properties.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains properties edge sender")?;
 

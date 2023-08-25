@@ -1296,12 +1296,12 @@
           "incoming": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           },
           "outgoing": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
@@ -1417,7 +1417,8 @@
         }
       },
       "EntityProperties": {
-        "type": "object"
+        "type": "object",
+        "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
       },
       "EntityQueryToken": {
         "type": "string",
@@ -2171,14 +2172,14 @@
           "version": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
       "OntologyTypeVersion": {
         "type": "integer",
         "format": "int32",
-        "minimum": 0.0
+        "minimum": 0
       },
       "OntologyTypeVertexId": {
         "oneOf": [
@@ -2316,7 +2317,7 @@
           "outgoing": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
@@ -2497,7 +2498,7 @@
             }
           }
         ],
-        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
+        "description": "Defines the two possible combinations of pinned/variable temporal axes that are used in\nresponses to queries that return [`Subgraph`]s.\n\nWhen querying the Graph, temporal data is returned. The Graph is implemented as a bitemporal\ndata store, which means the knowledge data contains information about the time of when the\nknowledge was inserted into the Graph, the [`TransactionTime`], and when the knowledge was\ndecided to be inserted, the [`DecisionTime`].\n\nIn order to query data from the Graph, only one of the two time axes can be used. This is\nachieved by using a `TemporalAxes`. The `TemporalAxes` pins one axis to a specified\n[`Timestamp`], while the other axis can be a [`Interval`]. The pinned axis is called the\n[`PinnedTemporalAxis`] and the other axis is called the [`VariableTemporalAxis`]. The returned\ndata will then only contain temporal data that is contained in the [`Interval`] of the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].\n\n[`Subgraph`]: crate::subgraph::Subgraph\n[`Interval`]: temporal_versioning::Interval"
       },
       "QueryTemporalAxesUnresolved": {
         "oneOf": [

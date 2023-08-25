@@ -77,15 +77,16 @@ impl Transpile for SelectStatement {
 mod tests {
     use std::borrow::Cow;
 
+    use graph_types::{
+        knowledge::entity::Entity,
+        ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    };
     use postgres_types::ToSql;
     use uuid::Uuid;
 
     use crate::{
-        knowledge::{Entity, EntityQueryPath},
-        ontology::{
-            DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
-            PropertyTypeQueryPath, PropertyTypeWithMetadata,
-        },
+        knowledge::EntityQueryPath,
+        ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
         store::{
             postgres::query::{
                 test_helper::trim_whitespace, Distinctness, Ordering, PostgresRecord,
@@ -984,14 +985,15 @@ mod tests {
     }
 
     mod predefined {
+        use graph_types::{
+            account::AccountId,
+            knowledge::entity::{EntityId, EntityUuid},
+            ontology::OntologyTypeVersion,
+            provenance::OwnedById,
+        };
         use type_system::url::{BaseUrl, VersionedUrl};
 
         use super::*;
-        use crate::{
-            identifier::{account::AccountId, knowledge::EntityId, ontology::OntologyTypeVersion},
-            knowledge::EntityUuid,
-            provenance::OwnedById,
-        };
 
         #[test]
         fn for_versioned_url() {

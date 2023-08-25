@@ -544,7 +544,7 @@ const Community: FunctionComponent = () => {
               <Button
                 variant="primarySquare"
                 size="large"
-                color="mint"
+                color="green"
                 href="https://hash.ai/contact"
                 startIcon={<EnvelopeRegularIcon />}
               >

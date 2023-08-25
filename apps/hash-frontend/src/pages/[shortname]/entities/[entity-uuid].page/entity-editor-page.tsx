@@ -1,4 +1,4 @@
-import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
+import { OntologyChip } from "@hashintel/design-system";
 import { EntityPropertiesObject } from "@local/hash-subgraph";
 import { Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
@@ -74,7 +74,6 @@ export const EntityEditorPage = ({
               editBar={editBar}
               chip={
                 <OntologyChip
-                  icon={<OntologyIcon />}
                   domain="hash.ai"
                   path={
                     <Typography>

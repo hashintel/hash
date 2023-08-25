@@ -7,8 +7,14 @@ use axum::{
     routing::{post, put},
     Extension, Router,
 };
-use error_stack::IntoReport;
 use futures::TryFutureExt;
+use graph_types::{
+    ontology::{
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
+        PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
@@ -23,11 +29,8 @@ use crate::{
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
-        PropertyTypeQueryToken, PropertyTypeWithMetadata,
+        patch_id_and_parse, PropertyTypeQueryToken,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         error::VersionedUrlAlreadyExists, BaseUrlAlreadyExists, ConflictBehavior,
         OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
@@ -135,7 +138,7 @@ where
     let mut partial_metadata = Vec::with_capacity(schema_iter.size_hint().0);
 
     for schema in schema_iter {
-        let property_type: PropertyType = schema.try_into().into_report().map_err(|report| {
+        let property_type: PropertyType = schema.try_into().map_err(|report| {
             tracing::error!(error=?report, "Couldn't convert schema to Property Type");
             StatusCode::UNPROCESSABLE_ENTITY
             // TODO - We should probably return more information to the client

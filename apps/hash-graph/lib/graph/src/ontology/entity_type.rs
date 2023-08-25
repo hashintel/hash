@@ -54,7 +54,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
-    /// # use graph::{ontology::{EntityTypeQueryPath, EntityTypeWithMetadata}};
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// # use graph_types::ontology::EntityTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
@@ -100,8 +101,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`OwnedById`]: crate::provenance::OwnedById
-    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    /// [`OwnedById`]: graph_types::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: graph_types::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`RecordCreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
@@ -115,8 +116,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordCreatedById`]: crate::provenance::RecordCreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordCreatedById`]: graph_types::provenance::RecordCreatedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordCreatedById,
     /// The [`RecordArchivedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
@@ -130,8 +131,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// ```
     ///
     /// [`EntityType`]: type_system::EntityType
-    /// [`RecordArchivedById`]: crate::provenance::RecordArchivedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    /// [`RecordArchivedById`]: graph_types::provenance::RecordArchivedById
+    /// [`ProvenanceMetadata`]: graph_types::provenance::ProvenanceMetadata
     RecordArchivedById,
     /// Corresponds to [`EntityType::title()`].
     ///
@@ -422,7 +423,7 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     ///
     /// [`EntityType`]: type_system::PropertyType
-    /// [`Entity`]: crate::knowledge::Entity
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     EntityEdge {
         edge_kind: SharedEdgeKind,
         path: Box<EntityQueryPath<'p>>,

@@ -4,13 +4,16 @@ use std::{
     str::FromStr,
 };
 
-use graph::{
-    identifier::account::AccountId,
-    knowledge::{EntityLinkOrder, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, RecordCreatedById},
-    store::{AccountStore, AsClient, EntityStore},
-};
+use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::{
+    account::AccountId,
+    knowledge::{
+        entity::{EntityProperties, EntityUuid},
+        link::{EntityLinkOrder, LinkData},
+    },
+    provenance::{OwnedById, RecordCreatedById},
+};
 use type_system::{repr, url::VersionedUrl, EntityType};
 use uuid::Uuid;
 

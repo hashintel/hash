@@ -6,18 +6,18 @@ export const BlueStylishDivider: FunctionComponent<StackProps> = (props) => {
   const size = 12;
 
   const boxDefinitions: { color: string; opacity?: number }[] = [
-    { color: palette.turquoise[90] },
-    { color: palette.turquoise[70] },
-    { color: palette.turquoise[80] },
-    { color: palette.turquoise[70] },
-    { color: palette.turquoise[40] },
-    { color: palette.turquoise[50], opacity: 0.5 },
-    { color: palette.turquoise[40], opacity: 0.5 },
+    { color: palette.aqua[90] },
+    { color: palette.aqua[70] },
+    { color: palette.aqua[80] },
+    { color: palette.aqua[70] },
+    { color: palette.aqua[40] },
+    { color: palette.aqua[50], opacity: 0.5 },
+    { color: palette.aqua[40], opacity: 0.5 },
     { color: "#9EE9E4", opacity: 0.5 },
-    { color: palette.turquoise[40], opacity: 0.2 },
-    { color: palette.turquoise[40], opacity: 0.2 },
-    { color: palette.turquoise[40] },
-    { color: palette.turquoise[40], opacity: 0.2 },
+    { color: palette.aqua[40], opacity: 0.2 },
+    { color: palette.aqua[40], opacity: 0.2 },
+    { color: palette.aqua[40] },
+    { color: palette.aqua[40], opacity: 0.2 },
   ];
 
   return (

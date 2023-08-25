@@ -1,10 +1,16 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
+use graph_types::{
+    ontology::{
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+    },
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
+use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
     url::{BaseUrl, VersionedUrl},
     EntityType,
@@ -13,12 +19,6 @@ use type_system::{
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    identifier::{ontology::OntologyTypeRecordId, time::RightBoundedTemporalInterval},
-    ontology::{
-        EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-    },
-    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
     store::{
         crud::Read,
         postgres::{
@@ -27,7 +27,7 @@ use crate::{
             TraversalContext,
         },
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -177,7 +177,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ",
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         let entity_types = transaction
@@ -190,7 +189,6 @@ impl<C: AsClient> PostgresStore<C> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))

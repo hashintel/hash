@@ -2,7 +2,6 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   LoadingSpinner,
   OntologyChip,
-  OntologyIcon,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
 import {
@@ -66,7 +65,9 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
 
   const entityTypesContext = useEntityTypesContextRequired();
 
-  const ontology = parseUrlForOntologyChip(remoteEntityType?.schema.$id ?? "");
+  const ontology = remoteEntityType
+    ? parseUrlForOntologyChip(remoteEntityType.schema.$id)
+    : undefined;
 
   const entityTypeOptions = useMemo(
     () =>
@@ -114,7 +115,10 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
             overflowY: "auto",
           }}
         >
-          {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (
+          {loadingNamespace ||
+          loadingRemoteEntityType ||
+          !remoteEntityType ||
+          !ontology ? (
             <Box
               sx={{
                 display: "flex",
@@ -146,8 +150,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                         style={{ textDecoration: "none" }}
                       >
                         <OntologyChip
-                          icon={<OntologyIcon />}
-                          domain={ontology.domain}
+                          {...ontology}
                           path={
                             <Typography
                               component="span"

@@ -3,7 +3,18 @@ mod read;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
+use graph_types::{
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData},
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+};
+use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 use tokio_postgres::GenericClient;
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
@@ -11,12 +22,6 @@ use uuid::Uuid;
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{DecisionTime, RightBoundedTemporalInterval, Timestamp},
-    },
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud::Read,
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
@@ -24,7 +29,7 @@ use crate::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -200,7 +205,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ",
             )
             .await
-            .into_report()
             .change_context(DeletionError)?;
 
         Ok(())
@@ -238,7 +242,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         let link_order = if let Some(link_data) = link_data {
@@ -261,7 +264,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
 
             transaction
@@ -283,7 +285,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?;
 
             link_data.order
@@ -331,7 +332,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     ],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?
         } else {
             transaction
@@ -355,7 +355,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
                 )
                 .await
-                .into_report()
                 .change_context(InsertionError)?
         };
 
@@ -583,7 +582,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .into_report()
             .change_context(UpdateError)?
             .is_none()
         {
@@ -647,7 +645,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 )
                 .await
         }
-        .into_report()
         .change_context(UpdateError)?;
         let row = optional_row.ok_or_else(|| {
             Report::new(RaceConditionOnUpdate)
@@ -708,7 +705,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?
             .get(0);
 
@@ -728,7 +724,6 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 &[&edition_id, &entity_type_ontology_id],
             )
             .await
-            .into_report()
             .change_context(InsertionError)?;
 
         Ok(edition_id)

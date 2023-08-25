@@ -222,4 +222,9 @@ blocking_ast.body = [
 ]
 
 output = ast.unparse(ast.fix_missing_locations(blocking_ast))
-(ROOT / "graph_sdk" / "client" / "blocking.py").write_text(output)
+(ROOT / "graph_sdk" / "client" / "blocking.py").write_text(f"""
+# =========================================
+# THIS FILE IS GENERATED, DO NOT CHANGE IT!
+# =========================================
+
+{output}""")

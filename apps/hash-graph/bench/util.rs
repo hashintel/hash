@@ -1,16 +1,16 @@
 use std::mem::ManuallyDrop;
 
-use graph::{
-    identifier::account::AccountId,
+use graph::store::{
+    AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+    EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+};
+use graph_types::{
+    account::AccountId,
     ontology::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
         PartialOntologyElementMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
-    store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
-    },
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;

@@ -3,7 +3,6 @@ import {
   Chip,
   FontAwesomeIcon,
   OntologyChip,
-  OntologyIcon,
   WhiteCard,
 } from "@hashintel/design-system";
 import { Box, Divider, Typography } from "@mui/material";
@@ -40,7 +39,6 @@ export const SelectEntityTypePage = () => {
           lightTitle
           chip={
             <OntologyChip
-              icon={<OntologyIcon />}
               domain="hash.ai"
               path={
                 <>

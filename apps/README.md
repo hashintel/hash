@@ -1,10 +1,8 @@
 [blockprotocol/blockprotocol repo]: https://github.com/blockprotocol/blockprotocol
-[repository guidelines]: https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_star]: https://github.com/hashintel/hash/tree/main/apps#
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_apps
-[hash core]: https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
@@ -41,12 +39,11 @@ The application depends on a suite of constituent services, which are briefly de
 
 ## Simulation Tools
 
-The [HASH] app seeks to enable its users to make better decisions by utilizing all of the information available to them. Generative simulation is a core part of realizing this vision. In anticipation of this, we have published a variety of standalone experimental tools for agent-based modeling. These simulation tools are currently unsupported, but we are open to accepting contributions to these in line with our general [repository guidelines].
+We will be moving the `engine` project to a [new home](https://github.com/hashintel/labs/tree/main/apps/sim-engine) in our [`labs` repository](https://github.com/hashintel/labs) shortly.
 
-| Subdirectory           | Description                                                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| [`engine`](engine)     | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
-| [`sim-core`](sim-core) | Codebase for an open-source, locally-runnable version of [HASH Core]                                                  |
+| Subdirectory       | Description                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| [`engine`](engine) | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 
 ## Websites
 

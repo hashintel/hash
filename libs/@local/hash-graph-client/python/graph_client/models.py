@@ -56,7 +56,12 @@ class EntityId(RootModel):
 
 
 class EntityProperties(BaseModel):
-    pass
+    """
+    The properties of an entity.
+
+    When expressed as JSON, this should validate against its respective entity type(s).
+    """
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -1031,7 +1036,7 @@ class QueryTemporalAxes(RootModel):
             " contain temporal data that is contained in the [`Interval`] of"
             " the\n[`VariableTemporalAxis`] for the given [`Timestamp`] of the"
             " [`PinnedTemporalAxis`].\n\n[`Subgraph`]:"
-            " crate::subgraph::Subgraph\n[`Interval`]: crate::interval::Interval"
+            " crate::subgraph::Subgraph\n[`Interval`]: temporal_versioning::Interval"
         ),
     )
 

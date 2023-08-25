@@ -1,5 +1,3 @@
-#[cfg(any(nightly, feature = "std"))]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use num_traits::NumCast;
 
@@ -200,7 +198,7 @@ macro_rules! deserialize_identifier {
             let value = self
                 .value
                 .try_into()
-                .into_report()
+                .map_err(Report::new)
                 .change_context(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
                 .attach(ReceivedType::new(<$primitive>::document()))

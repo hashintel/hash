@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use clap::Parser;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{future, StreamExt};
 use graph::logging::{init_logger, LoggingArgs};
 use tarpc::{
@@ -60,7 +60,6 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
         Json::default,
     )
     .await
-    .into_report()
     .change_context(GraphError)?;
 
     tracing::info!("Listening on port {}", listener.local_addr().port());
@@ -78,7 +77,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             channel.execute(server.serve())
         })
         .buffer_unordered(255)
-        .for_each(|_| async {})
+        .for_each(|()| async {})
         .await;
 
     Ok(())
@@ -93,9 +92,7 @@ async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError
     let _: Transport<_, FetcherRequest, FetcherResponse, _> =
         timeout(Duration::from_secs(10), transport)
             .await
-            .into_report()
             .change_context(HealthcheckError::Timeout)?
-            .into_report()
             .change_context(HealthcheckError::NotHealthy)?;
 
     Ok(())

@@ -22,8 +22,8 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
       },
 
       "&:hover": {
-        backgroundColor: theme.palette.gray[30],
-        color: theme.palette.gray[80],
+        backgroundColor: theme.palette.gray[20],
+        color: theme.palette.gray[90],
       },
 
       "&:focus": {

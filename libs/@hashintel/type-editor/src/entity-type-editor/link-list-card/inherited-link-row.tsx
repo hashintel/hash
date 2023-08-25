@@ -27,7 +27,6 @@ export const InheritedLinkRow = ({
   const {
     $id,
     entityTypes: destinationEntityTypes,
-    inheritedFrom,
     inheritanceChain,
     minValue,
     maxValue,
@@ -43,7 +42,6 @@ export const InheritedLinkRow = ({
 
   const readonlyMessage = generateReadonlyMessage({
     inheritanceChain,
-    inheritedFrom,
   });
 
   return (

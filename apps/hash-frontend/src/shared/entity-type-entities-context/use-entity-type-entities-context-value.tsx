@@ -97,10 +97,8 @@ export const useEntityTypeEntitiesContextValue = (params: {
         for (const prop of Object.values(properties)) {
           const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
           if (!relevantPropertiesMap.has(propertyUrl)) {
-            const propertyType = getPropertyTypeById(
-              subgraph,
-              propertyUrl,
-            )?.schema;
+            const propertyType = getPropertyTypeById(subgraph, propertyUrl)
+              ?.schema;
             if (propertyType) {
               relevantPropertiesMap.set(propertyUrl, propertyType);
             }
