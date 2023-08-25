@@ -1,0 +1,1 @@
+You can control both the notifications you receive in HASH, and those that are sent to you via other channels such as email, text message or Slack (if enabled). By default, we'll only ever contact you in HASH and via email.
