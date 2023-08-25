@@ -60,7 +60,7 @@ declare module "@mui/material/styles" {
     yellow: PaletteValue;
     pink: PaletteValue;
     teal: PaletteValue;
-    mint: PaletteValue;
+    green: PaletteValue;
     turquoise: PaletteValue;
     navy: PaletteValue;
     white: string;
@@ -224,7 +224,7 @@ declare module "@mui/material/Chip" {
     yellow: true;
     pink: true;
     teal: true;
-    mint: true;
+    green: true;
     navy: true;
     turquoise: true;
     // Disable defaults

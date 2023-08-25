@@ -53,7 +53,7 @@ export const customColors = {
     100: "#03366C",
     700: "#0775E3",
   },
-  mint: {
+  green: {
     10: "#EFFEFA",
     20: "#E1FBF4",
     30: "#D2F7ED",
