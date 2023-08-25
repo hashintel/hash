@@ -13,8 +13,9 @@ _Copyright © 2019–, HASH &lt;<https://hash.ai/legal/license>&gt;_
 "**HASH**" shall mean _HASH, Inc._, its affiliates, subsidiaries, and any legal
 successors.
 
-"**HASH-O**" shall mean the "Open" version of [HASH](https://hash.ai/platform/hash)
-described on the [HASH Pricing] page available at `https://hash.ai/pricing`.
+"**HASH-O**" shall mean the "Open" version of the [HASH
+product](https://hash.ai/platform/hash) described on the [HASH Pricing] page
+available at `https://hash.ai/pricing`.
 
 "**HASH-O License**" shall mean the [primary open-source license] available at
 `https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md`.
