@@ -135,7 +135,7 @@ export const customColors = {
     90: "#0C7792",
     100: "#04313C",
   },
-  turquoise: {
+  aqua: {
     10: "#F2FAFD",
     20: "#DEF4FD",
     30: "#BFE7F9",

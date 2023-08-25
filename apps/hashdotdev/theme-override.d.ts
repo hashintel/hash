@@ -18,7 +18,7 @@ declare module "@mui/material/styles" {
     white: string;
     black: string;
     teal: PaletteValue;
-    turquoise: PaletteValue;
+    aqua: PaletteValue;
     purple: PaletteValue & {
       600: string;
     };

@@ -91,11 +91,7 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
           ) : variant === "entity" ? (
             <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : variant === "link type" ? (
-            <Chip
-              color="turquoise"
-              label={variant.toUpperCase()}
-              sx={{ ml: 1.5 }}
-            />
+            <Chip color="aqua" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : (
             <Chip
               color="purple"
