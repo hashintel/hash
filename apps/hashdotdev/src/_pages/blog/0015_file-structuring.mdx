@@ -185,33 +185,29 @@ The contents of the `shared` folders closer to the tree root are also accessible
 
 ### Rule 7: Multiple entry points are allowed
 
-A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`. This file works as the only entry point into the whole fractal tree, which can be of any size.
+A simple project like an npm package or an SPA starts with a single file, e.g. `main.js`. This file acts as the sole entry point into the entire fractal tree, which can be of any size.
 
-If necessary, it is possible to have multiple entry points, such as Next.js pages, executable CLI scripts, tests files and so on. The locations of these additional entry points should be determined by their usage, but our fractal rules still apply.
+If necessary, however, multiple entry points can be supported to accomodate things such as Next.js pages, executable CLI scripts, and test files. The locations of these additional entry points should be determined by their usage, but fractal rules still apply.
 
-Just like the ‘mini-libraries’, tree entry points can share resources between each other by importing them from `**/shared/*.js`.
+Just like ‘mini-libraries’, tree entry points can share resources with one another by importing them from `**/shared/*.js`.
 
-When there are multiple entry points, it is a good practice to keep their naming distinct from the ‘mini-libraries’ of the fractal tree.
-This can be done with a file name suffix: `dashboard.page.jsx`, `login.handler.js`, `do-something.script.js`, `foo.test.js`.
+When supporting multiple entry points, try to keep their names distinct from the ‘mini-libraries’ of the fractal tree. This can be achieved through file name suffixing: e.g. `dashboard.page.jsx`; `login.handler.js`; `do-something.script.js`; `foo.test.js`.
 
-### Rule #8 - Unit tests are placed next to files they cover
+### Rule #8: Co-locate unit tests with covered files
 
-If we want to cover `path/to/foo.js` with unit tests, we create `path/to/foo.test.js`.
-Putting unit tests into a subfolder (e.g. `path/to/__test__/foo.test.js`) would make it harder to sync tests or to see what files have test files.
-If `foo.test.js` becomes too big, we can see if we can write more tests for individual ‘mini-libraries’ in `path/to/foo/` instead.
-This may simplify the logic in the original `foo.test.js` file.
+To cover `path/to/foo.js` with unit tests, create `path/to/foo.test.js`. Placing unit tests into subfolders (e.g. `path/to/__test__/foo.test.js`) makes it harder to sync tests and see what files have tests.
 
-Integration (system) tests or end-to-end tests cover the project (i.e. a library or an app) as a whole.
-These high-level tests form their independent ‘fractal forest’, which is placed outside of the root of the source tree.
+If `foo.test.js` becomes too big, explore writing tests for individual ‘mini-libraries’ in `path/to/foo/` instead, potentially allowing for simplification of the logic in the original `foo.test.js` file.
 
-### Rule #9 - Exceptions are undesired but are not prohibited
+Higher-level integration, system, or end-to-end tests that cover a whole project (i.e. a library or an app) should be placed outside of the root of the source tree, and form their own independent ‘fractal forest’.
 
-The above rules are there to organise complex projects, but they don’t require an exhaustive opt-in.
-It is possible to migrate to a fractal tree structure only in selected parts of a codebase and then grow or reduce the scope of the rules over time.
-The easiest way to organise existing files is to start from the ‘leafs’ and then gradually move towards the ‘root’ of a repo or a yarn workspace.
+### Rule #9: Exceptions are undesired but are not prohibited
 
-Even if the wiring between some key imports and exports is not perfect, partial adoption of fractal trees is believed to be beneficial.
-It becomes easier to reason about dependencies within the parts of the codebase and this knowledge is unambiguously communicated within the team without README files or inline comments.
+The above rules are there to organize complex projects, but they don’t require an exhaustive opt-in. A fractal tree structure may be adhered to only in selected parts of a codebase, in part or whole, and gradually migrated to over time.
+
+The easiest way to start organizing existing files is to start from the ‘leaves' and gradually move towards the ‘root’ of a repo or a yarn workspace.
+
+Even with imperfect wiring between certain imports and exports, partial adoption of fractal tree struturing can provide benefits, making it easier to reason about dependencies within different parts of a codebase and unambiguously communicating structure without the need for individual READMEs and inline comments.
 
 ## Walk-through
 
