@@ -1,4 +1,4 @@
-import { Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import { HTMLAttributes } from "react";
 
 import { CircleInfoLightIcon } from "./icons/circle-info-light-icon";
@@ -15,21 +15,29 @@ export const MdxCallout = ({
         borderRadius: 2,
         background: palette.gray[10],
         color: palette.gray[80],
-        px: 5,
-        py: 4,
+        flexWrap: { xs: "wrap", sm: "nowrap" },
+        px: { xs: 3, sm: 5 },
+        py: { xs: 2.25, sm: 4 },
         "& p:last-child": { mb: 0 },
       })}
     >
       {!hideIcon && (
-        <CircleInfoLightIcon
-          sx={({ palette }) => ({
-            fontSize: 32,
-            fontWeight: 300,
-            fill: palette.gray[50],
-            mt: 0.5,
-            mr: 2.5,
-          })}
-        />
+        <Box
+          sx={{
+            mb: { xs: 1, sm: 0 },
+            mt: { xs: 0, sm: 0.5 },
+            mr: { xs: 0, sm: 2.5 },
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          <CircleInfoLightIcon
+            sx={({ palette }) => ({
+              fontSize: 32,
+              fontWeight: 300,
+              fill: palette.gray[50],
+            })}
+          />
+        </Box>
       )}
       {children}
     </Stack>
