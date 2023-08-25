@@ -107,6 +107,7 @@ export const EntitySelector = ({
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => ({
         uniqueId: entity.metadata.recordId.entityId,
+        Icon: null,
         /**
          * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
          * */

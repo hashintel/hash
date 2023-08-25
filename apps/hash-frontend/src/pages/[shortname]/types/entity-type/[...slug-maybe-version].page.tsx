@@ -1,10 +1,9 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
-  FontAwesomeIcon,
+  EntityTypeIcon,
+  LinkTypeIcon,
   OntologyChip,
-  OntologyIcon,
 } from "@hashintel/design-system";
 import {
   EntityTypeEditorFormData,
@@ -270,7 +269,19 @@ const Page: NextPageWithLayout = () => {
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                    icon: entityTypeIsLink ? (
+                      <LinkTypeIcon
+                        sx={({ palette }) => ({
+                          stroke: palette.gray[50],
+                        })}
+                      />
+                    ) : (
+                      <EntityTypeIcon
+                        sx={({ palette }) => ({
+                          fill: palette.gray[50],
+                        })}
+                      />
+                    ),
                   },
                 ]}
                 scrollToTop={() => {}}
@@ -308,7 +319,6 @@ const Page: NextPageWithLayout = () => {
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        icon={<OntologyIcon />}
                         domain="hash.ai"
                         path={
                           <>

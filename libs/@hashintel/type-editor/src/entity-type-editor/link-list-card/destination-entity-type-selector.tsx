@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityTypeIcon,
   popperPlacementInputNoRadius,
   popperPlacementPopperNoRadius,
   popperPlacementSelectors,
@@ -257,6 +258,7 @@ export const DestinationEntityTypeSelector = ({
             options={entityTypeOptions}
             optionToRenderData={({ $id, title, description }) => ({
               uniqueId: $id,
+              Icon: EntityTypeIcon,
               typeId: $id,
               title,
               description,

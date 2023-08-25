@@ -1,7 +1,7 @@
+import { LinkIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 
-import { LinkIcon } from "../../../../../shared/icons/link-icon";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useContextBarActionsContext } from "../../../../shared/top-context-bar";
 import { ConvertTypeConfirmationModal } from "./convert-type-button/convert-type-confirmation-modal";
