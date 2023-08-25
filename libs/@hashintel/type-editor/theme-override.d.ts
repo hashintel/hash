@@ -56,7 +56,7 @@ declare module "@mui/material/styles" {
     purple: PaletteValue;
     red: PaletteValue;
     orange: PaletteValue;
-    green: PaletteValue;
+    lime: PaletteValue;
     yellow: PaletteValue;
     pink: PaletteValue;
     teal: PaletteValue;
@@ -220,7 +220,7 @@ declare module "@mui/material/Chip" {
     purple: true;
     red: true;
     orange: true;
-    green: true;
+    lime: true;
     yellow: true;
     pink: true;
     teal: true;
