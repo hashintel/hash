@@ -2,4 +2,4 @@
 "@hashintel/design-system": patch
 ---
 
-add ontology icons, link icon"
+add ontology icons, link icon
