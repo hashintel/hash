@@ -1,7 +1,7 @@
 [hash global terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
 [hash pricing]: https://hash.ai/pricing
 [hash subscription agreement]: https://hash.ai/legal?utm_medium=organic&utm_source=github_license_hash-license
-[primary hash license]: https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md
+[primary open-source license]: https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md
 
 # HASH License
 
@@ -16,7 +16,7 @@ successors.
 "**HASH-O**" shall mean the "Open" version of [HASH](https://hash.ai/platform/hash)
 described on the [HASH Pricing] page available at `https://hash.ai/pricing`.
 
-"**HASH-O License**" shall mean the open-source [Primary HASH License] available at
+"**HASH-O License**" shall mean the [primary open-source license] available at
 `https://github.com/hashintel/hash/blob/main/apps/hash/LICENSE.md`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
@@ -87,10 +87,11 @@ applicable component.
 ### 3. Notice Requirements
 
 **3.1.** The full text of this License shall be included in all copies of the
-Software, or incorporated into copies of any part of the Software.
+Software, or incorporated into copies of any substantial part of the Software.
 
 **3.2.** If you modify the Software, you must include in any modified copies
-of the Software prominent notices stating that you have modified the Software.
+of the Software prominent notices stating that you have modified the Software,
+with a link back to the HASH website (`https://hash.ai/`).
 
 ### 4. Limitation of Liability
 
