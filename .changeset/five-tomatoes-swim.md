@@ -2,4 +2,4 @@
 "@hashintel/design-system": patch
 ---
 
-rename colours (green->lime, mint->green,turquoise->aqua)
+Rename colors (green->lime, mint->green, turquoise->aqua)
