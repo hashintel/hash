@@ -6,6 +6,9 @@ mod snapshot;
 mod test_server;
 mod type_fetcher;
 
+use error_stack::Result;
+use graph::logging::LoggingArgs;
+
 #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
 pub use self::test_server::{test_server, TestServerArgs};
 pub use self::{
@@ -15,6 +18,7 @@ pub use self::{
     snapshot::{snapshot, SnapshotArgs},
     type_fetcher::{type_fetcher, TypeFetcherArgs},
 };
+use crate::error::GraphError;
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -32,4 +36,43 @@ pub enum Subcommand {
     /// Test server
     #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
     TestServer(TestServerArgs),
+}
+
+impl Subcommand {
+    pub(crate) fn log_config(&self) -> Option<&LoggingArgs> {
+        match self {
+            Subcommand::Server(args) => Some(&args.log_config),
+            Subcommand::Migrate(args) => Some(&args.log_config),
+            Subcommand::TypeFetcher(args) => Some(&args.log_config),
+            Subcommand::Completions(_) => None,
+            Subcommand::Snapshot(args) => Some(&args.log_config),
+            #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+            Subcommand::TestServer(args) => Some(&args.log_config),
+        }
+    }
+
+    async fn delegate(self) -> Result<(), GraphError> {
+        match self {
+            Self::Server(args) => server(args).await,
+            Self::Migrate(args) => migrate(args).await,
+            Self::TypeFetcher(args) => type_fetcher(args).await,
+            Self::Completions(ref args) => {
+                completions(args);
+                Ok(())
+            }
+            Self::Snapshot(args) => snapshot(args).await,
+            #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
+            Self::TestServer(args) => test_server(args).await,
+        }
+    }
+
+    pub(crate) fn execute(self) -> Result<(), GraphError> {
+        // create a runtime
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("failed to create runtime");
+
+        runtime.block_on(self.delegate())
+    }
 }

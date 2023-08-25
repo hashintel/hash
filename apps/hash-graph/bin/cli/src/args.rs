@@ -6,6 +6,9 @@ use crate::subcommand::Subcommand;
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
 pub struct Args {
+    #[arg(long, env)]
+    pub sentry_dsn: Option<sentry::types::Dsn>,
+
     /// Specify a subcommand to run.
     #[command(subcommand)]
     pub subcommand: Subcommand,
