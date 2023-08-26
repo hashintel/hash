@@ -39,19 +39,19 @@ Project complexity is distributed across the whole tree, which makes the resulti
 <figure>
   <center>
     <img
-      src="/blog/0015_file-structuring/tree-evolution-1.png"
+      src="/blog/0016_file-structuring/tree-evolution-1.png"
       width={1176 / 6}
       height={884 / 6}
       alt="tree evolution (1)"
     />
     <img
-      src="/blog/0015_file-structuring/tree-evolution-2.png"
+      src="/blog/0016_file-structuring/tree-evolution-2.png"
       width={1194 / 6}
       height={886 / 6}
       alt="tree evolution (2)"
     />
     <img
-      src="/blog/0015_file-structuring/tree-evolution-3.png"
+      src="/blog/0016_file-structuring/tree-evolution-3.png"
       width={1198 / 6}
       height={886 / 6}
       alt="tree evolution (3)"
@@ -88,7 +88,7 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 **Each sub-tree exports resources which can be imported on the next level of the tree.** Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported. As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
 
 <img
-  src="/blog/0015_file-structuring/resources-of-subtrees.png"
+  src="/blog/0016_file-structuring/resources-of-subtrees.png"
   width={1198 / 2}
   height={886 / 2}
   alt="Resources of subtrees are inaccessible"
@@ -99,13 +99,13 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 **If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.** If the scope of the shared resource has changed over time, a file is moved accordingly. Each ‘fork’ in the tree can accommodate multiple shared resources. Each of the shared resources is a root of a fractal sub-tree by itself.
 
 <img
-  src="/blog/0015_file-structuring/shared-resources-1.png"
+  src="/blog/0016_file-structuring/shared-resources-1.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (1)"
 />
 <img
-  src="/blog/0015_file-structuring/shared-resources-2.png"
+  src="/blog/0016_file-structuring/shared-resources-2.png"
   width={1198 / 3}
   height={886 / 3}
   alt="Shared resources (2)"
