@@ -24,58 +24,34 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Download hash-graph image
-      if: inputs.hash-graph == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-graph
-        path: /tmp
-
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-graph.tar
-        docker image ls -a
-
-    - name: Download hash-ai-worker-ts image
-      if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-ai-worker-ts
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker pull $TAG
+        docker tag $TAG hash-graph
 
     - name: Load hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-ai-worker-ts.tar
-        docker image ls -a
-
-    - name: Download hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-ai-worker-py
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker pull $TAG
+        docker tag $TAG hash-ai-worker-ts
 
     - name: Load hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-ai-worker-py.tar
-        docker image ls -a
-
-    - name: Download hash-integration-worker image
-      if: inputs.hash-integration-worker == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-integration-worker
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker pull $TAG
+        docker tag $TAG hash-ai-worker-py
 
     - name: Load hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-integration-worker.tar
-        docker image ls -a
+        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker pull $TAG
+        docker tag $TAG hash-integration-worker

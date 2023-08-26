@@ -24,6 +24,14 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    - name: Load Docker images
+      uses: ./.github/actions/load-docker-images
+      with:
+        hash-graph: ${{ inputs.hash-graph }}
+        hash-ai-worker-ts: ${{ inputs.hash-ai-worker-ts }}
+        hash-ai-worker-py: ${{ inputs.hash-ai-worker-py }}
+        hash-integration-worker: ${{ inputs.hash-integration-worker }}
+
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
       uses: docker/build-push-action@v4
@@ -31,8 +39,6 @@ runs:
         context: .
         file: apps/hash-graph/docker/Dockerfile
         tags: hash-graph
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         outputs: type=docker,dest=/tmp/hash-graph.tar
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
@@ -45,13 +51,6 @@ runs:
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
-    - name: Upload artifact
-      if: inputs.hash-graph == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-graph
-        path: /tmp/hash-graph.tar
-
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
       uses: docker/build-push-action@v4
@@ -61,13 +60,6 @@ runs:
         tags: hash-ai-worker-ts
         outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
 
-    - name: Upload artifact
-      if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-ai-worker-ts
-        path: /tmp/hash-ai-worker-ts.tar
-
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
       uses: docker/build-push-action@v4
@@ -75,16 +67,7 @@ runs:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
         tags: hash-ai-worker-py
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
-
-    - name: Upload artifact
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-ai-worker-py
-        path: /tmp/hash-ai-worker-py.tar
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
@@ -93,13 +76,36 @@ runs:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
         tags: hash-integration-worker
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         outputs: type=docker,dest=/tmp/hash-integration-worker.tar
 
-    - name: Upload artifact
+    - name: PUSH hash-graph image
+      if: inputs.hash-graph == 'true'
+      shell: bash
+      run: |
+        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker tag hash-graph $TAG
+        docker push $TAG
+
+    - name: PUSH hash-ai-worker-ts image
+      if: inputs.hash-ai-worker-ts == 'true'
+      shell: bash
+      run: |
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker tag hash-ai-worker-ts $TAG
+        docker push $TAG
+
+    - name: PUSH hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      shell: bash
+      run: |
+        TAG="ghcr.io/hashintel/hash-ai-worker-py$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker tag hash-ai-worker-py $TAG
+        docker push $TAG
+
+    - name: PUSH hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-integration-worker
-        path: /tmp/hash-integration-worker.tar
+      shell: bash
+      run: |
+        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        docker tag hash-integration-worker $TAG
+        docker push $TAG
