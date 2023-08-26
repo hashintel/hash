@@ -1,4 +1,3 @@
-[block protocol]: https://blockprotocol.org/?utm_medium=organic&utm_source=github_readme_hash-repo_type-editor
 [block protocol type system]: https://blockprotocol.org/docs/working-with-types?utm_medium=organic&utm_source=github_readme_hash-repo_type-editor
 [embedding application]: https://blockprotocol.org/docs/blocks/environments?utm_medium=organic&utm_source=github_readme_hash-repo_type-editor
 [hash]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_type-editor
@@ -12,8 +11,8 @@ A component for editing **entity types** as defined in the [Block Protocol Type 
 
 The type editor is currently in use within [HASH] and can either be tested by:
 
-1. running the application yourself, and clicking the "Create new type" button once logged in; or
-2. trying out the [hosted] version of HASH (faster, easier).
+1.  running the application yourself, and clicking the "Create new type" button once logged in; or
+2.  trying out the [hosted] version of HASH (faster, easier).
 
 ## Usage
 
