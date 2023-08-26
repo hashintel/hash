@@ -28,7 +28,7 @@ runs:
       if: inputs.hash-graph == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g'))"
         docker pull $TAG
         docker tag $TAG hash-graph
 
@@ -36,7 +36,7 @@ runs:
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g'))"
         docker pull $TAG
         docker tag $TAG hash-ai-worker-ts
 
@@ -44,7 +44,7 @@ runs:
       if: inputs.hash-ai-worker-py == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g'))"
         docker pull $TAG
         docker tag $TAG hash-ai-worker-py
 
@@ -52,6 +52,6 @@ runs:
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }})"
+        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g'))"
         docker pull $TAG
         docker tag $TAG hash-integration-worker
