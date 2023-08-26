@@ -190,7 +190,7 @@ jobs:
 
       - name: Prune docker system
         if: matrix.directory == 'apps/hash-graph'
-        run: docker system prune -a
+        run: docker system prune --all --force
 
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
@@ -290,7 +290,7 @@ jobs:
 
       - name: Prune docker system
         if: matrix.directory == 'apps/hash-graph'
-        run: docker system prune -a
+        run: docker system prune --all --force
 
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
