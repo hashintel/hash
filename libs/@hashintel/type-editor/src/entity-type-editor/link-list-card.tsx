@@ -1,5 +1,9 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
+import {
+  GraphIcon,
+  LinkTypeIcon,
+  StyledPlusCircleIcon,
+} from "@hashintel/design-system";
 import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -31,6 +35,7 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
+import { TypeSelectorType } from "./shared/insert-property-field/type-selector";
 import {
   InsertTypeField,
   InsertTypeFieldProps,
@@ -215,7 +220,7 @@ const LinkTypeRow = ({
 
 const InsertLinkField = (
   props: Omit<
-    InsertTypeFieldProps<EntityType>,
+    InsertTypeFieldProps<EntityType & Pick<TypeSelectorType, "Icon">>,
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
@@ -224,7 +229,14 @@ const InsertLinkField = (
   const { links: inheritedLinks } = useInheritedValuesForCurrentDraft();
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
-  const linkTypes = Object.values(linkTypeOptions);
+  const linkTypes = useMemo(
+    () =>
+      Object.values(linkTypeOptions).map((type) => ({
+        ...type,
+        Icon: LinkTypeIcon,
+      })),
+    [linkTypeOptions],
+  );
 
   const filteredLinkTypes = useFilterTypeOptions({
     typesToExclude: [...links, ...inheritedLinks, { $id: linkEntityTypeUrl }],
@@ -336,7 +348,7 @@ export const LinkListCard = () => {
                 });
               }
         }
-        icon={<LinkIcon />}
+        icon={<GraphIcon />}
         headline={isReadonly ? <>No links defined</> : <>Add a link</>}
         description={
           <>

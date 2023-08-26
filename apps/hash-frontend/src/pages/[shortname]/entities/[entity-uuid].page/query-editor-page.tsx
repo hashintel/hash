@@ -1,5 +1,5 @@
 import { MultiFilter } from "@blockprotocol/graph";
-import { OntologyChip, OntologyIcon } from "@hashintel/design-system";
+import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -87,7 +87,6 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
             entityLabel={entityLabel}
             chip={
               <OntologyChip
-                icon={<OntologyIcon />}
                 domain="hash.ai"
                 path={
                   <Typography>

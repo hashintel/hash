@@ -8,7 +8,6 @@ import {
   Typography,
 } from "@mui/material";
 import { FunctionComponent, useCallback, useEffect, useRef } from "react";
-import { useKeys } from "rooks";
 
 import { SearchIcon } from "../../../icons";
 
@@ -87,12 +86,17 @@ export const SearchInput: FunctionComponent<{
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useKeys(["ControlLeft", "KeyP"], (event) => {
-    event.preventDefault();
-    if (!isMac) {
-      inputRef.current?.focus();
-    }
-  });
+  /**
+   * @todo reinstate this
+   * when doing so, check if https://github.com/imbhargav5/rooks/issues/1730 has been fixed
+   * if it has, upgrade rooks. if not, either implement our own version of useKeys (command-bar has one) or patch rooks
+   */
+  // useKeys(["ControlLeft", "KeyP"], (event) => {
+  //   event.preventDefault();
+  //   if (!isMac) {
+  //     inputRef.current?.focus();
+  //   }
+  // });
 
   useEffect(() => {
     function checkSearchKey(event: KeyboardEvent) {
