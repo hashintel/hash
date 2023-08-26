@@ -410,7 +410,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "27",
     heading: "User & Org Administration",
     body: "Basic account and shared workspace management",
-    parentIds: ["23"],
+    parentIds: ["8"],
     status: "in-progress",
     useCases: [
       "knowledge-management",
@@ -504,7 +504,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "33",
     heading: "Notifications",
     body: "User-facing in-app alerts upon notifiable events",
-    parentIds: ["21", "22", "27"],
+    parentIds: ["21", "22"],
     status: "next-up",
     useCases: [
       "knowledge-management",
@@ -533,7 +533,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "35",
     heading: "Authorization",
     body: "Permissions and access control",
-    parentIds: ["23", "27"],
+    parentIds: ["27"],
     status: "in-progress",
     useCases: [
       "knowledge-management",
