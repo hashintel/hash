@@ -103,6 +103,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2
@@ -213,6 +215,8 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2
@@ -311,6 +315,8 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2
