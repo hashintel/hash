@@ -67,15 +67,15 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 
 ## Principles
 
-### 1. The structure of the whole project is the same as of any of its parts
+### P1. The structure of the whole project is the same as of any of its parts
 
 **No matter what part of the project we open, we want to find familiar patterns and thus confidently make changes to what we see.** A developer should not need to learn the entire project structure in order to be able to contribute to its part. Broadly speaking, the codebase can successfully evolve even if there is no single developer who has painted a detailed picture of all source files and folders.
 
-### 2. Circular dependencies between files are disallowed
+### P2. Circular dependencies between files are disallowed
 
 **Creating circular import chains would turn the fractal tree into a more generic graph structure.** This would increase the complexity of the rules to follow and could also introduce runtime bugs.
 
-### 3. File trees grow organically
+### P3. File trees grow organically
 
 🌱 → 🌳
 
@@ -83,7 +83,7 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 
 **Resources are grouped into files by their functional purpose rather than ‘shape’.** This means that we don’t have project-wide folders like `components`, `hooks`, `services` or `types` as this would be similar to putting all CSS or HTML files next to each other. Instead, we name and distribute the files based on their added value. The resources that comprise a ‘feature’ (components, hooks, services, types, etc.) may remain an implementation detail of a sub-tree and do not need to be exposed outside this sub-tree.
 
-### 4. Resources of a sub-sub-tree are inaccessible
+### P4. Resources of a sub-sub-tree are inaccessible
 
 **Each sub-tree exports resources which can be imported on the next level of the tree.** Direct imports from a sub-sub-tree is not allowed because these resources are considered ‘private’, unless re-exported. As a result, internal modifications in a sub-tree cannot cause unexpected side-effects to the rest of the codebase.
 
@@ -94,7 +94,7 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
   alt="Resources of subtrees are inaccessible"
 />
 
-### 5. Shared resources may be introduced in any part in the tree
+### P5. Shared resources may be introduced in any part in the tree
 
 **If branches of a fractal tree need to share logic (such as helper functions, constants, etc.), a shared resource is placed at the closest available ‘fork’ in the tree.** If the scope of the shared resource has changed over time, a file is moved accordingly. Each ‘fork’ in the tree can accommodate multiple shared resources. Each of the shared resources is a root of a fractal sub-tree by itself.
 
@@ -113,7 +113,7 @@ Our approach builds on the [`destiny`](https://www.npmjs.com/package/destiny) np
 
 <center>✅ – shared resource location 🟢 – shared resource usage</center>
 
-### 6. File structure matches the _current_ state of the project
+### P6. File structure matches the _current_ state of the project
 
 **We do not need to think about file future-proofing.** It is enough to ensure that the current state of the _file_ tree represents the current state of the _logic_ tree. Moving files is cheap and we should not worry about occasional tree reshuffling. The structure is designed for change.
 
