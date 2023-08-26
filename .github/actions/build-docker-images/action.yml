@@ -36,6 +36,7 @@ runs:
       if: inputs.hash-graph == 'true'
       shell: bash
       run: |
+        set -x
         TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g'))"
         FALLBACK="ghcr.io/hashintel/hash-graph"
         docker pull $TAG ^ docker pull $FALLBACK && docker tag $TAG hash-graph || true
