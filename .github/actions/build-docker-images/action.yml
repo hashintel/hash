@@ -34,7 +34,7 @@ runs:
           PR_NUMBER="${{ github.event.pull_request.number }}_merge"
           IMAGE_TAG=":pr-$PR_NUMBER"
           BUILD_CACHE_TAG="$IMAGE_TAG_build-cache"
-        elif [[ "${{ github.event_name }}" == "merge_group" ]; then
+        elif [[ "${{ github.event_name }}" == "merge_group" ]]; then
           # e.g. gh-readonly-queue/main/pr-1234-<SHA>
           PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
           IMAGE_TAG=":pr-$PR_NUMBER"
