@@ -48,8 +48,7 @@ jobs:
                   console.log("status " + deleteResponse.status)
                 }
                 if (version.metadata.container.tags.length == 0 || version.metadata.container.tags.includes(pr_tag)) {
-                  console.log("(dry) delete " + version.id)
-                  console.log("status " + deleteResponse.status)
+                  console.log("(dry) delete " + JSON.stringify(version))
                 }
               }
             }
