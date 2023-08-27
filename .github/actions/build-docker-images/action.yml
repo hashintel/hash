@@ -51,6 +51,8 @@ runs:
         tags: ${{ env.HASH_GRAPH_TAG }}
         pull: true
         push: true
+        labels: |
+          org.opencontainers.image.source=https://github.com/hashintel/hash
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
@@ -71,6 +73,8 @@ runs:
         tags: ${{ env.HASH_AI_WORKER_TS_TAG }}
         pull: true
         push: true
+        labels: |
+          org.opencontainers.image.source=https://github.com/hashintel/hash
 
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
@@ -81,6 +85,8 @@ runs:
         tags: ${{ env.HASH_AI_WORKER_PY_TAG }}
         pull: true
         push: true
+        labels: |
+          org.opencontainers.image.source=https://github.com/hashintel/hash
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
@@ -91,3 +97,5 @@ runs:
         tags: ${{ env.HASH_INTEGRATION_WORKER_TAG }}
         pull: true
         push: true
+        labels: |
+          org.opencontainers.image.source=https://github.com/hashintel/hash
