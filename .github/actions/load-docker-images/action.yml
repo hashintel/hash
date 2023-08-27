@@ -32,7 +32,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ input.repo-token }}
+        password: ${{ inputs.repo-token }}
 
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
