@@ -24,6 +24,15 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
+    - name: Cache hash-graph image
+      if: inputs.hash-graph == 'true'
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.hash-graph-buildx-cache
+        key: ${{ runner.os }}-hash-graph-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-hash-graph
+
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
       uses: docker/build-push-action@v4
@@ -31,8 +40,8 @@ runs:
         context: .
         file: apps/hash-graph/docker/Dockerfile
         tags: hash-graph
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=local,src=/tmp/.hash-graph-buildx-cache
+        cache-to: type=local,dest=/tmp/.hash-graph-buildx-cache-new
         outputs: type=docker,dest=/tmp/hash-graph.tar
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
@@ -44,6 +53,13 @@ runs:
           PROFILE=dev
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
+
+    - name: Move has-graph cache
+      if: inputs.hash-graph == 'true'
+      shell: bash
+      run: |
+        rm -rf /tmp/.hash-graph-buildx-cache
+        mv /tmp/.hash-graph-buildx-cache-new /tmp/.hash-graph-buildx-cache
 
     - name: Upload artifact
       if: inputs.hash-graph == 'true'
@@ -68,6 +84,15 @@ runs:
         name: hash-ai-worker-ts
         path: /tmp/hash-ai-worker-ts.tar
 
+    - name: Cache hash-ai-worker-py image
+      if: inputs.hash-ai-worker-py == 'true'
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.hash-ai-worker-py-buildx-cache
+        key: ${{ runner.os }}-hash-ai-worker-py-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-hash-ai-worker-py
+
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
       uses: docker/build-push-action@v4
@@ -75,9 +100,16 @@ runs:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
         tags: hash-ai-worker-py
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=local,src=/tmp/.hash-ai-worker-py-buildx-cache
+        cache-to: type=local,dest=/tmp/.hash-ai-worker-py-buildx-cache-new
         outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
+
+    - name: Move hash-ai-worker-py cache
+      if: inputs.hash-ai-worker-py == 'true'
+      shell: bash
+      run: |
+        rm -rf /tmp/.hash-ai-worker-py-buildx-cache
+        mv /tmp/.hash-ai-worker-py-buildx-cache-new /tmp/.hash-ai-worker-py-buildx-cache
 
     - name: Upload artifact
       if: inputs.hash-ai-worker-py == 'true'
@@ -93,8 +125,6 @@ runs:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
         tags: hash-integration-worker
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
         outputs: type=docker,dest=/tmp/hash-integration-worker.tar
 
     - name: Upload artifact
