@@ -50,7 +50,7 @@ jobs:
               }
             }
             for (const image of ["hash-graph-cache", "hash-ai-worker-ts-cache", "hash-ai-worker-py-cache", "hash-integration-worker-cache"]) {
-              const url = "/orgs/hashintel/packages/container/" + image";
+              const url = "/orgs/hashintel/packages/container/" + image;
               await github.request("DELETE " + url, { });
             }
 
