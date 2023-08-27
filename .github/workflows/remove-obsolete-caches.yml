@@ -41,10 +41,8 @@ jobs:
             for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker", "hash-graph-cache", "hash-ai-worker-ts-cache", "hash-ai-worker-py-cache", "hash-integration-worker-cache"]) {
               const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
-              for (const version of response.data) {
                   const deleteResponse = await github.request("DELETE " + url, { });
                   console.log("status " + deleteResponse.status)
-              }
             }
 
 env:
