@@ -39,7 +39,7 @@ jobs:
           script: |
             const pr_tag = "pr-${{ github.event.pull_request.number }}"
             for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker"]) {
-              const url = "/hashintel/packages/container/" + image + "/versions";
+              const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
               for (const version of response.data) {
                 if (version.metadata.container.tags.length == 0) {
