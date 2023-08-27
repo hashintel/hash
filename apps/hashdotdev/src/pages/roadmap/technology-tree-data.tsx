@@ -410,7 +410,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "27",
     heading: "User & Org Administration",
     body: "Basic account and shared workspace management",
-    parentIds: ["23"],
+    parentIds: ["8"],
     status: "in-progress",
     useCases: [
       "knowledge-management",
@@ -504,7 +504,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "33",
     heading: "Notifications",
     body: "User-facing in-app alerts upon notifiable events",
-    parentIds: ["21", "22", "27"],
+    parentIds: ["21", "22"],
     status: "next-up",
     useCases: [
       "knowledge-management",
@@ -533,7 +533,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "35",
     heading: "Authorization",
     body: "Permissions and access control",
-    parentIds: ["23", "27"],
+    parentIds: ["27"],
     status: "in-progress",
     useCases: [
       "knowledge-management",
@@ -858,7 +858,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "61",
     heading: "Email Sending",
     body: "Support for user composition/triggering of emails via Flows",
-    parentIds: ["50"],
+    parentIds: ["40"],
     status: "future",
     useCases: ["website-building", "internal-tools-apps"],
     variant: "feature",
@@ -917,7 +917,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "67",
     heading: "Gmail/Google Workspace email sync",
     body: "Read and manage (two-way sync) emails stored in Gmail and Google Workspace",
-    parentIds: ["65"],
+    parentIds: ["61"],
     status: "future",
     useCases: ["knowledge-management", "internal-tools-apps"],
     variant: "feature",
@@ -961,7 +961,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "71",
     heading: "Git Datastore",
     body: "libgit2 or Gitea-based backend for dedicated storage and processing of source code and Git repositories",
-    parentIds: ["69"],
+    parentIds: ["65"],
     status: "future",
     useCases: [
       "knowledge-management",
