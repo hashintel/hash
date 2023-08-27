@@ -38,18 +38,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const pr_tag = "pr-${{ github.event.pull_request.number }}"
-            for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker"]) {
+            for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker", "hash-graph-cache", "hash-ai-worker-ts-cache", "hash-ai-worker-py-cache", "hash-integration-worker-cache"]) {
               const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
               for (const version of response.data) {
-                if (version.metadata.container.tags.length == 0) {
+#                if (version.metadata.container.tags.length == 0 || version.metadata.container.tags.includes(pr_tag)) {
                   console.log("delete " + version.id)
                   const deleteResponse = await github.request("DELETE " + url + "/" + version.id, { });
                   console.log("status " + deleteResponse.status)
-                }
-                if (version.metadata.container.tags.length == 0 || version.metadata.container.tags.includes(pr_tag)) {
-                  console.log("(dry) delete " + JSON.stringify(version))
-                }
+#                }
               }
             }
 
