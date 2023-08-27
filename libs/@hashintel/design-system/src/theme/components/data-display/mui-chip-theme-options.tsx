@@ -40,7 +40,7 @@ const getColors = (
     case "blue":
     case "purple":
     case "orange":
-    case "mint":
+    case "green":
     case "teal":
     default:
       bgColorShade = 20;

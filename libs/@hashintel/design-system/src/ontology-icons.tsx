@@ -38,7 +38,7 @@ export const LinkTypeIcon: FunctionComponent<SvgIconProps> = ({
 }) => (
   <LinkIcon
     sx={[
-      ({ palette }) => ({ stroke: palette.turquoise[60] }),
+      ({ palette }) => ({ stroke: palette.aqua[60] }),
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
     {...props}

@@ -1,3 +1,8 @@
+<!--
+  DO NOT REMOVE THIS FILE. It is linked to from the HASH License:
+  https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-HASH.md 
+-->
+
 # GNU Affero General Public License
 
 _Version 3, 19 November 2007_

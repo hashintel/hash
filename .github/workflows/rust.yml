@@ -35,7 +35,7 @@ jobs:
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           fetch-depth: 2
 
@@ -68,11 +68,12 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.build) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Build images
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
   lint:
@@ -87,7 +88,7 @@ jobs:
       RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -100,12 +101,14 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2
         with:
           workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -143,7 +146,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@a09933a12a80f87b87005513f0abb1494c27a716 # v2
         if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -180,16 +183,21 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
+      - name: Prune docker system
+        if: matrix.directory == 'apps/hash-graph'
+        run: docker system prune --all --force
+
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
       - name: Launch external services
@@ -205,13 +213,15 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
@@ -224,7 +234,7 @@ jobs:
 
       - name: Install Python
         if: matrix.directory == 'apps/engine'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4
         with:
           python-version: "3.10"
 
@@ -274,16 +284,21 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
+      - name: Prune docker system
+        if: matrix.directory == 'apps/hash-graph'
+        run: docker system prune --all --force
+
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
       - name: Launch external services
@@ -299,13 +314,15 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -320,7 +337,7 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: just coverage --lcov --output-path lcov.info
 
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3
         if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
@@ -341,7 +358,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -351,7 +368,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 

@@ -9,9 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
-      - name: Cleanup
+      - name: Remove caches
         run: |
           gh extension install actions/gh-actions-cache
 
@@ -31,3 +31,24 @@ jobs:
           echo "Done"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove docker images
+        run: |
+          PR_BRANCH="${{ github.event.pull_request.number }}_merge"
+          MERGE_BRANCH="gh-readonly-queue_main_pr-${{ github.event.pull_request.number }}-"
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/orgs/hashintel/packages/container/hash-graph/versions" \
+              | jq --arg pr "$PR_BRANCH" --arg merge "$MERGE_BRANCH" \
+                '.[] | { id, metadata } | select(.metadata.container.tags[] | (startswith($pr) or startswith($merge))) | {id}[]' \
+              | xargs -I {} \
+          curl -X DELETE \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -H "Authorization: Bearer $PAT" \
+            "https://api.github.com/orgs/hashintel/packages/container/hash-graph/versions/{}"
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

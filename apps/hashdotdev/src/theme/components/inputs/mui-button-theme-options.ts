@@ -91,8 +91,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               ? theme.palette.purple[40]
               : color === "blue"
               ? theme.palette.blue[40]
-              : color === "mint"
-              ? theme.palette.mint[40]
+              : color === "green"
+              ? theme.palette.green[40]
               : theme.palette.teal[40],
           color: theme.palette.gray[90],
           backgroundColor: theme.palette.white,
@@ -107,8 +107,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               ? theme.palette.purple[10]
               : color === "blue"
               ? theme.palette.blue[10]
-              : color === "mint"
-              ? theme.palette.mint[10]
+              : color === "green"
+              ? theme.palette.green[10]
               : theme.palette.teal[10],
           color: theme.palette.black,
           boxShadow,
@@ -284,8 +284,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
                   ? theme.palette.purple[50]
                   : color === "blue"
                   ? theme.palette.blue[50]
-                  : color === "mint"
-                  ? theme.palette.mint[70]
+                  : color === "green"
+                  ? theme.palette.green[70]
                   : theme.palette.teal[60],
             }),
             ...(ownerState.variant === "tertiary" && {
