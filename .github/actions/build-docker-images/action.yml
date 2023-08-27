@@ -24,14 +24,6 @@ runs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Load Docker images
-      uses: ./.github/actions/load-docker-images
-      with:
-        hash-graph: ${{ inputs.hash-graph }}
-        hash-ai-worker-ts: ${{ inputs.hash-ai-worker-ts }}
-        hash-ai-worker-py: ${{ inputs.hash-ai-worker-py }}
-        hash-integration-worker: ${{ inputs.hash-integration-worker }}
-
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
       shell: bash
