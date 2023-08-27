@@ -42,11 +42,9 @@ jobs:
               const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
               for (const version of response.data) {
-#                if (version.metadata.container.tags.length == 0 || version.metadata.container.tags.includes(pr_tag)) {
                   console.log("delete " + version.id)
                   const deleteResponse = await github.request("DELETE " + url + "/" + version.id, { });
                   console.log("status " + deleteResponse.status)
-#                }
               }
             }
 
