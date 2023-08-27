@@ -20,7 +20,7 @@
       "dependencyDashboardApproval": false
     },
     {
-      "matchDepTypes": ["action"],
+      "matchManagers": ["github-actions"],
       "commitMessageTopic": "GitHub Action `{{depName}}`",
       "additionalBranchPrefix": "gha/",
       "pinDigests": true
