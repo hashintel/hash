@@ -26,6 +26,7 @@ jobs:
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
   build-hash-ai-worker-ts:
@@ -37,6 +38,7 @@ jobs:
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-ai-worker-ts: true
 
   build-hash-ai-worker-py:
@@ -48,6 +50,7 @@ jobs:
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-ai-worker-py: true
 
   build-hash-integration-worker:
@@ -59,6 +62,7 @@ jobs:
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-integration-worker: true
 
   linting:
@@ -285,6 +289,7 @@ jobs:
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
@@ -357,6 +362,7 @@ jobs:
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
           hash-ai-worker-ts: true
           hash-ai-worker-py: true

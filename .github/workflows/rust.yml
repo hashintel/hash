@@ -73,6 +73,7 @@ jobs:
       - name: Build images
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
   lint:
@@ -196,6 +197,7 @@ jobs:
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
       - name: Launch external services
@@ -296,6 +298,7 @@ jobs:
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
 
       - name: Launch external services
