@@ -27,16 +27,29 @@ runs:
     - name: Load tags
       shell: bash
       run: |
-        IMAGE_TAG="$([ "${{ github.ref_name }}" == "main" ] || echo :${{ github.ref_name }} | sed 's|/|_|g')"
-        BUILD_CACHE_TAG="$IMAGE_TAG$([ "${{ github.ref_name }}" == "main" ] && echo ":" || echo "-")build-cache"
-        BUILD_CACHE_FALLBACK_TAG=":build-cache"
+        if [[ "${{ github.ref_name }}" == "main" ]]; then
+          IMAGE_TAG=""
+          BUILD_CACHE_TAG=":build-cache"
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          IMAGE_TAG=":pr-$PR_NUMBER"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        elif [[ "${{ github.event_name }}" == "merge_group" ]]; then
+          # e.g. gh-readonly-queue/main/pr-1234-<SHA>
+          PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
+          IMAGE_TAG=":pr-$PR_NUMBER"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        else
+          IMAGE_TAG=":$(echo ${{ github.ref_name }} | sed 's|/|-|g')"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        fi
 
         GRAPH_PROFILE="$([ "${{ github.ref_name }}" == "main" ] && echo "release" || echo "dev")"
 
         set -x
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "BUILD_CACHE_TAG=$BUILD_CACHE_TAG" >> $GITHUB_ENV
-        echo "BUILD_CACHE_FALLBACK_TAG=$BUILD_CACHE_FALLBACK_TAG" >> $GITHUB_ENV
+        echo "BUILD_CACHE_FALLBACK_TAG=:build-cache" >> $GITHUB_ENV
         echo "GRAPH_PROFILE=$GRAPH_PROFILE" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
