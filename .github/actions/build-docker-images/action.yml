@@ -60,9 +60,9 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }}
         push: true
         labels: |
-          org.opencontainers.image.source=https://github.com/hashintel/hash
-          org.opencontainers.image.licenses=AGPL-3.0-only
-          org.opencontainers.image.description=The entity-graph query-layer for the HASH datastore
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="The entity-graph query-layer for the HASH datastore"
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
@@ -85,9 +85,9 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }}
         push: true
         labels: |
-          org.opencontainers.image.source=https://github.com/hashintel/hash
-          org.opencontainers.image.licenses=AGPL-3.0-only
-          org.opencontainers.image.description=A TypeScript 'AI' worker for HASH
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
 
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
@@ -103,9 +103,9 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }}
         push: true
         labels: |
-          org.opencontainers.image.source=https://github.com/hashintel/hash
-          org.opencontainers.image.licenses=AGPL-3.0-only
-          org.opencontainers.image.description=A Python 'AI' worker for HASH
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A Python 'AI' worker for HASH"
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
@@ -121,6 +121,6 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }}
         push: true
         labels: |
-          org.opencontainers.image.source=https://github.com/hashintel/hash
-          org.opencontainers.image.licenses=AGPL-3.0-only
-          org.opencontainers.image.description=A TypeScript worker for HASH for data integration
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A TypeScript worker for HASH for data integration"
