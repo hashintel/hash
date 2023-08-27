@@ -59,7 +59,7 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_FALLBACK_TAG }}
         cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }},mode=max
         push: true
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
@@ -84,7 +84,7 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_FALLBACK_TAG }}
         cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }},mode=max
         push: true
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
@@ -102,7 +102,7 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_FALLBACK_TAG }}
         cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }},mode=max
         push: true
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
@@ -120,7 +120,7 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_FALLBACK_TAG }}
         cache-to: |
-          type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }},mode=max
         push: true
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
