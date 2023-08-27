@@ -31,7 +31,7 @@ runs:
           IMAGE_TAG=""
           BUILD_CACHE_TAG=":build-cache"
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          PR_NUMBER="${{ github.event.pull_request.number }}_merge"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           IMAGE_TAG=":pr-$PR_NUMBER"
           BUILD_CACHE_TAG="$IMAGE_TAG_build-cache"
         elif [[ "${{ github.event_name }}" == "merge_group" ]]; then

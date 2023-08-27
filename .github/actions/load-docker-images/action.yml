@@ -40,7 +40,7 @@ runs:
         if [[ "${{ github.ref_name }}" == "main" ]]; then
           IMAGE_TAG=""
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          PR_NUMBER="${{ github.event.pull_request.number }}_merge"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           IMAGE_TAG=":pr-$PR_NUMBER"
         elif [[ "${{ github.event_name }}" == "merge_group" ]]; then
           PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
