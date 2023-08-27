@@ -34,11 +34,29 @@ runs:
         username: ${{ github.actor }}
         password: ${{ inputs.repo-token }}
 
+    - name: Load tags
+      shell: bash
+      run: |
+        if [[ "${{ github.ref_name }}" == "main" ]]; then
+          IMAGE_TAG=""
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          PR_NUMBER="${{ github.event.pull_request.number }}_merge"
+          IMAGE_TAG=":pr-$PR_NUMBER"
+        elif [[ "${{ github.event_name }}" == "merge_group" ]; then
+          PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
+          IMAGE_TAG=":pr-$PR_NUMBER"
+        else
+          IMAGE_TAG=":$(echo ${{ github.ref_name }} | sed 's|/|-|g')"
+        fi
+
+        set -x
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
+        TAG="ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}"
         docker pull $TAG
         docker tag $TAG hash-graph
 
@@ -46,7 +64,7 @@ runs:
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}"
         docker pull $TAG
         docker tag $TAG hash-ai-worker-ts
 
@@ -54,7 +72,7 @@ runs:
       if: inputs.hash-ai-worker-py == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}"
         docker pull $TAG
         docker tag $TAG hash-ai-worker-py
 
@@ -62,6 +80,6 @@ runs:
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: |
-        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
+        TAG="ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}"
         docker pull $TAG
         docker tag $TAG hash-integration-worker
