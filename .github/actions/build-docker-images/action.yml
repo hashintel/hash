@@ -31,6 +31,8 @@ runs:
         BUILD_CACHE_TAG="$IMAGE_TAG$([ "${{ github.ref_name }}" == "main" ] && echo ":" || echo "-")build-cache"
         BUILD_CACHE_FALLBACK_TAG=":build-cache"
 
+        GRAPH_PROFILE="$([ "${{ github.ref_name }}" == "main" ] && echo "release" || echo "dev")"
+
         set -x
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "BUILD_CACHE_TAG=$BUILD_CACHE_TAG" >> $GITHUB_ENV
@@ -67,7 +69,7 @@ runs:
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
         build-args: |
-          PROFILE=release
+          PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
