@@ -37,6 +37,7 @@ runs:
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
         echo "BUILD_CACHE_TAG=$BUILD_CACHE_TAG" >> $GITHUB_ENV
         echo "BUILD_CACHE_FALLBACK_TAG=$BUILD_CACHE_FALLBACK_TAG" >> $GITHUB_ENV
+        echo "GRAPH_PROFILE=$GRAPH_PROFILE" >> $GITHUB_ENV
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
