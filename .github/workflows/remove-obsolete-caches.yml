@@ -42,7 +42,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/orgs/hashintel/packages/container/hash-graph/versions" \
               | jq --arg pr "$PR_BRANCH" --arg merge "$MERGE_BRANCH" \
-                '.[] | { id, metadata } | select(.metadata.container.tags[] | (contains($pr) or startswith($merge))) | {id}[]' \
+                '.[] | { id, metadata } | select(.metadata.container.tags[] | (startswith($pr) or startswith($merge))) | {id}[]' \
               | xargs -I {} \
           curl -X DELETE \
             -H "Accept: application/vnd.github.v3+json" \
