@@ -31,6 +31,7 @@ runs:
         set -x
         TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
         docker pull $TAG && docker tag $TAG hash-graph || true
+        echo "HASH_GRAPH_TAG=$TAG" >> $GITHUB_ENV
 
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
@@ -38,8 +39,8 @@ runs:
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: hash-graph
-        outputs: type=docker,dest=/tmp/hash-graph.tar
+        tags: env.HASH_GRAPH_TAG
+        push: true
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
@@ -51,20 +52,13 @@ runs:
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
-    - name: Push hash-graph image
-      if: inputs.hash-graph == 'true'
-      shell: bash
-      run: |
-        TAG="ghcr.io/hashintel/hash-graph$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
-        docker tag hash-graph $TAG
-        docker push $TAG
-
     - name: Load hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: |
         TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
         docker pull $TAG && docker tag $TAG hash-graph || true
+        echo "HASH_AI_WORKER_TS_TAG=$TAG" >> $GITHUB_ENV
 
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
@@ -72,16 +66,8 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
-        tags: hash-ai-worker-ts
-        outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
-
-    - name: Push hash-ai-worker-ts image
-      if: inputs.hash-ai-worker-ts == 'true'
-      shell: bash
-      run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-ts$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
-        docker tag hash-ai-worker-ts $TAG
-        docker push $TAG
+        tags: env.HASH_AI_WORKER_TS_TAG
+        push: true
 
     - name: Load hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
@@ -89,6 +75,7 @@ runs:
       run: |
         TAG="ghcr.io/hashintel/hash-ai-worker-py$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
         docker pull $TAG && docker tag $TAG hash-graph || true
+        echo "HASH_AI_WORKER_PY_TAG=$TAG" >> $GITHUB_ENV
 
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
@@ -96,16 +83,8 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
-        tags: hash-ai-worker-py
-        outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
-
-    - name: Push hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      shell: bash
-      run: |
-        TAG="ghcr.io/hashintel/hash-ai-worker-py$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
-        docker tag hash-ai-worker-py $TAG
-        docker push $TAG
+        tags: env.HASH_AI_WORKER_PY_TAG
+        push: true
 
     - name: Load hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
@@ -113,6 +92,7 @@ runs:
       run: |
         TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
         docker pull $TAG && docker tag $TAG hash-graph || true
+        echo "HASH_INTEGRATION_WORKER_TAG=$TAG" >> $GITHUB_ENV
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
@@ -120,13 +100,5 @@ runs:
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
-        tags: hash-integration-worker
-        outputs: type=docker,dest=/tmp/hash-integration-worker.tar
-
-    - name: Push hash-integration-worker image
-      if: inputs.hash-integration-worker == 'true'
-      shell: bash
-      run: |
-        TAG="ghcr.io/hashintel/hash-integration-worker$([ "${{ github.ref_name }}" != "main" ] && echo :${{ github.ref_name }} | sed 's|/|_|g')"
-        docker tag hash-integration-worker $TAG
-        docker push $TAG
+        tags: env.HASH_INTEGRATION_WORKER_TAG
+        push: true
