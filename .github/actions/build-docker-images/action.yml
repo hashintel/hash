@@ -17,6 +17,10 @@ inputs:
     description: "Build hash-integration-worker image"
     required: false
     default: "false"
+  token:
+    description: "GitHub token"
+    required: true
+    default: ${{ secrets.GITHUB_TOKEN }}
 
 runs:
   using: "composite"
@@ -37,7 +41,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ input.token }}
 
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
