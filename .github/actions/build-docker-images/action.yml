@@ -51,6 +51,8 @@ runs:
         tags: ${{ env.HASH_GRAPH_TAG }}
         pull: true
         push: true
+        cache-from: type=registry,ref=${{ env.HASH_GRAPH_TAG }}
+        cache-to: type=registry,ref=${{ env.HASH_GRAPH_TAG }}
         labels: |
           org.opencontainers.image.source=https://github.com/hashintel/hash
           org.opencontainers.image.licenses=AGPL-3.0
