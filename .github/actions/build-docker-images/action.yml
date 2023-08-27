@@ -39,7 +39,7 @@ runs:
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: env.HASH_GRAPH_TAG
+        tags: ${{ env.HASH_GRAPH_TAG }}
         push: true
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
@@ -66,7 +66,7 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
-        tags: env.HASH_AI_WORKER_TS_TAG
+        tags: ${{ env.HASH_AI_WORKER_TS_TAG }}
         push: true
 
     - name: Load hash-ai-worker-py image
@@ -83,7 +83,7 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
-        tags: env.HASH_AI_WORKER_PY_TAG
+        tags: ${{ env.HASH_AI_WORKER_PY_TAG }}
         push: true
 
     - name: Load hash-integration-worker image
@@ -100,5 +100,5 @@ runs:
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
-        tags: env.HASH_INTEGRATION_WORKER_TAG
+        tags: ${{ env.HASH_INTEGRATION_WORKER_TAG }}
         push: true
