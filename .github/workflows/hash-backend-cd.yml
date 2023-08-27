@@ -55,7 +55,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -93,7 +93,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -131,7 +131,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -172,7 +172,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -210,7 +210,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -248,7 +248,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -286,7 +286,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -327,7 +327,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -375,7 +375,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -413,7 +413,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
