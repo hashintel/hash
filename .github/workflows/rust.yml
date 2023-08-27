@@ -103,6 +103,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2
@@ -186,6 +188,10 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
+      - name: Prune docker system
+        if: matrix.directory == 'apps/hash-graph'
+        run: docker system prune --all --force
+
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
@@ -209,6 +215,8 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2
@@ -280,6 +288,10 @@ jobs:
         uses: ./.github/actions/warm-up-repo
         if: matrix.directory == 'apps/hash-graph'
 
+      - name: Prune docker system
+        if: matrix.directory == 'apps/hash-graph'
+        run: docker system prune --all --force
+
       - name: Load Docker image
         uses: ./.github/actions/load-docker-images
         if: matrix.directory == 'apps/hash-graph'
@@ -303,6 +315,8 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install tools
         uses: taiki-e/install-action@v2

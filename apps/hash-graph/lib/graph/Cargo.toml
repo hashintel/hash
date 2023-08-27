@@ -32,13 +32,13 @@ mime = "0.3.17"
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
-regex = "1.9.3"
+regex = "1.9.4"
 semver = { version = "1.0.18", default-features = false, features = ["serde"] }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
 tokio = { version = "1.32.0", default-features = false }
-tokio-postgres = { version = "0.7.9", default-features = false }
+tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
 tonic = "0.8.3"
