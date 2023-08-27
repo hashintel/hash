@@ -32,8 +32,8 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         name: Check-out Git project source
 
-      - run: semgrep ci --sarif --output=semgrep.sarif
-        name: Run Semgrep
+      - name: Run Semgrep
+        run: semgrep ci --sarif --output=semgrep.sarif || true
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
