@@ -211,6 +211,16 @@ where
     }
 }
 
+/// An untyped [`Tuple`] that is generic over the [`Resource`], [`Affiliation`], and [`Subject`].
+///
+/// This is useful for when the [`Resource`], [`Affiliation`], and [`Subject`] types are not known
+/// at compile-time, e.g. when parsing a [`Tuple`] from a string.
+pub type StringTuple = Tuple<
+    GenericResource<String, String>,
+    GenericAffiliation<String>,
+    GenericSubject<GenericResource<String, String>, GenericAffiliation<String>>,
+>;
+
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]

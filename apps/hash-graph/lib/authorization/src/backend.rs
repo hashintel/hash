@@ -5,11 +5,8 @@ use std::error::Error;
 
 use error_stack::Report;
 
-pub use self::spicedb::{RelationshipFilter, SpiceDb, SpiceDbConfig};
-use crate::zanzibar::{
-    Affiliation, Consistency, GenericAffiliation, GenericResource, GenericSubject, Resource,
-    Subject, Tuple, Zookie,
-};
+pub use self::spicedb::{SpiceDb, SpiceDbConfig};
+use crate::zanzibar::{Affiliation, Consistency, Resource, StringTuple, Subject, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait AuthorizationBackend {
@@ -35,12 +32,6 @@ pub struct CheckResponse {
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
 }
-
-type StringTuple = Tuple<
-    GenericResource<String, String>,
-    GenericAffiliation<String>,
-    GenericSubject<GenericResource<String, String>, GenericAffiliation<String>>,
->;
 
 #[derive(Debug)]
 pub struct CheckError {

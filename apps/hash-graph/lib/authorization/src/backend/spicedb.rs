@@ -22,35 +22,10 @@ pub struct SpiceDbConfig {
     pub key: Cow<'static, str>,
 }
 
-/// A collection of filters which when applied to a relationship will return relationships that
-/// have exactly matching fields.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RelationshipFilter<'a> {
-    pub resource_type: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalResourceId")]
-    pub resource_id: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalRelation")]
-    pub relation: Option<&'a str>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        rename = "optionalSubjectFilter"
-    )]
-    pub subject_filter: Option<SubjectFilter<'a>>,
-}
-
-/// A filter on the subject of a relationship.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SubjectFilter<'a> {
-    pub subject_type: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalSubjectId")]
-    pub subject_id: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalRelation")]
-    pub relation: Option<&'a str>,
-}
-
 mod schema {
+    //! Schema definitions for the `SpiceDB` API.
+    // TODO: Replace this module with an gRPC interface
+    //   see https://linear.app/hash/issue/H-609
     use std::collections::HashMap;
 
     use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
