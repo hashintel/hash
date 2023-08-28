@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::Client;
 
 use super::{AsClient, PostgresStore};
@@ -20,7 +20,6 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
         Ok(embedded::migrations::runner()
             .run_async(self.as_mut_client())
             .await
-            .into_report()
             .change_context(MigrationError)?
             .applied_migrations()
             .iter()
@@ -40,7 +39,6 @@ impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
         Ok(embedded::migrations::runner()
             .get_applied_migrations_async(self.as_mut_client())
             .await
-            .into_report()
             .change_context(MigrationError)?
             .iter()
             .map(Migration::from)

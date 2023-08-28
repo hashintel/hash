@@ -1,13 +1,15 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   SelectorAutocomplete,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
-import { SxProps, Theme } from "@mui/material";
+import { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { Ref, useRef, useState } from "react";
+import { FunctionComponent, Ref, useRef, useState } from "react";
 
 export type TypeSelectorType = {
-  $id: string;
+  $id: VersionedUrl;
+  Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
   description?: string;
 };
@@ -46,8 +48,9 @@ export const TypeSelector = <T extends TypeSelectorType>({
       } ${variant}`}
       inputRef={inputRef}
       isOptionEqualToValue={(option, value) => option.$id === value.$id}
-      optionToRenderData={({ $id, title, description }) => ({
+      optionToRenderData={({ $id, Icon, title, description }) => ({
         typeId: $id,
+        Icon,
         uniqueId: $id,
         title,
         description,

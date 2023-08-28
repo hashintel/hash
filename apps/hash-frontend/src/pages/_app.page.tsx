@@ -202,6 +202,11 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   const { cookie } = req?.headers ?? {};
 
+  /**
+   * Fetch the authenticated user on the very first page load so it's available in the frontend –
+   *   on subsequent loads it will be cached so long as the cookie value remains the same.
+   * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
+   */
   const [subgraph, kratosSession] = await Promise.all([
     apolloClient
       .query<MeQuery>({

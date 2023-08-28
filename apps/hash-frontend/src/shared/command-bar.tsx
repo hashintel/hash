@@ -27,7 +27,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useKeys } from "rooks";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -194,14 +193,14 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
 
 // borrowed from rooks
 const doesIdentifierMatchKeyboardEvent = (
-  error: KeyboardEvent,
+  event: KeyboardEvent,
   identifier: number | string,
 ): boolean =>
-  error.key === identifier ||
-  error.code === identifier ||
-  error.keyCode === identifier ||
-  error.which === identifier ||
-  error.charCode === identifier;
+  event.key === identifier ||
+  event.code === identifier ||
+  event.keyCode === identifier ||
+  event.which === identifier ||
+  event.charCode === identifier;
 
 export const CommandBar: FunctionComponent = () => {
   const popupState = usePopupState({
@@ -247,15 +246,6 @@ export const CommandBar: FunctionComponent = () => {
       router.events.off("routeChangeStart", handler);
     };
   }, [router.events, closeBar]);
-
-  useKeys(["Meta", "k"], () => {
-    if (popupState.isOpen) {
-      closeBar("delayed");
-    } else {
-      cancelReset();
-      popupState.open();
-    }
-  });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -375,6 +365,20 @@ export const CommandBar: FunctionComponent = () => {
 
     // adapted from rooks to handle multiple sets of keys
     const handleKeyDown = (event: KeyboardEvent) => {
+      /**
+       * Handle the command bar hotkey
+       * We cannot use useKeys directly for this due to https://github.com/imbhargav5/rooks/issues/1730
+       */
+      if (event.metaKey && doesIdentifierMatchKeyboardEvent(event, "k")) {
+        if (popupState.isOpen) {
+          closeBar("delayed");
+        } else {
+          cancelReset();
+          popupState.open();
+        }
+        return;
+      }
+
       // First detect the key that was pressed;
       for (const option of menu.options) {
         let areAllKeysFromListPressed = false;
@@ -418,7 +422,16 @@ export const CommandBar: FunctionComponent = () => {
 
     document.addEventListener("keyup", handleKeyUp);
 
+    const handleBlur = () => {
+      for (const key of Object.keys(mapping)) {
+        delete mapping[key];
+      }
+    };
+
+    window.addEventListener("blur", handleBlur);
+
     return () => {
+      window.removeEventListener("blur", handleBlur);
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("keyup", handleKeyUp);
       remove();

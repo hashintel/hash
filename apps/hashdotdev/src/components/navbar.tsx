@@ -67,7 +67,7 @@ const DesktopNav: FunctionComponent = () => {
         openInNew
         endIcon={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
         sx={{
-          color: ({ palette }) => palette.turquoise[100],
+          color: ({ palette }) => palette.aqua[100],
           background: "rgba(255, 255, 255, 0.80)",
         }}
       >
@@ -270,18 +270,18 @@ export const Navbar: FunctionComponent<{
               [`.${buttonClasses.root}.nav-link`]: {
                 color: isWhiteBackground
                   ? theme.palette.gray[70]
-                  : theme.palette.turquoise[100],
+                  : theme.palette.aqua[100],
                 [`> .${buttonClasses.startIcon} svg`]: {
                   color: isWhiteBackground
                     ? theme.palette.gray[70]
-                    : theme.palette.turquoise[100],
+                    : theme.palette.aqua[100],
                 },
                 "&:hover:not(.active)": {
                   color: isWhiteBackground
                     ? theme.palette.gray[90]
                     : theme.palette.common.black,
                   borderColor: isWhiteBackground
-                    ? theme.palette.turquoise[30]
+                    ? theme.palette.aqua[30]
                     : "transparent",
                   background: isWhiteBackground
                     ? "transparent"
@@ -297,7 +297,7 @@ export const Navbar: FunctionComponent<{
                   [`> .${buttonClasses.startIcon} svg`]: {
                     color: isWhiteBackground
                       ? theme.palette.teal[90]
-                      : theme.palette.turquoise[100],
+                      : theme.palette.aqua[100],
                   },
                 },
               },

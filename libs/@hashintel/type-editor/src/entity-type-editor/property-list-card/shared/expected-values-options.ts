@@ -32,10 +32,10 @@ const chipColors = {
     backgroundColor: theme.palette.purple[20],
     hoveredButtonColor: theme.palette.purple[50],
   },
-  turquoise: {
-    textColor: theme.palette.turquoise[70],
-    backgroundColor: theme.palette.turquoise[20],
-    hoveredButtonColor: theme.palette.turquoise[50],
+  aqua: {
+    textColor: theme.palette.aqua[70],
+    backgroundColor: theme.palette.aqua[20],
+    hoveredButtonColor: theme.palette.aqua[50],
   },
 };
 
@@ -127,12 +127,12 @@ export const expectedValuesOptions: ExpectedValueOptionMap = {
   mixedArray: {
     title: "Mixed Array",
     icon: faList.icon,
-    colors: chipColors.turquoise,
+    colors: chipColors.aqua,
   },
   arrayArray: {
     title: "Array of Arrays",
     icon: faListTree,
-    colors: chipColors.turquoise,
+    colors: chipColors.aqua,
   },
 };
 

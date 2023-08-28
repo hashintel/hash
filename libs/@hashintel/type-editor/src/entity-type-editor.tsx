@@ -74,7 +74,7 @@ export const EntityTypeEditor = ({
                     <Typography variant="h5" mb={2}>
                       Extends
                     </Typography>
-                    <InheritanceRow />
+                    <InheritanceRow entityTypeId={entityType.$id} />
                   </Box>
 
                   <Box>

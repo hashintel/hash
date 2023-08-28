@@ -6,6 +6,7 @@ import {
 import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
+  PropertyTypeIcon,
   StyledPlusCircleIcon,
 } from "@hashintel/design-system";
 import { Box, Checkbox, TableBody, TableCell, TableHead } from "@mui/material";
@@ -29,6 +30,7 @@ import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { usePropertyTypesOptions } from "../shared/property-types-options-context";
 import { useIsReadonly } from "../shared/read-only-context";
+import { linkEntityTypeUrl } from "../shared/urls";
 import { getPropertyTypeSchema } from "./property-list-card/get-property-type-schema";
 import { InheritedPropertyRow } from "./property-list-card/inherited-property-row";
 import { PropertyRow } from "./property-list-card/property-row";
@@ -45,6 +47,7 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
+import { TypeSelectorType } from "./shared/insert-property-field/type-selector";
 import {
   InsertTypeField,
   InsertTypeFieldProps,
@@ -54,7 +57,7 @@ import { QuestionIcon } from "./shared/question-icon";
 import { TypeFormModal } from "./shared/type-form";
 import { TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
-import { useInheritedValues } from "./shared/use-inherited-values";
+import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 
@@ -198,17 +201,33 @@ export const PropertyTypeRow = ({
 };
 
 const InsertPropertyField = (
-  props: Omit<InsertTypeFieldProps<PropertyType>, "options" | "variant">,
+  props: Omit<
+    InsertTypeFieldProps<PropertyType & Pick<TypeSelectorType, "Icon">>,
+    "options" | "variant"
+  >,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const properties = useWatch({ control, name: "properties" });
 
   const propertyTypeOptions = usePropertyTypesOptions();
-  const propertyTypes = Object.values(propertyTypeOptions);
-  const { properties: inheritedProperties } = useInheritedValues();
+  const propertyTypes = useMemo(
+    () =>
+      Object.values(propertyTypeOptions).map((type) => ({
+        ...type,
+        Icon: PropertyTypeIcon,
+      })),
+    [propertyTypeOptions],
+  );
+
+  const { properties: inheritedProperties } =
+    useInheritedValuesForCurrentDraft();
 
   const filteredPropertyTypes = useFilterTypeOptions({
-    typesToExclude: [...properties, ...inheritedProperties],
+    typesToExclude: [
+      ...properties,
+      ...inheritedProperties,
+      { $id: linkEntityTypeUrl },
+    ],
     typeOptions: propertyTypes,
   });
 
@@ -246,7 +265,8 @@ export const PropertyListCard = () => {
 
   const isReadonly = useIsReadonly();
 
-  const { properties: inheritedProperties } = useInheritedValues();
+  const { properties: inheritedProperties } =
+    useInheritedValuesForCurrentDraft();
 
   const fields = useMemo(
     () =>
@@ -326,7 +346,7 @@ export const PropertyListCard = () => {
                 });
               }
         }
-        icon={<FontAwesomeIcon icon={faList} />}
+        icon={<FontAwesomeIcon icon={faList} sx={{ fontSize: 24 }} />}
         headline={isReadonly ? <>No properties defined</> : <>Add a property</>}
         description={
           <>
@@ -368,7 +388,7 @@ export const PropertyListCard = () => {
       </TableHead>
       <TableBody>
         {fields.map(({ field, index }) =>
-          "inheritedFrom" in field ? (
+          "inheritanceChain" in field ? (
             <InheritedPropertyRow
               key={field.$id}
               inheritedPropertyData={field}

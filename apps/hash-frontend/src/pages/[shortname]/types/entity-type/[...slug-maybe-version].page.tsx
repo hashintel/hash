@@ -1,10 +1,9 @@
 import { extractVersion, validateEntityType } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
-  FontAwesomeIcon,
+  EntityTypeIcon,
+  LinkTypeIcon,
   OntologyChip,
-  OntologyIcon,
 } from "@hashintel/design-system";
 import {
   EntityTypeEditorFormData,
@@ -12,6 +11,7 @@ import {
   getFormDataFromSchema,
   getSchemaFromFormData,
   useEntityTypeForm,
+  useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
@@ -25,7 +25,7 @@ import { useMemo, useState } from "react";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useIsLinkType } from "../../../../shared/entity-types-context/hooks";
 import { isTypeArchived } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -67,13 +67,19 @@ const Page: NextPageWithLayout = () => {
     entityTypeBaseUrl,
   });
 
-  const { isLinkTypeLookup, loading: loadingEntityTypes } =
-    useEntityTypesContextRequired();
-
   const formMethods = useEntityTypeForm<EntityTypeEditorFormData>({
     defaultValues: { allOf: [], properties: [], links: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+
+  const parentRefs = useEntityTypeFormWatch({
+    control: formMethods.control,
+    name: "allOf",
+  });
+
+  const entityTypeIsLink = useIsLinkType({
+    allOf: parentRefs.map((id) => ({ $ref: id })),
+  });
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -192,14 +198,6 @@ const Page: NextPageWithLayout = () => {
     }
   }
 
-  if (!isLinkTypeLookup) {
-    if (loadingEntityTypes) {
-      return null;
-    } else {
-      return <PageErrorState />;
-    }
-  }
-
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
@@ -209,8 +207,6 @@ const Page: NextPageWithLayout = () => {
   }
 
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
-
-  const entityTypeIsLink = !!isLinkTypeLookup[entityType.$id];
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromFormData(data);
@@ -273,7 +269,19 @@ const Page: NextPageWithLayout = () => {
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                    icon: entityTypeIsLink ? (
+                      <LinkTypeIcon
+                        sx={({ palette }) => ({
+                          stroke: palette.gray[50],
+                        })}
+                      />
+                    ) : (
+                      <EntityTypeIcon
+                        sx={({ palette }) => ({
+                          fill: palette.gray[50],
+                        })}
+                      />
+                    ),
                   },
                 ]}
                 scrollToTop={() => {}}
@@ -311,7 +319,6 @@ const Page: NextPageWithLayout = () => {
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        icon={<OntologyIcon />}
                         domain="hash.ai"
                         path={
                           <>
@@ -379,6 +386,7 @@ const Page: NextPageWithLayout = () => {
 
       {previewEntityTypeUrl ? (
         <TypePreviewSlide
+          key={previewEntityTypeUrl}
           onClose={() => setPreviewEntityTypeUrl(null)}
           onNavigateToType={onNavigateToType}
           typeUrl={previewEntityTypeUrl}

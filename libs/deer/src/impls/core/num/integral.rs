@@ -1,5 +1,3 @@
-#[cfg(any(nightly, feature = "std"))]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 

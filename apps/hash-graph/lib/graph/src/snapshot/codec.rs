@@ -5,7 +5,7 @@ use std::{
 
 use bytes::{BufMut, BytesMut};
 use derivative::Derivative;
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 
@@ -35,7 +35,6 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
         let mut writer = dst.writer();
         serde_json::to_writer(&mut writer, &item)
             .map_err(io::Error::from)
-            .into_report()
             .attach(item)?;
         writeln!(writer)?;
         Ok(())
@@ -94,7 +93,6 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
-                    .into_report()
                     .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
             })
             .transpose()
@@ -112,7 +110,6 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
-                    .into_report()
                     .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
             })
             .transpose()

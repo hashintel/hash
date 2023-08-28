@@ -6,17 +6,26 @@ export const generateReadonlyMessage = (
         parentPropertyName: string;
       }
     | InheritanceData,
-) =>
-  "inheritanceChain" in args
+) => {
+  const entityTypeInheritedFrom =
+    "inheritanceChain" in args
+      ? args.inheritanceChain[args.inheritanceChain.length - 1]
+      : undefined;
+
+  return "inheritanceChain" in args
     ? `This property is inherited. To edit this value or remove it, modify the parent type from which it is inherited (${
-        args.inheritedFrom.title
+        entityTypeInheritedFrom!.title
       }${
         args.inheritanceChain.length > 1
-          ? ` via ${args.inheritanceChain.slice(0, -1).join(", ")}`
+          ? ` via ${args.inheritanceChain
+              .slice(0, -1)
+              .map((type) => type.title)
+              .join(", ")}`
           : ""
-      }), or remove ${args.inheritedFrom.title}${
+      }), or remove ${entityTypeInheritedFrom!.title}${
         args.inheritanceChain.length > 1
           ? " from the inheritance chain"
           : " from the 'extends' section"
       }.`
     : `Edit the '${args.parentPropertyName}' property to change this`;
+};

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use error_stack::{Context, IntoReport, ResultExt};
+use error_stack::{Context, ResultExt};
 use regex::{Captures, Regex};
 use type_system::{DataType, EntityType, PropertyType};
 
@@ -64,10 +64,7 @@ impl DomainValidator {
         &'a self,
         url: &'a str,
     ) -> error_stack::Result<Captures, DomainValidationError> {
-        self.0
-            .captures(url)
-            .ok_or(DomainValidationError)
-            .into_report()
+        Ok(self.0.captures(url).ok_or(DomainValidationError)?)
     }
 
     /// Returns the captures of the groups "shortname" and "kind"
@@ -85,14 +82,12 @@ impl DomainValidator {
             .name("shortname")
             .map(|matched| matched.as_str())
             .ok_or(DomainValidationError)
-            .into_report()
             .attach_printable("missing shortname")?;
 
         let kind = captures
             .name("kind")
             .map(|matched| matched.as_str())
             .ok_or(DomainValidationError)
-            .into_report()
             .attach_printable("missing ontology type kind")?;
 
         Ok(ShortNameAndKind { short_name, kind })
@@ -105,7 +100,6 @@ impl ValidateOntologyType<DataType> for DomainValidator {
 
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)
-                .into_report()
                 .attach_printable("Data Type base URL didn't match the given validation regex");
         };
 
@@ -114,11 +108,9 @@ impl ValidateOntologyType<DataType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "data-type" {
-            return Err(DomainValidationError)
-                .into_report()
-                .attach_printable_lazy(|| {
-                    format!("Data Type base URL had the incorrect ontology kind slug: {kind}")
-                });
+            return Err(DomainValidationError).attach_printable_lazy(|| {
+                format!("Data Type base URL had the incorrect ontology kind slug: {kind}")
+            });
         };
 
         // TODO - check that the user has write access to the shortname, this will require us
@@ -137,7 +129,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
         let base_url = &ontology_type.id().base_url;
 
         if !self.validate_url(base_url.as_str()) {
-            return Err(DomainValidationError).into_report().attach_printable(
+            return Err(DomainValidationError).attach_printable(
                 "Property Type base URL didn't match the given validation regex",
             );
         };
@@ -147,11 +139,9 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "property-type" {
-            return Err(DomainValidationError)
-                .into_report()
-                .attach_printable_lazy(|| {
-                    format!("Property Type base URL had the incorrect ontology kind slug: {kind}")
-                });
+            return Err(DomainValidationError).attach_printable_lazy(|| {
+                format!("Property Type base URL had the incorrect ontology kind slug: {kind}")
+            });
         };
 
         // TODO - check that the user has write access to the shortname, this will require us
@@ -171,7 +161,6 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
 
         if !self.validate_url(base_url.as_str()) {
             return Err(DomainValidationError)
-                .into_report()
                 .attach_printable("Entity Type base URL didn't match the given validation regex");
         };
 
@@ -180,11 +169,9 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "entity-type" {
-            return Err(DomainValidationError)
-                .into_report()
-                .attach_printable_lazy(|| {
-                    format!("Entity Type base URL had the incorrect ontology kind slug: {kind}")
-                });
+            return Err(DomainValidationError).attach_printable_lazy(|| {
+                format!("Entity Type base URL had the incorrect ontology kind slug: {kind}")
+            });
         };
 
         // TODO - check that the user has write access to the shortname, this will require us
