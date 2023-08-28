@@ -1,6 +1,6 @@
 # Elastic License 2.0
 
-URL: https://www.elastic.co/licensing/elastic-license
+_&lt;<https://www.elastic.co/licensing/elastic-license>&gt;_
 
 ## Acceptance
 
