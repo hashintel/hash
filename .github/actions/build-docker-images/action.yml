@@ -17,119 +17,126 @@ inputs:
     description: "Build hash-integration-worker image"
     required: false
     default: "false"
+  repo-token:
+    description: "GitHub token"
+    required: true
 
 runs:
   using: "composite"
   steps:
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    - name: Load tags
+      shell: bash
+      run: |
+        if [[ "${{ github.ref_name }}" == "main" ]]; then
+          IMAGE_TAG=""
+          BUILD_CACHE_TAG=":build-cache"
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          IMAGE_TAG=":pr-$PR_NUMBER"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        elif [[ "${{ github.event_name }}" == "merge_group" ]]; then
+          # e.g. gh-readonly-queue/main/pr-1234-<SHA>
+          PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
+          IMAGE_TAG=":pr-$PR_NUMBER"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        else
+          IMAGE_TAG=":$(echo ${{ github.ref_name }} | sed 's|/|-|g')"
+          BUILD_CACHE_TAG="${IMAGE_TAG}_build-cache"
+        fi
 
-    - name: Cache hash-graph image
-      if: inputs.hash-graph == 'true'
-      uses: actions/cache@v2
+        GRAPH_PROFILE="$([ "${{ github.ref_name }}" == "main" ] && echo "release" || echo "dev")"
+
+        set -x
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+        echo "BUILD_CACHE_TAG=$BUILD_CACHE_TAG" >> $GITHUB_ENV
+        echo "BUILD_CACHE_FALLBACK_TAG=:build-cache" >> $GITHUB_ENV
+        echo "GRAPH_PROFILE=$GRAPH_PROFILE" >> $GITHUB_ENV
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@4c0219f9ac95b02789c1075625400b2acbff50b1 # v2.9.1
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
       with:
-        path: /tmp/.hash-graph-buildx-cache
-        key: ${{ runner.os }}-hash-graph-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-hash-graph
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.repo-token }}
 
     - name: Build hash-graph image
       if: inputs.hash-graph == 'true'
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: hash-graph
-        cache-from: type=local,src=/tmp/.hash-graph-buildx-cache
-        cache-to: type=local,dest=/tmp/.hash-graph-buildx-cache-new
-        outputs: type=docker,dest=/tmp/hash-graph.tar
+        tags: ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_FALLBACK_TAG }}
+        cache-to: |
+          type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.BUILD_CACHE_TAG }},mode=max
+        push: true
+        labels: |
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="The entity-graph query-layer for the HASH datastore"
         # `dev` is large (~400 MB), slow, and fast to build
         # `production` is small (~10 MB), fast, and slow to build (a few minutes linking time due to LTO)
         # `release` is a compromise between the two (~30 MB, no LTO)
-        # TODO: As caching does not work very reliably, we use `dev` for now
-        #   see https://app.asana.com/0/0/1202790039552161/f
-        #       https://app.asana.com/0/0/1203893407788521/f
         build-args: |
-          PROFILE=dev
+          PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
           ENABLE_TEST_SERVER=yes
 
-    - name: Move has-graph cache
-      if: inputs.hash-graph == 'true'
-      shell: bash
-      run: |
-        rm -rf /tmp/.hash-graph-buildx-cache
-        mv /tmp/.hash-graph-buildx-cache-new /tmp/.hash-graph-buildx-cache
-
-    - name: Upload artifact
-      if: inputs.hash-graph == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-graph
-        path: /tmp/hash-graph.tar
-
     - name: Build hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
-        tags: hash-ai-worker-ts
-        outputs: type=docker,dest=/tmp/hash-ai-worker-ts.tar
-
-    - name: Upload artifact
-      if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-ai-worker-ts
-        path: /tmp/hash-ai-worker-ts.tar
-
-    - name: Cache hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/cache@v2
-      with:
-        path: /tmp/.hash-ai-worker-py-buildx-cache
-        key: ${{ runner.os }}-hash-ai-worker-py-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-hash-ai-worker-py
+        tags: ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_FALLBACK_TAG }}
+        cache-to: |
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.BUILD_CACHE_TAG }},mode=max
+        push: true
+        labels: |
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
 
     - name: Build hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
       with:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
-        tags: hash-ai-worker-py
-        cache-from: type=local,src=/tmp/.hash-ai-worker-py-buildx-cache
-        cache-to: type=local,dest=/tmp/.hash-ai-worker-py-buildx-cache-new
-        outputs: type=docker,dest=/tmp/hash-ai-worker-py.tar
-
-    - name: Move hash-ai-worker-py cache
-      if: inputs.hash-ai-worker-py == 'true'
-      shell: bash
-      run: |
-        rm -rf /tmp/.hash-ai-worker-py-buildx-cache
-        mv /tmp/.hash-ai-worker-py-buildx-cache-new /tmp/.hash-ai-worker-py-buildx-cache
-
-    - name: Upload artifact
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-ai-worker-py
-        path: /tmp/hash-ai-worker-py.tar
+        tags: ghcr.io/hashintel/hash-ai-worker-py${{ env.IMAGE_TAG }}
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_FALLBACK_TAG }}
+        cache-to: |
+          type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.BUILD_CACHE_TAG }},mode=max
+        push: true
+        labels: |
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A Python 'AI' worker for HASH"
 
     - name: Build hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825 # v4.1.1
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
-        tags: hash-integration-worker
-        outputs: type=docker,dest=/tmp/hash-integration-worker.tar
-
-    - name: Upload artifact
-      if: inputs.hash-integration-worker == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hash-integration-worker
-        path: /tmp/hash-integration-worker.tar
+        tags: ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}
+        cache-from: |
+          type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }}
+          type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_FALLBACK_TAG }}
+        cache-to: |
+          type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.BUILD_CACHE_TAG }},mode=max
+        push: true
+        labels: |
+          org.opencontainers.image.source="https://github.com/hashintel/hash"
+          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.description="A TypeScript worker for HASH for data integration"

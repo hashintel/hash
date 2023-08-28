@@ -8,10 +8,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Cleanup
+      - name: Remove caches
         run: |
           gh extension install actions/gh-actions-cache
 
@@ -21,7 +18,7 @@ jobs:
           echo "Fetching list of cache key"
           cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH | cut -f 1 )
 
-          ## Setting this to not fail the workflow while deleting cache keys. 
+          ## Setting this to not fail the workflow while deleting cache keys.
           set +e
           echo "Deleting caches..."
           for cacheKey in $cacheKeysForPR
@@ -31,3 +28,25 @@ jobs:
           echo "Done"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove untagged docker images
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr_tag = "pr-${{ github.event.pull_request.number }}"
+            const pr_build_cache_tag = "pr-${{ github.event.pull_request.number }}_build-cache"
+            for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker"]) {
+              const url = "/orgs/hashintel/packages/container/" + image + "/versions";
+              const response = await github.request("GET " + url, { per_page: 100 });
+              for (const version of response.data) {
+                if (version.metadata.container.tags.length == 0 || version.metadata.container.tags.includes(pr_tag) || version.metadata.container.tags.includes(pr_build_cache_tag)) {
+                  console.log("delete " + version.id)
+                  const deleteResponse = await github.request("DELETE " + url + "/" + version.id, { });
+                  console.log("status " + deleteResponse.status)
+                }
+              }
+            }
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

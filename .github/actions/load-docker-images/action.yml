@@ -17,65 +17,69 @@ inputs:
     description: "Build hash-integration-worker image"
     required: false
     default: "false"
+  repo-token:
+    description: "GitHub token"
+    required: true
 
 runs:
   using: "composite"
   steps:
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@4c0219f9ac95b02789c1075625400b2acbff50b1 # v2.9.1
 
-    - name: Download hash-graph image
-      if: inputs.hash-graph == 'true'
-      uses: actions/download-artifact@v3
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
       with:
-        name: hash-graph
-        path: /tmp
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.repo-token }}
+
+    - name: Load tags
+      shell: bash
+      run: |
+        if [[ "${{ github.ref_name }}" == "main" ]]; then
+          IMAGE_TAG=":latest"
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          IMAGE_TAG=":pr-$PR_NUMBER"
+        elif [[ "${{ github.event_name }}" == "merge_group" ]]; then
+          PR_NUMBER=$(echo "${{ github.ref_name }}" | cut -d/ -f3 | cut -d- -f2)
+          IMAGE_TAG=":pr-$PR_NUMBER"
+        else
+          IMAGE_TAG=":$(echo ${{ github.ref_name }} | sed 's|/|-|g')"
+        fi
+
+        set -x
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
     - name: Load hash-graph image
       if: inputs.hash-graph == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-graph.tar
-        docker image ls -a
-
-    - name: Download hash-ai-worker-ts image
-      if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-ai-worker-ts
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}"
+        docker pull $TAG
+        docker tag $TAG hash-graph
 
     - name: Load hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-ai-worker-ts.tar
-        docker image ls -a
-
-    - name: Download hash-ai-worker-py image
-      if: inputs.hash-ai-worker-py == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-ai-worker-py
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}"
+        docker pull $TAG
+        docker tag $TAG hash-ai-worker-ts
 
     - name: Load hash-ai-worker-py image
       if: inputs.hash-ai-worker-py == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-ai-worker-py.tar
-        docker image ls -a
-
-    - name: Download hash-integration-worker image
-      if: inputs.hash-integration-worker == 'true'
-      uses: actions/download-artifact@v3
-      with:
-        name: hash-integration-worker
-        path: /tmp
+        TAG="ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}"
+        docker pull $TAG
+        docker tag $TAG hash-ai-worker-py
 
     - name: Load hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
       shell: bash
       run: |
-        docker load --input /tmp/hash-integration-worker.tar
-        docker image ls -a
+        TAG="ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}"
+        docker pull $TAG
+        docker tag $TAG hash-integration-worker
