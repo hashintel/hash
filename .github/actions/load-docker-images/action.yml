@@ -38,7 +38,7 @@ runs:
       shell: bash
       run: |
         if [[ "${{ github.ref_name }}" == "main" ]]; then
-          IMAGE_TAG=""
+          IMAGE_TAG=":latest"
         elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_NUMBER="${{ github.event.pull_request.number }}"
           IMAGE_TAG=":pr-$PR_NUMBER"
