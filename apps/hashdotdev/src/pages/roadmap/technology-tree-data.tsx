@@ -1032,7 +1032,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     id: "77",
     heading: "REPL Block",
     body: "Support for individually executable blocks (JavaScript/Python notebook-style) within pages",
-    parentIds: ["76"],
+    parentIds: ["71"],
     status: "future",
     useCases: [
       "data-management",
