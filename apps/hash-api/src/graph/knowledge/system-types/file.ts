@@ -46,7 +46,6 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   try {
     // We don't have the file and so don't have its own name or mimetype
     const properties: Partial<RemoteFileProperties> = {
-      // When a file is an external link, we simply use the key as the fileUrl.
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -93,7 +92,6 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
 
   try {
     const properties: RemoteFileProperties = {
-      // When a file is an external link, we simply use the key as the fileUrl.
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
