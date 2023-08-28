@@ -72,6 +72,7 @@
     "js-yaml": "4.1.0",
     "jsonpath": "1.1.1",
     "lodash": "4.17.21",
+    "mime-types": "2.1.35",
     "multer": "1.4.4",
     "nanoid": "3.1.31",
     "node-fetch": "^2.6.7",

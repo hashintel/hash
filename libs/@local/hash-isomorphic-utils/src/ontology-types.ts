@@ -286,10 +286,6 @@ const systemPropertyTypes = {
     title: "File URL",
     description: "URL to access a file.",
   },
-  fileMediaType: {
-    title: "File Media Type",
-    description: "Media type of a file.",
-  },
   objectStoreKey: {
     title: "Object Store Key",
     description: "Unique identifier for an object in an object store.",
@@ -935,3 +931,11 @@ export const linearTypes: LinearTypeDefinitions = {
     {} as Record<LinearLinkEntityTypeKey, LinkEntityTypeDefinition>,
   ),
 };
+
+export const blockProtocolTypes = {
+  "remote-file": {
+    title: "Remote File",
+    entityTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+  },
+} as const;

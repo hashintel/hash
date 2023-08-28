@@ -71,7 +71,6 @@ export let SYSTEM_TYPES: {
 
     // File related
     fileUrl: PropertyTypeWithMetadata;
-    fileMediaType: PropertyTypeWithMetadata;
     externalFileUrl: PropertyTypeWithMetadata;
     objectStoreKey: PropertyTypeWithMetadata;
     fileKey: PropertyTypeWithMetadata;
@@ -707,11 +706,6 @@ const fileUrlTypePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const fileMediaTypePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileMediaType,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
 const objectStoreKeyPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.objectStoreKey,
   possibleValues: [{ primitiveDataType: "text" }],
@@ -766,9 +760,6 @@ export const fileEntityTypeInitializer = async (
   const fileUrlPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.fileUrl(context);
 
-  const fileMediaTypePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileMediaType(context);
-
   const fileKeyPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.fileKey(context);
 
@@ -779,10 +770,6 @@ export const fileEntityTypeInitializer = async (
     properties: [
       {
         propertyType: fileUrlPropertyType,
-        required: true,
-      },
-      {
-        propertyType: fileMediaTypePropertyType,
         required: true,
       },
       {
@@ -847,7 +834,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
     fileUrl: fileUrlTypePropertyTypeInitializer,
-    fileMediaType: fileMediaTypePropertyTypeInitializer,
     externalFileUrl: externalFileUrlPropertyTypeInitializer,
     objectStoreKey: objectStoreKeyPropertyTypeInitializer,
     fileKey: fileKeyPropertyTypeInitializer,
