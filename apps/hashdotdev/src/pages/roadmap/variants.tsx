@@ -3,7 +3,6 @@ import { ReactNode } from "react";
 import { ServerRegularIcon } from "../../components/icons/server-regular-icon";
 import { SparklesRegularIcon } from "../../components/icons/sparkles-regular-icon";
 import { VialRegularIcon } from "../../components/icons/vial-regular-icon";
-import { BlockProtocolIcon } from "./block-protocol-icon";
 
 export type VariantId = "infrastructure" | "feature" | "experiment";
 
