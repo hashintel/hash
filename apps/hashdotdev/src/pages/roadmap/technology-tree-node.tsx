@@ -119,7 +119,7 @@ export const TechnologyTreeNode: FunctionComponent<{
           alignItems="center"
           sx={{
             svg: {
-              fontSize: variant.id === "block-protocol" ? 12 : 14,
+              fontSize: 14,
               color: status.typeColor,
             },
           }}
