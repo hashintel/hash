@@ -45,8 +45,7 @@ export const TechnologyTreeNode: FunctionComponent<{
         position: "absolute",
         transform: "translate(-50%, -50%)",
         width: technologyTreeNodeWidth,
-        background: ({ palette }) =>
-          status.id === "done" ? palette.teal[10] : palette.white,
+        background: status.backgroundColor,
         borderRadius: "8px",
         borderColor: ({ palette }) => palette.gray[30],
         borderWidth: 1,
@@ -58,15 +57,14 @@ export const TechnologyTreeNode: FunctionComponent<{
         display="flex"
         alignItems="flex-start"
         justifyContent="space-between"
-        marginBottom={1}
+        marginBottom={1.2}
       >
         <Typography
           sx={{
             fontSize: 15,
             lineHeight: 1.2,
-            fontWeight: 500,
-            color: ({ palette }) =>
-              status.id === "done" ? palette.teal[80] : palette.gray[90],
+            fontWeight: 600,
+            color: status.headingColor,
             marginRight: 1,
           }}
         >
@@ -99,7 +97,9 @@ export const TechnologyTreeNode: FunctionComponent<{
             onClick={onSelected}
             onBlur={onDeselected}
           >
-            <CircleInfoRegularIcon sx={{ fontSize: 14 }} />
+            <CircleInfoRegularIcon
+              sx={{ color: status.infoIconColor, fontSize: 14 }}
+            />
           </IconButton>
         </Tooltip>
       </Box>
@@ -108,7 +108,7 @@ export const TechnologyTreeNode: FunctionComponent<{
           fontSize: 14,
           fontWeight: 400,
           lineHeight: 1.2,
-          color: ({ palette }) => palette.black,
+          color: status.bodyColor,
         }}
       >
         {body}
@@ -120,17 +120,17 @@ export const TechnologyTreeNode: FunctionComponent<{
           sx={{
             svg: {
               fontSize: variant.id === "block-protocol" ? 12 : 14,
-              color: ({ palette }) => palette.teal[90],
+              color: status.typeColor,
             },
           }}
         >
           {variant.icon}
           <Typography
             sx={{
-              marginLeft: 0.5,
+              marginLeft: 0.8,
               fontSize: 13,
               fontWeight: 500,
-              color: ({ palette }) => palette.teal[90],
+              color: status.typeColor,
             }}
           >
             {variant.name}
@@ -139,15 +139,15 @@ export const TechnologyTreeNode: FunctionComponent<{
         <Box
           display="flex"
           alignItems="center"
-          sx={{ svg: { fontSize: 14, color: status.color } }}
+          sx={{ svg: { fontSize: 14, color: status.statusColor } }}
         >
           {status.icon}
           <Typography
             sx={{
-              marginLeft: 0.5,
+              marginLeft: 0.8,
               fontSize: 13,
               fontWeight: 500,
-              color: status.color,
+              color: status.statusColor,
             }}
           >
             {status.name}
