@@ -157,12 +157,6 @@ enum InvocationError {
     Rpc(RpcStatus),
 }
 
-impl From<reqwest::Error> for InvocationError {
-    fn from(error: reqwest::Error) -> Self {
-        Self::Request(error)
-    }
-}
-
 impl fmt::Display for InvocationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
