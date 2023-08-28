@@ -4,11 +4,13 @@ import { BinaryLightIcon } from "../../components/icons/binary-light-icon";
 import { BrainLightIcon } from "../../components/icons/brain-light-icon";
 import { BrowserLightIcon } from "../../components/icons/browser-light-icon";
 import { DisplayChartUpLightIcon } from "../../components/icons/display-chart-up-light-icon";
+import { GlobeIcon } from "../../components/icons/globe-icon";
 import { PeopleLightIcon } from "../../components/icons/people-light-icon";
 import { ScrewdriverWrenchLightIcon } from "../../components/icons/screwdriver-wrench-light-icon";
 import { SitemapLightIcon } from "../../components/icons/sitemap-light-icon";
 
 export type UseCaseId =
+  | "general"
   | "knowledge-management"
   | "data-management"
   | "business-intelligence"
@@ -24,6 +26,11 @@ type UseCase = {
 };
 
 export const useCases: UseCase[] = [
+  {
+    id: "general",
+    name: "General",
+    icon: <GlobeIcon />,
+  },
   {
     id: "knowledge-management",
     name: "Knowledge Management",

@@ -204,7 +204,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
           ))}
         </Box>
         <Box>
-          <FilterHeading>By Use Case</FilterHeading>
+          <FilterHeading>By Area</FilterHeading>
           {useCases.map(({ id, name, icon }) => (
             <FilterCheckboxItem
               key={id}
