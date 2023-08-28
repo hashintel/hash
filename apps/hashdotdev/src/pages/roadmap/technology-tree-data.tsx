@@ -29,7 +29,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "agent-based-simulation",
       "entity-storage-retrieval",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "1",
@@ -61,7 +61,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "agent-based-simulation",
       "entity-storage-retrieval",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "4",
@@ -75,7 +75,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "website-building",
       "internal-tools-apps",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "5",
@@ -202,7 +202,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "internal-tools-apps",
       "agent-based-simulation",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "13",
@@ -235,7 +235,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "internal-tools-apps",
       "agent-based-simulation",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "15",
@@ -387,14 +387,14 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "agent-based-simulation",
       "entity-storage-retrieval",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "26",
     heading: "AI Type Creation",
     body: "LLM-assisted new and existing type suggestions",
     parentIds: ["21"],
-    status: "in-progress",
+    status: "working-poc",
     useCases: [
       "knowledge-management",
       "data-management",
@@ -481,7 +481,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     parentIds: ["24"],
     status: "next-up",
     useCases: ["website-building", "internal-tools-apps"],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "32",
@@ -603,7 +603,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
       "agent-based-simulation",
       "entity-storage-retrieval",
     ],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "40",
@@ -673,7 +673,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     parentIds: ["39"],
     status: "future",
     useCases: ["knowledge-management"],
-    variant: "block-protocol",
+    variant: "infrastructure",
   },
   {
     id: "45",
