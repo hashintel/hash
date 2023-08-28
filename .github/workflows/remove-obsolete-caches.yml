@@ -34,10 +34,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // const pr_tag = "pr-${{ github.event.pull_request.number }}"
-            // const pr_build_cache_tag = "pr-${{ github.event.pull_request.number }}_build-cache"
-            const pr_tag = "pr-2999"
-            const pr_build_cache_tag = "pr-2999_build-cache"
+            const pr_tag = "pr-${{ github.event.pull_request.number }}"
+            const pr_build_cache_tag = "pr-${{ github.event.pull_request.number }}_build-cache"
             for (const image of ["hash-graph", "hash-ai-worker-ts", "hash-ai-worker-py", "hash-integration-worker"]) {
               const url = "/orgs/hashintel/packages/container/" + image + "/versions";
               const response = await github.request("GET " + url, { per_page: 100 });
