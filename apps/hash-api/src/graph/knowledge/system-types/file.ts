@@ -1,122 +1,65 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  RemoteFile,
+  RemoteFileProperties,
+} from "@local/hash-isomorphic-utils/system-types/blockprotocol/file";
+import mime from "mime-types";
 
-import { EntityTypeMismatchError } from "../../../lib/error";
+import {
+  MutationCreateFileFromUrlArgs,
+  MutationRequestFileUploadArgs,
+} from "../../../graphql/api-types.gen";
 import { PresignedPostUpload } from "../../../storage";
 import { genId } from "../../../util";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
-import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction } from "../..";
 import { createEntity, CreateEntityParams } from "../primitive/entity";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
-
-export type FileKey =
-  | {
-      type: "ObjectStoreKey";
-      objectStoreKey: string;
-    }
-  | {
-      type: "ExternalFileLink";
-      externalFileLink: string;
-    };
-
-export type File = {
-  fileUrl: string;
-  fileMediaType: string;
-  fileKey: FileKey;
-};
-
-export const getFileFromEntity: PureGraphFunction<{ entity: Entity }, File> = ({
-  entity,
-}) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.file.schema.$id
-  ) {
-    throw new EntityTypeMismatchError(
-      entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
-      entity.metadata.entityTypeId,
-    );
-  }
-
-  const fileUrl = entity.properties[
-    SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl
-  ] as string;
-
-  const fileMediaType = entity.properties[
-    SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl
-  ] as string;
-
-  const fileKeyObject = entity.properties[
-    SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUrl
-  ] as Record<string, any>;
-
-  const fileKey: FileKey =
-    SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUrl in
-    fileKeyObject
-      ? {
-          type: "ExternalFileLink",
-          externalFileLink: fileKeyObject[
-            SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUrl
-          ] as string,
-        }
-      : {
-          type: "ObjectStoreKey",
-          objectStoreKey: fileKeyObject[
-            SYSTEM_TYPES.propertyType.objectStoreKey.metadata.recordId.baseUrl
-          ] as string,
-        };
-
-  return {
-    fileUrl,
-    fileMediaType,
-    fileKey,
-  };
-};
 
 export const formatUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
-    size: number;
-    mediaType: string;
-  },
-  Promise<{ presignedPost: PresignedPostUpload; entity: Entity }>
-> = async (
-  ctx,
-  params,
-): Promise<{ presignedPost: PresignedPostUpload; entity: Entity }> => {
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> &
+    MutationRequestFileUploadArgs,
+  Promise<{ presignedPost: PresignedPostUpload; entity: RemoteFile }>
+> = async (ctx, params) => {
+  // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
+
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, mediaType } = params;
+  const { ownedById, actorId, description, entityTypeId, name } = params;
 
   const fileIdentifier = genId();
 
   const key = uploadProvider.getFileEntityStorageKey({
     accountId: ownedById,
-    uniqueIdenitifier: fileIdentifier,
+    uniqueIdentifier: fileIdentifier,
   });
 
+  const fileEntityTypeId =
+    // @todo validate that entityTypeId, if provided, ultimately inherits from RemoteFile
+    entityTypeId || blockProtocolTypes["remote-file"].entityTypeId;
+
   try {
-    const properties: EntityPropertiesObject = {
-      [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl]:
+    // We don't have the file and so don't have its own name or mimetype
+    const properties: Partial<RemoteFileProperties> = {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        description ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
-      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl]:
-        mediaType,
-      [SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUrl]: {
-        [SYSTEM_TYPES.propertyType.objectStoreKey.metadata.recordId.baseUrl]:
-          key,
-      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        name ?? undefined,
     };
 
-    const entity = await createEntity(ctx, {
+    const entity = (await createEntity(ctx, {
       ownedById,
       properties,
-      entityTypeId: SYSTEM_TYPES.entityType.file.schema.$id,
+      entityTypeId: fileEntityTypeId,
       actorId,
-    });
+    })) as unknown as RemoteFile;
 
     const presignedPost = await uploadProvider.presignUpload({
       key,
@@ -134,34 +77,37 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 };
 
 export const createFileFromExternalUrl: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
-    url: string;
-    mediaType: string;
-  },
-  Promise<Entity>
-> = async (ctx, params): Promise<Entity> => {
-  const { ownedById, actorId, mediaType, url } = params;
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> &
+    MutationCreateFileFromUrlArgs,
+  Promise<RemoteFile>
+> = async (ctx, params) => {
+  const { ownedById, actorId, description, entityTypeId, url } = params;
 
-  const key = url;
+  const filename = params.name || url.split("/").pop()!;
+  const mimeType = mime.lookup(filename) || "application/octet-stream";
+
+  const fileEntityTypeId =
+    // @todo validate that entityTypeId, if provided, ultimately inherits from RemoteFile
+    entityTypeId || blockProtocolTypes["remote-file"].entityTypeId;
 
   try {
-    const properties: EntityPropertiesObject = {
-      // When a file is an external link, we simply use the key as the fileUrl.
-      [SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl]: key,
-      [SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl]:
-        mediaType,
-      [SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUrl]: {
-        [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUrl]:
-          key,
-      },
+    const properties: RemoteFileProperties = {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+        description ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        url,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+        mimeType,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        filename,
     };
 
-    const entity = await createEntity(ctx, {
+    const entity = (await createEntity(ctx, {
       ownedById,
       properties,
-      entityTypeId: SYSTEM_TYPES.entityType.file.schema.$id,
+      entityTypeId: fileEntityTypeId,
       actorId,
-    });
+    })) as unknown as RemoteFile;
 
     return entity;
   } catch (error) {

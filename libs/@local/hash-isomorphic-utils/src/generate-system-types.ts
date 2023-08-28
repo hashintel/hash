@@ -6,7 +6,12 @@ import "@local/hash-backend-utils/environment";
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import slugify from "slugify";
 
-import { EntityTypeDefinition, linearTypes, types } from "./ontology-types";
+import {
+  blockProtocolTypes,
+  EntityTypeDefinition,
+  linearTypes,
+  types,
+} from "./ontology-types";
 
 const generateTypes = async (
   typeMap: Record<string, EntityTypeDefinition>,
@@ -48,6 +53,7 @@ const generateTypes = async (
 const generateSystemTypeTypes = async () => {
   await generateTypes(types.entityType, "system");
   await generateTypes(linearTypes.entityType, "linear", "linear");
+  await generateTypes(blockProtocolTypes, "Block Protocol", "blockprotocol");
 };
 
 void generateSystemTypeTypes();

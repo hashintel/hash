@@ -77,9 +77,9 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    uniqueIdenitifier,
+    uniqueIdentifier,
   }: GetFileEntityStorageKeyParams) {
-    return `${accountId}-${uniqueIdenitifier}`;
+    return `${accountId}-${uniqueIdentifier}`;
   }
 
   /** Sets up express routes required for uploading and downloading files */
