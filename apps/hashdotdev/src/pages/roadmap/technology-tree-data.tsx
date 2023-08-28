@@ -1056,10 +1056,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Intelligent offloading of infrequently accessed data into cold storage",
     parentIds: ["76"],
     status: "future",
-    useCases: [
-      "knowledge-management",
-      "data-management",
-    ],
+    useCases: ["knowledge-management", "data-management"],
     variant: "infrastructure",
   },
   {
