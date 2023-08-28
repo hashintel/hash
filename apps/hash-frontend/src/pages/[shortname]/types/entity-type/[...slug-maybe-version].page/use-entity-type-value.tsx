@@ -1,13 +1,20 @@
-import { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import {
+  EntityType,
+  PropertyTypeReference,
+  ValueOrArray,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { ConstructEntityTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
   AccountId,
   BaseUrl,
+  EntityTypeWithMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  getEntityTypeById,
   getEntityTypesByBaseUrl,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
@@ -33,22 +40,40 @@ import {
   useFetchEntityTypes,
 } from "../../../../../shared/entity-types-context/hooks";
 
-const getPropertyTypes = (
-  properties: any,
+/**
+ * Adds all property types referenced by the given property reference objects to the provided map,
+ * including from nested property objects each property type may further reference.
+ *
+ * The subgraph must be a result of having queried for an entity type with sufficiently high depth
+ * for constrainsPropertiesOn to contain all property types referenced by the entity type and its properties.
+ *
+ * @param propertyReferenceObjects The values of an entity type or property type's 'properties' object
+ * @param subgraph a subgraph which is assumed to contain all relevant property types
+ * @param propertyTypesMap the map to add the property types to
+ *
+ * @return nothing, because the caller provided the map
+ *
+ * @throws if the subgraph does not contain a property type referenced by the given reference objects
+ *
+ * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ */
+const addPropertyTypesToMapFromReferences = (
+  propertyReferenceObjects: ValueOrArray<PropertyTypeReference>[],
   subgraph: Subgraph,
-  propertyTypes?: Map<string, PropertyTypeWithMetadata>,
+  propertyTypesMap: Map<string, PropertyTypeWithMetadata>,
 ) => {
-  let propertyTypesMap =
-    propertyTypes ?? new Map<string, PropertyTypeWithMetadata>();
-  for (const prop of properties) {
-    const propertyUrl = "items" in prop ? prop.items.$ref : prop.$ref;
+  for (const referenceObject of propertyReferenceObjects) {
+    const propertyUrl =
+      "items" in referenceObject
+        ? referenceObject.items.$ref
+        : referenceObject.$ref;
     if (!propertyTypesMap.has(propertyUrl)) {
       const propertyType = getPropertyTypeById(subgraph, propertyUrl);
 
       if (propertyType) {
         for (const childProp of propertyType.schema.oneOf) {
           if ("type" in childProp && childProp.type === "object") {
-            propertyTypesMap = getPropertyTypes(
+            addPropertyTypesToMapFromReferences(
               Object.values(childProp.properties),
               subgraph,
               propertyTypesMap,
@@ -62,15 +87,58 @@ const getPropertyTypes = (
       }
     }
   }
+};
+
+/**
+ * Gets a map of all property types referenced by the entity type to the provided map,
+ * including from any parents in its inheritance chain and nested property objects,
+ *
+ * The subgraph must be a result of having queried for an entity type with sufficiently high depth
+ * for constrainsPropertiesOn and inheritsFrom to contain all parent entity types and property types they reference.
+ *
+ * @param entityType The entity type to provide properties for
+ * @param subgraph a subgraph which is assumed to contain all relevant property types
+ *
+ * @throws if the subgraph does not contain a property type or parent entity type relied on by the entity type
+ *
+ * @todo this is a good candidate for moving to somewhere shared, possibly @blockprotocol/graph's stdlib
+ */
+const getPropertyTypesForEntityType = (
+  entityType: EntityType,
+  subgraph: Subgraph,
+  propertyTypesMap = new Map<string, PropertyTypeWithMetadata>(),
+) => {
+  addPropertyTypesToMapFromReferences(
+    Object.values(entityType.properties),
+    subgraph,
+    propertyTypesMap,
+  );
+
+  for (const parentReference of entityType.allOf ?? []) {
+    const parentEntityType = getEntityTypeById(subgraph, parentReference.$ref);
+
+    if (!parentEntityType) {
+      throw new Error(
+        `Could not find parent entity type ${parentReference.$ref} for entity type ${entityType.$id}`,
+      );
+    }
+
+    getPropertyTypesForEntityType(
+      parentEntityType.schema,
+      subgraph,
+      propertyTypesMap,
+    );
+  }
 
   return propertyTypesMap;
 };
 
+// @todo rethink this from scratch, it's probably more complicated than it needs to be
 export const useEntityTypeValue = (
   entityTypeBaseUrl: BaseUrl | null,
   requestedVersion: number | null,
   accountId: AccountId | null,
-  onCompleted?: (entityType: EntityType) => void,
+  onCompleted?: (entityType: EntityTypeWithMetadata) => void,
 ) => {
   const router = useRouter();
 
@@ -85,7 +153,7 @@ export const useEntityTypeValue = (
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
   const { contextEntityType, latestVersion } = useMemo<{
-    contextEntityType: EntityType | null;
+    contextEntityType: EntityTypeWithMetadata | null;
     latestVersion: number | null;
   }>(() => {
     if (entityTypesLoading || !entityTypesSubgraph) {
@@ -115,8 +183,7 @@ export const useEntityTypeValue = (
 
         if (indexOfRequestedVersion >= 0) {
           return {
-            contextEntityType:
-              relevantEntityTypes[indexOfRequestedVersion]!.schema,
+            contextEntityType: relevantEntityTypes[indexOfRequestedVersion]!,
             latestVersion: maxVersion,
           };
         } else {
@@ -130,7 +197,7 @@ export const useEntityTypeValue = (
       // Otherwise, return the latest version
       const relevantVersionIndex = availableVersions.indexOf(maxVersion);
       return {
-        contextEntityType: relevantEntityTypes[relevantVersionIndex]!.schema,
+        contextEntityType: relevantEntityTypes[relevantVersionIndex]!,
         latestVersion: maxVersion,
       };
     }
@@ -150,25 +217,48 @@ export const useEntityTypeValue = (
     (contextEntityType ||
       (stateEntityType &&
         (requestedVersion && entityTypeBaseUrl
-          ? stateEntityType.$id !==
+          ? stateEntityType.schema.$id !==
             versionedUrlFromComponents(entityTypeBaseUrl, requestedVersion)
-          : extractBaseUrl(stateEntityType.$id) !== entityTypeBaseUrl)))
+          : extractBaseUrl(stateEntityType.schema.$id) !== entityTypeBaseUrl)))
   ) {
     setStateEntityType(contextEntityType);
   }
 
-  const propertyTypes = useMemo(() => {
+  const propertyTypesRef = useRef<Record<
+    VersionedUrl,
+    PropertyTypeWithMetadata
+  > | null>(null);
+
+  const propertyTypes = useMemo<Record<
+    VersionedUrl,
+    PropertyTypeWithMetadata
+  > | null>(() => {
     if (!stateEntityType || !entityTypesSubgraph) {
       return null;
     }
 
-    const relevantPropertiesMap = getPropertyTypes(
-      Object.values(stateEntityType.properties),
+    const relevantPropertiesMap = getPropertyTypesForEntityType(
+      stateEntityType.schema,
       entityTypesSubgraph,
     );
 
-    return Object.fromEntries(relevantPropertiesMap);
+    return {
+      // We add the previous property types to the new ones here to avoid the following bug (H-551):
+      // 1. Be viewing an entity type which relies on a non-latest property type
+      // 2. Switch to an entity type which doesn't refer to that property type, and:
+      //    – propertyTypes is updated to _not_ contain that non-latest property type, since it's not relevant to the new entity type
+      //    - the propertyTypeOptions given to the type editor of 'all latest property types' also doesn't contain it
+      //    - state update for property type options reaches the type editor before the form data is reset in onCompleted,
+      //        causing the type editor to crash because its form data refers to a property type it hasn't been provided with
+      // Ideally we would not have the form data and property type options be out of sync, but it requires more thought/work
+      ...Object.fromEntries(relevantPropertiesMap),
+      ...(propertyTypesRef.current ? propertyTypesRef.current : {}),
+    };
   }, [stateEntityType, entityTypesSubgraph]);
+
+  useLayoutEffect(() => {
+    propertyTypesRef.current = propertyTypes;
+  });
 
   const stateEntityTypeRef = useRef(stateEntityType);
   useLayoutEffect(() => {
@@ -177,12 +267,16 @@ export const useEntityTypeValue = (
 
   const completedRef = useRef<VersionedUrl | null>(null);
 
-  useLayoutEffect(() => {
-    if (stateEntityType && completedRef.current !== stateEntityType.$id) {
-      completedRef.current = stateEntityType.$id;
-      onCompleted?.(stateEntityType);
-    }
-  });
+  // Ideally this side effect would be in a useLayoutEffect, but for some reason having it in an effect can cause
+  // to the bug described above (see mention of H-551 above), even with the property type option merging.
+  //
+  // Moving it back into a useLayoutEffect also causes a bug with the property table loading, which was previously
+  // fixed by a patch in https://github.com/hashintel/hash/pull/2012, but that patch _also_ seems to contribute to the bug.
+  // @todo figure out what the issue in interaction between react-hook-form's form data, and the property options in React state
+  if (stateEntityType && completedRef.current !== stateEntityType.schema.$id) {
+    completedRef.current = stateEntityType.schema.$id;
+    onCompleted?.(stateEntityType);
+  }
 
   const entityTypeUnavailable = entityTypesLoading && !stateEntityType;
 
@@ -201,7 +295,9 @@ export const useEntityTypeValue = (
         throw new Error("Cannot update yet");
       }
 
-      const { $id, ...restOfEntityType } = stateEntityTypeRef.current;
+      const {
+        schema: { $id, ...restOfEntityType },
+      } = stateEntityTypeRef.current;
 
       const res = await updateEntityType({
         data: {

@@ -1,12 +1,12 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { IconButton } from "@hashintel/design-system";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import { FunctionComponent, useRef } from "react";
 
+import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
 
@@ -18,7 +18,7 @@ type EntityTypeItemProps = {
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
 ))(({ theme, selected }) => ({
-  paddingLeft: theme.spacing(3),
+  paddingLeft: theme.spacing(2),
   paddingRight: theme.spacing(1),
   paddingTop: theme.spacing(0.5),
   paddingBottom: theme.spacing(0.5),
@@ -30,13 +30,11 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   color: theme.palette.gray[70],
 
   "&:hover, &:focus": {
-    ...(!selected && {
-      backgroundColor: theme.palette.gray[20],
-      color: theme.palette.gray[80],
-    }),
+    backgroundColor: selected ? theme.palette.gray[20] : theme.palette.gray[10],
+    color: selected ? theme.palette.gray[80] : theme.palette.gray[70],
 
     "& .entity-menu-trigger": {
-      color: theme.palette.gray[50],
+      color: theme.palette.gray[80],
     },
   },
 
@@ -78,22 +76,14 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
           variant="smallTextLabels"
           sx={{
             display: "block",
-            color: "inherit",
+            color: ({ palette }) => palette.gray[70],
+            fontWeight: 500,
           }}
         >
           {title}
         </Typography>
       </Link>
-      <Tooltip
-        title="Create entity and copy link."
-        componentsProps={{
-          tooltip: {
-            sx: {
-              width: 175,
-            },
-          },
-        }}
-      >
+      <Tooltip title="Options" sx={{ left: 5 }}>
         <IconButton
           ref={entityMenuTriggerRef}
           className="entity-menu-trigger"
@@ -101,14 +91,14 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
           size="medium"
           unpadded
           sx={({ palette }) => ({
-            color: [selected ? palette.gray[40] : "transparent"],
+            color: [selected ? palette.gray[80] : "transparent"],
             "&:focus-visible, &:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
-              color: palette.gray[selected ? 50 : 40],
+              color: palette.gray[selected ? 80 : 40],
             },
           })}
         >
-          <FontAwesomeIcon icon={faEllipsis} />
+          <EllipsisRegularIcon />
         </IconButton>
       </Tooltip>
       <EntityTypeMenu

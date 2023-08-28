@@ -50,15 +50,19 @@ import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signe
 import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
+  archiveEntityTypeResolver,
   createEntityTypeResolver,
   getEntityTypeResolver,
   queryEntityTypesResolver,
+  unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
 } from "./ontology/entity-type";
 import {
+  archivePropertyTypeResolver,
   createPropertyTypeResolver,
   getPropertyTypeResolver,
   queryPropertyTypesResolver,
+  unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
@@ -117,8 +121,18 @@ export const resolvers = {
     updatePropertyType: loggedInAndSignedUpMiddleware(
       updatePropertyTypeResolver,
     ),
+    archivePropertyType: loggedInAndSignedUpMiddleware(
+      archivePropertyTypeResolver,
+    ),
+    unarchivePropertyType: loggedInAndSignedUpMiddleware(
+      unarchivePropertyTypeResolver,
+    ),
     createEntityType: loggedInAndSignedUpMiddleware(createEntityTypeResolver),
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
+    archiveEntityType: loggedInAndSignedUpMiddleware(archiveEntityTypeResolver),
+    unarchiveEntityType: loggedInAndSignedUpMiddleware(
+      unarchiveEntityTypeResolver,
+    ),
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
     inferEntities: loggedInAndSignedUpMiddleware(inferEntitiesResolver),

@@ -27,6 +27,7 @@ export const getEntityQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: EdgeResolveDepthsInput!
@@ -38,6 +39,7 @@ export const getEntityQuery = gql`
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      inheritsFrom: $inheritsFrom
       isOfType: $isOfType
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
@@ -55,6 +57,7 @@ export const queryEntitiesQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: EdgeResolveDepthsInput!
@@ -65,6 +68,7 @@ export const queryEntitiesQuery = gql`
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      inheritsFrom: $inheritsFrom
       isOfType: $isOfType
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity

@@ -8,11 +8,7 @@ import { InfoIcon, LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 
 type AccountSetupFormProps = {
-  onSubmit: (details: {
-    shortname: string;
-    preferredName: string;
-    responsibility?: string;
-  }) => void;
+  onSubmit: (details: { shortname: string; preferredName: string }) => void;
   loading: boolean;
   errorMessage?: string;
   email: string;

@@ -3,27 +3,23 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
+use graph_types::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
+use temporal_versioning::{
+    ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
+};
 
-use crate::{
-    identifier::{
-        ontology::OntologyTypeVersion,
-        time::{ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp},
+use crate::snapshot::{
+    account::AccountSender,
+    entity::{
+        EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
     },
-    provenance::RecordCreatedById,
-    snapshot::{
-        account::AccountSender,
-        entity::{
-            EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch,
-            EntityTemporalMetadataRow,
-        },
-        EntitySnapshotRecord, SnapshotRestoreError,
-    },
+    EntitySnapshotRecord, SnapshotRestoreError,
 };
 
 /// A sink to insert [`EntitySnapshotRecord`]s.
@@ -49,19 +45,15 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.account.poll_ready_unpin(cx))
             .attach_printable("could not poll account sender")?;
         ready!(self.id.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
         ready!(self.edition.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll edition sender")?;
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll temporal metadata sender")?;
         ready!(self.links.poll_ready_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll entity link edges sender")?;
 
@@ -88,7 +80,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity id")?;
 
@@ -113,7 +104,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                                 .as_account_id(),
                         )
                     },
-                    |p| p.record_created_by_id(),
+                    |p| p.record_created_by_id,
                 ),
                 archived: entity.metadata.custom.archived.unwrap_or(false),
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
@@ -121,7 +112,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     entity.metadata.entity_type_id.version,
                 ),
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity edition")?;
 
@@ -149,7 +139,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 decision_time,
                 transaction_time,
             })
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send entity temporal metadata")?;
 
@@ -163,7 +152,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     right_owned_by_id: link_data.right_entity_id.owned_by_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                 })
-                .into_report()
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity link edges")?;
         }
@@ -175,19 +163,15 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.account.poll_flush_unpin(cx))
             .attach_printable("could not flush account sender")?;
         ready!(self.id.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
         ready!(self.edition.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush edition sender")?;
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush temporal metadata sender")?;
         ready!(self.links.poll_flush_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush entity link edges sender")?;
 
@@ -198,19 +182,15 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         ready!(self.account.poll_close_unpin(cx))
             .attach_printable("could not close account sender")?;
         ready!(self.id.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
         ready!(self.edition.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close edition sender")?;
         ready!(self.temporal_metadata.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close temporal metadata sender")?;
         ready!(self.links.poll_close_unpin(cx))
-            .into_report()
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity link edges sender")?;
 

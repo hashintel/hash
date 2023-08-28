@@ -1,7 +1,6 @@
 import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
-import { Button } from "@hashintel/design-system";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { AccountId, EntityId } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
@@ -13,6 +12,7 @@ import { useLocalstorageState } from "rooks";
 import { PageThread } from "../../components/hooks/use-page-comments";
 import { PageContentItem } from "../../graphql/api-types.gen";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
+import { Button } from "../../shared/ui";
 import { useUserBlocks } from "../user-blocks";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";

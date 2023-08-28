@@ -3,7 +3,7 @@ use bb8_postgres::{
     bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
     PostgresConnectionManager,
 };
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Client, Config, Error, GenericClient, Socket, Transaction,
@@ -60,7 +60,6 @@ where
                 .error_sink(Box::new(ErrorLogger))
                 .build(PostgresConnectionManager::new(config, tls))
                 .await
-                .into_report()
                 .change_context(StoreError)
                 .attach_printable_lazy(|| db_info.clone())?,
         })

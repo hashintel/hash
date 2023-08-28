@@ -12,7 +12,7 @@
 
 use std::fmt;
 
-use error_stack::{Context, IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt};
 
 #[derive(Debug)]
 struct ParseExperimentError;
@@ -33,7 +33,6 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimen
         .map(|value| {
             value
                 .parse::<u64>()
-                .into_report()
                 .attach_printable_lazy(|| format!("{value:?} could not be parsed as experiment"))
         })
         .map(|value| value.map(|ok| (ok, 2 * ok)))

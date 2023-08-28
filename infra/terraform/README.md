@@ -160,13 +160,20 @@ The Kratos migrations may take a couple of minutes, but while the migrations are
 
 ## 3. Build/push docker images
 
-You must build images for `hash-graph`, `hash-api` and `kratos` to push to ECR (`buildkit` env variable may be optional)
+You must build images for `hash-graph`, `hash-api`, `kratos`, and `temporal` setup/migration/worker to push to ECR (`buildkit` env variable may be optional)
 Depending on your AWS account ID (`$AWS_ID`), your selected terraform workspace (`$WORKSPACE`) and AWS region (`$REGION`) and region short name (`$REGION_SHORT`) your ECR URL will be different. The general structure is as follows:
 
 ```text
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-graphecr:latest
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-kratosecr:latest
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-apiecr:latest
+
+$AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-temporal-$WORKSPACE-$REGION_SHORT-setup:$HASH_TEMPORAL_VERSION
+$AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-temporal-$WORKSPACE-$REGION_SHORT-migrate:$HASH_TEMPORAL_VERSION
+
+$AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-temporalworkeraipy:latest
+$AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-temporalworkeraits:latest
+$AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-temporalworkerintegration:latest
 ```
 
 > If you receive a message about needing to log in, you can run the following AWS CLI command to authorize local push:
@@ -202,6 +209,38 @@ $ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/kratos --build-ar
 $ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
 ..
 ```
+
+**Building temporal services**:
+
+All temporal services requires the `TEMPORAL_VERSION` build argument to be set to the version of temporal to use. The current version can be found in [`.env`](../../.env) in the repository root and should be set to the same value as the `HASH_TEMPORAL_VERSION`. The image should be tagged with the same version as the `TEMPORAL_VERSION` build argument.
+
+```console
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/temporal/ -f ./apps/hash-external-services/temporal/migrate.Dockerfile --build-arg TEMPORAL_VERSION=$HASH_TEMPORAL_VERSION -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1-migrate:$HASH_TEMPORAL_VERSION
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1-migrate:$HASH_TEMPORAL_VERSION
+..
+$ DOCKER_BUILDKIT=1 docker build ./apps/hash-external-services/temporal/ -f ./apps/hash-external-services/temporal/setup.Dockerfile --build-arg TEMPORAL_VERSION=$HASH_TEMPORAL_VERSION -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1-setup:$HASH_TEMPORAL_VERSION
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-temporal-prod-usea1-migrate:$HASH_TEMPORAL_VERSION
+..
+```
+
+To build and push the temporal workers you may use these commands:
+
+```console
+$ # AI Typescript worker
+$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-ts/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraits:latest
+..
+$ # AI Python worker
+$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-ai-worker-py/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkeraipy:latest
+..
+$ # Integration worker
+$ DOCKER_BUILDKIT=1 docker build . -f ./apps/hash-integration-worker/docker/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-temporalworkerintegration:latest
+..
+```
+
+All of the above steps are also available in the [`HASH backend deployment` GitHub Action workflow](../../.github/workflows/hash-backend-cd.yml).
 
 # Management
 

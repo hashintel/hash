@@ -1,5 +1,9 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { LinkIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
+import {
+  GraphIcon,
+  LinkTypeIcon,
+  StyledPlusCircleIcon,
+} from "@hashintel/design-system";
 import { Box, TableBody, TableCell, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import {
@@ -17,7 +21,8 @@ import { EntityTypeEditorFormData } from "../shared/form-types";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { useIsReadonly } from "../shared/read-only-context";
 import { linkEntityTypeUrl } from "../shared/urls";
-import { LinkEntityTypeSelector } from "./link-list-card/link-entity-type-selector";
+import { DestinationEntityTypeSelector } from "./link-list-card/destination-entity-type-selector";
+import { InheritedLinkRow } from "./link-list-card/inherited-link-row";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -30,6 +35,7 @@ import {
   sortRows,
   useFlashRow,
 } from "./shared/entity-type-table";
+import { TypeSelectorType } from "./shared/insert-property-field/type-selector";
 import {
   InsertTypeField,
   InsertTypeFieldProps,
@@ -45,6 +51,7 @@ import {
 } from "./shared/type-form";
 import { TYPE_MENU_CELL_WIDTH, TypeMenuCell } from "./shared/type-menu-cell";
 import { useFilterTypeOptions } from "./shared/use-filter-type-options";
+import { useInheritedValuesForCurrentDraft } from "./shared/use-inherited-values";
 import { useStateCallback } from "./shared/use-state-callback";
 import { useTypeVersions } from "./shared/use-type-versions";
 import { VersionUpgradeIndicator } from "./shared/version-upgrade-indicator";
@@ -181,7 +188,7 @@ const LinkTypeRow = ({
           </EntityTypeTableTitleCellText>
         </TableCell>
         <TableCell sx={{ py: "0 !important" }}>
-          <LinkEntityTypeSelector linkIndex={linkIndex} />
+          <DestinationEntityTypeSelector linkIndex={linkIndex} />
         </TableCell>
         <MultipleValuesCell index={linkIndex} variant="link" />
         <TypeMenuCell
@@ -213,23 +220,35 @@ const LinkTypeRow = ({
 
 const InsertLinkField = (
   props: Omit<
-    InsertTypeFieldProps<EntityType>,
+    InsertTypeFieldProps<EntityType & Pick<TypeSelectorType, "Icon">>,
     "options" | "variant" | "createButtonProps"
   >,
 ) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
   const links = useWatch({ control, name: "links" });
+  const { links: inheritedLinks } = useInheritedValuesForCurrentDraft();
 
   const { linkTypes: linkTypeOptions } = useEntityTypesOptions();
-  const linkTypes = Object.values(linkTypeOptions);
+  const linkTypes = useMemo(
+    () =>
+      Object.values(linkTypeOptions).map((type) => ({
+        ...type,
+        Icon: LinkTypeIcon,
+      })),
+    [linkTypeOptions],
+  );
 
   const filteredLinkTypes = useFilterTypeOptions({
-    typesToExclude: links,
+    typesToExclude: [...links, ...inheritedLinks, { $id: linkEntityTypeUrl }],
     typeOptions: linkTypes,
   });
 
   return (
-    <InsertTypeField {...props} options={filteredLinkTypes} variant="link" />
+    <InsertTypeField
+      {...props}
+      options={filteredLinkTypes}
+      variant="link type"
+    />
   );
 };
 
@@ -248,14 +267,16 @@ export const LinkListCard = () => {
 
   const isReadonly = useIsReadonly();
 
+  const { links: inheritedLinks } = useInheritedValuesForCurrentDraft();
+
   const fields = useMemo(
     () =>
       sortRows(
-        unsortedFields,
+        [...unsortedFields, ...inheritedLinks],
         (linkId) => linkTypes[linkId],
         (row) => row.title,
       ),
-    [linkTypes, unsortedFields],
+    [inheritedLinks, linkTypes, unsortedFields],
   );
 
   const [flashingRows, flashRow] = useFlashRow();
@@ -327,7 +348,7 @@ export const LinkListCard = () => {
                 });
               }
         }
-        icon={<LinkIcon />}
+        icon={<GraphIcon />}
         headline={isReadonly ? <>No links defined</> : <>Add a link</>}
         description={
           <>
@@ -363,21 +384,25 @@ export const LinkListCard = () => {
         </EntityTypeTableHeaderRow>
       </TableHead>
       <TableBody>
-        {fields.map(({ field, row, index }) => (
-          <LinkTypeRow
-            key={field.id}
-            linkIndex={index}
-            onRemove={() => {
-              remove(index);
-            }}
-            onUpdateVersion={(nextId) => {
-              setValue(`links.${index}.$id`, nextId, {
-                shouldDirty: true,
-              });
-            }}
-            flash={row ? flashingRows.includes(row.$id) : false}
-          />
-        ))}
+        {fields.map(({ field, row, index }) =>
+          "inheritanceChain" in field ? (
+            <InheritedLinkRow key={field.$id} inheritedLinkData={field} />
+          ) : (
+            <LinkTypeRow
+              key={field.id}
+              linkIndex={index}
+              onRemove={() => {
+                remove(index);
+              }}
+              onUpdateVersion={(nextId) => {
+                setValue(`links.${index}.$id`, nextId, {
+                  shouldDirty: true,
+                });
+              }}
+              flash={row ? flashingRows.includes(row.$id) : false}
+            />
+          ),
+        )}
       </TableBody>
       {isReadonly || !ontologyFunctions ? (
         <Box sx={{ height: "var(--table-padding)" }} />

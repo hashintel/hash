@@ -12,9 +12,9 @@ We also have:
 
 ## About this repo
 
-This repository is HASH's public monorepo. It contains [several different](README.md) projects, some of which are open-source. Each project has its own [license](LICENSE.md) and contribution policies which may vary slightly.
+This repository is HASH's public monorepo. It contains [many different](README.md) projects, the vast majority of which are open-source, in line with [our commitment as a company](https://hash.dev/blog/open-source). While each project has its own [license](LICENSE.md), our contribution policies are consistent across this whole repository.
 
-To ascertain the license and contributor policy for a given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root.
+To ascertain the license and contributing policy for any given project, check out the `LICENSE.md` and `CONTRIBUTING.md` files in its root.
 
 ## Common contribution processes
 
@@ -49,4 +49,4 @@ There are a number of reasons why otherwise sound contributions might not find t
 
 ## Can I work for HASH full-time?
 
-We're recruiting for a number of full-time roles. If you've already contributed to the open-source `hash` repo, mention this in your application. View our open roles at [hash.ai/careers](https://hash.ai/careers) and drop your name in the _General Pool_ even if you'd be happy to work on HASH, but can't see a good fit right now.
+We're recruiting for a number of full-time roles. If you've already contributed to [this repository](https://github.com/hashintel/hash) or any of our other [@hashintel](https://github.com/hashintel)/[@blockprotocol](https://github.com/blockprotocol) repos, mention it in your application. View our open roles at [hash.ai/careers](https://hash.ai/careers) and drop your name in the mix _even if_ you can't see a good fit right now.

@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
@@ -5,9 +6,17 @@ import {
   outlinedInputClasses,
   PaperProps,
   PopperProps,
+  SvgIconProps,
   Typography,
 } from "@mui/material";
-import { createContext, Ref, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  FunctionComponent,
+  Ref,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { Button, ButtonProps } from "./button";
@@ -28,7 +37,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entityType" | "propertyType" | "entity" | "linkType";
+  variant: "entity type" | "property type" | "entity" | "link type";
 };
 
 const DropdownPropsContext =
@@ -85,14 +94,18 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
               </Typography>
             </>
           ) : null}
-          {variant === "entityType" ? (
-            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          {variant === "entity type" ? (
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : variant === "entity" ? (
-            <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
-          ) : variant === "linkType" ? (
-            <Chip color="turquoise" label="LINK TYPE" sx={{ ml: 1.5 }} />
+            <Chip color="teal" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
+          ) : variant === "link type" ? (
+            <Chip color="aqua" label={variant.toUpperCase()} sx={{ ml: 1.5 }} />
           ) : (
-            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+            <Chip
+              color="purple"
+              label={variant.toUpperCase()}
+              sx={{ ml: 1.5 }}
+            />
           )}
         </Button>
       ) : null}
@@ -104,7 +117,8 @@ type OptionRenderData = {
   /** a unique id for this option, which will be used as a key for the option */
   uniqueId: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: string;
+  typeId: VersionedUrl;
+  Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
   description?: string;
 };

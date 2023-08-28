@@ -175,7 +175,7 @@ async fn wrong_update_order() {
         .expect_err("could create data type");
     assert!(
         report.contains::<OntologyVersionDoesNotExist>(),
-        "wrong error, expected `BaseUrlDoesNotExist`, got {report:?}"
+        "wrong error, expected `OntologyVersionDoesNotExist`, got {report:?}"
     );
 
     api.create_owned_data_type(object_dt_v1.clone())
@@ -245,7 +245,7 @@ async fn update_external_with_owned() {
         .await
         .expect_err("could update data type");
     assert!(
-        report.contains::<VersionedUrlAlreadyExists>(),
-        "wrong error, expected `VersionedUrlAlreadyExists`, got {report:?}"
+        report.contains::<OntologyTypeIsNotOwned>(),
+        "wrong error, expected `OntologyTypeIsNotOwned`, got {report:?}"
     );
 }

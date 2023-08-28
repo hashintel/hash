@@ -28,8 +28,20 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
-use error_stack::{IntoReport, Report, ResultExt};
+use error_stack::{Report, ResultExt};
+use graph_types::{
+    ontology::{
+        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, OntologyTypeVersion,
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+};
 use include_dir::{include_dir, Dir};
+use temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
+};
 use utoipa::{
     openapi::{
         self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
@@ -51,20 +63,7 @@ use crate::{
             MaybeListOfEntityTypeMetadata, MaybeListOfOntologyElementMetadata,
         },
     },
-    identifier::{
-        ontology::{OntologyTypeRecordId, OntologyTypeVersion},
-        time::{
-            ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-            OpenTemporalBound, RightBoundedTemporalInterval,
-            RightBoundedTemporalIntervalUnresolved, TemporalBound, Timestamp, TransactionTime,
-        },
-    },
-    ontology::{
-        domain_validator::DomainValidator, CustomEntityTypeMetadata, CustomOntologyMetadata,
-        EntityTypeMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, Selector,
-    },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{error::VersionedUrlAlreadyExists, QueryError, Store, StorePool, TypeFetcher},
     subgraph::{
         edges::{
@@ -75,7 +74,10 @@ use crate::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
             GraphElementVertexId, PropertyTypeVertexId,
         },
-        temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
     },
 };
 
@@ -198,10 +200,6 @@ where
         .merge(openapi_only_router())
 }
 
-#[expect(
-    clippy::unused_async,
-    reason = "This route does not need async capabilities, but axum requires it in trait bounds."
-)]
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
@@ -230,12 +228,12 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         &OperationGraphTagAddon,
         &FilterSchemaAddon,
         &TimeSchemaAddon,
-        &OntologyTypeSchemaAddon,
     ),
     components(
         schemas(
             OwnedById,
             RecordCreatedById,
+            RecordArchivedById,
             ProvenanceMetadata,
             OntologyTypeRecordId,
             OntologyElementMetadata,
@@ -295,22 +293,18 @@ impl OpenApiDocumentation {
     pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
         let openapi = Self::openapi();
         let path = path.as_ref();
-        fs::create_dir_all(path)
-            .into_report()
-            .attach_printable_lazy(|| path.display().to_string())?;
+        fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
         serde_json::to_writer_pretty(
             io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
-                    .into_report()
                     .attach_printable("could not write openapi.json")
                     .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
             ),
             &openapi,
         )
-        .map_err(io::Error::from)
-        .into_report()?;
+        .map_err(io::Error::from)?;
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
@@ -320,7 +314,6 @@ impl OpenApiDocumentation {
 
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
-            .into_report()
             .attach_printable("could not create directory")
             .attach_printable_lazy(|| model_path_dir.display().to_string())?;
 
@@ -328,7 +321,6 @@ impl OpenApiDocumentation {
             let model_path_source = model_def_path.join(file.path());
             let model_path_target = model_path_dir.join(file.path());
             fs::copy(&model_path_source, &model_path_target)
-                .into_report()
                 .attach_printable("could not copy file")
                 .attach_printable_lazy(|| model_path_source.display().to_string())
                 .attach_printable_lazy(|| model_path_target.display().to_string())?;
@@ -385,6 +377,9 @@ impl Modify for MergeAddon {
 /// Any component that starts with `VAR_` will transform into a relative URL in the schema and
 /// receive a `.json` ending.
 ///
+/// Any component that starts with `SHARED_` will transform into a relative URL into the
+/// `./models/shared.json` file.
+///
 /// For example the `VAR_Entity` component will be transformed into `./models/Entity.json`
 struct ExternalRefAddon;
 
@@ -431,20 +426,31 @@ fn modify_schema_references(schema_component: &mut RefOr<openapi::Schema>) {
             openapi::Schema::OneOf(one_of) => {
                 one_of.items.iter_mut().for_each(modify_schema_references);
             }
+            openapi::Schema::AllOf(all_of) => {
+                all_of.items.iter_mut().for_each(modify_schema_references);
+            }
             _ => (),
         },
     }
 }
 
 fn modify_reference(reference: &mut openapi::Ref) {
-    static REF_PREFIX: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_MODELS: &str = "#/components/schemas/VAR_";
+    static REF_PREFIX_SHARED: &str = "#/components/schemas/SHARED_";
 
-    if reference.ref_location.starts_with(REF_PREFIX) {
+    if reference.ref_location.starts_with(REF_PREFIX_MODELS) {
         reference
             .ref_location
-            .replace_range(0..REF_PREFIX.len(), "./models/");
+            .replace_range(0..REF_PREFIX_MODELS.len(), "./models/");
         reference.ref_location.make_ascii_lowercase();
         reference.ref_location.push_str(".json");
+    };
+
+    if reference.ref_location.starts_with(REF_PREFIX_SHARED) {
+        reference.ref_location.replace_range(
+            0..REF_PREFIX_SHARED.len(),
+            "./models/shared.json#/definitions/",
+        );
     };
 }
 
@@ -672,20 +678,6 @@ impl Modify for TimeSchemaAddon {
                     .0
                     .to_owned(),
                 RightBoundedTemporalIntervalUnresolved::<()>::schema().1,
-            );
-        }
-    }
-}
-
-/// Adds time-related structs to the `OpenAPI` schema.
-struct OntologyTypeSchemaAddon;
-
-impl Modify for OntologyTypeSchemaAddon {
-    fn modify(&self, openapi: &mut openapi::OpenApi) {
-        if let Some(ref mut components) = openapi.components {
-            components.schemas.insert(
-                "BaseUrl".to_owned(),
-                ObjectBuilder::new().schema_type(SchemaType::String).into(),
             );
         }
     }

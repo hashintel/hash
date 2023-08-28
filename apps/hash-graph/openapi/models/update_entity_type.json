@@ -17,142 +17,25 @@
     "title": { "type": "string" },
     "description": { "type": "string" },
     "examples": {
-      "$comment": "Example Entity instances",
       "type": "array",
       "items": {
         "type": "object",
-        "propertyNames": {
+        "x-propertyNames": {
           "$comment": "Property names must be a valid URL to a Property Type",
           "type": "string",
           "format": "uri"
         }
       }
     },
-    "properties": { "$ref": "#/$defs/propertyTypeObject" },
+    "properties": { "$ref": "./shared.json#/definitions/PropertyTypeObject" },
     "required": {
       "type": "array",
       "items": {
-        "type": "string",
-        "format": "uri"
+        "$ref": "./shared.json#/definitions/BaseUrl"
       }
     },
-    "links": { "$ref": "#/$defs/linkTypeObject" }
+    "links": { "$ref": "./shared.json#/definitions/LinkTypeObject" }
   },
   "additionalProperties": false,
-  "required": ["$schema", "kind", "type", "title", "properties"],
-  "$defs": {
-    "propertyTypeObject": {
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/propertyTypeReference"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "enum": ["array"]
-                },
-                "items": {
-                  "$ref": "#/$defs/propertyTypeReference"
-                },
-                "minItems": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "maxItems": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": ["type", "items"],
-              "additionalProperties": false
-            }
-          ]
-        }
-      },
-      "minimumProperties": 1
-    },
-    "propertyTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "$comment": "Property Object values must be defined through references to the same valid URL to a Property Type",
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    },
-    "linkTypeObject": {
-      "type": "object",
-      "propertyNames": {
-        "$comment": "Property names must be a valid URL to a Property Type",
-        "type": "string",
-        "format": "uri"
-      },
-      "patternProperties": {
-        ".*": {
-          "type": "object",
-          "properties": {
-            "oneOf": {
-              "type": "array",
-              "items": {
-                "oneOf": [
-                  {
-                    "$ref": "#/$defs/entityTypeReference"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "enum": ["array"]
-                      },
-                      "items": {
-                        "$ref": "#/$defs/entityTypeReference"
-                      },
-                      "ordered": {
-                        "type": "boolean",
-                        "default": false
-                      },
-                      "minItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      },
-                      "maxItems": {
-                        "type": "integer",
-                        "minimum": 0
-                      }
-                    },
-                    "required": ["type", "ordered"],
-                    "additionalProperties": false
-                  }
-                ]
-              },
-              "minItems": 1
-            }
-          }
-        }
-      }
-    },
-    "entityTypeReference": {
-      "type": "object",
-      "properties": {
-        "$ref": {
-          "type": "string",
-          "format": "uri"
-        }
-      },
-      "required": ["$ref"],
-      "additionalProperties": false
-    }
-  }
+  "required": ["$schema", "kind", "type", "title", "properties"]
 }

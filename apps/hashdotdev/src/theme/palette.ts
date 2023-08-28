@@ -42,6 +42,7 @@ export const customColors = {
     15: "#EBF8FF",
     10: "#F7FDFF",
     20: "#E0F4FF",
+    25: "#CCEDFF",
     30: "#B4E2FD",
     40: "#7ACAFA",
     50: "#48B3F4",
@@ -52,7 +53,7 @@ export const customColors = {
     100: "#03366C",
     700: "#0775E3",
   },
-  mint: {
+  green: {
     10: "#EFFEFA",
     20: "#E1FBF4",
     30: "#D2F7ED",
@@ -91,7 +92,7 @@ export const customColors = {
     90: "#0C7792",
     100: "#04313C",
   },
-  turquoise: {
+  aqua: {
     10: "#F2FAFD",
     20: "#DEF4FD",
     30: "#BFE7F9",
@@ -109,7 +110,7 @@ export const customColors = {
   white: "#FFFFFF",
 } as const;
 
-export const palette: ThemeOptions["palette"] = {
+export const palette: NonNullable<ThemeOptions["palette"]> = {
   ...customColors,
   // @todo figure out how not to need this – Avatar
   grey: customColors.gray,

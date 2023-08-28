@@ -316,11 +316,10 @@ const main = async () => {
     });
   });
 
-  const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher(
-    graphApi,
-  );
+  const integrationSyncBackWatcher =
+    await createIntegrationSyncBackWatcher(graphApi);
 
-  integrationSyncBackWatcher.start();
+  void integrationSyncBackWatcher.start();
 
   shutdown.addCleanup(
     "Integration sync back watcher",

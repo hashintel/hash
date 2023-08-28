@@ -18,16 +18,15 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
-        SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, Constant, Expression, Function, JoinExpression, OrderByExpression,
+        Ordering, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{Alias, AliasedColumn, AliasedTable, ForeignKeyReference, ReferenceTable, Table},
+    table::{
+        Alias, AliasedColumn, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table,
+    },
 };
-use crate::store::{
-    postgres::query::table::{Column, Relation},
-    Record,
-};
+use crate::store::{postgres::query::table::Relation, Record};
 
 pub trait PostgresRecord: Record {
     /// The [`Table`] used for this `Query`.

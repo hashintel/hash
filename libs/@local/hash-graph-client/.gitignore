@@ -1,5 +1,0 @@
-.openapi-generator
-.npmignore
-tsconfig.esm.json
-*.ts
-*.sh

@@ -1,15 +1,17 @@
 use std::collections::hash_map::{RandomState, RawEntryMut};
 
+use graph_types::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeVersion, PropertyTypeWithMetadata,
+    },
+};
 use serde::Serialize;
+use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, VersionedUrl};
 use utoipa::ToSchema;
 
-use crate::{
-    identifier::{knowledge::EntityId, ontology::OntologyTypeVersion, time::Timestamp},
-    knowledge::Entity,
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint},
-};
+use crate::subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint};
 
 pub trait VertexId: Sized {
     type BaseId;
@@ -38,6 +40,7 @@ macro_rules! define_ontology_type_vertex_id {
         #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
         #[serde(rename_all = "camelCase")]
         pub struct $name {
+            #[schema(value_type = SHARED_BaseUrl)]
             pub base_id: BaseUrl,
             pub revision_id: OntologyTypeVersion,
         }

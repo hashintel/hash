@@ -5,18 +5,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
 
       - name: Warm up repo
         uses: ./.github/actions/warm-up-repo
+
+      - name: Setup python
+        run: yarn poetry:install
 
       - name: Fix
         run: yarn fix
 
       - name: Commit
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name HASH
+          git config user.email careers@hash.dev
           git add .
           git commit -m '`yarn fix`'
           git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}

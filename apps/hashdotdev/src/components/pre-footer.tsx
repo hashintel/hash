@@ -1,5 +1,7 @@
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
+  buttonClasses,
   Container,
   Divider,
   Grid,
@@ -30,7 +32,12 @@ import {
 } from "../pages/shared/blog-posts-context";
 import { parseNameFromFileName } from "../util/client-mdx-util";
 import { Button } from "./button";
-import { FaIcon } from "./icons/fa-icon";
+import { CommentCodeSolidIcon } from "./icons/comment-code-solid-icon";
+import { DiscordIcon } from "./icons/discord-icon";
+import { EnvelopeDotSolidIcon } from "./icons/envelope-dot-solid-icon";
+import { EnvelopeRegularIcon } from "./icons/envelope-regular-icon";
+import { FontAwesomeIcon } from "./icons/font-awesome-icon";
+import { GithubIcon } from "./icons/github-icon";
 import { Link } from "./link";
 import { TextField } from "./text-field";
 
@@ -128,7 +135,7 @@ export const Subscribe: FunctionComponent<
                 mb: 2,
               }}
             >
-              <FaIcon name="envelope-dot" type="solid" />
+              <EnvelopeDotSolidIcon />
             </Box>
             <Typography
               variant="hashHeading2"
@@ -454,7 +461,11 @@ const RecentBlogPosts: FunctionComponent = () => {
             },
           }}
         >
-          View all blog posts <FaIcon name="arrow-right" type="solid" />
+          View all blog posts{" "}
+          <FontAwesomeIcon
+            sx={{ position: "relative", top: 2 }}
+            icon={faArrowRight}
+          />
         </Link>
       </Box>
     </Container>
@@ -498,7 +509,12 @@ const Community: FunctionComponent = () => {
                 size="large"
                 color="purple"
                 href="https://hash.ai/discord"
-                startIcon={<FaIcon name="discord" type="brands" />}
+                startIcon={<DiscordIcon />}
+                sx={{
+                  [`.${buttonClasses.startIcon}>*:nth-of-type(1)`]: {
+                    fontSize: 28,
+                  },
+                }}
               >
                 Join our Discord
               </Button>
@@ -507,7 +523,7 @@ const Community: FunctionComponent = () => {
                 size="large"
                 color="blue"
                 href="https://github.com/hashintel/hash/issues"
-                startIcon={<FaIcon name="comment-code" type="solid" />}
+                startIcon={<CommentCodeSolidIcon />}
               >
                 Browse open issues
               </Button>
@@ -521,16 +537,16 @@ const Community: FunctionComponent = () => {
                 variant="primarySquare"
                 size="large"
                 href="https://github.com/hashintel/hash"
-                startIcon={<FaIcon name="github" type="brands" />}
+                startIcon={<GithubIcon />}
               >
                 Star us on GitHub
               </Button>
               <Button
                 variant="primarySquare"
                 size="large"
-                color="mint"
+                color="green"
                 href="https://hash.ai/contact"
-                startIcon={<FaIcon name="envelope" type="regular" />}
+                startIcon={<EnvelopeRegularIcon />}
               >
                 Get in touch
               </Button>
@@ -543,9 +559,10 @@ const Community: FunctionComponent = () => {
 };
 
 export const PreFooter: FunctionComponent<{
-  subscribe?: boolean;
-  recentBlogPosts?: boolean;
-}> = ({ subscribe = true, recentBlogPosts = false }) => (
+  subscribe: boolean;
+  recentBlogPosts: boolean;
+  community: boolean;
+}> = ({ subscribe, recentBlogPosts, community }) => (
   <>
     {subscribe ? (
       <Container component="section" sx={{ mb: 12, mt: 12 }}>
@@ -557,6 +574,6 @@ export const PreFooter: FunctionComponent<{
         <RecentBlogPosts />
       </Box>
     ) : null}
-    <Community />
+    {community ? <Community /> : null}
   </>
 );

@@ -4,7 +4,7 @@ import { FunctionComponent, ReactNode } from "react";
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthInfo } from "../../../pages/shared/auth-info-context";
-import { HashAlphaNavIcon } from "../../icons";
+import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
@@ -65,13 +65,12 @@ export const PageHeader: FunctionComponent = () => {
             }}
           >
             <Link noLinkStyle href="/">
-              <HashAlphaNavIcon
-                sx={({ palette }) => ({
+              <HashLockup
+                sx={{
                   height: "1.1rem",
                   marginBottom: "-4px",
                   width: "auto",
-                  fill: palette.gray["50"],
-                })}
+                }}
               />
             </Link>
           </Box>

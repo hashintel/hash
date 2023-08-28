@@ -1,24 +1,29 @@
-use std::{mem::swap, str::FromStr};
+use std::{borrow::Cow, mem::swap, str::FromStr};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
+use graph_types::{
+    account::AccountId,
+    knowledge::{
+        entity::{
+            Entity, EntityEditionId, EntityId, EntityMetadata, EntityRecordId,
+            EntityTemporalMetadata, EntityUuid,
+        },
+        link::{EntityLinkOrder, LinkData},
+    },
+    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+};
+use temporal_versioning::{
+    LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis, Timestamp,
+};
 use tokio_postgres::GenericClient;
 use type_system::url::{BaseUrl, VersionedUrl};
 use uuid::Uuid;
 
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityTemporalMetadata},
-        time::{
-            LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged, TimeAxis,
-            Timestamp,
-        },
-    },
-    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityQueryPath, EntityUuid, LinkData},
+    knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     store::{
         crud,
         postgres::{
@@ -98,6 +103,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let type_id_index = compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
             edge_kind: SharedEdgeKind::IsOfType,
             path: EntityTypeQueryPath::VersionedUrl,
+            inheritance_depth: Some(0),
         });
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
@@ -125,13 +131,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
             .await
-            .into_report()
             .change_context(QueryError)?
-            .map(|row| row.into_report().change_context(QueryError))
+            .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let entity_type_id = VersionedUrl::from_str(row.get(type_id_index))
-                    .into_report()
-                    .change_context(QueryError)?;
+                let entity_type_id =
+                    VersionedUrl::from_str(row.get(type_id_index)).change_context(QueryError)?;
 
                 let link_data = {
                     let left_owned_by_id: Option<AccountId> =
@@ -192,7 +196,10 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             transaction_time: row.get(transaction_time_index),
                         },
                         entity_type_id,
-                        ProvenanceMetadata::new(record_created_by_id),
+                        ProvenanceMetadata {
+                            record_created_by_id,
+                            record_archived_by_id: None,
+                        },
                         row.get(archived_index),
                     ),
                 })
@@ -261,10 +268,24 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn read_shared_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
+        depth: Option<u32>,
     ) -> Result<impl Iterator<Item = SharedEdgeTraversal> + 't, QueryError> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
+        };
+
+        let table = if depth == Some(0) {
+            "entity_is_of_type"
+        } else {
+            "closed_entity_is_of_type"
+        };
+
+        let where_statement = match depth {
+            Some(depth) if depth != 0 => Cow::Owned(format!(
+                "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
+            )),
+            _ => Cow::Borrowed(""),
         };
 
         Ok(self
@@ -289,11 +310,13 @@ impl<C: AsClient> PostgresStore<C> {
                          AND source.owned_by_id = filter.owned_by_id
                          AND source.entity_uuid = filter.entity_uuid
 
-                        JOIN entity_is_of_type
-                          ON source.entity_edition_id = entity_is_of_type.entity_edition_id
+                        JOIN {table}
+                          ON source.entity_edition_id = {table}.entity_edition_id
 
                         JOIN ontology_ids
-                          ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id;
+                          ON {table}.entity_type_ontology_id = ontology_ids.ontology_id
+
+                        {where_statement};
                     "#
                 ),
                 &[
@@ -305,7 +328,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {
@@ -404,7 +426,6 @@ impl<C: AsClient> PostgresStore<C> {
                 ],
             )
             .await
-            .into_report()
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {

@@ -5,6 +5,7 @@ import {
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
+  useEffect,
   useState,
 } from "react";
 
@@ -108,6 +109,12 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     setPrevValue(value);
     setInputValue(value);
   }
+
+  useEffect(() => {
+    if (pageTitleRef.current && pageTitleRef.current.value === "") {
+      pageTitleRef.current.focus();
+    }
+  }, [pageTitleRef]);
 
   // TODO: Assign appropriate a11y attributes
   return (

@@ -1,14 +1,13 @@
-use postgres_types::ToSql;
-
-use crate::{
-    identifier::{
-        knowledge::EntityEditionId,
-        ontology::OntologyTypeVersion,
-        time::{DecisionTime, LeftClosedTemporalInterval, TransactionTime},
+use graph_types::{
+    knowledge::{
+        entity::{EntityEditionId, EntityProperties, EntityUuid},
+        link::LinkOrder,
     },
-    knowledge::{EntityProperties, EntityUuid, LinkOrder},
+    ontology::OntologyTypeVersion,
     provenance::{OwnedById, RecordCreatedById},
 };
+use postgres_types::ToSql;
+use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]

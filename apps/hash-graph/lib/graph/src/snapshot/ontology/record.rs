@@ -1,6 +1,5 @@
+use graph_types::ontology::OntologyType;
 use serde::{Deserialize, Serialize};
-
-use crate::ontology::OntologyType;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(

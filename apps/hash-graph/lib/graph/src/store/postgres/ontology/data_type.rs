@@ -1,23 +1,26 @@
-use std::borrow::Borrow;
+use std::collections::HashSet;
 
 use async_trait::async_trait;
-#[cfg(hash_graph_test_environment)]
-use error_stack::IntoReport;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
-use type_system::DataType;
+use graph_types::{
+    ontology::{
+        DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
+        PartialOntologyElementMetadata,
+    },
+    provenance::{RecordArchivedById, RecordCreatedById},
+};
+use temporal_versioning::RightBoundedTemporalInterval;
+use type_system::{url::VersionedUrl, DataType};
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
-    identifier::time::RightBoundedTemporalInterval,
-    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::RecordCreatedById,
     store::{
         crud::Read,
         postgres::{ontology::OntologyId, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
-        UpdateError,
+        Record, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths, query::StructuralQuery, temporal_axes::VariableAxis, Subgraph,
@@ -61,7 +64,6 @@ impl<C: AsClient> PostgresStore<C> {
                 &[],
             )
             .await
-            .into_report()
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
@@ -80,28 +82,31 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn create_data_types(
         &mut self,
-        data_types: impl IntoIterator<
-            Item = (DataType, impl Borrow<OntologyElementMetadata> + Send + Sync),
-            IntoIter: Send,
-        > + Send,
+        data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
+        + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            if let Some(ontology_id) = transaction
-                .create_ontology_metadata(metadata.borrow(), on_conflict)
+            if let Some((ontology_id, transaction_time)) = transaction
+                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
                 .await?
             {
                 transaction
                     .insert_with_id(ontology_id, schema.clone())
                     .await?;
+                inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
+                    metadata,
+                    transaction_time,
+                ));
             }
         }
 
         transaction.commit().await.change_context(InsertionError)?;
 
-        Ok(())
+        Ok(inserted_data_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -125,11 +130,21 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
 
         if graph_resolve_depths.is_empty() {
+            // TODO: Remove again when subgraph logic was revisited
+            //   see https://linear.app/hash/issue/H-297
+            let mut visited_ontology_ids = HashSet::new();
+
             subgraph.vertices.data_types =
                 Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
                     .await?
                     .into_iter()
-                    .map(|data_type| (data_type.vertex_id(time_axis), data_type))
+                    .filter_map(|data_type| {
+                        // The records are already sorted by time, so we can just take the first
+                        // one
+                        visited_ontology_ids
+                            .insert(data_type.vertex_id(time_axis))
+                            .then(|| (data_type.vertex_id(time_axis), data_type))
+                    })
                     .collect();
             for vertex_id in subgraph.vertices.data_types.keys() {
                 subgraph.roots.insert(vertex_id.clone().into());
@@ -181,5 +196,21 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(metadata)
+    }
+
+    async fn archive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_archived_by_id: RecordArchivedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.archive_ontology_type(id, record_archived_by_id).await
+    }
+
+    async fn unarchive_data_type(
+        &mut self,
+        id: &VersionedUrl,
+        record_created_by_id: RecordCreatedById,
+    ) -> Result<OntologyTemporalMetadata, UpdateError> {
+        self.unarchive_ontology_type(id, record_created_by_id).await
     }
 }

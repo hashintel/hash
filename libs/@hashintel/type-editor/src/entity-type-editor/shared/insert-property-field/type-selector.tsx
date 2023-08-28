@@ -1,12 +1,15 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   SelectorAutocomplete,
   TypeListSelectorDropdownProps,
 } from "@hashintel/design-system";
+import { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { Ref, useRef, useState } from "react";
+import { FunctionComponent, Ref, useRef, useState } from "react";
 
 export type TypeSelectorType = {
-  $id: string;
+  $id: VersionedUrl;
+  Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
   description?: string;
 };
@@ -20,6 +23,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
   dropdownProps,
   options,
   inputRef,
+  sx,
   variant,
 }: {
   searchText: string;
@@ -30,7 +34,8 @@ export const TypeSelector = <T extends TypeSelectorType>({
   dropdownProps: TypeListSelectorDropdownProps;
   options: T[];
   inputRef: Ref<HTMLInputElement>;
-  variant: "property" | "link";
+  sx?: SxProps<Theme>;
+  variant: "entity type" | "property type" | "link type";
 }) => {
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | T>(null);
@@ -38,11 +43,14 @@ export const TypeSelector = <T extends TypeSelectorType>({
   return (
     <SelectorAutocomplete
       dropdownProps={dropdownProps}
-      inputPlaceholder={`Search for a ${variant} type`}
+      inputPlaceholder={`Search for ${
+        variant === "entity type" ? "an" : "a"
+      } ${variant}`}
       inputRef={inputRef}
       isOptionEqualToValue={(option, value) => option.$id === value.$id}
-      optionToRenderData={({ $id, title, description }) => ({
+      optionToRenderData={({ $id, Icon, title, description }) => ({
         typeId: $id,
+        Icon,
         uniqueId: $id,
         title,
         description,
@@ -79,6 +87,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
         }
       }}
       options={options}
+      sx={sx}
     />
   );
 };

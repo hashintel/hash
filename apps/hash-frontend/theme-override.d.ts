@@ -50,18 +50,18 @@ declare module "@mui/material/styles" {
     100: string;
   }
   interface Palette {
-    gray: PaletteValue;
+    gray: PaletteValue & { 5: string; 15: string };
     grey: undefined;
     blue: PaletteValue;
     purple: PaletteValue;
     red: PaletteValue;
     orange: PaletteValue;
-    green: PaletteValue;
+    lime: PaletteValue;
     yellow: PaletteValue;
     pink: PaletteValue;
     teal: PaletteValue;
-    mint: PaletteValue;
-    turquoise: PaletteValue;
+    green: PaletteValue;
+    aqua: PaletteValue;
     navy: PaletteValue;
     white: string;
     black: string;
@@ -137,6 +137,7 @@ declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
     primary: true;
     secondary: true;
+    secondary_quiet: true;
     tertiary: true;
     tertiary_quiet: true;
     warning: true;
@@ -219,13 +220,13 @@ declare module "@mui/material/Chip" {
     purple: true;
     red: true;
     orange: true;
-    green: true;
+    lime: true;
     yellow: true;
     pink: true;
     teal: true;
-    mint: true;
+    green: true;
     navy: true;
-    turquoise: true;
+    aqua: true;
     // Disable defaults
     default: false;
     primary: false;

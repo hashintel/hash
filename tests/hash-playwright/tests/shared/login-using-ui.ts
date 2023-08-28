@@ -31,9 +31,8 @@ export const loginUsingUi = async ({
   const verificationCodeInputSelector = '[data-testid="verify-code-input"]';
   await page.fill(
     verificationCodeInputSelector,
-    (
-      await getDerivedPayloadFromMostRecentEmail(emailDispatchTimestamp)
-    ).verificationCode as string,
+    (await getDerivedPayloadFromMostRecentEmail(emailDispatchTimestamp))
+      .verificationCode as string,
   );
   await page.press(verificationCodeInputSelector, "Enter");
 

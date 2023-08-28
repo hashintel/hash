@@ -1,4 +1,9 @@
-import { faBars, faClose } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowUpRightFromSquare,
+  faBars,
+  faClose,
+  faNewspaper,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   alpha,
   Box,
@@ -22,7 +27,9 @@ import { useRouter } from "next/router";
 import { FunctionComponent, ReactNode, useEffect, useState } from "react";
 
 import { Button } from "./button";
-import { FaIcon } from "./icons/fa-icon";
+import { DiagramSankeySolidIcon } from "./icons/diagram-sankey-solid-icon";
+import { DiscordIcon } from "./icons/discord-icon";
+import { EnvelopeRegularIcon } from "./icons/envelope-regular-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { Link } from "./link";
 import { Logo } from "./logo";
@@ -43,11 +50,11 @@ const DesktopNavLink = styled((props: ButtonProps) => <Button {...props} />)({
 });
 
 const navLinks: { icon: ReactNode; name: string; href: string }[] = [
-  // {
-  //   icon: <FaIcon name="diagram-sankey" type="solid" />,
-  //   name: "Roadmap",
-  //   href: "/roadmap",
-  // },
+  {
+    icon: <DiagramSankeySolidIcon />,
+    name: "Roadmap",
+    href: "/roadmap",
+  },
   // {
   //   icon: <FaIcon name="book-atlas" type="regular" />,
   //   name: "Docs",
@@ -59,7 +66,7 @@ const navLinks: { icon: ReactNode; name: string; href: string }[] = [
   //   href: "/tutorials",
   // },
   {
-    icon: <FaIcon name="newspaper" type="solid" />,
+    icon: <FontAwesomeIcon icon={faNewspaper} />,
     name: "Blog",
     href: "/blog",
   },
@@ -75,9 +82,9 @@ const DesktopNav: FunctionComponent = () => {
         variant="tertiary"
         href="https://hash.ai"
         openInNew
-        endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
+        endIcon={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
         sx={{
-          color: ({ palette }) => palette.turquoise[100],
+          color: ({ palette }) => palette.aqua[100],
           background: "rgba(255, 255, 255, 0.80)",
         }}
       >
@@ -199,7 +206,7 @@ const MobileNav: FunctionComponent<{
             <Stack spacing={1.25}>
               <Button
                 variant="tertiary"
-                startIcon={<FaIcon name="discord" type="brands" />}
+                startIcon={<DiscordIcon />}
                 size="large"
                 href="https://hash.ai/discord"
               >
@@ -208,7 +215,7 @@ const MobileNav: FunctionComponent<{
               <Button
                 size="large"
                 variant="primary"
-                startIcon={<FaIcon name="envelope" type="regular" />}
+                startIcon={<EnvelopeRegularIcon />}
                 href="#subscribe"
                 onClick={() => onMenuClose()}
               >
@@ -275,18 +282,18 @@ export const Navbar: FunctionComponent = () => {
               [`.${buttonClasses.root}.nav-link`]: {
                 color: isWhiteBackground
                   ? theme.palette.gray[70]
-                  : theme.palette.turquoise[100],
+                  : theme.palette.aqua[100],
                 [`> .${buttonClasses.startIcon} svg`]: {
                   color: isWhiteBackground
                     ? theme.palette.gray[70]
-                    : theme.palette.turquoise[100],
+                    : theme.palette.aqua[100],
                 },
                 "&:hover:not(.active)": {
                   color: isWhiteBackground
                     ? theme.palette.gray[90]
                     : theme.palette.common.black,
                   borderColor: isWhiteBackground
-                    ? theme.palette.turquoise[30]
+                    ? theme.palette.aqua[30]
                     : "transparent",
                   background: isWhiteBackground
                     ? "transparent"
@@ -302,7 +309,7 @@ export const Navbar: FunctionComponent = () => {
                   [`> .${buttonClasses.startIcon} svg`]: {
                     color: isWhiteBackground
                       ? theme.palette.teal[90]
-                      : theme.palette.turquoise[100],
+                      : theme.palette.aqua[100],
                   },
                 },
               },

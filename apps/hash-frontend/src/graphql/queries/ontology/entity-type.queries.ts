@@ -9,6 +9,7 @@ export const getEntityTypeQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $inheritsFrom: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
@@ -16,6 +17,7 @@ export const getEntityTypeQuery = gql`
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      inheritsFrom: $inheritsFrom
     ) {
       ...SubgraphFields
     }
@@ -29,35 +31,18 @@ export const queryEntityTypesQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $latestOnly: Boolean = true
+    $includeArchived: Boolean = false
   ) {
     queryEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
       constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      inheritsFrom: $inheritsFrom
       latestOnly: $latestOnly
-    ) {
-      ...SubgraphFields
-    }
-  }
-  ${subgraphFieldsFragment}
-`;
-
-export const getEntityTypeRootedSubgraphQuery = gql`
-  query getEntityTypeRootedSubgraph(
-    $entityTypeId: VersionedUrl!
-    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-  ) {
-    getEntityType(
-      entityTypeId: $entityTypeId
-      constrainsValuesOn: $constrainsValuesOn
-      constrainsPropertiesOn: $constrainsPropertiesOn
-      constrainsLinksOn: $constrainsLinksOn
-      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -84,5 +69,17 @@ export const updateEntityTypeMutation = gql`
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
     )
+  }
+`;
+
+export const archiveEntityTypeMutation = gql`
+  mutation archiveEntityType($entityTypeId: VersionedUrl!) {
+    archiveEntityType(entityTypeId: $entityTypeId)
+  }
+`;
+
+export const unarchiveEntityTypeMutation = gql`
+  mutation unarchiveEntityType($entityTypeId: VersionedUrl!) {
+    unarchiveEntityType(entityTypeId: $entityTypeId)
   }
 `;

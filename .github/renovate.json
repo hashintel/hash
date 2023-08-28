@@ -2,53 +2,132 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
-  "automerge": true,
+  "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
+  "automerge": true,
   "ignorePaths": ["apps/engine/**"],
+  "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
+  "schedule": ["before 4am every weekday", "every weekend"],
+
   "packageRules": [
     {
-      "enabled": true,
-      "groupName": "ESLint",
+      "extends": ["packages:linters", "packages:test"],
+      "dependencyDashboardApproval": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "commitMessageTopic": "GitHub Action `{{depName}}`",
+      "additionalBranchPrefix": "gha/",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "commitMessageTopic": "Docker tag `{{depName}}`",
+      "additionalBranchPrefix": "docker/"
+    },
+    {
+      "matchManagers": ["npm"],
+      "commitMessageTopic": "npm package `{{depName}}`",
+      "additionalBranchPrefix": "js/"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "commitMessageTopic": "Python package `{{depName}}`",
+      "additionalBranchPrefix": "py/",
+      "reviewers": ["team:Python"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`",
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"]
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "dependencyDashboardApproval": false
+    },
+    {
+      "groupName": "Block Protocol npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@blockprotocol/",
+        "^block-",
+        "^blockprotocol$",
+        "^create-block-app$",
+        "^mock-block-dock$"
+      ]
+    },
+    {
+      "groupName": "ESLint npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": [
         "^@types/eslint",
         "^@typescript-eslint/",
         "^eslint-",
-        "^eslint$"
-      ]
+        "eslint$"
+      ],
+      "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
-      "groupName": "Jest",
+      "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+      "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
-      "enabled": true,
-      "groupName": "Playwright",
+      "groupName": "Jest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+      "matchPackagePatterns": ["^jest-", "jest$"],
+      "dependencyDashboardApproval": false
     },
     {
-      "enabled": true,
-      "groupName": "ProseMirror",
+      "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror-"]
+      "matchPackagePatterns": ["^@opentelemetry/"]
     },
     {
-      "enabled": true,
-      "groupName": "Sentry",
+      "groupName": "Playwright npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright-", "playwright$"],
+      "dependencyDashboardApproval": false
+    },
+    {
+      "groupName": "Prettier npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prettier", "prettier$"],
+      "excludePackageNames": ["prettier-plugin-sql"],
+      "dependencyDashboardApproval": false
+    },
+    {
+      "groupName": "ProseMirror npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
+    },
+    {
+      "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
     },
     {
-      "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`"
+      "groupName": "Signia npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@signia/"]
+    },
+    {
+      "groupName": "Pydantic Python packages",
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["^pydantic"]
+    },
+    {
+      "matchManagers": ["poetry"],
+      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["regex"],
@@ -56,7 +135,10 @@
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
       "separateMajorMinor": false,
       "fetchReleaseNotes": false,
-      "commitMessageExtra": "to nightly-{{newVersion}}"
+      "commitMessageExtra": "to nightly-{{newVersion}}",
+      "additionalBranchPrefix": "rs/",
+      "reviewers": ["team:Rust"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["regex"],
@@ -77,17 +159,18 @@
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^clap[-_]?"],
-      "groupName": "`clap` crates"
+      "groupName": "`clap` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` crates"
+      "groupName": "`criterion` Rust crates",
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^futures[-_]?"],
-      "groupName": "`futures` crates"
+      "groupName": "`futures` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
@@ -95,23 +178,29 @@
         "^opentelemetry[-_]?",
         "^tracing-opentelemetry$"
       ],
-      "groupName": "`opentelemetry` crates"
+      "groupName": "`opentelemetry` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
-      "groupName": "`postgres` crates"
+      "groupName": "`postgres` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^serde[-_]?"],
-      "groupName": "`serde` crates"
+      "groupName": "`serde` Rust crates"
     },
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^tracing[-_]?"],
       "excludePackageNames": ["tracing-opentelemetry"],
-      "groupName": "`tracing` crates"
+      "groupName": "`tracing` Rust crates"
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "matchPackageNames": ["anyhow"],
+      "enabled": false
     }
   ],
   "regexManagers": [

@@ -10,7 +10,7 @@ type colorKeys =
   | "yellow"
   | "pink"
   | "teal"
-  | "mint"
+  | "lime"
   | "copper"
   | "navy"
   | "black"
@@ -25,7 +25,9 @@ type CustomColorsType = {
 
 export const customColors = {
   gray: {
+    5: "#F9FBFC",
     10: "#F7FAFC",
+    15: "#F2F8FD",
     20: "#EBF2F7",
     30: "#DDE7F0",
     40: "#C1CFDE",
@@ -85,7 +87,7 @@ export const customColors = {
     90: "#8C1E0A",
     100: "#601403",
   },
-  green: {
+  lime: {
     10: "#FAFDF0",
     20: "#F8FDD5",
     30: "#EEF8AB",
@@ -133,7 +135,7 @@ export const customColors = {
     90: "#0C7792",
     100: "#04313C",
   },
-  turquoise: {
+  aqua: {
     10: "#F2FAFD",
     20: "#DEF4FD",
     30: "#BFE7F9",
@@ -145,7 +147,7 @@ export const customColors = {
     90: "#004A62",
     100: "#00263C",
   },
-  mint: {
+  green: {
     10: "#EFFEFA",
     20: "#E1FBF4",
     30: "#D2F7ED",

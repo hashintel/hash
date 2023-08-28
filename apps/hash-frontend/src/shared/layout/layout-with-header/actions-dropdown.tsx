@@ -104,7 +104,6 @@ export const ActionsDropdownInner: FunctionComponent<{
           ? [
               { href: "/new/entity", label: "Create Entity" },
               { href: "/new/types/entity-type", label: "Create Entity Type" },
-              { href: "/new/org", label: "Create Organization" },
             ].map(({ href, label }) => (
               <MenuItem key={href} href={href} onClick={popupState.close}>
                 <ListItemText primary={label} />

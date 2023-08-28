@@ -10,6 +10,13 @@ import { logger } from "../logger";
 import { ImpureGraphContext } from "./index";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
+/**
+ * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
+ * run `yarn generate-system-types` to update their TypeScript representation
+ *
+ * @todo enforce this in CI – H-308
+ */
+
 // eslint-disable-next-line import/no-mutable-exports
 export let LINEAR_TYPES: {
   propertyType: {
@@ -250,9 +257,8 @@ export const userEntityTypeInitializer = async (
   const activePropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.active(context);
 
-  const adminPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.admin(
-    context,
-  );
+  const adminPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.admin(context);
 
   const archivedAtPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.archivedAt(context);
@@ -281,31 +287,26 @@ export const userEntityTypeInitializer = async (
   const displayNamePropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.displayName(context);
 
-  const emailPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.email(
-    context,
-  );
+  const emailPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.email(context);
 
-  const guestPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.guest(
-    context,
-  );
+  const guestPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.guest(context);
 
-  const idPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.id(
-    context,
-  );
+  const idPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.id(context);
 
   const inviteHashPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.inviteHash(context);
 
-  const isMePropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.isMe(
-    context,
-  );
+  const isMePropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.isMe(context);
 
   const lastSeenPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.lastSeen(context);
 
-  const namePropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.name(
-    context,
-  );
+  const namePropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.name(context);
 
   const statusEmojiPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.statusEmoji(context);
@@ -329,9 +330,8 @@ export const userEntityTypeInitializer = async (
   const updatedAtPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.updatedAt(context);
 
-  const urlPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.url(
-    context,
-  );
+  const urlPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.url(context);
 
   // const issueEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.issue(
   //   context,
@@ -584,16 +584,14 @@ const organizationEntityTypeInitializer = async (
       context,
     );
 
-  const idPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.id(
-    context,
-  );
+  const idPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.id(context);
 
   const logoUrlPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.logoUrl(context);
 
-  const namePropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.name(
-    context,
-  );
+  const namePropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.name(context);
 
   const periodUploadVolumePropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.periodUploadVolume(context);
@@ -657,9 +655,8 @@ const organizationEntityTypeInitializer = async (
   const hasMemberLinkEntityType =
     await LINEAR_TYPES_INITIALIZERS.linkEntityType.hasMember(context);
 
-  const userEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.user(
-    context,
-  );
+  const userEntityType =
+    await LINEAR_TYPES_INITIALIZERS.entityType.user(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -947,9 +944,8 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const assigneeLinkEntityType =
     await LINEAR_TYPES_INITIALIZERS.linkEntityType.assignee(context);
 
-  const userEntityType = await LINEAR_TYPES_INITIALIZERS.entityType.user(
-    context,
-  );
+  const userEntityType =
+    await LINEAR_TYPES_INITIALIZERS.entityType.user(context);
 
   // const attachmentLinkEntityType =
   //   await LINEAR_TYPES_INITIALIZERS.linkEntityType.attachment(context);
@@ -1007,9 +1003,8 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const estimatePropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.estimate(context);
 
-  const idPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.id(
-    context,
-  );
+  const idPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.id(context);
 
   const identifierPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.identifier(context);
@@ -1077,9 +1072,8 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
   //   context,
   // );
 
-  const titlePropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.title(
-    context,
-  );
+  const titlePropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.title(context);
 
   const trashedPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.trashed(context);
@@ -1090,9 +1084,8 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const updatedAtPropertyType =
     await LINEAR_TYPES_INITIALIZERS.propertyType.updatedAt(context);
 
-  const urlPropertyType = await LINEAR_TYPES_INITIALIZERS.propertyType.url(
-    context,
-  );
+  const urlPropertyType =
+    await LINEAR_TYPES_INITIALIZERS.propertyType.url(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 

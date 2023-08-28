@@ -1,11 +1,30 @@
+use derivative::Derivative;
 use serde::{Deserialize, Serialize};
+use temporal_versioning::{
+    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
+    TemporalBound, TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime,
+};
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::time::{
-    DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound, RightBoundedTemporalInterval,
-    RightBoundedTemporalIntervalUnresolved, TemporalBound, TemporalInterval, TemporalTagged,
-    TimeAxis, Timestamp, TransactionTime,
-};
+/// Marker trait for any temporal axis.
+///
+/// Contains useful metadata about the temporal axis.
+trait TemporalAxisSchema {
+    /// The name of the temporal axis.
+    fn noun() -> &'static str;
+}
+
+impl TemporalAxisSchema for DecisionTime {
+    fn noun() -> &'static str {
+        "Decision"
+    }
+}
+
+impl TemporalAxisSchema for TransactionTime {
+    fn noun() -> &'static str {
+        "Transaction"
+    }
+}
 
 /// Time axis for the variable temporal axis used in [`QueryTemporalAxes`]s.
 ///
@@ -59,14 +78,66 @@ impl<A: Default> PinnedTemporalAxisUnresolved<A> {
     }
 }
 
-impl<'s, A> ToSchema<'s> for PinnedTemporalAxisUnresolved<A>
+#[derive(Derivative, Serialize, Deserialize)]
+#[derivative(
+    Debug(bound = ""),
+    Clone(bound = ""),
+    PartialEq(bound = ""),
+    Eq(bound = ""),
+    Hash(bound = "")
+)]
+#[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
+pub struct RightBoundedTemporalIntervalUnresolved<A> {
+    pub start: Option<TemporalBound<A>>,
+    pub end: Option<LimitedTemporalBound<A>>,
+}
+
+impl<'s, A> ToSchema<'s> for RightBoundedTemporalIntervalUnresolved<A>
 where
     A: ToSchema<'s>,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
+            "UnresolvedRightBoundedTemporalInterval",
+            openapi::ObjectBuilder::new()
+                .property(
+                    "start",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                TemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("start")
+                .property(
+                    "end",
+                    openapi::Schema::OneOf(
+                        openapi::OneOfBuilder::new()
+                            .item(openapi::Ref::from_schema_name(
+                                LimitedTemporalBound::<A>::schema().0,
+                            ))
+                            .nullable(true)
+                            .build(),
+                    ),
+                )
+                .required("end")
+                .into(),
+        )
+    }
+}
+
+impl<'s, A> ToSchema<'s> for PinnedTemporalAxisUnresolved<A>
+where
+    A: ToSchema<'s> + TemporalAxisSchema,
+{
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
             "UnresolvedPinnedTemporalAxis",
             openapi::ObjectBuilder::new()
+                .title(Some(format!("UnresolvedPinned{}Axis", A::noun())))
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property(
@@ -120,12 +191,13 @@ impl<A: Default> VariableTemporalAxisUnresolved<A> {
 
 impl<'s, A> ToSchema<'s> for VariableTemporalAxisUnresolved<A>
 where
-    A: ToSchema<'s>,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "UnresolvedVariableTemporalAxis",
             openapi::ObjectBuilder::new()
+                .title(Some(format!("UnresolvedVariable{}Axis", A::noun())))
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property(
@@ -206,12 +278,13 @@ pub struct PinnedTemporalAxis<A> {
 
 impl<'s, A> ToSchema<'s> for PinnedTemporalAxis<A>
 where
-    A: ToSchema<'s>,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "PinnedTemporalAxis",
             openapi::ObjectBuilder::new()
+                .title(Some(format!("Pinned{}Axis", A::noun())))
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property("timestamp", Timestamp::<A>::schema().1)
@@ -245,12 +318,13 @@ impl<A> VariableTemporalAxis<A> {
 
 impl<'s, A> ToSchema<'s> for VariableTemporalAxis<A>
 where
-    A: ToSchema<'s>,
+    A: ToSchema<'s> + TemporalAxisSchema,
 {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "VariableTemporalAxis",
             openapi::ObjectBuilder::new()
+                .title(Some(format!("Variable{}Axis", A::noun())))
                 .property("axis", openapi::Ref::from_schema_name(A::schema().0))
                 .required("axis")
                 .property(
@@ -279,7 +353,7 @@ where
 /// [`VariableTemporalAxis`] for the given [`Timestamp`] of the [`PinnedTemporalAxis`].
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-/// [`Interval`]: crate::interval::Interval
+/// [`Interval`]: temporal_versioning::Interval
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(untagged)]
 pub enum QueryTemporalAxes {

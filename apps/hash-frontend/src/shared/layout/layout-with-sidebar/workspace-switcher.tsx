@@ -60,10 +60,10 @@ export const WorkspaceSwitcher: FunctionComponent<
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ accountId, name, members }) => ({
+      ...authenticatedUser.memberOf.map(({ accountId, name, memberships }) => ({
         accountId,
         title: name,
-        subText: `${members.length} members`,
+        subText: `${memberships.length} members`,
         avatarTitle: name,
       })),
     ];
@@ -141,18 +141,14 @@ export const WorkspaceSwitcher: FunctionComponent<
 
         <Divider />
 
-        {/*  
-          Commented out menu items whose functionality have not been implemented yet
-          @todo uncomment when functionality has been implemented 
-        */}
-        {/* {[
+        {[
           {
-            title: "Workspace Settings",
-            href: "/",
+            title: "Settings",
+            href: "/settings",
           },
           {
-            title: "Create or Join a workspace",
-            href: "/",
+            title: "Create an organization",
+            href: "/settings/organizations/new",
           },
         ].map(({ title, href }, index) => (
           // eslint-disable-next-line react/no-array-index-key
@@ -160,7 +156,7 @@ export const WorkspaceSwitcher: FunctionComponent<
             <ListItemText primary={title} />
           </MenuItem>
         ))}
-        <Divider /> */}
+        <Divider />
         <MenuItem faded onClick={() => logout()}>
           <ListItemText primary="Sign out" />
         </MenuItem>
