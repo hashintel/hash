@@ -5,11 +5,7 @@ import { SparklesRegularIcon } from "../../components/icons/sparkles-regular-ico
 import { VialRegularIcon } from "../../components/icons/vial-regular-icon";
 import { BlockProtocolIcon } from "./block-protocol-icon";
 
-export type VariantId =
-  | "block-protocol"
-  | "infrastructure"
-  | "feature"
-  | "experiment";
+export type VariantId = "infrastructure" | "feature" | "experiment";
 
 export type Variant = {
   id: VariantId;
@@ -19,23 +15,18 @@ export type Variant = {
 
 export const variants: Variant[] = [
   {
-    id: "block-protocol",
-    name: "Block Protocol",
-    icon: <BlockProtocolIcon sx={{ fontSize: 12 }} />,
-  },
-  {
     id: "infrastructure",
     name: "Infrastructure",
     icon: <ServerRegularIcon />,
   },
   {
     id: "feature",
-    name: "Feature",
+    name: "User Features",
     icon: <SparklesRegularIcon />,
   },
   {
     id: "experiment",
-    name: "Experiment",
+    name: "Developer Facing",
     icon: <VialRegularIcon />,
   },
 ];
