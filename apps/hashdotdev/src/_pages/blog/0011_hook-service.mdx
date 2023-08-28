@@ -6,9 +6,9 @@ authors:
   - name: Nate Higgins
     jobTitle: Contributor, HASH
     photo: blog/authors/nate-higgins.jpg
-postPhoto: blog/0011_hook-service/11_hook-service.jpg
+postPhoto: blog/0011_hook-service/0011_hook-service.webp
 title: "Introducing Block Protocol hooks"
-subtitle: Enabling applications to inject consistent, rich experiences inside blocks
+subtitle: "Enabling applications to inject consistent, rich experiences inside blocks"
 date: "2022-10-24"
 categories:
   - Block Protocol
@@ -113,7 +113,12 @@ The hook module introduces the concept of “hooks”.
 
 You can [read the formal specification for the hook module here](https://blockprotocol.org/docs/spec/hook-module), but in summary:
 
-> Under the hook module, a block can invite embedding application to take over the rendering of an element within the block (the **hook**), allowing embedding applications to provide users with application-specific views of data of a specified type.
+<Callout>
+  Under the hook module, a block can invite embedding application to take over
+  the rendering of an element within the block (the **hook**), allowing
+  embedding applications to provide users with application-specific views of
+  data of a specified type.
+</Callout>
 
 Using the module, blocks can send a message specifying: a DOM element, the type of data it is intended to hold, and which entity property the data should be retrieved from and stored in. The application then renders the data according to its preference, including any editing controls.
 

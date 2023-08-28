@@ -3,7 +3,7 @@ authors:
   - name: Tim Diekmann
     jobTitle: Senior Platform Engineer, HASH
     photo: blog/authors/tim-diekmann.jpg
-postPhoto: blog/0004_announcing-error-stack/ErrorStack_Cover.jpg
+postPhoto: blog/0004_announcing-error-stack/0004_error-stack.webp
 title: "Announcing error-stack"
 subtitle: "A context-aware error library for Rust that supports arbitrary attached user data"
 date: "2022-06-10"
@@ -138,7 +138,11 @@ We really love the Rust ecosystem, and although there are many great error crate
 
 Based on our experiences outlined above, we made a few additional design decisions that differentiated our approach to error handling from those existing crates designed to facilitate it. Generally speaking, these decisions were made to force developers to be more explicit when creating or chaining errors, but most importantly, we don't supply in-built support for creating errors from strings. While it is convenient, we want to encourage developers to think more about their errors by building concrete error types like `std::io::Error` or `std::num::ParseIntError`
 
-> _Note: It's still possible to create something like `Error::Unique` but we do not provide shortcut functionality for that within the library, hoping that a lot of its uses can instead be solved through “attachments”._
+<Callout>
+  It's still possible to create something like `Error::Unique` but we do not
+  provide shortcut functionality for that within the library, hoping that a lot
+  of its uses can instead be solved through “attachments”.
+</Callout>
 
 - [1] Clarification: `eyre` and other libraries are able to support the inclusion of arbitrary data, whether that be through a custom Handler implementation, or by creating Error types that wrap the data. We'd like to be able to easily attach anything to the `Err` arm of a `Result` without needing bespoke configurations.
 
