@@ -1111,7 +1111,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "84",
     heading: "Composite Blocks",
-    body: "Description coming soon",
+    body: "Nest blocks inside other blocks to create complex ",
     parentIds: ["41"],
     status: "future",
     useCases: [
@@ -1133,7 +1133,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "86",
     heading: "Mobile App",
-    body: "iOS & Android",
+    body: "iOS & Android applications, with full offline mode",
     parentIds: [],
     status: "future",
     useCases: ["website-building"],
@@ -1151,7 +1151,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "88",
     heading: "Federated Instances",
-    body: "Coming soon",
+    body: "Connect a local instance of HASH to the global web of instances",
     parentIds: ["40", "42"],
     status: "future",
     useCases: ["website-building"],
