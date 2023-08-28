@@ -19,7 +19,7 @@ jobs:
       - uses: ./.github/actions/warm-up-repo
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@e9cc34b540dd3ad1b030c57fd97269e8f6ad905a # v1.4.1
+        uses: changesets/action@f13b1baaa620fde937751f5d2c3572b9da32af23 # v1.4.5
         with:
           publish: yarn changeset publish
         env:
