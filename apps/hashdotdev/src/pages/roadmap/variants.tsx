@@ -20,7 +20,7 @@ export const variants: Variant[] = [
   },
   {
     id: "feature",
-    name: "User Features",
+    name: "User Feature",
     icon: <SparklesRegularIcon />,
   },
   {
