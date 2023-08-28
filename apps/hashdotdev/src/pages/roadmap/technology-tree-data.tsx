@@ -394,7 +394,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "AI Type Creation",
     body: "LLM-assisted new and existing type suggestions",
     parentIds: ["21"],
-    status: "in-progress",
+    status: "working-poc",
     useCases: [
       "knowledge-management",
       "data-management",
