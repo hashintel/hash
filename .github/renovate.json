@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base", "helpers:pinGitHubActionDigests"],
+  "extends": ["config:base"],
 
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
@@ -20,6 +20,17 @@
       "dependencyDashboardApproval": false
     },
     {
+      "matchManagers": ["github-actions"],
+      "commitMessageTopic": "GitHub Action `{{depName}}`",
+      "additionalBranchPrefix": "gha/",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "commitMessageTopic": "Docker tag `{{depName}}`",
+      "additionalBranchPrefix": "docker/"
+    },
+    {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/"
@@ -32,6 +43,7 @@
     },
     {
       "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"]
     },
@@ -118,10 +130,6 @@
       "dependencyDashboardApproval": false
     },
     {
-      "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`"
-    },
-    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
@@ -190,8 +198,9 @@
     },
     {
       "matchManagers": ["cargo"],
-      "matchFileNames": ["libs/error-stack/*"],
-      "excludePackageNames": ["anyhow"]
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "matchPackageNames": ["anyhow"],
+      "enabled": false
     }
   ],
   "regexManagers": [
