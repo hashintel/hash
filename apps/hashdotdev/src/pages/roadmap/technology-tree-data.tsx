@@ -127,7 +127,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "8",
     heading: "Core System Types",
-    body: "User, workspace, and other key types required by HASH itself",
+    body: "Users, webs, and other key types required by HASH itself",
     parentIds: ["6"],
     status: "done",
     useCases: [
@@ -409,7 +409,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "27",
     heading: "User & Org Administration",
-    body: "Basic account and shared workspace management",
+    body: "Basic account and shared web management",
     parentIds: ["8"],
     status: "in-progress",
     useCases: [
@@ -825,7 +825,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "58",
     heading: "Semantic Q&A",
-    body: "Natural language questions and answers based on the contents of a workspace and (optionally) global graph",
+    body: "Natural language questions and answers based on the contents of a web",
     parentIds: ["53"],
     status: "future",
     useCases: [
@@ -857,7 +857,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "61",
     heading: "Email Sending",
-    body: "Support for user composition/triggering of emails via Flows",
+    body: "Support for user composition and triggering of emails via Flows",
     parentIds: ["40"],
     status: "future",
     useCases: ["website-building", "internal-tools-apps"],
@@ -915,8 +915,8 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "67",
-    heading: "Gmail/Google Workspace email sync",
-    body: "Read and manage (two-way sync) emails stored in Gmail and Google Workspace",
+    heading: "Gmail/Google email sync",
+    body: "Read, send and manage emails with Gmail and Google Workspace",
     parentIds: ["61"],
     status: "future",
     useCases: ["knowledge-management", "internal-tools-apps"],
