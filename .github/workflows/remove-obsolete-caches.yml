@@ -1,8 +1,8 @@
 name: Cleanup obsolete caches
 on:
   pull_request:
-#    types:
-#      - closed
+    types:
+      - closed
 
 jobs:
   cleanup:
