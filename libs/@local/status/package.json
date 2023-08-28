@@ -32,7 +32,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/yargs": "^17.0.22",
-    "eslint": "8.33.0",
+    "eslint": "8.48.0",
     "quicktype": "^16.0.43"
   }
 }

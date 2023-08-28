@@ -66,7 +66,7 @@
     "@types/react": "18.0.25",
     "@types/unist": "2.0.6",
     "babel-loader": "^9.1.0",
-    "eslint": "8.33.0"
+    "eslint": "8.48.0"
   },
   "engines": {
     "node": ">=v18.15.0"
