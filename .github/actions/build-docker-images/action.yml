@@ -62,7 +62,7 @@ runs:
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
+        tags: hash-graph
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-graph
@@ -94,7 +94,7 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-ts/docker/Dockerfile
-        tags: ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}
+        tags: hash-ai-worker-ts
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
@@ -119,7 +119,7 @@ runs:
       with:
         context: .
         file: apps/hash-ai-worker-py/docker/Dockerfile
-        tags: ghcr.io/hashintel/hash-ai-worker-py${{ env.IMAGE_TAG }}
+        tags: hash-ai-worker-py
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-py
@@ -144,7 +144,7 @@ runs:
       with:
         context: .
         file: apps/hash-integration-worker/docker/Dockerfile
-        tags: ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}
+        tags: hash-integration-worker
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker
