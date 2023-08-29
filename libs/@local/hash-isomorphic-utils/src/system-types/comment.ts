@@ -20,10 +20,10 @@ import {
   EmailPropertyValue,
   FileNamePropertyValue,
   FileURLPropertyValue,
-  HasText,
-  HasTextOutgoingLinkAndTarget,
-  HasTextOutgoingLinksByLinkEntityTypeId,
-  HasTextProperties,
+  HasAvatar,
+  HasAvatarOutgoingLinkAndTarget,
+  HasAvatarOutgoingLinksByLinkEntityTypeId,
+  HasAvatarProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -36,7 +36,7 @@ import {
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
   OrganizationSizePropertyValue,
-  OrgHasTextLink,
+  OrgHasAvatarLink,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -65,7 +65,7 @@ import {
   TextProperties,
   TokensPropertyValue,
   User,
-  UserHasTextLink,
+  UserHasAvatarLink,
   UserOrgMembershipLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -89,10 +89,10 @@ export type {
   EmailPropertyValue,
   FileNamePropertyValue,
   FileURLPropertyValue,
-  HasText,
-  HasTextOutgoingLinkAndTarget,
-  HasTextOutgoingLinksByLinkEntityTypeId,
-  HasTextProperties,
+  HasAvatar,
+  HasAvatarOutgoingLinkAndTarget,
+  HasAvatarOutgoingLinksByLinkEntityTypeId,
+  HasAvatarProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -105,7 +105,7 @@ export type {
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
   OrganizationSizePropertyValue,
-  OrgHasTextLink,
+  OrgHasAvatarLink,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -134,7 +134,7 @@ export type {
   TextProperties,
   TokensPropertyValue,
   User,
-  UserHasTextLink,
+  UserHasAvatarLink,
   UserOrgMembershipLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -187,6 +187,20 @@ export type CommentProperties = {
  * Stringified timestamp of when something was deleted.
  */
 export type DeletedAtPropertyValue = TextDataType;
+
+export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+
+export type HasTextOutgoingLinkAndTarget = never;
+
+export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The text something has.
+ */
+export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
+export type HasTextProperties1 = LinkProperties;
+
+export type HasTextProperties2 = {};
 
 /**
  * Stringified timestamp of when something was resolved.

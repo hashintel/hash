@@ -71,19 +71,19 @@ export type FileNamePropertyValue = TextDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
-export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
 
-export type HasTextOutgoingLinkAndTarget = never;
+export type HasAvatarOutgoingLinkAndTarget = never;
 
-export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * The avatar something has
  */
-export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
-export type HasTextProperties1 = LinkProperties;
+export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
+export type HasAvatarProperties1 = LinkProperties;
 
-export type HasTextProperties2 = {};
+export type HasAvatarProperties2 = {};
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -114,8 +114,8 @@ export type ObjectDataType = {};
 
 export type Org = Entity<OrgProperties>;
 
-export type OrgHasTextLink = {
-  linkEntity: HasText;
+export type OrgHasAvatarLink = {
+  linkEntity: HasAvatar;
   rightEntity: RemoteImageFile;
 };
 
@@ -133,10 +133,10 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = OrgHasTextLink;
+export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": OrgHasTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
 };
 
 export type OrgProperties = {
@@ -227,8 +227,8 @@ export type TokensPropertyValue = ObjectDataType;
 
 export type User = Entity<UserProperties>;
 
-export type UserHasTextLink = {
-  linkEntity: HasText;
+export type UserHasAvatarLink = {
+  linkEntity: HasAvatar;
   rightEntity: RemoteImageFile;
 };
 
@@ -237,10 +237,12 @@ export type UserOrgMembershipLink = {
   rightEntity: Org;
 };
 
-export type UserOutgoingLinkAndTarget = UserHasTextLink | UserOrgMembershipLink;
+export type UserOutgoingLinkAndTarget =
+  | UserHasAvatarLink
+  | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": UserHasTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };
 
