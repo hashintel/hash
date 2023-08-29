@@ -15,19 +15,28 @@ import {
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   ComponentIdPropertyValue,
-  DescriptionPropertyValue,
+  Description0PropertyValue,
+  Description1PropertyValue,
   EmailPropertyValue,
+  FileNamePropertyValue,
+  FileURLPropertyValue,
+  HasText,
+  HasTextOutgoingLinkAndTarget,
+  HasTextOutgoingLinksByLinkEntityTypeId,
+  HasTextProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LocationPropertyValue,
+  MIMETypePropertyValue,
   ObjectDataType,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
   OrganizationSizePropertyValue,
+  OrgHasTextLink,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -40,6 +49,14 @@ import {
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   PreferredNamePropertyValue,
+  RemoteFile,
+  RemoteFileOutgoingLinkAndTarget,
+  RemoteFileOutgoingLinksByLinkEntityTypeId,
+  RemoteFileProperties,
+  RemoteImageFile,
+  RemoteImageFileOutgoingLinkAndTarget,
+  RemoteImageFileOutgoingLinksByLinkEntityTypeId,
+  RemoteImageFileProperties,
   ShortnamePropertyValue,
   Text,
   TextDataType,
@@ -48,6 +65,7 @@ import {
   TextProperties,
   TokensPropertyValue,
   User,
+  UserHasTextLink,
   UserOrgMembershipLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -66,19 +84,28 @@ export type {
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   ComponentIdPropertyValue,
-  DescriptionPropertyValue,
+  Description0PropertyValue,
+  Description1PropertyValue,
   EmailPropertyValue,
+  FileNamePropertyValue,
+  FileURLPropertyValue,
+  HasText,
+  HasTextOutgoingLinkAndTarget,
+  HasTextOutgoingLinksByLinkEntityTypeId,
+  HasTextProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LocationPropertyValue,
+  MIMETypePropertyValue,
   ObjectDataType,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
   OrganizationSizePropertyValue,
+  OrgHasTextLink,
   OrgMembership,
   OrgMembershipOutgoingLinkAndTarget,
   OrgMembershipOutgoingLinksByLinkEntityTypeId,
@@ -91,6 +118,14 @@ export type {
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   PreferredNamePropertyValue,
+  RemoteFile,
+  RemoteFileOutgoingLinkAndTarget,
+  RemoteFileOutgoingLinksByLinkEntityTypeId,
+  RemoteFileProperties,
+  RemoteImageFile,
+  RemoteImageFileOutgoingLinkAndTarget,
+  RemoteImageFileOutgoingLinksByLinkEntityTypeId,
+  RemoteImageFileProperties,
   ShortnamePropertyValue,
   Text,
   TextDataType,
@@ -99,6 +134,7 @@ export type {
   TextProperties,
   TokensPropertyValue,
   User,
+  UserHasTextLink,
   UserOrgMembershipLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -151,20 +187,6 @@ export type CommentProperties = {
  * Stringified timestamp of when something was deleted.
  */
 export type DeletedAtPropertyValue = TextDataType;
-
-export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
-
-export type HasTextOutgoingLinkAndTarget = never;
-
-export type HasTextOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Something that has text.
- */
-export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
-export type HasTextProperties1 = LinkProperties;
-
-export type HasTextProperties2 = {};
 
 /**
  * Stringified timestamp of when something was resolved.

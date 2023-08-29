@@ -47,7 +47,12 @@ export type ConnectionSourceNamePropertyValue = TextDataType;
 /**
  * A textual description of something
  */
-export type DescriptionPropertyValue = TextDataType;
+export type Description0PropertyValue = TextDataType;
+
+/**
+ * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
+ */
+export type Description1PropertyValue = TextDataType;
 
 export type EmailPropertyValue = TextDataType;
 
@@ -55,6 +60,30 @@ export type EmailPropertyValue = TextDataType;
  * Stringified timestamp of when something expired.
  */
 export type ExpiredAtPropertyValue = TextDataType;
+
+/**
+ * The name of a file.
+ */
+export type FileNamePropertyValue = TextDataType;
+
+/**
+ * A URL that serves a file.
+ */
+export type FileURLPropertyValue = TextDataType;
+
+export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+
+export type HasTextOutgoingLinkAndTarget = never;
+
+export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The avatar something has
+ */
+export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
+export type HasTextProperties1 = LinkProperties;
+
+export type HasTextProperties2 = {};
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -72,11 +101,23 @@ export type LinkProperties = {};
 export type LocationPropertyValue = TextDataType;
 
 /**
+ * A MIME (Multipurpose Internet Mail Extensions) type.
+ *
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ */
+export type MIMETypePropertyValue = TextDataType;
+
+/**
  * An opaque, untyped JSON object
  */
 export type ObjectDataType = {};
 
 export type Org = Entity<OrgProperties>;
+
+export type OrgHasTextLink = {
+  linkEntity: HasText;
+  rightEntity: RemoteImageFile;
+};
 
 export type OrgMembership = Entity<OrgMembershipProperties> & {
   linkData: LinkData;
@@ -92,12 +133,14 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = never;
+export type OrgOutgoingLinkAndTarget = OrgHasTextLink;
 
-export type OrgOutgoingLinksByLinkEntityTypeId = {};
+export type OrgOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": OrgHasTextLink;
+};
 
 export type OrgProperties = {
-  "http://localhost:3000/@system-user/types/property-type/description/"?: DescriptionPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/description/"?: Description0PropertyValue;
   "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-name/": OrganizationNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
@@ -129,6 +172,37 @@ export type ParentProperties2 = {};
 
 export type PreferredNamePropertyValue = TextDataType;
 
+export type RemoteFile = Entity<RemoteFileProperties>;
+
+export type RemoteFileOutgoingLinkAndTarget = never;
+
+export type RemoteFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Information about a file hosted at a remote URL.
+ */
+export type RemoteFileProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": FileNamePropertyValue;
+};
+
+export type RemoteImageFile = Entity<RemoteImageFileProperties>;
+
+export type RemoteImageFileOutgoingLinkAndTarget = never;
+
+export type RemoteImageFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Information about an image file hosted at a remote URL.
+ */
+export type RemoteImageFileProperties = RemoteImageFileProperties1 &
+  RemoteImageFileProperties2;
+export type RemoteImageFileProperties1 = RemoteFileProperties;
+
+export type RemoteImageFileProperties2 = {};
+
 /**
  * A unique identifier for something, in the form of a slug
  */
@@ -153,14 +227,20 @@ export type TokensPropertyValue = ObjectDataType;
 
 export type User = Entity<UserProperties>;
 
+export type UserHasTextLink = {
+  linkEntity: HasText;
+  rightEntity: RemoteImageFile;
+};
+
 export type UserOrgMembershipLink = {
   linkEntity: OrgMembership;
   rightEntity: Org;
 };
 
-export type UserOutgoingLinkAndTarget = UserOrgMembershipLink;
+export type UserOutgoingLinkAndTarget = UserHasTextLink | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": UserHasTextLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };
 

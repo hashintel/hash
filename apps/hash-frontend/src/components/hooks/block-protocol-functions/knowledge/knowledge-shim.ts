@@ -62,7 +62,7 @@ export type UpdateEntityMessageCallback = MessageCallback<
 >;
 
 export type UploadFileRequestCallback = MessageCallback<
-  UploadFileData,
+  UploadFileData & { entityTypeId?: VersionedUrl },
   null,
   MessageReturn<UploadFileReturn>,
   CreateResourceError

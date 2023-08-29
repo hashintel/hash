@@ -39,13 +39,17 @@ export const fileTypedef = gql`
       description: String
       """
       Optionally provide a more specific type for the file entity, which must inherit from Remote File
-        (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/3)
+        (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2)
       """
       entityTypeId: VersionedUrl
       """
       An optional name for the file
       """
       name: String
+      """
+      The owner for the created file entity. Defaults to the user calling the mutation.
+      """
+      ownedById: OwnedById
       """
       Size of the file in bytes
       """
@@ -69,6 +73,10 @@ export const fileTypedef = gql`
       An optional name for the file
       """
       name: String
+      """
+      The owner for the created file entity. Defaults to the user calling the mutation.
+      """
+      ownedById: OwnedById
       """
       url of the external file
       """

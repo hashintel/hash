@@ -16,6 +16,8 @@ export * from "./icon-barcode";
 export * from "./icon-button";
 export * from "./icon-circle-plus";
 export * from "./icon-graph";
+export * from "./icon-image-regular";
+export * from "./icon-image-solid";
 export * from "./icon-input-pipe";
 export * from "./icon-link";
 export * from "./icon-rainbow-hash";
