@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{borrow::Cow, error::Error};
 
-use error_stack::{bail, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
@@ -166,19 +166,20 @@ impl fmt::Display for InvocationError {
     }
 }
 
-impl Error for InvocationError {}
-
-enum InvocationResult<T> {
-    Success(T),
-    Failure(RpcStatus),
+impl From<reqwest::Error> for InvocationError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::Request(error)
+    }
 }
 
+impl Error for InvocationError {}
+
 impl SpiceDb {
-    async fn request<R: DeserializeOwned>(
+    async fn call<R: DeserializeOwned>(
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
-    ) -> Result<InvocationResult<R>, reqwest::Error> {
+    ) -> Result<R, InvocationError> {
         let result = self
             .configuration
             .client
@@ -196,24 +197,9 @@ impl SpiceDb {
             .await?;
 
         if result.status().is_success() {
-            Ok(InvocationResult::Success(result.json().await?))
+            Ok(result.json().await?)
         } else {
-            Ok(InvocationResult::Failure(result.json().await?))
-        }
-    }
-
-    async fn call<R: DeserializeOwned>(
-        &self,
-        path: &'static str,
-        body: &(impl Serialize + Sync),
-    ) -> Result<R, Report<InvocationError>> {
-        match self
-            .request(path, body)
-            .await
-            .map_err(InvocationError::Request)?
-        {
-            InvocationResult::Success(result) => Ok(result),
-            InvocationResult::Failure(status) => bail!(InvocationError::Rpc(status)),
+            Err(InvocationError::Rpc(result.json().await?))
         }
     }
 }
