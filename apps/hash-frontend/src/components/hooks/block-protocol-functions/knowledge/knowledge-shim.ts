@@ -11,6 +11,8 @@ import {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,
+  UploadFileData,
+  UploadFileReturn,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
@@ -59,24 +61,10 @@ export type UpdateEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export declare type FileMediaType = "image" | "video";
-
-export type UploadFileRequest = {
-  file?: File | null;
-  url?: string | null;
-  mediaType: FileMediaType;
-};
-
-export type UploadFileResponse = {
-  entityId: EntityId;
-  url: string;
-  mediaType: FileMediaType;
-};
-
 export type UploadFileRequestCallback = MessageCallback<
-  UploadFileRequest,
+  UploadFileData,
   null,
-  MessageReturn<UploadFileResponse>,
+  MessageReturn<UploadFileReturn>,
   CreateResourceError
 >;
 

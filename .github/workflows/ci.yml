@@ -314,10 +314,9 @@ jobs:
           flags: backend-integration-tests
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
-      - name: Show external services logs
+      - name: Show container logs
         if: ${{ success() || failure() }}
-        run: |
-          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
@@ -395,12 +394,6 @@ jobs:
         run: |
           yarn test:playwright
 
-      - name: Show external services logs
-        if: ${{ success() || failure() }}
-        run: |
-          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
-          cat var/logs/hash-external-services.log
-
       - name: Show backend logs
         if: ${{ success() || failure() }}
         run: cat var/logs/backend.log
@@ -408,6 +401,10 @@ jobs:
       - name: Show frontend logs
         if: ${{ success() || failure() }}
         run: cat var/logs/frontend.log
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Upload artifact playwright-report
         if: ${{ success() || failure() }}

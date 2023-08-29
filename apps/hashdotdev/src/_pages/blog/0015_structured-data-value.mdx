@@ -10,7 +10,6 @@ date: "2023-08-29"
 categories:
   - Block Protocol
   - HASH
-  - Technologies
 ---
 
 ## Relevancy in a new world
@@ -97,24 +96,37 @@ The role of structured data in all of this is quite simple.
 
 All this serves to highlight an interesting possibility. If to date structured data has existed for the benefit of _machines_, is it possible that in the future its primary use will in fact be to us, _humans_, in verifying and validating the outputs of generative AI models: simulation, language, multimodal, or other?
 
-Inherently tied to the idea of structured data is the idea of **typing** information. Data may be of a certain 'type' if it follows a set of rules established by that type.
+If it is, then user experiences for capturing structured data (and interpreting it in the most helpful new ways) will be critical, and at the moment they leave a lot to be desired.
 
-The [Block Protocol type system](https://blockprotocol.org/docs/types) outlines three different kinds of types which can help us think about structured data: entity types, property types, and data types.
+We believe [blocks](https://blockprotocol.org) of the sort found in many "all-in-one workspaces" are a sensible unit for capturing and working with structured data at a micro scale, but by themselves they're not enough. A complementary new, entity-centric [type system](https://blockprotocol.org/docs/types) is required. We're working on the Block Protocol, a fully open-source standard for these things, alongside our product work at HASH.
 
-1.  **Entities** (semantic 'things' in a database) have entity types.
+Structured data may be of a certain 'type' if it follows a set of rules established by that type. We think a globally composable, multitenant type system, in which any user can publish a type and any other user can consume it, with types being modularly referenceable and reusable within one another requires a ton of things, which we've been building out. But at a high-level, it contains three kinds of types:
 
-- **Entity types** describe the _properties_ and type(s) of any entity, including both special-cased _link entities_ and ordinary, plain old _standard entities_.
-- A **link entity** corresponds to the relationship, or 'thing' that connects other entities. For example, two standard `Person` entities may be connected by a `Married To` link entity.
-- A **standard entity** is absolutely anything that isn't a link entity. You can use it to refer to physical things, concepts, ideas, events, or anything else you like.
-- If you're familiar with graph theory, you can think of standard entities as vertices, and link entities as edges.
+#### Entity Types
 
-2.  **Properties** contain data associated with some particular aspect of an entity.
+**Entities** (semantic 'things' in a database) have entity types.
 
-- **Property types** describe the possible values that can be associated with a property, by way of reference to _data types_ and other property types.
+**Entity types** describe the _properties_ and type(s) of any entity, including both special-cased _link entities_ and ordinary, plain old _standard entities_.
 
-3.  **Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
+A **link entity** corresponds to the relationship, or 'thing' that connects other entities. For example, two standard `Person` entities may be connected by a `Married To` link entity.
 
-- We are also planning support for user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) which are not already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
+A **standard entity** is absolutely anything that isn't a link entity. You can use it to refer to physical things, concepts, ideas, events, or anything else you like.
+
+If you're familiar with graph theory, you can think of standard entities as vertices, and link entities as edges.
+
+#### Property Types
+
+**Properties** contain data associated with some particular aspect of an entity.
+
+**Property types** describe the possible values that can be associated with a property, by way of reference to _data types_ and other property types.
+
+#### Data Types
+
+**Data types** describe a space of possible valid values (e.g. `string`, `number` or `boolean`). They allow for validation logic to be shared amongst different kinds of property types which represent semantically different things.
+
+At the moment, data types are fixed and defined in the specification, but we're working towards unlocking user-defined custom data types (e.g. numbers within a certain range, or strings matching a certain pattern) beyond those already found in the Block Protocol's [graph module specification](https://blockprotocol.org/docs/spec/graph). Read the [draft RFC](https://github.com/blockprotocol/blockprotocol/pull/355) to learn more.
+
+#### What else?
 
 Entity types (including those that describe both standard entities and link entities) can inherit from one another, resulting in a composable type system. The [HASH type editor](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/type-editor), available as a standalone open-source library as well as embedded within [HASH](https://hash.ai/) makes it easy to create and edit these types, allowing them to be used internally or made publicly available for others to standardize on, extend themselves, and so on. Even where entity type definitions differ, common use of property types (which retain common semantic meaning across their use with different kinds of entities) and data types (which allow for the validation of inputs) aide interoperability and crosswalking.
 
