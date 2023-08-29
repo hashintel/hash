@@ -98,6 +98,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "authorization"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
