@@ -221,6 +221,33 @@ pub type StringTuple = Tuple<
     GenericSubject<GenericResource<String, String>, GenericAffiliation<String>>,
 >;
 
+impl StringTuple {
+    #[must_use]
+    pub(crate) fn from_tuple<R, A, S>(resource: &R, affiliation: &A, subject: &S) -> Self
+    where
+        R: Resource + ?Sized,
+        A: Affiliation<R> + ?Sized,
+        S: Subject + ?Sized,
+    {
+        Self {
+            resource: GenericResource {
+                namespace: resource.namespace().to_string(),
+                id: resource.id().to_string(),
+            },
+            affiliation: GenericAffiliation(affiliation.to_string()),
+            subject: GenericSubject {
+                resource: GenericResource {
+                    namespace: subject.resource().namespace().to_string(),
+                    id: subject.resource().id().to_string(),
+                },
+                affiliation: subject
+                    .affiliation()
+                    .map(|affiliation| GenericAffiliation(affiliation.to_string())),
+            },
+        }
+    }
+}
+
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
