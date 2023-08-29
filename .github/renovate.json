@@ -5,6 +5,7 @@
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
+  "dependencyDashboardTitle": "🚀 Dependency Updates",
   "automerge": true,
   "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
