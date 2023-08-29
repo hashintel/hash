@@ -170,7 +170,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Canvas Pages",
     body: "Freeform drag-and-drop canvases for blocks",
     parentIds: ["15"],
-    status: "in-progress",
+    status: "working-poc",
     useCases: ["general"],
     variant: "feature",
   },
