@@ -32,7 +32,7 @@ pub trait AuthorizationBackend {
     ///
     /// # Errors
     ///
-    /// Returns an error if the relation already exists or could not be created.
+    /// Returns an error if the relation does not exist or could not be deleted.
     async fn delete_relation<R, A, S>(
         &self,
         resource: &R,
