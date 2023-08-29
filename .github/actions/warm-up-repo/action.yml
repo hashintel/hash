@@ -30,6 +30,7 @@ runs:
       uses: nick-fields/retry@v2.8.3
       with:
         max_attempts: 3
+        timeout_minutes: 10
         shell: bash
         command: |
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
@@ -40,5 +41,6 @@ runs:
       uses: nick-fields/retry@v2.8.3
       with:
         max_attempts: 3
+        timeout_minutes: 10
         shell: bash
         command: yarn playwright install-deps ${{ inputs.playwright-deps }}
