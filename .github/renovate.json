@@ -2,10 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
+  "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "automerge": true,
+  "dependencyDashboardTitle": "🚀 Dependency Updates",
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
   "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],

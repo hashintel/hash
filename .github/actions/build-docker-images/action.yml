@@ -82,7 +82,7 @@ runs:
           ENABLE_TEST_SERVER=yes
 
     - name: Upload artifact
-      if: inputs.hash-graph == 'true'
+      if: ${{ (success() || failure()) && inputs.hash-graph == 'true' }}
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: hash-graph
@@ -107,7 +107,7 @@ runs:
           org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
 
     - name: Upload artifact
-      if: inputs.hash-ai-worker-ts == 'true'
+      if: ${{ (success() || failure()) && inputs.hash-ai-worker-ts == 'true' }}
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: hash-ai-worker-ts
@@ -132,7 +132,7 @@ runs:
           org.opencontainers.image.description="A Python 'AI' worker for HASH"
 
     - name: Upload artifact
-      if: inputs.hash-ai-worker-py == 'true'
+      if: ${{ (success() || failure()) && inputs.hash-ai-worker-py == 'true' }}
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: hash-ai-worker-py
@@ -157,7 +157,7 @@ runs:
           org.opencontainers.image.description="A TypeScript worker for HASH for data integration"
 
     - name: Upload artifact
-      if: inputs.hash-integration-worker == 'true'
+      if: ${{ (success() || failure()) && inputs.hash-integration-worker == 'true' }}
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
       with:
         name: hash-integration-worker
