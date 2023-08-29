@@ -23,7 +23,7 @@ async-trait = "0.1.73"
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.4.0", features = ["derive", "env"], optional = true }
+clap = { version = "4.4.1", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 futures = "0.3.28"
 hyper = "0.14.27"
