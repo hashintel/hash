@@ -160,21 +160,28 @@ export const TechnologyTree: FunctionComponent = () => {
       const graphWrapper = select(graphWrapperRef.current);
       const graph = select(graphRef.current);
 
-      const { height: graphWrapperHeight, width: graphWrapperWidth } =
+      const { height: initialWrapperHeight } =
         graphWrapperRef.current.getBoundingClientRect();
 
       const zoom = d3zoom()
         .scaleExtent([
-          0.25 * (layoutHeight / graphWrapperHeight),
-          layoutHeight / graphWrapperHeight,
+          0.25 * (layoutHeight / initialWrapperHeight),
+          layoutHeight / initialWrapperHeight,
         ])
         .on("zoom", (event: { transform: ZoomTransform }) => {
+          if (!graphWrapperRef.current) {
+            return;
+          }
+
+          const { height: currentWrapperHeight, width: currentWrapperWidth } =
+            graphWrapperRef.current.getBoundingClientRect();
+
           graph.style(
             "transform",
-            `translate(${event.transform.x - graphWrapperWidth / 2}px, ${
-              event.transform.y + (graphWrapperHeight / 2 - layoutHeight / 2)
+            `translate(${event.transform.x - currentWrapperWidth / 2}px, ${
+              event.transform.y - layoutHeight / 2
             }px) scale(${
-              event.transform.k * (graphWrapperHeight / layoutHeight)
+              event.transform.k * (currentWrapperHeight / layoutHeight)
             })`,
           );
         });
@@ -183,7 +190,7 @@ export const TechnologyTree: FunctionComponent = () => {
 
       const initialTranslateX = 0;
 
-      const initialTranslateY = 0;
+      const initialTranslateY = initialWrapperHeight / 2;
 
       graphWrapper.call((selection) =>
         zoom.transform(
@@ -195,6 +202,8 @@ export const TechnologyTree: FunctionComponent = () => {
       );
 
       graphWrapper.call(zoom);
+
+      // @todo fix selection / zoom issues after resizing/fullscreen switch
     }
   }, [layoutHeight, layoutWidth, fullScreenHandle.active]);
 
