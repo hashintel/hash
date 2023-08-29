@@ -253,7 +253,7 @@ jobs:
         run: just miri --no-fail-fast
 
       - name: Show container logs
-        if: ${{ success() || failure() }}
+        if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
         run: yarn workspace @apps/hash-external-services deploy logs
 
       - name: Ensure empty git diff
@@ -353,7 +353,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Show container logs
-        if: ${{ success() || failure() }}
+        if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
         run: yarn workspace @apps/hash-external-services deploy logs
 
   publish:
