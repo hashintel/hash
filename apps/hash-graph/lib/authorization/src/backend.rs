@@ -11,7 +11,7 @@ use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, StringTuple,
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait AuthorizationBackend {
     /// Creates a new relation between a [`Subject`] and an [`Resource`] with the specified
-    /// [`Affiliation`].
+    /// [`Relation`].
     ///
     /// # Errors
     ///
@@ -19,9 +19,26 @@ pub trait AuthorizationBackend {
     async fn create_relation<R, A, S>(
         &self,
         resource: &R,
-        affiliation: &A,
+        relation: &A,
         subject: &S,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        R: Resource + ?Sized + Sync,
+        A: Relation<R> + ?Sized + Sync,
+        S: Subject + ?Sized + Sync;
+
+    /// Deletes a new relation between a [`Subject`] and an [`Resource`] with the specified
+    /// [`Relation`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relation already exists or could not be created.
+    async fn delete_relation<R, A, S>(
+        &self,
+        resource: &R,
+        relation: &A,
+        subject: &S,
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
         R: Resource + ?Sized + Sync,
         A: Relation<R> + ?Sized + Sync,
@@ -90,3 +107,23 @@ impl fmt::Display for CreateRelationError {
 }
 
 impl Error for CreateRelationError {}
+
+/// Return value for [`AuthorizationBackend::delete_relation`].
+#[derive(Debug)]
+pub struct DeleteRelationResponse {
+    /// A token to determine the time at which the relation was deleted.
+    pub deleted_at: Zookie<'static>,
+}
+
+#[derive(Debug)]
+pub struct DeleteRelationError {
+    pub tuple: StringTuple,
+}
+
+impl fmt::Display for DeleteRelationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "failed to delete relation: `{}`", self.tuple)
+    }
+}
+
+impl Error for DeleteRelationError {}

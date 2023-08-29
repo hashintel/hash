@@ -8,7 +8,7 @@ use crate::{
     backend::{
         spicedb::schema::{ResourceReference, RpcStatus, SubjectReference},
         AuthorizationBackend, CheckError, CheckResponse, CreateRelationError,
-        CreateRelationResponse, Resource,
+        CreateRelationResponse, DeleteRelationError, DeleteRelationResponse, Resource,
     },
     zanzibar::{Affiliation, Consistency, Relation, StringTuple, Subject, Zookie},
 };
@@ -59,7 +59,6 @@ mod schema {
         Touch,
         /// Delete the relationship. If the relationship does not exist, this operation will no-op.
         #[serde(rename = "OPERATION_DELETE")]
-        #[expect(dead_code, reason = "Not yet exposed")]
         Delete,
     }
 
@@ -342,6 +341,30 @@ impl AuthorizationBackend for SpiceDb {
         .await
         .map(|written_at| CreateRelationResponse { written_at })
         .change_context_lazy(|| CreateRelationError {
+            tuple: StringTuple::from_tuple(resource, relation, subject),
+        })
+    }
+
+    async fn delete_relation<R, A, S>(
+        &self,
+        resource: &R,
+        relation: &A,
+        subject: &S,
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
+    where
+        R: Resource + ?Sized + Sync,
+        A: Relation<R> + ?Sized + Sync,
+        S: Subject + ?Sized + Sync,
+    {
+        self.modify_relationship(
+            schema::RelationshipUpdateOperation::Delete,
+            resource,
+            relation,
+            subject,
+        )
+        .await
+        .map(|deleted_at| DeleteRelationResponse { deleted_at })
+        .change_context_lazy(|| DeleteRelationError {
             tuple: StringTuple::from_tuple(resource, relation, subject),
         })
     }
