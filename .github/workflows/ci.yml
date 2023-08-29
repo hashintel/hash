@@ -316,7 +316,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy:test logs
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
       - name: Upload artifact backend-integration-tests-var
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
@@ -394,12 +394,6 @@ jobs:
         run: |
           yarn test:playwright
 
-      - name: Show external services logs
-        if: ${{ success() || failure() }}
-        run: |
-          docker-compose --file apps/hash-external-services/docker-compose.yml logs 2>&1 | tee var/logs/hash-external-services.log
-          cat var/logs/hash-external-services.log
-
       - name: Show backend logs
         if: ${{ success() || failure() }}
         run: cat var/logs/backend.log
@@ -410,7 +404,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Upload artifact playwright-report
         if: ${{ success() || failure() }}

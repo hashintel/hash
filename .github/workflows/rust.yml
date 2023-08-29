@@ -254,7 +254,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -354,7 +354,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
   publish:
     name: publish

@@ -34,13 +34,19 @@ const addBlurDataURL = async (node: ImageNode) => {
     throw new Error("Cannot found src in image node");
   }
 
-  const blur64 = (await getPlaiceholder(src)).base64;
-
-  node.attributes.push({
-    type: "mdxJsxAttribute",
-    name: "blurDataURL",
-    value: blur64,
-  });
+  try {
+    const { base64 } = await getPlaiceholder(src);
+    node.attributes.push({
+      type: "mdxJsxAttribute",
+      name: "blurDataURL",
+      value: base64,
+    });
+  } catch (err) {
+    const errorMessage = typeof err === "string" ? err : (err as Error).message;
+    // eslint-disable-next-line no-console
+    console.error(`Couldn't get placeholder for ${src}: ${errorMessage}`);
+    throw new Error(errorMessage);
+  }
 };
 
 export const imageMetadata = () => {
