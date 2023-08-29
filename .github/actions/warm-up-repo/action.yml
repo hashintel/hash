@@ -27,10 +27,18 @@ runs:
         cache: poetry
 
     - run: yarn install
-      shell: bash
-      env:
-        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: ${{ inputs.playwright-deps == '' }}
+      uses: nick-fields/retry@v2.8.3
+      with:
+        max_attempts: 3
+        shell: bash
+        command: |
+          export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
+          yarn install
 
-    - run: yarn playwright install-deps ${{ inputs.playwright-deps }}
+    - run: yarn playwright install-deps
       if: ${{ inputs.playwright-deps != '' }}
-      shell: bash
+      uses: nick-fields/retry@v2.8.3
+      with:
+        max_attempts: 3
+        shell: bash
+        command: yarn playwright install-deps ${{ inputs.playwright-deps }}
