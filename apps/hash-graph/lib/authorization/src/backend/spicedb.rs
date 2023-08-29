@@ -7,12 +7,10 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::{
     backend::{
         spicedb::schema::{ResourceReference, RpcStatus, SubjectReference},
-        AuthorizationBackend, CheckError, CheckResponse, Resource,
+        AuthorizationBackend, CheckError, CheckResponse, CreateRelationError,
+        CreateRelationResponse, Resource,
     },
-    zanzibar::{
-        Affiliation, Consistency, GenericAffiliation, GenericResource, GenericSubject, Subject,
-        Tuple,
-    },
+    zanzibar::{Affiliation, Consistency, Relation, StringTuple, Subject, Zookie},
 };
 
 #[derive(Debug)]
@@ -30,7 +28,7 @@ mod schema {
 
     use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-    use crate::zanzibar::{self, Affiliation, Resource, Subject, Tuple, Zookie};
+    use crate::zanzibar::{self, Affiliation, Resource, Subject, Zookie};
 
     /// Error response returned from the API
     #[derive(Debug, Deserialize)]
@@ -47,6 +45,22 @@ mod schema {
     pub struct ZedToken<'z> {
         /// The token string.
         pub token: Zookie<'z>,
+    }
+
+    /// Used for mutating a single relationship within the service.
+    #[derive(Debug, Serialize)]
+    pub enum RelationshipUpdateOperation {
+        /// Create the relationship only if it doesn't exist, and error otherwise.
+        #[serde(rename = "OPERATION_CREATE")]
+        Create,
+        /// Upsert the relationship, and will not error if it already exists.
+        #[serde(rename = "OPERATION_TOUCH")]
+        #[expect(dead_code, reason = "Not yet exposed")]
+        Touch,
+        /// Delete the relationship. If the relationship does not exist, this operation will no-op.
+        #[serde(rename = "OPERATION_DELETE")]
+        #[expect(dead_code, reason = "Not yet exposed")]
+        Delete,
     }
 
     pub struct Consistency<'z>(pub zanzibar::Consistency<'z>);
@@ -89,8 +103,8 @@ mod schema {
         }
     }
 
-    pub struct SubjectReference<'a, S: Subject>(pub &'a S);
-    impl<S: Subject> Serialize for SubjectReference<'_, S> {
+    pub struct SubjectReference<'a, S: ?Sized>(pub &'a S);
+    impl<S: Subject + ?Sized> Serialize for SubjectReference<'_, S> {
         fn serialize<Ser: Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
             let object = self.0.resource();
 
@@ -119,17 +133,6 @@ mod schema {
         pub context: HashMap<&'a str, serde_json::Value>,
     }
 
-    pub struct RelationshipTuple<R, A, S>(pub Tuple<R, A, S>);
-    impl<R: Resource, A: Affiliation<R>, S: Subject> Serialize for RelationshipTuple<R, A, S> {
-        fn serialize<Ser: Serializer>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error> {
-            let mut serialize = serializer.serialize_struct("Tuple", 3)?;
-            serialize.serialize_field("resource", &ResourceReference(&self.0.resource))?;
-            serialize.serialize_field("relation", &self.0.affiliation)?;
-            serialize.serialize_field("subject", &SubjectReference(&self.0.subject))?;
-            serialize.end()
-        }
-    }
-
     /// Specifies how a resource relates to a subject.
     ///
     /// Relationships form the data for the graph over which all permissions questions are answered.
@@ -138,11 +141,63 @@ mod schema {
         rename_all = "camelCase",
         bound = "R: Resource, A: Affiliation<R>, S: Subject"
     )]
-    pub struct Relationship<'a, R, A, S> {
-        #[serde(flatten)]
-        pub tuple: RelationshipTuple<R, A, S>,
+    pub struct Relationship<'a, R: ?Sized, A: ?Sized, S: ?Sized> {
+        pub resource: ResourceReference<'a, R>,
+        pub relation: &'a A,
+        pub subject: SubjectReference<'a, S>,
         #[serde(skip_serializing_if = "Option::is_none", rename = "optionalCaveat")]
         pub caveat: Option<ContextualizedCaveat<'a>>,
+    }
+
+    /// Specifies if the operation should proceed if the relationships filter matches any
+    /// relationships.
+    #[derive(Debug, Serialize)]
+    pub enum PreconditionOperation {
+        /// Will fail the parent request if there are no relationships that match the filter.
+        #[serde(rename = "OPERATION_MUST_MATCH")]
+        #[expect(dead_code, reason = "Not yet exposed")]
+        MustMatch,
+        /// Will fail the parent request if any relationships match the relationships filter.
+        #[serde(rename = "OPERATION_MUST_NOT_MATCH")]
+        #[expect(dead_code, reason = "Not yet exposed")]
+        MustNotMatch,
+    }
+
+    /// Specifies how and the existence or absence of certain relationships as expressed through the
+    /// accompanying filter should affect whether or not the operation proceeds.
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Precondition<'a> {
+        pub operation: PreconditionOperation,
+        pub filter: RelationshipFilter<'a>,
+    }
+
+    /// A collection of filters which when applied to a relationship will return relationships that
+    /// have exactly matching fields.
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct RelationshipFilter<'a> {
+        pub resource_type: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "optionalResourceId")]
+        pub resource_id: Option<&'a str>,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "optionalRelation")]
+        pub relation: Option<&'a str>,
+        #[serde(
+            skip_serializing_if = "Option::is_none",
+            rename = "optionalSubjectFilter"
+        )]
+        pub subject_filter: Option<SubjectFilter<'a>>,
+    }
+
+    /// A filter on the subject of a relationship.
+    #[derive(Debug, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct SubjectFilter<'a> {
+        pub subject_type: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "optionalSubjectId")]
+        pub subject_id: Option<&'a str>,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "optionalRelation")]
+        pub relation: Option<&'a str>,
     }
 }
 
@@ -202,27 +257,116 @@ impl SpiceDb {
             Err(InvocationError::Rpc(result.json().await?))
         }
     }
+
+    // TODO: Expose batch-version
+    //   see https://linear.app/hash/issue/H-642
+    async fn modify_relationship<'t, R, A, S>(
+        &'t self,
+        operation: schema::RelationshipUpdateOperation,
+        resource: &R,
+        relation: &A,
+        subject: &S,
+    ) -> Result<Zookie<'static>, InvocationError>
+    where
+        R: Resource + ?Sized + Sync,
+        A: Affiliation<R> + ?Sized + Sync,
+        S: Subject + ?Sized + Sync,
+    {
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Resource, A: Affiliation<R>, S: Subject"
+        )]
+        struct RelationshipUpdate<'a, R: ?Sized, A: ?Sized, S: ?Sized> {
+            operation: schema::RelationshipUpdateOperation,
+            relationship: schema::Relationship<'a, R, A, S>,
+            #[serde(
+                skip_serializing_if = "Vec::is_empty",
+                rename = "optionalPreconditions"
+            )]
+            preconditions: Vec<schema::Precondition<'a>>,
+        }
+
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Resource, A: Affiliation<R>, S: Subject"
+        )]
+        struct RequestBody<'a, R: ?Sized, A: ?Sized, S: ?Sized> {
+            updates: [RelationshipUpdate<'a, R, A, S>; 1],
+        }
+
+        #[derive(Debug, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestResponse {
+            written_at: schema::ZedToken<'static>,
+        }
+
+        let response = self
+            .call::<RequestResponse>("/v1/relationships/write", &RequestBody {
+                updates: [RelationshipUpdate {
+                    operation,
+                    relationship: schema::Relationship {
+                        resource: schema::ResourceReference(resource),
+                        relation,
+                        subject: schema::SubjectReference(subject),
+                        caveat: None,
+                    },
+                    preconditions: vec![],
+                }],
+            })
+            .await?;
+
+        Ok(response.written_at.token)
+    }
 }
 
 impl AuthorizationBackend for SpiceDb {
-    async fn check<S, A, R>(
+    async fn create_relation<R, A, S>(
         &self,
-        subject: &S,
-        affiliation: &A,
         resource: &R,
+        relation: &A,
+        subject: &S,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        R: Resource + ?Sized + Sync,
+        A: Relation<R> + ?Sized + Sync,
+        S: Subject + ?Sized + Sync,
+    {
+        self.modify_relationship(
+            schema::RelationshipUpdateOperation::Create,
+            resource,
+            relation,
+            subject,
+        )
+        .await
+        .map(|written_at| CreateRelationResponse { written_at })
+        .change_context_lazy(|| CreateRelationError {
+            tuple: StringTuple::from_tuple(resource, relation, subject),
+        })
+    }
+
+    async fn check<R, P, S>(
+        &self,
+        resource: &R,
+        permission: &P,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        S: Subject + Sync,
-        A: Affiliation<R> + Sync,
-        R: Resource + Sync,
+        R: Resource + ?Sized + Sync,
+        P: Affiliation<R> + ?Sized + Sync,
+        S: Subject + ?Sized + Sync,
     {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'a, O: Resource, R: Affiliation<O>, S: Subject> {
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Resource, A: Affiliation<R>, S: Subject"
+        )]
+        struct RequestBody<'a, R: ?Sized, A: ?Sized, S: ?Sized> {
             consistency: schema::Consistency<'a>,
-            resource: ResourceReference<'a, O>,
-            permission: &'a R,
+            resource: ResourceReference<'a, R>,
+            permission: &'a A,
             subject: SubjectReference<'a, S>,
         }
 
@@ -246,7 +390,7 @@ impl AuthorizationBackend for SpiceDb {
         let request = RequestBody {
             consistency: schema::Consistency(consistency),
             resource: ResourceReference(resource),
-            permission: affiliation,
+            permission,
             subject: SubjectReference(subject),
         };
 
@@ -254,23 +398,7 @@ impl AuthorizationBackend for SpiceDb {
             .call("/v1/permissions/check", &request)
             .await
             .change_context_lazy(|| CheckError {
-                tuple: Tuple {
-                    resource: GenericResource {
-                        namespace: resource.namespace().to_string(),
-                        id: resource.id().to_string(),
-                    },
-                    affiliation: GenericAffiliation(affiliation.to_string()),
-                    subject: GenericSubject {
-                        resource: GenericResource {
-                            namespace: subject.resource().namespace().to_string(),
-                            id: subject.resource().id().to_string(),
-                        },
-                        affiliation: subject
-                            .affiliation()
-                            .map(ToString::to_string)
-                            .map(GenericAffiliation),
-                    },
-                },
+                tuple: StringTuple::from_tuple(resource, permission, subject),
             })?;
 
         let has_permission = match response.permissionship {
