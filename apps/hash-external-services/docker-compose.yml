@@ -72,7 +72,7 @@ services:
     command: -c 'config_file=/etc/postgresql/postgresql.conf' --track_commit_timestamp=on
 
   telemetry-collector:
-    image: jaegertracing/all-in-one:1.40
+    image: jaegertracing/all-in-one:1.48
     deploy:
       restart_policy:
         condition: on-failure
