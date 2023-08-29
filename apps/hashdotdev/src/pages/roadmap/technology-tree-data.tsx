@@ -857,11 +857,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     body: "Nest blocks inside other blocks to create complex ",
     parentIds: ["41"],
     status: "future",
-    useCases: [
-      "general",
-      "internal-tools-apps",
-      "website-building",
-    ],
+    useCases: ["general", "internal-tools-apps", "website-building"],
     variant: "experiment",
   },
   {
