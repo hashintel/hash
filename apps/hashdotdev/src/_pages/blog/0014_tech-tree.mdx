@@ -1,0 +1,74 @@
+---
+authors:
+  - name: David Wilkinson
+    jobTitle: CEO & Founder, HASH
+    photo: blog/authors/david-wilkinson.jpg
+postPhoto: blog/0014_tech-tree/0014_tech-tree.webp
+title: "A real-life tech tree"
+subtitle: "Laying out our open-source development roadmap for HASH, in public"
+date: "2023-08-28"
+categories:
+  - Our Approach
+---
+
+## Context
+
+At HASH, we're building an open-source platform for integrating vast amounts of data and using it in new and interesting ways. We're most commonly contrasted to systems like Palantir, as well as monolithic, legacy enterprise resource planning (ERP) systems... none of which are open-source. Low general public awareness around what this sort of software actually does, coupled with its breadth, can sometimes make explaining _what we do_ a bit of a headache, as well. This is particularly true when users deploy HASH (and other ERP-like applications) in the service of use cases that may themselves be incredibly diverse in nature, often with little obviously in common between them.
+
+In a bid to help improve understanding, we're moving more of our documentation into public, starting with our **technology tree**, which you can find on our [development roadmap](https://hash.dev/roadmap).
+
+## Tech trees in games
+
+"Tech trees", as they're commonly known, are visual representations of the various ways in which progress can be made. Popularized by video games such as Civilization and StarCraft, tech trees are **directed acylic graphs** wherein each node represents a different technology. In these games, completing research into one node unlocks the next node in the tree. At any given point in time, players may have lots of nodes to choose from, and 'more advanced' technologies will typically take longer to research than near-at-hand ones. That said, there can be significant advantages in racing ahead down certain tracks of a tech tree, super-specializing in some areas while neglecting others.
+
+## Tech trees in real life
+
+As in our games, it should be impossible to complete any node that is itself blocked by other nodes. However, it might be possible to kick off research and development sooner, concurrently or in parallel.
+
+Nodes are connected by edges, and each edge has some cost associated with it. In strategy games those costs might represent a fixed amount of time, or number of turns, but in real-life, these costs take multiple forms: monetary, reputational, and temporal. And while they might be estimated, all are subject to real-world volatility, with no guarantees even of their ultimate achievability.
+
+Unlike in some of the previously mentioned games, we can also attack work in parallel. There may be natural synergies between threads, meaning multiple can be addressed at reduced cost.
+
+Putting together a tech tree requires a future vision for your product. Unlike the tech trees of video games, they're also not fixed in stone. It mightn't be worth planning too far down one tree, if you lack vision or certainty, while remaining open to new nodes and opportunities is prudent. While video games are closed system that wrap the tech trees they contain, we exist in the open real-world.
+
+A good tech tree should be high-level, ideally describing the features relevant to the audience consuming it. In our case, building an open-source platform, with a public tech tree, we have to grapple both with developers looking at the tree, and end users. Our tree therefore contains a combination of technical infrastructure that blocks feature work, and the features themselves.
+
+Whether your tech tree is an aspirational internal document or a public artefact like ours, you'll want to keep it up-to-date. Ours is new (and therefore currently updated manually), but we'll be linking it to our internal product management tickets via Linear sync with HASH shortly (during preparation for which we discovered a fun [data exposure vulnerability](https://twitter.com/nonparibus/status/1692255276550742453) in Linear).
+
+## The HASH Tech Tree
+
+By making our tech tree public, we hope to provide realtime transparency into what we're currently focused on, at any given point in time, and communicate how that relates to or unblocks other things (including features) you might care about in the future.
+
+Each node in our tech tree has a "status", a "type", and corresponds to one or more "areas".
+
+### Statuses
+
+Each node has one of the following states, which describes where it's currently at:
+
+- **Done** means we've delivered a proper working v1 of the thing in question.
+- **Working POC** means we've shipped a working proof-of-concept of the thing, but more work remains to stabilize the feature or otherwise make the initiative production-ready, and for us to consider the work 'done'.
+- **In Progress** nodes are active focuses of ours, and we are actively developing these, with linked PRs open, merged, and in draft.
+- **Next Up** nodes are those we'll be working on next, after or overlapping with our current 'in progress' work, and before other 'future' nodes.
+- **Future** nodes are are things we're planning, and in many cases will have detailed specs or designs for already, but which are further out on our roadmap (often, but not always, with direct blockers between us and them).
+
+### Types
+
+Our types are simple, and we have just three.
+
+- **Infrastructure:** infrastructure nodes are for the internal audience of folks working on building the HASH platform itself. They are pre-requisites that deliver nothing by themselves to users or developers consuming HASH, or building atop it, but which do unblock other items in our tech tree.
+- **User Features:** new or enhanced product features and capabilities for end users to directly use and enjoy.
+- **Developer Facing:** enhancements, new endpoints and other deliverables which technical users integrating with HASH, or building services atop it, can benefit from. These will generally go unnoticed by most end users of the platform, but unlock more of its power for developers to build atop.
+
+### Areas
+
+Each node is also associated with one or more "areas" of the HASH product.
+
+A node's area might be "general", meaning it is an application-wide change (or pre-requisite to any working product!), but most areas correspond to use cases of HASH, and things you might want to achieve with HASH.
+
+These use cases are fairly broad, and we're likely to refine them in the near term, but at the moment they span knowledge management/docs and data management/BI, through to agent-based modeling and retrieval system context provision.
+
+## Summary
+
+Outside of video games, we're not really aware of any examples of tech trees in the wild, used for real-world product planning. This might be because roadmaps visualized as boards with a column-per-quarter do everything people need, but we find them pretty boring, and far from the best way to visualize the dependencies between feature work or understand the big picture. For most products, that's probably fine, but for a big thing like HASH, it lacks something we require. If you're familiar with projects who maintain their own public tech trees, or if you've worked on one internally somewhere, let us know over on our [developer Discord](https://hash.ai/discord).
+
+If getting involved in building or using an open-source alternative to something like Palantir sounds of interest to you (or your org!), please feel free to get in touch [via the website](https://hash.ai/contact) or by dropping an email to <a href="mailto:hey@hash.ai?subject=Follow-up from tech trees blog post">hey@hash.ai</a>

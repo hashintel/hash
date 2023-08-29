@@ -34,13 +34,22 @@ export const fileTypedef = gql`
     """
     requestFileUpload(
       """
+      An optional description of the file
+      """
+      description: String
+      """
+      Optionally provide a more specific type for the file entity, which must inherit from Remote File
+        (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/3)
+      """
+      entityTypeId: VersionedUrl
+      """
+      An optional name for the file
+      """
+      name: String
+      """
       Size of the file in bytes
       """
       size: Int!
-      """
-      mediaType of the file
-      """
-      mediaType: String!
     ): RequestFileUploadResponse!
     """
     Creates a file entity from an external link. The file entity will just have
@@ -48,13 +57,22 @@ export const fileTypedef = gql`
     """
     createFileFromUrl(
       """
+      An optional description of the file
+      """
+      description: String
+      """
+      Optionally provide a more specific type for the file entity, which must inherit from Remote File
+      (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/3)
+      """
+      entityTypeId: VersionedUrl
+      """
+      An optional name for the file
+      """
+      name: String
+      """
       url of the external file
       """
       url: String!
-      """
-      mediaType of the file
-      """
-      mediaType: String!
     ): Entity!
   }
 `;

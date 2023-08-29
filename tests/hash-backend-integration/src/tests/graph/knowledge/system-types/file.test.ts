@@ -8,7 +8,6 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
@@ -28,7 +27,6 @@ const logger = new Logger({
 
 describe("File", () => {
   /* eslint-disable @typescript-eslint/unbound-method */
-  const mediaType = "image";
   let testUser: User;
 
   beforeAll(async () => {
@@ -69,25 +67,16 @@ describe("File", () => {
     const file = await createFileFromUploadRequest(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       actorId: testUser.accountId,
-      mediaType,
       size: 100,
     });
 
     expect(file.presignedPost.url).toEqual(uploadUrl);
 
     expect(
-      (
-        file.entity.properties[
-          SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl
-        ] as string
-      ).endsWith(fileKey),
-    ).toBeTruthy();
-
-    expect(
       file.entity.properties[
-        SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl
-      ],
-    ).toEqual(mediaType);
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+      ].endsWith(fileKey),
+    ).toBeTruthy();
 
     expect(graphContext.uploadProvider.getFileEntityStorageKey).toBeCalledTimes(
       1,
@@ -103,29 +92,13 @@ describe("File", () => {
     const file = await createFileFromExternalUrl(graphContext, {
       ownedById: testUser.accountId as OwnedById,
       actorId: testUser.accountId,
-      mediaType,
       url: externalUrl,
     });
 
     expect(
       file.properties[
-        SYSTEM_TYPES.propertyType.fileUrl.metadata.recordId.baseUrl
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
       ],
     ).toEqual(externalUrl);
-
-    expect(
-      file.properties[
-        SYSTEM_TYPES.propertyType.fileMediaType.metadata.recordId.baseUrl
-      ],
-    ).toEqual(mediaType);
-
-    expect(
-      file.properties[
-        SYSTEM_TYPES.propertyType.fileKey.metadata.recordId.baseUrl
-      ],
-    ).toEqual({
-      [SYSTEM_TYPES.propertyType.externalFileUrl.metadata.recordId.baseUrl]:
-        externalUrl,
-    });
   });
 });
