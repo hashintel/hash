@@ -26,7 +26,7 @@ runs:
         python-version: "^3.11"
         cache: poetry
 
-    - run: yarn install
+    - name: yarn install
       uses: nick-fields/retry@v2.8.3
       with:
         max_attempts: 3
@@ -35,7 +35,7 @@ runs:
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           yarn install
 
-    - run: yarn playwright install-deps
+    - name: yarn playwright install-deps
       if: ${{ inputs.playwright-deps != '' }}
       uses: nick-fields/retry@v2.8.3
       with:
