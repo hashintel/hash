@@ -252,6 +252,10 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: just miri --no-fail-fast
 
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs
+
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
@@ -347,6 +351,10 @@ jobs:
           files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs
 
   publish:
     name: publish
