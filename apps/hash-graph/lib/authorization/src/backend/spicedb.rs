@@ -303,7 +303,7 @@ impl SpiceDb {
             updates: [RelationshipUpdate<'a, R, A, S>; 1],
         }
 
-        #[derive(Debug, Deserialize)]
+        #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct RequestResponse {
             written_at: schema::ZedToken<'static>,
@@ -336,7 +336,6 @@ impl AuthorizationApi for SpiceDb {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct RequestResponse {
-            schema_text: String,
             written_at: schema::ZedToken<'static>,
         }
 
@@ -361,7 +360,7 @@ impl AuthorizationApi for SpiceDb {
         reason = "False positive, documented on trait"
     )]
     async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
-        #[derive(Debug, Deserialize)]
+        #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct RequestResponse {
             schema_text: String,
