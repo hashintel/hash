@@ -7,8 +7,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::{
     backend::{
         spicedb::schema::{ResourceReference, RpcStatus, SubjectReference},
-        AuthorizationBackend, CheckError, CheckResponse, CreateRelationError,
-        CreateRelationResponse, DeleteRelationError, DeleteRelationResponse, Resource,
+        AuthorizationApi, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
+        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
+        ImportSchemaError, ImportSchemaResponse, Resource,
     },
     zanzibar::{Affiliation, Consistency, Relation, StringTuple, Subject, Zookie},
 };
@@ -29,6 +30,13 @@ mod schema {
     use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
     use crate::zanzibar::{self, Affiliation, Resource, Subject, Zookie};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    #[expect(
+        clippy::empty_structs_with_brackets,
+        reason = "Used for serializing and deserializing an empty object `{}`"
+    )]
+    pub struct Empty {}
 
     /// Error response returned from the API
     #[derive(Debug, Deserialize)]
@@ -295,7 +303,7 @@ impl SpiceDb {
             updates: [RelationshipUpdate<'a, R, A, S>; 1],
         }
 
-        #[derive(Debug, Deserialize)]
+        #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct RequestResponse {
             written_at: schema::ZedToken<'static>,
@@ -320,9 +328,62 @@ impl SpiceDb {
     }
 }
 
-impl AuthorizationBackend for SpiceDb {
+impl AuthorizationApi for SpiceDb {
+    async fn import_schema(
+        &mut self,
+        schema: &str,
+    ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestResponse {
+            written_at: schema::ZedToken<'static>,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestBody<'a> {
+            schema: &'a str,
+        }
+
+        let response = self
+            .call::<RequestResponse>("/v1/schema/write", &RequestBody { schema })
+            .await
+            .change_context(ImportSchemaError)?;
+
+        Ok(ImportSchemaResponse {
+            written_at: response.written_at.token,
+        })
+    }
+
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
+    async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestResponse {
+            schema_text: String,
+            read_at: schema::ZedToken<'static>,
+        }
+
+        let response = self
+            .call::<RequestResponse>("/v1/schema/read", &schema::Empty {})
+            .await
+            .change_context(ExportSchemaError)?;
+
+        Ok(ExportSchemaResponse {
+            schema: response.schema_text,
+            read_at: response.read_at.token,
+        })
+    }
+
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
     async fn create_relation<R, A, S>(
-        &self,
+        &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
@@ -345,8 +406,12 @@ impl AuthorizationBackend for SpiceDb {
         })
     }
 
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
     async fn delete_relation<R, A, S>(
-        &self,
+        &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
@@ -369,6 +434,10 @@ impl AuthorizationBackend for SpiceDb {
         })
     }
 
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
     async fn check<R, P, S>(
         &self,
         resource: &R,
