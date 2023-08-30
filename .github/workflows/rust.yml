@@ -112,13 +112,6 @@ jobs:
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
         run: just format --check
@@ -225,13 +218,6 @@ jobs:
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Python
         if: matrix.directory == 'apps/engine'
         uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
@@ -329,13 +315,6 @@ jobs:
         uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
-
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
