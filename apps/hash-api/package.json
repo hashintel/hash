@@ -48,7 +48,7 @@
     "@temporalio/client": "1.8.1",
     "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",
-    "apollo-server-core": "3.11.0",
+    "apollo-server-core": "3.12.1",
     "apollo-server-errors": "3.3.1",
     "apollo-server-express": "3.9.0",
     "app-root-path": "3.0.0",
