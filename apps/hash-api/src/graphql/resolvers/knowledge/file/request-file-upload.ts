@@ -14,12 +14,19 @@ export const requestFileUpload: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationRequestFileUploadArgs
-> = async (_, { size }, { dataSources, user }) => {
+> = async (
+  _,
+  { description, entityTypeId, name, ownedById, size },
+  { dataSources, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { presignedPost, entity } = await createFileFromUploadRequest(context, {
     actorId: user.accountId,
-    ownedById: user.accountId as OwnedById,
+    description,
+    entityTypeId,
+    name,
+    ownedById: ownedById ?? (user.accountId as OwnedById),
     size,
   });
 

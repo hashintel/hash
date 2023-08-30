@@ -148,10 +148,6 @@ const systemEntityTypes = {
     title: "HASH Instance",
     description: "An instance of HASH.",
   },
-  file: {
-    title: "File",
-    description: "A file.",
-  },
   userSecret: {
     title: "User Secret",
     description: "A secret or credential belonging to a user.",
@@ -282,23 +278,6 @@ const systemPropertyTypes = {
     title: "Linear Org Id",
     description: "The unique identifier for an org in Linear.",
   },
-  fileUrl: {
-    title: "File URL",
-    description: "URL to access a file.",
-  },
-  objectStoreKey: {
-    title: "Object Store Key",
-    description: "Unique identifier for an object in an object store.",
-  },
-  externalFileUrl: {
-    title: "External File URL",
-    description: "URL to an external file.",
-  },
-  fileKey: {
-    title: "File Key",
-    description:
-      "Key used to uniquely identify a file in a third-party system.",
-  },
   linearTeamId: {
     title: "Linear Team Id",
     description: "The unique identifier for a team in Linear.",
@@ -330,9 +309,13 @@ const systemLinkEntityTypes = {
     title: "Parent",
     description: "The parent of something.",
   },
+  hasAvatar: {
+    title: "Has Avatar",
+    description: "The avatar something has",
+  },
   hasText: {
     title: "Has Text",
-    description: "Something that has text.",
+    description: "The text something has.",
   },
   author: {
     title: "Author",
@@ -937,5 +920,10 @@ export const blockProtocolTypes = {
     title: "Remote File",
     entityTypeId:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+  },
+  "remote-image-file": {
+    title: "Remote Image File",
+    entityTypeId:
+      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-image-file/v/1",
   },
 } as const;

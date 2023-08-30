@@ -70,7 +70,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { archiveEntity: deleteEntity } = useBlockProtocolArchiveEntity();
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(readonly);
+  const { uploadFile } = useBlockProtocolFileUpload(
+    activeWorkspaceAccountId as OwnedById | undefined,
+    readonly,
+  );
 
   const { setBlockSubgraph, blockSubgraph } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();

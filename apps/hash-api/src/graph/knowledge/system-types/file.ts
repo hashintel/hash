@@ -3,7 +3,7 @@ import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types"
 import {
   RemoteFile,
   RemoteFileProperties,
-} from "@local/hash-isomorphic-utils/system-types/blockprotocol/file";
+} from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
 import mime from "mime-types";
 
 import {

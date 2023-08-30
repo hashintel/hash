@@ -1,5 +1,8 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -69,12 +72,6 @@ export let SYSTEM_TYPES: {
     userRegistrationByInviteIsEnabled: PropertyTypeWithMetadata;
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
 
-    // File related
-    fileUrl: PropertyTypeWithMetadata;
-    externalFileUrl: PropertyTypeWithMetadata;
-    objectStoreKey: PropertyTypeWithMetadata;
-    fileKey: PropertyTypeWithMetadata;
-
     // Linear Integration related
     linearOrgId: PropertyTypeWithMetadata;
 
@@ -89,7 +86,6 @@ export let SYSTEM_TYPES: {
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
-    file: EntityTypeWithMetadata;
     userSecret: EntityTypeWithMetadata;
     linearIntegration: EntityTypeWithMetadata;
   };
@@ -99,6 +95,9 @@ export let SYSTEM_TYPES: {
 
     // User-related
     orgMembership: EntityTypeWithMetadata;
+
+    // Account-related
+    hasAvatar: EntityTypeWithMetadata;
 
     // Block-related
     blockData: EntityTypeWithMetadata;
@@ -236,6 +235,9 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const websitePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+
+  const hasAvatarLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -264,6 +266,16 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
       {
         propertyType: websitePropertyType,
         required: false,
+      },
+    ],
+    outgoingLinks: [
+      {
+        linkEntityType: hasAvatarLinkEntityType,
+        destinationEntityTypes: [
+          blockProtocolTypes["remote-image-file"].entityTypeId,
+        ],
+        maxItems: 1,
+        minItems: 0,
       },
     ],
   })(context);
@@ -339,6 +351,9 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const orgMembershipLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(context);
 
+  const hasAvatarLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -364,6 +379,14 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       {
         linkEntityType: orgMembershipLinkEntityType,
         destinationEntityTypes: [orgEntityType],
+      },
+      {
+        linkEntityType: hasAvatarLinkEntityType,
+        destinationEntityTypes: [
+          blockProtocolTypes["remote-image-file"].entityTypeId,
+        ],
+        maxItems: 1,
+        minItems: 0,
       },
     ],
   })(context);
@@ -631,6 +654,10 @@ const linearIntegrationEntityTypeInitializer = entityTypeInitializer({
   ],
 });
 
+const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.hasAvatar,
+);
+
 const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.hasText,
 );
@@ -701,85 +728,6 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const fileUrlTypePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileUrl,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
-const objectStoreKeyPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.objectStoreKey,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
-const externalFileUrlPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.externalFileUrl,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
-const fileKeyPropertyTypeInitializer = async (context: ImpureGraphContext) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-  const objectStoreKeyPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.objectStoreKey(context);
-
-  const externalFileUrlPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.externalFileUrl(context);
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  const objectStoreKeyBaseUrl =
-    objectStoreKeyPropertyType.metadata.recordId.baseUrl;
-
-  const externalFileUrlBaseUrl =
-    externalFileUrlPropertyType.metadata.recordId.baseUrl;
-
-  return propertyTypeInitializer({
-    ...types.propertyType.fileKey,
-    possibleValues: [
-      {
-        propertyTypeObjectProperties: {
-          [objectStoreKeyBaseUrl]: {
-            $ref: objectStoreKeyPropertyType.schema.$id,
-          },
-        },
-      },
-      {
-        propertyTypeObjectProperties: {
-          [externalFileUrlBaseUrl]: {
-            $ref: externalFileUrlPropertyType.schema.$id,
-          },
-        },
-      },
-    ],
-  })(context);
-};
-
-export const fileEntityTypeInitializer = async (
-  context: ImpureGraphContext,
-) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-
-  const fileUrlPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileUrl(context);
-
-  const fileKeyPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileKey(context);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  return entityTypeInitializer({
-    ...types.entityType.file,
-    properties: [
-      {
-        propertyType: fileUrlPropertyType,
-        required: true,
-      },
-      {
-        propertyType: fileKeyPropertyType,
-        required: true,
-      },
-    ],
-  })(context);
-};
-
 type LazyPromise<T> = (context: ImpureGraphContext) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -832,11 +780,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       orgSelfRegistrationIsEnabledPropertyTypeInitializer,
     userRegistrationByInviteIsEnabled:
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
-
-    fileUrl: fileUrlTypePropertyTypeInitializer,
-    externalFileUrl: externalFileUrlPropertyTypeInitializer,
-    objectStoreKey: objectStoreKeyPropertyTypeInitializer,
-    fileKey: fileKeyPropertyTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
@@ -844,6 +787,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
     parent: parentLinkEntityTypeInitializer,
+    hasAvatar: hasAvatarLinkEntityTypeInitializer,
     hasText: hasTextLinkEntityTypeInitializer,
     author: authorLinkEntityTypeInitializer,
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
@@ -857,7 +801,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
-    file: fileEntityTypeInitializer,
     userSecret: userSecretEntityTypeInitializer,
     linearIntegration: linearIntegrationEntityTypeInitializer,
   },

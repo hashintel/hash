@@ -45,8 +45,8 @@ export const useOrgs = (
       constrainsLinkDestinationsOn: { outgoing: 0 },
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 0 },
+      hasLeftEntity: { incoming: 1, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: cache ? "cache-first" : "no-cache",

@@ -128,7 +128,11 @@ export const WorkspaceSwitcher: FunctionComponent<
             <ListItemAvatar>
               <Avatar
                 size={34}
-                title={authenticatedUser.preferredName ?? "U"}
+                title={
+                  accountId === authenticatedUser.accountId
+                    ? authenticatedUser.preferredName
+                    : title
+                }
               />
             </ListItemAvatar>
             <ListItemText

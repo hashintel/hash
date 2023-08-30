@@ -1,11 +1,20 @@
 import { TextField } from "@hashintel/design-system";
+import {
+  blockProtocolTypes,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { useShortnameInput } from "../../components/hooks/use-shortname-input";
-import { MinimalOrg } from "../../lib/user-and-org";
-import { Button } from "../../shared/ui/button";
+import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
+import { Org } from "../../../../lib/user-and-org";
+import { Button } from "../../../../shared/ui/button";
+import { ImageField } from "../../shared/image-field";
 
 const Label = ({
   label,
@@ -62,9 +71,9 @@ const InputGroup = ({ children }: PropsWithChildren) => {
 };
 
 export type OrgFormData = Omit<
-  MinimalOrg,
-  "accountId" | "kind" | "entityRecordId"
->;
+  Org,
+  "accountId" | "kind" | "entityRecordId" | "memberships"
+> & { accountId?: Org["accountId"]; entityRecordId?: Org["entityRecordId"] };
 
 type OrgFormProps = {
   onSubmit: (org: OrgFormData) => Promise<void>;
@@ -83,6 +92,14 @@ export const OrgForm = ({
 }: OrgFormProps) => {
   const [submissionError, setSubmissionError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { createEntity } = useBlockProtocolCreateEntity(
+    (initialOrg?.accountId as OwnedById | undefined) ?? null,
+  );
+  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const { uploadFile } = useBlockProtocolFileUpload(
+    initialOrg?.accountId as OwnedById | undefined,
+  );
 
   const {
     control,
@@ -111,6 +128,55 @@ export const OrgForm = ({
   );
 
   const nameWatcher = watch("name");
+
+  const avatarUrl =
+    initialOrg?.hasAvatar?.rightEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+    ];
+
+  const setAvatar = async (file: File) => {
+    if (!initialOrg?.entityRecordId) {
+      throw new Error("Cannot set org avatar without its entityRecordId");
+    }
+
+    // Upload the file and get a file entity which describes it
+    const { data: fileUploadData, errors: fileUploadErrors } = await uploadFile(
+      {
+        data: {
+          description: `${nameWatcher}'s avatar`,
+          entityTypeId: blockProtocolTypes["remote-image-file"].entityTypeId,
+          file,
+          name: file.name,
+        },
+      },
+    );
+    if (fileUploadErrors || !fileUploadData) {
+      throw new Error(
+        fileUploadErrors?.[0]?.message ?? "Unknown error uploading file",
+      );
+    }
+
+    if (initialOrg.hasAvatar) {
+      // Delete the existing hasAvatar link, if any
+      await archiveEntity({
+        data: {
+          entityId: initialOrg.hasAvatar.linkEntity.metadata.recordId.entityId,
+        },
+      });
+    }
+
+    // Create a new hasAvatar link from the org to the new file entity
+    await createEntity({
+      data: {
+        entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
+        linkData: {
+          leftEntityId: initialOrg.entityRecordId.entityId,
+          rightEntityId: fileUploadData.metadata.recordId.entityId as EntityId,
+        },
+        properties: {},
+      },
+    });
+  };
 
   const nameError =
     touchedFields.name && !nameWatcher ? "Display name is required" : "";
@@ -207,18 +273,26 @@ export const OrgForm = ({
         </Box>
       </InputGroup>
       {initialOrg && (
-        <InputGroup>
-          <Label
-            label="Description"
-            hint="Provide a brief description of your organization"
-            htmlFor="description"
-          />
-          <TextField
-            id="description"
-            sx={{ width: 400 }}
-            {...register("description", { required: false })}
-          />
-        </InputGroup>
+        <>
+          <InputGroup>
+            <Label label="Avatar" htmlFor="" />
+            <Box width={210} height={210}>
+              <ImageField imageUrl={avatarUrl} onFileProvided={setAvatar} />
+            </Box>
+          </InputGroup>
+          <InputGroup>
+            <Label
+              label="Description"
+              hint="Provide a brief description of your organization"
+              htmlFor="description"
+            />
+            <TextField
+              id="description"
+              sx={{ width: 400 }}
+              {...register("description", { required: false })}
+            />
+          </InputGroup>
+        </>
       )}
       <InputGroup>
         <Label
