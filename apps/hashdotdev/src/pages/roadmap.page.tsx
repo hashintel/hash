@@ -129,43 +129,45 @@ const UseCases: FunctionComponent = () => (
       flexWrap="wrap"
       sx={{ justifyContent: { xs: "space-between", sm: "flex-start" } }}
     >
-      {useCases.map(({ name, icon }) => (
-        /** @todo: make clickable when docs pages exist for each item */
-        // <Link key={name} href={href}>
-        <Box
-          key={name?.toString()}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            width: ({ spacing }) => ({
-              xs: `calc(50% - ${spacing(1)})`,
-              sm: 135,
-            }),
-            padding: ({ spacing }) => spacing(2, 1.5),
-            borderRadius: "8px",
-            borderStyle: "solid",
-            borderWidth: 1,
-            borderColor: ({ palette }) => palette.gray[30],
-          }}
-        >
-          {icon}
-          <Typography
+      {useCases.map(({ id, name, icon }) =>
+        id === "general" ? null : (
+          /** @todo: make clickable when docs pages exist for each item */
+          // <Link key={name} href={href}>
+          <Box
+            key={name?.toString()}
             sx={{
-              marginTop: 1.25,
-              textAlign: "center",
-              fontSize: 15,
-              fontWeight: 500,
-              color: ({ palette }) => palette.gray[80],
-              lineHeight: 1.2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: ({ spacing }) => ({
+                xs: `calc(50% - ${spacing(1)})`,
+                sm: 135,
+              }),
+              padding: ({ spacing }) => spacing(2, 1.5),
+              borderRadius: "8px",
+              borderStyle: "solid",
+              borderWidth: 1,
+              borderColor: ({ palette }) => palette.gray[30],
             }}
           >
-            {name}
-          </Typography>
-        </Box>
-        // </Link>
-      ))}
+            {icon}
+            <Typography
+              sx={{
+                marginTop: 1.25,
+                textAlign: "center",
+                fontSize: 15,
+                fontWeight: 500,
+                color: ({ palette }) => palette.gray[80],
+                lineHeight: 1.2,
+              }}
+            >
+              {name}
+            </Typography>
+          </Box>
+          // </Link>
+        ),
+      )}
     </Box>
   </Container>
 );
