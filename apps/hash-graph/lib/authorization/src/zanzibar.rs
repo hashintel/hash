@@ -40,13 +40,12 @@ impl<A: AsRef<str>, R: Resource + ?Sized> Relation<R> for GenericAffiliation<A> 
 /// `Resource`s are composed of a namespace and an unique identifier and often displayed as those
 /// two values separated by a colon.
 pub trait Resource {
+    /// The unique identifier for this `Resource`.
+    type Id: AsRef<str> + ?Sized;
     /// The namespace for this `Resource`.
     ///
     /// In most cases, this will be a static string.
     type Namespace: AsRef<str> + ?Sized;
-
-    /// The unique identifier for this `Resource`.
-    type Id: AsRef<str> + ?Sized;
 
     /// Returns the namespace for this `Resource`.
     fn namespace(&self) -> &Self::Namespace;
@@ -171,7 +170,7 @@ impl<R: Resource, A: Affiliation<R>> Subject for GenericSubject<R, A> {
 }
 
 /// Represent the existence of a live relation between a [`Resource`] and [`Subject`].
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Tuple<R, A, S> {
     pub resource: R,
     pub affiliation: A,
@@ -213,7 +212,7 @@ pub type StringTuple = Tuple<
 
 impl StringTuple {
     #[must_use]
-    pub(crate) fn from_tuple<R, A, S>(resource: &R, affiliation: &A, subject: &S) -> Self
+    pub fn from_tuple<R, A, S>(resource: &R, affiliation: &A, subject: &S) -> Self
     where
         R: Resource + ?Sized,
         A: Affiliation<R> + ?Sized,
@@ -239,7 +238,7 @@ impl StringTuple {
 }
 
 /// Provide causality metadata between Write and Check requests.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Zookie<'a>(Cow<'a, str>);
 
