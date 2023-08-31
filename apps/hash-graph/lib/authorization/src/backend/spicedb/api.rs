@@ -290,11 +290,6 @@ impl AuthorizationApi for SpiceDb {
                 .attach_printable("Only partial deletion was performed")
         );
 
-        let response: RequestResponse = self
-            .call("/v1/relationships/delete", &request)
-            .await
-            .change_context(DeleteRelationsError)?;
-
         Ok(DeleteRelationsResponse {
             deleted_at: response.deleted_at.into(),
         })
