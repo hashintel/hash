@@ -11,7 +11,7 @@ import {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,
-  UploadFileData,
+  UploadFileData as BpUploadFileData,
   UploadFileReturn,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
@@ -61,8 +61,12 @@ export type UpdateEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type UploadFileRequestData = BpUploadFileData & {
+  entityTypeId?: VersionedUrl;
+};
+
 export type UploadFileRequestCallback = MessageCallback<
-  UploadFileData & { entityTypeId?: VersionedUrl },
+  UploadFileRequestData,
   null,
   MessageReturn<UploadFileReturn>,
   CreateResourceError
