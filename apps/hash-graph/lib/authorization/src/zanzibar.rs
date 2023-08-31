@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use serde::{Deserialize, Serialize};
 
 /// The relation or permission of a [`Subject`] to an [`Resource`].
-pub trait Affiliation<R: Resource + ?Sized>: Serialize + fmt::Display {}
+pub trait Affiliation<R: Resource + ?Sized>: AsRef<str> {}
 
 /// A computed set of [`Subject`]s for a particular [`Resource`].
 pub trait Permission<R: Resource + ?Sized>: Affiliation<R> {}
@@ -18,31 +18,22 @@ pub trait Relation<R: Resource + ?Sized>: Affiliation<R> {}
 ///
 /// This is useful for when the [`Resource`] type is not known at compile-time, e.g. when parsing a
 /// [`Tuple`] from a string.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct GenericAffiliation<A>(pub A);
 
-impl<A> fmt::Debug for GenericAffiliation<A>
+impl<A> AsRef<str> for GenericAffiliation<A>
 where
-    A: fmt::Debug,
+    A: AsRef<str>,
 {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&self.0, fmt)
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
-impl<A> fmt::Display for GenericAffiliation<A>
-where
-    A: fmt::Display,
-{
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, fmt)
-    }
-}
-
-impl<A: fmt::Display + Serialize, R: Resource> Affiliation<R> for GenericAffiliation<A> {}
-impl<A: fmt::Display + Serialize, R: Resource> Permission<R> for GenericAffiliation<A> {}
-impl<A: fmt::Display + Serialize, R: Resource> Relation<R> for GenericAffiliation<A> {}
+impl<A: AsRef<str>, R: Resource + ?Sized> Affiliation<R> for GenericAffiliation<A> {}
+impl<A: AsRef<str>, R: Resource + ?Sized> Permission<R> for GenericAffiliation<A> {}
+impl<A: AsRef<str>, R: Resource + ?Sized> Relation<R> for GenericAffiliation<A> {}
 
 /// Represent a unique entity that is being modelled.
 ///
@@ -52,10 +43,10 @@ pub trait Resource {
     /// The namespace for this `Resource`.
     ///
     /// In most cases, this will be a static string.
-    type Namespace: Serialize + fmt::Display + ?Sized;
+    type Namespace: AsRef<str> + ?Sized;
 
     /// The unique identifier for this `Resource`.
-    type Id: Serialize + fmt::Display + ?Sized;
+    type Id: AsRef<str> + ?Sized;
 
     /// Returns the namespace for this `Resource`.
     fn namespace(&self) -> &Self::Namespace;
@@ -78,8 +69,8 @@ pub struct GenericResource<N, I> {
 }
 impl<N, I> Resource for GenericResource<N, I>
 where
-    N: Serialize + fmt::Display,
-    I: Serialize + fmt::Display,
+    N: AsRef<str>,
+    I: AsRef<str>,
 {
     type Id = I;
     type Namespace = N;
@@ -122,12 +113,11 @@ where
     }
 
     fn affiliation(&self) -> Option<&Self::Affiliation> {
-        #[derive(Serialize)]
         struct Never;
 
-        impl fmt::Display for Never {
-            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-                self.serialize(fmt)
+        impl AsRef<str> for Never {
+            fn as_ref(&self) -> &str {
+                unreachable!()
             }
         }
 
@@ -198,14 +188,14 @@ where
         write!(
             fmt,
             "{}:{}#{}@{}:{}",
-            self.resource.namespace(),
-            self.resource.id(),
-            self.affiliation,
-            self.subject.resource().namespace(),
-            self.subject.resource().id()
+            self.resource.namespace().as_ref(),
+            self.resource.id().as_ref(),
+            self.affiliation.as_ref(),
+            self.subject.resource().namespace().as_ref(),
+            self.subject.resource().id().as_ref()
         )?;
         if let Some(affiliation) = self.subject.affiliation() {
-            write!(fmt, "#{affiliation}")?;
+            write!(fmt, "#{}", affiliation.as_ref())?;
         }
         Ok(())
     }
@@ -231,18 +221,18 @@ impl StringTuple {
     {
         Self {
             resource: GenericResource {
-                namespace: resource.namespace().to_string(),
-                id: resource.id().to_string(),
+                namespace: resource.namespace().as_ref().to_owned(),
+                id: resource.id().as_ref().to_owned(),
             },
-            affiliation: GenericAffiliation(affiliation.to_string()),
+            affiliation: GenericAffiliation(affiliation.as_ref().to_owned()),
             subject: GenericSubject {
                 resource: GenericResource {
-                    namespace: subject.resource().namespace().to_string(),
-                    id: subject.resource().id().to_string(),
+                    namespace: subject.resource().namespace().as_ref().to_owned(),
+                    id: subject.resource().id().as_ref().to_owned(),
                 },
                 affiliation: subject
                     .affiliation()
-                    .map(|affiliation| GenericAffiliation(affiliation.to_string())),
+                    .map(|affiliation| GenericAffiliation(affiliation.as_ref().to_owned())),
             },
         }
     }
