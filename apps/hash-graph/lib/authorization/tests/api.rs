@@ -69,7 +69,7 @@ impl TestApi {
                     let tuples: Vec<UntypedTuple> =
                         tuple_receiver.await.expect("failed to receive tuples");
 
-                    if let Err(error) = client.delete_relation(&tuples, []).await {
+                    if let Err(error) = client.delete_relations(&tuples, []).await {
                         eprintln!(
                             "failed to delete relations: {error:?} while cleaning up {} tuples",
                             tuples.len()
@@ -114,7 +114,7 @@ impl AuthorizationApi for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relation<'p, 't, T>(
+    async fn create_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -130,14 +130,14 @@ impl AuthorizationApi for TestApi {
             })
             .unzip();
 
-        let result = self.client.create_relation(tuples, preconditions).await?;
+        let result = self.client.create_relations(tuples, preconditions).await?;
 
         self.tuples.extend(untyped_tuples);
 
         Ok(result)
     }
 
-    async fn delete_relation<'p, 't, T>(
+    async fn delete_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -145,15 +145,17 @@ impl AuthorizationApi for TestApi {
     where
         T: Tuple + Send + Sync + 't,
     {
-        self.client.delete_relation(tuples, preconditions).await
+        self.client.delete_relations(tuples, preconditions).await
     }
 
-    async fn delete_relations<'f>(
+    async fn delete_relations_by_filter<'f>(
         &mut self,
         filter: RelationFilter<'_>,
         preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
     ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>> {
-        self.client.delete_relations(filter, preconditions).await
+        self.client
+            .delete_relations_by_filter(filter, preconditions)
+            .await
     }
 
     async fn check(

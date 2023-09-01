@@ -42,7 +42,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     //     .await?;
 
     let token = api
-        .create_relation(
+        .create_relations(
             [
                 &(ENTITY_A, EntityRelation::Writer, ALICE),
                 &(ENTITY_A, EntityRelation::Reader, BOB),
@@ -146,7 +146,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relation([&(ENTITY_A, EntityRelation::Reader, BOB)], [])
+        .delete_relations([&(ENTITY_A, EntityRelation::Reader, BOB)], [])
         .await?
         .deleted_at;
 
@@ -170,7 +170,7 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let _ = api
-        .create_relation(
+        .create_relations(
             [
                 &(ENTITY_C, EntityRelation::Reader, ALICE),
                 &(ENTITY_C, EntityRelation::Reader, BOB),
@@ -185,7 +185,7 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
         .expect_err("precondition should not be met");
 
     let token = api
-        .create_relation([&(ENTITY_C, EntityRelation::Writer, CHARLIE)], [])
+        .create_relations([&(ENTITY_C, EntityRelation::Writer, CHARLIE)], [])
         .await?
         .written_at;
 
@@ -207,7 +207,7 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .create_relation(
+        .create_relations(
             [
                 &(ENTITY_C, EntityRelation::Reader, ALICE),
                 &(ENTITY_C, EntityRelation::Reader, BOB),
@@ -239,7 +239,7 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
     );
 
     let _ = api
-        .delete_relations(
+        .delete_relations_by_filter(
             RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
             [Precondition::must_not_match(
                 RelationFilter::for_resource(&ENTITY_C)
@@ -251,7 +251,7 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
         .expect_err("precondition should not be met");
 
     let token = api
-        .delete_relations(
+        .delete_relations_by_filter(
             RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
             [Precondition::must_match(
                 RelationFilter::for_resource(&ENTITY_C)

@@ -36,7 +36,7 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relation<'p, 't, T>(
+    async fn create_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -49,7 +49,7 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relation<'p, 't, T>(
+    async fn delete_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -62,7 +62,7 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relations could not be deleted.
-    async fn delete_relations<'f>(
+    async fn delete_relations_by_filter<'f>(
         &mut self,
         filter: RelationFilter<'_>,
         preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
@@ -125,14 +125,14 @@ impl fmt::Display for ExportSchemaError {
 
 impl Error for ExportSchemaError {}
 
-/// Return value for [`AuthorizationApi::create_relation`].
+/// Return value for [`AuthorizationApi::create_relations`].
 #[derive(Debug)]
 pub struct CreateRelationResponse {
     /// A token to determine the time at which the relation was created.
     pub written_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::create_relation`].
+/// Error returned from [`AuthorizationApi::create_relations`].
 #[derive(Debug)]
 pub struct CreateRelationError;
 
@@ -144,14 +144,14 @@ impl fmt::Display for CreateRelationError {
 
 impl Error for CreateRelationError {}
 
-/// Return value for [`AuthorizationApi::delete_relation`].
+/// Return value for [`AuthorizationApi::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationResponse {
     /// A token to determine the time at which the relation was deleted.
     pub deleted_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::delete_relation`].
+/// Error returned from [`AuthorizationApi::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationError;
 
@@ -163,14 +163,14 @@ impl fmt::Display for DeleteRelationError {
 
 impl Error for DeleteRelationError {}
 
-/// Return value for [`AuthorizationApi::delete_relation`].
+/// Return value for [`AuthorizationApi::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationsResponse {
     /// A token to determine the time at which the relation was deleted.
     pub deleted_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::delete_relation`].
+/// Error returned from [`AuthorizationApi::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationsError;
 
