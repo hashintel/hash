@@ -8,9 +8,6 @@ use serde::{Deserialize, Serialize};
 /// The relation or permission of a [`Resource`] to another [`Resource`].
 pub trait Affiliation<R: Resource + ?Sized>: AsRef<str> {}
 
-impl<A: Affiliation<R>, R: Resource> Affiliation<R> for &A {}
-// impl<A: Affiliation<R>, R: Resource> Affiliation<&R> for A {}
-
 /// A computed set of [`Resource`]s for another particular [`Resource`].
 pub trait Permission<R: Resource + ?Sized>: Affiliation<R> {}
 
