@@ -52,7 +52,15 @@
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": ["^jest-", "jest$", "lint-staged", "lockfile-lint", "markdownlint-cli", "^prettier", "prettier$"],
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$",
+        "lint-staged",
+        "lockfile-lint",
+        "markdownlint-cli",
+        "^prettier",
+        "prettier$"
+      ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
