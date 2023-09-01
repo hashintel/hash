@@ -39,16 +39,18 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relation<R, A, S>(
+    async fn create_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync;
+        S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p;
 
     /// Deletes a relation between a [`Subject`] and an [`Resource`] with the specified
     /// [`Relation`].
@@ -56,16 +58,18 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relation<R, A, S>(
+    async fn delete_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync;
+        S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p;
 
     /// Deletes all relations matching the specified [`RelationFilter`].
     ///

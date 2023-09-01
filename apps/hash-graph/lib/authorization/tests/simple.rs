@@ -16,9 +16,9 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     api.import_schema(include_str!("schemas/simple.zed"))
         .await?;
 
-    api.create_relation(&ENTITY_A, &EntityRelation::Writer, &ALICE)
+    api.create_relation(&ENTITY_A, &EntityRelation::Writer, &ALICE, [])
         .await?;
-    api.create_relation(&ENTITY_A, &EntityRelation::Reader, &BOB)
+    api.create_relation(&ENTITY_A, &EntityRelation::Reader, &BOB, [])
         .await?;
 
     assert!(
@@ -77,7 +77,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relation(&ENTITY_A, &EntityRelation::Reader, &BOB)
+        .delete_relation(&ENTITY_A, &EntityRelation::Reader, &BOB, [])
         .await?
         .deleted_at;
 

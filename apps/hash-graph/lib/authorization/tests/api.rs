@@ -69,7 +69,8 @@ impl TestApi {
                     for tuple in tuple_receiver.await.expect("failed to receive tuples") {
                         let tuple: StringTuple = tuple;
                         client
-                            .delete_relation(&tuple.resource, &tuple.affiliation, &tuple.subject)
+                            .delete_relation(&tuple.resource, &tuple.affiliation, &tuple.subject, [
+                            ])
                             .await
                             .expect("failed to delete relations");
                     }
@@ -109,20 +110,22 @@ impl AuthorizationApi for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relation<R, A, S>(
+    async fn create_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
         S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
     {
         let result = self
             .client
-            .create_relation(resource, relation, subject)
+            .create_relation(resource, relation, subject, preconditions)
             .await?;
 
         self.tuples
@@ -131,19 +134,21 @@ impl AuthorizationApi for TestApi {
         Ok(result)
     }
 
-    async fn delete_relation<R, A, S>(
+    async fn delete_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
         S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
     {
         self.client
-            .delete_relation(resource, relation, subject)
+            .delete_relation(resource, relation, subject, preconditions)
             .await
     }
 

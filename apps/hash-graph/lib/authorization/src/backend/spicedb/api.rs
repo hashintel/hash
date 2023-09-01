@@ -75,17 +75,19 @@ impl SpiceDb {
 
     // TODO: Expose batch-version
     //   see https://linear.app/hash/issue/H-642
-    async fn modify_relationship<'t, R, A, S>(
-        &'t self,
+    async fn modify_relationship<'p, R, A, S, P>(
+        &self,
         operation: model::RelationshipUpdateOperation,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<Zookie<'static>, InvocationError>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Affiliation<R> + ?Sized + Sync,
         S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
     {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
@@ -118,7 +120,10 @@ impl SpiceDb {
                         subject: subject.into(),
                         optional_caveat: None,
                     },
-                    optional_preconditions: vec![],
+                    optional_preconditions: preconditions
+                        .into_iter()
+                        .map(model::Precondition::from)
+                        .collect(),
                 }],
             })
             .await?;
@@ -181,22 +186,25 @@ impl AuthorizationApi for SpiceDb {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relation<R, A, S>(
+    async fn create_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
         S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
     {
         self.modify_relationship(
             model::RelationshipUpdateOperation::Create,
             resource,
             relation,
             subject,
+            preconditions,
         )
         .await
         .map(|written_at| CreateRelationResponse { written_at })
@@ -209,22 +217,25 @@ impl AuthorizationApi for SpiceDb {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relation<R, A, S>(
+    async fn delete_relation<'p, R, A, S, P>(
         &mut self,
         resource: &R,
         relation: &A,
         subject: &S,
+        preconditions: P,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        R: Resource + ?Sized + Sync,
+        R: Resource + ?Sized + Sync + 'p,
         A: Relation<R> + ?Sized + Sync,
         S: Subject + ?Sized + Sync,
+        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
     {
         self.modify_relationship(
             model::RelationshipUpdateOperation::Delete,
             resource,
             relation,
             subject,
+            preconditions,
         )
         .await
         .map(|deleted_at| DeleteRelationResponse { deleted_at })
