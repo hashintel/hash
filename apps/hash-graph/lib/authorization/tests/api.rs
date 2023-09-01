@@ -33,7 +33,7 @@ impl TestApi {
     ///
     /// After disconnecting every created relation will be deleted again.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Only the cleanup thread may panic
+    #[allow(clippy::missing_panics_doc, clippy::print_stderr)] // Only the cleanup thread may panic
     pub fn connect() -> Self {
         let host =
             std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
@@ -68,10 +68,16 @@ impl TestApi {
 
                     let tuples: Vec<UntypedTuple> =
                         tuple_receiver.await.expect("failed to receive tuples");
-                    client
-                        .delete_relation(&tuples, [])
-                        .await
-                        .expect("failed to delete relations");
+
+                    if let Err(error) = client.delete_relation(&tuples, []).await {
+                        eprintln!(
+                            "failed to delete relations: {error:?} while cleaning up {} tuples",
+                            tuples.len()
+                        );
+                        for tuple in &tuples {
+                            eprintln!("\n  - {tuple}");
+                        }
+                    }
                 });
         });
 
