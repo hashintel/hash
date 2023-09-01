@@ -132,6 +132,14 @@ const systemEntityTypes = {
     title: "Text",
     description: undefined,
   },
+  file: {
+    title: "File",
+    description: "A file hosted at a URL",
+  },
+  imageFile: {
+    title: "Image File",
+    description: "An image file hosted at a URL",
+  },
   user: {
     title: "User",
     description: undefined,

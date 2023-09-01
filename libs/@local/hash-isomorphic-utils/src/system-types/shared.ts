@@ -54,6 +54,11 @@ export type Description0PropertyValue = TextDataType;
  */
 export type Description1PropertyValue = TextDataType;
 
+/**
+ * A human-friendly display namae for something
+ */
+export type DisplayNamePropertyValue = TextDataType;
+
 export type EmailPropertyValue = TextDataType;
 
 /**
@@ -61,10 +66,42 @@ export type EmailPropertyValue = TextDataType;
  */
 export type ExpiredAtPropertyValue = TextDataType;
 
+export type File = Entity<FileProperties>;
+
+/**
+ * A unique signature derived from a file's contents
+ */
+export type FileHashPropertyValue = TextDataType;
+
 /**
  * The name of a file.
  */
 export type FileNamePropertyValue = TextDataType;
+
+export type FileOutgoingLinkAndTarget = never;
+
+export type FileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A file hosted at a URL
+ */
+export type FileProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+};
+
+/**
+ * The size of a file
+ */
+export type FileSizePropertyValue = NumberDataType;
 
 /**
  * A URL that serves a file.
@@ -106,6 +143,11 @@ export type LocationPropertyValue = TextDataType;
  * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
  */
 export type MIMETypePropertyValue = TextDataType;
+
+/**
+ * An arithmetical value (in the Real number system)
+ */
+export type NumberDataType = number;
 
 /**
  * An opaque, untyped JSON object
@@ -156,6 +198,21 @@ export type OrganizationProvidedInformationPropertyValue = {
 
 export type OrganizationSizePropertyValue = TextDataType;
 
+/**
+ * The original name of a file
+ */
+export type OriginalFileNamePropertyValue = TextDataType;
+
+/**
+ * The original source of something
+ */
+export type OriginalSourcePropertyValue = TextDataType;
+
+/**
+ * The original URL something was hosted at
+ */
+export type OriginalURLPropertyValue = TextDataType;
+
 export type Parent = Entity<ParentProperties> & { linkData: LinkData };
 
 export type ParentOutgoingLinkAndTarget = never;
@@ -184,8 +241,14 @@ export type RemoteFileOutgoingLinksByLinkEntityTypeId = {};
 export type RemoteFileProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": MIMETypePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
 };
 
 export type RemoteImageFile = Entity<RemoteImageFileProperties>;

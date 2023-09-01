@@ -81,6 +81,8 @@ export let SYSTEM_TYPES: {
   entityType: {
     hashInstance: EntityTypeWithMetadata;
     user: EntityTypeWithMetadata;
+    file: EntityTypeWithMetadata;
+    imageFile: EntityTypeWithMetadata;
     org: EntityTypeWithMetadata;
     block: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
@@ -458,6 +460,73 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  return entityTypeInitializer({
+    ...types.entityType.file,
+    properties: [
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
+        required: true,
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
+      },
+    ],
+  })(context);
+};
+
+const imageFileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const fileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.file(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.imageFile,
+    allOf: [fileEntityType.schema.$id],
+  })(context);
+};
+
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
@@ -797,6 +866,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
+    file: fileEntityTypeInitializer,
+    imageFile: imageFileEntityTypeInitializer,
     block: blockEntityTypeInitializer,
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
