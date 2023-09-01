@@ -38,8 +38,8 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    // api.import_schema(include_str!("schemas/simple.zed"))
-    //     .await?;
+    api.import_schema(include_str!("schemas/simple.zed"))
+        .await?;
 
     let token = api
         .create_relations(
