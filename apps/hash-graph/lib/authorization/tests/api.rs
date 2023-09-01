@@ -10,7 +10,7 @@ use authorization::{
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
         Precondition, RelationFilter, SpiceDb,
     },
-    zanzibar::{Affiliation, Consistency, Relation, Resource, StringTuple, Subject},
+    zanzibar::{Consistency, Tuple, UntypedTuple},
 };
 use error_stack::Report;
 use tokio::sync::oneshot::Sender;
@@ -18,8 +18,8 @@ use tokio::sync::oneshot::Sender;
 pub struct TestApi {
     client: SpiceDb,
 
-    tuples: Vec<StringTuple>,
-    cleanup: Option<(Sender<Vec<StringTuple>>, JoinHandle<()>)>,
+    tuples: Vec<UntypedTuple<'static>>,
+    cleanup: Option<(Sender<Vec<UntypedTuple<'static>>>, JoinHandle<()>)>,
 }
 
 impl TestApi {
@@ -67,10 +67,9 @@ impl TestApi {
                     };
 
                     for tuple in tuple_receiver.await.expect("failed to receive tuples") {
-                        let tuple: StringTuple = tuple;
+                        let tuple: UntypedTuple = tuple;
                         client
-                            .delete_relation(&tuple.resource, &tuple.affiliation, &tuple.subject, [
-                            ])
+                            .delete_relation(&tuple, [])
                             .await
                             .expect("failed to delete relations");
                     }
@@ -110,73 +109,39 @@ impl AuthorizationApi for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relation<'p, R, A, S, P>(
+    async fn create_relation<'p>(
         &mut self,
-        resource: &R,
-        relation: &A,
-        subject: &S,
-        preconditions: P,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        R: Resource + ?Sized + Sync + 'p,
-        A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync,
-        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
-    {
-        let result = self
-            .client
-            .create_relation(resource, relation, subject, preconditions)
-            .await?;
-
-        self.tuples
-            .push(StringTuple::from_tuple(resource, relation, subject));
+        tuple: impl Tuple + Send + Sync,
+        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>> {
+        let string_tuple = UntypedTuple::from_tuple(&tuple).into_owned();
+        let result = self.client.create_relation(tuple, preconditions).await?;
+        self.tuples.push(string_tuple);
 
         Ok(result)
     }
 
-    async fn delete_relation<'p, R, A, S, P>(
+    async fn delete_relation<'p>(
         &mut self,
-        resource: &R,
-        relation: &A,
-        subject: &S,
-        preconditions: P,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        R: Resource + ?Sized + Sync + 'p,
-        A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync,
-        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p,
-    {
-        self.client
-            .delete_relation(resource, relation, subject, preconditions)
-            .await
+        tuple: &(impl Tuple + Sync),
+        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>> {
+        self.client.delete_relation(tuple, preconditions).await
     }
 
-    async fn delete_relations<'f, R>(
+    async fn delete_relations<'f>(
         &mut self,
-        filter: RelationFilter<'_, R>,
-        preconditions: impl IntoIterator<Item = Precondition<'f, R>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>
-    where
-        R: Resource<Namespace: Sync, Id: Sync> + ?Sized + 'f,
-    {
+        filter: RelationFilter<'_>,
+        preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
+    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>> {
         self.client.delete_relations(filter, preconditions).await
     }
 
-    async fn check<R, P, S>(
+    async fn check(
         &self,
-        resource: &R,
-        permission: &P,
-        subject: &S,
+        tuple: &(impl Tuple + Sync),
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>>
-    where
-        R: Resource + ?Sized + Sync,
-        P: Affiliation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync,
-    {
-        self.client
-            .check(resource, permission, subject, consistency)
-            .await
+    ) -> Result<CheckResponse, Report<CheckError>> {
+        self.client.check(tuple, consistency).await
     }
 }

@@ -6,9 +6,7 @@ use std::error::Error;
 use error_stack::Report;
 
 pub use self::spicedb::{SpiceDb, SpiceDbConfig};
-use crate::zanzibar::{
-    Affiliation, Consistency, Permission, Relation, Resource, StringTuple, Subject, Zookie,
-};
+use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait AuthorizationApi {
@@ -33,77 +31,54 @@ pub trait AuthorizationApi {
     /// Returns an error if the schema could not be read
     async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>>;
 
-    /// Creates a new relation between a [`Subject`] and an [`Resource`] with the specified
-    /// [`Relation`].
+    /// Creates a new relation specified by the [`Tuple`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relation<'p, R, A, S, P>(
+    async fn create_relation<'p>(
         &mut self,
-        resource: &R,
-        relation: &A,
-        subject: &S,
-        preconditions: P,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        R: Resource + ?Sized + Sync + 'p,
-        A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync,
-        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p;
+        tuple: impl Tuple + Send + Sync,
+        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>;
 
-    /// Deletes a relation between a [`Subject`] and an [`Resource`] with the specified
-    /// [`Relation`].
+    /// Deletes the relation specified by the [`Tuple`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relation<'p, R, A, S, P>(
+    async fn delete_relation<'p>(
         &mut self,
-        resource: &R,
-        relation: &A,
-        subject: &S,
-        preconditions: P,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        R: Resource + ?Sized + Sync + 'p,
-        A: Relation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync,
-        P: IntoIterator<Item = Precondition<'p, R>, IntoIter: Send> + Send + 'p;
+        tuple: &(impl Tuple + Sync),
+        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>;
 
     /// Deletes all relations matching the specified [`RelationFilter`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relations could not be deleted.
-    async fn delete_relations<'f, R>(
+    async fn delete_relations<'f>(
         &mut self,
-        filter: RelationFilter<'_, R>,
-        preconditions: impl IntoIterator<Item = Precondition<'f, R>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>
-    where
-        R: Resource<Namespace: Sync, Id: Sync> + ?Sized + 'f;
+        filter: RelationFilter<'_>,
+        preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
+    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>;
 
-    /// Returns if the [`Subject`] has the specified permission or relation to an [`Resource`].
+    /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
+    /// [`Resource`].
     ///
     /// # Errors
     ///
     /// Returns an error if the check could not be performed.
     ///
-    /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
+    /// Note, that this will not fail if the subject does not have the specified permission or
     /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    async fn check<R, P, S>(
+    async fn check(
         &self,
-        resource: &R,
-        permission: &P,
-        subject: &S,
+        tuple: &(impl Tuple + Sync),
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>>
-    where
-        R: Resource + ?Sized + Sync,
-        P: Affiliation<R> + ?Sized + Sync,
-        S: Subject + ?Sized + Sync;
+    ) -> Result<CheckResponse, Report<CheckError>>;
 }
 
 /// Return value for [`AuthorizationApi::import_schema`].
@@ -156,7 +131,7 @@ pub struct CreateRelationResponse {
 /// Error returned from [`AuthorizationApi::create_relation`].
 #[derive(Debug)]
 pub struct CreateRelationError {
-    pub tuple: StringTuple,
+    pub tuple: UntypedTuple<'static>,
 }
 
 impl fmt::Display for CreateRelationError {
@@ -177,7 +152,7 @@ pub struct DeleteRelationResponse {
 /// Error returned from [`AuthorizationApi::delete_relation`].
 #[derive(Debug)]
 pub struct DeleteRelationError {
-    pub tuple: StringTuple,
+    pub tuple: UntypedTuple<'static>,
 }
 
 impl fmt::Display for DeleteRelationError {
@@ -210,7 +185,7 @@ impl Error for DeleteRelationsError {}
 /// Return value for [`AuthorizationApi::check`].
 #[derive(Debug)]
 pub struct CheckResponse {
-    /// If the [`Subject`] has the specified permission or relation to an [`Resource`].
+    /// If the subject has the specified permission or relation to an [`Resource`].
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
@@ -219,7 +194,7 @@ pub struct CheckResponse {
 /// Error returned from [`AuthorizationApi::check`].
 #[derive(Debug)]
 pub struct CheckError {
-    pub tuple: StringTuple,
+    pub tuple: UntypedTuple<'static>,
 }
 
 impl fmt::Display for CheckError {
@@ -236,21 +211,21 @@ pub struct SubjectFilter<'s> {
     pub affiliation: Option<&'s str>,
 }
 
-pub struct RelationFilter<'f, R: Resource + ?Sized> {
-    pub namespace: &'f R::Namespace,
-    pub id: Option<&'f R::Id>,
+pub struct RelationFilter<'f> {
+    pub namespace: &'f str,
+    pub id: Option<&'f str>,
     pub affiliation: Option<&'f str>,
     pub subject: Option<SubjectFilter<'f>>,
 }
 
-pub struct Precondition<'f, R: Resource + ?Sized> {
+pub struct Precondition<'f> {
     pub must_match: bool,
-    pub filter: RelationFilter<'f, R>,
+    pub filter: RelationFilter<'f>,
 }
 
-impl<'f, R: Resource + ?Sized> Precondition<'f, R> {
+impl<'f> Precondition<'f> {
     #[must_use]
-    pub const fn must_match(filter: RelationFilter<'f, R>) -> Self {
+    pub const fn must_match(filter: RelationFilter<'f>) -> Self {
         Self {
             must_match: true,
             filter,
@@ -258,7 +233,7 @@ impl<'f, R: Resource + ?Sized> Precondition<'f, R> {
     }
 
     #[must_use]
-    pub const fn must_not_match(filter: RelationFilter<'f, R>) -> Self {
+    pub const fn must_not_match(filter: RelationFilter<'f>) -> Self {
         Self {
             must_match: false,
             filter,
@@ -266,11 +241,9 @@ impl<'f, R: Resource + ?Sized> Precondition<'f, R> {
     }
 }
 
-impl<'f, R> RelationFilter<'f, R>
-where
-    R: Resource + ?Sized,
-{
-    pub const fn for_resource_namespace(namespace: &'f R::Namespace) -> Self {
+impl<'f> RelationFilter<'f> {
+    #[must_use]
+    pub const fn for_resource_namespace(namespace: &'f str) -> Self {
         Self {
             namespace,
             id: None,
@@ -279,43 +252,42 @@ where
         }
     }
 
-    pub fn for_resource(resource: &'f R) -> Self {
+    pub fn for_resource<R>(resource: &'f R) -> Self
+    where
+        R: Resource + ?Sized,
+    {
         Self {
             namespace: resource.namespace(),
-            id: Some(resource.id()),
+            id: Some(resource.id().as_ref()),
             affiliation: None,
             subject: None,
         }
     }
 
     #[must_use]
-    pub fn by_relation<A>(mut self, relation: &'f A) -> Self
+    pub fn by_relation<A, R>(mut self, relation: &'f A) -> Self
     where
         A: Relation<R> + ?Sized,
+        R: Resource + ?Sized,
     {
         self.affiliation = Some(relation.as_ref());
         self
     }
 
     #[must_use]
-    pub fn by_permission<A>(mut self, permission: &'f A) -> Self
+    pub fn by_permission<A, R>(mut self, permission: &'f A) -> Self
     where
-        A: Permission<R> + ?Sized,
+        A: Relation<R> + ?Sized,
+        R: Resource + ?Sized,
     {
         self.affiliation = Some(permission.as_ref());
         self
     }
 
     #[must_use]
-    pub fn with_subject_namespace<S>(
-        mut self,
-        namespace: &'f <S::Resource as Resource>::Namespace,
-    ) -> Self
-    where
-        S: Subject + ?Sized,
-    {
+    pub const fn with_subject_namespace<S>(mut self, namespace: &'f str) -> Self {
         self.subject = Some(SubjectFilter {
-            namespace: namespace.as_ref(),
+            namespace,
             id: None,
             affiliation: None,
         });
@@ -325,13 +297,26 @@ where
     #[must_use]
     pub fn with_subject<S>(mut self, subject: &'f S) -> Self
     where
-        S: Subject + ?Sized,
+        S: Resource + ?Sized,
     {
-        let resource = subject.resource();
         self.subject = Some(SubjectFilter {
-            namespace: resource.namespace().as_ref(),
-            id: Some(resource.id().as_ref()),
-            affiliation: subject.affiliation().map(AsRef::as_ref),
+            namespace: subject.namespace(),
+            id: Some(subject.id().as_ref()),
+            affiliation: None,
+        });
+        self
+    }
+
+    #[must_use]
+    pub fn with_subject_set<S, A>(mut self, subject: &'f S, affiliation: &'f A) -> Self
+    where
+        S: Resource + ?Sized,
+        A: Affiliation<S> + ?Sized,
+    {
+        self.subject = Some(SubjectFilter {
+            namespace: subject.namespace(),
+            id: Some(subject.id().as_ref()),
+            affiliation: Some(affiliation.as_ref()),
         });
         self
     }

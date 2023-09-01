@@ -16,16 +16,14 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     api.import_schema(include_str!("schemas/simple.zed"))
         .await?;
 
-    api.create_relation(&ENTITY_A, &EntityRelation::Writer, &ALICE, [])
+    api.create_relation((ENTITY_A, EntityRelation::Writer, ALICE), [])
         .await?;
-    api.create_relation(&ENTITY_A, &EntityRelation::Reader, &BOB, [])
+    api.create_relation((ENTITY_A, EntityRelation::Reader, BOB), [])
         .await?;
 
     assert!(
         api.check(
-            &ENTITY_A,
-            &EntityRelation::Writer,
-            &ALICE,
+            &(ENTITY_A, EntityRelation::Writer, ALICE),
             Consistency::FullyConsistent
         )
         .await?
@@ -34,9 +32,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     assert!(
         api.check(
-            &ENTITY_A,
-            &EntityPermission::Edit,
-            &ALICE,
+            &(ENTITY_A, EntityPermission::Edit, ALICE),
             Consistency::FullyConsistent
         )
         .await?
@@ -45,9 +41,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     assert!(
         api.check(
-            &ENTITY_A,
-            &EntityPermission::View,
-            &ALICE,
+            &(ENTITY_A, EntityPermission::View, ALICE),
             Consistency::FullyConsistent
         )
         .await?
@@ -56,9 +50,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     assert!(
         !api.check(
-            &ENTITY_A,
-            &EntityPermission::Edit,
-            &BOB,
+            &(ENTITY_A, EntityPermission::Edit, BOB),
             Consistency::FullyConsistent
         )
         .await?
@@ -67,9 +59,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     assert!(
         api.check(
-            &ENTITY_A,
-            &EntityPermission::View,
-            &BOB,
+            &(ENTITY_A, EntityPermission::View, BOB),
             Consistency::FullyConsistent
         )
         .await?
@@ -77,15 +67,13 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relation(&ENTITY_A, &EntityRelation::Reader, &BOB, [])
+        .delete_relation(&(ENTITY_A, EntityRelation::Reader, BOB), [])
         .await?
         .deleted_at;
 
     assert!(
         !api.check(
-            &ENTITY_A,
-            &EntityPermission::View,
-            &BOB,
+            &(ENTITY_A, EntityPermission::View, BOB),
             Consistency::AtLeastAsFresh(token)
         )
         .await?
