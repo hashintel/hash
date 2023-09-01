@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/shared";
 import {
   EntityId,
@@ -13,18 +12,27 @@ import {
   PropsWithChildren,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 import { v4 as uuid } from "uuid";
 
 import { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
   RequestFileUploadResponse,
 } from "../graphql/api-types.gen";
+import {
+  archiveEntityMutation,
+  createEntityMutation,
+} from "../graphql/queries/knowledge/entity.queries";
 import {
   createFileFromUrl,
   requestFileUpload,
@@ -42,11 +50,6 @@ type FileLinkData = {
   linkTypeId: VersionedUrl;
   // The properties for the link entity to create, if any
   linkProperties?: EntityPropertiesObject;
-  /**
-   * Whether the file should be on the 'left' of the link, i.e. the file is the source (file --link--> entity)
-   * @default false
-   */
-  fileOnLeftOfLink?: boolean;
 };
 
 type FileUploadRequestData = {
@@ -55,30 +58,38 @@ type FileUploadRequestData = {
   ownedById: OwnedById;
 };
 
+type FileUploadEntities = { fileEntity: RemoteFile; linkEntity?: LinkEntity };
+
 type FileUpload = FileUploadRequestData & {
+  createdEntities?: FileUploadEntities;
   errorMessage?: string;
   requestId: string;
-  status:
-    | "cancelled"
-    | "complete"
-    | "creating-link-entity"
-    | "error"
-    | "uploading-file";
+  status: "complete" | "creating-link-entity" | "error" | "uploading-file";
 };
 
 export type FileUploadsContextValue = {
   uploads: FileUpload[];
-  uploadFile: (
-    args: FileUploadRequestData,
-  ) => Promise<{ fileEntity: RemoteFile; linkEntity?: LinkEntity }>;
+  uploadFile: (args: FileUploadRequestData) => Promise<FileUpload>;
 };
 
 export const FileUploadsContext = createContext<null | FileUploadsContextValue>(
   null,
 );
 
+/**
+ * Provides an abstraction for uploading files, and a central place to track the status of uploads
+ */
 export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation);
 
   const [requestFileUploadFn] = useMutation<
     RequestFileUploadMutation,
@@ -90,7 +101,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
 
-  // @todo share this and the above with use-block-protocol-file-upload
   const uploadFileToStorageProvider = async (
     presignedPostData: RequestFileUploadResponse["presignedPost"],
     file: File,
@@ -135,7 +145,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       let fileEntity;
 
-      // Upload the file and get a file entity which describes it
+      // First, upload the file (either from a url or from a file)
       if ("url" in fileData && fileData.url.trim()) {
         try {
           const { data, errors } = await createFileFromUrlFn({
@@ -146,20 +156,23 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           });
 
           if (!data || errors) {
-            throw new Error(
-              `An error occurred while uploading the file from url ${
-                fileData.url
-              }: ${errors?.[0]?.message ?? "unknown error"}`,
-            );
+            throw new Error(errors?.[0]?.message ?? "unknown error");
           }
-          fileEntity = data.createFileFromUrl;
+
+          fileEntity = data.createFileFromUrl as unknown as RemoteFile;
         } catch (err) {
           // createFileFromUrlFn might itself throw rather than return errors, thus this catch
+
+          const errorMessage = `An error occurred while uploading the file from url ${
+            fileData.url
+          }: ${(err as Error).message}`;
+
           updateUpload({
             ...upload,
             status: "error",
-            errorMessage: (err as Error).message,
+            errorMessage,
           });
+          throw new Error(errorMessage, { cause: err });
         }
       } else if ("file" in fileData) {
         try {
@@ -172,13 +185,10 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           });
 
           if (!data || errors) {
-            throw new Error(
-              `An error occurred while uploading the file ${
-                fileData.file.name
-              }: ${errors?.[0]?.message ?? "unknown error"}`,
-            );
+            throw new Error(errors?.[0]?.message ?? "unknown error");
           }
-          fileEntity = data.requestFileUpload;
+
+          fileEntity = data.requestFileUpload.entity as unknown as RemoteFile;
 
           /**
            * Upload file with presignedPost data to storage provider
@@ -188,67 +198,132 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             fileData.file,
           );
         } catch (err) {
+          const errorMessage = `An error occurred while uploading the file ${
+            fileData.file.name
+          }: ${(err as Error).message}`;
+
           // requestFileUploadFn might itself throw rather than return errors, thus this catch
           updateUpload({
             ...upload,
             status: "error",
-            errorMessage: (err as Error).message,
+            errorMessage,
           });
-          return;
+
+          throw new Error(errorMessage, { cause: err });
         }
       }
 
-      if (linkedEntityData) {
-        updateUpload({
-          ...upload,
-          status: "creating-link-entity",
-        });
+      if (!fileEntity) {
+        throw new Error(
+          "Somehow no file entity was created and no earlier error thrown.",
+        );
+      }
 
+      // If no linked entity data was provided, we're done
+      if (!linkedEntityData) {
+        const updatedUpload: FileUpload = {
+          ...upload,
+          status: "complete",
+          createdEntities: { fileEntity },
+        };
+        updateUpload(updatedUpload);
+        return updatedUpload;
+      }
+
+      const {
+        linkedEntityId,
+        linkEntityIdToDelete,
+        linkProperties,
+        linkTypeId,
+      } = linkedEntityData;
+
+      updateUpload({
+        ...upload,
+        status: "creating-link-entity",
+      });
+
+      // Delete the old link entity if requested
+      if (linkEntityIdToDelete) {
         try {
-          await createLinkEntity(fileEntity, linkedEntityData);
+          const { data: archiveData, errors: archiveErrors } =
+            await archiveEntity({
+              variables: {
+                entityId: linkEntityIdToDelete,
+              },
+            });
+
+          if (!archiveData || archiveErrors) {
+            throw new Error(archiveErrors?.[0]?.message ?? "unknown error");
+          }
         } catch (err) {
+          const errorMessage = `Error archiving link entity with id ${linkEntityIdToDelete}: ${
+            (err as Error).message
+          }`;
           updateUpload({
             ...upload,
+            createdEntities: { fileEntity },
             status: "error",
-            errorMessage: (err as Error).message,
+            errorMessage,
           });
-          return;
+          throw new Error(errorMessage, { cause: err });
         }
       }
 
-      if (initialOrg.hasAvatar) {
-        // Delete the existing hasAvatar link, if any
-        await archiveEntity({
-          data: {
-            entityId:
-              initialOrg.hasAvatar.linkEntity.metadata.recordId.entityId,
+      try {
+        const { data, errors } = await createEntity({
+          variables: {
+            entityTypeId: linkTypeId,
+            linkData: {
+              leftEntityId: linkedEntityId,
+              rightEntityId: fileEntity.metadata.recordId.entityId as EntityId,
+            },
+            properties: linkProperties ?? {},
           },
         });
-      }
 
-      // Create a new hasAvatar link from the org to the new file entity
-      await createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
-          linkData: {
-            leftEntityId: initialOrg.entityRecordId.entityId,
-            rightEntityId: fileUploadData.metadata.recordId
-              .entityId as EntityId,
+        if (!data || errors) {
+          throw new Error(errors?.[0]?.message ?? "unknown error");
+        }
+
+        const updatedUpload: FileUpload = {
+          ...upload,
+          status: "complete",
+          createdEntities: {
+            fileEntity,
+            linkEntity: data.createEntity as LinkEntity,
           },
-          properties: {},
-        },
-      });
+        };
+        updateUpload(updatedUpload);
+        return updatedUpload;
+      } catch (err) {
+        const errorMessage = `Error creating link entity: ${
+          (err as Error).message
+        }`;
+        updateUpload({
+          ...upload,
+          createdEntities: { fileEntity },
+          status: "error",
+          errorMessage,
+        });
+        throw new Error(errorMessage, { cause: err });
+      }
     },
-    [],
+    [
+      archiveEntity,
+      createEntity,
+      createFileFromUrlFn,
+      requestFileUploadFn,
+      updateUpload,
+    ],
   );
 
-  const value: FileUploadsContextValue = {
-    uploadFile,
-    uploads,
-  };
+  const value: FileUploadsContextValue = useMemo(
+    () => ({ uploads, uploadFile }),
+    [uploadFile, uploads],
+  );
 
   return (
-    <FileUploadsContext.Provider value={}>
+    <FileUploadsContext.Provider value={value}>
       {children}
     </FileUploadsContext.Provider>
   );
