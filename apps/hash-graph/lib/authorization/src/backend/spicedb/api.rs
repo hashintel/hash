@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, iter::repeat};
 
 use error_stack::{ensure, Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -76,8 +76,10 @@ impl SpiceDb {
     //   see https://linear.app/hash/issue/H-642
     async fn modify_relationship<'p, 't, T>(
         &self,
-        operation: model::RelationshipUpdateOperation,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
+        operations: impl IntoIterator<
+            Item = (model::RelationshipUpdateOperation, &'t T),
+            IntoIter: Send,
+        > + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
     ) -> Result<Zookie<'static>, InvocationError>
     where
@@ -106,9 +108,9 @@ impl SpiceDb {
 
         let response = self
             .call::<RequestResponse>("/v1/relationships/write", &RequestBody {
-                updates: tuples
+                updates: operations
                     .into_iter()
-                    .map(|tuple| RelationshipUpdate {
+                    .map(|(operation, tuple)| RelationshipUpdate {
                         operation,
                         relationship: model::Relationship {
                             resource: model::ObjectReference {
@@ -201,8 +203,7 @@ impl AuthorizationApi for SpiceDb {
         T: Tuple + Send + Sync + 't,
     {
         self.modify_relationship(
-            model::RelationshipUpdateOperation::Create,
-            tuples,
+            repeat(model::RelationshipUpdateOperation::Create).zip(tuples),
             preconditions,
         )
         .await
@@ -223,8 +224,7 @@ impl AuthorizationApi for SpiceDb {
         T: Tuple + Send + Sync + 't,
     {
         self.modify_relationship(
-            model::RelationshipUpdateOperation::Delete,
-            tuples,
+            repeat(model::RelationshipUpdateOperation::Delete).zip(tuples),
             preconditions,
         )
         .await
