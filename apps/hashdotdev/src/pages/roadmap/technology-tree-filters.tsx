@@ -168,7 +168,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
       >
         <Box>
           <FilterHeading>By Status</FilterHeading>
-          {statuses.map(({ id, name, icon, color }) => (
+          {statuses.map(({ id, name, icon, filterColor }) => (
             <FilterCheckboxItem
               key={id}
               checked={displayedStatuses.includes(id)}
@@ -181,7 +181,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
               }
               label={name}
               icon={icon}
-              color={color}
+              color={filterColor}
             />
           ))}
         </Box>
@@ -204,7 +204,7 @@ export const TechnologyTreeFilters: FunctionComponent<{
           ))}
         </Box>
         <Box>
-          <FilterHeading>By Use Case</FilterHeading>
+          <FilterHeading>By Area</FilterHeading>
           {useCases.map(({ id, name, icon }) => (
             <FilterCheckboxItem
               key={id}

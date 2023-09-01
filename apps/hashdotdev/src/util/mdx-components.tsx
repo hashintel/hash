@@ -20,6 +20,7 @@ import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
+import { MdxCallout } from "../components/mdx-callout";
 import { MdxImage } from "../components/mdx-image";
 import { MdxPre } from "../components/mdx-pre";
 import { MdxTalkSlide } from "../components/mdx-talk-slide";
@@ -195,10 +196,17 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
 
+  blockquote: (props: HTMLAttributes<HTMLElement>) => (
+    <MdxCallout hideIcon {...props} />
+  ),
+
   code: (props: HTMLAttributes<HTMLElement>) => (
     <Typography variant="hashCode" {...props} />
   ),
+
   CalculationBlock,
+
+  Callout: MdxCallout,
 
   pre: MdxPre,
 

@@ -60,6 +60,7 @@ export const MdxPre = ({ children, ...rest }: HTMLAttributes<HTMLElement>) => {
         <Snippet
           source={`${childProps.children}`}
           language={childProps.className.replace("language-", "")}
+          sx={{ m: 0, p: 0 }}
         />
       </Box>
     );

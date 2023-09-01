@@ -1,4 +1,5 @@
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -9,17 +10,23 @@ import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
-  Promise<Entity>,
+  Promise<RemoteFile>,
   {},
   LoggedInGraphQLContext,
   MutationCreateFileFromUrlArgs
-> = async (_, { mediaType, url }, { dataSources, user }) => {
+> = async (
+  _,
+  { description, entityTypeId, ownedById, name, url },
+  { dataSources, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const entity = await createFileFromExternalUrl(context, {
     actorId: user.accountId,
-    ownedById: user.accountId as OwnedById,
-    mediaType,
+    description,
+    entityTypeId,
+    name,
+    ownedById: ownedById ?? (user.accountId as OwnedById),
     url,
   });
 

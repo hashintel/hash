@@ -23,7 +23,7 @@ async-trait = "0.1.73"
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.4.0", features = ["derive", "env"], optional = true }
+clap = { version = "4.4.2", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 futures = "0.3.28"
 hyper = "0.14.27"
@@ -37,7 +37,7 @@ semver = { version = "1.0.18", default-features = false, features = ["serde"] }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
-tokio = { version = "1.32.0", default-features = false }
+tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { version = "0.7.8", default-features = false, features = ["codec", "io"] }
@@ -46,7 +46,7 @@ tower = "0.4.13"
 tower-http = { version = "0.4.3", features = ["trace"] }
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
-tracing-opentelemetry = "0.20.0"
+tracing-opentelemetry = "0.21.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
 
@@ -54,7 +54,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 graph-test-data = { workspace = true }
 
 criterion = "0.5.1"
-tokio = { version = "1.32.0", features = ["rt-multi-thread", "macros", "tracing"] }
+tokio = { workspace = true, features = ["macros"] }
 
 [features]
 test-server = []

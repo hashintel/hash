@@ -2,10 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
 
+  "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "automerge": true,
+  "dependencyDashboardTitle": "🚀 Dependency Updates",
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
   "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
@@ -23,7 +25,8 @@
       "matchManagers": ["github-actions"],
       "commitMessageTopic": "GitHub Action `{{depName}}`",
       "additionalBranchPrefix": "gha/",
-      "pinDigests": true
+      "pinDigests": true,
+      "dependencyDashboardApproval": false
     },
     {
       "matchManagers": ["docker-compose", "dockerfile"],
@@ -49,7 +52,15 @@
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$",
+        "lint-staged",
+        "lockfile-lint",
+        "markdownlint-cli",
+        "^prettier",
+        "prettier$"
+      ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
@@ -79,6 +90,11 @@
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["httpyac"],
+      "dependencyDashboardApproval": false
     },
     {
       "groupName": "Jest npm packages",

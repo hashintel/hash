@@ -251,10 +251,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              The <strong>Block Protocol</strong> is an open standard for
-              creating <i>blocks</i> which work in any application, without
-              either block or app requiring any special knowledge of one
-              another.
+              The Block Protocol (<strong>Þ</strong>) is an open standard for
+              creating <strong>blocks</strong> which work across applications,
+              without either block or app requiring any special knowledge of one
+              another (only of the Þ itself).
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
@@ -274,7 +274,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Link>
               ), enabling their users to discover and insert blocks at runtime,
               expanding the utility of applications that support the protocol
-              way beyond their original programming.
+              well beyond their original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
@@ -353,8 +353,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              <strong>HASH</strong> is our open-source, all-in-one workspace
-              platform built around structured data and interactive blocks.
+              HASH is an open source, all-in-one platform for working with
+              information, built around blocks.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
               <Box component="li">
@@ -370,7 +370,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Map external data to types and integrate it into your{" "}
+                  Map external data to types and integrate it into one unified{" "}
                   <strong>graph</strong>
                 </HomePageBodyTypography>
               </Box>
@@ -382,7 +382,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use blocks with data to create <strong>apps</strong>
+                  Combine blocks, types and flows to create{" "}
+                  <strong>apps</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">

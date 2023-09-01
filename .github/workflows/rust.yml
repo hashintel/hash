@@ -108,16 +108,9 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2.17.2
+        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
-
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -146,7 +139,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@a09933a12a80f87b87005513f0abb1494c27a716 # v2.21.4
+        uses: github/codeql-action/upload-sarif@00e563ead9f72a8461b24876bee2d0c2e8bd2ee8 # v2.21.5
         if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -221,16 +214,9 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2.17.2
+        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
-
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Python
         if: matrix.directory == 'apps/engine'
@@ -251,6 +237,10 @@ jobs:
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
         run: just miri --no-fail-fast
+
+      - name: Show container logs
+        if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -322,16 +312,9 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2.17.2
+        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
-
-      # To be removed once https://github.com/open-telemetry/opentelemetry-rust/issues/934 is sorted
-      - name: Install Protoc
-        if: matrix.directory == 'apps/hash-graph'
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
@@ -347,6 +330,10 @@ jobs:
           files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
   publish:
     name: publish
@@ -368,7 +355,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@f0d0def1e2b0a9a878579233650b6ab12e840504 # v2.17.2
+        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 

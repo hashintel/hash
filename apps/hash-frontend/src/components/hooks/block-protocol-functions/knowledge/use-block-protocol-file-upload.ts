@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -17,6 +17,7 @@ import {
 import { UploadFileRequestCallback } from "./knowledge-shim";
 
 export const useBlockProtocolFileUpload = (
+  ownedById?: OwnedById,
   _readonly?: boolean,
 ): { uploadFile: UploadFileRequestCallback } => {
   const [requestFileUploadFn] = useMutation<
@@ -50,53 +51,84 @@ export const useBlockProtocolFileUpload = (
 
   const uploadFile: UploadFileRequestCallback = useCallback(
     async ({ data: fileUploadData }) => {
-      const { file, url, mediaType } = fileUploadData ?? {
-        mediaType: "image",
-      };
-      if (url?.trim()) {
+      if (!ownedById) {
+        throw new Error("No ownedById provided for uploadFile");
+      }
+      if (!fileUploadData) {
+        return {
+          errors: [
+            {
+              message: "You must provide data with a file upload",
+              code: "INVALID_INPUT",
+            },
+          ],
+        };
+      }
+      if ("url" in fileUploadData && fileUploadData.url.trim()) {
+        const { description, entityTypeId, name, url } = fileUploadData;
         const result = await createFileFromUrlFn({
           variables: {
+            description,
+            entityTypeId,
+            ownedById,
+            name,
             url,
-            mediaType,
           },
         });
 
         if (!result.data) {
-          throw new Error(
-            "An error occured while creating a file from an external link",
-          );
+          return {
+            errors: [
+              {
+                message:
+                  "An error occurred while creating a file from an external link",
+                code: "INTERNAL_ERROR",
+              },
+            ],
+          };
         }
 
-        const {
-          createFileFromUrl: {
-            metadata: { recordId },
-          },
-        } = result.data;
+        const { createFileFromUrl: fileEntity } = result.data;
 
+        return { data: fileEntity as unknown as RemoteFile };
+      }
+
+      if (!("file" in fileUploadData)) {
         return {
-          entityId: recordId.entityId,
-          url,
-          mediaType,
+          errors: [
+            {
+              message: "Please provide a valid file to be uploaded",
+              code: "INVALID_INPUT",
+            },
+          ],
         };
       }
 
-      if (!file) {
-        throw new Error(`Please provide a valid file to be uploaded`);
-      }
+      const { description, entityTypeId, name, file } = fileUploadData;
 
       const { data } = await requestFileUploadFn({
         variables: {
+          description,
+          entityTypeId,
+          ownedById,
+          name,
           size: file.size,
-          mediaType,
         },
       });
 
       if (!data) {
-        throw new Error("An error occurred while uploading the file ");
+        return {
+          errors: [
+            {
+              message: "An error occurred while uploading the file",
+              code: "INTERNAL_ERROR",
+            },
+          ],
+        };
       }
 
       /**
-       * Upload file with presignedPost data to S3
+       * Upload file with presignedPost data to storage provider
        */
       const {
         requestFileUpload: { presignedPost, entity: uploadedFileEntity },
@@ -104,19 +136,9 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPost, file);
 
-      const uploadedFileUrl = uploadedFileEntity.properties[
-        extractBaseUrl(types.propertyType.fileUrl.propertyTypeId)
-      ] as string;
-
-      return {
-        data: {
-          entityId: uploadedFileEntity.metadata.recordId.entityId,
-          url: uploadedFileUrl,
-          mediaType,
-        },
-      };
+      return { data: uploadedFileEntity as unknown as RemoteFile };
     },
-    [createFileFromUrlFn, requestFileUploadFn],
+    [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );
 
   return {

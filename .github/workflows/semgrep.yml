@@ -10,7 +10,6 @@ on:
       - main
       - canary
       - dev/*
-  merge_group:
 
   schedule:
     - cron: "30 0 1,15 * *" # scheduled for 00:30 UTC on both the 1st and 15th of the month
@@ -23,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: returntocorp/semgrep@sha256:bfbf5f0e2b2d72a0b0c6c758bf16fa6f8850b2c83d1148becd948212063cde47
+      image: returntocorp/semgrep:1.38.0
 
     # Skip any PR created by Dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')
@@ -44,7 +43,7 @@ jobs:
           files: "semgrep.sarif"
 
       - name: Upload SARIF file for GitHub Advanced Security Dashboard
-        uses: github/codeql-action/upload-sarif@a09933a12a80f87b87005513f0abb1494c27a716 # v2.21.4
+        uses: github/codeql-action/upload-sarif@00e563ead9f72a8461b24876bee2d0c2e8bd2ee8 # v2.21.5
+        if: steps.sarif_file_check.outputs.files_exists == 'true'
         with:
           sarif_file: semgrep.sarif
-        if: always()
