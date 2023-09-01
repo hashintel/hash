@@ -3,7 +3,7 @@ import { IconButton, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { ImageUploadDropzone } from "./image-upload-dropzone";
+import { FileUploadDropzone } from "./file-upload-dropzone";
 
 type ImageFieldProps = {
   imageUrl?: string;
@@ -48,7 +48,7 @@ export const ImageField = ({
       })}
     >
       {editingImage ? (
-        <ImageUploadDropzone onFileProvided={setNewImage} />
+        <FileUploadDropzone image onFileProvided={setNewImage} />
       ) : (
         <>
           <Box sx={{ position: "absolute", top: 2, right: 2 }}>

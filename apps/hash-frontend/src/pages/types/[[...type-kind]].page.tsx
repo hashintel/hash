@@ -54,26 +54,28 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     includeArchived: true,
   });
 
-  const { isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const latestNonLinkEntityTypes = useMemo(
     () =>
-      isLinkTypeLookup
+      isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) => !isLinkTypeLookup[entityType.schema.$id],
+            (entityType) =>
+              !isSpecialEntityTypeLookup[entityType.schema.$id]?.link,
           )
         : undefined,
-    [isLinkTypeLookup, latestEntityTypes],
+    [isSpecialEntityTypeLookup, latestEntityTypes],
   );
 
   const latestLinkEntityTypes = useMemo(
     () =>
-      isLinkTypeLookup
+      isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) => isLinkTypeLookup[entityType.schema.$id],
+            (entityType) =>
+              isSpecialEntityTypeLookup[entityType.schema.$id]?.link,
           )
         : undefined,
-    [isLinkTypeLookup, latestEntityTypes],
+    [isSpecialEntityTypeLookup, latestEntityTypes],
   );
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();

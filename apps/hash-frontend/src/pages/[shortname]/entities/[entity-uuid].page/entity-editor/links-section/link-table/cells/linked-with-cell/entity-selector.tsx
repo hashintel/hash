@@ -1,14 +1,27 @@
 import {
+  ArrowLeftIcon,
   GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
-import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
+import {
+  Entity,
+  EntityId,
+  EntityTypeWithMetadata,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Stack, Typography } from "@mui/material";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
+import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../../../../../../../../shared/filters";
+import { Button } from "../../../../../../../../../shared/ui/button";
+import { Modal } from "../../../../../../../../../shared/ui/modal";
+import { FileUploadDropzone } from "../../../../../../../../settings/shared/file-upload-dropzone";
+import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
@@ -27,6 +40,15 @@ export const EntitySelector = ({
   const { entitySubgraph } = useEntityEditor();
   const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
+
+  const [showUploadFileMenu, setShowUploadFileMenu] = useState(false);
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const isFileType = expectedEntityTypes.some(
+    (expectedType) =>
+      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
+  );
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +100,11 @@ export const EntitySelector = ({
       return;
     }
 
+    if (isFileType) {
+      setShowUploadFileMenu(true);
+      return;
+    }
+
     /** @todo this should be replaced with a "new entity modal" or something else */
     void window.open(
       `/new/entity?entity-type-id=${encodeURIComponent(
@@ -86,6 +113,40 @@ export const EntitySelector = ({
       "_blank",
     );
   };
+
+  const { uploadFile } = useFileUploads();
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
+  const onFileProvided = async (file: File) => {
+    if (!activeWorkspaceAccountId) {
+      throw new Error("Cannot upload file without active workspace");
+    }
+    const { createdEntities } = await uploadFile({
+      fileData: { file },
+      ownedById: activeWorkspaceAccountId as OwnedById,
+    });
+    onSelect(createdEntities!.fileEntity as unknown as Entity);
+  };
+
+  if (showUploadFileMenu) {
+    return (
+      <Modal className={GRID_CLICK_IGNORE_CLASS} open>
+        <Stack spacing={2}>
+          <FileUploadDropzone onFileProvided={onFileProvided} />
+          <Button
+            onClick={() => setShowUploadFileMenu(false)}
+            sx={{ width: "100%" }}
+            variant="tertiary"
+          >
+            <ArrowLeftIcon sx={{ fontSize: 14, color: "gray.50", mr: 0.6 }} />
+            <Typography variant="smallTextLabels" color="gray.50">
+              Go back
+            </Typography>
+          </Button>
+        </Stack>
+      </Modal>
+    );
+  }
 
   return (
     <SelectorAutocomplete
@@ -101,7 +162,7 @@ export const EntitySelector = ({
             onCreateNew();
           },
         },
-        variant: "entity",
+        variant: isFileType ? "file" : "entity",
       }}
       loading={loading}
       options={sortedAndFilteredEntities}
@@ -114,7 +175,7 @@ export const EntitySelector = ({
         typeId: entity.metadata.entityTypeId,
         title: generateEntityLabel(entitySubgraph, entity),
       })}
-      inputPlaceholder="Search for an entity"
+      inputPlaceholder={isFileType ? "No file" : "No entity"}
       inputValue={search}
       onInputChange={(_, value) => setSearch(value)}
       onHighlightChange={(_, value) => {

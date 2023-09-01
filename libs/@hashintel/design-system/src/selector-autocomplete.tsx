@@ -37,7 +37,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entity type" | "property type" | "entity" | "link type";
+  variant: "entity type" | "property type" | "entity" | "file" | "link type";
 };
 
 const DropdownPropsContext =
