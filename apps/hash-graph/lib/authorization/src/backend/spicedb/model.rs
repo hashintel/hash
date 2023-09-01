@@ -24,7 +24,7 @@ pub struct ObjectReference<'r> {
 impl<'r, R: zanzibar::Resource + ?Sized> From<&'r R> for ObjectReference<'r> {
     fn from(resource: &'r R) -> Self {
         Self {
-            object_type: resource.namespace().as_ref(),
+            object_type: resource.namespace(),
             object_id: resource.id().as_ref(),
         }
     }
@@ -36,15 +36,6 @@ pub struct SubjectReference<'a> {
     pub object: ObjectReference<'a>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub optional_relation: Option<&'a str>,
-}
-
-impl<'s, S: zanzibar::Subject + ?Sized> From<&'s S> for SubjectReference<'s> {
-    fn from(value: &'s S) -> Self {
-        Self {
-            object: ObjectReference::from(value.resource()),
-            optional_relation: value.affiliation().map(AsRef::as_ref),
-        }
-    }
 }
 
 pub struct Consistency<'z>(zanzibar::Consistency<'z>);
@@ -120,12 +111,10 @@ pub struct RelationshipFilter<'a> {
     pub optional_subject_filter: Option<SubjectFilter<'a>>,
 }
 
-impl<'f, R: zanzibar::Resource + ?Sized> From<backend::RelationFilter<'f, R>>
-    for RelationshipFilter<'f>
-{
-    fn from(filter: backend::RelationFilter<'f, R>) -> Self {
+impl<'f> From<backend::RelationFilter<'f>> for RelationshipFilter<'f> {
+    fn from(filter: backend::RelationFilter<'f>) -> Self {
         Self {
-            resource_type: filter.namespace.as_ref(),
+            resource_type: filter.namespace,
             optional_resource_id: filter.id.map(AsRef::as_ref),
             optional_relation: filter.affiliation,
             optional_subject_filter: filter.subject.map(|subject| SubjectFilter {
@@ -158,8 +147,8 @@ pub struct Precondition<'a> {
     pub filter: RelationshipFilter<'a>,
 }
 
-impl<'f, R: zanzibar::Resource + ?Sized> From<backend::Precondition<'f, R>> for Precondition<'f> {
-    fn from(precondition: backend::Precondition<'f, R>) -> Self {
+impl<'f> From<backend::Precondition<'f>> for Precondition<'f> {
+    fn from(precondition: backend::Precondition<'f>) -> Self {
         let operation = if precondition.must_match {
             PreconditionOperation::MustMatch
         } else {
@@ -173,7 +162,7 @@ impl<'f, R: zanzibar::Resource + ?Sized> From<backend::Precondition<'f, R>> for 
 }
 
 /// Used for mutating a single relationship within the service.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub enum RelationshipUpdateOperation {
     /// Create the relationship only if it doesn't exist, and error otherwise.
     #[serde(rename = "OPERATION_CREATE")]

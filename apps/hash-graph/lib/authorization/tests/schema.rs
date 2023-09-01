@@ -8,7 +8,6 @@ pub const BOB: Account = Account("bob");
 
 impl Resource for Account {
     type Id = str;
-    type Namespace = str;
 
     fn namespace(&self) -> &'static str {
         "graph/account"
@@ -26,7 +25,6 @@ pub const ENTITY_A: Entity = Entity("a");
 
 impl Resource for Entity {
     type Id = str;
-    type Namespace = str;
 
     fn namespace(&self) -> &'static str {
         "graph/entity"
