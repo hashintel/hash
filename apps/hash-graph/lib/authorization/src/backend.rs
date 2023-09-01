@@ -36,22 +36,26 @@ pub trait AuthorizationApi {
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relation<'p>(
+    async fn create_relation<'p, 't, T>(
         &mut self,
-        tuple: impl Tuple + Send + Sync,
+        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>;
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync + 't;
 
     /// Deletes the relation specified by the [`Tuple`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relation<'p>(
+    async fn delete_relation<'p, 't, T>(
         &mut self,
-        tuple: &(impl Tuple + Sync),
+        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>;
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
+    where
+        T: Tuple + Send + Sync + 't;
 
     /// Deletes all relations matching the specified [`RelationFilter`].
     ///
@@ -130,13 +134,11 @@ pub struct CreateRelationResponse {
 
 /// Error returned from [`AuthorizationApi::create_relation`].
 #[derive(Debug)]
-pub struct CreateRelationError {
-    pub tuple: UntypedTuple<'static>,
-}
+pub struct CreateRelationError;
 
 impl fmt::Display for CreateRelationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "failed to create relation: `{}`", self.tuple)
+        fmt.write_str("failed to create relations")
     }
 }
 
@@ -151,13 +153,11 @@ pub struct DeleteRelationResponse {
 
 /// Error returned from [`AuthorizationApi::delete_relation`].
 #[derive(Debug)]
-pub struct DeleteRelationError {
-    pub tuple: UntypedTuple<'static>,
-}
+pub struct DeleteRelationError;
 
 impl fmt::Display for DeleteRelationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "failed to delete relation: `{}`", self.tuple)
+        fmt.write_str("failed to delete relation")
     }
 }
 

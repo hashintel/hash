@@ -66,13 +66,12 @@ impl TestApi {
                         },
                     };
 
-                    for tuple in tuple_receiver.await.expect("failed to receive tuples") {
-                        let tuple: UntypedTuple = tuple;
-                        client
-                            .delete_relation(&tuple, [])
-                            .await
-                            .expect("failed to delete relations");
-                    }
+                    let tuples: Vec<UntypedTuple> =
+                        tuple_receiver.await.expect("failed to receive tuples");
+                    client
+                        .delete_relation(&tuples, [])
+                        .await
+                        .expect("failed to delete relations");
                 });
         });
 
@@ -109,24 +108,38 @@ impl AuthorizationApi for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relation<'p>(
+    async fn create_relation<'p, 't, T>(
         &mut self,
-        tuple: impl Tuple + Send + Sync,
+        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>> {
-        let string_tuple = UntypedTuple::from_tuple(&tuple).into_owned();
-        let result = self.client.create_relation(tuple, preconditions).await?;
-        self.tuples.push(string_tuple);
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync + 't,
+    {
+        let (tuples, untyped_tuples): (Vec<_>, Vec<_>) = tuples
+            .into_iter()
+            .map(|tuple| {
+                let untyped_tuples = UntypedTuple::from_tuple(tuple).into_owned();
+                (tuple, untyped_tuples)
+            })
+            .unzip();
+
+        let result = self.client.create_relation(tuples, preconditions).await?;
+
+        self.tuples.extend(untyped_tuples);
 
         Ok(result)
     }
 
-    async fn delete_relation<'p>(
+    async fn delete_relation<'p, 't, T>(
         &mut self,
-        tuple: &(impl Tuple + Sync),
+        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>> {
-        self.client.delete_relation(tuple, preconditions).await
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
+    where
+        T: Tuple + Send + Sync + 't,
+    {
+        self.client.delete_relation(tuples, preconditions).await
     }
 
     async fn delete_relations<'f>(

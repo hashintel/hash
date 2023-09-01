@@ -162,7 +162,7 @@ impl<'f> From<backend::Precondition<'f>> for Precondition<'f> {
 }
 
 /// Used for mutating a single relationship within the service.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Copy, Clone, Serialize)]
 pub enum RelationshipUpdateOperation {
     /// Create the relationship only if it doesn't exist, and error otherwise.
     #[serde(rename = "OPERATION_CREATE")]
