@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  merge_group:
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: hashintel
+  TURBO_REMOTE_ONLY: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      tests: ${{ steps.packages.outputs.tests }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          TEST_PACKAGES=$(turbo run test \
+              --filter "...[HEAD~2]"\
+              --dry-run=json \
+            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
+            | jq --slurp '{ include: . }')
+
+  test:
+    name: Test
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.tests) }}
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Prune repository
+        run: yarn turbo prune --filter "${{ matrix.package }}"
+
+      - name: Install yarn dependencies
+        env:
+          SKIP_HUSKY: true
+        run: yarn install --cwd out
