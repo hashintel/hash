@@ -22,7 +22,7 @@ jobs:
     outputs:
       units: ${{ steps.packages.outputs.units }}
       integrations: ${{ steps.packages.outputs.integrations }}
-      build-graph: ${{ steps.packages.outputs.build_graph }}
+      build-graph: ${{ steps.packages.outputs.build-graph }}
       build-ai-worker-ts: ${{ steps.packages.outputs.build-ai-worker-ts }}
       build-ai-worker-py: ${{ steps.packages.outputs.build-ai-worker-py }}
       build-integration-worker: ${{ steps.packages.outputs.build-integration-worker }}
