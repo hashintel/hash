@@ -34,7 +34,7 @@ jobs:
         id: packages
         run: |
           TEST_PACKAGES=$(turbo run test \
-              --filter "...[HEAD~2]"\
+              --filter "...[HEAD^]"\
               --dry-run=json \
             | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
             | jq --slurp '{ include: . }')
