@@ -68,10 +68,10 @@ jobs:
 
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
           echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
-          echo "build_graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
-          echo "build_ai_worker_ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "build_ai_worker_py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
-          echo "build_integration_worker=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
+          echo "build-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
+          echo "build-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
+          echo "build-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
+          echo "build-integration-worker=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
           echo "test packages: $TEST_PACKAGES"
 
