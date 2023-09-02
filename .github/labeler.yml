@@ -12,6 +12,12 @@
 "area/apps > hash-api":
   - "apps/hash-api/**"
 
+"area/apps > hash.design":
+  - "apps/hashdotdesign/**"
+
+"area/apps > hash.dev":
+  - "apps/hashdotdev/**"
+
 "area/apps > hash-graph":
   - "apps/hash-graph/**"
 
