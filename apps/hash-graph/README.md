@@ -10,7 +10,7 @@ cargo install just
 
 ## Run the Graph
 
-1.  In order to set up the database, first the database has to be started:
+1. In order to set up the database, first the database has to be started:
 
 > **CAUTION:** At the moment, the graph starts the services it depends on differently to the rest of the codebase.
 >

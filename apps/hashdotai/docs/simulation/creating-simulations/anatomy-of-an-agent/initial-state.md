@@ -11,9 +11,9 @@ All HASH simulations begin life in the `init` file found in the root of a HASH p
 
 There are three ways to populate the initial state of a simulation. You can:
 
-1.  Define the individual agents in `init.json`
-1.  Define "creator" agents in `init.json` with behaviors that will generate agents
-1.  Programmatically generate the initial agents directly in an `init.js` or `init.py` file.
+1. Define the individual agents in `init.json`
+1. Define "creator" agents in `init.json` with behaviors that will generate agents
+1. Programmatically generate the initial agents directly in an `init.js` or `init.py` file.
 
 ## init.json
 
