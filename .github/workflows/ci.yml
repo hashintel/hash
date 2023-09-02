@@ -36,16 +36,19 @@ jobs:
 
       - name: Check changed packages
         id: packages
-        env:
-          TURBO_REF_FILTER: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.before }}
         run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TURBO_REF_FILTER="$(git merge-base ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.ref }})"
+          else
+            TURBO_REF_FILTER="${{ github.event.before }}$"
+          fi
           BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           BUILD_AI_WORKER_TS=$(turbo run build:docker --filter "@apps/hash-ai-worker-ts...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           BUILD_AI_WORKER_PY=$(turbo run build:docker --filter "@apps/hash-ai-worker-py...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           BUILD_INTEGRATION_WORKER=$(turbo run build:docker --filter "@apps/hash-integration-worker...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
 
-          echo "Checking packages for $TURBO_REF_FILTER:"
+          echo "Checking packages against SHA $TURBO_REF_FILTER:"
           echo "- Backend Integration Tests: $BE_TESTS"
           echo "- Playwright Tests:          $PW_TESTS"
           echo "- AI Worker TS:              $BUILD_AI_WORKER_TS"
