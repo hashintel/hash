@@ -32,7 +32,7 @@ mime = "0.3.17"
 opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.13.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
-regex = "1.9.4"
+regex = "1.9.5"
 semver = { version = "1.0.18", default-features = false, features = ["serde"] }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
