@@ -102,23 +102,29 @@ impl<'de> Deserialize<'de> for ArrayStats {
 
 #[test]
 fn array_access_ok() {
-    assert_tokens(&ArrayStats { total: 3, some: 3 }, &[
-        Token::Array { length: Some(3) },
-        Token::Number(0.into()),
-        Token::Number(0.into()),
-        Token::Number(0.into()),
-        Token::ArrayEnd,
-    ]);
+    assert_tokens(
+        &ArrayStats { total: 3, some: 3 },
+        &[
+            Token::Array { length: Some(3) },
+            Token::Number(0.into()),
+            Token::Number(0.into()),
+            Token::Number(0.into()),
+            Token::ArrayEnd,
+        ],
+    );
 }
 
 #[test]
 fn array_access_not_enough_ok() {
-    assert_tokens(&ArrayStats { total: 3, some: 2 }, &[
-        Token::Array { length: Some(3) },
-        Token::Number(0.into()),
-        Token::Number(0.into()),
-        Token::ArrayEnd,
-    ]);
+    assert_tokens(
+        &ArrayStats { total: 3, some: 2 },
+        &[
+            Token::Array { length: Some(3) },
+            Token::Number(0.into()),
+            Token::Number(0.into()),
+            Token::ArrayEnd,
+        ],
+    );
 }
 
 #[test]
