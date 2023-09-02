@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.6.9",
+    "@apps/hash-api": "0.0.0-private",
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/graph": "0.3.1-canary-20230803163819",
     "@blockprotocol/hook": "0.1.3",
