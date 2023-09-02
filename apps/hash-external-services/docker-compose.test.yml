@@ -19,10 +19,6 @@ services:
     environment:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
 
-  graph:
-    environment:
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
-
   graph-test-server:
     init: true
     depends_on:
@@ -64,6 +60,13 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
+
+  graph:
+    environment:
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_TEST_DATABASE}"
+    depends_on:
+      graph-test-server:
+        condition: service_healthy
 
   kratos-migrate:
     environment:
