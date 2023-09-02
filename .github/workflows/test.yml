@@ -94,7 +94,7 @@ jobs:
 
       - name: Install yarn dependencies
         env:
-          SKIP_HUSKY: true
+          HUSKY: 0
         run: yarn install --cwd out
 
       - name: Run tests
@@ -191,7 +191,7 @@ jobs:
 
       - name: Install yarn dependencies
         env:
-          SKIP_HUSKY: true
+          HUSKY: 0
         run: yarn install --cwd out
 
       - name: Load Docker images
