@@ -8,7 +8,6 @@
   "dependencyDashboardApproval": true,
   "dependencyDashboardTitle": "🚀 Dependency Updates",
   "dependencyDashboardOSVVulnerabilitySummary": "none",
-  "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",

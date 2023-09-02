@@ -21,9 +21,6 @@
 "area: apps > hash-search-loader":
   - "apps/hash-search-loader/**"
 
-"area: apps > sim-engine":
-  - "apps/engine/**"
-
 "area: blocks":
   - "blocks/**"
 

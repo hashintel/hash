@@ -218,12 +218,6 @@ jobs:
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
 
-      - name: Install Python
-        if: matrix.directory == 'apps/engine'
-        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
-        with:
-          python-version: "3.10"
-
       - name: Install Poetry dependencies
         working-directory: ${{ matrix.directory }}
         if: matrix.directory == 'apps/hash-graph'
@@ -244,25 +238,6 @@ jobs:
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
-
-      - name: Upload to Datadog
-        if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
-        run: |
-          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
-                    | sed 's|::|-|g' \
-                    | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
-          directory="${{ matrix.directory }}"
-          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
-          if [[ ${{ github.ref_type }} = branch ]]; then
-            tags="$tags,branch:${{ github.ref_name }}"
-          fi
-          curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
-            -H "Content-Type: application/json" \
-            -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
-            -d $(jq -cn \
-                    --argjson message "$message" \
-                    --arg ddtags "$tags" \
-                    '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
   coverage:
     name: coverage
