@@ -36,8 +36,8 @@ jobs:
         env:
           TURBO_REF_FILTER: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[$TURBO_REF_FILTER]" --dry-run=json | jq .packages)
-          PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[$TURBO_REF_FILTER]" --dry-run=json | jq .packages)
+          BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
+          PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
 
           set -x
           echo "be-tests=$BE_TESTS" >> $GITHUB_OUTPUT
