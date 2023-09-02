@@ -55,11 +55,11 @@ jobs:
           REQUIRES_AI_WORKER_PY=false
           REQUIRES_INTEGRATION_WORKER=false
 
-          if echo "$TEST_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
+          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
               REQUIRES_GRAPH=true
           fi
 
-          if echo "$TEST_PACKAGES" | grep -q '@tests/hash-playwright'; then
+          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-playwright'; then
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
             REQUIRES_AI_WORKER_PY=true
