@@ -36,14 +36,18 @@ jobs:
 
       - name: Check changed packages
         id: packages
+        env:
+          GITHUB_EVENT_PULL_REQUEST_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GITHUB_EVENT_PULL_REQUEST_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             # `github.event.pull_request.base.sha` does not give the SHA of the last common ancestor but the most recent
             # commit on the base branch. This is not what we want, so we use `git merge-base` instead.
-            TURBO_REF_FILTER="$(git merge-base ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.ref }})"
+            TURBO_REF_FILTER="$(git merge-base GITHUB_EVENT_PULL_REQUEST_BASE_REF GITHUB_EVENT_PULL_REQUEST_HEAD_REF)"
           else
             # `github.event.before` gives back the most recent commit on the base branch.
-            TURBO_REF_FILTER="${{ github.event.before }}$"
+            TURBO_REF_FILTER="$GITHUB_EVENT_BEFORE"
           fi
 
           # We filter by the package we want to test. If the package is not changed, we don't need to run the tests.
