@@ -17,8 +17,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      be-tests: ${{ steps.packages.outputs.be-tests }}
+      pw-tests: ${{ steps.packages.outputs.pw-tests }}
+      ai-worker-ts: ${{ steps.packages.outputs.ai-worker-ts }}
+      ai-worker-py: ${{ steps.packages.outputs.ai-worker-py }}
+      integration-worker: ${{ steps.packages.outputs.integration_worker }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Check changed packages
+        id: packages
+        run: |
+          # We filter by the package we want to test. If the package is not changed, we don't need to run the tests.
+          BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_AI_WORKER_TS=$(turbo run build:docker --filter "@apps/hash-ai-worker-ts...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_AI_WORKER_PY=$(turbo run build:docker --filter "@apps/hash-ai-worker-py...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_INTEGRATION_WORKER=$(turbo run build:docker --filter "@apps/hash-integration-worker...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+
+          # Output some information for debugging purposes
+          echo "Checking packages:"
+          echo "- Backend Integration Tests: $BE_TESTS"
+          echo "- Playwright Tests:          $PW_TESTS"
+          echo "- AI Worker TS:              $BUILD_AI_WORKER_TS"
+          echo "- AI Worker PY:              $BUILD_AI_WORKER_PY"
+          echo "- Integration Worker:        $BUILD_INTEGRATION_WORKER"
+
+          # Output the results to the GitHub Actions output
+          echo "be-tests=$BE_TESTS" >> $GITHUB_OUTPUT
+          echo "pw-tests=$PW_TESTS" >> $GITHUB_OUTPUT
+          echo "ai-worker-ts=$BUILD_AI_WORKER_TS" >> $GITHUB_OUTPUT
+          echo "ai-worker-py=$BUILD_AI_WORKER_PY" >> $GITHUB_OUTPUT
+          echo "integration-worker=$BUILD_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
+
   build-hash-graph:
     runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.be-tests == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -31,6 +75,8 @@ jobs:
 
   build-hash-ai-worker-ts:
     runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.ai-worker-ts == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -43,6 +89,8 @@ jobs:
 
   build-hash-ai-worker-py:
     runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.ai-worker-py == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -55,6 +103,8 @@ jobs:
 
   build-hash-integration-worker:
     runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.integration-worker == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -269,14 +319,8 @@ jobs:
 
   backend-integration-tests:
     name: Backend integration tests
-    needs:
-      [
-        build-hash-graph,
-        build-hash-ai-worker-ts,
-        build-hash-ai-worker-py,
-        build-hash-integration-worker,
-      ]
-    if: always()
+    needs: [setup, build-hash-graph]
+    if: always() && needs.setup.outputs.be-tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -291,14 +335,11 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
-          hash-ai-worker-ts: true
-          hash-ai-worker-py: true
-          hash-integration-worker: true
 
       - name: Launch external services
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy:test up --detach
+          yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
 
       - run: yarn test:backend-integration
         env:
@@ -333,12 +374,13 @@ jobs:
     name: Playwright tests
     needs:
       [
+        setup,
         build-hash-graph,
         build-hash-ai-worker-ts,
         build-hash-ai-worker-py,
         build-hash-integration-worker,
       ]
-    if: always()
+    if: always() && needs.setup.outputs.pw-tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0

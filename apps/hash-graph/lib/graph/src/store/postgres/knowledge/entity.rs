@@ -15,6 +15,7 @@ use graph_types::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
 };
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
+#[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
