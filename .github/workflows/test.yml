@@ -65,7 +65,8 @@ jobs:
           SKIP_HUSKY: true
         run: yarn install --cwd out
 
-      - name: Install yarn dependencies
+      - name: Run tests
         env:
           SKIP_HUSKY: true
+        working-directory: out
         run: turbo run test --filter "${{ matrix.package }}"
