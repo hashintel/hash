@@ -36,29 +36,16 @@ jobs:
 
       - name: Check changed packages
         id: packages
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PREVIOUS_SHA: ${{ github.event.before }}
         run: |
-          set -x
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            # `github.event.pull_request.base.sha` does not give the SHA of the last common ancestor but the most recent
-            # commit on the base branch. This is not what we want, so we use `git merge-base` instead.
-            TURBO_REF_FILTER=$(git merge-base HEAD $BASE_SHA)
-          else
-            TURBO_REF_FILTER="$PREVIOUS_SHA"
-          fi
-
           # We filter by the package we want to test. If the package is not changed, we don't need to run the tests.
-          BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
-          PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
-          BUILD_AI_WORKER_TS=$(turbo run build:docker --filter "@apps/hash-ai-worker-ts...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
-          BUILD_AI_WORKER_PY=$(turbo run build:docker --filter "@apps/hash-ai-worker-py...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
-          BUILD_INTEGRATION_WORKER=$(turbo run build:docker --filter "@apps/hash-integration-worker...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
+          BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_AI_WORKER_TS=$(turbo run build:docker --filter "@apps/hash-ai-worker-ts...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_AI_WORKER_PY=$(turbo run build:docker --filter "@apps/hash-ai-worker-py...[HEAD^]" --dry-run=json | jq -r '.packages != []')
+          BUILD_INTEGRATION_WORKER=$(turbo run build:docker --filter "@apps/hash-integration-worker...[HEAD^]" --dry-run=json | jq -r '.packages != []')
 
           # Output some information for debugging purposes
-          echo "Checking packages against SHA $TURBO_REF_FILTER:"
+          echo "Checking packages:"
           echo "- Backend Integration Tests: $BE_TESTS"
           echo "- Playwright Tests:          $PW_TESTS"
           echo "- AI Worker TS:              $BUILD_AI_WORKER_TS"
