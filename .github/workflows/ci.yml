@@ -37,7 +37,7 @@ jobs:
       - name: Check changed packages
         id: packages
         env:
-          TURBO_REF_FILTER: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          TURBO_REF_FILTER: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.before }}
         run: |
           BE_TESTS=$(turbo run test --filter "@tests/hash-backend-integration...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           PW_TESTS=$(turbo run test --filter "@tests/hash-playwright...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
