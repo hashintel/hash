@@ -9,12 +9,12 @@ mod traversal_context;
 use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
-use graph_types::knowledge::entity::{
-    EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata,
+use graph_types::knowledge::{
+    entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
+    link::LinkOrder,
 };
 use graph_types::{
     account::AccountId,
-    knowledge::link::LinkOrder,
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
