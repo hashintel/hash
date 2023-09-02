@@ -46,7 +46,7 @@ jobs:
             # commit on the base branch. This is not what we want, so we use `git merge-base` instead.
             TURBO_REF_FILTER=$(git merge-base "$BASE_REF" "$HEAD_REF")
           else
-            TURBO_REF_FILTER="PREVIOUS_SHA"
+            TURBO_REF_FILTER="$PREVIOUS_SHA"
           fi
 
           # We filter by the package we want to test. If the package is not changed, we don't need to run the tests.
