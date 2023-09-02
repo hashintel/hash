@@ -45,7 +45,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             # `github.event.pull_request.base.sha` does not give the SHA of the last common ancestor but the most recent
             # commit on the base branch. This is not what we want, so we use `git merge-base` instead.
-            TURBO_REF_FILTER=$(git merge-base "origin/$HEAD_REF" "origin/$BASE_REF")
+            TURBO_REF_FILTER=$(git merge-base HEAD "origin/$BASE_REF")
           else
             TURBO_REF_FILTER="$PREVIOUS_SHA"
           fi
