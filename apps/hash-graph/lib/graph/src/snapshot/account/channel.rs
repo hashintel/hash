@@ -97,10 +97,13 @@ impl Stream for AccountReceiver {
 pub fn channel(chunk_size: usize) -> (AccountSender, AccountReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
 
-    (AccountSender { id: id_tx }, AccountReceiver {
-        stream: select_all([id_rx
-            .ready_chunks(chunk_size)
-            .map(AccountRowBatch::Accounts)
-            .boxed()]),
-    })
+    (
+        AccountSender { id: id_tx },
+        AccountReceiver {
+            stream: select_all([id_rx
+                .ready_chunks(chunk_size)
+                .map(AccountRowBatch::Accounts)
+                .boxed()]),
+        },
+    )
 }

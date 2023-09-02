@@ -65,22 +65,25 @@ mod tests {
         let mut with_clause = WithExpression::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 
-        with_clause.add_statement(Table::OntologyIds, SelectStatement {
-            with: WithExpression::default(),
-            distinct: Vec::new(),
-            selects: vec![
-                SelectExpression::new(Expression::Asterisk, None),
-                SelectExpression::new(max_version_expression(), Some("latest_version")),
-            ],
-            from: Table::OntologyIds.aliased(Alias {
-                condition_index: 0,
-                chain_depth: 0,
-                number: 0,
-            }),
-            joins: vec![],
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-        });
+        with_clause.add_statement(
+            Table::OntologyIds,
+            SelectStatement {
+                with: WithExpression::default(),
+                distinct: Vec::new(),
+                selects: vec![
+                    SelectExpression::new(Expression::Asterisk, None),
+                    SelectExpression::new(max_version_expression(), Some("latest_version")),
+                ],
+                from: Table::OntologyIds.aliased(Alias {
+                    condition_index: 0,
+                    chain_depth: 0,
+                    number: 0,
+                }),
+                joins: vec![],
+                where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
+            },
+        );
 
         assert_eq!(
             trim_whitespace(with_clause.transpile_to_string()),
@@ -90,19 +93,22 @@ mod tests {
             )
         );
 
-        with_clause.add_statement(Table::DataTypes, SelectStatement {
-            with: WithExpression::default(),
-            distinct: Vec::new(),
-            selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-            from: Table::DataTypes.aliased(Alias {
-                condition_index: 3,
-                chain_depth: 4,
-                number: 5,
-            }),
-            joins: vec![],
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-        });
+        with_clause.add_statement(
+            Table::DataTypes,
+            SelectStatement {
+                with: WithExpression::default(),
+                distinct: Vec::new(),
+                selects: vec![SelectExpression::new(Expression::Asterisk, None)],
+                from: Table::DataTypes.aliased(Alias {
+                    condition_index: 3,
+                    chain_depth: 4,
+                    number: 5,
+                }),
+                joins: vec![],
+                where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
+            },
+        );
 
         assert_eq!(
             trim_whitespace(with_clause.transpile_to_string()),

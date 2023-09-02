@@ -309,30 +309,36 @@ impl<'de> Deserialize<'de> for Example {
 
 #[test]
 fn struct_object_ok() {
-    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
-        Token::Object { length: Some(3) },
-        Token::Str("a"),
-        Token::Number(2.into()),
-        Token::Str("b"),
-        Token::Number(3.into()),
-        Token::Str("c"),
-        Token::Number(4.into()),
-        Token::ObjectEnd,
-    ]);
+    assert_tokens(
+        &Example { a: 2, b: 3, c: 4 },
+        &[
+            Token::Object { length: Some(3) },
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::Str("b"),
+            Token::Number(3.into()),
+            Token::Str("c"),
+            Token::Number(4.into()),
+            Token::ObjectEnd,
+        ],
+    );
 }
 
 #[test]
 fn struct_object_out_of_order_ok() {
-    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
-        Token::Object { length: Some(3) },
-        Token::Str("c"),
-        Token::Number(4.into()),
-        Token::Str("b"),
-        Token::Number(3.into()),
-        Token::Str("a"),
-        Token::Number(2.into()),
-        Token::ObjectEnd,
-    ]);
+    assert_tokens(
+        &Example { a: 2, b: 3, c: 4 },
+        &[
+            Token::Object { length: Some(3) },
+            Token::Str("c"),
+            Token::Number(4.into()),
+            Token::Str("b"),
+            Token::Number(3.into()),
+            Token::Str("a"),
+            Token::Number(2.into()),
+            Token::ObjectEnd,
+        ],
+    );
 }
 
 // TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
@@ -444,13 +450,16 @@ fn struct_object_duplicate_err() {
 
 #[test]
 fn struct_array_ok() {
-    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
-        Token::Array { length: Some(3) },
-        Token::Number(2.into()),
-        Token::Number(3.into()),
-        Token::Number(4.into()),
-        Token::ArrayEnd,
-    ]);
+    assert_tokens(
+        &Example { a: 2, b: 3, c: 4 },
+        &[
+            Token::Array { length: Some(3) },
+            Token::Number(2.into()),
+            Token::Number(3.into()),
+            Token::Number(4.into()),
+            Token::ArrayEnd,
+        ],
+    );
 }
 
 #[test]

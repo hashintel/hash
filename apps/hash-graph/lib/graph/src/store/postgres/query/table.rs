@@ -816,10 +816,14 @@ pub enum PropertyTypeConstrainsValuesOn {
 impl PropertyTypeConstrainsValuesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
-            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
+                Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {
@@ -840,10 +844,14 @@ pub enum PropertyTypeConstrainsPropertiesOn {
 impl PropertyTypeConstrainsPropertiesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
-            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourcePropertyTypeOntologyId => "source_property_type_ontology_id",
+                Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {
@@ -865,11 +873,15 @@ pub enum EntityTypeConstrainsPropertiesOn {
 impl EntityTypeConstrainsPropertiesOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+                Self::TargetPropertyTypeOntologyId => "target_property_type_ontology_id",
+                Self::InheritanceDepth => "inheritance_depth",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {
@@ -892,11 +904,15 @@ pub enum EntityTypeInheritsFrom {
 impl EntityTypeInheritsFrom {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+                Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+                Self::InheritanceDepth => "inheritance_depth",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {
@@ -919,11 +935,15 @@ pub enum EntityTypeConstrainsLinksOn {
 impl EntityTypeConstrainsLinksOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+                Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+                Self::InheritanceDepth => "inheritance_depth",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {
@@ -946,11 +966,15 @@ pub enum EntityTypeConstrainsLinkDestinationsOn {
 impl EntityTypeConstrainsLinkDestinationsOn {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         table.transpile(fmt)?;
-        write!(fmt, r#"."{}""#, match self {
-            Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
-            Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
-        })
+        write!(
+            fmt,
+            r#"."{}""#,
+            match self {
+                Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
+                Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
+                Self::InheritanceDepth => "inheritance_depth",
+            }
+        )
     }
 
     pub const fn parameter_type(self) -> ParameterType {

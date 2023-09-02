@@ -243,10 +243,13 @@ impl Serialize for Document {
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema");
         map.serialize_entry("$ref", &id.as_path())?;
-        map.serialize_entry("$defs", &SerializeDefinitions {
-            schemas: &self.schemas,
-            references: &self.references,
-        })?;
+        map.serialize_entry(
+            "$defs",
+            &SerializeDefinitions {
+                schemas: &self.schemas,
+                references: &self.references,
+            },
+        )?;
 
         map.end()
     }
