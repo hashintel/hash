@@ -6,7 +6,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-import { BaseUrl } from "../types";
+import { BaseUrl, Entity } from "../types";
 
 export const extractBaseUrl = (versionedUrl: VersionedUrl): BaseUrl =>
   extractBaseUrlBp(versionedUrl) as BaseUrl;
@@ -70,4 +70,8 @@ export const versionedUrlFromComponents = (
   } else {
     return validationResult.inner;
   }
+};
+
+export type LinkEntity = Entity & {
+  linkData: NonNullable<Entity["linkData"]>;
 };

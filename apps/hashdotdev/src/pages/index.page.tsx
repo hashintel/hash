@@ -19,6 +19,7 @@ import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../components/button";
+import { ArrowUpRightFromSquareRegularIcon } from "../components/icons/arrow-up-right-from-square-regular-icon";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { GithubIcon } from "../components/icons/github-icon";
 import { Link } from "../components/link";
@@ -209,14 +210,27 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
             }
             buttons={
-              <Button
-                href="https://blockprotocol.org"
-                openInNew
-                color="purple"
-                endIcon={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
-              >
-                Learn more
-              </Button>
+              <Box>
+                <Button
+                  href="https://blockprotocol.org"
+                  openInNew
+                  color="purple"
+                  endIcon={<ArrowUpRightFromSquareRegularIcon />}
+                  sx={{ marginRight: 2, marginBottom: 2 }}
+                >
+                  Learn more
+                </Button>
+                <Button
+                  href="https://github.com/blockprotocol/blockprotocol"
+                  openInNew
+                  endIcon={<GithubIcon />}
+                  variant="secondary"
+                  color="purple"
+                  sx={{ marginBottom: 2 }}
+                >
+                  View on GitHub
+                </Button>
+              </Box>
             }
             image={
               <Image
@@ -237,10 +251,10 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              The <strong>Block Protocol</strong> is an open standard for
-              creating <i>blocks</i> which work in any application, without
-              either block or app requiring any special knowledge of one
-              another.
+              The Block Protocol (<strong>Þ</strong>) is an open standard for
+              creating <strong>blocks</strong> which work across applications,
+              without either block or app requiring any special knowledge of one
+              another (only of the Þ itself).
             </HomePageBodyTypography>
             <HomePageBodyTypography
               sx={{
@@ -260,7 +274,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Link>
               ), enabling their users to discover and insert blocks at runtime,
               expanding the utility of applications that support the protocol
-              way beyond their original programming.
+              well beyond their original programming.
             </HomePageBodyTypography>
           </Project>
           <Project
@@ -297,7 +311,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
                   Learn more
                 </Button>
                 <Button
-                  href="https://github.com/hashintel/hash/tree/main/apps/hash"
+                  href="https://github.com/hashintel/hash"
                   openInNew
                   endIcon={<GithubIcon />}
                   variant="secondary"
@@ -339,8 +353,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             }
           >
             <HomePageBodyTypography>
-              <strong>HASH</strong> is our open-source, all-in-one workspace
-              platform built around structured data and interactive blocks.
+              HASH is an open source, all-in-one platform for working with
+              information, built around blocks.
             </HomePageBodyTypography>
             <Box component="ul" sx={{ "> li": { marginBottom: 0 } }}>
               <Box component="li">
@@ -356,7 +370,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Map external data to types and integrate it into your{" "}
+                  Map external data to types and integrate it into one unified{" "}
                   <strong>graph</strong>
                 </HomePageBodyTypography>
               </Box>
@@ -368,7 +382,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
               </Box>
               <Box component="li">
                 <HomePageBodyTypography>
-                  Use blocks with data to create <strong>apps</strong>
+                  Combine blocks, types and flows to create{" "}
+                  <strong>apps</strong>
                 </HomePageBodyTypography>
               </Box>
               <Box component="li">
@@ -394,7 +409,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
-const Tutorial: FunctionComponent<{
+const Resource: FunctionComponent<{
   title: string;
   description: string;
   color: "blue" | "teal" | "purple";
@@ -497,21 +512,21 @@ const Tutorial: FunctionComponent<{
   );
 };
 
-const _Tutorials: FunctionComponent = () => {
+const _Resources: FunctionComponent = () => {
   return (
     <Container component="section">
       <Typography variant="hashHeading4" component="h3">
-        Tutorials
+        Resources
       </Typography>
       <HomePageBodyTypography
         marginBottom={2}
         sx={{ color: ({ palette }) => palette.gray[70] }}
       >
-        Learn by example through our step-by-step tutorials
+        Learn by example through step-by-step guides and resources
       </HomePageBodyTypography>
       <Grid container spacing={4} marginBottom={2}>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Build your own blocks"
             description="Extend the functionality of Block Protocol-based applications by creating your own blocks"
             color="purple"
@@ -520,7 +535,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={6} lg={4}>
-          <Tutorial
+          <Resource
             title="Code your first simulation"
             description="Learn how to develop a simulation and run it locally or in-browser"
             color="blue"
@@ -529,7 +544,7 @@ const _Tutorials: FunctionComponent = () => {
           />
         </Grid>
         <Grid item xs={12} md={12} lg={4}>
-          <Tutorial
+          <Resource
             title="Build a block-based website using HASH"
             description="Use HASH as a CMS alongside Block Protocol blocks"
             color="teal"
@@ -539,7 +554,7 @@ const _Tutorials: FunctionComponent = () => {
       </Grid>
       <Box display="flex" width="100%" flexDirection="row-reverse">
         <Link
-          href="/tutorials"
+          href="/resources"
           sx={{
             color: ({ palette }) => palette.teal[70],
             borderBottomStyle: "solid",
@@ -549,7 +564,11 @@ const _Tutorials: FunctionComponent = () => {
             fontWeight: 600,
           }}
         >
-          View all tutorials
+          See more resources{" "}
+          <FontAwesomeIcon
+            icon={faArrowRight}
+            sx={{ position: "relative", top: 2 }}
+          />
         </Link>
       </Box>
     </Container>
@@ -607,8 +626,8 @@ const Home: NextPageWithLayout<HomePageProps> = ({ posts }) => {
       <PageLayout subscribe={false} recentBlogPosts>
         <Hero />
         <Projects />
-        {/* @todo: add tutorials pages */}
-        {/* <Tutorials /> */}
+        {/* @todo: add resources pages */}
+        {/* <Resources /> */}
         <Subscribe
           heading="Be the first to know..."
           body={

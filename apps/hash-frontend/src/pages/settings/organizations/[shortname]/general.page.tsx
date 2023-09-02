@@ -8,8 +8,8 @@ import { useRef } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { OrgForm, OrgFormData } from "../../../shared/org-form";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import { OrgForm, OrgFormData } from "../shared/org-form";
 import { OrgSettingsContainer } from "../shared/org-settings-container";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {

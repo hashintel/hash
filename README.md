@@ -1,8 +1,9 @@
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[hash.ai]: https://hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hash.dev]: https://hash.dev?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[running your own instance]: https://hash.dev/docs/getting-started?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
 <!-- markdownlint-disable link-fragments -->
 
@@ -35,8 +36,8 @@ HASH does this by combining various different powerful tools together into one s
 
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
-- 🚀 &nbsp; **Quick-start (<5 mins):** try the full hosted platform at [hash.ai], ready to go in seconds
-- 🤖 &nbsp; **Self-hosting:** check out our developer site at [hash.dev] for a guide to running your own instance of HASH
+- 🚀 &nbsp; **Quick-start (<5 mins):** try the full hosted platform at [app.hash.ai], ready to go in seconds
+- 🤖 &nbsp; **Self-hosting:** check out our developer guide to [running your own instance] of HASH
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
@@ -72,7 +73,7 @@ Please see [SECURITY](.github/SECURITY.md) for instructions around reporting iss
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
-Find us on Twitter at [@hashintel](https://twitter.com/hashintel), or email [support@hash.ai](mailto:support@hash.ai)
+Find us on X at [@hashintel](https://x.com/hashintel), or email [support@hash.ai](mailto:support@hash.ai)
 
 You can also join our [Discord] community for quick help and support.
 

@@ -9,10 +9,11 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
-import { BaseUrl, Entity, EntityId } from "@local/hash-subgraph";
+import { BaseUrl, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -22,7 +23,11 @@ import {
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
+import { WorkspaceContext } from "../../pages/shared/workspace-context";
+import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { RemoteBlock } from "../remote-block/remote-block";
@@ -55,9 +60,20 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   wrappingEntityId,
   readonly,
 }) => {
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
   const { queryEntities } = useBlockProtocolQueryEntities();
+  const { createEntity } = useBlockProtocolCreateEntity(
+    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
+    readonly,
+  );
+  const { archiveEntity: deleteEntity } = useBlockProtocolArchiveEntity();
+  const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(readonly);
+  const { uploadFile } = useBlockProtocolFileUpload(
+    activeWorkspaceAccountId as OwnedById | undefined,
+    readonly,
+  );
 
   const { setBlockSubgraph, blockSubgraph } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
@@ -80,6 +96,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
        * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
        */
       getEmbedBlock: fetchEmbedCode,
+      createEntity,
+      deleteEntity,
+      getEntity,
       uploadFile,
       updateEntity: async (
         ...args: Parameters<GraphEmbedderMessageCallbacks["updateEntity"]>
@@ -112,6 +131,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       queryEntities,
       setBlockSubgraph,
       fetchBlockSubgraph,
+      createEntity,
+      deleteEntity,
+      getEntity,
       updateEntity,
       blockEntityId,
       blockEntityTypeId,

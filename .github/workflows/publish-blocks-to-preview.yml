@@ -14,11 +14,11 @@ name: Publish blocks to preview
 jobs:
   pick-blocks:
     name: Pick blocks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       block-dir-names: ${{ steps.list-block-dir-names.outputs.block-dir-names }}
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -32,7 +32,7 @@ jobs:
 
   process:
     name: Publish
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs:
       - pick-blocks
     strategy:
@@ -41,7 +41,7 @@ jobs:
         block-dir-name: ${{ fromJSON(needs.pick-blocks.outputs.block-dir-names) }}
 
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - uses: ./.github/actions/warm-up-repo
 

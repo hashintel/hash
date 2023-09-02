@@ -1,11 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base", "helpers:pinGitHubActionDigests"],
+  "extends": ["config:base"],
 
+  "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "automerge": true,
+  "dependencyDashboardTitle": "🚀 Dependency Updates",
+  "dependencyDashboardOSVVulnerabilitySummary": "none",
   "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
@@ -20,6 +22,18 @@
       "dependencyDashboardApproval": false
     },
     {
+      "matchManagers": ["github-actions"],
+      "commitMessageTopic": "GitHub Action `{{depName}}`",
+      "additionalBranchPrefix": "gha/",
+      "pinDigests": true,
+      "dependencyDashboardApproval": false
+    },
+    {
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "commitMessageTopic": "Docker tag `{{depName}}`",
+      "additionalBranchPrefix": "docker/"
+    },
+    {
       "matchManagers": ["npm"],
       "commitMessageTopic": "npm package `{{depName}}`",
       "additionalBranchPrefix": "js/"
@@ -32,12 +46,21 @@
     },
     {
       "matchManagers": ["cargo"],
+      "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
       "reviewers": ["team:Rust"]
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": ["^jest-", "jest$", "^prettier", "prettier$"],
+      "matchPackagePatterns": [
+        "^jest-",
+        "jest$",
+        "lint-staged",
+        "lockfile-lint",
+        "markdownlint-cli",
+        "^prettier",
+        "prettier$"
+      ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
@@ -67,6 +90,11 @@
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["httpyac"],
+      "dependencyDashboardApproval": false
     },
     {
       "groupName": "Jest npm packages",
@@ -116,10 +144,6 @@
       "matchManagers": ["poetry"],
       "matchPackagePatterns": ["mypy", "ruff", "black"],
       "dependencyDashboardApproval": false
-    },
-    {
-      "matchManagers": ["cargo"],
-      "commitMessageTopic": "Rust crate `{{depName}}`"
     },
     {
       "matchManagers": ["regex"],
@@ -190,8 +214,9 @@
     },
     {
       "matchManagers": ["cargo"],
-      "matchFileNames": ["libs/error-stack/*"],
-      "excludePackageNames": ["anyhow"]
+      "matchFileNames": ["libs/error-stack/Cargo.toml"],
+      "matchPackageNames": ["anyhow"],
+      "enabled": false
     }
   ],
   "regexManagers": [

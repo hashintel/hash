@@ -1,5 +1,6 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { RemoteImageFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-image-file";
 import {
   OrgMembershipProperties,
   OrgProperties,
@@ -19,11 +20,13 @@ import {
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
+  getOutgoingLinkAndTargetEntities,
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { Session } from "@ory/client";
 
 export type MinimalUser = {
@@ -221,6 +224,10 @@ export const constructMinimalOrg = (params: {
 };
 
 export type Org = MinimalOrg & {
+  hasAvatar?: {
+    linkEntity: LinkEntity;
+    rightEntity: RemoteImageFile;
+  };
   memberships: {
     membershipEntity: Entity<OrgMembershipProperties>;
     user: User;
@@ -248,9 +255,29 @@ export const constructOrg = (params: {
       types.linkEntityType.orgMembership.linkEntityTypeId,
   ) as Entity<OrgMembershipProperties>[];
 
+  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    orgEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasAvatar.linkEntityTypeId,
+  );
+
+  const hasAvatar = avatarLinkAndEntities[0];
+
   const org = constructMinimalOrg({
     orgEntity,
   }) as Org;
+
+  org.hasAvatar = hasAvatar
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
+        rightEntity: hasAvatar.rightEntity[0] as unknown as RemoteImageFile,
+      }
+    : undefined;
 
   // We add it to resolved orgs *before* fully creating so that when we're traversing we know
   // we already encountered it and avoid infinite recursion

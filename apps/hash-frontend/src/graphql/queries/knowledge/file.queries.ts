@@ -1,8 +1,20 @@
 import { gql } from "@apollo/client";
 
 export const requestFileUpload = gql`
-  mutation requestFileUpload($size: Int!, $mediaType: String!) {
-    requestFileUpload(size: $size, mediaType: $mediaType) {
+  mutation requestFileUpload(
+    $size: Int!
+    $name: String
+    $description: String
+    $entityTypeId: VersionedUrl
+    $ownedById: OwnedById
+  ) {
+    requestFileUpload(
+      size: $size
+      name: $name
+      description: $description
+      entityTypeId: $entityTypeId
+      ownedById: $ownedById
+    ) {
       presignedPost {
         url
         fields
@@ -13,7 +25,19 @@ export const requestFileUpload = gql`
 `;
 
 export const createFileFromUrl = gql`
-  mutation createFileFromUrl($url: String!, $mediaType: String!) {
-    createFileFromUrl(url: $url, mediaType: $mediaType)
+  mutation createFileFromUrl(
+    $url: String!
+    $name: String
+    $description: String
+    $entityTypeId: VersionedUrl
+    $ownedById: OwnedById
+  ) {
+    createFileFromUrl(
+      url: $url
+      name: $name
+      description: $description
+      entityTypeId: $entityTypeId
+      ownedById: $ownedById
+    )
   }
 `;

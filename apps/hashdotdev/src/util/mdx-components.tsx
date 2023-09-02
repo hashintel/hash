@@ -20,6 +20,7 @@ import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
+import { MdxCallout } from "../components/mdx-callout";
 import { MdxImage } from "../components/mdx-image";
 import { MdxPre } from "../components/mdx-pre";
 import { MdxTalkSlide } from "../components/mdx-talk-slide";
@@ -137,7 +138,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h2: (props: TypographyProps<"h2">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
@@ -156,7 +157,7 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
   h3: (props: TypographyProps<"h3">) => {
-    const anchor = slugify(stringifyChildren(props.children));
+    const anchor = slugify(stringifyChildren(props.children)).toLowerCase();
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { headingRef } = usePageHeading({ anchor });
@@ -195,10 +196,17 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
     );
   },
 
+  blockquote: (props: HTMLAttributes<HTMLElement>) => (
+    <MdxCallout hideIcon {...props} />
+  ),
+
   code: (props: HTMLAttributes<HTMLElement>) => (
     <Typography variant="hashCode" {...props} />
   ),
+
   CalculationBlock,
+
+  Callout: MdxCallout,
 
   pre: MdxPre,
 
