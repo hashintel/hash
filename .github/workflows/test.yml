@@ -50,10 +50,10 @@ jobs:
             | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
             | jq -c --slurp '{ include: . }')
 
-          REQUIRES_GRAPH=false
-          REQUIRES_AI_WORKER_TS=false
-          REQUIRES_AI_WORKER_PY=false
-          REQUIRES_INTEGRATION_WORKER=false
+          REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
 
           if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
               REQUIRES_GRAPH=true
@@ -201,7 +201,7 @@ jobs:
 
       - name: Launch external services
         run: |
-          yarn turbo codegen --filter '@apps/hash-external-services'
+          turbo codegen --filter '@apps/hash-external-services'
           if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
             yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
           else 
