@@ -58,7 +58,10 @@
         "lockfile-lint",
         "markdownlint-cli",
         "^prettier",
-        "prettier$"
+        "prettier$",
+        "rimraf",
+        "turbo",
+        "yarn-deduplicate"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
