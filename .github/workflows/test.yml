@@ -47,6 +47,7 @@ jobs:
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.tests) }}
+      fail-fast: false
     if: always()
     runs-on: ubuntu-latest
     steps:
