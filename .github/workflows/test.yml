@@ -57,7 +57,7 @@ jobs:
         run: yarn global add turbo
 
       - name: Prune repository
-        run: turbo prune --filter "${{ matrix.package }}"
+        run: turbo prune --scope="${{ matrix.package }}"
 
       - name: Install yarn dependencies
         env:
