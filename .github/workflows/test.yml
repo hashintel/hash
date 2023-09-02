@@ -97,13 +97,9 @@ jobs:
           SKIP_HUSKY: true
         run: yarn install --cwd out
 
-      - name: Prepare tests
-        working-directory: out
-        run: turbo run ^test --filter "${{ matrix.package }}"
-
       - name: Run tests
         working-directory: out
-        run: turbo run test --log-order stream --filter "${{ matrix.package }}"
+        run: turbo run test --filter "${{ matrix.package }}"
 
   build-graph:
     name: Build HASH-Graph
@@ -228,10 +224,6 @@ jobs:
           turbo run dev --filter "@apps/hash-frontend" &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
-      - name: Prepare tests
-        working-directory: out
-        run: turbo run ^test --filter "${{ matrix.package }}"
-
       - name: Run tests
         working-directory: out
-        run: turbo run test --log-order stream --filter "${{ matrix.package }}"
+        run: turbo run test --filter "${{ matrix.package }}"
