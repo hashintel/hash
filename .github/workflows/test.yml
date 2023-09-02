@@ -37,7 +37,7 @@ jobs:
               --filter "...[HEAD^]"\
               --dry-run=json \
             | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
-            | jq --slurp '{ include: . }')
+            | jq -c --slurp '{ include: . }')
 
           echo "tests=$TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "test packages: $TEST_PACKAGES"
