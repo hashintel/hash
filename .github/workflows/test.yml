@@ -20,7 +20,12 @@ jobs:
   setup:
     runs-on: ubuntu-22.04
     outputs:
-      tests: ${{ steps.packages.outputs.tests }}
+      units: ${{ steps.packages.outputs.units }}
+      integrations: ${{ steps.packages.outputs.integrations }}
+      build-graph: ${{ steps.packages.outputs.build_graph }}
+      build-ai-worker-ts: ${{ steps.packages.outputs.build_ai_worker_ts }}
+      build-ai-worker-py: ${{ steps.packages.outputs.build_ai_worker_py }}
+      build-integration-worker: ${{ steps.packages.outputs.build_integration_worker }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -33,20 +38,48 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          TEST_PACKAGES=$(turbo run test \
-              --filter "...[HEAD^]"\
+          UNIT_PACKAGES=$(turbo run test \
+              --filter '!@tests/*...[HEAD^]' \
               --dry-run=json \
             | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
             | jq -c --slurp '{ include: . }')
 
-          echo "tests=$TEST_PACKAGES" >> $GITHUB_OUTPUT
+          INTEGRATION_PACKAGES=$(turbo run test \
+              --filter '@tests/*...[HEAD^]' \
+              --dry-run=json \
+            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
+            | jq -c --slurp '{ include: . }')
+
+          REQUIRES_GRAPH=false
+          REQUIRES_AI_WORKER_TS=false
+          REQUIRES_AI_WORKER_PY=false
+          REQUIRES_INTEGRATION_WORKER=false
+
+          if echo "$TEST_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
+              REQUIRES_GRAPH=true
+          fi
+
+          if echo "$TEST_PACKAGES" | grep -q '@tests/hash-playwright'; then
+            REQUIRES_GRAPH=true
+            REQUIRES_AI_WORKER_TS=true
+            REQUIRES_AI_WORKER_PY=true
+            REQUIRES_INTEGRATION_WORKER=true
+          fi
+
+          echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
+          echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
+          echo "build_graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
+          echo "build_ai_worker_ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
+          echo "build_ai_worker_py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
+          echo "build_integration_worker=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
+
           echo "test packages: $TEST_PACKAGES"
 
-  test:
-    name: Test
+  unit:
+    name: Unit
     needs: [setup]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.tests) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.units) }}
       fail-fast: false
     if: always()
     runs-on: ubuntu-latest
@@ -66,7 +99,116 @@ jobs:
         run: yarn install --cwd out
 
       - name: Run tests
+        working-directory: out
+        run: turbo run test --filter "${{ matrix.package }}"
+
+  build-graph:
+    name: Build HASH-Graph
+    runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.build-graph == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-graph: true
+
+  build-ai-worker-ts:
+    name: Build HASH-AI-Worker-TS
+    runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.build-ai-worker-ts == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-ai-worker-ts: true
+
+  build-ai-worker-py:
+    name: Build HASH-AI-Worker-PY
+    runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.build-ai-worker-py == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-ai-worker-py: true
+
+  build-integration-worker:
+    name: Build HASH-Integration-Worker
+    runs-on: ubuntu-latest
+    needs: [setup]
+    if: needs.setup.outputs.build-integration-worker == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-integration-worker: true
+
+  integration:
+    name: Integrations
+    needs:
+      [
+        setup,
+        build-graph,
+        build-ai-worker-ts,
+        build-ai-worker-py,
+        build-integration-worker,
+      ]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
+      fail-fast: false
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Prune repository
+        run: turbo prune --scope="${{ matrix.package }}"
+
+      - name: Install yarn dependencies
         env:
           SKIP_HUSKY: true
+        run: yarn install --cwd out
+
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-ai-worker-ts: ${{ matrix.package == '@tests/hash-playwright' }}
+          hash-ai-worker-py: ${{ matrix.package == '@tests/hash-playwright' }}
+          hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
+
+      - name: Launch external services
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
+            yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
+          else 
+            yarn workspace @apps/hash-external-services deploy up --detach
+          fi
+
+      - name: Run tests
         working-directory: out
         run: turbo run test --filter "${{ matrix.package }}"
