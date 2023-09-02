@@ -35,6 +35,9 @@
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
+"area/dx":
+  - ".vscode/**"
+
 "area/infra":
   - "infra/**"
   - "**/*.md"
