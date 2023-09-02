@@ -39,6 +39,9 @@ jobs:
             | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
             | jq --slurp '{ include: . }')
 
+          echo "tests=$TEST_PACKAGES" >> $GITHUB_OUTPUT
+          echo "test packages: $TEST_PACKAGES"
+
   test:
     name: Test
     needs: [setup]
