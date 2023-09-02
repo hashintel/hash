@@ -23,9 +23,9 @@ jobs:
       units: ${{ steps.packages.outputs.units }}
       integrations: ${{ steps.packages.outputs.integrations }}
       build-graph: ${{ steps.packages.outputs.build_graph }}
-      build-ai-worker-ts: ${{ steps.packages.outputs.build_ai_worker_ts }}
-      build-ai-worker-py: ${{ steps.packages.outputs.build_ai_worker_py }}
-      build-integration-worker: ${{ steps.packages.outputs.build_integration_worker }}
+      build-ai-worker-ts: ${{ steps.packages.outputs.build-ai-worker-ts }}
+      build-ai-worker-py: ${{ steps.packages.outputs.build-ai-worker-py }}
+      build-integration-worker: ${{ steps.packages.outputs.build-integration-worker }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -66,14 +66,13 @@ jobs:
             REQUIRES_INTEGRATION_WORKER=true
           fi
 
+          set -x
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
           echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
           echo "build-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
           echo "build-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
           echo "build-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
           echo "build-integration-worker=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
-
-          echo "test packages: $TEST_PACKAGES"
 
   unit:
     name: Unit
