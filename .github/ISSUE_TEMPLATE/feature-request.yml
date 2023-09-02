@@ -1,7 +1,7 @@
 name: Suggestion or request
 description: Suggest an idea, feature or enhancement
 labels:
-  - "category: enhancement"
+  - "category/enhancement"
 body:
   - type: markdown
     attributes:
