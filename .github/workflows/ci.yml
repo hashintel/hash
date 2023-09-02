@@ -45,7 +45,13 @@ jobs:
           BUILD_AI_WORKER_PY=$(turbo run build:docker --filter "@apps/hash-ai-worker-py...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
           BUILD_INTEGRATION_WORKER=$(turbo run build:docker --filter "@apps/hash-integration-worker...[$TURBO_REF_FILTER]" --dry-run=json | jq -r '.packages != []')
 
-          set -x
+          echo "Checking packages for $TURBO_REF_FILTER:"
+          echo "- Backend Integration Tests: $BE_TESTS"
+          echo "- Playwright Tests:          $PW_TESTS"
+          echo "- AI Worker TS:              $BUILD_AI_WORKER_TS"
+          echo "- AI Worker PY:              $BUILD_AI_WORKER_PY"
+          echo "- Integration Worker:        $BUILD_INTEGRATION_WORKER"
+
           echo "be-tests=$BE_TESTS" >> $GITHUB_OUTPUT
           echo "pw-tests=$PW_TESTS" >> $GITHUB_OUTPUT
           echo "ai-worker-ts=$BUILD_AI_WORKER_TS" >> $GITHUB_OUTPUT
