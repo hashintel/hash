@@ -134,10 +134,13 @@ where
         }
 
         Schema::new("object")
-            .with("oneOf", [
-                Properties::Ok(doc.add::<T>()),
-                Properties::Err(doc.add::<E>()),
-            ])
+            .with(
+                "oneOf",
+                [
+                    Properties::Ok(doc.add::<T>()),
+                    Properties::Err(doc.add::<E>()),
+                ],
+            )
             .with("additionalProperties", false)
     }
 }

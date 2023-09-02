@@ -476,9 +476,10 @@ mod tests {
         // [A, G, Y Error, Z Error]
         // [A, G, Y Error, Z Error, Z Error]
         assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
-        assert_stack(&stacks[1], &[
-            "A", "B", "Y Error", "Z Error", "D", "Z Error",
-        ]);
+        assert_stack(
+            &stacks[1],
+            &["A", "B", "Y Error", "Z Error", "D", "Z Error"],
+        );
         assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
@@ -507,9 +508,10 @@ mod tests {
         let mut frames = divide_frames(split).into_iter();
 
         assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
-        assert_stack(&frames.next().expect("second chain"), &[
-            "D", "C", "Z Error", "B", "A", "Z Error",
-        ]);
+        assert_stack(
+            &frames.next().expect("second chain"),
+            &["D", "C", "Z Error", "B", "A", "Z Error"],
+        );
     }
 
     #[test]

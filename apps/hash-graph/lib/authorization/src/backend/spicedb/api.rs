@@ -107,33 +107,36 @@ impl SpiceDb {
         }
 
         let response = self
-            .call::<RequestResponse>("/v1/relationships/write", &RequestBody {
-                updates: operations
-                    .into_iter()
-                    .map(|(operation, tuple)| RelationshipUpdate {
-                        operation,
-                        relationship: model::Relationship {
-                            resource: model::ObjectReference {
-                                object_type: tuple.resource_namespace(),
-                                object_id: tuple.resource_id(),
-                            },
-                            relation: tuple.affiliation(),
-                            subject: model::SubjectReference {
-                                object: model::ObjectReference {
-                                    object_type: tuple.subject_namespace(),
-                                    object_id: tuple.subject_id(),
+            .call::<RequestResponse>(
+                "/v1/relationships/write",
+                &RequestBody {
+                    updates: operations
+                        .into_iter()
+                        .map(|(operation, tuple)| RelationshipUpdate {
+                            operation,
+                            relationship: model::Relationship {
+                                resource: model::ObjectReference {
+                                    object_type: tuple.resource_namespace(),
+                                    object_id: tuple.resource_id(),
                                 },
-                                optional_relation: tuple.subject_set(),
+                                relation: tuple.affiliation(),
+                                subject: model::SubjectReference {
+                                    object: model::ObjectReference {
+                                        object_type: tuple.subject_namespace(),
+                                        object_id: tuple.subject_id(),
+                                    },
+                                    optional_relation: tuple.subject_set(),
+                                },
+                                optional_caveat: None,
                             },
-                            optional_caveat: None,
-                        },
-                    })
-                    .collect(),
-                optional_preconditions: preconditions
-                    .into_iter()
-                    .map(model::Precondition::from)
-                    .collect(),
-            })
+                        })
+                        .collect(),
+                    optional_preconditions: preconditions
+                        .into_iter()
+                        .map(model::Precondition::from)
+                        .collect(),
+                },
+            )
             .await?;
 
         Ok(response.written_at.into())

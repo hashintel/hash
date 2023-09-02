@@ -11,10 +11,11 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
-            entity_type::LINK_V1,
-            entity_type::link::FRIEND_OF_V1,
-        ])
+        .seed(
+            [data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::LINK_V1, entity_type::link::FRIEND_OF_V1],
+        )
         .await
         .expect("could not seed database");
 
