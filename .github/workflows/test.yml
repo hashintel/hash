@@ -214,19 +214,18 @@ jobs:
             yarn workspace @apps/hash-external-services deploy up --detach
           fi
 
-      - name: Launch backend
+      - name: Launch HASH-API
         if: matrix.package == '@tests/hash-playwright'
         working-directory: out
         run: |
-          yarn dev:backend 2>&1 | tee var/logs/backend.log &
+          turbo run dev --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
-      - name: Build and launch frontend
+      - name: Launch frontend
         if: matrix.package == '@tests/hash-playwright'
         working-directory: out
         run: |
-          yarn workspace @apps/hash-frontend next build
-          yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log &
+          turbo run dev --filter "@apps/hash-frontend" &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Prepare tests
