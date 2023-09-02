@@ -187,6 +187,7 @@ jobs:
         run: |
           turbo prune --scope="${{ matrix.package }}"
           cp .env out/.env
+          cp -r patches out/patches
 
       - name: Install yarn dependencies
         env:
@@ -202,6 +203,7 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
 
       - name: Launch external services
+        working-directory: out
         run: |
           turbo codegen --filter '@apps/hash-external-services'
           if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
@@ -221,7 +223,7 @@ jobs:
         if: matrix.package == '@tests/hash-playwright'
         working-directory: out
         run: |
-          turbo run dev --filter "@apps/hash-frontend" &
+          turbo run start --filter "@apps/hash-frontend" &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
