@@ -1,8 +1,8 @@
 name: Bug Report (error-stack)
 description: Create a report to help us improve `error-stack`
 labels:
-  - "area: libs > error-stack"
-  - "category: bug"
+  - "area/libs > error-stack"
+  - "category/bug"
 assignees:
   - TimDiekmann
   - indietyp

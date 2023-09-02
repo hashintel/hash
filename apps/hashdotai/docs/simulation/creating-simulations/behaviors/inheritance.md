@@ -29,8 +29,8 @@ We're now planning to introduce support for **Agent Types** in a forthcoming upd
 
 Entity types created in HASH describe 'things'. In a simulation context these could for example be:
 
-1.  agents \(Agent Types\); or
-1.  actions taken by agents \(Behaviors\).
+1. agents \(Agent Types\); or
+1. actions taken by agents \(Behaviors\).
 
 Entity types consist of _properties_, each of which has their _own_ property types, and in some cases these may have _default values_. Entity types in HASH may contain a `hash_simulation_behavior` property containing one or more [behaviors](/docs/simulation/creating-simulations/behaviors).
 

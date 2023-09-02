@@ -85,9 +85,9 @@ The changes in this PR:
 
 <!-- Tell reviewers how they can test the functionality -->
 
-1.  Checkout the branch / view the deployment
-1.  Try X
-1.  Confirm that Y
+1. Checkout the branch / view the deployment
+1. Try X
+1. Confirm that Y
 
 ## 📹 Demo
 
