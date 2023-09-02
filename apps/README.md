@@ -3,7 +3,6 @@
 [github_banner]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [github_star]: https://github.com/hashintel/hash/tree/main/apps#
 [hash]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_hash-repo_apps
-[hash engine]: https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.ai]: https://hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.design]: https://hash.design/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
 [hash.dev]: https://hash.dev/?utm_medium=organic&utm_source=github_readme_hash-repo_apps
@@ -36,14 +35,6 @@ The application depends on a suite of constituent services, which are briefly de
 | [`hash-graph`](hash-graph)                         | The query layer over the main datastore of HASH, its strongly-typed graph.                                                                                                   |
 | [`hash-realtime`](hash-realtime)                   | Implements a different view over the graph datastore that allows services to subscribe to realtime updates on entities.                                                      |
 | [`hash-search-loader`](hash-search-loader)         | Loads the change-stream published by the realtime service into a search index.                                                                                               |
-
-## Simulation Tools
-
-We will be moving the `engine` project to a [new home](https://github.com/hashintel/labs/tree/main/apps/sim-engine) in our [`labs` repository](https://github.com/hashintel/labs) shortly.
-
-| Subdirectory       | Description                                                                                                           |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| [`engine`](engine) | Codebase for the standalone alpha version of [HASH Engine], a versatile agent-based simulation engine written in Rust |
 
 ## Websites
 

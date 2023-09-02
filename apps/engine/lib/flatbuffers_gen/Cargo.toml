@@ -1,7 +1,0 @@
-[package]
-name = "flatbuffers_gen"
-description = "Generated flatbuffers code for specification of communication with Python."
-version = "0.0.0"
-
-[dependencies]
-flatbuffers = "2.0.0"
