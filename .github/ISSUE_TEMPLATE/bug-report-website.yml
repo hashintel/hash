@@ -1,7 +1,7 @@
 name: Bug Report (website)
 description: Create a report to help us improve our websites
 labels:
-  - "category: bug"
+  - "category/bug"
 body:
   - type: markdown
     attributes:
