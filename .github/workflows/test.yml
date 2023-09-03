@@ -109,13 +109,14 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
-        run: turbo run test --filter "${{ matrix.package }}"
+        run: |
+          turbo run test --filter "${{ matrix.package }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|/|_|g' | sed 's|@||g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          flags: ${{ matrix.package }}
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
   build:
@@ -193,13 +194,14 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        run: turbo run test --filter "${{ matrix.package }}"
+        run: |
+          turbo run test --filter "${{ matrix.package }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|/|_|g' | sed 's|@||g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        if: ${{ success() || failure() }}
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          flags: ${{ matrix.package }}
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
   tests-passed:
