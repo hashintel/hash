@@ -110,6 +110,7 @@ jobs:
 
       - name: Run tests
         env:
+          TURBO_FORCE: true
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
