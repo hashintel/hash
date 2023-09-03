@@ -111,6 +111,13 @@ jobs:
       - name: Run tests
         run: turbo run test --filter "${{ matrix.package }}"
 
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        if: ${{ success() || failure() }}
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ matrix.package }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
   build:
     name: Build
     runs-on: ubuntu-22.04
@@ -187,6 +194,13 @@ jobs:
 
       - name: Run tests
         run: turbo run test --filter "${{ matrix.package }}"
+
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        if: ${{ success() || failure() }}
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ matrix.package }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
   tests-passed:
     name: Tests passed
