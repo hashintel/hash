@@ -114,7 +114,7 @@ jobs:
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
@@ -201,7 +201,7 @@ jobs:
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
