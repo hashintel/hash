@@ -21,13 +21,13 @@ runs:
           fi
         done <<< "${{ inputs.scope }}"
 
-    - name: Copy required files
-      shell: bash
-      run: |
-        cp .env out/.env
-        cp -r .github out/.github
-        cp yarn.lock out/yarn.lock
-        cp -r patches out/patches
+    #    - name: Copy required files
+    #      shell: bash
+    #      run: |
+    #        cp .env out/.env
+    #        cp -r .github out/.github
+    #        cp yarn.lock out/yarn.lock
+    #        cp -r patches out/patches
 
     - name: Allow patch files to fail
       shell: bash
