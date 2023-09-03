@@ -244,7 +244,7 @@ jobs:
 
   passed:
     name: Workflow passed
-    needs: [setup, lints, unit, integration]
+    needs: [setup, lint, unit, integration]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -253,7 +253,7 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check lint results
         run: |
-          [[ ${{ needs.lints.result }} = success ]]
+          [[ ${{ needs.lint.result }} = success ]]
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit.result }} =~ success|skipped ]]
