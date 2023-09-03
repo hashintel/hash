@@ -125,6 +125,7 @@ jobs:
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
           hash-ai-worker-py: ${{ matrix.package == '@apps/hash-ai-worker-py' }}
