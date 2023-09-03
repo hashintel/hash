@@ -38,13 +38,13 @@ jobs:
           UNIT_PACKAGES=$(turbo run test \
               --filter '!@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
+            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package, directory: .directory}' \
             | jq -c --slurp '{ include: . }')
 
           INTEGRATION_PACKAGES=$(turbo run test \
               --filter '@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package}' \
+            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package, directory: .directory}' \
             | jq -c --slurp '{ include: . }')
 
           REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
@@ -104,13 +104,11 @@ jobs:
           scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
-        working-directory: out
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
-        working-directory: out
         env:
           TEST_COVERAGE: true
         run: |
@@ -163,7 +161,6 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
-        working-directory: out
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
@@ -177,7 +174,6 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
 
       - name: Launch external services
-        working-directory: out
         run: |
           turbo codegen --filter '@apps/hash-external-services'
           if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
@@ -187,14 +183,12 @@ jobs:
           fi
 
       - name: Launch HASH-API
-        working-directory: out
         if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run dev --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
-        working-directory: out
         if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run build --filter "@apps/hash-frontend"
@@ -202,7 +196,6 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        working-directory: out
         env:
           TEST_COVERAGE: true
         run: |

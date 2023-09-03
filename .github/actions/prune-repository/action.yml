@@ -21,13 +21,13 @@ runs:
           fi
         done <<< "${{ inputs.scope }}"
 
-    #    - name: Copy required files
-    #      shell: bash
-    #      run: |
-    #        cp .env out/.env
-    #        cp -r .github out/.github
-    #        cp yarn.lock out/yarn.lock
-    #        cp -r patches out/patches
+    - name: Copy required files
+      shell: bash
+      run: |
+        cp .env out/.env
+        cp -r .github out/.github
+        cp yarn.lock out/yarn.lock
+        cp -r patches out/patches
 
     - name: Allow patch files to fail
       shell: bash
@@ -36,16 +36,16 @@ runs:
         # This allows `patch-package` to fail without failing the build
         cat package.json | sed 's/\("postinstall".*patch-package.*\)"/\1 || true"/g' > out/package.json
 
-#    - name: Remove old repository files
-#      shell: bash
-#      run: |
-#        git ls-files -z | xargs -0 rm -f
-#        git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
-#        ls -lah .
-#
-#    - name: Restore `out` directory
-#      shell: bash
-#      run: |
-#        shopt -s dotglob
-#        mv out/* .
-#        rmdir out
+    - name: Remove old repository files
+      shell: bash
+      run: |
+        git ls-files -z | xargs -0 rm -f
+        git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
+        ls -lah .
+
+    - name: Restore `out` directory
+      shell: bash
+      run: |
+        shopt -s dotglob
+        mv out/* .
+        rmdir out
