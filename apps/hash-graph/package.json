@@ -12,7 +12,6 @@
     }
   },
   "scripts": {
-    "build": "echo to build the graph please follow the instructions in the README. This script is here to help orchestrate Turborepo.",
     "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
     "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
     "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --file docker/Dockerfile ../../",
