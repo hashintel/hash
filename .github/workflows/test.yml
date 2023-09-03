@@ -61,7 +61,7 @@ jobs:
             REQUIRES_INTEGRATION_WORKER=true
           fi
 
-          DOCKER_PACKAGES = []
+          DOCKER_PACKAGES=[]
 
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq -c '. += ["@apps/hash-graph"]')
