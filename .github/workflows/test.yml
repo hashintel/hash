@@ -110,6 +110,7 @@ jobs:
         env:
           TEST_COVERAGE: true
         run: |
+          ls -lah ${{ matrix.directory }}
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
@@ -197,6 +198,7 @@ jobs:
         env:
           TEST_COVERAGE: true
         run: |
+          ls -lah ${{ matrix.directory }}
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 

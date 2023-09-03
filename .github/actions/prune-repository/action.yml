@@ -41,7 +41,6 @@ runs:
       run: |
         git ls-files -z | xargs -0 rm -f
         git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
-        ls -lah .
 
     - name: Restore `out` directory
       shell: bash
@@ -49,3 +48,4 @@ runs:
         shopt -s dotglob
         mv out/* .
         rmdir out
+        ls -lah .
