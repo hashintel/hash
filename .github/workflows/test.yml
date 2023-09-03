@@ -132,7 +132,7 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
   integration:
-    name: Integrations
+    name: Integration
     needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
@@ -187,3 +187,19 @@ jobs:
 
       - name: Run tests
         run: turbo run test --filter "${{ matrix.package }}"
+
+  tests-passed:
+    name: Tests passed
+    needs: [setup, unit, integration]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check unit tests
+        run: |
+          [[ ${{ needs.unit.result }} =~ success|skipped ]]
+      - name: Check integration tests
+        run: |
+          [[ ${{ needs.integration.result }} =~ success|skipped ]]
