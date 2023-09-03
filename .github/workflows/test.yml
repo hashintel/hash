@@ -76,7 +76,7 @@ jobs:
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
           fi
 
-          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: { package: . } }')
+          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
           set -x
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
