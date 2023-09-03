@@ -9,7 +9,6 @@
     "test": "playwright test --project chromium"
   },
   "dependencies": {
-    "@apps/hash-frontend": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
@@ -20,5 +19,10 @@
     "js-yaml": "4.1.0",
     "playwright": "1.30.0",
     "typescript": "5.1.6"
+  },
+  "devDependencies": {
+    "@apps/hash-frontend": "0.0.0-private",
+    "@apps/hash-realtime": "0.0.0-private",
+    "@apps/hash-search-loader": "0.0.0-private"
   }
 }
