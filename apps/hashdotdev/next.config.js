@@ -21,7 +21,7 @@ const nextConfig = {
         destination: "/blog?label=labs",
         permanent: false,
       },
-    ],
+    ];
   },
 
   experimental: {
