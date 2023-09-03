@@ -14,7 +14,10 @@ runs:
 
     - name: Prune repository
       shell: bash
-      run: turbo prune --scope="${{ inputs.scope }}"
+      run: |
+        while IFS= read -r line; do
+          turbo prune --scope="$line"
+        done <<< "${{ inputs.scope }}"
 
     - name: Copy required files
       shell: bash

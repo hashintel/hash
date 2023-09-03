@@ -146,7 +146,9 @@ jobs:
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
-          scope: ${{ matrix.package }}
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
 
       - name: Install yarn dependencies
         env:
