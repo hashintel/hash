@@ -98,22 +98,24 @@ jobs:
       - name: Install turbo
         run: yarn global add turbo
 
-      #      - name: Prune repository
-      #        uses: ./.github/actions/prune-repository
-      #        with:
-      #          scope: ${{ matrix.package }}
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
+        working-directory: out
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
+        working-directory: out
         env:
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
@@ -153,14 +155,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
-      #      - name: Prune repository
-      #        uses: ./.github/actions/prune-repository
-      #        with:
-      #          scope: |
-      #            ${{ matrix.package }}
-      #            @apps/hash-external-services
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
 
       - name: Install yarn dependencies
+        working-directory: out
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
@@ -174,6 +177,7 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
 
       - name: Launch external services
+        working-directory: out
         run: |
           turbo codegen --filter '@apps/hash-external-services'
           if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
@@ -183,12 +187,14 @@ jobs:
           fi
 
       - name: Launch HASH-API
+        working-directory: out
         if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run dev --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
+        working-directory: out
         if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run build --filter "@apps/hash-frontend"
@@ -196,11 +202,12 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
+        working-directory: out
         env:
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
