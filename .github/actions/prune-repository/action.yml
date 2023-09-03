@@ -1,0 +1,36 @@
+name: Prune repository
+description: "Prunes the repository to only the files required for the given scope"
+inputs:
+  scope:
+    description: "Scope to prune to"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install turbo
+      shell: bash
+      run: yarn global add turbo
+
+    - name: Prune repository
+      shell: bash
+      run: turbo prune --scope="${{ inputs.scope }}"
+
+    - name: Copy required files
+      shell: bash
+      run: |
+        cp .env out/.env
+        cp yarn.lock out/yarn.lock
+        cp -r patches out/patches
+
+    - name: Remove old repository files
+      shell: bash
+      run: |
+        git ls-files -z | xargs -0 rm -f
+        git ls-tree --name-only -d -r -z HEAD | sort -rz | xargs -0 rm -rf
+
+    - name: Restore `out` directory
+      shell: bash
+      run: |
+        mv out/* .
+        rmdir out

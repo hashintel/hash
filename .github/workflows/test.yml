@@ -99,19 +99,16 @@ jobs:
         run: yarn global add turbo
 
       - name: Prune repository
-        run: |
-          turbo prune --scope="${{ matrix.package }}"
-          cp .env out/.env
-          cp yarn.lock out/yarn.lock
-          cp -r patches out/patches
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
         env:
           HUSKY: 0
-        run: yarn install --cwd out
+        run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
-        working-directory: out
         run: turbo run test --filter "${{ matrix.package }}"
 
   build:
@@ -142,20 +139,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
-      - name: Install turbo
-        run: yarn global add turbo
-
       - name: Prune repository
-        run: |
-          turbo prune --scope="${{ matrix.package }}"
-          cp .env out/.env
-          cp yarn.lock out/yarn.lock
-          cp -r patches out/patches
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
         env:
           HUSKY: 0
-        run: yarn install --cwd out
+        run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
@@ -166,7 +158,6 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
 
       - name: Launch external services
-        working-directory: out
         run: |
           turbo codegen --filter '@apps/hash-external-services'
           if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
@@ -177,18 +168,15 @@ jobs:
 
       - name: Launch HASH-API
         if: matrix.package == '@tests/hash-playwright'
-        working-directory: out
         run: |
           turbo run dev --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
         if: matrix.package == '@tests/hash-playwright'
-        working-directory: out
         run: |
           turbo run start --filter "@apps/hash-frontend" &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        working-directory: out
         run: turbo run test --filter "${{ matrix.package }}"
