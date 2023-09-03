@@ -26,7 +26,7 @@ runs:
     - name: Allow patch files to fail
       shell: bash
       run: |
-        sed -i '' 's/\("postinstall".*patch-package.*\)--error-on-fail=true/\1--error-on-fail=false/g' out/package.json
+        sed -i 's/\("postinstall".*patch-package.*\)--error-on-fail=true/\1--error-on-fail=false/g' out/package.json
 
     - name: Remove old repository files
       shell: bash
