@@ -110,8 +110,8 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
-        env:
-          TEST_COVERAGE: true
+        #        env:
+        #          TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
@@ -197,8 +197,8 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        env:
-          TEST_COVERAGE: true
+        #        env:
+        #          TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's/@//g')" >> $GITHUB_ENV
