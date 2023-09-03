@@ -156,6 +156,7 @@ jobs:
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           hash-graph: true
           hash-ai-worker-ts: ${{ matrix.package == '@tests/hash-playwright' }}
           hash-ai-worker-py: ${{ matrix.package == '@tests/hash-playwright' }}
