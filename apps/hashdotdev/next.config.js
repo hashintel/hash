@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx"],
+  poweredByHeader: false,
 
   // We call linters in GitHub Actions for all pull requests. By not linting
   // again during `next build`, we save CI minutes and unlock more feedback.
@@ -11,6 +12,16 @@ const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   images: {
     domains: ["hash.ai"],
+  },
+
+  async redirects() {
+    return [
+      {
+        source: "/labs",
+        destination: "/blog?label=labs",
+        permanent: false,
+      },
+    ],
   },
 
   experimental: {
