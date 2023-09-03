@@ -64,17 +64,19 @@ jobs:
           DOCKER_PACKAGES=[]
 
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq -c '. += ["@apps/hash-graph"]')
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
           fi
           if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq -c '. += ["@apps/hash-ai-worker-ts"]')
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
           fi
           if [[ $REQUIRES_AI_WORKER_PY == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq -c '. += ["@apps/hash-ai-worker-py"]')
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-py"]')
           fi
           if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq -c '. += ["@apps/hash-integration-worker"]')
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
           fi
+
+          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: . }')
 
           set -x
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
