@@ -109,6 +109,8 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Run tests
+        env:
+          TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
@@ -197,6 +199,8 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
+        env:
+          TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
@@ -206,7 +210,7 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: ${{ env.LCOV_INFO_FILES }}
+          #          files: ${{ env.LCOV_INFO_FILES }}
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
