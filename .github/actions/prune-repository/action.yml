@@ -26,7 +26,9 @@ runs:
     - name: Allow patch files to fail
       shell: bash
       run: |
-        cat package.json | sed 's/\("postinstall".*patch-package.*\)--error-on-fail=true/\1--error-on-fail=false/g' > out/package.json
+        # `patch-package` will always fail in CI if the package does not exist, `--error-on-fail` is not respected
+        # This allows `patch-package` to fail without failing the build
+        cat package.json | sed 's/\("postinstall".*patch-package.*\)"/\1 || true"/g' > out/package.json
 
     - name: Remove old repository files
       shell: bash
