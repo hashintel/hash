@@ -16,7 +16,7 @@ runs:
       shell: bash
       run: |
         while IFS= read -r line; do
-          turbo prune --scope="$line"
+          [[ -n "$line" ]] && turbo prune --scope="$line"
         done <<< "${{ inputs.scope }}"
 
     - name: Copy required files
