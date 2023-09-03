@@ -20,6 +20,7 @@ runs:
       shell: bash
       run: |
         cp .env out/.env
+        cp .github out/.github
         cp yarn.lock out/yarn.lock
         cp -r patches out/patches
 
