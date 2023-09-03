@@ -110,7 +110,6 @@ jobs:
         env:
           TEST_COVERAGE: true
         run: |
-          ls -lah ${{ matrix.directory }}
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
@@ -196,9 +195,8 @@ jobs:
 
       - name: Run tests
         env:
-          TEST_COVERAGE: true
+          TEST_COVERAGE: ${{ matrix.package != '@tests/hash-playwright' }}
         run: |
-          ls -lah ${{ matrix.directory }}
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 

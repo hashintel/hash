@@ -48,4 +48,3 @@ runs:
         shopt -s dotglob
         mv out/* .
         rmdir out
-        ls -lah .
