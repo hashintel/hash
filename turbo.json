@@ -6,7 +6,8 @@
       "dependsOn": ["^build", "codegen"]
     },
     "test": {
-      "dependsOn": ["build"]
+      "dependsOn": ["build"],
+      "env": ["TEST_COVERAGE"]
     },
     "dev": {
       "persistent": true,
