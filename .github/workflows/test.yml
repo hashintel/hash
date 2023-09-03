@@ -23,6 +23,7 @@ jobs:
       units: ${{ steps.packages.outputs.units }}
       integrations: ${{ steps.packages.outputs.integrations }}
       dockers: ${{ steps.packages.outputs.dockers }}
+      lints: ${{ steps.packages.outputs.lints }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -44,6 +45,11 @@ jobs:
               --filter '@tests/*...[HEAD^]' \
               --dry-run=json \
             | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
+
+          LINT_PACKAGES=$(turbo run lint:tsc \
+              --filter '...[HEAD^]' \
+              --dry-run=json \
+            | jq -c '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
 
           REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
           REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
@@ -80,6 +86,36 @@ jobs:
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
           echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
+          echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
+
+  lint:
+    name: Lint
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.lints) }}
+      fail-fast: false
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
+
+      - name: Install yarn dependencies
+        env:
+          HUSKY: 0
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Run lints
+        run: |
+          turbo run lint:tsc --filter "${{ matrix.package }}"
 
   unit:
     name: Unit
@@ -206,15 +242,18 @@ jobs:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
-  tests-passed:
-    name: Tests passed
-    needs: [setup, unit, integration]
+  passed:
+    name: Workflow passed
+    needs: [setup, lints, unit, integration]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check lint results
+        run: |
+          [[ ${{ needs.lints.result }} = success ]]
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit.result }} =~ success|skipped ]]
