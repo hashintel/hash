@@ -130,14 +130,7 @@ jobs:
 
   integration:
     name: Integrations
-    needs:
-      [
-        setup,
-        build-graph,
-        build-ai-worker-ts,
-        build-ai-worker-py,
-        build-integration-worker,
-      ]
+    needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
       fail-fast: false
