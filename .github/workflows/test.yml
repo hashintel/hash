@@ -98,10 +98,10 @@ jobs:
       - name: Install turbo
         run: yarn global add turbo
 
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: ${{ matrix.package }}
+      #      - name: Prune repository
+      #        uses: ./.github/actions/prune-repository
+      #        with:
+      #          scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
         env:
@@ -153,12 +153,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: |
-            ${{ matrix.package }}
-            @apps/hash-external-services
+      #      - name: Prune repository
+      #        uses: ./.github/actions/prune-repository
+      #        with:
+      #          scope: |
+      #            ${{ matrix.package }}
+      #            @apps/hash-external-services
 
       - name: Install yarn dependencies
         env:
