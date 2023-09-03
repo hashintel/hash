@@ -11,6 +11,7 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_REMOTE_ONLY: true
+  TURBO_FORCE: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -110,18 +111,14 @@ jobs:
 
       - name: Run tests
         env:
-          TURBO_FORCE: true
           TEST_COVERAGE: true
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
-          echo "LCOV_INFO_FILES=$(find . -name lcov.info -a -not -path './node_modules*' | tr '\n' ',')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
-          files: ${{ env.LCOV_INFO_FILES }}
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
@@ -205,13 +202,10 @@ jobs:
         run: |
           turbo run test --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | cut -d/ -f2)" >> $GITHUB_ENV
-          echo "LCOV_INFO_FILES=$(find . -name lcov.info -a -not -path './node_modules*' | tr '\n' ',')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
-          fail_ci_if_error: true
-          #          files: ${{ env.LCOV_INFO_FILES }}
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
