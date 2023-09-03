@@ -30,6 +30,8 @@
     "lodash.debounce": "4.0.8"
   },
   "devDependencies": {
+    "@emotion/react": "11.9.0",
+    "@emotion/styled": "11.8.1",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
