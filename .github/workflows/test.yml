@@ -38,14 +38,12 @@ jobs:
           UNIT_PACKAGES=$(turbo run test \
               --filter '!@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package, directory: .directory}' \
-            | jq -c --slurp '{ include: . }')
+            | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
 
           INTEGRATION_PACKAGES=$(turbo run test \
               --filter '@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq '.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>") | {package: .package, directory: .directory}' \
-            | jq -c --slurp '{ include: . }')
+            | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
 
           REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
           REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
