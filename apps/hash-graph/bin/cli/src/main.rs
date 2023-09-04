@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use error_stack::Result;
 
-use self::{args::Args, error::GraphError, subcommand::Subcommand};
+use self::{args::Args, error::GraphError};
 
 fn main() -> Result<(), GraphError> {
     let args = Args::parse_args();
