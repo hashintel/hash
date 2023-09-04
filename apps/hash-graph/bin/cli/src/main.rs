@@ -18,7 +18,6 @@ fn main() -> Result<(), GraphError> {
         dsn: args.sentry_dsn.clone(),
         release: sentry::release_name!(),
         session_mode: sentry::SessionMode::Request,
-        profiles_sample_rate: 0.2,
         traces_sampler: Some(Arc::new(|ctx| {
             if Some(true) == ctx.sampled() {
                 1.0

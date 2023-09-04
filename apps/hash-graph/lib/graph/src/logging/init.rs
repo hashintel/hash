@@ -182,8 +182,8 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
 
     tracing_subscriber::registry()
         .with(filter)
-        .with(sentry_layer)
         .with(opentelemetry_layer)
+        .with(sentry_layer)
         .with(output_layer)
         .with(json_output_layer)
         .with(json_file_layer)
