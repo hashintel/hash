@@ -68,6 +68,7 @@ export let SYSTEM_TYPES: {
     vaultPath: PropertyTypeWithMetadata;
 
     // HASH Instance related
+    pagesAreEnabled: PropertyTypeWithMetadata;
     userSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
     userRegistrationByInviteIsEnabled: PropertyTypeWithMetadata;
     orgSelfRegistrationIsEnabled: PropertyTypeWithMetadata;
@@ -116,6 +117,11 @@ export let SYSTEM_TYPES: {
   };
 };
 
+const pagesAreEnabledPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.pagesAreEnabled,
+  possibleValues: [{ primitiveDataType: "boolean" }],
+});
+
 const userSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.userSelfRegistrationIsEnabled,
@@ -143,6 +149,9 @@ export const hashInstanceEntityTypeInitializer = async (
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
+  const pagesAreEnabledPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.pagesAreEnabled(context);
+
   const userSelfRegistrationIsEnabledPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userSelfRegistrationIsEnabled(
       context,
@@ -169,6 +178,10 @@ export const hashInstanceEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...types.entityType.hashInstance,
     properties: [
+      {
+        propertyType: pagesAreEnabledPropertyType,
+        required: true,
+      },
       {
         propertyType: userSelfRegistrationIsEnabledPropertyType,
         required: true,
@@ -774,6 +787,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     linearOrgId: linearOrgIdPropertyTypeInitializer,
     linearTeamId: linearTeamIdPropertyTypeInitializer,
 
+    pagesAreEnabled: pagesAreEnabledPropertyTypeInitializer,
     userSelfRegistrationIsEnabled:
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
     orgSelfRegistrationIsEnabled:

@@ -208,7 +208,7 @@ const LoginPage: NextPageWithLayout = () => {
           </Button>
         ) : (
           <>
-            {hashInstance && hashInstance.userSelfRegistrationIsEnabled ? (
+            {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
               <Button variant="secondary" href="/signup">
                 Create account
               </Button>

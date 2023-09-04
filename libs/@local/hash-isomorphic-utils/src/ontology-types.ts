@@ -190,6 +190,11 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
+  pagesAreEnabled: {
+    title: "Pages Are Enabled",
+    description:
+      "Whether or not user functionality related to pages is enabled.",
+  },
   userSelfRegistrationIsEnabled: {
     title: "User Self Registration Is Enabled",
     description: "Whether or not user self registration (sign-up) is enabled.",
