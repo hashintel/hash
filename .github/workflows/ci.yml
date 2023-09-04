@@ -27,7 +27,7 @@ jobs:
       integration-worker: ${{ steps.packages.outputs.integration_worker }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           fetch-depth: 2
 
@@ -65,7 +65,7 @@ jobs:
     if: needs.setup.outputs.be-tests == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -79,7 +79,7 @@ jobs:
     if: needs.setup.outputs.ai-worker-ts == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -93,7 +93,7 @@ jobs:
     if: needs.setup.outputs.ai-worker-py == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -107,7 +107,7 @@ jobs:
     if: needs.setup.outputs.integration-worker == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -119,7 +119,7 @@ jobs:
     name: Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - uses: ./.github/actions/warm-up-repo
         if: ${{ success() || failure() }}
@@ -323,7 +323,7 @@ jobs:
     if: always() && needs.setup.outputs.be-tests == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - uses: ./.github/actions/warm-up-repo
 
@@ -383,7 +383,7 @@ jobs:
     if: always() && needs.setup.outputs.pw-tests == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
@@ -470,7 +470,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - uses: ./.github/actions/warm-up-repo
 
