@@ -13,6 +13,7 @@ import {
   useEntityTypeForm,
   useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
+import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -151,7 +152,14 @@ const Page: NextPageWithLayout = () => {
     [entityType, remotePropertyTypes],
   );
 
+  const isDirty = formMethods.formState.isDirty;
+
   const handleSubmit = wrapHandleSubmit(async (data) => {
+    if (!isDirty) {
+      // prevent creating new types when there are no changes
+      return;
+    }
+
     const entityTypeSchema = getSchemaFromFormData(data);
 
     if (isDraft) {
@@ -222,8 +230,6 @@ const Page: NextPageWithLayout = () => {
       throw new Error("Could not publish changes");
     }
   });
-
-  const isDirty = formMethods.formState.isDirty;
 
   return (
     <>
@@ -319,7 +325,7 @@ const Page: NextPageWithLayout = () => {
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        domain="hash.ai"
+                        domain={frontendDomain}
                         path={
                           <>
                             <Typography
