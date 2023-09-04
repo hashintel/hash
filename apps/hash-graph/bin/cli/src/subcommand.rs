@@ -39,18 +39,6 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    pub(crate) fn log_config(&self) -> Option<&LoggingArgs> {
-        match self {
-            Subcommand::Server(args) => Some(&args.log_config),
-            Subcommand::Migrate(args) => Some(&args.log_config),
-            Subcommand::TypeFetcher(args) => Some(&args.log_config),
-            Subcommand::Completions(_) => None,
-            Subcommand::Snapshot(args) => Some(&args.log_config),
-            #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
-            Subcommand::TestServer(args) => Some(&args.log_config),
-        }
-    }
-
     async fn delegate(self) -> Result<(), GraphError> {
         match self {
             Self::Server(args) => server(args).await,
