@@ -1,8 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  blockProtocolTypes,
-  types,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -240,6 +237,9 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
+
+  const imageFileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -273,9 +273,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
     outgoingLinks: [
       {
         linkEntityType: hasAvatarLinkEntityType,
-        destinationEntityTypes: [
-          blockProtocolTypes["remote-image-file"].entityTypeId,
-        ],
+        destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
       },
@@ -356,6 +354,8 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
 
+  const imageFileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -384,9 +384,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         linkEntityType: hasAvatarLinkEntityType,
-        destinationEntityTypes: [
-          blockProtocolTypes["remote-image-file"].entityTypeId,
-        ],
+        destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
       },

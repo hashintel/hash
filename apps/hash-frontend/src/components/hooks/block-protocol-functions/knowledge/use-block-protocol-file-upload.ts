@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
 import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -90,7 +90,7 @@ export const useBlockProtocolFileUpload = (
 
         const { createFileFromUrl: fileEntity } = result.data;
 
-        return { data: fileEntity as unknown as RemoteFile };
+        return { data: fileEntity as unknown as FileEntityType };
       }
 
       if (!("file" in fileUploadData)) {
@@ -136,7 +136,7 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPost, file);
 
-      return { data: uploadedFileEntity as unknown as RemoteFile };
+      return { data: uploadedFileEntity as unknown as FileEntityType };
     },
     [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );

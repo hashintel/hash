@@ -1,4 +1,4 @@
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
 import { OwnedById } from "@local/hash-subgraph";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
@@ -10,7 +10,7 @@ import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const createFileFromUrl: ResolverFn<
-  Promise<RemoteFile>,
+  Promise<FileEntityType>,
   {},
   LoggedInGraphQLContext,
   MutationCreateFileFromUrlArgs

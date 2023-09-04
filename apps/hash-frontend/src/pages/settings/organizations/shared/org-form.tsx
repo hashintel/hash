@@ -144,7 +144,7 @@ export const OrgForm = ({
       {
         data: {
           description: `${nameWatcher}'s avatar`,
-          entityTypeId: blockProtocolTypes["remote-image-file"].entityTypeId,
+          entityTypeId: types.entityType.imageFile,
           file,
           name: file.name,
         },

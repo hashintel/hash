@@ -8,7 +8,7 @@ import { EntityTypesContextValue } from "../shared/context-types";
 import {
   getParentIds,
   isSpecialEntityType,
-} from "../shared/is-link-entity-type";
+} from "../shared/is-special-entity-type";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<

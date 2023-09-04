@@ -4,7 +4,7 @@ import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
-import { isSpecialEntityType } from "./shared/is-link-entity-type";
+import { isSpecialEntityType } from "./shared/is-special-entity-type";
 import { isTypeArchived } from "./util";
 
 export const useEntityTypesLoading = () =>
@@ -67,7 +67,9 @@ export const useLatestEntityTypesOptional = (params?: {
  *   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
  *   const isLinkType = isSpecialEntityTypeLookup?.[entityType.$id]?.link;
  */
-export const useIsLinkType = (entityType: Pick<EntityType, "allOf">) => {
+export const useIsLinkType = (
+  entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
+) => {
   const entityTypes = useEntityTypesOptional({ includeArchived: true });
 
   return useMemo(() => {
@@ -76,6 +78,6 @@ export const useIsLinkType = (entityType: Pick<EntityType, "allOf">) => {
         (entityTypes ?? []).map((type) => [type.schema.$id, type]),
       );
 
-    return isSpecialEntityType(entityType, typesByVersion).file;
+    return isSpecialEntityType(entityType, typesByVersion).link;
   }, [entityType, entityTypes]);
 };

@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
-
 import {
   Description1PropertyValue,
   DisplayNamePropertyValue,
@@ -15,6 +13,10 @@ import {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -34,6 +36,10 @@ export type {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
+  ImageFile,
+  ImageFileOutgoingLinkAndTarget,
+  ImageFileOutgoingLinksByLinkEntityTypeId,
+  ImageFileProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -41,17 +47,3 @@ export type {
   OriginalURLPropertyValue,
   TextDataType,
 };
-
-export type ImageFile = Entity<ImageFileProperties>;
-
-export type ImageFileOutgoingLinkAndTarget = never;
-
-export type ImageFileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * An image file hosted at a URL
- */
-export type ImageFileProperties = ImageFileProperties1 & ImageFileProperties2;
-export type ImageFileProperties1 = FileProperties;
-
-export type ImageFileProperties2 = {};

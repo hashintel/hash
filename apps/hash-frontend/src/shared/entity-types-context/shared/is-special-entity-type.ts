@@ -1,8 +1,8 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityType, VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityTypeWithMetadata,
-  fileEntityTypeUrl,
   linkEntityTypeUrl,
 } from "@local/hash-subgraph";
 
@@ -28,7 +28,7 @@ export const getParentIds = (
 };
 
 export const isSpecialEntityType = (
-  entityType: Pick<EntityType, "allOf">,
+  entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
   allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
 ): { file: boolean; link: boolean } => {
   const parentIds = getParentIds(entityType, allEntityTypes);
@@ -37,7 +37,9 @@ export const isSpecialEntityType = (
   let isLink = false;
 
   for (const id of parentIds) {
-    if (extractBaseUrl(id) === extractBaseUrl(fileEntityTypeUrl)) {
+    if (
+      extractBaseUrl(id) === extractBaseUrl(types.entityType.file.entityTypeId)
+    ) {
       isFile = true;
     } else if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {
       isLink = true;

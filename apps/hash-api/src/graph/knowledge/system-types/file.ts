@@ -1,9 +1,9 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  RemoteFile,
-  RemoteFileProperties,
-} from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+  File,
+  FileProperties,
+} from "@local/hash-isomorphic-utils/system-types/file";
 import mime from "mime-types";
 
 import {
@@ -25,7 +25,7 @@ export const formatUrl = (key: string) => {
 export const createFileFromUploadRequest: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationRequestFileUploadArgs,
-  Promise<{ presignedPost: PresignedPostUpload; entity: RemoteFile }>
+  Promise<{ presignedPost: PresignedPostUpload; entity: File }>
 > = async (ctx, params) => {
   // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
 
@@ -40,12 +40,13 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   const fileEntityTypeId =
-    // @todo validate that entityTypeId, if provided, ultimately inherits from RemoteFile
-    entityTypeId || blockProtocolTypes["remote-file"].entityTypeId;
+    // @todo validate that entityTypeId, if provided, ultimately inherits from File
+    //    (or checks that it has at least the same properties)
+    entityTypeId || types.entityType.file.entityTypeId;
 
   try {
     // We don't have the file and so don't have its own name or mimetype
-    const properties: Partial<RemoteFileProperties> = {
+    const properties: Partial<FileProperties> = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -59,7 +60,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       properties,
       entityTypeId: fileEntityTypeId,
       actorId,
-    })) as unknown as RemoteFile;
+    })) as unknown as File;
 
     const presignedPost = await uploadProvider.presignUpload({
       key,
@@ -79,7 +80,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 export const createFileFromExternalUrl: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationCreateFileFromUrlArgs,
-  Promise<RemoteFile>
+  Promise<File>
 > = async (ctx, params) => {
   const { ownedById, actorId, description, entityTypeId, url } = params;
 
@@ -87,11 +88,12 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   const mimeType = mime.lookup(filename) || "application/octet-stream";
 
   const fileEntityTypeId =
-    // @todo validate that entityTypeId, if provided, ultimately inherits from RemoteFile
-    entityTypeId || blockProtocolTypes["remote-file"].entityTypeId;
+    // @todo validate that entityTypeId, if provided, ultimately inherits from File
+    //    (or checks that it has at least the same properties)
+    entityTypeId || types.entityType.file.entityTypeId;
 
   try {
-    const properties: RemoteFileProperties = {
+    const properties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -107,7 +109,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
       properties,
       entityTypeId: fileEntityTypeId,
       actorId,
-    })) as unknown as RemoteFile;
+    })) as unknown as File;
 
     return entity;
   } catch (error) {

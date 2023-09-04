@@ -923,15 +923,16 @@ export const linearTypes: LinearTypeDefinitions = {
   ),
 };
 
-export const blockProtocolTypes = {
-  "remote-file": {
-    title: "Remote File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
-  },
-  "remote-image-file": {
-    title: "Remote Image File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-image-file/v/1",
-  },
-} as const;
+/**
+ * Add any Block Protocol entity types that we want to generate here.
+ *
+ * e.g.
+ * export const blockProtocolTypes = {
+ *   "remote-file": {
+ *     title: "Remote File",
+ *     entityTypeId:
+ *       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *   }
+ * }
+ */
+export const blockProtocolTypes = {} as const;

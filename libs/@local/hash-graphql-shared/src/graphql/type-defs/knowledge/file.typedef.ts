@@ -38,8 +38,7 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from Remote File
-        (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2)
+      Optionally provide a more specific type for the file entity, which must inherit from @hash/file
       """
       entityTypeId: VersionedUrl
       """
@@ -65,8 +64,7 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from Remote File
-      (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/3)
+      Optionally provide a more specific type for the file entity, which must inherit from @hash/file
       """
       entityTypeId: VersionedUrl
       """

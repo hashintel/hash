@@ -122,6 +122,20 @@ export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
 
+export type ImageFile = Entity<ImageFileProperties>;
+
+export type ImageFileOutgoingLinkAndTarget = never;
+
+export type ImageFileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An image file hosted at a URL
+ */
+export type ImageFileProperties = ImageFileProperties1 & ImageFileProperties2;
+export type ImageFileProperties1 = FileProperties;
+
+export type ImageFileProperties2 = {};
+
 export type KratosIdentityIdPropertyValue = TextDataType;
 
 export type Link = Entity<LinkProperties>;
@@ -158,7 +172,7 @@ export type Org = Entity<OrgProperties>;
 
 export type OrgHasAvatarLink = {
   linkEntity: HasAvatar;
-  rightEntity: RemoteImageFile;
+  rightEntity: ImageFile;
 };
 
 export type OrgMembership = Entity<OrgMembershipProperties> & {
@@ -229,43 +243,6 @@ export type ParentProperties2 = {};
 
 export type PreferredNamePropertyValue = TextDataType;
 
-export type RemoteFile = Entity<RemoteFileProperties>;
-
-export type RemoteFileOutgoingLinkAndTarget = never;
-
-export type RemoteFileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Information about a file hosted at a remote URL.
- */
-export type RemoteFileProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
-};
-
-export type RemoteImageFile = Entity<RemoteImageFileProperties>;
-
-export type RemoteImageFileOutgoingLinkAndTarget = never;
-
-export type RemoteImageFileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Information about an image file hosted at a remote URL.
- */
-export type RemoteImageFileProperties = RemoteImageFileProperties1 &
-  RemoteImageFileProperties2;
-export type RemoteImageFileProperties1 = RemoteFileProperties;
-
-export type RemoteImageFileProperties2 = {};
-
 /**
  * A unique identifier for something, in the form of a slug
  */
@@ -292,7 +269,7 @@ export type User = Entity<UserProperties>;
 
 export type UserHasAvatarLink = {
   linkEntity: HasAvatar;
-  rightEntity: RemoteImageFile;
+  rightEntity: ImageFile;
 };
 
 export type UserOrgMembershipLink = {
