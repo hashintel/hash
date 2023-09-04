@@ -7,7 +7,6 @@ mod test_server;
 mod type_fetcher;
 
 use error_stack::Result;
-use graph::logging::LoggingArgs;
 
 #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
 pub use self::test_server::{test_server, TestServerArgs};
