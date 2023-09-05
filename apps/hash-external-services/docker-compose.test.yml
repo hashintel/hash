@@ -1,4 +1,8 @@
 services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
   kratos:
     ports:
       - "4433:4433" # public
@@ -73,6 +77,8 @@ services:
 
   graph:
     depends_on:
+      graph-test-server:
+        condition: service_healthy
       spicedb:
         condition: service_healthy
     ports:

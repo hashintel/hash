@@ -13,6 +13,8 @@
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 
+use std::path::{Path, PathBuf};
+
 pub mod api;
 
 pub mod knowledge;
@@ -24,3 +26,36 @@ pub mod store;
 pub mod snapshot;
 
 pub mod logging;
+
+/// Loads the environment variables from the repository root .env files.
+#[expect(
+    clippy::must_use_candidate,
+    reason = "This function is used for side effects"
+)]
+pub fn load_env() -> Vec<PathBuf> {
+    let environment = if cfg!(test) {
+        "test"
+    } else if cfg!(debug_assertions) {
+        "development"
+    } else {
+        "production"
+    };
+
+    let environment_path = format!(".env.{environment}");
+    let environment_path_local = format!(".env.{environment}.local");
+
+    [
+        ".env.local",
+        &environment_path_local,
+        &environment_path,
+        ".env",
+    ]
+    .into_iter()
+    .filter_map(|path| {
+        dotenv_flow::from_filename(
+            Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../..")).join(path),
+        )
+        .ok()
+    })
+    .collect()
+}

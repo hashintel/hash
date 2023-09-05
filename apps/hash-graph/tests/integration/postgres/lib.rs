@@ -17,6 +17,7 @@ use std::{borrow::Cow, str::FromStr};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
+    load_env,
     ontology::EntityTypeQueryPath,
     store::{
         query::{Filter, FilterExpression, Parameter},
@@ -67,6 +68,8 @@ pub struct DatabaseApi<'pool> {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
+        load_env();
+
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
         let password =
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());

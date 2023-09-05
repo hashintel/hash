@@ -1,8 +1,11 @@
 use std::mem::ManuallyDrop;
 
-use graph::store::{
-    AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-    EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+use graph::{
+    load_env,
+    store::{
+        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+    },
 };
 use graph_types::{
     account::AccountId,
@@ -30,6 +33,8 @@ pub struct StoreWrapper {
 
 impl StoreWrapper {
     pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
+        load_env();
+
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned());
         let super_password =
             std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned());

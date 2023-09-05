@@ -197,7 +197,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -234,7 +234,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -270,7 +270,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -308,7 +308,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
   publish:
     name: publish
