@@ -46,10 +46,10 @@ jobs:
               --dry-run=json \
             | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
 
-          LINT_PACKAGES=$(turbo run lint:tsc \
+          LINT_PACKAGES=$(turbo run lint:eslint \
               --filter '...[HEAD^]' \
               --dry-run=json \
-            | jq -c '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
+            | jq -c '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
 
           REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
           REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
@@ -115,7 +115,7 @@ jobs:
 
       - name: Run lints
         run: |
-          turbo run lint:tsc --filter "${{ matrix.package }}"
+          turbo run lint:eslint --filter "${{ matrix.package }}"
 
   unit:
     name: Unit
