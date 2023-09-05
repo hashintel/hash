@@ -33,7 +33,7 @@ pub struct StoreWrapper {
 
 impl StoreWrapper {
     pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
-        load_env();
+        load_env("test");
 
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned());
         let super_password =

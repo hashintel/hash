@@ -68,7 +68,7 @@ pub struct DatabaseApi<'pool> {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
-        load_env();
+        load_env("test");
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
         let password =

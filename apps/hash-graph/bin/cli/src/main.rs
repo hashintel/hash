@@ -12,7 +12,7 @@ use self::{args::Args, error::GraphError, subcommand::Subcommand};
 
 #[tokio::main]
 async fn main() -> Result<(), GraphError> {
-    load_env();
+    load_env(None);
 
     let args = Args::parse_args();
 

@@ -28,18 +28,14 @@ pub mod snapshot;
 pub mod logging;
 
 /// Loads the environment variables from the repository root .env files.
-#[expect(
-    clippy::must_use_candidate,
-    reason = "This function is used for side effects"
-)]
-pub fn load_env() -> Vec<PathBuf> {
-    let environment = if cfg!(test) {
+pub fn load_env(environment: impl Into<Option<&'static str>>) -> Vec<PathBuf> {
+    let environment = environment.into().unwrap_or(if cfg!(test) {
         "test"
     } else if cfg!(debug_assertions) {
         "development"
     } else {
         "production"
-    };
+    });
 
     let environment_path = format!(".env.{environment}");
     let environment_path_local = format!(".env.{environment}.local");
