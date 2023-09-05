@@ -62,7 +62,9 @@ runs:
       with:
         context: .
         file: apps/hash-graph/docker/Dockerfile
-        tags: hash-graph
+        tags: |
+          hash-graph
+          hash-graph:test
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph${{ env.IMAGE_TAG }}
           type=registry,ref=ghcr.io/hashintel/hash-graph
