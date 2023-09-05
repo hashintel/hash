@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    future::Future,
     iter::once,
     mem,
 };
@@ -50,14 +51,13 @@ use crate::{
     },
 };
 
-#[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type(
+    fn insert_external_ontology_type(
         &mut self,
         reference: OntologyTypeReference<'_>,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<OntologyElementMetadata, InsertionError>> + Send;
 }
 
 #[derive(Clone)]
@@ -485,7 +485,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
