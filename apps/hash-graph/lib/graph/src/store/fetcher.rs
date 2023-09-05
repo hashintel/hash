@@ -380,9 +380,7 @@ where
         &mut self,
         ontology_types: impl IntoIterator<Item = (&'o T, RecordCreatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {
-        // Without collecting it first, we get a "Higher-ranked lifetime error" because of the
-        // limitations of Rust being able to look into a `Pin<Box<dyn Future>>`, which is returned
-        // by `#[async_trait]` methods.
+        // TODO: Figure out how to avoid collecting the iterator first.
         let ontology_types = ontology_types.into_iter().collect::<Vec<_>>();
 
         let mut partitioned_ontology_types = HashMap::<RecordCreatedById, Vec<VersionedUrl>>::new();
