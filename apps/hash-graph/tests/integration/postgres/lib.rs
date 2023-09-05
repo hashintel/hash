@@ -36,6 +36,7 @@ use graph::{
             VariableTemporalAxisUnresolved,
         },
     },
+    Environment,
 };
 use graph_types::{
     account::AccountId,
@@ -68,7 +69,7 @@ pub struct DatabaseApi<'pool> {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
-        load_env("test");
+        load_env(Environment::Test);
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
         let password =

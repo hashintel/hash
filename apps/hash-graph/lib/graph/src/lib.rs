@@ -13,7 +13,10 @@
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 
-use std::path::{Path, PathBuf};
+use std::{
+    fmt,
+    path::{Path, PathBuf},
+};
 
 pub mod api;
 
@@ -27,14 +30,31 @@ pub mod snapshot;
 
 pub mod logging;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Environment {
+    Development,
+    Test,
+    Production,
+}
+
+impl fmt::Display for Environment {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::Development => "development",
+            Self::Test => "test",
+            Self::Production => "production",
+        })
+    }
+}
+
 /// Loads the environment variables from the repository root .env files.
-pub fn load_env(environment: impl Into<Option<&'static str>>) -> Vec<PathBuf> {
+pub fn load_env(environment: impl Into<Option<Environment>>) -> Vec<PathBuf> {
     let environment = environment.into().unwrap_or(if cfg!(test) {
-        "test"
+        Environment::Test
     } else if cfg!(debug_assertions) {
-        "development"
+        Environment::Development
     } else {
-        "production"
+        Environment::Production
     });
 
     let environment_path = format!(".env.{environment}");
