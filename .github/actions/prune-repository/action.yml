@@ -28,6 +28,7 @@ runs:
         cp -r .github out/.github
         cp yarn.lock out/yarn.lock
         cp -r patches out/patches
+        cp .prettierignore out/.prettierignore
 
     - name: Allow patch files to fail
       shell: bash
