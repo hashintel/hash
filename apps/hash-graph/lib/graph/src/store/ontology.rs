@@ -1,6 +1,5 @@
 use std::{future::Future, iter};
 
-use async_trait::async_trait;
 use error_stack::Result;
 use graph_types::{
     ontology::{
@@ -21,7 +20,6 @@ use crate::{
 };
 
 /// Describes the API of a store implementation for [`DataType`]s.
-#[async_trait]
 pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// Creates a new [`DataType`].
     ///
@@ -51,55 +49,55 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_data_types(
+    fn create_data_types(
         &mut self,
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<OntologyElementMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(
+    fn get_data_type(
         &self,
-        query: &StructuralQuery<DataTypeWithMetadata>,
-    ) -> Result<Subgraph, QueryError>;
+        query: &StructuralQuery<'_, DataTypeWithMetadata>,
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn update_data_type(
+    fn update_data_type(
         &mut self,
         data_type: DataType,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyElementMetadata, UpdateError>> + Send;
 
     /// Archives the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn archive_data_type(
+    fn archive_data_type(
         &mut self,
         id: &VersionedUrl,
         actor_id: RecordArchivedById,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
     /// Restores the definition of an existing [`DataType`].
     ///
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    async fn unarchive_data_type(
+    fn unarchive_data_type(
         &mut self,
         id: &VersionedUrl,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
