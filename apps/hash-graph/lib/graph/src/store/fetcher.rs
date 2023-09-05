@@ -95,7 +95,6 @@ where
     }
 }
 
-#[async_trait]
 impl<P, A> StorePool for FetchingPool<P, A>
 where
     P: StorePool + Send + Sync,
