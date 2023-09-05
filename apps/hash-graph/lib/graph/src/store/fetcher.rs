@@ -669,7 +669,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityTypeStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
@@ -698,7 +697,7 @@ where
 
     async fn get_entity_type(
         &self,
-        query: &StructuralQuery<EntityTypeWithMetadata>,
+        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         self.store.get_entity_type(query).await
     }
