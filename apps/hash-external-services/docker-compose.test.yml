@@ -14,12 +14,15 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${HASH_SPICEDB_HTTP_PORT}:8443"
-      - "${HASH_SPICEDB_GRPC_PORT}:50051"
+      - "${HASH_SPICEDB_HTTP_PORT}:${HASH_SPICEDB_HTTP_PORT}"
+      - "${HASH_SPICEDB_GRPC_PORT}:${HASH_SPICEDB_GRPC_PORT}"
     restart: on-failure
     environment:
       SPICEDB_HTTP_ENABLED: "True"
-      SPICEDB_READONLY_HTTP_ENABLED: "True"
+      # Mimic the Database Version for now
+      SPICEDB_HTTP_ADDR: ":${HASH_SPICEDB_HTTP_PORT}"
+      HASH_SPICEDB_GRPC_PORT: ":${HASH_SPICEDB_GRPC_PORT}"
+      SPICEDB_READONLY_GRPC_ENABLED: "False"
       SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
       SPICEDB_TELEMETRY_ENDPOINT: ""
       SPICEDB_LOG_FORMAT: "console"
