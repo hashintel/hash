@@ -1,4 +1,5 @@
-use async_trait::async_trait;
+use std::future::Future;
+
 use error_stack::Result;
 use graph_types::{
     knowledge::{
@@ -18,7 +19,6 @@ use crate::{
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
-#[async_trait]
 pub trait EntityStore: crud::Read<Entity> {
     /// Creates a new [`Entity`].
     ///
@@ -31,7 +31,7 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn create_entity(
+    fn create_entity(
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
@@ -41,7 +41,7 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
-    ) -> Result<EntityMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<EntityMetadata, InsertionError>> + Send;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -62,7 +62,7 @@ pub trait EntityStore: crud::Read<Entity> {
     /// [`EntityType`]: type_system::EntityType
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type(
+    fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
             Item = (
@@ -76,14 +76,17 @@ pub trait EntityStore: crud::Read<Entity> {
         > + Send,
         actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
-    ) -> Result<Vec<EntityMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<EntityMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError>;
+    fn get_entity(
+        &self,
+        query: &StructuralQuery<Entity>,
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update an existing [`Entity`].
     ///
@@ -96,7 +99,7 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn update_entity(
+    fn update_entity(
         &mut self,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -105,5 +108,5 @@ pub trait EntityStore: crud::Read<Entity> {
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
-    ) -> Result<EntityMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<EntityMetadata, UpdateError>> + Send;
 }
