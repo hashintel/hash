@@ -103,7 +103,6 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
-#[async_trait]
 pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// Creates a new [`PropertyType`].
     ///
@@ -133,57 +132,57 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
-    async fn create_property_types(
+    fn create_property_types(
         &mut self,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
         > + Send,
         on_conflict: ConflictBehavior,
-    ) -> Result<Vec<OntologyElementMetadata>, InsertionError>;
+    ) -> impl Future<Output = Result<Vec<OntologyElementMetadata>, InsertionError>> + Send;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(
+    fn get_property_type(
         &self,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
-    ) -> Result<Subgraph, QueryError>;
+    ) -> impl Future<Output = Result<Subgraph, QueryError>> + Send;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn update_property_type(
+    fn update_property_type(
         &mut self,
         property_type: PropertyType,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyElementMetadata, UpdateError>> + Send;
 
     /// Archives the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn archive_property_type(
+    fn archive_property_type(
         &mut self,
         id: &VersionedUrl,
         actor_id: RecordArchivedById,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 
     /// Restores the definition of an existing [`PropertyType`].
     ///
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    async fn unarchive_property_type(
+    fn unarchive_property_type(
         &mut self,
         id: &VersionedUrl,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyTemporalMetadata, UpdateError>;
+    ) -> impl Future<Output = Result<OntologyTemporalMetadata, UpdateError>> + Send;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
