@@ -534,7 +534,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> AccountStore for FetchingStore<S, A>
 where
     S: AccountStore + Send,
