@@ -18,9 +18,8 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{fs, io, sync::Arc};
+use std::{fs, future::Future, io, sync::Arc};
 
-use async_trait::async_trait;
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -81,17 +80,15 @@ use crate::{
     },
 };
 
-#[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type(
+    fn load_external_type(
         &mut self,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, StatusCode>;
+    ) -> impl Future<Output = Result<OntologyElementMetadata, StatusCode>> + Send;
 }
 
-#[async_trait]
 impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
