@@ -6,6 +6,7 @@ use std::{
     time::Duration,
 };
 
+use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
@@ -378,6 +379,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
 
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
+        authorization_api: Arc::new(NoAuthorization),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 

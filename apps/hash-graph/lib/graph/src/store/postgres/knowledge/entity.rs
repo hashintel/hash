@@ -1,10 +1,19 @@
 mod read;
 
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    future::ready,
+};
 
 use async_trait::async_trait;
+use authorization::{
+    zanzibar::{Consistency, Zookie},
+    AuthorizationApi,
+};
 use error_stack::{Report, Result, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
+    account::AccountId,
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
@@ -45,8 +54,11 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
-    pub(crate) async fn traverse_entities(
+    #[tracing::instrument(
+        level = "trace",
+        skip(self, traversal_context, subgraph, authorization_api, zookie)
+    )]
+    pub(crate) async fn traverse_entities<A>(
         &self,
         mut entity_queue: Vec<(
             EntityVertexId,
@@ -54,8 +66,13 @@ impl<C: AsClient> PostgresStore<C> {
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
+        authorization_api: &A,
+        zookie: Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), QueryError>
+    where
+        A: AuthorizationApi + Sync,
+    {
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
@@ -155,9 +172,43 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(traversal_data) =
                     knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
                 {
+                    let (entity_ids, knowledge_edges): (Vec<_>, Vec<_>) = self
+                        .read_knowledge_edges(traversal_data, table, edge_direction)
+                        .await?
+                        .unzip();
+
+                    if knowledge_edges.is_empty() {
+                        continue;
+                    }
+
+                    let permissions = authorization_api
+                        .view_entities(
+                            AccountId::new(Uuid::nil()),
+                            // TODO: Filter for entities, which were not already added to the
+                            //       subgraph to avoid unnecessary lookups.
+                            entity_ids.iter().copied(),
+                            Consistency::AtExactSnapshot(&zookie),
+                        )
+                        .await
+                        .change_context(QueryError)?
+                        .0
+                        .try_collect::<HashMap<_, _>>()
+                        .await
+                        .change_context(QueryError)?;
+
                     entity_queue.extend(
-                        self.read_knowledge_edges(traversal_data, table, edge_direction)
-                            .await?
+                        knowledge_edges
+                            .into_iter()
+                            .zip(entity_ids)
+                            .filter_map(|(edge, entity_id)| {
+                                // We can unwrap here because we checked permissions for all
+                                // entities in question.
+                                permissions
+                                    .get(&entity_id)
+                                    .copied()
+                                    .unwrap_or(true)
+                                    .then_some(edge)
+                            })
                             .flat_map(|edge| {
                                 subgraph.insert_edge(
                                     &edge.left_endpoint,
@@ -503,8 +554,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
+    // #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn get_entity<A: AuthorizationApi + Sync>(
+        &self,
+        query: &StructuralQuery<Entity>,
+        authorization_api: &A,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
@@ -514,11 +569,38 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
+        let mut entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
+            .collect::<HashMap<_, _>>();
+        // TODO: The subgraph structure differs from the API interface. At the API the vertices
+        //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
+        //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
+        //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+        let filtered_ids = entities
+            .keys()
+            .map(|vertex_id| vertex_id.base_id)
+            .collect::<HashSet<_>>();
+
+        let (permissions, zookie) = authorization_api
+            .view_entities(
+                AccountId::new(Uuid::nil()),
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
+
+        let permitted_ids = permissions
+            .try_filter_map(|(entity_id, has_permission)| {
+                ready(Ok(has_permission.then_some(entity_id)))
+            })
+            .try_collect::<HashSet<_>>()
+            .await
+            .change_context(QueryError)?;
+
+        entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id));
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
@@ -549,6 +631,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 })
                 .collect(),
             &mut traversal_context,
+            authorization_api,
+            zookie,
             &mut subgraph,
         )
         .await?;
