@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/shared";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
 import {
   EntityId,
   EntityPropertiesObject,
@@ -58,7 +58,10 @@ type FileUploadRequestData = {
   ownedById: OwnedById;
 };
 
-type FileUploadEntities = { fileEntity: RemoteFile; linkEntity?: LinkEntity };
+type FileUploadEntities = {
+  fileEntity: FileEntityType;
+  linkEntity?: LinkEntity;
+};
 
 type FileUpload = FileUploadRequestData & {
   createdEntities?: FileUploadEntities;
@@ -145,13 +148,18 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       let fileEntity;
 
+      const { description, entityTypeId, name } = fileData;
+
       // First, upload the file (either from a url or from a file)
       if ("url" in fileData && fileData.url.trim()) {
         try {
           const { data, errors } = await createFileFromUrlFn({
             variables: {
-              ...fileData,
+              description,
+              displayName: name,
+              entityTypeId,
               ownedById,
+              url: fileData.url,
             },
           });
 
@@ -159,7 +167,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = data.createFileFromUrl as unknown as RemoteFile;
+          fileEntity = data.createFileFromUrl as unknown as FileEntityType;
         } catch (err) {
           // createFileFromUrlFn might itself throw rather than return errors, thus this catch
 
@@ -178,8 +186,11 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         try {
           const { data, errors } = await requestFileUploadFn({
             variables: {
-              ...fileData,
+              description,
+              entityTypeId,
               ownedById,
+              displayName: name,
+              name: fileData.file.name,
               size: fileData.file.size,
             },
           });
@@ -188,7 +199,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = data.requestFileUpload.entity as unknown as RemoteFile;
+          fileEntity = data.requestFileUpload
+            .entity as unknown as FileEntityType;
 
           /**
            * Upload file with presignedPost data to storage provider

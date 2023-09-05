@@ -16,7 +16,7 @@ export const createFileFromUrl: ResolverFn<
   MutationCreateFileFromUrlArgs
 > = async (
   _,
-  { description, entityTypeId, ownedById, name, url },
+  { description, entityTypeId, ownedById, displayName, url },
   { dataSources, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -24,8 +24,8 @@ export const createFileFromUrl: ResolverFn<
   const entity = await createFileFromExternalUrl(context, {
     actorId: user.accountId,
     description,
+    displayName,
     entityTypeId,
-    name,
     ownedById: ownedById ?? (user.accountId as OwnedById),
     url,
   });

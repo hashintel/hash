@@ -1,8 +1,5 @@
 import { TextField } from "@hashintel/design-system";
-import {
-  blockProtocolTypes,
-  types,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
@@ -143,10 +140,10 @@ export const OrgForm = ({
     const { data: fileUploadData, errors: fileUploadErrors } = await uploadFile(
       {
         data: {
-          description: `${nameWatcher}'s avatar`,
-          entityTypeId: types.entityType.imageFile,
+          description: `The avatar for the ${nameWatcher} organization in HASH`,
+          name: `${nameWatcher}'s avatar`,
+          entityTypeId: types.entityType.imageFile.entityTypeId,
           file,
-          name: file.name,
         },
       },
     );

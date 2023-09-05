@@ -2,7 +2,10 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
+  descriptionPropertyTypeUrl,
   EntityTypeWithMetadata,
+  fileUrlPropertyTypeUrl,
+  mimeTypePropertyTypeUrl,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -22,7 +25,6 @@ export let SYSTEM_TYPES: {
   dataType: {};
   propertyType: {
     // General
-    description: PropertyTypeWithMetadata;
     location: PropertyTypeWithMetadata;
     // @todo use 'url' when this is available? or rename to websiteUrl?
     website: PropertyTypeWithMetadata;
@@ -220,9 +222,6 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortname(context);
 
-  const descriptionPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.description(context);
-
   const locationPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
 
@@ -254,7 +253,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
-        propertyType: descriptionPropertyType,
+        propertyType: descriptionPropertyTypeUrl,
         required: false,
       },
       {
@@ -280,11 +279,6 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
   })(context);
 };
-
-const descriptionPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.description,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
 
 const locationPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.location,
@@ -463,21 +457,14 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ...types.entityType.file,
     properties: [
       {
-        propertyType:
-          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
+        propertyType: fileUrlPropertyTypeUrl,
         required: true,
       },
       {
-        propertyType:
-          "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+        propertyType: descriptionPropertyTypeUrl,
       },
       {
-        propertyType:
-          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
-      },
-      {
-        propertyType:
-          "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/v/1",
+        propertyType: mimeTypePropertyTypeUrl,
       },
       {
         propertyType:
@@ -808,7 +795,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 > = {
   dataType: {},
   propertyType: {
-    description: descriptionPropertyTypeInitializer,
     location: locationPropertyTypeInitializer,
     website: websitePropertyTypeInitializer,
 

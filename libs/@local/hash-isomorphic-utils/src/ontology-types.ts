@@ -137,7 +137,7 @@ const systemEntityTypes = {
     description: "A file hosted at a URL",
   },
   imageFile: {
-    title: "Image File",
+    title: "Image",
     description: "An image file hosted at a URL",
   },
   user: {

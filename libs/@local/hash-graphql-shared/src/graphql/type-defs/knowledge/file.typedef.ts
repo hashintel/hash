@@ -38,13 +38,17 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from @hash/file
+      Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
       """
       entityTypeId: VersionedUrl
       """
-      An optional name for the file
+      The original name of the file (e.g. image.png)
       """
-      name: String
+      name: String!
+      """
+      An optional display name for the file
+      """
+      displayName: String
       """
       The owner for the created file entity. Defaults to the user calling the mutation.
       """
@@ -64,13 +68,13 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from @hash/file
+      Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
       """
       entityTypeId: VersionedUrl
       """
-      An optional name for the file
+      An optional display name for the file
       """
-      name: String
+      displayName: String
       """
       The owner for the created file entity. Defaults to the user calling the mutation.
       """

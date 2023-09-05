@@ -114,13 +114,13 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
 };
 
 type OptionRenderData = {
-  /** a unique id for this option, which will be used as a key for the option */
-  uniqueId: string;
-  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: VersionedUrl;
+  description?: string;
   Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
-  description?: string;
+  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
+  typeId: VersionedUrl;
+  /** a unique id for this option, which will be used as a key for the option */
+  uniqueId: string;
 };
 
 type SelectorAutocompleteProps<

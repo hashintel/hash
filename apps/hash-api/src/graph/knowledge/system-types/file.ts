@@ -30,7 +30,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
 
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, description, entityTypeId, name } = params;
+  const { ownedById, actorId, description, displayName, name, entityTypeId } =
+    params;
 
   const fileIdentifier = genId();
 
@@ -44,15 +45,20 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     //    (or checks that it has at least the same properties)
     entityTypeId || types.entityType.file.entityTypeId;
 
+  const mimeType = mime.lookup(name) || "application/octet-stream";
+
   try {
-    // We don't have the file and so don't have its own name or mimetype
     const properties: Partial<FileProperties> = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        name ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        displayName ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+        mimeType,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
+        name,
     };
 
     const entity = (await createEntity(ctx, {
@@ -84,7 +90,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
 > = async (ctx, params) => {
   const { ownedById, actorId, description, entityTypeId, url } = params;
 
-  const filename = params.name || url.split("/").pop()!;
+  const filename = url.split("/").pop()!;
   const mimeType = mime.lookup(filename) || "application/octet-stream";
 
   const fileEntityTypeId =
@@ -100,7 +106,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         url,
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
         mimeType,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
         filename,
     };
 

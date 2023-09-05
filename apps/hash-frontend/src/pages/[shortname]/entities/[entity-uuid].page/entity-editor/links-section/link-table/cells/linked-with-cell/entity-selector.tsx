@@ -122,7 +122,7 @@ export const EntitySelector = ({
       throw new Error("Cannot upload file without active workspace");
     }
     const { createdEntities } = await uploadFile({
-      fileData: { file },
+      fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
       ownedById: activeWorkspaceAccountId as OwnedById,
     });
     onSelect(createdEntities!.fileEntity as unknown as Entity);

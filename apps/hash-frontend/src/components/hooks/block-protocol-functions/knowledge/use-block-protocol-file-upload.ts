@@ -16,6 +16,25 @@ import {
 } from "../../../../graphql/queries/knowledge/file.queries";
 import { UploadFileRequestCallback } from "./knowledge-shim";
 
+const uploadFileToStorageProvider = async (
+  presignedPostData: RequestFileUploadResponse["presignedPost"],
+  file: File,
+) => {
+  const formData = new FormData();
+  const { url, fields } = presignedPostData;
+
+  for (const [key, val] of Object.entries(fields)) {
+    formData.append(key, val as string);
+  }
+
+  formData.append("file", file);
+
+  return await fetch(url, {
+    method: "POST",
+    body: formData,
+  });
+};
+
 export const useBlockProtocolFileUpload = (
   ownedById?: OwnedById,
   _readonly?: boolean,
@@ -29,25 +48,6 @@ export const useBlockProtocolFileUpload = (
     CreateFileFromUrlMutation,
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
-
-  const uploadFileToStorageProvider = async (
-    presignedPostData: RequestFileUploadResponse["presignedPost"],
-    file: File,
-  ) => {
-    const formData = new FormData();
-    const { url, fields } = presignedPostData;
-
-    for (const [key, val] of Object.entries(fields)) {
-      formData.append(key, val as string);
-    }
-
-    formData.append("file", file);
-
-    return await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-  };
 
   const uploadFile: UploadFileRequestCallback = useCallback(
     async ({ data: fileUploadData }) => {
@@ -71,7 +71,7 @@ export const useBlockProtocolFileUpload = (
             description,
             entityTypeId,
             ownedById,
-            name,
+            displayName: name,
             url,
           },
         });
@@ -111,7 +111,8 @@ export const useBlockProtocolFileUpload = (
           description,
           entityTypeId,
           ownedById,
-          name,
+          displayName: name,
+          name: file.name,
           size: file.size,
         },
       });

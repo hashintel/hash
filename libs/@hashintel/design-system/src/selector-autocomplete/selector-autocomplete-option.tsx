@@ -1,3 +1,4 @@
+import { BaseUrl, EntityPropertiesObject } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Box, Stack, SvgIconProps, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
@@ -6,20 +7,44 @@ import { FunctionComponent, HTMLAttributes } from "react";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
 import { OntologyChip, parseUrlForOntologyChip } from "../ontology-chip";
 
+const descriptionPropertyKey: BaseUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
+
+const fileUrlPropertyKey: BaseUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/";
+
+const mimeTypePropertyKey: BaseUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/";
+
 export const SelectorAutocompleteOption = ({
   liProps,
   description,
+  entityProperties,
   Icon,
   title,
   typeId,
 }: {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
+  entityProperties?: EntityPropertiesObject;
   Icon: FunctionComponent<SvgIconProps> | null;
   title: string;
   typeId: VersionedUrl;
+  typeChip?: FunctionComponent | null;
 }) => {
   const ontology = parseUrlForOntologyChip(typeId);
+
+  const subtitle =
+    description ??
+    (entityProperties?.[descriptionPropertyKey] as string | undefined);
+
+  const mimeType = entityProperties?.[mimeTypePropertyKey] as
+    | string
+    | undefined;
+
+  const imageUrl = mimeType?.startsWith("image/")
+    ? (entityProperties?.[fileUrlPropertyKey] as string | undefined)
+    : undefined;
 
   return (
     <li
@@ -104,6 +129,7 @@ export const SelectorAutocompleteOption = ({
               })}
             />
           </Tooltip>
+          {imageUrl && <Image alt={subtitle ?? ""} src={imageUrl} />}
         </Box>
         <Typography
           component={Box}
@@ -116,7 +142,7 @@ export const SelectorAutocompleteOption = ({
             width: "100%",
           })}
         >
-          {description}
+          {subtitle}
         </Typography>
       </Box>
     </li>
