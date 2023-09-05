@@ -74,7 +74,7 @@ impl SpiceDb {
 
     // TODO: Expose batch-version
     //   see https://linear.app/hash/issue/H-642
-    async fn modify_relationship<'p, 't, T>(
+    async fn modify_relations<'p, 't, T>(
         &self,
         operations: impl IntoIterator<
             Item = (model::RelationshipUpdateOperation, &'t T),
@@ -107,33 +107,36 @@ impl SpiceDb {
         }
 
         let response = self
-            .call::<RequestResponse>("/v1/relationships/write", &RequestBody {
-                updates: operations
-                    .into_iter()
-                    .map(|(operation, tuple)| RelationshipUpdate {
-                        operation,
-                        relationship: model::Relationship {
-                            resource: model::ObjectReference {
-                                object_type: tuple.resource_namespace(),
-                                object_id: tuple.resource_id(),
-                            },
-                            relation: tuple.affiliation(),
-                            subject: model::SubjectReference {
-                                object: model::ObjectReference {
-                                    object_type: tuple.subject_namespace(),
-                                    object_id: tuple.subject_id(),
+            .call::<RequestResponse>(
+                "/v1/relationships/write",
+                &RequestBody {
+                    updates: operations
+                        .into_iter()
+                        .map(|(operation, tuple)| RelationshipUpdate {
+                            operation,
+                            relationship: model::Relationship {
+                                resource: model::ObjectReference {
+                                    object_type: tuple.resource_namespace(),
+                                    object_id: tuple.resource_id(),
                                 },
-                                optional_relation: tuple.subject_set(),
+                                relation: tuple.affiliation(),
+                                subject: model::SubjectReference {
+                                    object: model::ObjectReference {
+                                        object_type: tuple.subject_namespace(),
+                                        object_id: tuple.subject_id(),
+                                    },
+                                    optional_relation: tuple.subject_set(),
+                                },
+                                optional_caveat: None,
                             },
-                            optional_caveat: None,
-                        },
-                    })
-                    .collect(),
-                optional_preconditions: preconditions
-                    .into_iter()
-                    .map(model::Precondition::from)
-                    .collect(),
-            })
+                        })
+                        .collect(),
+                    optional_preconditions: preconditions
+                        .into_iter()
+                        .map(model::Precondition::from)
+                        .collect(),
+                },
+            )
             .await?;
 
         Ok(response.written_at.into())
@@ -194,7 +197,7 @@ impl AuthorizationApi for SpiceDb {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relation<'p, 't, T>(
+    async fn create_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -202,7 +205,7 @@ impl AuthorizationApi for SpiceDb {
     where
         T: Tuple + Send + Sync + 't,
     {
-        self.modify_relationship(
+        self.modify_relations(
             repeat(model::RelationshipUpdateOperation::Create).zip(tuples),
             preconditions,
         )
@@ -215,7 +218,7 @@ impl AuthorizationApi for SpiceDb {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relation<'p, 't, T>(
+    async fn delete_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -223,7 +226,7 @@ impl AuthorizationApi for SpiceDb {
     where
         T: Tuple + Send + Sync + 't,
     {
-        self.modify_relationship(
+        self.modify_relations(
             repeat(model::RelationshipUpdateOperation::Delete).zip(tuples),
             preconditions,
         )
@@ -236,7 +239,7 @@ impl AuthorizationApi for SpiceDb {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relations<'f>(
+    async fn delete_relations_by_filter<'f>(
         &mut self,
         filter: RelationFilter<'_>,
         preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,

@@ -1,38 +1,44 @@
-"area: apps":
+"area/apps":
   - "apps/**"
 
-"area: apps > hash*":
+"area/apps > hash*":
   - "apps/hash-*/**"
   - "libs/@local/hash-*/**"
 
-"area: apps > hash.ai":
+"area/apps > hash.ai":
   - "apps/hashdotai/docs/**"
   - "apps/hashdotai/glossary/**"
 
-"area: apps > hash-api":
+"area/apps > hash-api":
   - "apps/hash-api/**"
 
-"area: apps > hash-graph":
+"area/apps > hash.design":
+  - "apps/hashdotdesign/**"
+
+"area/apps > hash.dev":
+  - "apps/hashdotdev/**"
+
+"area/apps > hash-graph":
   - "apps/hash-graph/**"
 
-"area: apps > hash-realtime":
+"area/apps > hash-realtime":
   - "apps/hash-realtime/**"
 
-"area: apps > hash-search-loader":
+"area/apps > hash-search-loader":
   - "apps/hash-search-loader/**"
 
-"area: apps > sim-engine":
-  - "apps/engine/**"
-
-"area: blocks":
+"area/blocks":
   - "blocks/**"
 
-"area: deps":
+"area/deps":
   - "**/patches/**"
   - "**/Cargo.lock"
   - "**/yarn.lock"
 
-"area: infra":
+"area/dx":
+  - ".vscode/**"
+
+"area/infra":
   - "infra/**"
   - "**/*.md"
   - "**/.changeset/config.json"
@@ -40,48 +46,48 @@
   - "**/.*ignore"
   - "**/.markdownlint*"
 
-"area: infra > docker":
+"area/infra > docker":
   - "infra/docker/**"
 
-"area: infra > terraform":
+"area/infra > terraform":
   - "infra/terraform/**"
 
-"area: libs":
+"area/libs":
   - "libs/**"
 
-"area: libs > antsi":
+"area/libs > antsi":
   - "libs/antsi/**"
 
-"area: libs > deer":
+"area/libs > deer":
   - "libs/deer/**"
 
-"area: libs > error-stack":
+"area/libs > error-stack":
   - "libs/error-stack/**"
 
-"area: libs > sarif":
+"area/libs > sarif":
   - "libs/sarif/**"
 
-"area: tests":
+"area/tests":
   - "tests/**"
   - "**/tests/**"
   - "**/test/**"
 
-"area: tests > integration":
+"area/tests > integration":
   - "tests/hash-backend-integration/**"
 
-"area: tests > playwright":
+"area/tests > playwright":
   - "tests/hash-playwright/**"
 
-"type: backend":
+"type/eng > backend":
   - "apps/hash-graph/**"
   - "apps/hash-api/**"
   - "libs/@local/**"
 
-"type: frontend":
+"type/eng > frontend":
   - "apps/hash-frontend/**"
   - "libs/@hashintel/**"
 
-"type: legal":
+"type/legal":
   - "**/LICENSE**"
   - "**/NOTICE**"
   - "**/THIRD_PARTY_NOTICES**"

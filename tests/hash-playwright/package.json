@@ -9,6 +9,7 @@
     "test": "playwright test --project chromium"
   },
   "dependencies": {
+    "@apps/hash-frontend": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",

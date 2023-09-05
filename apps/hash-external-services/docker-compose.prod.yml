@@ -248,6 +248,7 @@ services:
       HASH_REDIS_PORT: "6379"
 
       HASH_OPENSEARCH_ENABLED: "false"
+      HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME}"
 
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
       ORY_KRATOS_ADMIN_URL: "http://kratos:4434"

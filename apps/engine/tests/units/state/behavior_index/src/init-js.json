@@ -1,7 +1,0 @@
-[
-  {
-    "behaviors": ["first.js", "second.js", "third.js"],
-    "valid": true,
-    "index": 0
-  }
-]

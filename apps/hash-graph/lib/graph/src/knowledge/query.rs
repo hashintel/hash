@@ -121,11 +121,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
     /// # use graph::subgraph::edges::SharedEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["type", "baseUrl"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityTypeEdge {
-    ///     edge_kind: SharedEdgeKind::IsOfType,
-    ///     path: EntityTypeQueryPath::BaseUrl,
-    ///     inheritance_depth: None,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityTypeEdge {
+    ///         edge_kind: SharedEdgeKind::IsOfType,
+    ///         path: EntityTypeQueryPath::BaseUrl,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -137,11 +140,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
     /// # use graph::subgraph::edges::SharedEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["type(inheritanceDepth = 10)", "baseUrl"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityTypeEdge {
-    ///     edge_kind: SharedEdgeKind::IsOfType,
-    ///     path: EntityTypeQueryPath::BaseUrl,
-    ///     inheritance_depth: Some(10),
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityTypeEdge {
+    ///         edge_kind: SharedEdgeKind::IsOfType,
+    ///         path: EntityTypeQueryPath::BaseUrl,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -166,11 +172,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::knowledge::EntityQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityEdge {
-    ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-    ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     direction: EdgeDirection::Outgoing,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityEdge {
+    ///         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+    ///         path: Box::new(EntityQueryPath::Uuid),
+    ///         direction: EdgeDirection::Outgoing,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -189,11 +198,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::knowledge::EntityQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityEdge {
-    ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-    ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     direction: EdgeDirection::Outgoing,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityEdge {
+    ///         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+    ///         path: Box::new(EntityQueryPath::Uuid),
+    ///         direction: EdgeDirection::Outgoing,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -213,11 +225,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::knowledge::EntityQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["incomingLinks", "uuid"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityEdge {
-    ///     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-    ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     direction: EdgeDirection::Incoming,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityEdge {
+    ///         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+    ///         path: Box::new(EntityQueryPath::Uuid),
+    ///         direction: EdgeDirection::Incoming,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -235,11 +250,14 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::knowledge::EntityQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["outgoingLinks", "uuid"]))?;
-    /// assert_eq!(path, EntityQueryPath::EntityEdge {
-    ///     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-    ///     path: Box::new(EntityQueryPath::Uuid),
-    ///     direction: EdgeDirection::Incoming,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::EntityEdge {
+    ///         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+    ///         path: Box::new(EntityQueryPath::Uuid),
+    ///         direction: EdgeDirection::Incoming,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EntityEdge {

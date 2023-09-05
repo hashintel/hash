@@ -1,9 +1,3 @@
-# Libraries
-/libs/antsi/ @hashintel/antsi
-/libs/deer/ @hashintel/deer
-/libs/error-stack/ @hashintel/error-stack
-/libs/sarif/ @hashintel/sarif
-
 # Legal
 LICENSE @hashintel/legal
 LICENSE.txt @hashintel/legal

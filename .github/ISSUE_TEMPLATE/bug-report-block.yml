@@ -1,8 +1,8 @@
 name: Bug Report (Blocks)
 description: Create a report to help us improve our blocks
 labels:
-  - "area: blocks"
-  - "category: bug"
+  - "area/blocks"
+  - "category/bug"
 body:
   - type: markdown
     attributes:

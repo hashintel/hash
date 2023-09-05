@@ -1,6 +1,0 @@
-{
-  "@b/property_data/sf900homes100offices.csv": "1.0.0",
-  "@hash/create-stacks/create_stacks.js": "2.2.0",
-  "@hash/move-in-direction/move_in_direction.rs": "1.0.0",
-  "@hash/remove-self/remove_self.js": "2.1.0"
-}

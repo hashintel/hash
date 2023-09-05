@@ -381,9 +381,9 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         });
 
         // Add a WITH expression selecting the partitioned version
-        self.statement
-            .with
-            .add_statement(Table::OntologyIds, SelectStatement {
+        self.statement.with.add_statement(
+            Table::OntologyIds,
+            SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -405,7 +405,8 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
-            });
+            },
+        );
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version

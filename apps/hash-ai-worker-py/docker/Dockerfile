@@ -1,6 +1,6 @@
 FROM python:3.11.3-slim-bullseye as python-base
 
-FROM node:16.18.1-bullseye-slim AS base
+FROM node:18.15-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
