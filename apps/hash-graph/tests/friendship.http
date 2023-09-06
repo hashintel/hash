@@ -2,6 +2,7 @@
 
 ### Create account
 POST http://127.0.0.1:4000/accounts
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
     client.test("status", function() {
@@ -13,6 +14,7 @@ POST http://127.0.0.1:4000/accounts
 ### Get all data types
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -74,6 +76,7 @@ Content-Type: application/json
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -108,6 +111,7 @@ Accept: application/json
 POST http://127.0.0.1:4000/data-types/load
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "actorId": "{{account_id}}",
@@ -124,6 +128,7 @@ Accept: application/json
 ### Get Text data type
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -194,6 +199,7 @@ Content-Type: application/json
 PUT http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "actorId": "{{account_id}}",
@@ -217,6 +223,7 @@ Accept: application/json
 POST http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -244,6 +251,7 @@ Accept: application/json
 ### Get Name property type
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -308,6 +316,7 @@ Content-Type: application/json
 PUT http://127.0.0.1:4000/property-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "actorId": "{{account_id}}",
@@ -333,6 +342,7 @@ Accept: application/json
 ### Get all latest property types
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -403,6 +413,7 @@ Content-Type: application/json
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -432,6 +443,7 @@ Accept: application/json
 ### Get Friendship entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -502,6 +514,7 @@ Content-Type: application/json
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -530,6 +543,7 @@ Accept: application/json
 ### Get Person entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -594,6 +608,7 @@ Content-Type: application/json
 PUT http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "actorId": "{{account_id}}",
@@ -634,6 +649,7 @@ Accept: application/json
 ### Get all latest entity types
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -703,6 +719,7 @@ Content-Type: application/json
 ### Get entity types by label property
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -772,6 +789,7 @@ Content-Type: application/json
 ### Get all link entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -843,6 +861,7 @@ Content-Type: application/json
 ### Get all parent entity types
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -913,6 +932,7 @@ Content-Type: application/json
 ### Get all entity types which links to a link (should be none)
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -988,6 +1008,7 @@ Content-Type: application/json
 ### Get all entity types starting with "http://localhost:3000/@alice"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1051,6 +1072,7 @@ Content-Type: application/json
 ### Get all entity types, where the title ends with "ship"
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1116,6 +1138,7 @@ Content-Type: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -1138,6 +1161,7 @@ Accept: application/json
 ### Get latest Person entity
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1222,6 +1246,7 @@ Content-Type: application/json
 PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
  "actorId": "{{account_id}}",
@@ -1243,6 +1268,7 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -1264,6 +1290,7 @@ Accept: application/json
 ### Get all latest entities by using a query
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1327,6 +1354,7 @@ POST http://127.0.0.1:4000/entities
 // TODO insert ordered link
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
@@ -1348,6 +1376,7 @@ Accept: application/json
 ### Get all link entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1420,6 +1449,7 @@ Content-Type: application/json
 ### Get link by source and target
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1506,6 +1536,7 @@ Content-Type: application/json
 PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
  "actorId": "{{account_id}}",
@@ -1527,6 +1558,7 @@ Accept: application/json
 // Only person_a and the link remains as entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1595,6 +1627,7 @@ Content-Type: application/json
 ### Get all archived entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
@@ -1663,6 +1696,7 @@ Content-Type: application/json
 ### Get all entities where the name property contains "Alice"
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "filter": {
