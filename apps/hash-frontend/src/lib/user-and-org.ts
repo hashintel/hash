@@ -1,6 +1,6 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
+import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
   OrgMembershipProperties,
   OrgProperties,
@@ -226,7 +226,7 @@ export const constructMinimalOrg = (params: {
 export type Org = MinimalOrg & {
   hasAvatar?: {
     linkEntity: LinkEntity;
-    rightEntity: ImageFile;
+    rightEntity: Image;
   };
   memberships: {
     membershipEntity: Entity<OrgMembershipProperties>;
@@ -275,7 +275,7 @@ export const constructOrg = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
-        rightEntity: hasAvatar.rightEntity[0] as unknown as ImageFile,
+        rightEntity: hasAvatar.rightEntity[0] as unknown as Image,
       }
     : undefined;
 
