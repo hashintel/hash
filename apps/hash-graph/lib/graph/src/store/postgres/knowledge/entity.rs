@@ -2,6 +2,7 @@ mod read;
 
 use std::collections::HashMap;
 
+use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     knowledge::{
@@ -211,6 +212,7 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
+#[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, properties))]
     async fn create_entity(
@@ -502,10 +504,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity(
-        &self,
-        query: &StructuralQuery<'_, Entity>,
-    ) -> Result<Subgraph, QueryError> {
+    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,

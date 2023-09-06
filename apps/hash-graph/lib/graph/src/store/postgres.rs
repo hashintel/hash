@@ -6,6 +6,7 @@ mod pool;
 mod query;
 mod traversal_context;
 
+use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -1196,6 +1197,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 }
 
+#[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {

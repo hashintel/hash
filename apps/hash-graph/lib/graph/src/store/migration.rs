@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use error_stack::Result;
 
 use super::error::MigrationError;
@@ -53,7 +54,8 @@ impl Migration {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait StoreMigration {
+#[async_trait]
+pub trait StoreMigration: Sync {
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError>;
 
     async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError>;

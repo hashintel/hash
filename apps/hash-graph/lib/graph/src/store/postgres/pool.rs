@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use bb8_postgres::{
     bb8::{ErrorSink, ManageConnection, Pool, PooledConnection, RunError},
     PostgresConnectionManager,
@@ -65,6 +66,7 @@ where
     }
 }
 
+#[async_trait]
 impl<Tls: Clone + Send + Sync + 'static> StorePool for PostgresStorePool<Tls>
 where
     Tls: MakeTlsConnect<
