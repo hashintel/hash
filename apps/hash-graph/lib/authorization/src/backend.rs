@@ -9,7 +9,7 @@ pub use self::spicedb::{SpiceDb, SpiceDbConfig};
 use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
-pub trait AuthorizationApi {
+pub trait ZanzibarBackend {
     /// Loads a schema into the backend.
     ///
     /// Please see the documentation on the corresponding backend for more information.
@@ -85,14 +85,14 @@ pub trait AuthorizationApi {
     ) -> Result<CheckResponse, Report<CheckError>>;
 }
 
-/// Return value for [`AuthorizationApi::import_schema`].
+/// Return value for [`ZanzibarBackend::import_schema`].
 #[derive(Debug)]
 pub struct ImportSchemaResponse {
     /// A token to determine the time at which the schema was writte.
     pub written_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::import_schema`].
+/// Error returned from [`ZanzibarBackend::import_schema`].
 #[derive(Debug)]
 pub struct ImportSchemaError;
 
@@ -104,7 +104,7 @@ impl fmt::Display for ImportSchemaError {
 
 impl Error for ImportSchemaError {}
 
-/// Return value for [`AuthorizationApi::export_schema`].
+/// Return value for [`ZanzibarBackend::export_schema`].
 #[derive(Debug)]
 pub struct ExportSchemaResponse {
     /// The schema text.
@@ -113,7 +113,7 @@ pub struct ExportSchemaResponse {
     pub read_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::export_schema`].
+/// Error returned from [`ZanzibarBackend::export_schema`].
 #[derive(Debug)]
 pub struct ExportSchemaError;
 
@@ -125,14 +125,14 @@ impl fmt::Display for ExportSchemaError {
 
 impl Error for ExportSchemaError {}
 
-/// Return value for [`AuthorizationApi::create_relations`].
+/// Return value for [`ZanzibarBackend::create_relations`].
 #[derive(Debug)]
 pub struct CreateRelationResponse {
     /// A token to determine the time at which the relation was created.
     pub written_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::create_relations`].
+/// Error returned from [`ZanzibarBackend::create_relations`].
 #[derive(Debug)]
 pub struct CreateRelationError;
 
@@ -144,14 +144,14 @@ impl fmt::Display for CreateRelationError {
 
 impl Error for CreateRelationError {}
 
-/// Return value for [`AuthorizationApi::delete_relations`].
+/// Return value for [`ZanzibarBackend::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationResponse {
     /// A token to determine the time at which the relation was deleted.
     pub deleted_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::delete_relations`].
+/// Error returned from [`ZanzibarBackend::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationError;
 
@@ -163,14 +163,14 @@ impl fmt::Display for DeleteRelationError {
 
 impl Error for DeleteRelationError {}
 
-/// Return value for [`AuthorizationApi::delete_relations`].
+/// Return value for [`ZanzibarBackend::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationsResponse {
     /// A token to determine the time at which the relation was deleted.
     pub deleted_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::delete_relations`].
+/// Error returned from [`ZanzibarBackend::delete_relations`].
 #[derive(Debug)]
 pub struct DeleteRelationsError;
 
@@ -182,7 +182,7 @@ impl fmt::Display for DeleteRelationsError {
 
 impl Error for DeleteRelationsError {}
 
-/// Return value for [`AuthorizationApi::check`].
+/// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]
 pub struct CheckResponse {
     /// If the subject has the specified permission or relation to an [`Resource`].
@@ -191,7 +191,7 @@ pub struct CheckResponse {
     pub checked_at: Zookie<'static>,
 }
 
-/// Error returned from [`AuthorizationApi::check`].
+/// Error returned from [`ZanzibarBackend::check`].
 #[derive(Debug)]
 pub struct CheckError {
     pub tuple: UntypedTuple<'static>,
@@ -271,16 +271,6 @@ impl<'f> RelationFilter<'f> {
         R: Resource + ?Sized,
     {
         self.affiliation = Some(relation.as_ref());
-        self
-    }
-
-    #[must_use]
-    pub fn by_permission<A, R>(mut self, permission: &'f A) -> Self
-    where
-        A: Relation<R> + ?Sized,
-        R: Resource + ?Sized,
-    {
-        self.affiliation = Some(permission.as_ref());
         self
     }
 

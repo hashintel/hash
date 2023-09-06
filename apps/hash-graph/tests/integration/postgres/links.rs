@@ -77,6 +77,7 @@ async fn insert() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn get_entity_links() {
     let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");

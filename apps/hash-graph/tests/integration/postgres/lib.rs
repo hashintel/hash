@@ -1,5 +1,5 @@
 #![cfg(test)]
-#![feature(associated_type_bounds)]
+#![feature(associated_type_bounds, lint_reasons)]
 #![allow(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -14,6 +14,7 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
+use authorization::NoAuthorization;
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -417,17 +418,20 @@ impl DatabaseApi<'_> {
     pub async fn get_entities(&self, entity_id: EntityId) -> Result<Vec<Entity>, QueryError> {
         Ok(self
             .store
-            .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                &StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await?
             .vertices
             .entities
@@ -442,17 +446,20 @@ impl DatabaseApi<'_> {
     ) -> Result<Entity, QueryError> {
         let entities = self
             .store
-            .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Inclusive(timestamp)),
-                        Some(LimitedTemporalBound::Inclusive(timestamp)),
-                    ),
+            .get_entity(
+                &StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Inclusive(timestamp)),
+                            Some(LimitedTemporalBound::Inclusive(timestamp)),
+                        ),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await?
             .vertices
             .entities
@@ -465,14 +472,17 @@ impl DatabaseApi<'_> {
     pub async fn get_latest_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
         let entities = self
             .store
-            .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_entity(
+                &StructuralQuery {
+                    filter: Filter::for_entity_by_entity_id(entity_id),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await?
             .vertices
             .entities
@@ -581,17 +591,20 @@ impl DatabaseApi<'_> {
 
         let mut subgraph = self
             .store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await?;
 
         let roots = subgraph
@@ -644,14 +657,17 @@ impl DatabaseApi<'_> {
 
         let mut subgraph = self
             .store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_entity(
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await?;
 
         Ok(subgraph

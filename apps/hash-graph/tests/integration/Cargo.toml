@@ -9,11 +9,12 @@ graph = { path = "../../lib/graph" }
 graph-test-data = { workspace = true }
 graph-types = { workspace = true }
 temporal-versioning = { workspace = true }
+authorization = { workspace = true }
 
 error-stack = { workspace = true }
 type-system = { workspace = true }
 
-futures = "0.3.28"
+futures = { workspace = true }
 rand = "0.8.5"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.105"

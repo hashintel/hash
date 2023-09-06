@@ -5,10 +5,10 @@ use std::{mem, thread::JoinHandle};
 
 use authorization::{
     backend::{
-        AuthorizationApi, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
+        CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDb,
+        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
     },
     zanzibar::{Consistency, Tuple, UntypedTuple},
 };
@@ -102,7 +102,7 @@ impl Drop for TestApi {
     }
 }
 
-impl AuthorizationApi for TestApi {
+impl ZanzibarBackend for TestApi {
     async fn import_schema(
         &mut self,
         schema: &str,

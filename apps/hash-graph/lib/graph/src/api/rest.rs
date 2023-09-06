@@ -21,6 +21,7 @@ mod property_type;
 use std::{fs, io, sync::Arc};
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -127,16 +128,17 @@ where
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router>
+fn api_resources<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>()
+-> Vec<Router>
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
     vec![
-        account::AccountResource::routes::<P>(),
-        data_type::DataTypeResource::routes::<P>(),
-        property_type::PropertyTypeResource::routes::<P>(),
-        entity_type::EntityTypeResource::routes::<P>(),
-        entity::EntityResource::routes::<P>(),
+        account::AccountResource::routes::<P, A>(),
+        data_type::DataTypeResource::routes::<P, A>(),
+        property_type::PropertyTypeResource::routes::<P, A>(),
+        entity_type::EntityTypeResource::routes::<P, A>(),
+        entity::EntityResource::routes::<P, A>(),
     ]
 }
 
@@ -160,8 +162,12 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-pub struct RestRouterDependencies<P: StorePool + Send + 'static> {
+pub struct RestRouterDependencies<
+    P: StorePool + Send + 'static,
+    A: AuthorizationApi + Send + Sync + 'static,
+> {
     pub store: Arc<P>,
+    pub authorization_api: Arc<A>,
     pub domain_regex: DomainValidator,
 }
 
@@ -179,14 +185,14 @@ pub fn openapi_only_router() -> Router {
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
-pub fn rest_api_router<P: StorePool + Send + 'static>(
-    dependencies: RestRouterDependencies<P>,
+pub fn rest_api_router<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>(
+    dependencies: RestRouterDependencies<P, A>,
 ) -> Router
 where
     for<'pool> P::Store<'pool>: RestApiStore,
 {
     // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<P>()
+    let merged_routes = api_resources::<P, A>()
         .into_iter()
         .fold(Router::new(), Router::merge);
 
@@ -197,6 +203,7 @@ where
         .layer(NewSentryLayer::new_from_top())
         .layer(SentryHttpLayer::with_transaction())
         .layer(Extension(dependencies.store))
+        .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.domain_regex))
         .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())

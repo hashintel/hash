@@ -11,6 +11,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 graph = { path = "../../lib/graph", features = ["clap"] }
 graph-types = { workspace = true }
 type-fetcher = { path = "../../lib/type-fetcher" }
+authorization = { workspace = true }
 
 error-stack = { workspace = true }
 type-system = { workspace = true }
