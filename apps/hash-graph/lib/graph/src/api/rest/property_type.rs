@@ -25,7 +25,7 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
-        RestApiStore,
+        AuthenticatedUserHeader, RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -116,6 +116,7 @@ struct CreatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
@@ -221,6 +222,7 @@ struct LoadExternalPropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn load_external_property_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalPropertyTypeRequest>,
@@ -266,6 +268,7 @@ where
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -323,6 +326,7 @@ struct UpdatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
@@ -389,6 +393,7 @@ struct ArchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn archive_property_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<ArchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
@@ -448,6 +453,7 @@ struct UnarchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn unarchive_property_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UnarchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {

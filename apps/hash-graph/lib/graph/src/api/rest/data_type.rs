@@ -25,7 +25,7 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
-        RestApiStore,
+        AuthenticatedUserHeader, RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -37,6 +37,7 @@ use crate::{
     },
     subgraph::query::{DataTypeStructuralQuery, StructuralQuery},
 };
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -112,6 +113,7 @@ struct CreateDataTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_data_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
@@ -216,6 +218,7 @@ struct LoadExternalDataTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn load_external_data_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalDataTypeRequest>,
@@ -261,6 +264,7 @@ where
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_data_types_by_query<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -315,6 +319,7 @@ struct UpdateDataTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_data_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdateDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
@@ -381,6 +386,7 @@ struct ArchiveDataTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn archive_data_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<ArchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
@@ -440,6 +446,7 @@ struct UnarchiveDataTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn unarchive_data_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UnarchiveDataTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {

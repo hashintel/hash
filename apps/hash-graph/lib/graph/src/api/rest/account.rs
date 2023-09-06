@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::json::Json,
+    api::rest::{json::Json, AuthenticatedUserHeader},
     store::{AccountStore, StorePool},
 };
 
@@ -51,7 +51,9 @@ impl RoutedResource for AccountResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn create_account_id<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<AccountId>, StatusCode> {
     let mut store = pool.acquire().await.map_err(|report| {

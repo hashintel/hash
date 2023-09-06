@@ -18,18 +18,19 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{fs, io, sync::Arc};
+use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
-    extract::Path,
-    http::StatusCode,
+    extract::{FromRequestParts, Path},
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Json, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph_types::{
+    account::AccountId,
     ontology::{
         CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
@@ -49,6 +50,7 @@ use utoipa::{
     },
     Modify, OpenApi, ToSchema,
 };
+use uuid::Uuid;
 
 use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
@@ -80,6 +82,30 @@ use crate::{
         },
     },
 };
+
+#[derive(Debug)]
+pub struct AuthenticatedUserHeader(pub AccountId);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if let Some(header_value) = parts.headers.get("X-Authenticated-User-Actor-Id") {
+            let header_string = header_value
+                .to_str()
+                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
+            let uuid = Uuid::from_str(header_string)
+                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
+            Ok(Self(AccountId::new(uuid)))
+        } else {
+            Err((
+                StatusCode::BAD_REQUEST,
+                Cow::Borrowed("`X-Authenticated-User-Actor-Id` header is missing"),
+            ))
+        }
+    }
+}
 
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {

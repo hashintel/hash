@@ -34,7 +34,7 @@ use crate::{
             report_to_status_code,
             status::status_to_response,
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-            RestApiStore,
+            AuthenticatedUserHeader, RestApiStore,
         },
     },
     ontology::{
@@ -129,6 +129,7 @@ struct CreateEntityTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_entity_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
@@ -324,6 +325,7 @@ struct LoadExternalEntityTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn load_external_entity_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalEntityTypeRequest>,
@@ -404,6 +406,7 @@ where
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_entity_types_by_query<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -464,6 +467,7 @@ struct UpdateEntityTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityTypeRequest>,
 ) -> Result<Json<EntityTypeMetadata>, StatusCode> {
@@ -532,6 +536,7 @@ struct ArchiveEntityTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn archive_entity_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
@@ -591,6 +596,7 @@ struct UnarchiveEntityTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn unarchive_entity_type<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UnarchiveEntityTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {

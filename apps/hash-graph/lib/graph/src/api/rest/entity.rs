@@ -21,7 +21,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
-        utoipa_typedef::subgraph::Subgraph,
+        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader,
     },
     knowledge::EntityQueryToken,
     store::{
@@ -113,6 +113,7 @@ struct CreateEntityRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn create_entity<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
@@ -167,6 +168,7 @@ async fn create_entity<P: StorePool + Send>(
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_entities_by_query<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -225,6 +227,7 @@ struct UpdateEntityRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity<P: StorePool + Send>(
+    authenticated_account: AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
