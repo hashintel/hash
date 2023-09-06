@@ -3,8 +3,7 @@
  */
 
 import {
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
   File,
@@ -19,10 +18,10 @@ import {
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -59,8 +58,7 @@ import {
 } from "./shared";
 
 export type {
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
   File,
@@ -75,10 +73,10 @@ export type {
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,

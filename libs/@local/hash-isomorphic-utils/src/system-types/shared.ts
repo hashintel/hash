@@ -45,14 +45,9 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
 /**
- * A textual description of something
- */
-export type Description0PropertyValue = TextDataType;
-
-/**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type Description1PropertyValue = TextDataType;
+export type DescriptionPropertyValue = TextDataType;
 
 /**
  * A human-friendly display namae for something
@@ -86,7 +81,7 @@ export type FileOutgoingLinksByLinkEntityTypeId = {};
  * A file hosted at a URL
  */
 export type FileProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
@@ -122,19 +117,19 @@ export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
 
-export type ImageFile = Entity<ImageFileProperties>;
+export type Image = Entity<ImageProperties>;
 
-export type ImageFileOutgoingLinkAndTarget = never;
+export type ImageOutgoingLinkAndTarget = never;
 
-export type ImageFileOutgoingLinksByLinkEntityTypeId = {};
+export type ImageOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * An image file hosted at a URL
  */
-export type ImageFileProperties = ImageFileProperties1 & ImageFileProperties2;
-export type ImageFileProperties1 = FileProperties;
+export type ImageProperties = ImageProperties1 & ImageProperties2;
+export type ImageProperties1 = FileProperties;
 
-export type ImageFileProperties2 = {};
+export type ImageProperties2 = {};
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -170,10 +165,7 @@ export type ObjectDataType = {};
 
 export type Org = Entity<OrgProperties>;
 
-export type OrgHasAvatarLink = {
-  linkEntity: HasAvatar;
-  rightEntity: ImageFile;
-};
+export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
 export type OrgMembership = Entity<OrgMembershipProperties> & {
   linkData: LinkData;
@@ -196,12 +188,12 @@ export type OrgOutgoingLinksByLinkEntityTypeId = {
 };
 
 export type OrgProperties = {
-  "http://localhost:3000/@system-user/types/property-type/description/"?: Description0PropertyValue;
   "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-name/": OrganizationNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/": ShortnamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type OrganizationNamePropertyValue = TextDataType;
@@ -267,10 +259,7 @@ export type TokensPropertyValue = ObjectDataType;
 
 export type User = Entity<UserProperties>;
 
-export type UserHasAvatarLink = {
-  linkEntity: HasAvatar;
-  rightEntity: ImageFile;
-};
+export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
 export type UserOrgMembershipLink = {
   linkEntity: OrgMembership;

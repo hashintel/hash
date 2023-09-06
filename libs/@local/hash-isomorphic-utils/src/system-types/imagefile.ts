@@ -3,7 +3,7 @@
  */
 
 import {
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,
@@ -13,10 +13,10 @@ import {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,
@@ -26,7 +26,7 @@ import {
 } from "./shared";
 
 export type {
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,
@@ -36,10 +36,10 @@ export type {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   MIMETypePropertyValue,
   NumberDataType,
   OriginalFileNamePropertyValue,

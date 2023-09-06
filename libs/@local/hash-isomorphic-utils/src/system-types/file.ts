@@ -3,7 +3,7 @@
  */
 
 import {
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,
@@ -22,7 +22,7 @@ import {
 } from "./shared";
 
 export type {
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,

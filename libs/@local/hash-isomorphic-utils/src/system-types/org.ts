@@ -3,8 +3,7 @@
  */
 
 import {
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,
@@ -18,10 +17,10 @@ import {
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -46,8 +45,7 @@ import {
 } from "./shared";
 
 export type {
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
   FileHashPropertyValue,
@@ -61,10 +59,10 @@ export type {
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
-  ImageFile,
-  ImageFileOutgoingLinkAndTarget,
-  ImageFileOutgoingLinksByLinkEntityTypeId,
-  ImageFileProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
