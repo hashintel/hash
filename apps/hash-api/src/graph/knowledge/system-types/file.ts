@@ -33,19 +33,20 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const { ownedById, actorId, description, displayName, name, entityTypeId } =
     params;
 
-  const fileIdentifier = genId();
-
-  const key = uploadProvider.getFileEntityStorageKey({
-    accountId: ownedById,
-    uniqueIdentifier: fileIdentifier,
-  });
-
   const fileEntityTypeId =
     // @todo validate that entityTypeId, if provided, ultimately inherits from File
     //    (or checks that it has at least the same properties)
     entityTypeId || types.entityType.file.entityTypeId;
 
   const mimeType = mime.lookup(name) || "application/octet-stream";
+  const extension = mime.extension(mimeType);
+
+  const fileIdentifier = `${genId()}.${extension}`;
+
+  const key = uploadProvider.getFileEntityStorageKey({
+    accountId: ownedById,
+    uniqueIdentifier: fileIdentifier,
+  });
 
   try {
     const properties: Partial<FileProperties> = {
@@ -53,6 +54,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        fileIdentifier,
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
         displayName ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":

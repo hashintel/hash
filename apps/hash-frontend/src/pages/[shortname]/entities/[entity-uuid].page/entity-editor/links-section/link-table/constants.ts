@@ -5,7 +5,6 @@ export const linkGridColumns: LinkColumn[] = [
     title: "Link",
     id: "linkTitle",
     width: 200,
-    grow: 1,
   },
   {
     title: "Linked with",

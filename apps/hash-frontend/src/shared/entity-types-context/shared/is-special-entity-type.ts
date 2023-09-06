@@ -33,7 +33,7 @@ export const isSpecialEntityType = (
 ): { file: boolean; link: boolean } => {
   const parentIds = getParentIds(entityType, allEntityTypes);
 
-  let isFile = false;
+  let isFile = entityType.$id === types.entityType.file.entityTypeId;
   let isLink = false;
 
   for (const id of parentIds) {

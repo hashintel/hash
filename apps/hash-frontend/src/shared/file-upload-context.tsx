@@ -47,7 +47,7 @@ type FileLinkData = {
   // The entityId of the entity to link to
   linkedEntityId: EntityId;
   // The entityTypeId of the link entity to create
-  linkTypeId: VersionedUrl;
+  linkEntityTypeId: VersionedUrl;
   // The properties for the link entity to create, if any
   linkProperties?: EntityPropertiesObject;
 };
@@ -246,7 +246,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         linkedEntityId,
         linkEntityIdToDelete,
         linkProperties,
-        linkTypeId,
+        linkEntityTypeId,
       } = linkedEntityData;
 
       updateUpload({
@@ -284,7 +284,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       try {
         const { data, errors } = await createEntity({
           variables: {
-            entityTypeId: linkTypeId,
+            entityTypeId: linkEntityTypeId,
             linkData: {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId as EntityId,

@@ -17,6 +17,7 @@ export type LinkRow = {
   maxItems?: number;
   isFile: boolean;
   isList: boolean;
+  isLoading: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: LinkAndTargetEntity[];

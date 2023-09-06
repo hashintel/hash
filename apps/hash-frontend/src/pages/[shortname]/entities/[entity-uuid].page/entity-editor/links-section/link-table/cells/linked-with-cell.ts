@@ -40,6 +40,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       markLinkAsArchived,
       isFile,
       isList,
+      isLoading,
     } = linkRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -49,17 +50,18 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const cellPadding = getCellHorizontalPadding();
     const left = rect.x + cellPadding;
 
-    // if there is no linked entity, draw empty state
-    if (!linkAndTargetEntities.length) {
+    if (isLoading || !linkAndTargetEntities.length) {
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
 
-      const emptyText = isFile
+      const text = isLoading
+        ? "Uploading file..."
+        : isFile
         ? `No file${isList ? "s" : ""}`
         : isList
         ? "No entities"
         : "No entity";
-      ctx.fillText(emptyText, left, yCenter);
+      ctx.fillText(text, left, yCenter);
 
       // before returning, set interactables to empty array to clear any stale interactables saved on previous draw
       InteractableManager.setInteractablesForCell(args, []);

@@ -80,19 +80,27 @@ export const SelectorAutocompleteOption = ({
           anchorEl={optionRef.current}
           placement="right"
           sx={{
+            borderRadius: 1,
             boxShadow: ({ boxShadows }) => boxShadows.lg,
             zIndex: ({ zIndex }) => zIndex.tooltip + 2,
           }}
         >
-          <Paper sx={{ padding: 2, width: 350 }}>
-            <Stack spacing={1}>
+          <Paper sx={{ borderRadius: 1, padding: 2, width: 300 }}>
+            <Stack>
               <Box
                 alt={subtitle}
                 component="img"
                 src={imageUrl}
-                sx={{ objectFit: "contain", width: "100%" }}
+                sx={({ palette }) => ({
+                  backgroundImage: `linear-gradient(45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(-45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${palette.gray[20]} 75%), linear-gradient(-45deg, transparent 75%, ${palette.gray[20]} 75%)`,
+                  backgroundSize: "20px 20px",
+                  backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
+                  objectFit: "contain",
+                  width: "100%",
+                  mb: 2,
+                })}
               />
-              <Typography>{title}</Typography>
+              <Typography sx={{ fontWeight: 500, mb: 1 }}>{title}</Typography>
               <Typography variant="smallTextLabels">{subtitle}</Typography>
             </Stack>
           </Paper>
@@ -101,7 +109,12 @@ export const SelectorAutocompleteOption = ({
       <Stack direction="row" justifyContent="space-between" width="100%">
         <Stack spacing={0.8} width={imageUrl ? `calc(100% - 65px)` : "100%"}>
           <Box display="flex" alignItems="center" whiteSpace="nowrap">
-            <Box component="span" display="flex" alignItems="center">
+            <Box
+              component="span"
+              display="flex"
+              alignItems="center"
+              maxWidth="50%"
+            >
               {Icon ? (
                 <Stack
                   direction="row"
@@ -133,13 +146,25 @@ export const SelectorAutocompleteOption = ({
                       fontSize: 12,
                       fontWeight: 500,
                       px: 1.2,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     })}
                   >
                     {title}
                   </Typography>
                 </Stack>
               ) : (
-                <Typography variant="smallTextLabels" fontWeight={500} mr={0.5}>
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    mr: 0.5,
+                    fontWeight: 500,
+                  }}
+                >
                   {title}
                 </Typography>
               )}
@@ -159,6 +184,7 @@ export const SelectorAutocompleteOption = ({
                 sx={({ palette }) => ({
                   border: `1px solid ${palette.gray[30]}`,
                   flexShrink: 1,
+                  minWidth: 150,
                   ml: 1.25,
                   mr: 2,
                 })}
