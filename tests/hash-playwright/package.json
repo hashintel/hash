@@ -6,7 +6,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test": "playwright test --project chromium"
+    "test": "npx playwright test --project chromium"
   },
   "dependencies": {
     "@apps/hash-frontend": "0.0.0-private",
@@ -14,11 +14,10 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.30.0",
+    "@playwright/test": "1.37.1",
     "eslint": "8.33.0",
     "execa": "5.1.1",
     "js-yaml": "4.1.0",
-    "playwright": "1.30.0",
     "typescript": "5.1.6"
   }
 }

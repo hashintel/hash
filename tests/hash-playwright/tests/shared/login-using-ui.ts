@@ -1,5 +1,4 @@
-import { expect } from "@playwright/test";
-import { Page } from "playwright";
+import { expect, Page } from "@playwright/test";
 
 import { getDerivedPayloadFromMostRecentEmail } from "./get-derived-payload-from-most-recent-email";
 
@@ -31,8 +30,9 @@ export const loginUsingUi = async ({
   const verificationCodeInputSelector = '[data-testid="verify-code-input"]';
   await page.fill(
     verificationCodeInputSelector,
-    (await getDerivedPayloadFromMostRecentEmail(emailDispatchTimestamp))
-      .verificationCode as string,
+    (
+      await getDerivedPayloadFromMostRecentEmail(emailDispatchTimestamp)
+    ).verificationCode as string,
   );
   await page.press(verificationCodeInputSelector, "Enter");
 

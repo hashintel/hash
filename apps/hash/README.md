@@ -53,28 +53,28 @@ To run HASH locally, please follow these steps:
    ```sh
    git --version
    ## ≥ 2.17
-   
+
    node --version
    ## ≥ 18.15
-   
+
    yarn --version
    ## ≥ 1.16
-   
+
    docker --version
    ## ≥ 20.10
-   
+
    docker compose version
    ## ≥ 2.17.2
-   
+
    docker buildx version
    ## ≥ 0.10.4
-   
+
    java --version
    ## ≥ 8
-   
+
    python --version
    ## ≥ 3.11
-   
+
    poetry --version
    ## ≥ 1.4.2
    ```
@@ -395,24 +395,20 @@ The Postgres information for Kratos is configured through:
 
 - `HASH_KRATOS_PG_USER` (default: `kratos`)
 - `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
-- `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
-- `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
+- `HASH_KRATOS_PG_DATABASE` (default: `kratos`)
 
 The Postgres information for Temporal is configured through:
 
 - `HASH_TEMPORAL_PG_USER` (default: `temporal`)
 - `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
-- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
-- `HASH_TEMPORAL_PG_TEST_DATABASE` (default: `test_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE` (default: `test_temporal_visibility`)
+- `HASH_TEMPORAL_PG_DATABASE` (default: `temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DATABASE` (default: `temporal_visibility`)
 
 The Postgres information for the graph query layer is configured through:
 
 - `HASH_GRAPH_PG_USER` (default: `graph`)
 - `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
-- `HASH_GRAPH_PG_DEV_DATABASE` (default: `dev_graph`)
-- `HASH_GRAPH_PG_TEST_DATABASE` (default: `test_graph`)
+- `HASH_GRAPH_PG_DATABASE` (default: `graph`)
 
 ### Redis
 
