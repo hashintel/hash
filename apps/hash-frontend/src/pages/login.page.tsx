@@ -23,7 +23,6 @@ const LoginPage: NextPageWithLayout = () => {
   const { hashInstance } = useHashInstance();
 
   const {
-    return_to: returnTo,
     flow: flowId,
     // Refresh means we want to refresh the session. This is needed, for example, when we want to update the password
     // of a user.
@@ -34,6 +33,11 @@ const LoginPage: NextPageWithLayout = () => {
   } = router.query;
 
   const [flow, setFlow] = useState<LoginFlow>();
+
+  const returnTo =
+    typeof router.query.return_to === "string"
+      ? router.query.return_to
+      : undefined;
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -69,20 +73,10 @@ const LoginPage: NextPageWithLayout = () => {
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
-        returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
-  }, [
-    flowId,
-    router,
-    router.isReady,
-    aal,
-    refresh,
-    returnTo,
-    flow,
-    handleFlowError,
-  ]);
+  }, [flowId, router, router.isReady, aal, refresh, flow, handleFlowError]);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
@@ -110,12 +104,6 @@ const LoginPage: NextPageWithLayout = () => {
           })
           // We logged in successfully! Let's redirect the user.
           .then(async () => {
-            // If the flow specifies a redirect, use it.
-            if (flow.return_to) {
-              window.location.href = flow.return_to;
-              return;
-            }
-
             // Otherwise, redirect the user to their workspace.
             const { authenticatedUser } = await refetch();
 
@@ -126,7 +114,8 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             updateActiveWorkspaceAccountId(authenticatedUser.accountId);
-            void router.push("/");
+
+            void router.push(returnTo ?? flow.return_to ?? "/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<LoginFlow>) => {
