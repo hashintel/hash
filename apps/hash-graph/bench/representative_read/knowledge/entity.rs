@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
@@ -39,19 +40,22 @@ pub fn bench_get_entity_by_id(
         },
         |entity_uuid| async move {
             let subgraph = store
-                .get_entity(&StructuralQuery {
-                    filter: Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            entity_uuid.as_uuid(),
-                        ))),
-                    ),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_entity(
+                    &StructuralQuery {
+                        filter: Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                entity_uuid.as_uuid(),
+                            ))),
+                        ),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
                     },
-                })
+                    &NoAuthorization,
+                )
                 .await
                 .expect("failed to read entity from store");
             assert_eq!(subgraph.roots.len(), 1);
@@ -81,17 +85,20 @@ pub fn bench_get_entities_by_property(
             .convert_parameters()
             .expect("failed to convert parameters");
         let subgraph = store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths,
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await
             .expect("failed to read entity from store");
         assert_eq!(subgraph.roots.len(), 100);
@@ -123,17 +130,20 @@ pub fn bench_get_link_by_target_by_property(
             .convert_parameters()
             .expect("failed to convert parameters");
         let subgraph = store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths,
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+                &NoAuthorization,
+            )
             .await
             .expect("failed to read entity from store");
         assert_eq!(subgraph.roots.len(), 100);

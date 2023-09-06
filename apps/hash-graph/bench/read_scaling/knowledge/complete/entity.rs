@@ -1,5 +1,6 @@
 use std::{iter::repeat, str::FromStr};
 
+use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::{
@@ -163,17 +164,20 @@ pub fn bench_get_entity_by_id(
         },
         |entity_record_id| async move {
             store
-                .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                .get_entity(
+                    &StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                        graph_resolve_depths,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
                     },
-                })
+                    &NoAuthorization,
+                )
                 .await
                 .expect("failed to read entity from store");
         },

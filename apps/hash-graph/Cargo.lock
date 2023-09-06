@@ -102,6 +102,8 @@ name = "authorization"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "futures",
+ "graph-types",
  "reqwest",
  "serde",
  "serde_json",
@@ -756,6 +758,7 @@ name = "graph"
 version = "0.0.0"
 dependencies = [
  "async-trait",
+ "authorization",
  "axum",
  "bb8-postgres",
  "bytes",
@@ -804,6 +807,7 @@ dependencies = [
 name = "graph-benches"
 version = "0.0.0"
 dependencies = [
+ "authorization",
  "criterion",
  "criterion-macro",
  "futures",
@@ -824,6 +828,7 @@ dependencies = [
 name = "graph-integration"
 version = "0.0.0"
 dependencies = [
+ "authorization",
  "error-stack",
  "futures",
  "graph",
@@ -890,6 +895,7 @@ checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
+ "authorization",
  "axum",
  "clap",
  "clap_complete",

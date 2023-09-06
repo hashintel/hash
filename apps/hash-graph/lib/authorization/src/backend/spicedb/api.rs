@@ -5,10 +5,10 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     backend::{
-        spicedb::model, AuthorizationApi, CheckError, CheckResponse, CreateRelationError,
-        CreateRelationResponse, DeleteRelationError, DeleteRelationResponse, DeleteRelationsError,
-        DeleteRelationsResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
-        ImportSchemaResponse, Precondition, RelationFilter, SpiceDb,
+        spicedb::model, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
+        DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
+        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
+        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
     },
     zanzibar::{Consistency, Tuple, UntypedTuple, Zookie},
 };
@@ -143,7 +143,7 @@ impl SpiceDb {
     }
 }
 
-impl AuthorizationApi for SpiceDb {
+impl ZanzibarBackend for SpiceDb {
     async fn import_schema(
         &mut self,
         schema: &str,

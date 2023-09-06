@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use authorization::AuthorizationApi;
 use axum::{
     http::StatusCode,
     routing::{post, put},
@@ -68,7 +69,7 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
     where
         for<'pool> P::Store<'pool>: RestApiStore,
     {
