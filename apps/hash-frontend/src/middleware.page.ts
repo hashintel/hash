@@ -10,7 +10,7 @@ export const middleware = async (request: NextRequest) => {
 
   const { url } = request;
 
-  const ontologyType = new URL(url).pathname.match(versionedUrlRegExp)?.[1];
+  const ontologyType = url.match(versionedUrlRegExp)?.[1];
 
   /**
    * If we are dealing with a request to an ontology type,

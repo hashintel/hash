@@ -61,7 +61,7 @@ const validateVersionedUrl = (url: string): url is VersionedUrl =>
 export const returnTypeAsJson = async (request: NextRequest) => {
   const { url } = request;
 
-  const ontologyType = new URL(url).pathname.match(versionedUrlRegExp)?.[1];
+  const ontologyType = url.match(versionedUrlRegExp)?.[1];
   const isUrlValid = validateVersionedUrl(url);
 
   if (!isUrlValid) {
