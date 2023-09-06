@@ -2,6 +2,7 @@
 
 use std::{collections::hash_map, sync::Arc};
 
+use authorization::AuthorizationApi;
 use axum::{
     http::StatusCode,
     response::Response,
@@ -79,7 +80,7 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
     where
         for<'pool> P::Store<'pool>: RestApiStore,
     {

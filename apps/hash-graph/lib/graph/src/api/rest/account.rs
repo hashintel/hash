@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use authorization::AuthorizationApi;
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use graph_types::account::AccountId;
 use utoipa::OpenApi;
@@ -29,7 +30,8 @@ pub struct AccountResource;
 
 impl RoutedResource for AccountResource {
     /// Create routes for interacting with accounts.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/accounts",

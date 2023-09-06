@@ -189,6 +189,7 @@ impl Drop for StoreWrapper {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,

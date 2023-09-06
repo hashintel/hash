@@ -226,7 +226,13 @@ impl<'t> UntypedTuple<'t> {
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Zookie<'a>(Cow<'a, str>);
+pub struct Zookie<'t>(Cow<'t, str>);
+
+impl Zookie<'_> {
+    pub(crate) const fn empty() -> Self {
+        Self(Cow::Borrowed(""))
+    }
+}
 
 /// Specifies the desired consistency level on a per-request basis.
 ///

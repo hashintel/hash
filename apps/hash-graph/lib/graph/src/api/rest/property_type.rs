@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use authorization::AuthorizationApi;
 use axum::{
     http::StatusCode,
     routing::{post, put},
@@ -69,7 +70,7 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Sync + Send + 'static>() -> Router
     where
         for<'pool> P::Store<'pool>: RestApiStore,
     {
