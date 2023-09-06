@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::Client;
 
@@ -13,6 +14,7 @@ mod embedded {
     embed_migrations!("../../postgres_migrations");
 }
 
+#[async_trait]
 impl<C: AsClient<Client = Client>> StoreMigration for PostgresStore<C> {
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
         Ok(embedded::migrations::runner()

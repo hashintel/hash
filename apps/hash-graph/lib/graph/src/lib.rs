@@ -10,7 +10,6 @@
 #![feature(type_alias_impl_trait)]
 #![feature(hash_raw_entry)]
 #![feature(bound_map)]
-#![feature(async_fn_in_trait, return_position_impl_trait_in_trait)]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 
