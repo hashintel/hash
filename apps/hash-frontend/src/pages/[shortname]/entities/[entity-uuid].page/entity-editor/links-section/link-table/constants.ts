@@ -4,18 +4,19 @@ export const linkGridColumns: LinkColumn[] = [
   {
     title: "Link",
     id: "linkTitle",
-    width: 250,
+    width: 200,
+    grow: 1,
   },
   {
     title: "Linked with",
     id: "linkedWith",
-    width: 250,
+    width: 400,
     grow: 2,
   },
   {
     title: "Expected entity type",
     id: "expectedEntityTypes",
-    width: 250,
+    width: 200,
     grow: 1,
   },
 ];

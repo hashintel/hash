@@ -59,6 +59,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         mimeType,
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
         name,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+        "Upload",
     };
 
     const entity = (await createEntity(ctx, {
@@ -108,6 +110,10 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         mimeType,
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
         filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+        "URL",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
+        url,
     };
 
     const entity = (await createEntity(ctx, {
