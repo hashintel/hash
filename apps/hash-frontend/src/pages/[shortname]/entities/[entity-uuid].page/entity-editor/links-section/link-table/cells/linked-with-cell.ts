@@ -55,7 +55,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.font = isLoading ? "14px Inter" : "italic 14px Inter";
 
       const text = isLoading
-        ? "Uploading file..."
+        ? "Uploading file, please stay on the page..."
         : isFile
         ? `No file${isList ? "s" : ""}`
         : isList

@@ -24,6 +24,8 @@ const fileUrlPropertyKey: BaseUrl =
 const mimeTypePropertyKey: BaseUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/";
 
+const imageThumbnailWidth = 90;
+
 export type SelectorAutocompleteOptionProps = {
   liProps: HTMLAttributes<HTMLLIElement>;
   description?: string;
@@ -95,6 +97,7 @@ export const SelectorAutocompleteOption = ({
                   backgroundImage: `linear-gradient(45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(-45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${palette.gray[20]} 75%), linear-gradient(-45deg, transparent 75%, ${palette.gray[20]} 75%)`,
                   backgroundSize: "20px 20px",
                   backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
+                  borderRadius: 1,
                   objectFit: "contain",
                   width: "100%",
                   mb: 2,
@@ -107,7 +110,12 @@ export const SelectorAutocompleteOption = ({
         </Popper>
       )}
       <Stack direction="row" justifyContent="space-between" width="100%">
-        <Stack spacing={0.8} width={imageUrl ? `calc(100% - 65px)` : "100%"}>
+        <Stack
+          spacing={0.8}
+          width={
+            imageUrl ? `calc(100% - ${imageThumbnailWidth + 10}px)` : "100%"
+          }
+        >
           <Box display="flex" alignItems="center" whiteSpace="nowrap">
             <Box
               component="span"
@@ -206,11 +214,26 @@ export const SelectorAutocompleteOption = ({
         </Stack>
         {imageUrl && (
           <Box
-            component="img"
-            alt={subtitle ?? ""}
-            src={imageUrl}
-            sx={{ height: 50, objectFit: "contain" }}
-          />
+            sx={{
+              borderRadius: 1,
+              width: imageThumbnailWidth,
+              display: "flex",
+              height: 50,
+              justifyContent: "center",
+            }}
+          >
+            <Box
+              component="img"
+              alt={subtitle ?? ""}
+              src={imageUrl}
+              sx={{
+                borderRadius: 1,
+                height: "100%",
+                objectFit: "contain",
+                maxWidth: "100%",
+              }}
+            />
+          </Box>
         )}
       </Stack>
     </li>
