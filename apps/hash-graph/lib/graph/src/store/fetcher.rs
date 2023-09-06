@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    future::Future,
     iter::once,
     mem,
 };
@@ -50,14 +51,13 @@ use crate::{
     },
 };
 
-#[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type(
+    fn insert_external_ontology_type(
         &mut self,
         reference: OntologyTypeReference<'_>,
         actor_id: RecordCreatedById,
-    ) -> Result<OntologyElementMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<OntologyElementMetadata, InsertionError>> + Send;
 }
 
 #[derive(Clone)]
@@ -95,7 +95,6 @@ where
     }
 }
 
-#[async_trait]
 impl<P, A> StorePool for FetchingPool<P, A>
 where
     P: StorePool + Send + Sync,
@@ -381,9 +380,7 @@ where
         &mut self,
         ontology_types: impl IntoIterator<Item = (&'o T, RecordCreatedById), IntoIter: Send> + Send,
     ) -> Result<(), InsertionError> {
-        // Without collecting it first, we get a "Higher-ranked lifetime error" because of the
-        // limitations of Rust being able to look into a `Pin<Box<dyn Future>>`, which is returned
-        // by `#[async_trait]` methods.
+        // TODO: Figure out how to avoid collecting the iterator first.
         let ontology_types = ontology_types.into_iter().collect::<Vec<_>>();
 
         let mut partitioned_ontology_types = HashMap::<RecordCreatedById, Vec<VersionedUrl>>::new();
@@ -486,7 +483,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -536,7 +532,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> AccountStore for FetchingStore<S, A>
 where
     S: AccountStore + Send,
@@ -547,7 +542,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> DataTypeStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
@@ -571,7 +565,7 @@ where
 
     async fn get_data_type(
         &self,
-        query: &StructuralQuery<DataTypeWithMetadata>,
+        query: &StructuralQuery<'_, DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         self.store.get_data_type(query).await
     }
@@ -605,7 +599,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> PropertyTypeStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
@@ -636,7 +629,7 @@ where
 
     async fn get_property_type(
         &self,
-        query: &StructuralQuery<PropertyTypeWithMetadata>,
+        query: &StructuralQuery<'_, PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         self.store.get_property_type(query).await
     }
@@ -672,7 +665,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityTypeStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
@@ -701,7 +693,7 @@ where
 
     async fn get_entity_type(
         &self,
-        query: &StructuralQuery<EntityTypeWithMetadata>,
+        query: &StructuralQuery<'_, EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         self.store.get_entity_type(query).await
     }
@@ -738,7 +730,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> EntityStore for FetchingStore<S, A>
 where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send,
@@ -809,7 +800,10 @@ where
             .await
     }
 
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
+    async fn get_entity(
+        &self,
+        query: &StructuralQuery<'_, Entity>,
+    ) -> Result<Subgraph, QueryError> {
         self.store.get_entity(query).await
     }
 

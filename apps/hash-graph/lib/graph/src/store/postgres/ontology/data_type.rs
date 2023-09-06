@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
@@ -77,7 +76,6 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-#[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn create_data_types(
@@ -112,7 +110,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type(
         &self,
-        query: &StructuralQuery<DataTypeWithMetadata>,
+        query: &StructuralQuery<'_, DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
