@@ -39,9 +39,8 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     entityTypeId || types.entityType.file.entityTypeId;
 
   const mimeType = mime.lookup(name) || "application/octet-stream";
-  const extension = mime.extension(mimeType);
 
-  const fileIdentifier = `${genId()}.${extension}`;
+  const fileIdentifier = `${genId()}/${name}`;
 
   const key = uploadProvider.getFileEntityStorageKey({
     accountId: ownedById,
@@ -55,7 +54,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        fileIdentifier,
+        name,
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
         displayName ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
@@ -107,6 +106,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
     const properties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+        filename,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         url,
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
