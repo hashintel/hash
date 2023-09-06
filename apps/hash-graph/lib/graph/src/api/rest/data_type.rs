@@ -99,6 +99,9 @@ struct CreateDataTypeRequest {
     path = "/data-types",
     request_body = CreateDataTypeRequest,
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created data type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -200,6 +203,9 @@ struct LoadExternalDataTypeRequest {
     path = "/data-types/load",
     request_body = LoadExternalDataTypeRequest,
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -243,6 +249,9 @@ where
     path = "/data-types/query",
     request_body = DataTypeStructuralQuery,
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
 
@@ -292,6 +301,9 @@ struct UpdateDataTypeRequest {
     put,
     path = "/data-types",
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -354,6 +366,9 @@ struct ArchiveDataTypeRequest {
     put,
     path = "/data-types/archive",
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -410,6 +425,9 @@ struct UnarchiveDataTypeRequest {
     put,
     path = "/data-types/unarchive",
     tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated data type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),

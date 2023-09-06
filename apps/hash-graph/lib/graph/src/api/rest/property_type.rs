@@ -103,6 +103,9 @@ struct CreatePropertyTypeRequest {
     path = "/property-types",
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -205,6 +208,9 @@ struct LoadExternalPropertyTypeRequest {
     path = "/property-types/load",
     request_body = LoadExternalPropertyTypeRequest,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -248,6 +254,9 @@ where
     path = "/property-types/query",
     request_body = PropertyTypeStructuralQuery,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth."),
 
@@ -300,6 +309,9 @@ struct UpdatePropertyTypeRequest {
     put,
     path = "/property-types",
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -362,6 +374,9 @@ struct ArchivePropertyTypeRequest {
     put,
     path = "/property-types/archive",
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -417,7 +432,10 @@ struct UnarchivePropertyTypeRequest {
 #[utoipa::path(
     put,
     path = "/property-types/unarchive",
-    tag = "DataType",
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated property type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),

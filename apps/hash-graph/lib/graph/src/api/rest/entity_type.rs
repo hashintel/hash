@@ -116,6 +116,9 @@ struct CreateEntityTypeRequest {
     path = "/entity-types",
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
@@ -308,6 +311,9 @@ struct LoadExternalEntityTypeRequest {
     path = "/entity-types/load",
     request_body = LoadExternalEntityTypeRequest,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
@@ -387,6 +393,9 @@ where
     path = "/entity-types/query",
     request_body = EntityTypeStructuralQuery,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
@@ -441,6 +450,9 @@ struct UpdateEntityTypeRequest {
     put,
     path = "/entity-types",
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -505,6 +517,9 @@ struct ArchiveEntityTypeRequest {
     put,
     path = "/entity-types/archive",
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -560,7 +575,10 @@ struct UnarchiveEntityTypeRequest {
 #[utoipa::path(
     put,
     path = "/entity-types/unarchive",
-    tag = "DataType",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated entity type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),

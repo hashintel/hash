@@ -100,6 +100,9 @@ struct CreateEntityRequest {
     path = "/entities",
     request_body = CreateEntityRequest,
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -153,6 +156,9 @@ async fn create_entity<P: StorePool + Send>(
     path = "/entities/query",
     request_body = EntityStructuralQuery,
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth."),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
@@ -204,6 +210,9 @@ struct UpdateEntityRequest {
     put,
     path = "/entities",
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),

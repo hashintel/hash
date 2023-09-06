@@ -42,6 +42,9 @@ impl RoutedResource for AccountResource {
     post,
     path = "/accounts",
     tag = "Account",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountId),
 
