@@ -554,7 +554,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    // #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         query: &StructuralQuery<Entity>,

@@ -47,7 +47,6 @@ pub trait AuthorizationApi {
 #[derive(Debug, Default)]
 pub struct NoAuthorization;
 
-// #[async_trait]
 impl AuthorizationApi for NoAuthorization {
     async fn view_entity(
         &self,
