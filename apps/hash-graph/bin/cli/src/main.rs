@@ -10,12 +10,11 @@ use std::sync::Arc;
 use error_stack::Result;
 use graph::load_env;
 
-use self::{args::Args, error::GraphError, subcommand::Subcommand};
-
 use self::{args::Args, error::GraphError};
-    load_env(None);
 
 fn main() -> Result<(), GraphError> {
+    load_env(None);
+
     let args = Args::parse_args();
 
     let _sentry = sentry::init(sentry::ClientOptions {
