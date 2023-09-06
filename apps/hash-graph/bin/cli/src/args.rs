@@ -7,7 +7,7 @@ use crate::subcommand::Subcommand;
 #[clap(version, author, about, long_about = None)]
 pub struct Args {
     #[arg(long, env = "HASH_GRAPH_SENTRY_DSN")]
-    pub sentry_dsn: Option<sentry::types::Dsn>,
+    pub sentry_dsn: Option<Option<sentry::types::Dsn>>,
 
     /// Specify a subcommand to run.
     #[command(subcommand)]

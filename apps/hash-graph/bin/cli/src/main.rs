@@ -18,7 +18,7 @@ fn main() -> Result<(), GraphError> {
     let args = Args::parse_args();
 
     let _sentry = sentry::init(sentry::ClientOptions {
-        dsn: args.sentry_dsn.clone(),
+        dsn: args.sentry_dsn.clone().flatten(),
         release: sentry::release_name!(),
         session_mode: sentry::SessionMode::Request,
         traces_sampler: Some(Arc::new(|ctx| {
