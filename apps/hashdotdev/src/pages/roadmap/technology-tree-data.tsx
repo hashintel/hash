@@ -968,4 +968,13 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     useCases: ["general"],
     variant: "infrastructure",
   },
+  {
+    id: "97",
+    heading: "Encrypted Properties",
+    body: "Support for selectively encrypting individual properties on entity types",
+    parentIds: ["82"],
+    status: "future",
+    useCases: ["general"],
+    variant: "infrastructure",
+  },
 ];
