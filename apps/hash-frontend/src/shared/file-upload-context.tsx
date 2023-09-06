@@ -50,6 +50,13 @@ type FileLinkData = {
   linkEntityTypeId: VersionedUrl;
   // The properties for the link entity to create, if any
   linkProperties?: EntityPropertiesObject;
+  /**
+   * Don't actually create or delete the specified link entity, just track this metadata in the upload object
+   *
+   * This is useful for when the caller wants to manage link creation themselves, but track the progress of the file upload
+   * - e.g. for editing draft entities in the entity editor, we maintain draft link state and defer API calls
+   */
+  skipLinkCreationAndDeletion?: boolean;
 };
 
 type FileUploadRequestData = {
@@ -63,12 +70,33 @@ type FileUploadEntities = {
   linkEntity?: LinkEntity;
 };
 
-type FileUpload = FileUploadRequestData & {
-  createdEntities?: FileUploadEntities;
-  errorMessage?: string;
-  requestId: string;
-  status: "complete" | "creating-link-entity" | "error" | "uploading-file";
-};
+type FileUploadVariant<T> = FileUploadRequestData & { requestId: string } & T;
+
+type FileUploadLoading = FileUploadVariant<{
+  status: "uploading-file";
+}>;
+
+type FileUploadCreatingLinkEntity = FileUploadVariant<{
+  createdEntities: Pick<FileUploadEntities, "fileEntity">;
+  status: "creating-link-entity";
+}>;
+
+type FileUploadError = FileUploadVariant<{
+  createdEntities?: Pick<FileUploadEntities, "fileEntity">;
+  errorMessage: string;
+  status: "error";
+}>;
+
+type FileUploadComplete = FileUploadVariant<{
+  createdEntities: FileUploadEntities;
+  status: "complete";
+}>;
+
+type FileUpload =
+  | FileUploadLoading
+  | FileUploadCreatingLinkEntity
+  | FileUploadError
+  | FileUploadComplete;
 
 export type FileUploadsContextValue = {
   uploads: FileUpload[];
@@ -139,6 +167,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       const upload: FileUpload = {
         fileData,
+        linkedEntityData,
         ownedById,
         requestId,
         status: "uploading-file",
@@ -231,8 +260,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         );
       }
 
-      // If no linked entity data was provided, we're done
-      if (!linkedEntityData) {
+      // If we don't have any links to delete or create, we're done
+      if (!linkedEntityData || linkedEntityData.skipLinkCreationAndDeletion) {
         const updatedUpload: FileUpload = {
           ...upload,
           status: "complete",
@@ -251,6 +280,9 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       updateUpload({
         ...upload,
+        createdEntities: {
+          fileEntity,
+        },
         status: "creating-link-entity",
       });
 

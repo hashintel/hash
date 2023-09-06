@@ -12,7 +12,7 @@ export type EntityTypesContextValue = {
   // a record of entity type ids to whether they are special types or not
   isSpecialEntityTypeLookup: Record<
     VersionedUrl,
-    { file: boolean; link: boolean }
+    { file: boolean; image: boolean; link: boolean }
   > | null;
   subgraph: Subgraph<EntityTypeRootType> | null;
   loading: boolean;

@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   AutocompleteDropdown,
@@ -37,23 +38,25 @@ interface EntitySelectorProps {
   onCancel: () => void;
   expectedEntityTypes: EntityTypeWithMetadata[];
   entityIdsToFilterOut?: EntityId[];
+  linkEntityTypeId: VersionedUrl;
 }
 
 const FileCreationContext = createContext<
   | {
       close: () => void;
+      isImage: boolean;
       onFileProvided: (file: File) => void;
     }
   | undefined
 >(undefined);
 
 const FileCreationPane = (props: PaperProps) => {
-  const { close, onFileProvided } = useContext(FileCreationContext)!;
+  const { close, isImage, onFileProvided } = useContext(FileCreationContext)!;
 
   return (
     <AutocompleteDropdown {...props} className={GRID_CLICK_IGNORE_CLASS}>
       <Stack spacing={2}>
-        <FileUploadDropzone onFileProvided={onFileProvided} />
+        <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
         <Button onClick={close} sx={{ width: "100%" }} variant="tertiary">
           <ArrowLeftIcon sx={{ fontSize: 14, color: "gray.50", mr: 0.6 }} />
           <Typography variant="smallTextLabels" color="gray.50">
@@ -70,10 +73,14 @@ export const EntitySelector = ({
   onCancel,
   expectedEntityTypes,
   entityIdsToFilterOut,
+  linkEntityTypeId,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
   const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
+
+  const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
+    .entityId as EntityId;
 
   const [showUploadFileMenu, setShowUploadFileMenu] = useState(false);
 
@@ -83,6 +90,12 @@ export const EntitySelector = ({
     (expectedType) =>
       isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
   );
+  const isImage =
+    isFileType &&
+    expectedEntityTypes.some(
+      (expectedType) =>
+        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.image,
+    );
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,21 +169,47 @@ export const EntitySelector = ({
       if (!activeWorkspaceAccountId) {
         throw new Error("Cannot upload file without active workspace");
       }
-      const { createdEntities } = await uploadFile({
+
+      // Close the dropdown immediately as we want the file upload to happen in the background
+      onCancel();
+
+      const upload = await uploadFile({
         fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
         ownedById: activeWorkspaceAccountId as OwnedById,
+        /**
+         * Link creation is handled in the onSelect, since we might need to manage drafts,
+         * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
+         */
+        linkedEntityData: {
+          linkedEntityId: entityId,
+          linkEntityTypeId,
+          skipLinkCreationAndDeletion: true,
+        },
       });
-      onSelect(createdEntities!.fileEntity as unknown as Entity);
+
+      if (upload.status === "complete") {
+        onSelect(upload.createdEntities.fileEntity as unknown as Entity);
+      }
+      // @todo handle errored uploads – H-724
     },
-    [activeWorkspaceAccountId, expectedEntityTypes, onSelect, uploadFile],
+    [
+      activeWorkspaceAccountId,
+      entityId,
+      expectedEntityTypes,
+      linkEntityTypeId,
+      onCancel,
+      onSelect,
+      uploadFile,
+    ],
   );
 
   const fileCreationContextValue = useMemo(
     () => ({
       close: () => setShowUploadFileMenu(false),
+      isImage,
       onFileProvided,
     }),
-    [onFileProvided],
+    [isImage, onFileProvided],
   );
 
   return (
@@ -223,7 +262,9 @@ export const EntitySelector = ({
           }
         }}
         onBlur={() => {
-          // onCancel();
+          if (!showUploadFileMenu) {
+            onCancel();
+          }
         }}
       />
     </FileCreationContext.Provider>

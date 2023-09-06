@@ -30,10 +30,11 @@ export const getParentIds = (
 export const isSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
   allEntityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
-): { file: boolean; link: boolean } => {
+): { file: boolean; image: boolean; link: boolean } => {
   const parentIds = getParentIds(entityType, allEntityTypes);
 
   let isFile = entityType.$id === types.entityType.file.entityTypeId;
+  let isImage = entityType.$id === types.entityType.imageFile.entityTypeId;
   let isLink = false;
 
   for (const id of parentIds) {
@@ -41,13 +42,21 @@ export const isSpecialEntityType = (
       extractBaseUrl(id) === extractBaseUrl(types.entityType.file.entityTypeId)
     ) {
       isFile = true;
-    } else if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {
+    }
+    if (
+      extractBaseUrl(id) ===
+      extractBaseUrl(types.entityType.imageFile.entityTypeId)
+    ) {
+      isImage = true;
+    }
+    if (extractBaseUrl(id) === extractBaseUrl(linkEntityTypeUrl)) {
       isLink = true;
     }
   }
 
   return {
     file: isFile,
+    image: isImage,
     link: isLink,
   };
 };

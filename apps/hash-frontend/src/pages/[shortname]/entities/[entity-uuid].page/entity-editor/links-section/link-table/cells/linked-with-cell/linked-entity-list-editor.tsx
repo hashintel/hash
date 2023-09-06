@@ -189,6 +189,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             onCancel={onCancel}
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
+            linkEntityTypeId={linkEntityTypeId}
           />
         ) : (
           <AddAnotherButton

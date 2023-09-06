@@ -51,8 +51,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const left = rect.x + cellPadding;
 
     if (isLoading || !linkAndTargetEntities.length) {
-      ctx.fillStyle = customColors.gray[50];
-      ctx.font = "italic 14px Inter";
+      ctx.fillStyle = isLoading ? customColors.gray[90] : customColors.gray[50];
+      ctx.font = isLoading ? "14px Inter" : "italic 14px Inter";
 
       const text = isLoading
         ? "Uploading file..."
