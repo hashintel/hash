@@ -7,6 +7,7 @@ import {
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import {
   Entity,
   EntityRootType,
   OwnedById,
