@@ -217,7 +217,7 @@ describe("Entity type CRU", () => {
         createdEntityType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
-    const authentication = { actorId: testUser.accountId };
+    const authentication = { actorId: testUser2.accountId };
 
     const updatedEntityType = await updateEntityType(
       graphContext,

@@ -124,7 +124,7 @@ describe("Property type CRU", () => {
         createdPropertyType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
-    const authentication = { actorId: testUser.accountId };
+    const authentication = { actorId: testUser2.accountId };
 
     const updatedPropertyType = await updatePropertyType(
       graphContext,

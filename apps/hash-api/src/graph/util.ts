@@ -165,10 +165,11 @@ export const generateSystemPropertyTypeSchema = (
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
 ): ((context: ImpureGraphContext) => Promise<PropertyTypeWithMetadata>) => {
-  const authentication = { actorId: systemUserAccountId };
   let propertyType: PropertyTypeWithMetadata;
 
   return async (context?: ImpureGraphContext) => {
+    const authentication = { actorId: systemUserAccountId };
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
@@ -357,10 +358,11 @@ export const generateSystemLinkEntityTypeSchema = (
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
 ): ((context: ImpureGraphContext) => Promise<EntityTypeWithMetadata>) => {
-  const authentication = { actorId: systemUserAccountId };
   let entityType: EntityTypeWithMetadata | undefined;
 
   return async (context?: ImpureGraphContext) => {
+    const authentication = { actorId: systemUserAccountId };
+
     if (entityType) {
       return entityType;
     } else if (!context) {
