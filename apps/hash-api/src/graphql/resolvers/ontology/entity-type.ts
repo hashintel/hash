@@ -10,7 +10,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
-import { publicUserAccountId } from "../../../graph";
 import {
   archiveEntityType,
   createEntityType,
@@ -35,19 +34,15 @@ export const createEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources, authentication, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const { ownedById, entityType } = params;
 
-  const createdEntityType = await createEntityType(
-    context,
-    { actorId: user.accountId },
-    {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
-      schema: entityType,
-    },
-  );
+  const createdEntityType = await createEntityType(context, authentication, {
+    ownedById: ownedById ?? (user.accountId as OwnedById),
+    schema: entityType,
+  });
 
   return createdEntityType;
 };
@@ -68,13 +63,13 @@ export const queryEntityTypesResolver: ResolverFn<
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources, user },
+  { dataSources, authentication },
   __,
 ) => {
   const { graphApi } = dataSources;
 
   const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery(
-    user.accountId,
+    authentication.actorId,
     {
       filter: latestOnly
         ? {
@@ -127,15 +122,14 @@ export const getEntityTypeResolver: ResolverFn<
     constrainsLinkDestinationsOn,
     inheritsFrom,
   },
-  { dataSources, user },
+  { dataSources, authentication },
   __,
 ) =>
   getEntityTypeSubgraphById(
     dataSourcesToImpureGraphContext(dataSources),
-    { actorId: user?.accountId ?? publicUserAccountId },
+    authentication,
     {
       entityTypeId,
-      actorId: user?.accountId,
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,
@@ -153,10 +147,10 @@ export const updateEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources, user }) =>
+> = async (_, params, { dataSources, authentication }) =>
   updateEntityType(
     dataSourcesToImpureGraphContext(dataSources),
-    { actorId: user.accountId },
+    authentication,
     {
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
@@ -169,13 +163,13 @@ export const archiveEntityTypeResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationArchiveEntityTypeArgs
-> = async (_, params, { dataSources, user }) =>
-  archiveEntityType(dataSources, { actorId: user.accountId }, params);
+> = async (_, params, { dataSources, authentication }) =>
+  archiveEntityType(dataSources, authentication, params);
 
 export const unarchiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUnarchiveEntityTypeArgs
-> = async (_, params, { dataSources, user }) =>
-  unarchiveEntityType(dataSources, { actorId: user.accountId }, params);
+> = async (_, params, { dataSources, authentication }) =>
+  unarchiveEntityType(dataSources, authentication, params);

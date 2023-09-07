@@ -28,7 +28,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 > = async (
   _,
   { linearIntegrationEntityId, syncWithWorkspaces },
-  { dataSources, user, temporal, vault },
+  { dataSources, authentication, temporal, vault },
 ) => {
   if (!vault) {
     throw new Error("Vault client not available");
@@ -37,8 +37,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   if (!temporal) {
     throw new Error("Temporal client not available");
   }
-
-  const authentication = { actorId: user.accountId };
 
   const linearIntegration = await getLinearIntegrationById(
     dataSources,
@@ -98,8 +96,8 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       ) as Uuid as AccountId;
       return Promise.all([
         linearClient.triggerWorkspaceSync({
+          authentication,
           workspaceAccountId,
-          actorId: user.accountId,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWorkspace(dataSources, authentication, {

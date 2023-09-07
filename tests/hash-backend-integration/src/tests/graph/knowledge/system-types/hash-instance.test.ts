@@ -2,7 +2,6 @@ import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
-  publicUserAccountId,
 } from "@apps/hash-api/src/graph";
 import { getEntityOutgoingLinks } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
@@ -21,6 +20,7 @@ import {
   systemUser,
   systemUserAccountId,
 } from "@apps/hash-api/src/graph/system-user";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 

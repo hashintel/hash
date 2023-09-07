@@ -15,10 +15,9 @@ export const createOrgResolver: ResolverFn<
 > = async (
   _,
   { name, shortname, orgSize, website, hasLeftEntity, hasRightEntity },
-  { dataSources, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const org = await createOrg(context, authentication, {
     shortname,

@@ -13,15 +13,15 @@ export type PartialEntity = {
 };
 
 export type CreateHashIssueWorkflow = (params: {
+  authentication: { actorId: AccountId };
   payload: Issue;
   ownedById: OwnedById;
-  actorId: AccountId;
 }) => Promise<void>;
 
 export type CreateHashUserWorkflow = (params: {
+  authentication: { actorId: AccountId };
   payload: User;
   ownedById: OwnedById;
-  actorId: AccountId;
 }) => Promise<void>;
 
 export type ReadLinearTeamsWorkflow = (params: {
@@ -29,15 +29,15 @@ export type ReadLinearTeamsWorkflow = (params: {
 }) => Promise<Team[]>;
 
 export type SyncWorkspaceWorkflow = (params: {
+  authentication: { actorId: AccountId };
   apiKey: string;
   workspaceAccountId: AccountId;
-  actorId: AccountId;
   teamIds: string[];
 }) => Promise<void>;
 
 export type UpdateHashIssueWorkflow = (params: {
+  authentication: { actorId: AccountId };
   payload: Issue;
-  actorId: AccountId;
 }) => Promise<void>;
 
 export type UpdateLinearIssueWorkflow = (params: {
@@ -47,8 +47,8 @@ export type UpdateLinearIssueWorkflow = (params: {
 }) => Promise<void>;
 
 export type UpdateHashUserWorkflow = (params: {
+  authentication: { actorId: AccountId };
   payload: User;
-  actorId: AccountId;
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {

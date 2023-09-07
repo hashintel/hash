@@ -14,7 +14,7 @@ import { GraphApi } from "../graph";
 import { UploadableStorageProvider } from "../storage";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault/index";
-import { GraphQLContext } from "./context";
+import { GraphQLContext, publicUserAccountId } from "./context";
 import { resolvers } from "./resolvers";
 
 export interface CreateApolloServerParams {
@@ -63,6 +63,9 @@ export const createApolloServer = ({
     dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
+      authentication: {
+        actorId: ctx.req.user?.accountId ?? publicUserAccountId,
+      },
       user: ctx.req.user,
       emailTransporter,
       logger: logger.child({

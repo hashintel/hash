@@ -16,8 +16,9 @@ import { getEntities } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
+import { publicUserAccountId } from "../graphql/context";
 import { getRequiredEnv } from "../util";
-import { ImpureGraphContext, publicUserAccountId } from "./index";
+import { ImpureGraphContext } from "./index";
 import {
   createUser,
   getUserByShortname,

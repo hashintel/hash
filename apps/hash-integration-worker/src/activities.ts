@@ -34,9 +34,9 @@ import {
 } from "./mappings";
 
 const createOrUpdateHashEntity = async (params: {
+  authentication: { actorId: AccountId };
   graphApiClient: GraphApi;
   entity: PartialEntity;
-  actorId: AccountId;
   workspaceAccountId?: AccountId;
 }): Promise<void> => {
   const idBaseUrl = extractBaseUrl(linearTypes.propertyType.id.propertyTypeId);
@@ -76,7 +76,7 @@ const createOrUpdateHashEntity = async (params: {
     });
   }
   const entities = await params.graphApiClient
-    .getEntitiesByQuery(params.actorId, {
+    .getEntitiesByQuery(params.authentication.actorId, {
       filter: {
         all: filters,
       },
@@ -117,7 +117,7 @@ const createOrUpdateHashEntity = async (params: {
       continue;
     }
 
-    await params.graphApiClient.updateEntity(params.actorId, {
+    await params.graphApiClient.updateEntity(params.authentication.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
@@ -126,7 +126,7 @@ const createOrUpdateHashEntity = async (params: {
   }
 
   if (entities.length === 0 && params.workspaceAccountId) {
-    await params.graphApiClient.createEntity(params.actorId, {
+    await params.graphApiClient.createEntity(params.authentication.actorId, {
       ownedById: params.workspaceAccountId,
       ...params.entity,
     });
@@ -153,15 +153,15 @@ export const createLinearIntegrationActivities = ({
   graphApiClient: GraphApi;
 }) => ({
   async createPartialEntities(params: {
+    authentication: { actorId: AccountId };
     entities: PartialEntity[];
-    actorId: AccountId;
     workspaceAccountId: AccountId;
   }): Promise<void> {
     await Promise.all(
       params.entities.map((entity) =>
         createOrUpdateHashEntity({
           graphApiClient,
-          actorId: params.actorId,
+          authentication: params.authentication,
           workspaceAccountId: params.workspaceAccountId,
           entity,
         }),
@@ -176,27 +176,27 @@ export const createLinearIntegrationActivities = ({
   },
 
   async createHashUser(params: {
+    authentication: { actorId: AccountId };
     user: User;
-    actorId: AccountId;
     workspaceAccountId: AccountId;
   }): Promise<void> {
     const entity = userToEntity(params.user);
     await createOrUpdateHashEntity({
       graphApiClient,
-      actorId: params.actorId,
+      authentication: params.authentication,
       workspaceAccountId: params.workspaceAccountId,
       entity,
     });
   },
 
   async updateHashUser(params: {
+    authentication: { actorId: AccountId };
     user: User;
-    actorId: AccountId;
   }): Promise<void> {
     await createOrUpdateHashEntity({
       graphApiClient,
+      authentication: params.authentication,
       entity: userToEntity(params.user),
-      actorId: params.actorId,
     });
   },
 
@@ -210,14 +210,14 @@ export const createLinearIntegrationActivities = ({
   },
 
   async createHashIssue(params: {
+    authentication: { actorId: AccountId };
     issue: Issue;
-    actorId: AccountId;
     workspaceAccountId: AccountId;
   }): Promise<void> {
     const entity = issueToEntity(params.issue);
     await createOrUpdateHashEntity({
       graphApiClient,
-      actorId: params.actorId,
+      authentication: params.authentication,
       workspaceAccountId: params.workspaceAccountId,
       entity,
     });
@@ -242,13 +242,13 @@ export const createLinearIntegrationActivities = ({
   },
 
   async updateHashIssue(params: {
+    authentication: { actorId: AccountId };
     issue: Issue;
-    actorId: AccountId;
   }): Promise<void> {
     await createOrUpdateHashEntity({
       graphApiClient,
+      authentication: params.authentication,
       entity: issueToEntity(params.issue),
-      actorId: params.actorId,
     });
   },
 

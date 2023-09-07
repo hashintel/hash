@@ -12,9 +12,8 @@ export const commentHasTextResolver: ResolverFn<
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources, user }) => {
+> = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const textEntity = await getCommentText(context, authentication, {
     commentEntityId: metadata.recordId.entityId,

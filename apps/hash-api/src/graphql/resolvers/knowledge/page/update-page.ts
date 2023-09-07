@@ -14,9 +14,12 @@ export const updatePageResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageArgs
-> = async (_, { entityId, updatedProperties }, { dataSources, user }) => {
+> = async (
+  _,
+  { entityId, updatedProperties },
+  { dataSources, authentication },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const page = await getPageById(context, authentication, { entityId });
 

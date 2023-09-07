@@ -1,10 +1,8 @@
 import path from "node:path";
 
-import {
-  ImpureGraphContext,
-  publicUserAccountId,
-} from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,

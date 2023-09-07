@@ -4,7 +4,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
-import { publicUserAccountId } from "../../../graph";
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import {
   QueryGetDataTypeArgs,
@@ -19,11 +18,11 @@ export const queryDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryQueryDataTypesArgs
-> = async (_, { constrainsValuesOn }, { dataSources, user }) => {
+> = async (_, { constrainsValuesOn }, { dataSources, authentication }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery(
-    user.accountId,
+    authentication.actorId,
     {
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -44,10 +43,14 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources, user }) =>
+> = async (
+  _,
+  { dataTypeId, constrainsValuesOn },
+  { dataSources, authentication },
+) =>
   getDataTypeSubgraphById(
     dataSourcesToImpureGraphContext(dataSources),
-    { actorId: user?.accountId ?? publicUserAccountId },
+    authentication,
     {
       dataTypeId,
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */

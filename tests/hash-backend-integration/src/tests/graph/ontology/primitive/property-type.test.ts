@@ -157,7 +157,6 @@ describe("Property type CRU", () => {
     await expect(
       getPropertyTypeSubgraphById(graphContext, authentication, {
         propertyTypeId,
-        actorId: testUser.accountId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),

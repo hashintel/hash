@@ -19,9 +19,8 @@ export const canAccessAccountMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext
 > = (next) =>
   loggedInAndSignedUpMiddleware(async (_, args, ctx, info) => {
-    const { user, dataSources } = ctx;
+    const { dataSources, authentication, user } = ctx;
     const context = dataSourcesToImpureGraphContext(dataSources);
-    const authentication = { actorId: user.accountId };
 
     let isAllowed = false;
     if (user.accountId === args.ownedById) {

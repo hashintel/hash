@@ -17,7 +17,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  AccountId,
   EntityTypeMetadata,
   EntityTypeRootType,
   EntityTypeWithMetadata,
@@ -137,7 +136,6 @@ export const getEntityTypeById: ImpureGraphFunction<
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
   Omit<EntityTypeStructuralQuery, "filter"> & {
     entityTypeId: VersionedUrl;
-    actorId?: AccountId;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {

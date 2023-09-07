@@ -10,9 +10,8 @@ export const hashInstanceEntityResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources, user }) => {
+> = async (_, __, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const hashInstance = await getHashInstance(context, authentication, {});
 

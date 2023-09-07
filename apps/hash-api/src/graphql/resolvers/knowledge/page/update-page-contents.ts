@@ -41,9 +41,12 @@ export const updatePageContents: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
-> = async (_, { entityId: pageEntityId, actions }, { dataSources, user }) => {
+> = async (
+  _,
+  { entityId: pageEntityId, actions },
+  { dataSources, authentication, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   for (const [i, action] of actions.entries()) {
     if (

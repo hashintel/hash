@@ -7,12 +7,12 @@ import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import { AccountId } from "@local/hash-subgraph";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
+import { AuthenticationContext } from "../graphql/context";
 import { UploadableStorageProvider } from "../storage";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
@@ -20,9 +20,6 @@ import {
   ensureSystemUserAccountIdExists,
   ensureSystemUserExists,
 } from "./system-user";
-
-export const publicUserAccountId: AccountId =
-  "00000000-0000-0000-0000-000000000000" as AccountId;
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;
@@ -32,8 +29,7 @@ export type ImpureGraphContext = {
 
 export type ImpureGraphFunction<Parameters, ReturnType> = (
   context: ImpureGraphContext,
-  /** @todo: Replace with an authentication context */
-  authentication: { actorId: AccountId },
+  authentication: AuthenticationContext,
   params: Parameters,
 ) => ReturnType;
 

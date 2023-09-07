@@ -22,10 +22,9 @@ export const createUserResolver: ResolverFn<
     preferredName,
     hasLeftEntity,
   },
-  { dataSources, user: actorUser },
+  { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: actorUser.accountId };
 
   const kratosIdentity = await createKratosIdentity({
     traits: {

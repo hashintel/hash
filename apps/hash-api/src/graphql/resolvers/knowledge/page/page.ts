@@ -1,4 +1,3 @@
-import { publicUserAccountId } from "../../../../graph";
 import {
   createPage,
   getAllPagesInWorkspace,
@@ -27,9 +26,8 @@ export const pageResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryPageArgs
-> = async (_, { entityId }, { dataSources, user }) => {
+> = async (_, { entityId }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user?.accountId ?? publicUserAccountId };
 
   const page = await getPageById(context, authentication, {
     entityId,
@@ -46,10 +44,9 @@ export const createPageResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties: { title, prevIndex } },
-  { dataSources, user },
+  { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const page = await createPage(context, authentication, {
     ownedById,
@@ -65,9 +62,8 @@ export const parentPageResolver: ResolverFn<
   UnresolvedPageGQL,
   GraphQLContext,
   QueryPagesArgs
-> = async (pageGql, _, { dataSources, user }) => {
+> = async (pageGql, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user?.accountId ?? publicUserAccountId };
 
   const page = await getPageById(context, authentication, {
     entityId: pageGql.metadata.recordId.entityId,
@@ -82,9 +78,12 @@ export const pagesResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPagesArgs
-> = async (_, { ownedById, includeArchived }, { dataSources, user }) => {
+> = async (
+  _,
+  { ownedById, includeArchived },
+  { dataSources, authentication, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const accountId = ownedById ?? user.accountId;
 
@@ -101,9 +100,8 @@ export const pageCommentsResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
-> = async (_, { entityId }, { dataSources, user }) => {
+> = async (_, { entityId }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const comments = await getPageComments(context, authentication, {
     pageEntityId: entityId,

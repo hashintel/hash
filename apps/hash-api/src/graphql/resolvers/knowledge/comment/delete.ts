@@ -12,24 +12,16 @@ export const deleteCommentResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationDeleteCommentArgs
-> = async (_, { entityId }, { dataSources, user }) => {
+> = async (_, { entityId }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(
-    context,
-    { actorId: user.accountId },
-    {
-      entityId,
-    },
-  );
+  const comment = await getCommentById(context, authentication, {
+    entityId,
+  });
 
-  const updatedComment = await deleteComment(
-    context,
-    { actorId: user.accountId },
-    {
-      comment,
-    },
-  );
+  const updatedComment = await deleteComment(context, authentication, {
+    comment,
+  });
 
   return mapCommentToGQL(updatedComment);
 };

@@ -5,6 +5,7 @@ import {
 import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -14,7 +15,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -66,13 +66,12 @@ export const createGraphActivities = (createInfo: {
   graphContext: ImpureGraphContext;
 }) => ({
   async getDataTypeActivity(params: {
+    authentication: AuthenticationContext;
     dataTypeId: VersionedUrl;
-    actorId: AccountId;
   }): Promise<DataTypeWithMetadata> {
-    const authentication = { actorId: params.actorId };
     const [dataType] = await getDataTypeSubgraphById(
       createInfo.graphContext,
-      authentication,
+      params.authentication,
       {
         dataTypeId: params.dataTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
@@ -88,13 +87,12 @@ export const createGraphActivities = (createInfo: {
   },
 
   async getPropertyTypeActivity(params: {
+    authentication: AuthenticationContext;
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
   }): Promise<PropertyTypeWithMetadata> {
-    const authentication = { actorId: params.actorId };
     const [propertyType] = await getPropertyTypeSubgraphById(
       createInfo.graphContext,
-      authentication,
+      params.authentication,
       {
         propertyTypeId: params.propertyTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
@@ -112,13 +110,12 @@ export const createGraphActivities = (createInfo: {
   },
 
   async getEntityTypeActivity(params: {
+    authentication: AuthenticationContext;
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
   }): Promise<EntityTypeWithMetadata> {
-    const authentication = { actorId: params.actorId };
     const [entityType] = await getEntityTypeSubgraphById(
       createInfo.graphContext,
-      authentication,
+      params.authentication,
       {
         entityTypeId: params.entityTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,

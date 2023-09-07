@@ -11,9 +11,8 @@ export const commentParentResolver: ResolverFn<
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources, user }) => {
+> = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
-  const authentication = { actorId: user.accountId };
 
   const parent = await getCommentParent(context, authentication, {
     commentEntityId: metadata.recordId.entityId,

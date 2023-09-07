@@ -1,9 +1,6 @@
 import path from "node:path";
 
-import {
-  ImpureGraphContext,
-  publicUserAccountId,
-} from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
@@ -21,6 +18,7 @@ import {
   getPropertyTypes,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   DataTypeStructuralQuery,

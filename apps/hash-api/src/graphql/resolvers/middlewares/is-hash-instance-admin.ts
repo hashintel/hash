@@ -11,10 +11,9 @@ export const isHashInstanceAdminMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext
 > = (next) => async (obj, args, ctx, info) => {
   const context = dataSourcesToImpureGraphContext(ctx.dataSources);
-  const authentication = { actorId: ctx.user.accountId };
 
   if (
-    !(await isUserHashInstanceAdmin(context, authentication, {
+    !(await isUserHashInstanceAdmin(context, ctx.authentication, {
       user: ctx.user,
     }))
   ) {

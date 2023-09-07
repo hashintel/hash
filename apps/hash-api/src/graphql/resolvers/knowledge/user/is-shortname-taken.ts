@@ -1,4 +1,3 @@
-import { publicUserAccountId } from "../../../../graph";
 import {
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -12,15 +11,11 @@ export const isShortnameTakenResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryIsShortnameTakenArgs
-> = async (_, { shortname }, { dataSources, user }) => {
+> = async (_, { shortname }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   return (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(
-      context,
-      { actorId: user?.accountId ?? publicUserAccountId },
-      { shortname },
-    ))
+    (await shortnameIsTaken(context, authentication, { shortname }))
   );
 };
