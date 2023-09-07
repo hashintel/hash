@@ -65,6 +65,7 @@ describe("File", () => {
     };
 
     const file = await createFileFromUploadRequest(graphContext, {
+      name: "test-file",
       ownedById: testUser.accountId as OwnedById,
       actorId: testUser.accountId,
       size: 100,

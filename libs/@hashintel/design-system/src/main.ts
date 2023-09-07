@@ -10,6 +10,7 @@ export * from "./fa-icons/icons";
 export * from "./fluid-fonts";
 export * from "./fontawesome-icon";
 export * from "./form-inline";
+export * from "./icon-arrow-left";
 export * from "./icon-arrow-right";
 export * from "./icon-asterisk-regular";
 export * from "./icon-barcode";

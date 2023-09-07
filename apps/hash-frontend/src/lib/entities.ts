@@ -2,7 +2,6 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import {
   BaseUrl,
   Entity,
-  EntityPropertiesObject,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
@@ -19,19 +18,9 @@ import {
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  entitySubgraph:
-    | Subgraph<EntityRootType>
-    | Partial<{ entityId: string; properties: EntityPropertiesObject }>,
+  entitySubgraph: Subgraph<EntityRootType>,
   entity?: Entity,
 ): string => {
-  /**
-   * @todo - this return type is only added to allow for incremental migration. It should be removed
-   *   https://app.asana.com/0/0/1203157172269854/f
-   */
-  if (!("roots" in entitySubgraph)) {
-    throw new Error("expected Subgraph but got a deprecated response type");
-  }
-
   const entityToLabel: Entity = entity ?? getRoots(entitySubgraph)[0]!;
 
   const getFallbackLabel = () => {
@@ -65,6 +54,8 @@ export const generateEntityLabel = (
     "display name",
     "title",
     "shortname",
+    "file name",
+    "original file name",
   ];
 
   const propertyTypes: { title?: string; propertyTypeBaseUrl: BaseUrl }[] =
@@ -87,7 +78,9 @@ export const generateEntityLabel = (
     });
 
   for (const option of options) {
-    const found = propertyTypes.find(({ title }) => title === option);
+    const found = propertyTypes.find(
+      ({ title }) => title && title.toLowerCase() === option.toLowerCase(),
+    );
 
     if (found) {
       return getFallbackIfNotString(

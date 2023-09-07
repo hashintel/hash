@@ -1,4 +1,3 @@
-import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Autocomplete,
@@ -6,17 +5,9 @@ import {
   outlinedInputClasses,
   PaperProps,
   PopperProps,
-  SvgIconProps,
   Typography,
 } from "@mui/material";
-import {
-  createContext,
-  FunctionComponent,
-  Ref,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { Button, ButtonProps } from "./button";
@@ -29,7 +20,10 @@ import {
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
-import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option";
+import {
+  SelectorAutocompleteOption,
+  SelectorAutocompleteOptionProps,
+} from "./selector-autocomplete/selector-autocomplete-option";
 import { TextField } from "./text-field";
 
 export const TYPE_SELECTOR_HEIGHT = 57;
@@ -37,7 +31,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
-  variant: "entity type" | "property type" | "entity" | "link type";
+  variant: "entity type" | "property type" | "entity" | "file" | "link type";
 };
 
 const DropdownPropsContext =
@@ -113,14 +107,9 @@ const TypeListSelectorDropdown = ({ children, ...props }: PaperProps) => {
   );
 };
 
-type OptionRenderData = {
+type OptionRenderData = Omit<SelectorAutocompleteOptionProps, "liProps"> & {
   /** a unique id for this option, which will be used as a key for the option */
   uniqueId: string;
-  /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: VersionedUrl;
-  Icon: FunctionComponent<SvgIconProps> | null;
-  title: string;
-  description?: string;
 };
 
 type SelectorAutocompleteProps<
@@ -128,11 +117,7 @@ type SelectorAutocompleteProps<
   Multiple extends boolean | undefined = undefined,
 > = Omit<
   AutocompleteProps<T, Multiple, true, false>,
-  | "renderInput"
-  | "renderOption"
-  | "getOptionLabel"
-  | "PaperComponent"
-  | "componentsProps"
+  "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
@@ -164,6 +149,7 @@ export const SelectorAutocomplete = <
   autoFocus = true,
   modifiers,
   joined,
+  PaperComponent,
   ...rest
 }: SelectorAutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
@@ -271,7 +257,7 @@ export const SelectorAutocomplete = <
         openOnFocus
         clearOnBlur={false}
         getOptionLabel={(opt) => optionToRenderData(opt).title}
-        PaperComponent={TypeListSelectorDropdown}
+        PaperComponent={PaperComponent ?? TypeListSelectorDropdown}
         componentsProps={{
           popper: {
             modifiers: allModifiers,
