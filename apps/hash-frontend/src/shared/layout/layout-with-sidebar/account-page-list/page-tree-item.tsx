@@ -185,16 +185,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             </Typography>
           </Tooltip>
 
-          <Tooltip
-            title="Add subpages, delete, duplicate and more"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  width: 175,
-                },
-              },
-            }}
-          >
+          <Tooltip title="Options">
             <Box>
               <IconButton
                 {...trigger}
