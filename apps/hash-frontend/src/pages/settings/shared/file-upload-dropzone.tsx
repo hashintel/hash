@@ -29,15 +29,10 @@ export const FileUploadDropzone = ({
     onDrop,
     accept: image
       ? {
-          "image/gif": [".gif"],
-          "image/png": [".png"],
-          "image/jpeg": [".jpeg"],
-          "image/jpg": [".jpg"],
-          "image/svg+xml": [".svg"],
+          "image/*": [],
         }
       : undefined,
     maxFiles: 1,
-    maxSize: image ? 10_000_000 : undefined, // 10 MB
     multiple: false,
   });
 
@@ -85,14 +80,7 @@ export const FileUploadDropzone = ({
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        {image ? (
-          <>
-            PNG, JPG, GIF, SVG
-            <br /> up to 10MB
-          </>
-        ) : (
-          "All file types are accepted"
-        )}
+        {image ? "Any image file" : "All file types are accepted"}
       </Typography>
     </Box>
   );
