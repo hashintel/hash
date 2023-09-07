@@ -1,10 +1,17 @@
 import { TextField } from "@hashintel/design-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, Container, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import { FormEventHandler, useContext, useEffect, useState } from "react";
+import {
+  FormEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
@@ -34,10 +41,47 @@ const LoginPage: NextPageWithLayout = () => {
 
   const [flow, setFlow] = useState<LoginFlow>();
 
-  const returnTo =
-    typeof router.query.return_to === "string"
-      ? router.query.return_to
+  const returnTo = useMemo(() => {
+    if (typeof router.query.return_to !== "string") {
+      return undefined;
+    }
+
+    const possiblyMaliciousRedirect =
+      typeof router.query.return_to === "string"
+        ? router.query.return_to
+        : undefined;
+
+    const redirectUrl = possiblyMaliciousRedirect
+      ? new URL(possiblyMaliciousRedirect, frontendUrl)
       : undefined;
+
+    const redirectPath = redirectUrl?.pathname;
+
+    if (redirectUrl && redirectUrl.origin !== frontendUrl) {
+      /**
+       * This isn't strictly necessary since we're only going to take the pathname,
+       * but useful to have the error reported
+       */
+      throw new Error(
+        `Someone tried to pass an external URL as a redirect: ${possiblyMaliciousRedirect}`,
+      );
+    }
+
+    if (
+      redirectPath &&
+      (redirectPath.includes("\\") || redirectPath.includes("//"))
+    ) {
+      /**
+       * next/router will error if these are included in the URL, but this makes
+       * the error more useful
+       */
+      throw new Error(
+        `Someone tried to pass a malformed URL as a redirect: ${possiblyMaliciousRedirect}`,
+      );
+    }
+
+    return redirectPath;
+  }, [router]);
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
