@@ -14,7 +14,7 @@ use graph_types::{
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
         PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, PropertyType};
@@ -96,7 +96,6 @@ struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -117,7 +116,7 @@ struct CreatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
@@ -133,7 +132,6 @@ where
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
-        actor_id,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -159,13 +157,7 @@ where
 
         partial_metadata.push(PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: actor_id,
-                    record_archived_by_id: None,
-                },
-                owned_by_id,
-            },
+            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         });
 
         property_types.push(property_type);
@@ -173,6 +165,7 @@ where
 
     let mut metadata = store
         .create_property_types(
+            actor_id,
             property_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
@@ -202,7 +195,6 @@ where
 struct LoadExternalPropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     property_type_id: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -223,7 +215,7 @@ struct LoadExternalPropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn load_external_property_type<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalPropertyTypeRequest>,
@@ -236,17 +228,14 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let Json(LoadExternalPropertyTypeRequest {
-        property_type_id,
-        actor_id,
-    }) = body;
+    let Json(LoadExternalPropertyTypeRequest { property_type_id }) = body;
 
     Ok(Json(
         store
             .load_external_type(
+                actor_id,
                 &domain_validator,
                 OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
-                actor_id,
             )
             .await?,
     ))
@@ -269,7 +258,7 @@ where
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -288,7 +277,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
             store
-                .get_property_type(&query)
+                .get_property_type(actor_id, &query)
                 .await
                 .map_err(|report| {
                     tracing::error!(error=?report, ?query, "Could not read property types from the store");
@@ -306,7 +295,6 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -327,14 +315,13 @@ struct UpdatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
         mut type_to_update,
-        actor_id,
     }) = body;
 
     type_to_update.version += 1;
@@ -352,7 +339,7 @@ async fn update_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_property_type(property_type, actor_id)
+        .update_property_type(actor_id, property_type)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
@@ -372,7 +359,6 @@ async fn update_property_type<P: StorePool + Send>(
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
-    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
@@ -394,14 +380,11 @@ struct ArchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn archive_property_type<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<ArchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchivePropertyTypeRequest {
-        type_to_archive,
-        actor_id,
-    }) = body;
+    let Json(ArchivePropertyTypeRequest { type_to_archive }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -409,7 +392,7 @@ async fn archive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .archive_property_type(&type_to_archive, actor_id)
+        .archive_property_type(actor_id, &type_to_archive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive property type");
@@ -432,7 +415,6 @@ async fn archive_property_type<P: StorePool + Send>(
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -454,14 +436,11 @@ struct UnarchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn unarchive_property_type<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UnarchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchivePropertyTypeRequest {
-        type_to_unarchive,
-        actor_id,
-    }) = body;
+    let Json(UnarchivePropertyTypeRequest { type_to_unarchive }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -469,7 +448,7 @@ async fn unarchive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .unarchive_property_type(&type_to_unarchive, actor_id)
+        .unarchive_property_type(actor_id, &type_to_unarchive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive property type");

@@ -84,7 +84,6 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
 pub struct AuthenticatedUserHeader(pub AccountId);
 
 #[async_trait]
@@ -112,9 +111,9 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 pub trait RestApiStore: Store + TypeFetcher {
     async fn load_external_type(
         &mut self,
+        actor_id: AccountId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, StatusCode>;
 }
 
@@ -125,9 +124,9 @@ where
 {
     async fn load_external_type(
         &mut self,
+        actor_id: AccountId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, StatusCode> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             tracing::error!(id=%reference.url(), "Ontology type is not external");
@@ -136,8 +135,8 @@ where
 
         self
             .insert_external_ontology_type(
-                reference,
                 actor_id,
+                reference,
             )
             .await
             .map_err(|report| {

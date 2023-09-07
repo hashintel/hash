@@ -55,7 +55,7 @@ impl RoutedResource for AccountResource {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn create_account_id<P: StorePool + Send>(
-    authenticated_account: AuthenticatedUserHeader,
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<AccountId>, StatusCode> {
     let mut store = pool.acquire().await.map_err(|report| {
