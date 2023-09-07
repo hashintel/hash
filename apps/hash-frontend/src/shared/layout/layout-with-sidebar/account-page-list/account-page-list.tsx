@@ -227,9 +227,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
         const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
 
-        const parentSortedItems = sortedItems.filter(
-          ({ page }) =>
-            page.parentPage?.metadata.recordId.entityId === parentPageEntityId,
+        const parentSortedItems = sortedItems.filter(({ page }) =>
+          parentPageEntityId
+            ? page.parentPage?.metadata.recordId.entityId === parentPageEntityId
+            : !page.parentPage,
         );
 
         const newIndex = parentSortedItems.findIndex(
