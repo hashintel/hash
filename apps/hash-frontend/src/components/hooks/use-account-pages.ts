@@ -1,6 +1,6 @@
-import { useLazyQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { OwnedById } from "@local/hash-subgraph";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 import {
   GetAccountPagesTreeQuery,
@@ -19,22 +19,15 @@ export const useAccountPages = (
   ownedById: OwnedById,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
-  const [getAccountPages, { data, loading }] = useLazyQuery<
+  const { hashInstance } = useHashInstance();
+
+  const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
     variables: { ownedById, includeArchived },
+    skip: !hashInstance?.properties.pagesAreEnabled,
   });
-
-  const { hashInstance } = useHashInstance();
-
-  useEffect(() => {
-    if (!hashInstance?.properties.pagesAreEnabled) {
-      return;
-    }
-
-    void getAccountPages();
-  }, [getAccountPages, hashInstance?.properties.pagesAreEnabled]);
 
   const pages = useMemo(() => {
     return data?.pages ?? [];
