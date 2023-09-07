@@ -79,7 +79,7 @@ export const TypesTable: FunctionComponent<{
     includeGlobal: true,
   });
 
-  const { isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const typesTableColumns = useMemo<TypesTableColumn[]>(
     () => [
@@ -144,7 +144,7 @@ export const TypesTable: FunctionComponent<{
             title: type.schema.title,
             kind:
               type.schema.kind === "entityType"
-                ? isLinkTypeLookup?.[type.schema.$id]
+                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.file
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
@@ -161,7 +161,7 @@ export const TypesTable: FunctionComponent<{
             (filterState.includeArchived ? true : !archived),
         ),
     [
-      isLinkTypeLookup,
+      isSpecialEntityTypeLookup,
       types,
       namespaces,
       filterState,

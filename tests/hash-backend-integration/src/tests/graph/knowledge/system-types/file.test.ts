@@ -69,6 +69,7 @@ describe("File", () => {
       graphContext,
       authentication,
       {
+        name: "test-file",
         ownedById: testUser.accountId as OwnedById,
         size: 100,
       },

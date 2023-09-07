@@ -15,7 +15,9 @@ export type LinkRow = {
   linkEntityTypeId: VersionedUrl;
   linkTitle: string;
   maxItems?: number;
+  isFile: boolean;
   isList: boolean;
+  isLoading: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: LinkAndTargetEntity[];

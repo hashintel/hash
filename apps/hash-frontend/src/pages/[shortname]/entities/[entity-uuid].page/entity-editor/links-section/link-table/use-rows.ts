@@ -8,6 +8,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
+import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useFileUploads } from "../../../../../../../shared/file-upload-context";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
@@ -17,6 +19,10 @@ export const useRows = () => {
     useEntityEditor();
 
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
+
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const { uploads } = useFileUploads();
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
@@ -47,6 +53,18 @@ export const useRows = () => {
         entitySubgraph,
         linkEntityTypeId,
       );
+
+      const relevantUpload = uploads.find(
+        (upload) =>
+          upload.status !== "complete" &&
+          upload.linkedEntityData?.linkedEntityId ===
+            entity.metadata.recordId.entityId &&
+          upload.linkedEntityData.linkEntityTypeId === linkEntityTypeId,
+      );
+
+      const isLoading =
+        relevantUpload?.status === "uploading-file" ||
+        relevantUpload?.status === "creating-link-entity";
 
       let expectedEntityTypes: EntityTypeWithMetadata[] = [];
 
@@ -123,12 +141,19 @@ export const useRows = () => {
         (val) => val.schema.title,
       );
 
+      const isFile = expectedEntityTypes.some(
+        (expectedType) =>
+          isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
+      );
+
       return {
         rowId: linkEntityTypeId,
         linkEntityTypeId,
         linkTitle: linkEntityType?.schema.title ?? "",
         linkAndTargetEntities,
         maxItems: linkSchema.maxItems,
+        isFile,
+        isLoading,
         isList: linkSchema.maxItems === undefined || linkSchema.maxItems > 1,
         expectedEntityTypes,
         expectedEntityTypeTitles,
@@ -140,7 +165,9 @@ export const useRows = () => {
     entitySubgraph,
     draftLinksToArchive,
     draftLinksToCreate,
+    isSpecialEntityTypeLookup,
     markLinkEntityToArchive,
+    uploads,
   ]);
 
   return rows;

@@ -3,11 +3,17 @@ import { Box, Typography } from "@mui/material";
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 
-type FileDropzoneProps = {
+import { UploadIcon } from "../../../shared/icons/upload-icon";
+
+type FileUploadDropzoneProps = {
+  image?: boolean;
   onFileProvided: (file: File) => void;
 };
 
-export const ImageUploadDropzone = ({ onFileProvided }: FileDropzoneProps) => {
+export const FileUploadDropzone = ({
+  image,
+  onFileProvided,
+}: FileUploadDropzoneProps) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const providedFile = acceptedFiles[0];
@@ -21,15 +27,17 @@ export const ImageUploadDropzone = ({ onFileProvided }: FileDropzoneProps) => {
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    accept: {
-      "image/gif": [".gif"],
-      "image/png": [".png"],
-      "image/jpeg": [".jpeg"],
-      "image/jpg": [".jpg"],
-      "image/svg+xml": [".svg"],
-    },
+    accept: image
+      ? {
+          "image/gif": [".gif"],
+          "image/png": [".png"],
+          "image/jpeg": [".jpeg"],
+          "image/jpg": [".jpg"],
+          "image/svg+xml": [".svg"],
+        }
+      : undefined,
     maxFiles: 1,
-    maxSize: 10_000_000, // 10 MB
+    maxSize: image ? 10_000_000 : undefined, // 10 MB
     multiple: false,
   });
 
@@ -56,12 +64,16 @@ export const ImageUploadDropzone = ({ onFileProvided }: FileDropzoneProps) => {
       })}
     >
       <Box component="input" {...getInputProps()} />
-      <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+      {image ? (
+        <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+      ) : (
+        <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
+      )}
       <Typography
         variant="smallTextLabels"
         sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
       >
-        Upload an image
+        Upload {image ? "an image" : "a file"}
       </Typography>
       <Typography
         variant="smallTextLabels"
@@ -73,8 +85,14 @@ export const ImageUploadDropzone = ({ onFileProvided }: FileDropzoneProps) => {
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        PNG, JPG, GIF, SVG
-        <br /> up to 10MB
+        {image ? (
+          <>
+            PNG, JPG, GIF, SVG
+            <br /> up to 10MB
+          </>
+        ) : (
+          "All file types are accepted"
+        )}
       </Typography>
     </Box>
   );

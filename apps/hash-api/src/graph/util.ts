@@ -213,6 +213,7 @@ type linkDestinationConstraint =
   | "SELF_REFERENCE";
 
 export type EntityTypeCreatorParams = {
+  allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
   description?: string;
@@ -314,10 +315,13 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
+  const allOf = params.allOf?.map((url) => ({ $ref: url }));
+
   return {
     $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType",
     $id: params.entityTypeId,
+    allOf,
     title: params.title,
     description: params.description,
     type: "object",
@@ -339,13 +343,22 @@ export type LinkEntityTypeCreatorParams = Omit<
  */
 export const generateSystemLinkEntityTypeSchema = (
   params: LinkEntityTypeCreatorParams,
-): EntityType => ({
-  ...generateSystemEntityTypeSchema({
+): EntityType => {
+  const baseSchema = generateSystemEntityTypeSchema({
     ...params,
     entityTypeId: params.linkEntityTypeId,
-  }),
-  allOf: [{ $ref: linkEntityTypeUrl }],
-});
+  });
+
+  return {
+    ...baseSchema,
+    allOf: [
+      ...(baseSchema.allOf ?? []),
+      {
+        $ref: linkEntityTypeUrl,
+      },
+    ],
+  };
+};
 
 /**
  * Returns a function which can be used to initialize a given entity type. This asynchronous design allows us to express

@@ -130,10 +130,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     onChange(newCell);
   };
 
-  const onCancel = () => {
-    onFinishedEditing();
-  };
-
   const sortedLinkAndTargetEntities = sortLinkAndTargetEntities(
     linkAndTargetEntities,
   );
@@ -186,9 +182,10 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         (addingLink ? (
           <EntitySelector
             onSelect={onSelect}
-            onCancel={onCancel}
+            onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
+            linkEntityTypeId={linkEntityTypeId}
           />
         ) : (
           <AddAnotherButton

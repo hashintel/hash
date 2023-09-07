@@ -4,7 +4,7 @@ import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
-import { isLinkEntityType } from "./shared/is-link-entity-type";
+import { isSpecialEntityType } from "./shared/is-special-entity-type";
 import { isTypeArchived } from "./util";
 
 export const useEntityTypesLoading = () =>
@@ -64,10 +64,12 @@ export const useLatestEntityTypesOptional = (params?: {
  * Specifically for use for checking types which aren't already in the db, e.g. draft or proposed types
  *
  * For types already in the db, do this instead:
- *   const { isLinkTypeLookup } = useEntityTypesContextRequired();
- *   const isLinkType = isLinkTypeLookup?.[entityType.$id];
+ *   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+ *   const isLinkType = isSpecialEntityTypeLookup?.[entityType.$id]?.link;
  */
-export const useIsLinkType = (entityType: Pick<EntityType, "allOf">) => {
+export const useIsLinkType = (
+  entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
+) => {
   const entityTypes = useEntityTypesOptional({ includeArchived: true });
 
   return useMemo(() => {
@@ -76,6 +78,6 @@ export const useIsLinkType = (entityType: Pick<EntityType, "allOf">) => {
         (entityTypes ?? []).map((type) => [type.schema.$id, type]),
       );
 
-    return isLinkEntityType(entityType, typesByVersion);
+    return isSpecialEntityType(entityType, typesByVersion).link;
   }, [entityType, entityTypes]);
 };
