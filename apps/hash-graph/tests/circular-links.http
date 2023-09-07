@@ -19,7 +19,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -58,7 +57,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000A-0001-0000-0000-000000000000"
@@ -79,7 +77,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000B-0001-0000-0000-000000000000"
@@ -100,7 +97,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000C-0001-0000-0000-000000000000"
@@ -121,7 +117,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000D-0001-0000-0000-000000000000"
@@ -142,7 +137,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
@@ -166,7 +160,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
@@ -190,7 +183,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
@@ -214,7 +206,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
@@ -239,7 +230,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
@@ -265,7 +255,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
@@ -291,7 +280,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
@@ -317,7 +305,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000AD-0001-0000-0000-000000000000",

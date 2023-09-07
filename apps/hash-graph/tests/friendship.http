@@ -80,7 +80,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": [
     {
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -114,7 +113,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "actorId": "{{account_id}}",
   "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
 }
 
@@ -202,7 +200,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
@@ -227,7 +224,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
     "kind": "propertyType",
@@ -319,7 +315,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
@@ -417,7 +412,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -518,7 +512,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -611,7 +604,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
@@ -1142,7 +1134,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
@@ -1249,7 +1240,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
- "actorId": "{{account_id}}",
  "entityId": "{{person_a_entity_id}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "properties": {
@@ -1272,7 +1262,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
@@ -1358,7 +1347,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
   "linkData": {
@@ -1539,7 +1527,6 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
- "actorId": "{{account_id}}",
  "entityId": "{{person_b_entity_id}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1",
  "properties": {
