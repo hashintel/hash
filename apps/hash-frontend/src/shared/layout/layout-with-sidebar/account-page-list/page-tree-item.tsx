@@ -25,7 +25,6 @@ export interface PageTreeItemProps {
   depth: number;
   selected: boolean;
   expanded: boolean;
-  expandable: boolean;
   collapsed: boolean;
   createSubPage: () => Promise<void>;
   icon?: string | null;
@@ -46,7 +45,6 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     {
       pageEntityId,
       title,
-      expandable,
       pagePath,
       depth,
       selected,
@@ -131,16 +129,9 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             unpadded
             rounded
             sx={({ transitions }) => ({
-              visibility: "hidden",
-              pointerEvents: "none",
               mr: 0.5,
-
-              ...(expandable && {
-                visibility: "visible",
-                pointerEvents: "auto",
-                transform: expanded ? `rotate(90deg)` : "none",
-                transition: transitions.create("transform", { duration: 300 }),
-              }),
+              transform: expanded ? `rotate(90deg)` : "none",
+              transition: transitions.create("transform", { duration: 300 }),
             })}
           >
             <FontAwesomeIcon icon={faChevronRight} />

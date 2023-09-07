@@ -25,7 +25,7 @@ import {
   isEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import { Box, Collapse, Tooltip } from "@mui/material";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import {
   FunctionComponent,
   useCallback,
@@ -277,7 +277,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
 
-        const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
@@ -297,11 +296,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                   })
             }
             depth={entityId === activeId && projected ? projected.depth : depth}
-            onCollapse={expandable ? () => handleToggle(entityId) : undefined}
+            onCollapse={() => handleToggle(entityId)}
             selected={
               currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
             }
-            expandable={expandable}
             expanded={expanded}
             collapsed={collapsed}
             createSubPage={async () => {
@@ -329,11 +327,21 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         return (
           <Box key={entityId}>
             {item}
-            {expandable ? (
-              <Collapse key={`${entityId}-children`} in={expanded}>
-                {children}
-              </Collapse>
-            ) : null}
+            <Collapse key={`${entityId}-children`} in={expanded}>
+              {children.length > 0 ? (
+                children
+              ) : (
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    color: ({ palette }) => palette.gray[60],
+                    paddingLeft: `${IDENTATION_WIDTH * depth + 28}px`,
+                  }}
+                >
+                  No sub-pages inside
+                </Typography>
+              )}
+            </Collapse>
           </Box>
         );
       });
