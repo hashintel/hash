@@ -51,14 +51,15 @@ beforeAll(async () => {
   testUser = await createTestUser(graphContext, "pt-test-1", logger);
   testUser2 = await createTestUser(graphContext, "pt-test-2", logger);
 
-  textDataType = await createDataType(graphContext, {
+  const authentication = { actorId: testUser.accountId };
+
+  textDataType = await createDataType(graphContext, authentication, {
     ownedById: testUser.accountId as OwnedById,
     schema: {
       kind: "dataType",
       title: "Text",
       type: "string",
     },
-    actorId: testUser.accountId,
   });
 
   propertyTypeSchema = {
@@ -89,17 +90,28 @@ describe("Property type CRU", () => {
   let createdPropertyType: PropertyTypeWithMetadata;
 
   it("can create a property type", async () => {
-    createdPropertyType = await createPropertyType(graphContext, {
-      ownedById: testUser.accountId as OwnedById,
-      schema: propertyTypeSchema,
-      actorId: testUser.accountId,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    createdPropertyType = await createPropertyType(
+      graphContext,
+      authentication,
+      {
+        ownedById: testUser.accountId as OwnedById,
+        schema: propertyTypeSchema,
+      },
+    );
   });
 
   it("can read a property type", async () => {
-    const fetchedPropertyType = await getPropertyTypeById(graphContext, {
-      propertyTypeId: createdPropertyType.schema.$id,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    const fetchedPropertyType = await getPropertyTypeById(
+      graphContext,
+      authentication,
+      {
+        propertyTypeId: createdPropertyType.schema.$id,
+      },
+    );
 
     expect(fetchedPropertyType.schema).toEqual(createdPropertyType.schema);
   });
@@ -112,14 +124,19 @@ describe("Property type CRU", () => {
         createdPropertyType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
-    const updatedPropertyType = await updatePropertyType(graphContext, {
-      propertyTypeId: createdPropertyType.schema.$id,
-      schema: {
-        ...propertyTypeSchema,
-        title: updatedTitle,
+    const authentication = { actorId: testUser.accountId };
+
+    const updatedPropertyType = await updatePropertyType(
+      graphContext,
+      authentication,
+      {
+        propertyTypeId: createdPropertyType.schema.$id,
+        schema: {
+          ...propertyTypeSchema,
+          title: updatedTitle,
+        },
       },
-      actorId: testUser2.accountId,
-    }).catch((err) => Promise.reject(err.data));
+    ).catch((err) => Promise.reject(err.data));
 
     expect(
       isOwnedOntologyElementMetadata(updatedPropertyType.metadata) &&
@@ -128,15 +145,17 @@ describe("Property type CRU", () => {
   });
 
   it("can load an external type on demand", async () => {
+    const authentication = { actorId: testUser.accountId };
+
     const propertyTypeId =
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
 
     await expect(
-      getPropertyTypeById(graphContext, { propertyTypeId }),
+      getPropertyTypeById(graphContext, authentication, { propertyTypeId }),
     ).rejects.toThrow("Could not find property type with ID");
 
     await expect(
-      getPropertyTypeSubgraphById(graphContext, {
+      getPropertyTypeSubgraphById(graphContext, authentication, {
         propertyTypeId,
         actorId: testUser.accountId,
         graphResolveDepths: zeroedGraphResolveDepths,

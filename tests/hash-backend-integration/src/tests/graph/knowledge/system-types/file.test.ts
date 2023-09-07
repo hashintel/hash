@@ -50,6 +50,7 @@ describe("File", () => {
 
   it("createFileFromUploadRequest can create a file entity from a file", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const authentication = { actorId: testUser.accountId };
 
     const fileKey = "mock-test-key";
     const downloadUrl = "mock-download-url";
@@ -64,11 +65,14 @@ describe("File", () => {
       storageType: StorageType.LocalFileSystem,
     };
 
-    const file = await createFileFromUploadRequest(graphContext, {
-      ownedById: testUser.accountId as OwnedById,
-      actorId: testUser.accountId,
-      size: 100,
-    });
+    const file = await createFileFromUploadRequest(
+      graphContext,
+      authentication,
+      {
+        ownedById: testUser.accountId as OwnedById,
+        size: 100,
+      },
+    );
 
     expect(file.presignedPost.url).toEqual(uploadUrl);
 
@@ -88,10 +92,10 @@ describe("File", () => {
 
   it("createFileFromExternalUrl can create a file entity from an external link", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const authentication = { actorId: testUser.accountId };
 
-    const file = await createFileFromExternalUrl(graphContext, {
+    const file = await createFileFromExternalUrl(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      actorId: testUser.accountId,
       url: externalUrl,
     });
 

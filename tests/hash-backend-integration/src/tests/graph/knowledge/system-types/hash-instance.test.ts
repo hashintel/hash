@@ -2,6 +2,7 @@ import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
+  publicUserAccountId,
 } from "@apps/hash-api/src/graph";
 import { getEntityOutgoingLinks } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
@@ -53,7 +54,11 @@ describe("Hash Instance", () => {
   let hashInstance: HashInstance;
 
   it("can get the hash instance", async () => {
-    hashInstance = await getHashInstance(graphContext, {});
+    hashInstance = await getHashInstance(
+      graphContext,
+      { actorId: publicUserAccountId },
+      {},
+    );
 
     expect(hashInstance).toBeTruthy();
   });
@@ -66,44 +71,56 @@ describe("Hash Instance", () => {
       "hashInstTest",
       logger,
     );
+    const authentication = { actorId: testHashInstanceAdmin.accountId };
 
-    await addHashInstanceAdmin(graphContext, {
+    await addHashInstanceAdmin(graphContext, authentication, {
       user: testHashInstanceAdmin,
-      actorId: systemUserAccountId,
     });
 
-    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(graphContext, {
-      entityId: hashInstance.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-    });
+    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(
+      graphContext,
+      authentication,
+      {
+        entityId: hashInstance.entity.metadata.recordId.entityId,
+        linkEntityTypeVersionedUrl:
+          SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+      },
+    );
 
     expect(hashOutgoingAdminLinks).toHaveLength(1);
 
     const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
     expect(
-      await getLinkEntityRightEntity(graphContext, {
+      await getLinkEntityRightEntity(graphContext, authentication, {
         linkEntity: hashOutgoingAdminLink!,
       }),
     ).toEqual(testHashInstanceAdmin.entity);
   });
 
   it("can determine if user is hash admin", async () => {
-    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(graphContext, {
-      user: testHashInstanceAdmin,
-    });
+    const authentication = { actorId: testHashInstanceAdmin.accountId };
+    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(
+      graphContext,
+      authentication,
+      {
+        user: testHashInstanceAdmin,
+      },
+    );
 
     expect(hasHashInstanceAdmin).toBeTruthy();
   });
 
   it("can remove a hash instance admin", async () => {
-    await removeHashInstanceAdmin(graphContext, {
+    const authentication = { actorId: systemUserAccountId };
+
+    await removeHashInstanceAdmin(graphContext, authentication, {
       user: testHashInstanceAdmin,
-      actorId: systemUserAccountId,
     });
 
     const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(
       graphContext,
+      authentication,
       {
         entityId: hashInstance.entity.metadata.recordId.entityId,
         linkEntityTypeVersionedUrl:
