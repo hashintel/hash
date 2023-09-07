@@ -7,7 +7,6 @@ import {
   Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
-import { systemUserAccountId } from "../graph/system-user";
 
 export type PageDefinition = {
   title: string;
