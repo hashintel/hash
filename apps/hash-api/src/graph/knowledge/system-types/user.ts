@@ -107,8 +107,8 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
 export const getUserById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<User>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getUserFromEntity({ entity });
 };
@@ -121,9 +121,9 @@ export const getUserById: ImpureGraphFunction<
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<User | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
@@ -169,9 +169,9 @@ export const getUserByShortname: ImpureGraphFunction<
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string },
   Promise<User | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
@@ -230,11 +230,10 @@ export const createUser: ImpureGraphFunction<
     userAccountId?: AccountId;
   },
   Promise<User>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   const {
     emails,
     kratosIdentityId,
-    actorId,
     shortname,
     preferredName,
     isInstanceAdmin = false,
@@ -242,6 +241,7 @@ export const createUser: ImpureGraphFunction<
 
   const existingUserWithKratosIdentityId = await getUserByKratosIdentityId(
     ctx,
+    authentication,
     {
       kratosIdentityId,
     },
@@ -260,7 +260,7 @@ export const createUser: ImpureGraphFunction<
 
     if (
       shortnameIsRestricted({ shortname }) ||
-      (await shortnameIsTaken(ctx, { shortname }))
+      (await shortnameIsTaken(ctx, authentication, { shortname }))
     ) {
       throw new Error(
         `An account with shortname "${shortname}" already exists.`,
@@ -271,7 +271,8 @@ export const createUser: ImpureGraphFunction<
   const { graphApi } = ctx;
 
   const userAccountId =
-    params.userAccountId ?? (await graphApi.createAccountId()).data;
+    params.userAccountId ??
+    (await graphApi.createAccountId(authentication.actorId)).data;
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
@@ -291,18 +292,17 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const entity = await createEntity(ctx, {
+  const entity = await createEntity(ctx, authentication, {
     ownedById: systemUserAccountId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
     entityUuid: userAccountId as EntityUuid,
-    actorId,
   });
 
   const user = getUserFromEntity({ entity });
 
   if (isInstanceAdmin) {
-    await addHashInstanceAdmin(ctx, { user, actorId });
+    await addHashInstanceAdmin(ctx, authentication, { user });
   }
 
   return user;
@@ -316,7 +316,7 @@ export const createUser: ImpureGraphFunction<
 export const getUserKratosIdentity: ImpureGraphFunction<
   { user: User },
   Promise<KratosUserIdentity>
-> = async (_, { user }) => {
+> = async (_, __, { user }) => {
   const { kratosIdentityId } = user;
 
   const { data: kratosIdentity } = await kratosIdentityApi.getIdentity({
@@ -335,13 +335,13 @@ export const getUserKratosIdentity: ImpureGraphFunction<
 export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   { user: User; updatedTraits: Partial<KratosUserIdentityTraits> },
   Promise<void>
-> = async (ctx, { user, updatedTraits }) => {
+> = async (ctx, authentication, { user, updatedTraits }) => {
   const {
     id: kratosIdentityId,
     traits: currentKratosTraits,
     schema_id,
     state,
-  } = await getUserKratosIdentity(ctx, { user });
+  } = await getUserKratosIdentity(ctx, authentication, { user });
 
   /** @todo: figure out why the `state` can be undefined */
   if (!state) {
@@ -369,10 +369,10 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is updating the shortname
  */
 export const updateUserShortname: ImpureGraphFunction<
-  { user: User; updatedShortname: string; actorId: AccountId },
+  { user: User; updatedShortname: string },
   Promise<User>
-> = async (ctx, params) => {
-  const { user, updatedShortname, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { user, updatedShortname } = params;
 
   if (shortnameIsInvalid({ shortname: updatedShortname })) {
     throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -380,7 +380,9 @@ export const updateUserShortname: ImpureGraphFunction<
 
   if (
     shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, { shortname: updatedShortname }))
+    (await shortnameIsTaken(ctx, authentication, {
+      shortname: updatedShortname,
+    }))
   ) {
     throw new Error(
       `An account with shortname "${updatedShortname}" already exists.`,
@@ -389,25 +391,23 @@ export const updateUserShortname: ImpureGraphFunction<
 
   const previousShortname = user.shortname;
 
-  const updatedUser = await updateEntityProperty(ctx, {
+  const updatedUser = await updateEntityProperty(ctx, authentication, {
     entity: user.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
     value: updatedShortname,
-    actorId,
   }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
 
-  await updateUserKratosIdentityTraits(ctx, {
+  await updateUserKratosIdentityTraits(ctx, authentication, {
     user: updatedUser,
     updatedTraits: { shortname: updatedShortname },
   }).catch(async (error) => {
     // If an error occurred updating the entity, set the property to have the previous shortname
-    await updateEntityProperty(ctx, {
+    await updateEntityProperty(ctx, authentication, {
       entity: user.entity,
       propertyTypeBaseUrl:
         SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
       value: previousShortname,
-      actorId,
     });
 
     return Promise.reject(error);
@@ -424,10 +424,10 @@ export const updateUserShortname: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is updating the preferred name
  */
 export const updateUserPreferredName: ImpureGraphFunction<
-  { user: User; updatedPreferredName: string; actorId: AccountId },
+  { user: User; updatedPreferredName: string },
   Promise<User>
-> = async (ctx, params) => {
-  const { user, updatedPreferredName, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { user, updatedPreferredName } = params;
 
   if (updatedPreferredName === "") {
     throw new Error(
@@ -435,12 +435,11 @@ export const updateUserPreferredName: ImpureGraphFunction<
     );
   }
 
-  const updatedEntity = await updateEntityProperty(ctx, {
+  const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: user.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl,
     value: updatedPreferredName,
-    actorId,
   });
 
   return getUserFromEntity({ entity: updatedEntity });
@@ -457,16 +456,14 @@ export const joinOrg: ImpureGraphFunction<
   {
     userEntityId: EntityId;
     orgEntityId: EntityId;
-    actorId: AccountId;
   },
   Promise<void>
-> = async (ctx, params) => {
-  const { userEntityId, orgEntityId, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { userEntityId, orgEntityId } = params;
 
-  await createOrgMembership(ctx, {
+  await createOrgMembership(ctx, authentication, {
     orgEntityId,
     userEntityId,
-    actorId,
   });
 };
 
@@ -478,12 +475,16 @@ export const joinOrg: ImpureGraphFunction<
 export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },
   Promise<OrgMembership[]>
-> = async (ctx, { userEntityId }) => {
-  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: userEntityId,
-    linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
-  });
+> = async (ctx, authentication, { userEntityId }) => {
+  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: userEntityId,
+      linkEntityTypeVersionedUrl:
+        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+    },
+  );
 
   return outgoingOrgMembershipLinkEntities.map((linkEntity) =>
     getOrgMembershipFromLinkEntity({ linkEntity }),
@@ -499,12 +500,16 @@ export const getUserOrgMemberships: ImpureGraphFunction<
 export const isUserMemberOfOrg: ImpureGraphFunction<
   { userEntityId: EntityId; orgEntityUuid: EntityUuid },
   Promise<boolean>
-> = async (ctx, params) => {
-  const orgMemberships = await getUserOrgMemberships(ctx, params);
+> = async (ctx, authentication, params) => {
+  const orgMemberships = await getUserOrgMemberships(
+    ctx,
+    authentication,
+    params,
+  );
 
   const orgs = await Promise.all(
     orgMemberships.map((orgMembership) =>
-      getOrgMembershipOrg(ctx, { orgMembership }),
+      getOrgMembershipOrg(ctx, authentication, { orgMembership }),
     ),
   );
 
@@ -523,14 +528,18 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 export const isUserHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<boolean>
-> = async (ctx, { user }) => {
-  const hashInstance = await getHashInstance(ctx, {});
+> = async (ctx, authentication, { user }) => {
+  const hashInstance = await getHashInstance(ctx, authentication, {});
 
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: hashInstance.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-    rightEntityId: user.entity.metadata.recordId.entityId,
-  });
+  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: hashInstance.entity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+      rightEntityId: user.entity.metadata.recordId.entityId,
+    },
+  );
 
   if (outgoingAdminLinkEntities.length > 1) {
     throw new Error(

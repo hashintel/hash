@@ -12,9 +12,10 @@ export const getLinearOrganizationResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetLinearOrganizationArgs
-> = async (_, params, { dataSources, user, vault }) => {
+> = async (_, params, { dataSources, authentication, user, vault }) => {
   const linearSecretEntity = await getLinearUserSecretByLinearOrgId(
     dataSources,
+    authentication,
     {
       userAccountId: user.accountId,
       linearOrgId: params.linearOrgId,

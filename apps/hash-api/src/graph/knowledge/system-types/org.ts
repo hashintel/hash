@@ -104,8 +104,8 @@ export const createOrg: ImpureGraphFunction<
     website?: string | null;
   },
   Promise<Org>
-> = async (ctx, params) => {
-  const { shortname, name, providedInfo, website, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { shortname, name, providedInfo, website } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -113,7 +113,7 @@ export const createOrg: ImpureGraphFunction<
 
   if (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(ctx, { shortname }))
+    (await shortnameIsTaken(ctx, authentication, { shortname }))
   ) {
     throw new Error(`An account with shortname "${shortname}" already exists.`);
   }
@@ -121,7 +121,8 @@ export const createOrg: ImpureGraphFunction<
   const { graphApi } = ctx;
 
   const orgAccountId =
-    params.orgAccountId ?? (await graphApi.createAccountId()).data;
+    params.orgAccountId ??
+    (await graphApi.createAccountId(authentication.actorId)).data;
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
@@ -143,12 +144,11 @@ export const createOrg: ImpureGraphFunction<
       : {}),
   };
 
-  const entity = await createEntity(ctx, {
+  const entity = await createEntity(ctx, authentication, {
     ownedById: systemUserAccountId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountId as EntityUuid,
-    actorId,
   });
 
   return getOrgFromEntity({ entity });
@@ -162,8 +162,8 @@ export const createOrg: ImpureGraphFunction<
 export const getOrgById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<Org>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, {
     entityId,
   });
 
@@ -178,9 +178,9 @@ export const getOrgById: ImpureGraphFunction<
 export const getOrgByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<Org | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
@@ -226,10 +226,10 @@ export const getOrgByShortname: ImpureGraphFunction<
  * @param params.actorId - the id of the account that is updating the shortname
  */
 export const updateOrgShortname: ImpureGraphFunction<
-  { org: Org; updatedShortname: string; actorId: AccountId },
+  { org: Org; updatedShortname: string },
   Promise<Org>
-> = async (ctx, params) => {
-  const { org, updatedShortname, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { org, updatedShortname } = params;
 
   if (shortnameIsInvalid({ shortname: updatedShortname })) {
     throw new Error(`The shortname "${updatedShortname}" is invalid`);
@@ -237,19 +237,20 @@ export const updateOrgShortname: ImpureGraphFunction<
 
   if (
     shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, { shortname: updatedShortname }))
+    (await shortnameIsTaken(ctx, authentication, {
+      shortname: updatedShortname,
+    }))
   ) {
     throw new Error(
       `An account with shortname "${updatedShortname}" already exists.`,
     );
   }
 
-  const updatedOrg = await updateEntityProperty(ctx, {
+  const updatedOrg = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
     value: updatedShortname,
-    actorId,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
 
   return updatedOrg;
@@ -275,21 +276,20 @@ export const orgNameIsInvalid: PureGraphFunction<
  * @param params.actorId - the id of the account updating the name
  */
 export const updateOrgName: ImpureGraphFunction<
-  { org: Org; updatedOrgName: string; actorId: AccountId },
+  { org: Org; updatedOrgName: string },
   Promise<Org>
-> = async (ctx, params) => {
-  const { org, updatedOrgName, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { org, updatedOrgName } = params;
 
   if (orgNameIsInvalid({ orgName: updatedOrgName })) {
     throw new Error(`Organization name "${updatedOrgName}" is invalid.`);
   }
 
-  const updatedEntity = await updateEntityProperty(ctx, {
+  const updatedEntity = await updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl,
     value: updatedOrgName,
-    actorId,
   });
 
   return getOrgFromEntity({ entity: updatedEntity });

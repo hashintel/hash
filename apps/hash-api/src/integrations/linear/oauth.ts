@@ -80,6 +80,7 @@ export const oAuthLinear: RequestHandler<
       res.status(401).send("You must be authenticated to do this.");
       return;
     }
+    const authentication = { actorId: req.user.accountId };
 
     const { ownedById } = req.query;
 
@@ -92,7 +93,7 @@ export const oAuthLinear: RequestHandler<
 
     if (
       extractEntityUuidFromEntityId(userEntityId) !== ownedById &&
-      !(await isUserMemberOfOrg(req.context, {
+      !(await isUserMemberOfOrg(req.context, authentication, {
         userEntityId,
         orgEntityUuid: ownedById as EntityUuid,
       }))
@@ -219,13 +220,15 @@ export const oAuthLinearCallback: RequestHandler<
         vaultPath,
     };
 
-    const actorId = extractEntityUuidFromEntityId(
+    const userAccountId = extractEntityUuidFromEntityId(
       actorEntityId,
     ) as Uuid as AccountId;
+    const authentication = { actorId: userAccountId };
 
     const existingLinearIntegration = await getLinearIntegrationByLinearOrgId(
       req.context,
-      { linearOrgId, userAccountId: actorId },
+      authentication,
+      { linearOrgId, userAccountId },
     );
 
     let linearIntegration: LinearIntegration;
@@ -233,8 +236,7 @@ export const oAuthLinearCallback: RequestHandler<
     if (existingLinearIntegration) {
       linearIntegration = existingLinearIntegration;
     } else {
-      const userSecretEntity = await createEntity(req.context, {
-        actorId,
+      const userSecretEntity = await createEntity(req.context, authentication, {
         entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
@@ -245,20 +247,22 @@ export const oAuthLinearCallback: RequestHandler<
           linearOrgId,
       };
 
-      const linearIntegrationEntity = await createEntity(req.context, {
-        actorId,
-        entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-        ownedById: ownedById as Uuid as OwnedById,
-        properties: linearIntegrationProperties,
-      });
+      const linearIntegrationEntity = await createEntity(
+        req.context,
+        authentication,
+        {
+          entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+          ownedById: ownedById as Uuid as OwnedById,
+          properties: linearIntegrationProperties,
+        },
+      );
 
-      await createLinkEntity(req.context, {
+      await createLinkEntity(req.context, authentication, {
         ownedById: ownedById as Uuid as OwnedById,
         linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},
-        actorId,
       });
 
       linearIntegration = getLinearIntegrationFromEntity({

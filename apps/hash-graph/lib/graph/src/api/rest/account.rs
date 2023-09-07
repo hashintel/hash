@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::json::Json,
+    api::rest::{json::Json, AuthenticatedUserHeader},
     store::{AccountStore, StorePool},
 };
 
@@ -44,13 +44,18 @@ impl RoutedResource for AccountResource {
     post,
     path = "/accounts",
     tag = "Account",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The schema of the created account", body = AccountId),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
+#[tracing::instrument(level = "info", skip(pool))]
 async fn create_account_id<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<AccountId>, StatusCode> {
     let mut store = pool.acquire().await.map_err(|report| {

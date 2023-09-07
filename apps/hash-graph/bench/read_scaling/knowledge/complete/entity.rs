@@ -21,7 +21,7 @@ use graph_types::{
         entity::{EntityMetadata, EntityProperties},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
@@ -89,12 +89,11 @@ async fn seed_db(
         .clone();
 
     let owned_by_id = OwnedById::new(account_id);
-    let actor_id = RecordCreatedById::new(account_id);
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
+            account_id,
             repeat((owned_by_id, None, properties.clone(), None, None)).take(total),
-            actor_id,
             &entity_type_id,
         )
         .await
@@ -102,6 +101,7 @@ async fn seed_db(
 
     let link_entity_metadata_list = transaction
         .insert_entities_batched_by_type(
+            account_id,
             entity_metadata_list.iter().flat_map(|entity_a_metadata| {
                 entity_metadata_list.iter().map(|entity_b_metadata| {
                     (
@@ -120,7 +120,6 @@ async fn seed_db(
                     )
                 })
             }),
-            actor_id,
             &entity_type_id,
         )
         .await
@@ -149,6 +148,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_metadata_list: &[EntityMetadata],
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -165,6 +165,7 @@ pub fn bench_get_entity_by_id(
         |entity_record_id| async move {
             store
                 .get_entity(
+                    actor_id,
                     &StructuralQuery {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         graph_resolve_depths,
@@ -200,7 +201,7 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let DatastoreEntitiesMetadata {
             entity_metadata_list,
@@ -219,6 +220,7 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
                     b,
                     &runtime,
                     store,
+                    account_id,
                     entity_metadata_list,
                     GraphResolveDepths {
                         inherits_from: OutgoingEdgeResolveDepth::default(),
@@ -251,7 +253,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let DatastoreEntitiesMetadata {
             entity_metadata_list,
@@ -270,6 +272,7 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
                     b,
                     &runtime,
                     store,
+                    account_id,
                     entity_metadata_list,
                     GraphResolveDepths {
                         inherits_from: OutgoingEdgeResolveDepth::default(),

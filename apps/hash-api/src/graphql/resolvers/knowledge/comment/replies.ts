@@ -9,10 +9,10 @@ export const commentRepliesResolver: ResolverFn<
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const replies = await getCommentReplies(context, {
+  const replies = await getCommentReplies(context, authentication, {
     commentEntityId: metadata.recordId.entityId,
   });
 

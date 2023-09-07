@@ -18,7 +18,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
@@ -79,8 +79,8 @@ async fn seed_db(
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
+            account_id,
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
-            RecordCreatedById::new(account_id),
             &entity_type_id,
         )
         .await
@@ -105,6 +105,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_metadata_list: &[EntityMetadata],
 ) {
     b.to_async(runtime).iter_batched(
@@ -120,6 +121,7 @@ pub fn bench_get_entity_by_id(
         |entity_record_id| async move {
             store
                 .get_entity(
+                    actor_id,
                     &StructuralQuery {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         graph_resolve_depths: GraphResolveDepths::default(),
@@ -150,7 +152,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     );
 
     for size in [1, 10, 100, 1_000, 10_000] {
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
@@ -162,7 +164,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list);
+                bench_get_entity_by_id(b, &runtime, store, account_id, entity_metadata_list);
             },
         );
     }

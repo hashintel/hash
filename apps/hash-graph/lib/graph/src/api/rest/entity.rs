@@ -13,7 +13,7 @@ use graph_types::{
         },
         link::{EntityLinkOrder, LinkData, LinkOrder},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
@@ -22,7 +22,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
-        utoipa_typedef::subgraph::Subgraph,
+        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader,
     },
     knowledge::EntityQueryToken,
     store::{
@@ -89,7 +89,6 @@ struct CreateEntityRequest {
     owned_by_id: OwnedById,
     #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
-    actor_id: RecordCreatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -102,6 +101,9 @@ struct CreateEntityRequest {
     path = "/entities",
     request_body = CreateEntityRequest,
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -112,6 +114,7 @@ struct CreateEntityRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn create_entity<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
@@ -120,7 +123,6 @@ async fn create_entity<P: StorePool + Send>(
         entity_type_id,
         owned_by_id,
         entity_uuid,
-        actor_id,
         link_data,
     }) = body;
 
@@ -131,10 +133,10 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
+            actor_id,
             owned_by_id,
             entity_uuid,
             None,
-            actor_id,
             false,
             entity_type_id,
             properties,
@@ -155,6 +157,9 @@ async fn create_entity<P: StorePool + Send>(
     path = "/entities/query",
     request_body = EntityStructuralQuery,
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth."),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
@@ -163,6 +168,7 @@ async fn create_entity<P: StorePool + Send>(
 )]
 #[tracing::instrument(level = "info", skip(pool, authorization_api))]
 async fn get_entities_by_query<P: StorePool + Send, A: AuthorizationApi + Send + Sync>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     authorization_api: Extension<Arc<A>>,
     Json(query): Json<serde_json::Value>,
@@ -181,7 +187,11 @@ async fn get_entities_by_query<P: StorePool + Send, A: AuthorizationApi + Send +
                 tracing::error!(?error, "Could not validate query");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
-            store.get_entity(&query, &**authorization_api).await.map_err(|report| {
+            store.get_entity(
+                actor_id,
+                &query,
+                &**authorization_api
+            ).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read entities from the store");
                 report_to_status_code(&report)
             })
@@ -197,7 +207,6 @@ struct UpdateEntityRequest {
     entity_id: EntityId,
     #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
-    actor_id: RecordCreatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
     archived: bool,
@@ -207,6 +216,9 @@ struct UpdateEntityRequest {
     put,
     path = "/entities",
     tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -219,6 +231,7 @@ struct UpdateEntityRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_entity<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
@@ -226,7 +239,6 @@ async fn update_entity<P: StorePool + Send>(
         properties,
         entity_id,
         entity_type_id,
-        actor_id,
         order,
         archived,
     }) = body;
@@ -238,9 +250,9 @@ async fn update_entity<P: StorePool + Send>(
 
     store
         .update_entity(
+            actor_id,
             entity_id,
             None,
-            actor_id,
             archived,
             entity_type_id,
             properties,

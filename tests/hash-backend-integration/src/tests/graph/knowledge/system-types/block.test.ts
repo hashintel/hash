@@ -53,12 +53,13 @@ describe("Block", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "blockTest", logger);
+    const authentication = { actorId: testUser.accountId };
 
     /**
      * @todo: rename to something more representative of a real-world use-case,
      * once the exact role of the block data entity's entity type is known.
      */
-    dummyEntityType = await createEntityType(graphContext, {
+    dummyEntityType = await createEntityType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
@@ -70,14 +71,12 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
-      actorId: testUser.accountId,
     });
 
-    testBlockDataEntity = await createEntity(graphContext, {
+    testBlockDataEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {},
       entityTypeId: dummyEntityType.schema.$id,
-      actorId: testUser.accountId,
     });
   });
 
@@ -93,16 +92,19 @@ describe("Block", () => {
   });
 
   it("can create a Block", async () => {
-    testBlock = await createBlock(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    testBlock = await createBlock(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
-      actorId: testUser.accountId,
     });
   });
 
   it("can get a block by its entity id", async () => {
-    const fetchedBlock = await getBlockById(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const fetchedBlock = await getBlockById(graphContext, authentication, {
       entityId: testBlock.entity.metadata.recordId.entityId,
     });
 
@@ -112,7 +114,9 @@ describe("Block", () => {
   });
 
   it("can get the block's data entity", async () => {
-    const fetchedBlockData = await getBlockData(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const fetchedBlockData = await getBlockData(graphContext, authentication, {
       block: testBlock,
     });
 
@@ -120,39 +124,44 @@ describe("Block", () => {
   });
 
   it("can update the block data entity", async () => {
-    const newBlockDataEntity = await createEntity(graphContext, {
-      ownedById: testUser.accountId as OwnedById,
-      properties: {},
-      entityTypeId: dummyEntityType.schema.$id,
-      actorId: testUser.accountId,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    const newBlockDataEntity = await createEntity(
+      graphContext,
+      authentication,
+      {
+        ownedById: testUser.accountId as OwnedById,
+        properties: {},
+        entityTypeId: dummyEntityType.schema.$id,
+      },
+    );
 
     expect(testBlockDataEntity).not.toEqual(newBlockDataEntity);
-    expect(await getBlockData(graphContext, { block: testBlock })).toEqual(
-      testBlockDataEntity,
-    );
+    expect(
+      await getBlockData(graphContext, authentication, { block: testBlock }),
+    ).toEqual(testBlockDataEntity);
 
-    await updateBlockDataEntity(graphContext, {
+    await updateBlockDataEntity(graphContext, authentication, {
       block: testBlock,
       newBlockDataEntity,
-      actorId: testUser.accountId,
     });
 
-    expect(await getBlockData(graphContext, { block: testBlock })).toEqual(
-      newBlockDataEntity,
-    );
+    expect(
+      await getBlockData(graphContext, authentication, { block: testBlock }),
+    ).toEqual(newBlockDataEntity);
   });
 
   it("cannot update the block data entity to the same data entity", async () => {
-    const currentDataEntity = await getBlockData(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const currentDataEntity = await getBlockData(graphContext, authentication, {
       block: testBlock,
     });
 
     await expect(
-      updateBlockDataEntity(graphContext, {
+      updateBlockDataEntity(graphContext, authentication, {
         block: testBlock,
         newBlockDataEntity: currentDataEntity,
-        actorId: testUser.accountId,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);
   });

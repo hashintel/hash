@@ -268,10 +268,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, properties))]
     async fn create_entity(
         &mut self,
+        actor_id: AccountId,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -349,7 +349,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -423,7 +423,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             entity_type_id,
             ProvenanceMetadata {
-                record_created_by_id,
+                record_created_by_id: RecordCreatedById::new(actor_id),
                 record_archived_by_id: None,
             },
             archived,
@@ -434,6 +434,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
+        actor_id: AccountId,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -444,7 +445,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -510,7 +510,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, actor_id)
+            .insert_entity_records(entity_editions, RecordCreatedById::new(actor_id))
             .await?;
 
         let entity_versions = transaction
@@ -545,7 +545,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata {
-                        record_created_by_id: actor_id,
+                        record_created_by_id: RecordCreatedById::new(actor_id),
                         record_archived_by_id: None,
                     },
                     false,
@@ -557,6 +557,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
+        _actor_id: AccountId,
         query: &StructuralQuery<Entity>,
         authorization_api: &A,
     ) -> Result<Subgraph, QueryError> {
@@ -647,9 +648,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, properties))]
     async fn update_entity(
         &mut self,
+        actor_id: AccountId,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -677,7 +678,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -750,7 +751,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             entity_type_id,
             ProvenanceMetadata {
-                record_created_by_id,
+                record_created_by_id: RecordCreatedById::new(actor_id),
                 record_archived_by_id: None,
             },
             archived,

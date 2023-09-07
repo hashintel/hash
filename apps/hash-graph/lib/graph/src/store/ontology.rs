@@ -3,12 +3,12 @@ use std::iter;
 use async_trait::async_trait;
 use error_stack::Result;
 use graph_types::{
+    account::AccountId,
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{RecordArchivedById, RecordCreatedById},
 };
 use type_system::{
     url::{BaseUrl, VersionedUrl},
@@ -33,11 +33,16 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_type(
         &mut self,
+        actor_id: AccountId,
         schema: DataType,
         metadata: PartialOntologyElementMetadata,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         Ok(self
-            .create_data_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .create_data_types(
+                actor_id,
+                iter::once((schema, metadata)),
+                ConflictBehavior::Fail,
+            )
             .await?
             .pop()
             .expect("created exactly one data type"))
@@ -53,6 +58,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_data_types(
         &mut self,
+        actor_id: AccountId,
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -65,6 +71,7 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if the requested [`DataType`] doesn't exist.
     async fn get_data_type(
         &self,
+        actor_id: AccountId,
         query: &StructuralQuery<DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
@@ -75,8 +82,8 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if the [`DataType`] doesn't exist.
     async fn update_data_type(
         &mut self,
+        actor_id: AccountId,
         data_type: DataType,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`DataType`].
@@ -86,8 +93,8 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if the [`DataType`] doesn't exist.
     async fn archive_data_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`DataType`].
@@ -97,8 +104,8 @@ pub trait DataTypeStore: crud::Read<DataTypeWithMetadata> {
     /// - if the [`DataType`] doesn't exist.
     async fn unarchive_data_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
@@ -115,11 +122,16 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_type(
         &mut self,
+        actor_id: AccountId,
         schema: PropertyType,
         metadata: PartialOntologyElementMetadata,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         Ok(self
-            .create_property_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .create_property_types(
+                actor_id,
+                iter::once((schema, metadata)),
+                ConflictBehavior::Fail,
+            )
             .await?
             .pop()
             .expect("created exactly one property type"))
@@ -135,6 +147,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_property_types(
         &mut self,
+        actor_id: AccountId,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
@@ -149,6 +162,7 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if the requested [`PropertyType`] doesn't exist.
     async fn get_property_type(
         &self,
+        actor_id: AccountId,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
@@ -159,8 +173,8 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if the [`PropertyType`] doesn't exist.
     async fn update_property_type(
         &mut self,
+        actor_id: AccountId,
         property_type: PropertyType,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`PropertyType`].
@@ -170,8 +184,8 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if the [`PropertyType`] doesn't exist.
     async fn archive_property_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`PropertyType`].
@@ -181,8 +195,8 @@ pub trait PropertyTypeStore: crud::Read<PropertyTypeWithMetadata> {
     /// - if the [`PropertyType`] doesn't exist.
     async fn unarchive_property_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }
 
@@ -199,11 +213,16 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_type(
         &mut self,
+        actor_id: AccountId,
         schema: EntityType,
         metadata: PartialEntityTypeMetadata,
     ) -> Result<EntityTypeMetadata, InsertionError> {
         Ok(self
-            .create_entity_types(iter::once((schema, metadata)), ConflictBehavior::Fail)
+            .create_entity_types(
+                actor_id,
+                iter::once((schema, metadata)),
+                ConflictBehavior::Fail,
+            )
             .await?
             .pop()
             .expect("created exactly one entity type"))
@@ -219,6 +238,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// [`BaseUrl`]: type_system::url::BaseUrl
     async fn create_entity_types(
         &mut self,
+        actor_id: AccountId,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -231,6 +251,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if the requested [`EntityType`] doesn't exist.
     async fn get_entity_type(
         &self,
+        actor_id: AccountId,
         query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError>;
 
@@ -241,8 +262,8 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if the [`EntityType`] doesn't exist.
     async fn update_entity_type(
         &mut self,
+        actor_id: AccountId,
         entity_type: EntityType,
-        actor_id: RecordCreatedById,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError>;
 
@@ -253,8 +274,8 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if the [`EntityType`] doesn't exist.
     async fn archive_entity_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 
     /// Restores the definition of an existing [`EntityType`].
@@ -264,7 +285,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
     /// - if the [`EntityType`] doesn't exist.
     async fn unarchive_entity_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError>;
 }

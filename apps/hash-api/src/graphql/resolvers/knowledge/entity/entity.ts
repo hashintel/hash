@@ -54,7 +54,7 @@ export const createEntityResolver: ResolverFn<
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities, linkData },
-  { dataSources, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
@@ -72,16 +72,16 @@ export const createEntityResolver: ResolverFn<
       linkData;
 
     const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
-      getLatestEntityById(context, {
+      getLatestEntityById(context, authentication, {
         entityId: leftEntityId,
       }),
-      getLatestEntityById(context, {
+      getLatestEntityById(context, authentication, {
         entityId: rightEntityId,
       }),
-      getEntityTypeById(context, { entityTypeId }),
+      getEntityTypeById(context, authentication, { entityTypeId }),
     ]);
 
-    entity = await createLinkEntity(context, {
+    entity = await createLinkEntity(context, authentication, {
       leftEntityId: leftEntity.metadata.recordId.entityId,
       leftToRightOrder: leftToRightOrder ?? undefined,
       rightEntityId: rightEntity.metadata.recordId.entityId,
@@ -89,15 +89,13 @@ export const createEntityResolver: ResolverFn<
       properties,
       linkEntityType,
       ownedById: ownedById ?? (user.accountId as OwnedById),
-      actorId: user.accountId,
     });
   } else {
-    entity = await createEntityWithLinks(context, {
+    entity = await createEntityWithLinks(context, authentication, {
       ownedById: ownedById ?? (user.accountId as OwnedById),
       entityTypeId,
       properties,
       linkedEntities: linkedEntities ?? undefined,
-      actorId: user.accountId,
     });
   }
 
@@ -120,7 +118,7 @@ export const queryEntitiesResolver: Extract<
     hasLeftEntity,
     hasRightEntity,
   },
-  { logger, dataSources },
+  { logger, dataSources, authentication },
   __,
 ) => {
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
@@ -139,7 +137,7 @@ export const queryEntitiesResolver: Extract<
     );
   }
 
-  const entitySubgraph = await getEntities(dataSources, {
+  const entitySubgraph = await getEntities(dataSources, authentication, {
     query: {
       filter,
       graphResolveDepths: {
@@ -179,7 +177,7 @@ export const getEntityResolver: ResolverFn<
     hasLeftEntity,
     hasRightEntity,
   },
-  { dataSources },
+  { dataSources, authentication },
   __,
 ) => {
   const [ownedById, entityUuid] = splitEntityId(entityId);
@@ -213,7 +211,7 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntities(dataSources, {
+  const entitySubgraph = await getEntities(dataSources, authentication, {
     query: {
       filter,
       graphResolveDepths: {
@@ -248,7 +246,7 @@ export const updateEntityResolver: ResolverFn<
     rightToLeftOrder,
     entityTypeId,
   },
-  { dataSources, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
@@ -262,7 +260,9 @@ export const updateEntityResolver: ResolverFn<
     );
   }
 
-  const entity = await getLatestEntityById(context, { entityId });
+  const entity = await getLatestEntityById(context, authentication, {
+    entityId,
+  });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -277,10 +277,9 @@ export const updateEntityResolver: ResolverFn<
   let updatedEntity: Entity;
 
   if (isEntityLinkEntity(entity)) {
-    updatedEntity = await updateLinkEntity(context, {
+    updatedEntity = await updateLinkEntity(context, authentication, {
       linkEntity: entity,
       properties: updatedProperties,
-      actorId: user.accountId,
       leftToRightOrder: leftToRightOrder ?? undefined,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
     });
@@ -291,11 +290,10 @@ export const updateEntityResolver: ResolverFn<
       );
     }
 
-    updatedEntity = await updateEntity(context, {
+    updatedEntity = await updateEntity(context, authentication, {
       entity,
       entityTypeId: entityTypeId ?? undefined,
       properties: updatedProperties,
-      actorId: user.accountId,
     });
   }
 
@@ -307,10 +305,12 @@ export const archiveEntityResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
-> = async (_, { entityId }, { dataSources: context, user }) => {
-  const entity = await getLatestEntityById(context, { entityId });
+> = async (_, { entityId }, { dataSources: context, authentication }) => {
+  const entity = await getLatestEntityById(context, authentication, {
+    entityId,
+  });
 
-  await archiveEntity(context, { entity, actorId: user.accountId });
+  await archiveEntity(context, authentication, { entity });
 
   return true;
 };
@@ -320,20 +320,14 @@ export const inferEntitiesResolver: ResolverFn<
   null,
   LoggedInGraphQLContext,
   MutationInferEntitiesArgs
-> = async (_, { textInput, entityTypeIds }, { user, temporal }) => {
+> = async (_, { textInput, entityTypeIds }, { authentication, temporal }) => {
   if (!temporal) {
     throw new Error("Temporal client not available");
   }
 
   const status = await temporal.workflow.execute("inferEntities", {
     taskQueue: "aipy",
-    args: [
-      {
-        textInput,
-        entityTypeIds,
-        actorId: user.accountId,
-      },
-    ],
+    args: [{ authentication, textInput, entityTypeIds }],
     workflowId: `inferEntities-${genId()}`,
   });
 

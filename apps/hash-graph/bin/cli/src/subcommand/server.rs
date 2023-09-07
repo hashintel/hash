@@ -24,7 +24,6 @@ use graph_types::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
 };
 use regex::Regex;
 use reqwest::Client;
@@ -244,16 +243,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         let data_type_metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(root_account_id),
-                    record_archived_by_id: None,
-                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
 
         if let Err(error) = connection
-            .create_data_type(data_type, data_type_metadata)
+            .create_data_type(root_account_id, data_type, data_type_metadata)
             .await
             .change_context(GraphError)
         {
@@ -286,10 +281,6 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         record_id: link_entity_type.id().clone().into(),
         custom: PartialCustomEntityTypeMetadata {
             common: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(root_account_id),
-                    record_archived_by_id: None,
-                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
             label_property: None,
@@ -299,7 +290,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let title = link_entity_type.title().to_owned();
 
     if let Err(error) = connection
-        .create_entity_type(link_entity_type, link_entity_type_metadata)
+        .create_entity_type(root_account_id, link_entity_type, link_entity_type_metadata)
         .await
     {
         if error.contains::<VersionedUrlAlreadyExists>() {

@@ -17,7 +17,7 @@ use graph::{
         },
     },
 };
-use graph_types::knowledge::entity::EntityUuid;
+use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
@@ -28,6 +28,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
     b.to_async(runtime).iter_batched(
@@ -41,6 +42,7 @@ pub fn bench_get_entity_by_id(
         |entity_uuid| async move {
             let subgraph = store
                 .get_entity(
+                    actor_id,
                     &StructuralQuery {
                         filter: Filter::Equal(
                             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -68,6 +70,7 @@ pub fn bench_get_entities_by_property(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
@@ -86,6 +89,7 @@ pub fn bench_get_entities_by_property(
             .expect("failed to convert parameters");
         let subgraph = store
             .get_entity(
+                actor_id,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths,
@@ -109,6 +113,7 @@ pub fn bench_get_link_by_target_by_property(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
@@ -131,6 +136,7 @@ pub fn bench_get_link_by_target_by_property(
             .expect("failed to convert parameters");
         let subgraph = store
             .get_entity(
+                actor_id,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths,

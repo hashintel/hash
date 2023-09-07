@@ -26,12 +26,11 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationRequestFileUploadArgs,
   Promise<{ presignedPost: PresignedPostUpload; entity: File }>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
 
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, description, displayName, name, entityTypeId } =
-    params;
+  const { ownedById, description, displayName, name, entityTypeId } = params;
 
   const fileEntityTypeId =
     // @todo validate that entityTypeId, if provided, ultimately inherits from File
@@ -66,11 +65,10 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         "Upload",
     };
 
-    const entity = (await createEntity(ctx, {
+    const entity = (await createEntity(ctx, authentication, {
       ownedById,
       properties,
       entityTypeId: fileEntityTypeId,
-      actorId,
     })) as unknown as File;
 
     const presignedPost = await uploadProvider.presignUpload({
@@ -92,8 +90,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationCreateFileFromUrlArgs,
   Promise<File>
-> = async (ctx, params) => {
-  const { ownedById, actorId, description, entityTypeId, url } = params;
+> = async (ctx, authentication, params) => {
+  const { ownedById, description, entityTypeId, url } = params;
 
   const filename = url.split("/").pop()!;
   const mimeType = mime.lookup(filename) || "application/octet-stream";
@@ -121,11 +119,10 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         url,
     };
 
-    const entity = (await createEntity(ctx, {
+    const entity = (await createEntity(ctx, authentication, {
       ownedById,
       properties,
       entityTypeId: fileEntityTypeId,
-      actorId,
     })) as unknown as File;
 
     return entity;

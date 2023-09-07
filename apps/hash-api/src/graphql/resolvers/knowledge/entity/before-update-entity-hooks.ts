@@ -1,6 +1,10 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
+import {
+  AccountId,
+  Entity,
+  EntityPropertiesObject,
+} from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";
@@ -19,6 +23,7 @@ import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
+  authentication: { actorId: AccountId },
   shortname: string,
 ) => {
   if (shortnameContainsInvalidCharacter({ shortname })) {
@@ -32,7 +37,7 @@ const validateAccountShortname = async (
 
   if (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(context, { shortname }))
+    (await shortnameIsTaken(context, authentication, { shortname }))
   ) {
     throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
@@ -73,7 +78,11 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
       throw new ApolloError("Cannot unset shortname");
     }
 
-    await validateAccountShortname(context, updatedShortname);
+    await validateAccountShortname(
+      context,
+      { actorId: user.accountId },
+      updatedShortname,
+    );
   }
 
   const currentPreferredName = user.preferredName;
@@ -98,12 +107,16 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     [...currentEmails].sort().join().toLowerCase() !==
     [...updatedEmails].sort().join().toLowerCase()
   ) {
-    await updateUserKratosIdentityTraits(context, {
-      user,
-      updatedTraits: {
-        emails: updatedEmails,
+    await updateUserKratosIdentityTraits(
+      context,
+      { actorId: user.accountId },
+      {
+        user,
+        updatedTraits: {
+          emails: updatedEmails,
+        },
       },
-    });
+    );
   }
 };
 

@@ -706,25 +706,20 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
+        record_created_by_id: RecordCreatedById,
         record_id: &OntologyTypeRecordId,
         custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
     ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
     {
         match custom_metadata {
-            PartialCustomOntologyMetadata::Owned {
-                provenance,
-                owned_by_id,
-            } => {
+            PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
@@ -733,10 +728,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     Ok(None)
                 }
             }
-            PartialCustomOntologyMetadata::External {
-                provenance,
-                fetched_at,
-            } => {
+            PartialCustomOntologyMetadata::External { fetched_at } => {
                 self.create_base_url(
                     &record_id.base_url,
                     ConflictBehavior::Skip,
@@ -746,10 +738,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
