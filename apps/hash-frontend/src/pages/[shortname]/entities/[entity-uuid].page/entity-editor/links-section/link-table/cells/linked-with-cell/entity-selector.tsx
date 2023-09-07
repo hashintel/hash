@@ -35,7 +35,7 @@ import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
   onSelect: (option: Entity) => void;
-  onCancel: () => void;
+  onFinishedEditing: () => void;
   expectedEntityTypes: EntityTypeWithMetadata[];
   entityIdsToFilterOut?: EntityId[];
   linkEntityTypeId: VersionedUrl;
@@ -70,7 +70,7 @@ const FileCreationPane = (props: PaperProps) => {
 
 export const EntitySelector = ({
   onSelect,
-  onCancel,
+  onFinishedEditing,
   expectedEntityTypes,
   entityIdsToFilterOut,
   linkEntityTypeId,
@@ -171,7 +171,7 @@ export const EntitySelector = ({
       }
 
       // Close the dropdown immediately as we want the file upload to happen in the background
-      onCancel();
+      onFinishedEditing();
 
       const upload = await uploadFile({
         fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
@@ -197,7 +197,7 @@ export const EntitySelector = ({
       entityId,
       expectedEntityTypes,
       linkEntityTypeId,
-      onCancel,
+      onFinishedEditing,
       onSelect,
       uploadFile,
     ],
@@ -258,12 +258,12 @@ export const EntitySelector = ({
         }}
         onKeyDown={(evt) => {
           if (evt.key === "Escape") {
-            onCancel();
+            onFinishedEditing();
           }
         }}
         onBlur={() => {
           if (!showUploadFileMenu) {
-            onCancel();
+            onFinishedEditing();
           }
         }}
       />

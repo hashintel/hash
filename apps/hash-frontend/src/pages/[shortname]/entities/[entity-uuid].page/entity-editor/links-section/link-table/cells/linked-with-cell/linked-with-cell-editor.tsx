@@ -74,7 +74,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     return (
       <EntitySelector
         onSelect={onSelectForSingleLink}
-        onCancel={onCancel}
+        onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}
         entityIdsToFilterOut={linkedEntityId && [linkedEntityId]}
         linkEntityTypeId={linkEntityTypeId}
