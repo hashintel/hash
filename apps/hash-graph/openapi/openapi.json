@@ -1168,13 +1168,9 @@
       "ArchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -1183,13 +1179,9 @@
       "ArchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -1198,13 +1190,9 @@
       "ArchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -1240,13 +1228,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -1270,13 +1254,9 @@
         "required": [
           "properties",
           "entityTypeId",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
@@ -1306,13 +1286,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
@@ -1338,13 +1314,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -2248,13 +2220,9 @@
       "LoadExternalDataTypeRequest": {
         "type": "object",
         "required": [
-          "dataTypeId",
-          "actorId"
+          "dataTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "dataTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2263,13 +2231,9 @@
       "LoadExternalEntityTypeRequest": {
         "type": "object",
         "required": [
-          "entityTypeId",
-          "actorId"
+          "entityTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2278,13 +2242,9 @@
       "LoadExternalPropertyTypeRequest": {
         "type": "object",
         "required": [
-          "propertyTypeId",
-          "actorId"
+          "propertyTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "propertyTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2985,13 +2945,9 @@
       "UnarchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -3000,13 +2956,9 @@
       "UnarchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -3015,13 +2967,9 @@
       "UnarchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -3056,13 +3004,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_data_type.json"
           },
@@ -3082,13 +3026,9 @@
               "properties",
               "entityId",
               "entityTypeId",
-              "actorId",
               "archived"
             ],
             "properties": {
-              "actorId": {
-                "$ref": "#/components/schemas/RecordCreatedById"
-              },
               "archived": {
                 "type": "boolean"
               },
@@ -3109,13 +3049,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
@@ -3131,13 +3067,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_property_type.json"
           },
