@@ -3,6 +3,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  SimpleProperties,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
+import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import {
   Entity,
   EntityRootType,
   OwnedById,
@@ -24,11 +29,8 @@ import { createLinkEntity } from "../primitive/link-entity";
 import { isUserHashInstanceAdmin, User } from "./user";
 
 export type HashInstance = {
-  userSelfRegistrationIsEnabled: boolean;
-  userRegistrationByInviteIsEnabled: boolean;
-  orgSelfRegistrationIsEnabled: boolean;
   entity: Entity;
-};
+} & SimpleProperties<HASHInstanceProperties>;
 
 export const getHashInstanceFromEntity: PureGraphFunction<
   { entity: Entity },
@@ -45,25 +47,8 @@ export const getHashInstanceFromEntity: PureGraphFunction<
     );
   }
 
-  const userSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
-      .baseUrl
-  ] as boolean;
-
-  const userRegistrationByInviteIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata
-      .recordId.baseUrl
-  ] as boolean;
-
-  const orgSelfRegistrationIsEnabled = entity.properties[
-    SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.metadata.recordId
-      .baseUrl
-  ] as boolean;
-
   return {
-    userSelfRegistrationIsEnabled,
-    userRegistrationByInviteIsEnabled,
-    orgSelfRegistrationIsEnabled,
+    ...simplifyProperties(entity.properties as HASHInstanceProperties),
     entity,
   };
 };
@@ -108,6 +93,7 @@ export const getHashInstance: ImpureGraphFunction<
 /**
  * Create the hash instance entity.
  *
+ * @param params.pagesAreEnabled - whether or not pages are enabled
  * @param params.userSelfRegistrationIsEnabled - whether or not user self registration is enabled
  * @param params.userRegistrationByInviteIsEnabled - whether or not user registration by invitation is enabled
  * @param params.orgSelfRegistrationIsEnabled - whether or not org registration is enabled
@@ -116,6 +102,7 @@ export const getHashInstance: ImpureGraphFunction<
  */
 export const createHashInstance: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
+    pagesAreEnabled?: boolean;
     userSelfRegistrationIsEnabled?: boolean;
     userRegistrationByInviteIsEnabled?: boolean;
     orgSelfRegistrationIsEnabled?: boolean;
@@ -141,6 +128,8 @@ export const createHashInstance: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: systemUserAccountId as OwnedById,
     properties: {
+      [SYSTEM_TYPES.propertyType.pagesAreEnabled.metadata.recordId.baseUrl]:
+        params.pagesAreEnabled ?? true,
       [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.metadata.recordId
         .baseUrl]: params.userSelfRegistrationIsEnabled ?? true,
       [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.metadata

@@ -1,6 +1,6 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import { AccountId } from "@local/hash-subgraph";
 import {
   Box,
   listItemSecondaryActionClasses,
@@ -13,44 +13,25 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useContext, useState } from "react";
+import { FunctionComponent, useContext } from "react";
 
-import { useAccountPages } from "../../../components/hooks/use-account-pages";
-import { useCreatePage } from "../../../components/hooks/use-create-page";
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { MenuItem } from "../../ui";
+import { CreatePageMenuItem } from "./actions-dropdown/create-page-menu-item";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
-export const ActionsDropdownInner: FunctionComponent<{
-  accountId: AccountId;
-}> = ({ accountId }) => {
+const ActionsDropdownInner: FunctionComponent<{
+  activeWorkspaceAccountId: AccountId;
+}> = ({ activeWorkspaceAccountId }) => {
   const theme = useTheme();
-  const { activeWorkspace } = useContext(WorkspaceContext);
-  const [loading, setLoading] = useState(false);
-  const { lastRootPageIndex } = useAccountPages(accountId as OwnedById);
-  const [createUntitledPage] = useCreatePage(accountId as OwnedById);
+
+  const { hashInstance } = useHashInstance();
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",
   });
-
-  // @todo handle loading/error states properly
-  const addPage = useCallback(async () => {
-    if (loading) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await createUntitledPage(lastRootPageIndex);
-    } catch (err) {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Could not create page: ", err);
-    } finally {
-      popupState.close();
-      setLoading(false);
-    }
-  }, [createUntitledPage, loading, popupState, lastRootPageIndex]);
 
   return (
     <Box>
@@ -92,24 +73,20 @@ export const ActionsDropdownInner: FunctionComponent<{
           },
         }}
       >
-        <MenuItem
-          onClick={() => {
-            void addPage();
-            popupState.close();
-          }}
-        >
-          <ListItemText primary="Create Page" />
-        </MenuItem>
-        {activeWorkspace
-          ? [
-              { href: "/new/entity", label: "Create Entity" },
-              { href: "/new/types/entity-type", label: "Create Entity Type" },
-            ].map(({ href, label }) => (
-              <MenuItem key={href} href={href} onClick={popupState.close}>
-                <ListItemText primary={label} />
-              </MenuItem>
-            ))
-          : null}
+        {hashInstance?.properties.pagesAreEnabled ? (
+          <CreatePageMenuItem
+            activeWorkspaceAccountId={activeWorkspaceAccountId}
+            onClick={popupState.close}
+          />
+        ) : null}
+        {[
+          { href: "/new/entity", label: "Create Entity" },
+          { href: "/new/types/entity-type", label: "Create Entity Type" },
+        ].map(({ href, label }) => (
+          <MenuItem key={href} href={href} onClick={popupState.close}>
+            <ListItemText primary={label} />
+          </MenuItem>
+        ))}
       </Menu>
     </Box>
   );
@@ -119,6 +96,6 @@ export const ActionsDropdown: FunctionComponent = () => {
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   return activeWorkspaceAccountId ? (
-    <ActionsDropdownInner accountId={activeWorkspaceAccountId} />
+    <ActionsDropdownInner activeWorkspaceAccountId={activeWorkspaceAccountId} />
   ) : null;
 };
