@@ -13,13 +13,16 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::ontology::{
-    CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
-    OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
-    PartialCustomOntologyMetadata,
-};
 #[cfg(feature = "utoipa")]
-use crate::provenance::{OwnedById, ProvenanceMetadata};
+use crate::provenance::OwnedById;
+use crate::{
+    ontology::{
+        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
+        PartialCustomOntologyMetadata,
+    },
+    provenance::ProvenanceMetadata,
+};
 
 /// A [`CustomEntityTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
