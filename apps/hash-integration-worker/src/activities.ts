@@ -76,7 +76,7 @@ const createOrUpdateHashEntity = async (params: {
     });
   }
   const entities = await params.graphApiClient
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(params.actorId, {
       filter: {
         all: filters,
       },
@@ -117,8 +117,7 @@ const createOrUpdateHashEntity = async (params: {
       continue;
     }
 
-    await params.graphApiClient.updateEntity({
-      actorId: params.actorId,
+    await params.graphApiClient.updateEntity(params.actorId, {
       archived: false,
       entityId: existingEntity.metadata.recordId.entityId,
       entityTypeId: existingEntity.metadata.entityTypeId,
@@ -127,8 +126,7 @@ const createOrUpdateHashEntity = async (params: {
   }
 
   if (entities.length === 0 && params.workspaceAccountId) {
-    await params.graphApiClient.createEntity({
-      actorId: params.actorId,
+    await params.graphApiClient.createEntity(params.actorId, {
       ownedById: params.workspaceAccountId,
       ...params.entity,
     });
