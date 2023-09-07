@@ -35,7 +35,7 @@ jobs:
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
         with:
           fetch-depth: 2
 
@@ -68,7 +68,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.build) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Build images
         uses: ./.github/actions/build-docker-images
@@ -88,7 +88,7 @@ jobs:
       RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -108,7 +108,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
+        uses: taiki-e/install-action@6cd53f784a415563474c95206a6f2d08bd80275d # v2.18.1
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -176,7 +176,7 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -197,7 +197,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -214,15 +214,9 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
+        uses: taiki-e/install-action@6cd53f784a415563474c95206a6f2d08bd80275d # v2.18.1
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
-
-      - name: Install Python
-        if: matrix.directory == 'apps/engine'
-        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
-        with:
-          python-version: "3.10"
 
       - name: Install Poetry dependencies
         working-directory: ${{ matrix.directory }}
@@ -240,29 +234,10 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
-
-      - name: Upload to Datadog
-        if: matrix.directory == 'apps/engine' && matrix.profile == 'production'
-        run: |
-          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
-                    | sed 's|::|-|g' \
-                    | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
-          directory="${{ matrix.directory }}"
-          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
-          if [[ ${{ github.ref_type }} = branch ]]; then
-            tags="$tags,branch:${{ github.ref_name }}"
-          fi
-          curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
-            -H "Content-Type: application/json" \
-            -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
-            -d $(jq -cn \
-                    --argjson message "$message" \
-                    --arg ddtags "$tags" \
-                    '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
   coverage:
     name: coverage
@@ -274,7 +249,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -295,7 +270,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -312,7 +287,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
+        uses: taiki-e/install-action@6cd53f784a415563474c95206a6f2d08bd80275d # v2.18.1
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -333,7 +308,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
   publish:
     name: publish
@@ -345,7 +320,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -355,7 +330,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@cc5a5c56a296ea597e6ea38f551f25dee8be1225 # v2.17.7
+        uses: taiki-e/install-action@6cd53f784a415563474c95206a6f2d08bd80275d # v2.18.1
         with:
           tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 

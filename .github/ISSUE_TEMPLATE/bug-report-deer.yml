@@ -1,8 +1,8 @@
 name: Bug Report (deer)
 description: Create a report to help us improve `deer`
 labels:
-  - "area: libs > deer"
-  - "category: bug"
+  - "area/libs > deer"
+  - "category/bug"
 assignees:
   - TimDiekmann
   - indietyp

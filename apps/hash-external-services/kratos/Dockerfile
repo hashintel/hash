@@ -7,7 +7,7 @@ RUN apk update
 RUN apk add yq=~4
 
 # This can be either `dev` or `prod`
-ARG ENV=dev
+ARG ENV
 ENV ENV=$ENV
 ARG API_SECRET=secret
 ENV API_SECRET=$API_SECRET

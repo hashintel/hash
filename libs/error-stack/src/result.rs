@@ -269,7 +269,7 @@ where
 /// Extends [`Result`] to convert the [`Err`] variant to a [`Report`]
 #[deprecated(
     since = "0.4.0",
-    note = "Use `ReportExt` or `From` via `Result::map_err(Report::from)` instead"
+    note = "Use `ResultExt` or `From` via `Result::map_err(Report::from)` instead"
 )]
 pub trait IntoReport: Sized {
     /// Type of the [`Ok`] value in the [`Result`]

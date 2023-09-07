@@ -221,7 +221,7 @@ const main = async () => {
      * @todo: update how the database is set once realtime if realtime is run in the testing environment.
      *   See https://app.asana.com/0/0/1203046447168483/f
      */
-    database: getRequiredEnv("HASH_GRAPH_PG_DEV_DATABASE"),
+    database: getRequiredEnv("HASH_GRAPH_PG_DATABASE"),
     password: getRequiredEnv("HASH_GRAPH_REALTIME_PG_PASSWORD"),
     maxPoolSize: 1,
   });

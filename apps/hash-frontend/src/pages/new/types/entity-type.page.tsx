@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { OntologyChip } from "@hashintel/design-system";
+import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext } from "react";
@@ -50,7 +51,7 @@ const Page: NextPageWithLayout = () => {
         <Box py={3.75}>
           <Container>
             <OntologyChip
-              domain="hash.ai"
+              domain={frontendDomain}
               path={
                 <Typography color={(theme) => theme.palette.blue[70]}>
                   <Typography

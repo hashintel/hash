@@ -167,10 +167,13 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use graph::ontology::{DataTypeQueryPath, PropertyTypeQueryPath};
     /// # use graph::subgraph::edges::OntologyEdgeKind;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::DataTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
-    ///     path: DataTypeQueryPath::Title,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
+    ///         path: DataTypeQueryPath::Title,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     DataTypeEdge {
@@ -198,11 +201,14 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use graph::ontology::PropertyTypeQueryPath;
     /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
-    ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-    ///     path: Box::new(PropertyTypeQueryPath::Title),
-    ///     direction: EdgeDirection::Outgoing,
-    /// });
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::PropertyTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///         path: Box::new(PropertyTypeQueryPath::Title),
+    ///         direction: EdgeDirection::Outgoing,
+    ///     }
+    /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {

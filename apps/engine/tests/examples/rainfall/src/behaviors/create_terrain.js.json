@@ -1,9 +1,0 @@
-{
-  "keys": {
-    "agent_template": {
-      "type": "any",
-      "nullable": false
-    }
-  },
-  "built_in_key_use": null
-}

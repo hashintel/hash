@@ -47,86 +47,86 @@ See the [respective section in the parent README](../README.md#hash) for descrip
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
-    Run each of these version commands and make sure the output is expected:
+1. Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com), [Docker](https://docs.docker.com/get-docker/), [Python](https://www.python.org/downloads/), [Poetry](https://python-poetry.org/docs/) and [Java](https://www.java.com/download/ie_manual.jsp). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
+   Run each of these version commands and make sure the output is expected:
 
-    ```sh
-    git --version
-    ## ≥ 2.17
-    
-    node --version
-    ## ≥ 18.15
-    
-    yarn --version
-    ## ≥ 1.16
-    
-    docker --version
-    ## ≥ 20.10
-    
-    docker compose version
-    ## ≥ 2.17.2
-    
-    docker buildx version
-    ## ≥ 0.10.4
-    
-    java --version
-    ## ≥ 8
-    
-    python --version
-    ## ≥ 3.11
-    
-    poetry --version
-    ## ≥ 1.4.2
-    ```
+   ```sh
+   git --version
+   ## ≥ 2.17
+   
+   node --version
+   ## ≥ 18.15
+   
+   yarn --version
+   ## ≥ 1.16
+   
+   docker --version
+   ## ≥ 20.10
+   
+   docker compose version
+   ## ≥ 2.17.2
+   
+   docker buildx version
+   ## ≥ 0.10.4
+   
+   java --version
+   ## ≥ 8
+   
+   python --version
+   ## ≥ 3.11
+   
+   poetry --version
+   ## ≥ 1.4.2
+   ```
 
-    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
+   If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
 
-    If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
+   If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
-1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
+1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
-1.  Install dependencies:
+1. Install dependencies:
 
-    ```sh
-    yarn install
-    ```
+   ```sh
+   yarn install
+   ```
 
-1.  Ensure Docker is running.
-    If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
-    Alternatively, you can use this command to check Docker:
+1. Ensure Docker is running.
+   If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
+   Alternatively, you can use this command to check Docker:
 
-    ```sh
-    docker run hello-world
-    ```
+   ```sh
+   docker run hello-world
+   ```
 
-1.  Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+1. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
 
-    ```sh
-    yarn external-services up
-    ```
+   ```sh
+   yarn external-services up
+   ```
 
-    1.  You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+   1. You can optionally force a rebuild of the docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
-    1.  You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
+   1. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
 
-    1.  When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
+   1. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
 
-1.  Launch app services:
+1. Launch app services:
 
-    ```sh
-    yarn dev
-    ```
+   ```sh
+   yarn dev
+   ```
 
-    This will start backend and frontend in a single terminal.
+   This will start backend and frontend in a single terminal.
 
-    You can also launch parts of the app in separate terminals, e.g.:
+   You can also launch parts of the app in separate terminals, e.g.:
 
-    ```sh
-    yarn dev:backend
-    yarn dev:frontend
-    ```
+   ```sh
+   yarn dev:backend
+   yarn dev:frontend
+   ```
 
-    See `package.json` → `scripts` for details and more options.
+   See `package.json` → `scripts` for details and more options.
 
 #### External services test mode
 
@@ -395,24 +395,20 @@ The Postgres information for Kratos is configured through:
 
 - `HASH_KRATOS_PG_USER` (default: `kratos`)
 - `HASH_KRATOS_PG_PASSWORD` (default: `kratos`)
-- `HASH_KRATOS_PG_DEV_DATABASE` (default: `dev_kratos`)
-- `HASH_KRATOS_PG_TEST_DATABASE` (default: `test_kratos`)
+- `HASH_KRATOS_PG_DATABASE` (default: `kratos`)
 
 The Postgres information for Temporal is configured through:
 
 - `HASH_TEMPORAL_PG_USER` (default: `temporal`)
 - `HASH_TEMPORAL_PG_PASSWORD` (default: `temporal`)
-- `HASH_TEMPORAL_PG_DEV_DATABASE` (default: `dev_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_DEV_DATABASE` (default: `dev_temporal_visibility`)
-- `HASH_TEMPORAL_PG_TEST_DATABASE` (default: `test_temporal`)
-- `HASH_TEMPORAL_VISIBILITY_PG_TEST_DATABASE` (default: `test_temporal_visibility`)
+- `HASH_TEMPORAL_PG_DATABASE` (default: `temporal`)
+- `HASH_TEMPORAL_VISIBILITY_PG_DATABASE` (default: `temporal_visibility`)
 
 The Postgres information for the graph query layer is configured through:
 
 - `HASH_GRAPH_PG_USER` (default: `graph`)
 - `HASH_GRAPH_PG_PASSWORD` (default: `graph`)
-- `HASH_GRAPH_PG_DEV_DATABASE` (default: `dev_graph`)
-- `HASH_GRAPH_PG_TEST_DATABASE` (default: `test_graph`)
+- `HASH_GRAPH_PG_DATABASE` (default: `graph`)
 
 ### Redis
 

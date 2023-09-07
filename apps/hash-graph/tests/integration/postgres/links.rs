@@ -12,11 +12,15 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
-            entity_type::LINK_V1,
-            entity_type::link::FRIEND_OF_V1,
-            entity_type::PERSON_V1,
-        ])
+        .seed(
+            [data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::PERSON_V1,
+            ],
+        )
         .await
         .expect("could not seed database");
 
@@ -73,6 +77,7 @@ async fn insert() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn get_entity_links() {
     let alice = serde_json::from_str(entity::PERSON_ALICE_V1).expect("could not parse entity");
     let bob = serde_json::from_str(entity::PERSON_BOB_V1).expect("could not parse entity");
@@ -80,12 +85,16 @@ async fn get_entity_links() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
-            entity_type::LINK_V1,
-            entity_type::link::FRIEND_OF_V1,
-            entity_type::link::ACQUAINTANCE_OF_V1,
-            entity_type::PERSON_V1,
-        ])
+        .seed(
+            [data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::link::ACQUAINTANCE_OF_V1,
+                entity_type::PERSON_V1,
+            ],
+        )
         .await
         .expect("could not seed database");
 
@@ -193,11 +202,15 @@ async fn remove_link() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
-            entity_type::LINK_V1,
-            entity_type::link::FRIEND_OF_V1,
-            entity_type::PERSON_V1,
-        ])
+        .seed(
+            [data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::PERSON_V1,
+            ],
+        )
         .await
         .expect("could not seed database");
 

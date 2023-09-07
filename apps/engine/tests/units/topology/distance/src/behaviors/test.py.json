@@ -1,8 +1,0 @@
-{
-  "keys": {
-    "num_neighbors": {
-      "type": "number",
-      "nullable": false
-    }
-  }
-}

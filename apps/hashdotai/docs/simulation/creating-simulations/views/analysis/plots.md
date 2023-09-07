@@ -24,20 +24,20 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 
 ![](https://cdn-us1.hash.ai/site/docs/animation.gif)
 
-1.  Navigate to the Analysis tab
-1.  Click on the Create new Plot wizard
-1.  Select the plot type you want to create
-1.  Fill in the rest of the required information
-1.  Click "Create new plot"
+1. Navigate to the Analysis tab
+1. Click on the Create new Plot wizard
+1. Select the plot type you want to create
+1. Fill in the rest of the required information
+1. Click "Create new plot"
 
 ### Modifying the analysis.json file
 
 ![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-12-at-12.35.23.png)
 
-1.  Focusing on the left sidebar, you'll find a folder called **views**
-1.  Expand this folder by clicking on it
-1.  Click on the **analysis.json** file
-1.  Edit the file on the left pane. Your changes will be saved after you finish typing.
+1. Focusing on the left sidebar, you'll find a folder called **views**
+1. Expand this folder by clicking on it
+1. Click on the **analysis.json** file
+1. Edit the file on the left pane. Your changes will be saved after you finish typing.
 
 ## Histograms
 
@@ -83,13 +83,13 @@ Each plot provides extra functionality to interact with it. You need to hover th
 
 ![](https://cdn-us1.hash.ai/site/docs/plotly-buttons-help.png)
 
-1.  Download as PNG
-1.  Select Zoom mode
-1.  Select Pan mode
-1.  Zoom in
-1.  Zoom out
-1.  Autoscale
-1.  Reset Axes
-1.  Toggle spike lines
-1.  Show the closest data on hover
-1.  Compare data on hover.
+1. Download as PNG
+1. Select Zoom mode
+1. Select Pan mode
+1. Zoom in
+1. Zoom out
+1. Autoscale
+1. Reset Axes
+1. Toggle spike lines
+1. Show the closest data on hover
+1. Compare data on hover.

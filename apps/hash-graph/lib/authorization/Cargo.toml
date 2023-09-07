@@ -6,8 +6,13 @@ publish = false
 
 [dependencies]
 error-stack = { workspace = true }
+graph-types = { workspace = true }
 
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+futures = { workspace = true }
 
 reqwest = { version = "0.11.20", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

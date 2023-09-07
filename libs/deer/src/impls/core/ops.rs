@@ -83,11 +83,14 @@ where
 
         // TODO: the case where "Unbounded" as a single value is possible cannot be
         //  represented right now with deer Schema capabilities
-        Schema::new("object").with("oneOf", [
-            BoundOneOf::Included(doc.add::<T>()),
-            BoundOneOf::Excluded(doc.add::<T>()),
-            BoundOneOf::Unbounded(doc.add::<<() as Deserialize>::Reflection>()),
-        ])
+        Schema::new("object").with(
+            "oneOf",
+            [
+                BoundOneOf::Included(doc.add::<T>()),
+                BoundOneOf::Excluded(doc.add::<T>()),
+                BoundOneOf::Unbounded(doc.add::<<() as Deserialize>::Reflection>()),
+            ],
+        )
     }
 }
 

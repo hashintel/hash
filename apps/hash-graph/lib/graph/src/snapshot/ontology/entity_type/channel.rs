@@ -79,10 +79,13 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         let ontology_id = Uuid::new_v4();
 
         self.metadata
-            .start_send_unpin((ontology_id, OntologyElementMetadata {
-                record_id: entity_type.metadata.record_id,
-                custom: entity_type.metadata.custom.common,
-            }))
+            .start_send_unpin((
+                ontology_id,
+                OntologyElementMetadata {
+                    record_id: entity_type.metadata.record_id,
+                    custom: entity_type.metadata.custom.common,
+                },
+            ))
             .attach_printable("could not send metadata")?;
 
         let inherits_from: Vec<_> = schema

@@ -1,8 +1,0 @@
-{
-  "agents": {
-    "steps": 5,
-    "type": "values",
-    "field": "num_agents",
-    "values": [15]
-  }
-}
