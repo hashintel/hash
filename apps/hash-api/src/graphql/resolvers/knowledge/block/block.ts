@@ -1,3 +1,4 @@
+import { publicUserAccountId } from "../../../../graph";
 import { getBlockById } from "../../../../graph/knowledge/system-types/block";
 import { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import { GraphQLContext } from "../../../context";
@@ -9,11 +10,17 @@ export const blocksResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryBlocksArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const blocks = await Promise.all(
-    params.blocks.map((entityId) => getBlockById(context, { entityId })),
+    params.blocks.map((entityId) =>
+      getBlockById(
+        context,
+        { actorId: user?.accountId ?? publicUserAccountId },
+        { entityId },
+      ),
+    ),
   );
 
   return blocks.map(({ componentId, entity }) => ({

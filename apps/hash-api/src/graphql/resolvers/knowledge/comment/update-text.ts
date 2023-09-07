@@ -17,14 +17,14 @@ export const updateCommentTextResolver: ResolverFn<
   MutationUpdateCommentTextArgs
 > = async (_, { entityId, tokens }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  await updateCommentText(context, {
+  await updateCommentText(context, authentication, {
     commentEntityId: entityId,
-    actorId: user.accountId,
     tokens,
   });
 
-  const comment = await getCommentById(context, {
+  const comment = await getCommentById(context, authentication, {
     entityId,
   });
 

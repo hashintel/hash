@@ -21,12 +21,13 @@ export const canAccessAccountMiddleware: ResolverMiddleware<
   loggedInAndSignedUpMiddleware(async (_, args, ctx, info) => {
     const { user, dataSources } = ctx;
     const context = dataSourcesToImpureGraphContext(dataSources);
+    const authentication = { actorId: user.accountId };
 
     let isAllowed = false;
     if (user.accountId === args.ownedById) {
       isAllowed = true;
     } else {
-      isAllowed = await isUserMemberOfOrg(context, {
+      isAllowed = await isUserMemberOfOrg(context, authentication, {
         userEntityId: user.entity.metadata.recordId.entityId,
         orgEntityUuid: args.ownedById,
       });

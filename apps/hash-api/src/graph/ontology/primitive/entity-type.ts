@@ -44,13 +44,13 @@ export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
-    actorId: AccountId;
+
     labelProperty?: BaseUrl;
   },
   Promise<EntityTypeWithMetadata>
-> = async (ctx, params) => {
-  const { ownedById, actorId, labelProperty } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, {
+> = async (ctx, authentication, params) => {
+  const { ownedById, labelProperty } = params;
+  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
     ownerId: params.ownedById,
   });
 
@@ -69,12 +69,14 @@ export const createEntityType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createEntityType({
-    actorId,
-    ownedById,
-    schema,
-    labelProperty,
-  });
+  const { data: metadata } = await graphApi.createEntityType(
+    authentication.actorId,
+    {
+      ownedById,
+      schema,
+      labelProperty,
+    },
+  );
 
   return { schema, metadata: metadata as EntityTypeMetadata };
 };
@@ -89,9 +91,9 @@ export const getEntityTypes: ImpureGraphFunction<
     query: EntityTypeStructuralQuery;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi }, { query }) => {
+> = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
-    .getEntityTypesByQuery(query)
+    .getEntityTypesByQuery(actorId, query)
     .then(({ data: subgraph }) => subgraph as Subgraph<EntityTypeRootType>);
 };
 
@@ -105,10 +107,10 @@ export const getEntityTypeById: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
   },
   Promise<EntityTypeWithMetadata>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { entityTypeId } = params;
 
-  const [entityType] = await getEntityTypes(context, {
+  const [entityType] = await getEntityTypes(context, authentication, {
     query: {
       filter: {
         equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -138,8 +140,8 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     actorId?: AccountId;
   },
   Promise<Subgraph<EntityTypeRootType>>
-> = async (context, params) => {
-  const { graphResolveDepths, temporalAxes, entityTypeId, actorId } = params;
+> = async (context, authentication, params) => {
+  const { graphResolveDepths, temporalAxes, entityTypeId } = params;
 
   const query: EntityTypeStructuralQuery = {
     filter: {
@@ -149,21 +151,16 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     temporalAxes,
   };
 
-  let subgraph = await getEntityTypes(context, {
+  let subgraph = await getEntityTypes(context, authentication, {
     query,
   });
 
-  if (
-    actorId &&
-    subgraph.roots.length === 0 &&
-    !entityTypeId.startsWith(frontendUrl)
-  ) {
-    await context.graphApi.loadExternalEntityType({
-      actorId,
+  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+    await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });
 
-    subgraph = await getEntityTypes(context, {
+    subgraph = await getEntityTypes(context, authentication, {
       query,
     });
   }
@@ -182,14 +179,13 @@ export const updateEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
     schema: ConstructEntityTypeParams;
-    actorId: AccountId;
+
     labelProperty?: BaseUrl;
   },
   Promise<EntityTypeWithMetadata>
-> = async ({ graphApi }, params) => {
-  const { entityTypeId, schema, actorId, labelProperty } = params;
+> = async ({ graphApi }, authentication, params) => {
+  const { entityTypeId, schema, labelProperty } = params;
   const updateArguments: UpdateEntityTypeRequest = {
-    actorId,
     typeToUpdate: entityTypeId,
     schema: {
       kind: "entityType",
@@ -199,7 +195,10 @@ export const updateEntityType: ImpureGraphFunction<
     labelProperty,
   };
 
-  const { data: metadata } = await graphApi.updateEntityType(updateArguments);
+  const { data: metadata } = await graphApi.updateEntityType(
+    authentication.actorId,
+    updateArguments,
+  );
 
   const { recordId } = metadata;
 
@@ -218,7 +217,7 @@ export const updateEntityType: ImpureGraphFunction<
 export const isEntityTypeLinkEntityType: ImpureGraphFunction<
   Pick<EntityType, "allOf">,
   Promise<boolean>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { allOf } = params;
 
   if (allOf?.some(({ $ref }) => $ref === linkEntityTypeUrl)) {
@@ -227,18 +226,22 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 
   const parentTypes = await Promise.all(
     (allOf ?? []).map(async ({ $ref }) =>
-      getEntityTypeById(context, { entityTypeId: $ref as VersionedUrl }),
+      getEntityTypeById(context, authentication, {
+        entityTypeId: $ref as VersionedUrl,
+      }),
     ),
   );
 
   return new Promise((resolve) => {
     const promises = parentTypes.map((parent) =>
-      isEntityTypeLinkEntityType(context, parent.schema).then((isLinkType) => {
-        if (isLinkType) {
-          // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
-          resolve(true);
-        }
-      }),
+      isEntityTypeLinkEntityType(context, authentication, parent.schema).then(
+        (isLinkType) => {
+          if (isLinkType) {
+            // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
+            resolve(true);
+          }
+        },
+      ),
     );
 
     void Promise.all(promises).then(() =>
@@ -257,15 +260,13 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 export const archiveEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
   },
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { entityTypeId, actorId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { entityTypeId } = params;
 
-  const { data: temporalMetadata } = await graphApi.archiveEntityType({
+  const { data: temporalMetadata } = await graphApi.archiveEntityType(actorId, {
     typeToArchive: entityTypeId,
-    actorId,
   });
 
   return temporalMetadata;
@@ -280,16 +281,17 @@ export const archiveEntityType: ImpureGraphFunction<
 export const unarchiveEntityType: ImpureGraphFunction<
   {
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
   },
   Promise<OntologyTemporalMetadata>
-> = async ({ graphApi }, params) => {
-  const { entityTypeId, actorId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { entityTypeId } = params;
 
-  const { data: temporalMetadata } = await graphApi.unarchiveEntityType({
-    typeToUnarchive: entityTypeId,
+  const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
     actorId,
-  });
+    {
+      typeToUnarchive: entityTypeId,
+    },
+  );
 
   return temporalMetadata;
 };

@@ -20,15 +20,19 @@ export const requestFileUpload: ResolverFn<
   { dataSources, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  const { presignedPost, entity } = await createFileFromUploadRequest(context, {
-    actorId: user.accountId,
-    description,
-    entityTypeId,
-    name,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
-    size,
-  });
+  const { presignedPost, entity } = await createFileFromUploadRequest(
+    context,
+    authentication,
+    {
+      description,
+      entityTypeId,
+      name,
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      size,
+    },
+  );
 
   return {
     presignedPost,

@@ -26,11 +26,11 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationRequestFileUploadArgs,
   Promise<{ presignedPost: PresignedPostUpload; entity: RemoteFile }>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
 
   const { uploadProvider } = ctx;
-  const { ownedById, actorId, description, entityTypeId, name } = params;
+  const { ownedById, description, entityTypeId, name } = params;
 
   const fileIdentifier = genId();
 
@@ -54,11 +54,10 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         name ?? undefined,
     };
 
-    const entity = (await createEntity(ctx, {
+    const entity = (await createEntity(ctx, authentication, {
       ownedById,
       properties,
       entityTypeId: fileEntityTypeId,
-      actorId,
     })) as unknown as RemoteFile;
 
     const presignedPost = await uploadProvider.presignUpload({
@@ -80,8 +79,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> &
     MutationCreateFileFromUrlArgs,
   Promise<RemoteFile>
-> = async (ctx, params) => {
-  const { ownedById, actorId, description, entityTypeId, url } = params;
+> = async (ctx, authentication, params) => {
+  const { ownedById, description, entityTypeId, url } = params;
 
   const filename = params.name || url.split("/").pop()!;
   const mimeType = mime.lookup(filename) || "application/octet-stream";
@@ -102,11 +101,10 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         filename,
     };
 
-    const entity = (await createEntity(ctx, {
+    const entity = (await createEntity(ctx, authentication, {
       ownedById,
       properties,
       entityTypeId: fileEntityTypeId,
-      actorId,
     })) as unknown as RemoteFile;
 
     return entity;

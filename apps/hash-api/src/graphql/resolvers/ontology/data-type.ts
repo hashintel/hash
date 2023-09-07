@@ -4,8 +4,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
 
+import { publicUserAccountId } from "../../../graph";
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
-import { systemUserAccountId } from "../../../graph/system-user";
 import {
   QueryGetDataTypeArgs,
   QueryQueryDataTypesArgs,
@@ -19,19 +19,22 @@ export const queryDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryQueryDataTypesArgs
-> = async (_, { constrainsValuesOn }, { dataSources }) => {
+> = async (_, { constrainsValuesOn }, { dataSources, user }) => {
   const { graphApi } = dataSources;
 
-  const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery({
-    filter: {
-      equal: [{ path: ["version"] }, { parameter: "latest" }],
+  const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery(
+    user.accountId,
+    {
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
+  );
 
   return dataTypeSubgraph as Subgraph<DataTypeRootType>;
 };
@@ -41,17 +44,17 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources, user }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  return await getDataTypeSubgraphById(context, {
-    dataTypeId,
-    actorId: user ? user.accountId : systemUserAccountId,
-    /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
+> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources, user }) =>
+  getDataTypeSubgraphById(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user?.accountId ?? publicUserAccountId },
+    {
+      dataTypeId,
+      /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-};
+  );

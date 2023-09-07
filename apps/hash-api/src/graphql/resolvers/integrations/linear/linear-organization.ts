@@ -15,6 +15,7 @@ export const getLinearOrganizationResolver: ResolverFn<
 > = async (_, params, { dataSources, user, vault }) => {
   const linearSecretEntity = await getLinearUserSecretByLinearOrgId(
     dataSources,
+    { actorId: user.accountId },
     {
       userAccountId: user.accountId,
       linearOrgId: params.linearOrgId,

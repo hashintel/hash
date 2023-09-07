@@ -10,6 +10,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
+import { publicUserAccountId } from "../../../graph";
 import {
   archiveEntityType,
   createEntityType,
@@ -39,11 +40,14 @@ export const createEntityTypeResolver: ResolverFn<
 
   const { ownedById, entityType } = params;
 
-  const createdEntityType = await createEntityType(context, {
-    ownedById: ownedById ?? (user.accountId as OwnedById),
-    schema: entityType,
-    actorId: user.accountId,
-  });
+  const createdEntityType = await createEntityType(
+    context,
+    { actorId: user.accountId },
+    {
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      schema: entityType,
+    },
+  );
 
   return createdEntityType;
 };
@@ -64,43 +68,46 @@ export const queryEntityTypesResolver: ResolverFn<
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery({
-    filter: latestOnly
-      ? {
-          equal: [{ path: ["version"] }, { parameter: "latest" }],
-        }
-      : { all: [] },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      inheritsFrom,
-    },
-    temporalAxes: includeArchived
-      ? {
-          pinned: {
-            axis: "decisionTime",
-            timestamp: null,
-          },
-          variable: {
-            axis: "transactionTime",
-            interval: {
-              start: {
-                kind: "unbounded",
-              },
-              end: null,
+  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery(
+    user.accountId,
+    {
+      filter: latestOnly
+        ? {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          }
+        : { all: [] },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+      },
+      temporalAxes: includeArchived
+        ? {
+            pinned: {
+              axis: "decisionTime",
+              timestamp: null,
             },
-          },
-        }
-      : currentTimeInstantTemporalAxes,
-  });
+            variable: {
+              axis: "transactionTime",
+              interval: {
+                start: {
+                  kind: "unbounded",
+                },
+                end: null,
+              },
+            },
+          }
+        : currentTimeInstantTemporalAxes,
+    },
+  );
 
   return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
 };
@@ -122,42 +129,40 @@ export const getEntityTypeResolver: ResolverFn<
   },
   { dataSources, user },
   __,
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  return await getEntityTypeSubgraphById(context, {
-    entityTypeId,
-    actorId: user?.accountId,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-      constrainsLinksOn,
-      constrainsLinkDestinationsOn,
-      inheritsFrom,
+) =>
+  getEntityTypeSubgraphById(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user?.accountId ?? publicUserAccountId },
+    {
+      entityTypeId,
+      actorId: user?.accountId,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-};
+  );
 
 export const updateEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources, user }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const { entityTypeId, updatedEntityType: updatedEntityTypeSchema } = params;
-
-  const updatedEntityType = await updateEntityType(context, {
-    entityTypeId,
-    schema: updatedEntityTypeSchema,
-    actorId: user.accountId,
-  });
-
-  return updatedEntityType;
-};
+> = async (_, params, { dataSources, user }) =>
+  updateEntityType(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user.accountId },
+    {
+      entityTypeId: params.entityTypeId,
+      schema: params.updatedEntityType,
+      labelProperty: params.labelProperty ?? undefined,
+    },
+  );
 
 export const archiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
@@ -165,10 +170,7 @@ export const archiveEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationArchiveEntityTypeArgs
 > = async (_, params, { dataSources, user }) =>
-  archiveEntityType(dataSources, {
-    actorId: user.accountId,
-    ...params,
-  });
+  archiveEntityType(dataSources, { actorId: user.accountId }, params);
 
 export const unarchiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
@@ -176,7 +178,4 @@ export const unarchiveEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUnarchiveEntityTypeArgs
 > = async (_, params, { dataSources, user }) =>
-  unarchiveEntityType(dataSources, {
-    actorId: user.accountId,
-    ...params,
-  });
+  unarchiveEntityType(dataSources, { actorId: user.accountId }, params);

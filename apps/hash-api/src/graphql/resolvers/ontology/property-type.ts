@@ -10,6 +10,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
+import { publicUserAccountId } from "../../../graph";
 import {
   archivePropertyType,
   createPropertyType,
@@ -39,11 +40,14 @@ export const createPropertyTypeResolver: ResolverFn<
 
   const { ownedById, propertyType } = params;
 
-  const createdPropertyType = await createPropertyType(context, {
-    ownedById: (ownedById ?? user.accountId) as OwnedById,
-    schema: propertyType,
-    actorId: user.accountId,
-  });
+  const createdPropertyType = await createPropertyType(
+    context,
+    { actorId: user.accountId },
+    {
+      ownedById: (ownedById ?? user.accountId) as OwnedById,
+      schema: propertyType,
+    },
+  );
 
   return createdPropertyType;
 };
@@ -56,7 +60,7 @@ export const queryPropertyTypesResolver: ResolverFn<
 > = async (
   _,
   { constrainsValuesOn, constrainsPropertiesOn },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
   const { graphApi } = dataSources;
@@ -68,6 +72,7 @@ export const queryPropertyTypesResolver: ResolverFn<
    *   https://app.asana.com/0/1202805690238892/1202890446280569/f
    */
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
+    user.accountId,
     {
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -94,40 +99,36 @@ export const getPropertyTypeResolver: ResolverFn<
   { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
   { dataSources, user },
   __,
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  return await getPropertyTypeSubgraphById(context, {
-    propertyTypeId,
-    actorId: user?.accountId,
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
+) =>
+  getPropertyTypeSubgraphById(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user?.accountId ?? publicUserAccountId },
+    {
+      propertyTypeId,
+      actorId: user?.accountId,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-};
+  );
 
 export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources, user }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const { propertyTypeId, updatedPropertyType: updatedPropertyTypeSchema } =
-    params;
-
-  const updatedPropertyType = await updatePropertyType(context, {
-    propertyTypeId,
-    schema: updatedPropertyTypeSchema,
-    actorId: user.accountId,
-  });
-
-  return updatedPropertyType;
-};
+> = async (_, params, { dataSources, user }) =>
+  updatePropertyType(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user.accountId },
+    {
+      propertyTypeId: params.propertyTypeId,
+      schema: params.updatedPropertyType,
+    },
+  );
 
 export const archivePropertyTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
@@ -135,10 +136,7 @@ export const archivePropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationArchivePropertyTypeArgs
 > = async (_, params, { dataSources, user }) =>
-  archivePropertyType(dataSources, {
-    actorId: user.accountId,
-    ...params,
-  });
+  archivePropertyType(dataSources, { actorId: user.accountId }, params);
 
 export const unarchivePropertyTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,
@@ -146,7 +144,4 @@ export const unarchivePropertyTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationUnarchivePropertyTypeArgs
 > = async (_, params, { dataSources, user }) =>
-  unarchivePropertyType(dataSources, {
-    actorId: user.accountId,
-    ...params,
-  });
+  unarchivePropertyType(dataSources, { actorId: user.accountId }, params);

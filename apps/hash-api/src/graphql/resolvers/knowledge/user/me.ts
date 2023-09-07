@@ -10,9 +10,10 @@ export const meResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryMeArgs
-> = async (_, { hasLeftEntity, hasRightEntity }, { user, dataSources }) => {
-  return await getLatestEntityRootedSubgraph(
+> = async (_, { hasLeftEntity, hasRightEntity }, { user, dataSources }) =>
+  getLatestEntityRootedSubgraph(
     dataSourcesToImpureGraphContext(dataSources),
+    { actorId: user.accountId },
     {
       entity: user.entity,
       graphResolveDepths: {
@@ -21,4 +22,3 @@ export const meResolver: ResolverFn<
       },
     },
   );
-};

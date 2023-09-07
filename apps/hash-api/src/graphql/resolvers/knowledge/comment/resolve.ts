@@ -14,14 +14,14 @@ export const resolveCommentResolver: ResolverFn<
   MutationResolveCommentArgs
 > = async (_, { entityId }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  const comment = await getCommentById(context, {
+  const comment = await getCommentById(context, authentication, {
     entityId,
   });
 
-  const updatedComment = await resolveComment(context, {
+  const updatedComment = await resolveComment(context, authentication, {
     comment,
-    actorId: user.accountId,
   });
 
   return mapCommentToGQL(updatedComment);

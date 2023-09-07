@@ -14,13 +14,16 @@ export const createCommentResolver: ResolverFn<
 > = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await createComment(context, {
-    tokens,
-    ownedById: extractOwnedByIdFromEntityId(parentEntityId),
-    parentEntityId,
-    author: user,
-    actorId: user.accountId,
-  });
+  const comment = await createComment(
+    context,
+    { actorId: user.accountId },
+    {
+      tokens,
+      ownedById: extractOwnedByIdFromEntityId(parentEntityId),
+      parentEntityId,
+      author: user,
+    },
+  );
 
   return mapCommentToGQL(comment);
 };

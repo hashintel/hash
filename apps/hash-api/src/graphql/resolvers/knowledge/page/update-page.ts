@@ -16,22 +16,26 @@ export const updatePageResolver: ResolverFn<
   MutationUpdatePageArgs
 > = async (_, { entityId, updatedProperties }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  const page = await getPageById(context, { entityId });
+  const page = await getPageById(context, authentication, { entityId });
 
-  const updatedPageEntity = await updateEntityProperties(context, {
-    entity: page.entity,
-    updatedProperties: Object.entries(updatedProperties).map(
-      ([propertyName, value]) => ({
-        propertyTypeBaseUrl:
-          SYSTEM_TYPES.propertyType[
-            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-          ].metadata.recordId.baseUrl,
-        value: value ?? undefined,
-      }),
-    ),
-    actorId: user.accountId,
-  });
+  const updatedPageEntity = await updateEntityProperties(
+    context,
+    authentication,
+    {
+      entity: page.entity,
+      updatedProperties: Object.entries(updatedProperties).map(
+        ([propertyName, value]) => ({
+          propertyTypeBaseUrl:
+            SYSTEM_TYPES.propertyType[
+              propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
+            ].metadata.recordId.baseUrl,
+          value: value ?? undefined,
+        }),
+      ),
+    },
+  );
 
   return mapPageToGQL(getPageFromEntity({ entity: updatedPageEntity }));
 };

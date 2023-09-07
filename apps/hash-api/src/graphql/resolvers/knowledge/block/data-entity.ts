@@ -1,5 +1,6 @@
 import { Entity } from "@local/hash-subgraph";
 
+import { publicUserAccountId } from "../../../../graph";
 import {
   getBlockById,
   getBlockData,
@@ -14,12 +15,13 @@ export const blockChildEntityResolver: ResolverFn<
   UnresolvedBlockGQL,
   GraphQLContext,
   QueryBlocksArgs
-> = async ({ metadata }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user?.accountId ?? publicUserAccountId };
 
-  const block = await getBlockById(context, {
+  const block = await getBlockById(context, authentication, {
     entityId: metadata.recordId.entityId,
   });
 
-  return mapEntityToGQL(await getBlockData(context, { block }));
+  return mapEntityToGQL(await getBlockData(context, authentication, { block }));
 };

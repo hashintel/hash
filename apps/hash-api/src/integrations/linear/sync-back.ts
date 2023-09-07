@@ -52,9 +52,11 @@ export const processEntityChange = async (
   const owningAccountUuId = extractOwnedByIdFromEntityId(
     entity.metadata.recordId.entityId,
   );
+  const authentication = { actorId: owningAccountUuId };
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi, uploadProvider: null as any }, // @todo uploadProvider shouldn't be required
+    authentication,
     {
       hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
         systemUserAccountId as OwnedById,

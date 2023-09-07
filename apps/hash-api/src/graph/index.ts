@@ -7,6 +7,7 @@ import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
+import { AccountId } from "@local/hash-subgraph";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
@@ -20,6 +21,9 @@ import {
   ensureSystemUserExists,
 } from "./system-user";
 
+export const publicUserAccountId: AccountId =
+  "00000000-0000-0000-0000-000000000000" as AccountId;
+
 export type ImpureGraphContext = {
   graphApi: GraphApi;
   uploadProvider: UploadableStorageProvider;
@@ -28,6 +32,8 @@ export type ImpureGraphContext = {
 
 export type ImpureGraphFunction<Parameters, ReturnType> = (
   context: ImpureGraphContext,
+  /** @todo: Replace with an authentication context */
+  authentication: { actorId: AccountId },
   params: Parameters,
 ) => ReturnType;
 

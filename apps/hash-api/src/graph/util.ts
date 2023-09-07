@@ -165,6 +165,7 @@ export const generateSystemPropertyTypeSchema = (
 export const propertyTypeInitializer = (
   params: PropertyTypeCreatorParams,
 ): ((context: ImpureGraphContext) => Promise<PropertyTypeWithMetadata>) => {
+  const authentication = { actorId: systemUserAccountId };
   let propertyType: PropertyTypeWithMetadata;
 
   return async (context?: ImpureGraphContext) => {
@@ -179,15 +180,14 @@ export const propertyTypeInitializer = (
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyType = await getPropertyTypeById(context, {
+      propertyType = await getPropertyTypeById(context, authentication, {
         propertyTypeId: propertyTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createPropertyType(context, {
+          return await createPropertyType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: propertyTypeSchema,
-            actorId: systemUserAccountId,
           }).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
@@ -357,6 +357,7 @@ export const generateSystemLinkEntityTypeSchema = (
 export const entityTypeInitializer = (
   params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
 ): ((context: ImpureGraphContext) => Promise<EntityTypeWithMetadata>) => {
+  const authentication = { actorId: systemUserAccountId };
   let entityType: EntityTypeWithMetadata | undefined;
 
   return async (context?: ImpureGraphContext) => {
@@ -373,15 +374,14 @@ export const entityTypeInitializer = (
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityType = await getEntityTypeById(context, {
+      entityType = await getEntityTypeById(context, authentication, {
         entityTypeId: entityTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createEntityType(context, {
+          return await createEntityType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: entityTypeSchema,
-            actorId: systemUserAccountId,
           }).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;

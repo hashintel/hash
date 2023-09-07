@@ -72,33 +72,47 @@ export const createEntityResolver: ResolverFn<
       linkData;
 
     const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
-      getLatestEntityById(context, {
-        entityId: leftEntityId,
-      }),
-      getLatestEntityById(context, {
-        entityId: rightEntityId,
-      }),
-      getEntityTypeById(context, { entityTypeId }),
+      getLatestEntityById(
+        context,
+        { actorId: user.accountId },
+        {
+          entityId: leftEntityId,
+        },
+      ),
+      getLatestEntityById(
+        context,
+        { actorId: user.accountId },
+        {
+          entityId: rightEntityId,
+        },
+      ),
+      getEntityTypeById(context, { actorId: user.accountId }, { entityTypeId }),
     ]);
 
-    entity = await createLinkEntity(context, {
-      leftEntityId: leftEntity.metadata.recordId.entityId,
-      leftToRightOrder: leftToRightOrder ?? undefined,
-      rightEntityId: rightEntity.metadata.recordId.entityId,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
-      properties,
-      linkEntityType,
-      ownedById: ownedById ?? (user.accountId as OwnedById),
-      actorId: user.accountId,
-    });
+    entity = await createLinkEntity(
+      context,
+      { actorId: user.accountId },
+      {
+        leftEntityId: leftEntity.metadata.recordId.entityId,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightEntityId: rightEntity.metadata.recordId.entityId,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+        properties,
+        linkEntityType,
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+      },
+    );
   } else {
-    entity = await createEntityWithLinks(context, {
-      ownedById: ownedById ?? (user.accountId as OwnedById),
-      entityTypeId,
-      properties,
-      linkedEntities: linkedEntities ?? undefined,
-      actorId: user.accountId,
-    });
+    entity = await createEntityWithLinks(
+      context,
+      { actorId: user.accountId },
+      {
+        ownedById: ownedById ?? (user.accountId as OwnedById),
+        entityTypeId,
+        properties,
+        linkedEntities: linkedEntities ?? undefined,
+      },
+    );
   }
 
   return mapEntityToGQL(entity);
@@ -120,7 +134,7 @@ export const queryEntitiesResolver: Extract<
     hasLeftEntity,
     hasRightEntity,
   },
-  { logger, dataSources },
+  { logger, dataSources, user },
   __,
 ) => {
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
@@ -139,23 +153,27 @@ export const queryEntitiesResolver: Extract<
     );
   }
 
-  const entitySubgraph = await getEntities(dataSources, {
-    query: {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
+  const entitySubgraph = await getEntities(
+    dataSources,
+    { actorId: user.accountId },
+    {
+      query: {
+        filter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+          constrainsLinksOn,
+          constrainsLinkDestinationsOn,
+          inheritsFrom,
+          isOfType,
+          hasLeftEntity,
+          hasRightEntity,
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
     },
-  });
+  );
 
   return entitySubgraph;
 };
@@ -179,7 +197,7 @@ export const getEntityResolver: ResolverFn<
     hasLeftEntity,
     hasRightEntity,
   },
-  { dataSources },
+  { dataSources, user },
   __,
 ) => {
   const [ownedById, entityUuid] = splitEntityId(entityId);
@@ -213,23 +231,27 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const entitySubgraph = await getEntities(dataSources, {
-    query: {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
+  const entitySubgraph = await getEntities(
+    dataSources,
+    { actorId: user.accountId },
+    {
+      query: {
+        filter,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn,
+          constrainsPropertiesOn,
+          constrainsLinksOn,
+          constrainsLinkDestinationsOn,
+          inheritsFrom,
+          isOfType,
+          hasLeftEntity,
+          hasRightEntity,
+        },
+        temporalAxes,
       },
-      temporalAxes,
     },
-  });
+  );
 
   return entitySubgraph;
 };
@@ -262,7 +284,11 @@ export const updateEntityResolver: ResolverFn<
     );
   }
 
-  const entity = await getLatestEntityById(context, { entityId });
+  const entity = await getLatestEntityById(
+    context,
+    { actorId: user.accountId },
+    { entityId },
+  );
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
@@ -277,13 +303,16 @@ export const updateEntityResolver: ResolverFn<
   let updatedEntity: Entity;
 
   if (isEntityLinkEntity(entity)) {
-    updatedEntity = await updateLinkEntity(context, {
-      linkEntity: entity,
-      properties: updatedProperties,
-      actorId: user.accountId,
-      leftToRightOrder: leftToRightOrder ?? undefined,
-      rightToLeftOrder: rightToLeftOrder ?? undefined,
-    });
+    updatedEntity = await updateLinkEntity(
+      context,
+      { actorId: user.accountId },
+      {
+        linkEntity: entity,
+        properties: updatedProperties,
+        leftToRightOrder: leftToRightOrder ?? undefined,
+        rightToLeftOrder: rightToLeftOrder ?? undefined,
+      },
+    );
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
@@ -291,12 +320,15 @@ export const updateEntityResolver: ResolverFn<
       );
     }
 
-    updatedEntity = await updateEntity(context, {
-      entity,
-      entityTypeId: entityTypeId ?? undefined,
-      properties: updatedProperties,
-      actorId: user.accountId,
-    });
+    updatedEntity = await updateEntity(
+      context,
+      { actorId: user.accountId },
+      {
+        entity,
+        entityTypeId: entityTypeId ?? undefined,
+        properties: updatedProperties,
+      },
+    );
   }
 
   return mapEntityToGQL(updatedEntity);
@@ -308,9 +340,13 @@ export const archiveEntityResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationArchiveEntityArgs
 > = async (_, { entityId }, { dataSources: context, user }) => {
-  const entity = await getLatestEntityById(context, { entityId });
+  const entity = await getLatestEntityById(
+    context,
+    { actorId: user.accountId },
+    { entityId },
+  );
 
-  await archiveEntity(context, { entity, actorId: user.accountId });
+  await archiveEntity(context, { actorId: user.accountId }, { entity });
 
   return true;
 };

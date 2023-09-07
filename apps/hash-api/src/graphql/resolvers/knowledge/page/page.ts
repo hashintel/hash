@@ -1,3 +1,4 @@
+import { publicUserAccountId } from "../../../../graph";
 import {
   createPage,
   getAllPagesInWorkspace,
@@ -26,10 +27,11 @@ export const pageResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryPageArgs
-> = async (_, { entityId }, { dataSources }) => {
+> = async (_, { entityId }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user?.accountId ?? publicUserAccountId };
 
-  const page = await getPageById(context, {
+  const page = await getPageById(context, authentication, {
     entityId,
   });
 
@@ -47,12 +49,12 @@ export const createPageResolver: ResolverFn<
   { dataSources, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  const page = await createPage(context, {
+  const page = await createPage(context, authentication, {
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    actorId: user.accountId,
   });
 
   return mapPageToGQL(page);
@@ -63,13 +65,14 @@ export const parentPageResolver: ResolverFn<
   UnresolvedPageGQL,
   GraphQLContext,
   QueryPagesArgs
-> = async (pageGql, _, { dataSources }) => {
+> = async (pageGql, _, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user?.accountId ?? publicUserAccountId };
 
-  const page = await getPageById(context, {
+  const page = await getPageById(context, authentication, {
     entityId: pageGql.metadata.recordId.entityId,
   });
-  const parentPage = await getPageParentPage(context, { page });
+  const parentPage = await getPageParentPage(context, authentication, { page });
 
   return parentPage ? mapPageToGQL(parentPage) : null;
 };
@@ -81,10 +84,11 @@ export const pagesResolver: ResolverFn<
   QueryPagesArgs
 > = async (_, { ownedById, includeArchived }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
   const accountId = ownedById ?? user.accountId;
 
-  const pages = await getAllPagesInWorkspace(context, {
+  const pages = await getAllPagesInWorkspace(context, authentication, {
     accountId,
     includeArchived: includeArchived ?? false,
   });
@@ -97,10 +101,13 @@ export const pageCommentsResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPageCommentsArgs
-> = async (_, { entityId }, { dataSources }) => {
+> = async (_, { entityId }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: user.accountId };
 
-  const comments = await getPageComments(context, { pageEntityId: entityId });
+  const comments = await getPageComments(context, authentication, {
+    pageEntityId: entityId,
+  });
 
   return comments.map(mapCommentToGQL);
 };

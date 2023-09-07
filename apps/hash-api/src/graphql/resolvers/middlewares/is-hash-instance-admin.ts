@@ -11,8 +11,13 @@ export const isHashInstanceAdminMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext
 > = (next) => async (obj, args, ctx, info) => {
   const context = dataSourcesToImpureGraphContext(ctx.dataSources);
+  const authentication = { actorId: ctx.user.accountId };
 
-  if (!(await isUserHashInstanceAdmin(context, { user: ctx.user }))) {
+  if (
+    !(await isUserHashInstanceAdmin(context, authentication, {
+      user: ctx.user,
+    }))
+  ) {
     throw new ForbiddenError(
       "You must be a HASH instance admin to perform this action.",
     );

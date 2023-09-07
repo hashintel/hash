@@ -25,6 +25,7 @@ export const createUserResolver: ResolverFn<
   { dataSources, user: actorUser },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
+  const authentication = { actorId: actorUser.accountId };
 
   const kratosIdentity = await createKratosIdentity({
     traits: {
@@ -42,16 +43,15 @@ export const createUserResolver: ResolverFn<
 
   const { id: kratosIdentityId } = kratosIdentity;
 
-  const user = await createUser(context, {
+  const user = await createUser(context, authentication, {
     emails: [emailAddress],
     shortname: shortname ?? undefined,
     preferredName: preferredName ?? undefined,
     kratosIdentityId,
     isInstanceAdmin,
-    actorId: actorUser.accountId,
   });
 
-  return await getLatestEntityRootedSubgraph(context, {
+  return await getLatestEntityRootedSubgraph(context, authentication, {
     entity: user.entity,
     graphResolveDepths: { hasLeftEntity },
   });

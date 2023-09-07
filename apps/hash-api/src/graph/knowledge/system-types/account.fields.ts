@@ -31,7 +31,7 @@ export const shortnameIsRestricted: PureGraphFunction<
 export const shortnameIsTaken: ImpureGraphFunction<
   { shortname: string },
   Promise<boolean>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   /**
    * @todo this creates a circular dependencies between `org.ts` and `user.ts`
    * and this file.
@@ -39,8 +39,8 @@ export const shortnameIsTaken: ImpureGraphFunction<
    * @see https://app.asana.com/0/1203363157432084/1203568198115111/f
    */
   return (
-    (await getUserByShortname(ctx, params)) !== null ||
-    (await getOrgByShortname(ctx, params)) !== null
+    (await getUserByShortname(ctx, authentication, params)) !== null ||
+    (await getOrgByShortname(ctx, authentication, params)) !== null
   );
 };
 

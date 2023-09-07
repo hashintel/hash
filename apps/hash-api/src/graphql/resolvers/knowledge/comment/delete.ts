@@ -15,14 +15,21 @@ export const deleteCommentResolver: ResolverFn<
 > = async (_, { entityId }, { dataSources, user }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await getCommentById(context, {
-    entityId,
-  });
+  const comment = await getCommentById(
+    context,
+    { actorId: user.accountId },
+    {
+      entityId,
+    },
+  );
 
-  const updatedComment = await deleteComment(context, {
-    comment,
-    actorId: user.accountId,
-  });
+  const updatedComment = await deleteComment(
+    context,
+    { actorId: user.accountId },
+    {
+      comment,
+    },
+  );
 
   return mapCommentToGQL(updatedComment);
 };
