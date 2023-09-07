@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
+    account::AccountId,
     ontology::{
         DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{RecordArchivedById, RecordCreatedById},
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
@@ -82,16 +83,27 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_types))]
     async fn create_data_types(
         &mut self,
+        actor_id: AccountId,
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let provenance = ProvenanceMetadata {
+            record_created_by_id: RecordCreatedById::new(actor_id),
+            record_archived_by_id: None,
+        };
+
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
             if let Some((ontology_id, transaction_time)) = transaction
-                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
+                .create_ontology_metadata(
+                    provenance.record_created_by_id,
+                    &metadata.record_id,
+                    &metadata.custom,
+                    on_conflict,
+                )
                 .await?
             {
                 transaction
@@ -99,6 +111,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     .await?;
                 inserted_data_type_metadata.push(OntologyElementMetadata::from_partial(
                     metadata,
+                    provenance,
                     transaction_time,
                 ));
             }
@@ -112,6 +125,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type(
         &self,
+        _actor_id: AccountId,
         query: &StructuralQuery<DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -184,13 +198,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, data_type))]
     async fn update_data_type(
         &mut self,
+        actor_id: AccountId,
         data_type: DataType,
-        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (_, metadata) = transaction
-            .update::<DataType>(data_type, record_created_by_id)
+            .update::<DataType>(data_type, RecordCreatedById::new(actor_id))
             .await?;
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -200,17 +214,19 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
     async fn archive_data_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, record_archived_by_id).await
+        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+            .await
     }
 
     async fn unarchive_data_type(
         &mut self,
+        actor_id: AccountId,
         id: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, record_created_by_id).await
+        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+            .await
     }
 }

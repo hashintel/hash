@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use authorization::AuthorizationApi;
 use axum::{
     http::StatusCode,
     routing::{post, put},
@@ -13,7 +14,7 @@ use graph_types::{
         OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
         PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use serde::{Deserialize, Serialize};
 use type_system::{url::VersionedUrl, PropertyType};
@@ -25,7 +26,7 @@ use crate::{
         json::Json,
         report_to_status_code,
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
-        RestApiStore,
+        AuthenticatedUserHeader, RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -69,7 +70,7 @@ pub struct PropertyTypeResource;
 
 impl RoutedResource for PropertyTypeResource {
     /// Create routes for interacting with property types.
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Sync + Send + 'static>() -> Router
     where
         for<'pool> P::Store<'pool>: RestApiStore,
     {
@@ -95,7 +96,6 @@ struct CreatePropertyTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfPropertyType,
     owned_by_id: OwnedById,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -103,6 +103,9 @@ struct CreatePropertyTypeRequest {
     path = "/property-types",
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfOntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -113,6 +116,7 @@ struct CreatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn create_property_type<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
@@ -128,7 +132,6 @@ where
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
-        actor_id,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -154,13 +157,7 @@ where
 
         partial_metadata.push(PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
-            custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: actor_id,
-                    record_archived_by_id: None,
-                },
-                owned_by_id,
-            },
+            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         });
 
         property_types.push(property_type);
@@ -168,6 +165,7 @@ where
 
     let mut metadata = store
         .create_property_types(
+            actor_id,
             property_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
@@ -197,7 +195,6 @@ where
 struct LoadExternalPropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     property_type_id: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -205,6 +202,9 @@ struct LoadExternalPropertyTypeRequest {
     path = "/property-types/load",
     request_body = LoadExternalPropertyTypeRequest,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -215,6 +215,7 @@ struct LoadExternalPropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool, domain_validator))]
 async fn load_external_property_type<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalPropertyTypeRequest>,
@@ -227,17 +228,14 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let Json(LoadExternalPropertyTypeRequest {
-        property_type_id,
-        actor_id,
-    }) = body;
+    let Json(LoadExternalPropertyTypeRequest { property_type_id }) = body;
 
     Ok(Json(
         store
             .load_external_type(
+                actor_id,
                 &domain_validator,
                 OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
-                actor_id,
             )
             .await?,
     ))
@@ -248,6 +246,9 @@ where
     path = "/property-types/query",
     request_body = PropertyTypeStructuralQuery,
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth."),
 
@@ -257,6 +258,7 @@ where
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn get_property_types_by_query<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
@@ -275,7 +277,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
             store
-                .get_property_type(&query)
+                .get_property_type(actor_id, &query)
                 .await
                 .map_err(|report| {
                     tracing::error!(error=?report, ?query, "Could not read property types from the store");
@@ -293,13 +295,15 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
     put,
     path = "/property-types",
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -311,13 +315,13 @@ struct UpdatePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn update_property_type<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
         mut type_to_update,
-        actor_id,
     }) = body;
 
     type_to_update.version += 1;
@@ -335,7 +339,7 @@ async fn update_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_property_type(property_type, actor_id)
+        .update_property_type(actor_id, property_type)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update property type");
@@ -355,13 +359,15 @@ async fn update_property_type<P: StorePool + Send>(
 struct ArchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
-    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
     put,
     path = "/property-types/archive",
     tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -374,13 +380,11 @@ struct ArchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn archive_property_type<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<ArchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchivePropertyTypeRequest {
-        type_to_archive,
-        actor_id,
-    }) = body;
+    let Json(ArchivePropertyTypeRequest { type_to_archive }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -388,7 +392,7 @@ async fn archive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .archive_property_type(&type_to_archive, actor_id)
+        .archive_property_type(actor_id, &type_to_archive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive property type");
@@ -411,13 +415,15 @@ async fn archive_property_type<P: StorePool + Send>(
 struct UnarchivePropertyTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
     put,
     path = "/property-types/unarchive",
-    tag = "DataType",
+    tag = "PropertyType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated property type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -430,13 +436,11 @@ struct UnarchivePropertyTypeRequest {
 )]
 #[tracing::instrument(level = "info", skip(pool))]
 async fn unarchive_property_type<P: StorePool + Send>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     pool: Extension<Arc<P>>,
     body: Json<UnarchivePropertyTypeRequest>,
 ) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchivePropertyTypeRequest {
-        type_to_unarchive,
-        actor_id,
-    }) = body;
+    let Json(UnarchivePropertyTypeRequest { type_to_unarchive }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
@@ -444,7 +448,7 @@ async fn unarchive_property_type<P: StorePool + Send>(
     })?;
 
     store
-        .unarchive_property_type(&type_to_unarchive, actor_id)
+        .unarchive_property_type(actor_id, &type_to_unarchive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive property type");

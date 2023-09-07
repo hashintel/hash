@@ -1,7 +1,6 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   AccountEntityId,
-  AccountId,
   Entity,
   EntityId,
   extractOwnedByIdFromEntityId,
@@ -74,8 +73,8 @@ export const getCommentFromEntity: PureGraphFunction<
 export const getCommentById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<Comment>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getCommentFromEntity({ entity });
 };
@@ -90,8 +89,8 @@ export const getCommentText: ImpureGraphFunction<
     commentEntityId: EntityId;
   },
   Promise<Entity>
-> = async (ctx, { commentEntityId }) => {
-  const hasTextLinks = await getEntityOutgoingLinks(ctx, {
+> = async (ctx, authentication, { commentEntityId }) => {
+  const hasTextLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
   });
@@ -110,7 +109,9 @@ export const getCommentText: ImpureGraphFunction<
     );
   }
 
-  return await getLinkEntityRightEntity(ctx, { linkEntity: hasTextLink });
+  return await getLinkEntityRightEntity(ctx, authentication, {
+    linkEntity: hasTextLink,
+  });
 };
 
 /**
@@ -129,47 +130,42 @@ export const createComment: ImpureGraphFunction<
     tokens: TextToken[];
   },
   Promise<Comment>
-> = async (ctx, params): Promise<Comment> => {
-  const { ownedById, actorId, tokens, parentEntityId, author } = params;
+> = async (ctx, authentication, params): Promise<Comment> => {
+  const { ownedById, tokens, parentEntityId, author } = params;
 
   const [commentEntity, textEntity] = await Promise.all([
-    createEntity(ctx, {
+    createEntity(ctx, authentication, {
       ownedById,
       properties: {},
       entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
-      actorId,
     }),
-    createEntity(ctx, {
+    createEntity(ctx, authentication, {
       ownedById,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
       },
       entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
-      actorId,
     }),
   ]);
 
   await Promise.all([
-    createLinkEntity(ctx, {
+    createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: textEntity.metadata.recordId.entityId,
       ownedById,
-      actorId,
     }),
-    createLinkEntity(ctx, {
+    createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: parentEntityId,
       ownedById,
-      actorId,
     }),
-    createLinkEntity(ctx, {
+    createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.author,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: author.entity.metadata.recordId.entityId,
       ownedById,
-      actorId,
     }),
   ]);
 
@@ -186,27 +182,29 @@ export const createComment: ImpureGraphFunction<
 export const updateCommentText: ImpureGraphFunction<
   {
     commentEntityId: EntityId;
-    actorId: AccountId;
     tokens: TextToken[];
   },
   Promise<void>
-> = async (ctx, params) => {
-  const { commentEntityId, actorId, tokens } = params;
+> = async (ctx, authentication, params) => {
+  const { commentEntityId, tokens } = params;
 
-  if (actorId !== extractOwnedByIdFromEntityId(commentEntityId)) {
+  if (
+    authentication.actorId !== extractOwnedByIdFromEntityId(commentEntityId)
+  ) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to edit the comment with entityId ${commentEntityId}`,
+      `Critical: account ${authentication.actorId} does not have permission to edit the comment with entityId ${commentEntityId}`,
     );
   }
 
-  const textEntity = await getCommentText(ctx, { commentEntityId });
+  const textEntity = await getCommentText(ctx, authentication, {
+    commentEntityId,
+  });
 
-  await updateEntityProperty(ctx, {
+  await updateEntityProperty(ctx, authentication, {
     entity: textEntity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
     value: tokens,
-    actorId,
   });
 };
 
@@ -219,35 +217,37 @@ export const updateCommentText: ImpureGraphFunction<
 export const deleteComment: ImpureGraphFunction<
   {
     comment: Comment;
-    actorId: AccountId;
   },
   Promise<Comment>
-> = async (ctx, params) => {
-  const { comment, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { comment } = params;
 
   // Throw error if the user trying to delete the comment is not the comment's author
   if (
-    actorId !==
+    authentication.actorId !==
     extractOwnedByIdFromEntityId(
       comment.entity.metadata.recordId.entityId as AccountEntityId,
     )
   ) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
+      `Critical: account ${authentication.actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
     );
   }
 
-  const updatedCommentEntity = await updateEntityProperties(ctx, {
-    entity: comment.entity,
-    updatedProperties: [
-      {
-        propertyTypeBaseUrl:
-          SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl,
-        value: new Date().toISOString(),
-      },
-    ],
-    actorId,
-  });
+  const updatedCommentEntity = await updateEntityProperties(
+    ctx,
+    authentication,
+    {
+      entity: comment.entity,
+      updatedProperties: [
+        {
+          propertyTypeBaseUrl:
+            SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl,
+          value: new Date().toISOString(),
+        },
+      ],
+    },
+  );
 
   return getCommentFromEntity({ entity: updatedCommentEntity });
 };
@@ -260,8 +260,8 @@ export const deleteComment: ImpureGraphFunction<
 export const getCommentParent: ImpureGraphFunction<
   { commentEntityId: EntityId },
   Promise<Entity>
-> = async (ctx, { commentEntityId }) => {
-  const parentLinks = await getEntityOutgoingLinks(ctx, {
+> = async (ctx, authentication, { commentEntityId }) => {
+  const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
   });
@@ -280,7 +280,9 @@ export const getCommentParent: ImpureGraphFunction<
     );
   }
 
-  return await getLinkEntityRightEntity(ctx, { linkEntity: parentLink });
+  return await getLinkEntityRightEntity(ctx, authentication, {
+    linkEntity: parentLink,
+  });
 };
 
 /**
@@ -291,8 +293,8 @@ export const getCommentParent: ImpureGraphFunction<
 export const getCommentAuthor: ImpureGraphFunction<
   { commentEntityId: EntityId },
   Promise<User>
-> = async (ctx, { commentEntityId }) => {
-  const authorLinks = await getEntityOutgoingLinks(ctx, {
+> = async (ctx, authentication, { commentEntityId }) => {
+  const authorLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.author.schema.$id,
   });
@@ -311,7 +313,7 @@ export const getCommentAuthor: ImpureGraphFunction<
     );
   }
 
-  const entity = await getLinkEntityRightEntity(ctx, {
+  const entity = await getLinkEntityRightEntity(ctx, authentication, {
     linkEntity: authorLink,
   });
 
@@ -326,15 +328,15 @@ export const getCommentAuthor: ImpureGraphFunction<
 export const getCommentReplies: ImpureGraphFunction<
   { commentEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, { commentEntityId }) => {
-  const replyLinks = await getEntityIncomingLinks(ctx, {
+> = async (ctx, authentication, { commentEntityId }) => {
+  const replyLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
   });
 
   return Promise.all(
     replyLinks.map((linkEntity) =>
-      getLinkEntityLeftEntity(ctx, { linkEntity }),
+      getLinkEntityLeftEntity(ctx, authentication, { linkEntity }),
     ),
   ).then((entities) =>
     entities.map((entity) => getCommentFromEntity({ entity })),
@@ -350,32 +352,32 @@ export const getCommentReplies: ImpureGraphFunction<
 export const resolveComment: ImpureGraphFunction<
   {
     comment: Comment;
-    actorId: AccountId;
   },
   Promise<Comment>
-> = async (ctx, params): Promise<Comment> => {
-  const { comment, actorId } = params;
+> = async (ctx, authentication, params): Promise<Comment> => {
+  const { comment } = params;
 
   const commentEntityId = comment.entity.metadata.recordId.entityId;
 
   const [parent, author] = await Promise.all([
-    getCommentParent(ctx, { commentEntityId }),
-    getCommentAuthor(ctx, { commentEntityId }),
+    getCommentParent(ctx, authentication, { commentEntityId }),
+    getCommentAuthor(ctx, authentication, { commentEntityId }),
   ]);
 
   // Throw error if the user trying to resolve the comment is not the comment's author
   // or the author of the block the comment is attached to
   if (
-    actorId !== author.accountId &&
+    authentication.actorId !== author.accountId &&
     parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
-    actorId !== extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
+    authentication.actorId !==
+      extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
   ) {
     throw new Error(
-      `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${commentEntityId}`,
+      `Critical: account ${authentication.actorId} does not have permission to resolve the comment with entityId ${commentEntityId}`,
     );
   }
 
-  const updatedEntity = await updateEntityProperties(ctx, {
+  const updatedEntity = await updateEntityProperties(ctx, authentication, {
     entity: comment.entity,
     updatedProperties: [
       {
@@ -384,7 +386,6 @@ export const resolveComment: ImpureGraphFunction<
         value: new Date().toISOString(),
       },
     ],
-    actorId,
   });
 
   return getCommentFromEntity({ entity: updatedEntity });

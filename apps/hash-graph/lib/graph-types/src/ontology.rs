@@ -113,23 +113,8 @@ pub struct OntologyTemporalMetadata {
 /// A [`CustomOntologyMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PartialCustomOntologyMetadata {
-    Owned {
-        provenance: ProvenanceMetadata,
-        owned_by_id: OwnedById,
-    },
-    External {
-        provenance: ProvenanceMetadata,
-        fetched_at: OffsetDateTime,
-    },
-}
-
-impl PartialCustomOntologyMetadata {
-    #[must_use]
-    pub const fn provenance(&self) -> ProvenanceMetadata {
-        let (Self::External { provenance, .. } | Self::Owned { provenance, .. }) = self;
-
-        *provenance
-    }
+    Owned { owned_by_id: OwnedById },
+    External { fetched_at: OffsetDateTime },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -182,27 +167,26 @@ impl OntologyElementMetadata {
     #[must_use]
     pub fn from_partial(
         partial: PartialOntologyElementMetadata,
+        provenance: ProvenanceMetadata,
         transaction_time: LeftClosedTemporalInterval<TransactionTime>,
     ) -> Self {
         Self {
             record_id: partial.record_id,
             custom: match partial.custom {
-                PartialCustomOntologyMetadata::Owned {
-                    provenance,
-                    owned_by_id,
-                } => CustomOntologyMetadata::Owned {
-                    provenance,
-                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                    owned_by_id,
-                },
-                PartialCustomOntologyMetadata::External {
-                    provenance,
-                    fetched_at,
-                } => CustomOntologyMetadata::External {
-                    provenance,
-                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
-                    fetched_at,
-                },
+                PartialCustomOntologyMetadata::Owned { owned_by_id } => {
+                    CustomOntologyMetadata::Owned {
+                        provenance,
+                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                        owned_by_id,
+                    }
+                }
+                PartialCustomOntologyMetadata::External { fetched_at } => {
+                    CustomOntologyMetadata::External {
+                        provenance,
+                        temporal_versioning: OntologyTemporalMetadata { transaction_time },
+                        fetched_at,
+                    }
+                }
             },
         }
     }

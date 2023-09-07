@@ -21,22 +21,22 @@ const linear = proxyActivities<
 });
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceAccountId, actorId, teamIds } = params;
+  const { apiKey, workspaceAccountId, authentication, teamIds } = params;
 
   const organization = linear
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linear.createPartialEntities({
+        authentication,
         workspaceAccountId,
-        actorId,
         entities: [organizationEntity],
       }),
     );
 
   const users = linear.readLinearUsers({ apiKey }).then((userEntities) =>
     linear.createPartialEntities({
+      authentication,
       workspaceAccountId,
-      actorId,
       entities: userEntities,
     }),
   );
@@ -46,8 +46,8 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
       .readLinearIssues({ apiKey, filter: { teamId } })
       .then((issueEntities) =>
         linear.createPartialEntities({
+          authentication,
           workspaceAccountId,
-          actorId,
           entities: issueEntities,
         }),
       ),
@@ -58,30 +58,30 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
 
 export const createHashUser: CreateHashUserWorkflow = async (params) => {
   await linear.createHashUser({
+    authentication: params.authentication,
     user: params.payload,
     workspaceAccountId: params.ownedById,
-    actorId: params.actorId,
   });
 };
 
 export const updateHashUser: UpdateHashUserWorkflow = async (params) =>
   linear.updateHashUser({
+    authentication: params.authentication,
     user: params.payload,
-    actorId: params.actorId,
   });
 
 export const createHashIssue: CreateHashIssueWorkflow = async (params) => {
   await linear.createHashIssue({
+    authentication: params.authentication,
     issue: params.payload,
     workspaceAccountId: params.ownedById,
-    actorId: params.actorId,
   });
 };
 
 export const updateHashIssue: UpdateHashIssueWorkflow = async (params) =>
   linear.updateHashIssue({
+    authentication: params.authentication,
     issue: params.payload,
-    actorId: params.actorId,
   });
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>

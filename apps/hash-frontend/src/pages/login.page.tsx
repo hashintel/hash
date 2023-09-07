@@ -1,10 +1,17 @@
 import { TextField } from "@hashintel/design-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, Container, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import { FormEventHandler, useContext, useEffect, useState } from "react";
+import {
+  FormEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
@@ -23,7 +30,6 @@ const LoginPage: NextPageWithLayout = () => {
   const { hashInstance } = useHashInstance();
 
   const {
-    return_to: returnTo,
     flow: flowId,
     // Refresh means we want to refresh the session. This is needed, for example, when we want to update the password
     // of a user.
@@ -34,6 +40,48 @@ const LoginPage: NextPageWithLayout = () => {
   } = router.query;
 
   const [flow, setFlow] = useState<LoginFlow>();
+
+  const returnTo = useMemo(() => {
+    if (typeof router.query.return_to !== "string") {
+      return undefined;
+    }
+
+    const possiblyMaliciousRedirect =
+      typeof router.query.return_to === "string"
+        ? router.query.return_to
+        : undefined;
+
+    const redirectUrl = possiblyMaliciousRedirect
+      ? new URL(possiblyMaliciousRedirect, frontendUrl)
+      : undefined;
+
+    const redirectPath = redirectUrl?.pathname;
+
+    if (redirectUrl && redirectUrl.origin !== frontendUrl) {
+      /**
+       * This isn't strictly necessary since we're only going to take the pathname,
+       * but useful to have the error reported
+       */
+      throw new Error(
+        `Someone tried to pass an external URL as a redirect: ${possiblyMaliciousRedirect}`,
+      );
+    }
+
+    if (
+      redirectPath &&
+      (redirectPath.includes("\\") || redirectPath.includes("//"))
+    ) {
+      /**
+       * next/router will error if these are included in the URL, but this makes
+       * the error more useful
+       */
+      throw new Error(
+        `Someone tried to pass a malformed URL as a redirect: ${possiblyMaliciousRedirect}`,
+      );
+    }
+
+    return redirectPath;
+  }, [router]);
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -69,20 +117,10 @@ const LoginPage: NextPageWithLayout = () => {
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
-        returnTo: returnTo ? String(returnTo) : undefined,
       })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
-  }, [
-    flowId,
-    router,
-    router.isReady,
-    aal,
-    refresh,
-    returnTo,
-    flow,
-    handleFlowError,
-  ]);
+  }, [flowId, router, router.isReady, aal, refresh, flow, handleFlowError]);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
@@ -110,12 +148,6 @@ const LoginPage: NextPageWithLayout = () => {
           })
           // We logged in successfully! Let's redirect the user.
           .then(async () => {
-            // If the flow specifies a redirect, use it.
-            if (flow.return_to) {
-              window.location.href = flow.return_to;
-              return;
-            }
-
             // Otherwise, redirect the user to their workspace.
             const { authenticatedUser } = await refetch();
 
@@ -126,7 +158,8 @@ const LoginPage: NextPageWithLayout = () => {
             }
 
             updateActiveWorkspaceAccountId(authenticatedUser.accountId);
-            void router.push("/");
+
+            void router.push(returnTo ?? flow.return_to ?? "/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<LoginFlow>) => {

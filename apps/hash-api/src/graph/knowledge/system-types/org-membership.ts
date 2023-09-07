@@ -63,14 +63,13 @@ export const createOrgMembership: ImpureGraphFunction<
     userEntityId: EntityId;
   },
   Promise<OrgMembership>
-> = async (ctx, { userEntityId, orgEntityId, actorId }) => {
-  const linkEntity = await createLinkEntity(ctx, {
+> = async (ctx, authentication, { userEntityId, orgEntityId }) => {
+  const linkEntity = await createLinkEntity(ctx, authentication, {
     ownedById: extractEntityUuidFromEntityId(orgEntityId) as Uuid as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
     leftEntityId: userEntityId,
     rightEntityId: orgEntityId,
     properties: {},
-    actorId,
   });
 
   return getOrgMembershipFromLinkEntity({ linkEntity });
@@ -84,8 +83,8 @@ export const createOrgMembership: ImpureGraphFunction<
 export const getOrgMembershipOrg: ImpureGraphFunction<
   { orgMembership: OrgMembership },
   Promise<Org>
-> = async (ctx, { orgMembership }) => {
-  const orgEntity = await getLinkEntityRightEntity(ctx, {
+> = async (ctx, authentication, { orgMembership }) => {
+  const orgEntity = await getLinkEntityRightEntity(ctx, authentication, {
     linkEntity: orgMembership.linkEntity,
   });
 
@@ -100,8 +99,8 @@ export const getOrgMembershipOrg: ImpureGraphFunction<
 export const getOrgMembershipUser: ImpureGraphFunction<
   { orgMembership: OrgMembership },
   Promise<User>
-> = async (ctx, { orgMembership }) => {
-  const userEntity = await getLinkEntityLeftEntity(ctx, {
+> = async (ctx, authentication, { orgMembership }) => {
+  const userEntity = await getLinkEntityLeftEntity(ctx, authentication, {
     linkEntity: orgMembership.linkEntity,
   });
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env just --justfile
 
-set dotenv-load := true
-
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
 github-event-name := env_var_or_default('GITHUB_EVENT_NAME', "none")

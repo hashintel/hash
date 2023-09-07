@@ -7,7 +7,7 @@ mod schema;
 use std::error::Error;
 
 use authorization::{
-    backend::{AuthorizationApi, Precondition, RelationFilter},
+    backend::{Precondition, RelationFilter, ZanzibarBackend},
     zanzibar::Consistency,
 };
 

@@ -41,7 +41,11 @@ export const updatePageContents: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
-> = async (_, { entityId: pageEntityId, actions }, { dataSources, user }) => {
+> = async (
+  _,
+  { entityId: pageEntityId, actions },
+  { dataSources, authentication, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   for (const [i, action] of actions.entries()) {
@@ -111,7 +115,7 @@ export const updatePageContents: ResolverFn<
     ),
   );
 
-  const page = await getPageById(context, {
+  const page = await getPageById(context, authentication, {
     entityId: pageEntityId,
   });
 
@@ -125,26 +129,23 @@ export const updatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await addBlockToPage(context, {
+        await addBlockToPage(context, authentication, {
           page,
           block: insertedBlocks[insertCount]!,
           canvasPosition: action.insertBlock.canvasPosition ?? undefined,
           position: action.insertBlock.position,
-          actorId: user.accountId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
-        await moveBlockInPage(context, {
+        await moveBlockInPage(context, authentication, {
           ...action.moveBlock,
           canvasPosition: action.moveBlock.canvasPosition ?? undefined,
           page,
-          actorId: user.accountId,
         });
       } else if (action.removeBlock) {
-        await removeBlockFromPage(context, {
+        await removeBlockFromPage(context, authentication, {
           page,
           position: action.removeBlock.position,
-          actorId: user.accountId,
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),

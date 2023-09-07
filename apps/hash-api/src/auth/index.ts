@@ -27,6 +27,7 @@ const kratosAfterRegistrationHookHandler =
         identity: { id: kratosIdentityId, traits },
       },
     } = req;
+    const authentication = { actorId: systemUserAccountId };
 
     // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
@@ -44,16 +45,15 @@ const kratosAfterRegistrationHookHandler =
       try {
         const { emails } = traits;
 
-        const hashInstance = await getHashInstance(context, {});
+        const hashInstance = await getHashInstance(context, authentication, {});
 
         if (!hashInstance.userSelfRegistrationIsEnabled) {
           throw new Error("User registration is disabled.");
         }
 
-        await createUser(context, {
+        await createUser(context, authentication, {
           emails,
           kratosIdentityId,
-          actorId: systemUserAccountId,
         });
 
         res.status(200).end();
@@ -82,6 +82,7 @@ const setupAuth = (params: {
   context: ImpureGraphContext;
 }) => {
   const { app, logger, context } = params;
+  const authentication = { actorId: systemUserAccountId };
 
   // Kratos hook handlers
   app.post(
@@ -123,7 +124,7 @@ const setupAuth = (params: {
 
       const { id: kratosIdentityId } = identity;
 
-      const user = await getUserByKratosIdentityId(context, {
+      const user = await getUserByKratosIdentityId(context, authentication, {
         kratosIdentityId,
       });
 

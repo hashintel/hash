@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { RemoteFile } from "@local/hash-isomorphic-utils/system-types/blockprotocol/remote-file";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
 import { OwnedById } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -16,6 +16,25 @@ import {
 } from "../../../../graphql/queries/knowledge/file.queries";
 import { UploadFileRequestCallback } from "./knowledge-shim";
 
+const uploadFileToStorageProvider = async (
+  presignedPostData: RequestFileUploadResponse["presignedPost"],
+  file: File,
+) => {
+  const formData = new FormData();
+  const { url, fields } = presignedPostData;
+
+  for (const [key, val] of Object.entries(fields)) {
+    formData.append(key, val as string);
+  }
+
+  formData.append("file", file);
+
+  return await fetch(url, {
+    method: "POST",
+    body: formData,
+  });
+};
+
 export const useBlockProtocolFileUpload = (
   ownedById?: OwnedById,
   _readonly?: boolean,
@@ -29,25 +48,6 @@ export const useBlockProtocolFileUpload = (
     CreateFileFromUrlMutation,
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
-
-  const uploadFileToStorageProvider = async (
-    presignedPostData: RequestFileUploadResponse["presignedPost"],
-    file: File,
-  ) => {
-    const formData = new FormData();
-    const { url, fields } = presignedPostData;
-
-    for (const [key, val] of Object.entries(fields)) {
-      formData.append(key, val as string);
-    }
-
-    formData.append("file", file);
-
-    return await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-  };
 
   const uploadFile: UploadFileRequestCallback = useCallback(
     async ({ data: fileUploadData }) => {
@@ -71,7 +71,7 @@ export const useBlockProtocolFileUpload = (
             description,
             entityTypeId,
             ownedById,
-            name,
+            displayName: name,
             url,
           },
         });
@@ -90,7 +90,7 @@ export const useBlockProtocolFileUpload = (
 
         const { createFileFromUrl: fileEntity } = result.data;
 
-        return { data: fileEntity as unknown as RemoteFile };
+        return { data: fileEntity as unknown as FileEntityType };
       }
 
       if (!("file" in fileUploadData)) {
@@ -111,7 +111,8 @@ export const useBlockProtocolFileUpload = (
           description,
           entityTypeId,
           ownedById,
-          name,
+          displayName: name,
+          name: file.name,
           size: file.size,
         },
       });
@@ -136,7 +137,7 @@ export const useBlockProtocolFileUpload = (
 
       await uploadFileToStorageProvider(presignedPost, file);
 
-      return { data: uploadedFileEntity as unknown as RemoteFile };
+      return { data: uploadedFileEntity as unknown as FileEntityType };
     },
     [createFileFromUrlFn, ownedById, requestFileUploadFn],
   );

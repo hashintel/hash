@@ -1,11 +1,11 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  blockProtocolTypes,
-  types,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
+  descriptionPropertyTypeUrl,
   EntityTypeWithMetadata,
+  fileUrlPropertyTypeUrl,
+  mimeTypePropertyTypeUrl,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
@@ -25,7 +25,6 @@ export let SYSTEM_TYPES: {
   dataType: {};
   propertyType: {
     // General
-    description: PropertyTypeWithMetadata;
     location: PropertyTypeWithMetadata;
     // @todo use 'url' when this is available? or rename to websiteUrl?
     website: PropertyTypeWithMetadata;
@@ -82,6 +81,8 @@ export let SYSTEM_TYPES: {
   entityType: {
     hashInstance: EntityTypeWithMetadata;
     user: EntityTypeWithMetadata;
+    file: EntityTypeWithMetadata;
+    imageFile: EntityTypeWithMetadata;
     org: EntityTypeWithMetadata;
     block: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
@@ -234,9 +235,6 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const shortnamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.shortname(context);
 
-  const descriptionPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.description(context);
-
   const locationPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
 
@@ -251,6 +249,9 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
+
+  const imageFileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -265,7 +266,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
-        propertyType: descriptionPropertyType,
+        propertyType: descriptionPropertyTypeUrl,
         required: false,
       },
       {
@@ -284,20 +285,13 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
     outgoingLinks: [
       {
         linkEntityType: hasAvatarLinkEntityType,
-        destinationEntityTypes: [
-          blockProtocolTypes["remote-image-file"].entityTypeId,
-        ],
+        destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
       },
     ],
   })(context);
 };
-
-const descriptionPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.description,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
 
 const locationPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.location,
@@ -367,6 +361,8 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
 
+  const imageFileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -395,9 +391,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         linkEntityType: hasAvatarLinkEntityType,
-        destinationEntityTypes: [
-          blockProtocolTypes["remote-image-file"].entityTypeId,
-        ],
+        destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
       },
@@ -468,6 +462,66 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
         array: true,
       },
     ],
+  })(context);
+};
+
+const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  return entityTypeInitializer({
+    ...types.entityType.file,
+    properties: [
+      {
+        propertyType: fileUrlPropertyTypeUrl,
+        required: true,
+      },
+      {
+        propertyType: descriptionPropertyTypeUrl,
+      },
+      {
+        propertyType: mimeTypePropertyTypeUrl,
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+      },
+      {
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
+      },
+    ],
+  })(context);
+};
+
+const imageFileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const fileEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.file(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.imageFile,
+    allOf: [fileEntityType.schema.$id],
   })(context);
 };
 
@@ -754,7 +808,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 > = {
   dataType: {},
   propertyType: {
-    description: descriptionPropertyTypeInitializer,
     location: locationPropertyTypeInitializer,
     website: websitePropertyTypeInitializer,
 
@@ -811,6 +864,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
+    file: fileEntityTypeInitializer,
+    imageFile: imageFileEntityTypeInitializer,
     block: blockEntityTypeInitializer,
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,

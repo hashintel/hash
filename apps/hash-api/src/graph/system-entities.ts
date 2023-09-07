@@ -17,17 +17,18 @@ export const ensureSystemEntitiesExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { context } = params;
+  const authentication = { actorId: systemUserAccountId };
   logger.debug("Ensuring required system entities exists");
 
   // Create system entities if they don't already exist
 
-  await getHashInstance(context, {}).catch(async (error: Error) => {
-    // Create the system instance entity, if it doesn't already exist.
-    if (error instanceof NotFoundError) {
-      return await createHashInstance(context, {
-        actorId: systemUserAccountId,
-      });
-    }
-    throw error;
-  });
+  await getHashInstance(context, authentication, {}).catch(
+    async (error: Error) => {
+      // Create the system instance entity, if it doesn't already exist.
+      if (error instanceof NotFoundError) {
+        return await createHashInstance(context, authentication, {});
+      }
+      throw error;
+    },
+  );
 };

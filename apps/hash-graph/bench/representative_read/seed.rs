@@ -12,7 +12,7 @@ use graph_types::{
         entity::{EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use type_system::{repr, url::VersionedUrl, EntityType};
 use uuid::Uuid;
@@ -154,8 +154,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = transaction
             .insert_entities_batched_by_type(
+                account_id,
                 repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
-                RecordCreatedById::new(account_id),
                 &entity_type_id,
             )
             .await
@@ -175,6 +175,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = transaction
             .insert_entities_batched_by_type(
+                account_id,
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
@@ -194,7 +195,6 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             None,
                         )
                     }),
-                RecordCreatedById::new(account_id),
                 &entity_type_id,
             )
             .await

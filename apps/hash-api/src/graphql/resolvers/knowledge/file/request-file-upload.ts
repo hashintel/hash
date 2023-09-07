@@ -16,19 +16,23 @@ export const requestFileUpload: ResolverFn<
   MutationRequestFileUploadArgs
 > = async (
   _,
-  { description, entityTypeId, name, ownedById, size },
-  { dataSources, user },
+  { description, entityTypeId, displayName, name, ownedById, size },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { presignedPost, entity } = await createFileFromUploadRequest(context, {
-    actorId: user.accountId,
-    description,
-    entityTypeId,
-    name,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
-    size,
-  });
+  const { presignedPost, entity } = await createFileFromUploadRequest(
+    context,
+    authentication,
+    {
+      description,
+      displayName,
+      entityTypeId,
+      name,
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      size,
+    },
+  );
 
   return {
     presignedPost,

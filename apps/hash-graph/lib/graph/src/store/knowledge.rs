@@ -1,11 +1,13 @@
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::Result;
 use graph_types::{
+    account::AccountId,
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use temporal_versioning::{DecisionTime, Timestamp};
 use type_system::url::VersionedUrl;
@@ -33,10 +35,10 @@ pub trait EntityStore: crud::Read<Entity> {
     #[expect(clippy::too_many_arguments)]
     async fn create_entity(
         &mut self,
+        actor_id: AccountId,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -64,6 +66,7 @@ pub trait EntityStore: crud::Read<Entity> {
     #[cfg(hash_graph_test_environment)]
     async fn insert_entities_batched_by_type(
         &mut self,
+        actor_id: AccountId,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -74,7 +77,6 @@ pub trait EntityStore: crud::Read<Entity> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError>;
 
@@ -83,7 +85,12 @@ pub trait EntityStore: crud::Read<Entity> {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError>;
+    async fn get_entity<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        query: &StructuralQuery<Entity>,
+        authorization_api: &A,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
@@ -98,9 +105,9 @@ pub trait EntityStore: crud::Read<Entity> {
     #[expect(clippy::too_many_arguments)]
     async fn update_entity(
         &mut self,
+        actor_id: AccountId,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,

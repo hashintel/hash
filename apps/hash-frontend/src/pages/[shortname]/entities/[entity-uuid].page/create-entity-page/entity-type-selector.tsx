@@ -15,7 +15,8 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const { entityTypes, isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
@@ -36,7 +37,10 @@ export const EntityTypeSelector: FunctionComponent<{
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
-        Icon: isLinkTypeLookup?.[$id] ? LinkTypeIcon : EntityTypeIcon,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
+        Icon: isSpecialEntityTypeLookup?.[$id]?.link
+          ? LinkTypeIcon
+          : EntityTypeIcon,
         typeId: $id,
         title,
         description,

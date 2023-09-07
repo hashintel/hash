@@ -7,8 +7,6 @@ import {
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import {
-  AccountId,
   Entity,
   EntityRootType,
   OwnedById,
@@ -60,9 +58,9 @@ export const getHashInstanceFromEntity: PureGraphFunction<
 export const getHashInstance: ImpureGraphFunction<
   {},
   Promise<HashInstance>
-> = async ({ graphApi }) => {
+> = async ({ graphApi }, { actorId }) => {
   const entities = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         equal: [
           { path: ["type", "versionedUrl"] },
@@ -109,24 +107,24 @@ export const createHashInstance: ImpureGraphFunction<
     orgSelfRegistrationIsEnabled?: boolean;
   },
   Promise<HashInstance>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   // Ensure the hash instance entity has not already been created.
-  const existingHashInstance = await getHashInstance(ctx, {}).catch(
-    (error: Error) => {
-      if (error instanceof NotFoundError) {
-        return null;
-      }
-      throw error;
-    },
-  );
+  const existingHashInstance = await getHashInstance(
+    ctx,
+    authentication,
+    {},
+  ).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
 
   if (existingHashInstance) {
     throw new Error("Hash instance entity already exists.");
   }
 
-  const { actorId } = params;
-
-  const entity = await createEntity(ctx, {
+  const entity = await createEntity(ctx, authentication, {
     ownedById: systemUserAccountId as OwnedById,
     properties: {
       [SYSTEM_TYPES.propertyType.pagesAreEnabled.metadata.recordId.baseUrl]:
@@ -139,7 +137,6 @@ export const createHashInstance: ImpureGraphFunction<
         .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-    actorId,
   });
 
   return getHashInstanceFromEntity({ entity });
@@ -153,14 +150,18 @@ export const createHashInstance: ImpureGraphFunction<
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
 export const addHashInstanceAdmin: ImpureGraphFunction<
-  { user: User; actorId: AccountId },
+  { user: User },
   Promise<void>
-> = async (ctx, params) => {
-  const { user, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { user } = params;
 
-  const isAlreadyHashInstanceAdmin = await isUserHashInstanceAdmin(ctx, {
-    user,
-  });
+  const isAlreadyHashInstanceAdmin = await isUserHashInstanceAdmin(
+    ctx,
+    authentication,
+    {
+      user,
+    },
+  );
 
   if (isAlreadyHashInstanceAdmin) {
     throw new Error(
@@ -168,14 +169,13 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
     );
   }
 
-  const hashInstance = await getHashInstance(ctx, {});
+  const hashInstance = await getHashInstance(ctx, authentication, {});
 
-  await createLinkEntity(ctx, {
+  await createLinkEntity(ctx, authentication, {
     ownedById: systemUserAccountId as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
     leftEntityId: hashInstance.entity.metadata.recordId.entityId,
     rightEntityId: user.entity.metadata.recordId.entityId,
-    actorId,
   });
 };
 
@@ -185,18 +185,22 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
  * @param params.user - the user to be removed as a hash instance admin.
  */
 export const removeHashInstanceAdmin: ImpureGraphFunction<
-  { user: User; actorId: AccountId },
+  { user: User },
   Promise<void>
-> = async (ctx, params): Promise<void> => {
-  const { user, actorId } = params;
+> = async (ctx, authentication, params): Promise<void> => {
+  const { user } = params;
 
-  const hashInstance = await getHashInstance(ctx, {});
+  const hashInstance = await getHashInstance(ctx, authentication, {});
 
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: hashInstance.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-    rightEntityId: user.entity.metadata.recordId.entityId,
-  });
+  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: hashInstance.entity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+      rightEntityId: user.entity.metadata.recordId.entityId,
+    },
+  );
 
   if (outgoingAdminLinkEntities.length > 1) {
     throw new Error(
@@ -212,5 +216,7 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, { entity: outgoingAdminLinkEntity, actorId });
+  await archiveEntity(ctx, authentication, {
+    entity: outgoingAdminLinkEntity,
+  });
 };
