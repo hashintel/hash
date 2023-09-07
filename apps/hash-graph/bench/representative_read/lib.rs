@@ -57,7 +57,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_entity");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
 
-    let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
+    let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
     for (account_id, type_ids_and_entity_uuids) in samples.entities {
@@ -388,7 +388,7 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_entity_type");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
 
-    let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
+    let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
     for (account_id, entity_type_ids) in samples.entity_types {

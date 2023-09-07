@@ -1,6 +1,7 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
     iter::repeat,
+    str::FromStr,
 };
 
 use graph::store::{AccountStore, AsClient, EntityStore};
@@ -14,6 +15,7 @@ use graph_types::{
     provenance::OwnedById,
 };
 use type_system::{repr, url::VersionedUrl, EntityType};
+use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
 
@@ -292,14 +294,14 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
     samples
 }
 
-pub async fn setup_and_extract_samples(
-    store_wrapper: &mut StoreWrapper,
-    account_id: AccountId,
-) -> Samples {
+pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samples {
     // TODO: We'll want to test distribution across accounts
     //  https://app.asana.com/0/1200211978612931/1203071961523000/f
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
+    let account_id = AccountId::new(
+        Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
+    );
 
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper
