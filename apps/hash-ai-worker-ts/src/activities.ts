@@ -69,12 +69,16 @@ export const createGraphActivities = (createInfo: {
     dataTypeId: VersionedUrl;
     actorId: AccountId;
   }): Promise<DataTypeWithMetadata> {
-    const [dataType] = await getDataTypeSubgraphById(createInfo.graphContext, {
-      dataTypeId: params.dataTypeId,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      actorId: params.actorId,
-    }).then(getRoots);
+    const authentication = { actorId: params.actorId };
+    const [dataType] = await getDataTypeSubgraphById(
+      createInfo.graphContext,
+      authentication,
+      {
+        dataTypeId: params.dataTypeId,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    ).then(getRoots);
 
     if (!dataType) {
       throw new Error(`Data type with ID ${params.dataTypeId} not found.`);
@@ -87,13 +91,14 @@ export const createGraphActivities = (createInfo: {
     propertyTypeId: VersionedUrl;
     actorId: AccountId;
   }): Promise<PropertyTypeWithMetadata> {
+    const authentication = { actorId: params.actorId };
     const [propertyType] = await getPropertyTypeSubgraphById(
       createInfo.graphContext,
+      authentication,
       {
         propertyTypeId: params.propertyTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
       },
     ).then(getRoots);
 
@@ -110,13 +115,14 @@ export const createGraphActivities = (createInfo: {
     entityTypeId: VersionedUrl;
     actorId: AccountId;
   }): Promise<EntityTypeWithMetadata> {
+    const authentication = { actorId: params.actorId };
     const [entityType] = await getEntityTypeSubgraphById(
       createInfo.graphContext,
+      authentication,
       {
         entityTypeId: params.entityTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
       },
     ).then(getRoots);
 
