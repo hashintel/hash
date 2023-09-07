@@ -13,6 +13,7 @@ import clsx from "clsx";
 import { FunctionComponent, HTMLAttributes, useRef, useState } from "react";
 
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
+import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip, parseUrlForOntologyChip } from "../ontology-chip";
 
 const descriptionPropertyKey: BaseUrl =
@@ -89,19 +90,10 @@ export const SelectorAutocompleteOption = ({
         >
           <Paper sx={{ borderRadius: 1, padding: 2, width: 300 }}>
             <Stack>
-              <Box
-                alt={subtitle}
-                component="img"
+              <ImageWithCheckedBackground
+                alt={subtitle ?? title}
                 src={imageUrl}
-                sx={({ palette }) => ({
-                  backgroundImage: `linear-gradient(45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(-45deg, ${palette.gray[20]} 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${palette.gray[20]} 75%), linear-gradient(-45deg, transparent 75%, ${palette.gray[20]} 75%)`,
-                  backgroundSize: "20px 20px",
-                  backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
-                  borderRadius: 1,
-                  objectFit: "contain",
-                  width: "100%",
-                  mb: 2,
-                })}
+                sx={{ mb: 2 }}
               />
               <Typography sx={{ fontWeight: 500, mb: 1 }}>{title}</Typography>
               <Typography variant="smallTextLabels">{subtitle}</Typography>

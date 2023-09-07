@@ -22,6 +22,7 @@ export * from "./icon-image-solid";
 export * from "./icon-input-pipe";
 export * from "./icon-link";
 export * from "./icon-rainbow-hash";
+export * from "./image-with-checked-background";
 export * from "./loading-spinner";
 export * from "./menu-checkbox-item";
 export * from "./menu-item";
