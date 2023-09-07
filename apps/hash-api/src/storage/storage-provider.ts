@@ -22,7 +22,8 @@ export interface StorageProvider {
 
 export interface GetFileEntityStorageKeyParams {
   accountId: AccountId;
-  uniqueIdentifier: string;
+  editionIdentifier: string;
+  filename: string;
 }
 
 export interface UploadableStorageProvider extends StorageProvider, DataSource {

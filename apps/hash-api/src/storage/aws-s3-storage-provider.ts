@@ -54,8 +54,9 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
   getFileEntityStorageKey({
     accountId,
-    uniqueIdentifier,
+    editionIdentifier,
+    filename,
   }: GetFileEntityStorageKeyParams) {
-    return `files/${accountId}/${uniqueIdentifier}`;
+    return `files/${accountId}/${editionIdentifier}/${filename}`;
   }
 }

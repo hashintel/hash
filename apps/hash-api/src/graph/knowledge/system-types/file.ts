@@ -40,11 +40,12 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const mimeType = mime.lookup(name) || "application/octet-stream";
 
-  const fileIdentifier = `${genId()}/${name}`;
+  const editionIdentifier = genId();
 
   const key = uploadProvider.getFileEntityStorageKey({
     accountId: ownedById,
-    uniqueIdentifier: fileIdentifier,
+    editionIdentifier,
+    filename: name,
   });
 
   try {
