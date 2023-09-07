@@ -27,7 +27,6 @@ import {
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
-  RequestFileUploadResponse,
 } from "../graphql/api-types.gen";
 import {
   archiveEntityMutation,
@@ -37,6 +36,7 @@ import {
   createFileFromUrl,
   requestFileUpload,
 } from "../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "./upload-to-storage-provider";
 
 /**
  * If an uploaded file is to be linked to another entity, this data describes the link
@@ -131,25 +131,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     CreateFileFromUrlMutation,
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
-
-  const uploadFileToStorageProvider = async (
-    presignedPostData: RequestFileUploadResponse["presignedPost"],
-    file: File,
-  ) => {
-    const formData = new FormData();
-    const { url, fields } = presignedPostData;
-
-    for (const [key, val] of Object.entries(fields)) {
-      formData.append(key, val as string);
-    }
-
-    formData.append("file", file);
-
-    return await fetch(url, {
-      method: "POST",
-      body: formData,
-    });
-  };
 
   const updateUpload = useCallback(
     (updatedUpload: FileUpload) =>

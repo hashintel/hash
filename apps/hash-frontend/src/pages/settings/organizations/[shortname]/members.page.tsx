@@ -59,7 +59,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
         ref={topRef}
       >
         <Table
-          sx={{
+          sx={({ palette }) => ({
             borderRadius: 1,
             "th, td": {
               padding: "12px 16px",
@@ -70,13 +70,12 @@ const OrgMembersPage: NextPageWithLayout = () => {
                 paddingRight: "24px",
               },
             },
-          }}
+            th: {
+              borderBottom: `1px solid ${palette.gray[30]}`,
+            },
+          })}
         >
-          <TableHead
-            sx={({ palette }) => ({
-              borderBottom: `1px solid ${palette.gray[20]}`,
-            })}
-          >
+          <TableHead>
             <TableRow>
               <Cell width="70%">Name</Cell>
               <Cell>Username</Cell>

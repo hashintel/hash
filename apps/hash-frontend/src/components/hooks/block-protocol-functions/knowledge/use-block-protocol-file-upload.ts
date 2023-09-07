@@ -8,32 +8,13 @@ import {
   CreateFileFromUrlMutationVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
-  RequestFileUploadResponse,
 } from "../../../../graphql/api-types.gen";
 import {
   createFileFromUrl,
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
 import { UploadFileRequestCallback } from "./knowledge-shim";
-
-const uploadFileToStorageProvider = async (
-  presignedPostData: RequestFileUploadResponse["presignedPost"],
-  file: File,
-) => {
-  const formData = new FormData();
-  const { url, fields } = presignedPostData;
-
-  for (const [key, val] of Object.entries(fields)) {
-    formData.append(key, val as string);
-  }
-
-  formData.append("file", file);
-
-  return await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-};
 
 export const useBlockProtocolFileUpload = (
   ownedById?: OwnedById,

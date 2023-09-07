@@ -26,7 +26,8 @@ import { useMemo, useState } from "react";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import { useIsLinkType } from "../../../../shared/entity-types-context/hooks";
+import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -42,6 +43,7 @@ import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
+import { FileUploadsTab } from "./[...slug-maybe-version].page/file-uploads-tab";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
 import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
@@ -76,10 +78,6 @@ const Page: NextPageWithLayout = () => {
   const parentRefs = useEntityTypeFormWatch({
     control: formMethods.control,
     name: "allOf",
-  });
-
-  const entityTypeIsLink = useIsLinkType({
-    allOf: parentRefs.map((id) => ({ $ref: id })),
   });
 
   const draftEntityType = useMemo(() => {
@@ -132,6 +130,11 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType?.schema ?? draftEntityType;
+
+  const { isLink, isFile, isImage } = useIsSpecialEntityType({
+    allOf: parentRefs.map((id) => ({ $ref: id })),
+    $id: entityType?.$id,
+  });
 
   const userUnauthorized = useIsReadonlyModeForResource(
     routeNamespace?.accountId,
@@ -248,7 +251,7 @@ const Page: NextPageWithLayout = () => {
                         />,
                       ]
                     : []),
-                  ...(!isReadonly && !isDraft && !entityTypeIsLink
+                  ...(!isReadonly && !isDraft && !isLink
                     ? [
                         <ConvertTypeMenuItem
                           key={entityType.$id}
@@ -268,14 +271,14 @@ const Page: NextPageWithLayout = () => {
                   },
                   {
                     href: "/types/entity-type",
-                    title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
+                    title: `${isLink ? "Link" : "Entity"} Types`,
                     id: "entity-types",
                   },
                   {
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: entityTypeIsLink ? (
+                    icon: isLink ? (
                       <LinkTypeIcon
                         sx={({ palette }) => ({
                           stroke: palette.gray[50],
@@ -359,12 +362,12 @@ const Page: NextPageWithLayout = () => {
                       />
                     }
                     entityType={entityType}
-                    isLink={entityTypeIsLink}
+                    isLink={isLink}
                     isReadonly={isReadonly}
                     latestVersion={latestVersion}
                   />
 
-                  <EntityTypeTabs isDraft={isDraft} />
+                  <EntityTypeTabs isDraft={isDraft} isFile={isFile} />
                 </Container>
               </Box>
 
@@ -383,6 +386,9 @@ const Page: NextPageWithLayout = () => {
                     )
                   ) : null}
                   {currentTab === "entities" ? <EntitiesTab /> : null}
+                  {isFile && currentTab === "upload" ? (
+                    <FileUploadsTab isImage={isImage} />
+                  ) : null}
                 </Container>
               </Box>
             </Box>

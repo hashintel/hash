@@ -47,7 +47,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
         ref={topRef}
       >
         <Table
-          sx={{
+          sx={({ palette }) => ({
             borderRadius: 1,
             boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
             "th, td": {
@@ -59,7 +59,10 @@ const OrganizationListPage: NextPageWithLayout = () => {
                 paddingRight: "24px",
               },
             },
-          }}
+            "tfoot td": {
+              borderTop: `1px solid ${palette.gray[30]}`,
+            },
+          })}
         >
           <TableHead
             sx={({ palette }) => ({
