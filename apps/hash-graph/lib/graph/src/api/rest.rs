@@ -21,7 +21,7 @@ mod property_type;
 use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::AuthorizationApiPool;
 use axum::{
     extract::{FromRequestParts, Path},
     http::{request::Parts, StatusCode},
@@ -152,17 +152,18 @@ where
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>()
--> Vec<Router>
+fn api_resources<S, A>() -> Vec<Router>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
     vec![
-        account::AccountResource::routes::<P, A>(),
-        data_type::DataTypeResource::routes::<P, A>(),
-        property_type::PropertyTypeResource::routes::<P, A>(),
-        entity_type::EntityTypeResource::routes::<P, A>(),
-        entity::EntityResource::routes::<P, A>(),
+        account::AccountResource::routes::<S, A>(),
+        data_type::DataTypeResource::routes::<S, A>(),
+        property_type::PropertyTypeResource::routes::<S, A>(),
+        entity_type::EntityTypeResource::routes::<S, A>(),
+        entity::EntityResource::routes::<S, A>(),
     ]
 }
 
@@ -186,11 +187,12 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-pub struct RestRouterDependencies<
-    P: StorePool + Send + 'static,
-    A: AuthorizationApi + Send + Sync + 'static,
-> {
-    pub store: Arc<P>,
+pub struct RestRouterDependencies<S, A>
+where
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+{
+    pub store: Arc<S>,
     pub authorization_api: Arc<A>,
     pub domain_regex: DomainValidator,
 }
@@ -209,14 +211,14 @@ pub fn openapi_only_router() -> Router {
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
-pub fn rest_api_router<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>(
-    dependencies: RestRouterDependencies<P, A>,
-) -> Router
+pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Router
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
     // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<P, A>()
+    let merged_routes = api_resources::<S, A>()
         .into_iter()
         .fold(Router::new(), Router::merge);
 

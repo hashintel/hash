@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApi;
+use authorization::AuthorizationApiPool;
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use graph_types::account::AccountId;
 use utoipa::OpenApi;
@@ -30,12 +30,15 @@ pub struct AccountResource;
 
 impl RoutedResource for AccountResource {
     /// Create routes for interacting with accounts.
-    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    fn routes<S, A>() -> Router
+    where
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/accounts",
-            Router::new().route("/", post(create_account_id::<P>)),
+            Router::new().route("/", post(create_account_id::<S>)),
         )
     }
 }
@@ -53,12 +56,15 @@ impl RoutedResource for AccountResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn create_account_id<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn create_account_id<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
-) -> Result<Json<AccountId>, StatusCode> {
-    let mut store = pool.acquire().await.map_err(|report| {
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<AccountId>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;

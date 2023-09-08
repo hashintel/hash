@@ -2,7 +2,7 @@
 
 use std::{collections::hash_map, sync::Arc};
 
-use authorization::AuthorizationApi;
+use authorization::AuthorizationApiPool;
 use axum::{
     http::StatusCode,
     response::Response,
@@ -80,9 +80,11 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    fn routes<S, A>() -> Router
     where
-        for<'pool> P::Store<'pool>: RestApiStore,
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'pool> S::Store<'pool>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -90,12 +92,12 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>).put(update_entity_type::<P>),
+                    post(create_entity_type::<S>).put(update_entity_type::<S>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>))
-                .route("/load", post(load_external_entity_type::<P>))
-                .route("/archive", put(archive_entity_type::<P>))
-                .route("/unarchive", put(unarchive_entity_type::<P>)),
+                .route("/query", post(get_entity_types_by_query::<S>))
+                .route("/load", post(load_external_entity_type::<S>))
+                .route("/archive", put(archive_entity_type::<S>))
+                .route("/unarchive", put(unarchive_entity_type::<S>)),
         )
     }
 }
@@ -127,19 +129,20 @@ struct CreateEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn create_entity_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool, domain_validator))]
+async fn create_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -316,21 +319,22 @@ struct LoadExternalEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn load_external_entity_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool, domain_validator))]
+async fn load_external_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<OntologyElementMetadata>, Response>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
     let Json(LoadExternalEntityTypeRequest { entity_type_id }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -394,13 +398,16 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn get_entity_types_by_query<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn get_entity_types_by_query<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
-    pool.acquire()
+) -> Result<Json<Subgraph>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
+    store_pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
             StatusCode::INTERNAL_SERVER_ERROR
@@ -454,12 +461,15 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn update_entity_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn update_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<EntityTypeMetadata>, StatusCode> {
+) -> Result<Json<EntityTypeMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
@@ -476,7 +486,7 @@ async fn update_entity_type<P: StorePool + Send>(
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -521,15 +531,18 @@ struct ArchiveEntityTypeRequest {
     ),
     request_body = ArchiveEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn archive_entity_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn archive_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<ArchiveEntityTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(ArchiveEntityTypeRequest { type_to_archive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -577,15 +590,18 @@ struct UnarchiveEntityTypeRequest {
     ),
     request_body = UnarchiveEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn unarchive_entity_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn unarchive_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<UnarchiveEntityTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(UnarchiveEntityTypeRequest { type_to_unarchive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
