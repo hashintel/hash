@@ -17,6 +17,7 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { Cell } from "../shared/cell";
 import { OrgSettingsContainer } from "../shared/org-settings-container";
+import { OrgTable } from "../shared/org-table";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 
@@ -58,23 +59,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
         sectionLabel="Members"
         ref={topRef}
       >
-        <Table
-          sx={({ palette }) => ({
-            borderRadius: 1,
-            "th, td": {
-              padding: "12px 16px",
-              "&:first-of-type": {
-                paddingLeft: "24px",
-              },
-              "&:last-of-type": {
-                paddingRight: "24px",
-              },
-            },
-            th: {
-              borderBottom: `1px solid ${palette.gray[30]}`,
-            },
-          })}
-        >
+        <OrgTable>
           <TableHead>
             <TableRow>
               <Cell width="70%">Name</Cell>
@@ -126,7 +111,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
               </TableCell>
             </TableRow>
           </TableFooter>
-        </Table>
+        </OrgTable>
       </OrgSettingsContainer>
     </>
   );

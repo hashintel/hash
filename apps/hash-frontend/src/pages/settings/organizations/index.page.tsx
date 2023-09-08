@@ -12,6 +12,7 @@ import { getSettingsLayout } from "../shared/settings-layout";
 import { OrgRow } from "./index.page/org-row";
 import { Cell } from "./shared/cell";
 import { OrgSettingsContainer } from "./shared/org-settings-container";
+import { OrgTable } from "./shared/org-table";
 
 const OrganizationListPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -46,29 +47,8 @@ const OrganizationListPage: NextPageWithLayout = () => {
         header={<>Organizations</>}
         ref={topRef}
       >
-        <Table
-          sx={({ palette }) => ({
-            borderRadius: 1,
-            boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
-            "th, td": {
-              padding: "12px 16px",
-              "&:first-of-type": {
-                paddingLeft: "24px",
-              },
-              "&:last-of-type": {
-                paddingRight: "24px",
-              },
-            },
-            "tfoot td": {
-              borderTop: `1px solid ${palette.gray[30]}`,
-            },
-          })}
-        >
-          <TableHead
-            sx={({ palette }) => ({
-              borderBottom: `1px solid ${palette.gray[20]}`,
-            })}
-          >
+        <OrgTable>
+          <TableHead>
             <TableRow>
               <Cell width="100%">Organization</Cell>
               <Cell>Namespace</Cell>
@@ -82,7 +62,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
                 <OrgRow key={org.accountId} org={org} />
               ))}
           </TableBody>
-        </Table>
+        </OrgTable>
       </OrgSettingsContainer>
     </>
   );

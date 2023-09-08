@@ -27,7 +27,6 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
@@ -367,7 +366,11 @@ const Page: NextPageWithLayout = () => {
                     latestVersion={latestVersion}
                   />
 
-                  <EntityTypeTabs isDraft={isDraft} isFile={isFile} />
+                  <EntityTypeTabs
+                    isDraft={isDraft}
+                    isFile={isFile}
+                    isImage={isImage}
+                  />
                 </Container>
               </Box>
 

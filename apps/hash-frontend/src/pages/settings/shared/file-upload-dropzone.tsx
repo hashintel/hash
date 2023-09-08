@@ -80,7 +80,7 @@ export const FileUploadDropzone = ({
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        {image ? "Any image file" : "All file types are accepted"}
+        {image ? "Any image file is accepted" : "All file types are accepted"}
       </Typography>
     </Box>
   );

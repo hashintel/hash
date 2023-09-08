@@ -1,9 +1,14 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { faCirclePlus, FontAwesomeIcon } from "@hashintel/design-system";
+import { CheckIcon } from "@hashintel/block-design-system";
+import { FontAwesomeIcon } from "@hashintel/design-system";
 import { OwnedById } from "@local/hash-subgraph";
 import {
   Box,
+  CircularProgress,
+  CircularProgressProps,
   LinearProgress,
+  LinearProgressProps,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -12,18 +17,24 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useContext, useState } from "react";
+import { ReactNode, useContext, useState } from "react";
 
-import { useFileUploads } from "../../../../../shared/file-upload-context";
-import { Button } from "../../../../../shared/ui/button";
+import {
+  useFileUploads,
+  useFileUploadsProgress,
+} from "../../../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { SectionWrapper } from "../../../shared/section-wrapper";
+import { Action } from "./file-uploads-tab/action";
+import { ShowUploadFormButton } from "./file-uploads-tab/show-upload-form-button";
 import { useEntityType } from "./shared/entity-type-context";
 
-const TextCell = ({ children }: { children: React.ReactNode }) => (
+const HeaderCell = ({ children }: { children: ReactNode }) => (
   <TableCell>
-    <Typography variant="smallTextParagraphs">{children}</Typography>
+    <Typography variant="microText" fontWeight={600}>
+      {children}
+    </Typography>
   </TableCell>
 );
 
@@ -31,6 +42,8 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
   const entityType = useEntityType();
 
   const { uploads, uploadFile } = useFileUploads();
+
+  const uploadsProgress = useFileUploadsProgress();
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
@@ -50,6 +63,8 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
     });
     setShowUploadForm(false);
   };
+
+  console.log("Rendering");
 
   return (
     <SectionWrapper
@@ -101,78 +116,87 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
         >
           <TableHead>
             <TableRow>
-              <TextCell>File</TextCell>
-              <TextCell>Progress</TextCell>
-              <TextCell>Actions</TextCell>
+              <HeaderCell>File</HeaderCell>
+              <HeaderCell>Progress</HeaderCell>
+              <HeaderCell>Actions</HeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {relevantUploads.map((upload) => (
-              <TableRow key={upload.requestId}>
-                <TextCell>
-                  {"file" in upload.fileData
-                    ? upload.fileData.file.name
-                    : upload.fileData.url.split("/").pop()}
-                </TextCell>
-                <TableCell>
-                  <LinearProgress variant="determinate" value={50} />
-                </TableCell>
-                <TableCell>
-                  <Button size="small">Delete</Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {relevantUploads.map((upload) => {
+              const progressPercent = uploadsProgress[upload.requestId] ?? 0;
+
+              const progressIndicatorProps = {
+                color: upload.status === "error" ? "error" : "primary",
+                variant: "determinate",
+                value: progressPercent,
+              } satisfies LinearProgressProps | CircularProgressProps;
+
+              return (
+                <TableRow key={upload.requestId}>
+                  <TableCell>
+                    <Typography
+                      variant="smallTextLabels"
+                      sx={{
+                        whiteSpace: "nowrap",
+                        textOverflow: "ellipsis",
+                        overflow: "hidden",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {"file" in upload.fileData
+                        ? upload.fileData.file.name
+                        : upload.fileData.url.split("/").pop()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ width: "60%" }}>
+                    <Stack direction="row" alignItems="center">
+                      <Stack
+                        direction="row"
+                        sx={{
+                          alignItems: "center",
+                          borderRadius: 4,
+                          border: ({ palette }) =>
+                            `1px solid ${palette.gray[30]}`,
+                          px: 1.2,
+                          py: 0.5,
+                        }}
+                      >
+                        {upload.status === "complete" ? (
+                          <CheckIcon sx={{ color: "blue.70", fontSize: 14 }} />
+                        ) : (
+                          <CircularProgress
+                            {...progressIndicatorProps}
+                            size={14}
+                          />
+                        )}
+                        <Typography
+                          variant="microText"
+                          fontWeight={600}
+                          ml={0.5}
+                        >
+                          {progressPercent.toFixed(0)}%
+                        </Typography>
+                      </Stack>
+                      <LinearProgress
+                        {...progressIndicatorProps}
+                        sx={{ ml: 1.5, width: "100%" }}
+                      />
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center", width: 85 }}>
+                    <Action
+                      onRetry={() => console.log("Retrying")}
+                      upload={upload}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
           <TableFooter>
             <TableRow>
               <TableCell colSpan={3} sx={{ padding: 0 }}>
-                <Box
-                  component="button"
-                  onClick={() => setShowUploadForm(true)}
-                  sx={{
-                    alignItems: "center",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "center",
-                    py: 2,
-                    width: "100%",
-                    "&:hover": {
-                      span: {
-                        color: "gray.70",
-                      },
-                      svg: {
-                        color: "gray.70",
-                      },
-                    },
-                  }}
-                  type="button"
-                >
-                  <FontAwesomeIcon
-                    icon={{
-                      icon: faCirclePlus,
-                    }}
-                    sx={{
-                      color: "gray.50",
-                      fontSize: 12,
-                      mr: 1,
-                      transition: ({ transitions }) =>
-                        transitions.create("color"),
-                    }}
-                  />
-                  <Typography
-                    variant="smallTextLabels"
-                    sx={{
-                      fontWeight: 500,
-                      color: "gray.50",
-                      transition: ({ transitions }) =>
-                        transitions.create("color"),
-                    }}
-                  >
-                    Upload another file
-                  </Typography>
-                </Box>
+                <ShowUploadFormButton onClick={() => setShowUploadForm(true)} />
               </TableCell>
             </TableRow>
           </TableFooter>

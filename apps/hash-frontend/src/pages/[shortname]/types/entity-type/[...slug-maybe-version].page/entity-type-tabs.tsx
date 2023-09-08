@@ -13,9 +13,11 @@ import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 export const EntityTypeTabs = ({
   isDraft,
   isFile,
+  isImage,
 }: {
   isDraft: boolean;
   isFile: boolean;
+  isImage: boolean;
 }) => {
   const router = useRouter();
 
@@ -67,7 +69,11 @@ export const EntityTypeTabs = ({
                         entityType.$id,
                       )}`
                 }
-                label={isFile ? "Add new file" : "Create new entity"}
+                label={
+                  isFile
+                    ? `Add new ${isImage ? "image" : "file"}`
+                    : "Create new entity"
+                }
                 sx={(theme) => ({
                   ml: "auto",
                   color: "inherit",

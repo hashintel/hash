@@ -51,7 +51,7 @@ type FileLinkData = {
   // The properties for the link entity to create, if any
   linkProperties?: EntityPropertiesObject;
   /**
-   * Don't actually create or delete the specified link entity, just track this metadata in the upload object
+   * If true, don't actually create or delete the specified link entity, just track this metadata in the upload object
    *
    * This is useful for when the caller wants to manage link creation themselves, but track the progress of the file upload
    * - e.g. for editing draft entities in the entity editor, we maintain draft link state and defer API calls
@@ -92,7 +92,7 @@ type FileUploadComplete = FileUploadVariant<{
   status: "complete";
 }>;
 
-type FileUpload =
+export type FileUpload =
   | FileUploadLoading
   | FileUploadCreatingLinkEntity
   | FileUploadError
@@ -103,15 +103,27 @@ export type FileUploadsContextValue = {
   uploadFile: (args: FileUploadRequestData) => Promise<FileUpload>;
 };
 
-export const FileUploadsContext = createContext<null | FileUploadsContextValue>(
-  null,
-);
+// The main context to store file upload metadata and the function to request a new upload
+const FileUploadsContext = createContext<null | FileUploadsContextValue>(null);
+
+type FileUploadsProgress = {
+  [requestId: string]: number;
+};
+
+// A separate context for granular upload progress so that components that don't care about it aren't affected by it
+const FileUploadProgressContext = createContext<
+  FileUploadsProgress | undefined
+>(undefined);
 
 /**
  * Provides an abstraction for uploading files, and a central place to track the status of uploads
  */
 export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
+
+  const [uploadsProgress, setUploadsProgress] = useState<FileUploadsProgress>(
+    {},
+  );
 
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
@@ -218,20 +230,28 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           await uploadFileToStorageProvider(
             data.requestFileUpload.presignedPost,
             fileData.file,
+            (progress) => {
+              setUploadsProgress((prevProgress) => ({
+                ...prevProgress,
+                [requestId]: progress,
+              }));
+            },
           );
         } catch (err) {
+          // requestFileUploadFn might itself throw rather than return errors, thus this catch
+
           const errorMessage = `An error occurred while uploading the file ${
             fileData.file.name
           }: ${(err as Error).message}`;
 
-          // requestFileUploadFn might itself throw rather than return errors, thus this catch
-          updateUpload({
+          const updatedUpload: FileUpload = {
             ...upload,
             status: "error",
             errorMessage,
-          });
+          };
+          updateUpload(updatedUpload);
 
-          throw new Error(errorMessage, { cause: err });
+          return updatedUpload;
         }
       }
 
@@ -281,16 +301,19 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(archiveErrors?.[0]?.message ?? "unknown error");
           }
         } catch (err) {
+          // archiveEntity might itself throw rather than return errors, thus this catch
           const errorMessage = `Error archiving link entity with id ${linkEntityIdToDelete}: ${
             (err as Error).message
           }`;
-          updateUpload({
+          const updatedUpload: FileUpload = {
             ...upload,
             createdEntities: { fileEntity },
             status: "error",
             errorMessage,
-          });
-          throw new Error(errorMessage, { cause: err });
+          };
+          updateUpload(updatedUpload);
+
+          return updatedUpload;
         }
       }
 
@@ -324,13 +347,16 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         const errorMessage = `Error creating link entity: ${
           (err as Error).message
         }`;
-        updateUpload({
+
+        const updatedUpload: FileUpload = {
           ...upload,
           createdEntities: { fileEntity },
           status: "error",
           errorMessage,
-        });
-        throw new Error(errorMessage, { cause: err });
+        };
+        updateUpload(updatedUpload);
+
+        return updatedUpload;
       }
     },
     [
@@ -342,14 +368,16 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     ],
   );
 
-  const value: FileUploadsContextValue = useMemo(
+  const mainContextValue: FileUploadsContextValue = useMemo(
     () => ({ uploads, uploadFile }),
     [uploadFile, uploads],
   );
 
   return (
-    <FileUploadsContext.Provider value={value}>
-      {children}
+    <FileUploadsContext.Provider value={mainContextValue}>
+      <FileUploadProgressContext.Provider value={uploadsProgress}>
+        {children}
+      </FileUploadProgressContext.Provider>
     </FileUploadsContext.Provider>
   );
 };
@@ -362,4 +390,14 @@ export const useFileUploads = () => {
   }
 
   return fileUploadsContext;
+};
+
+export const useFileUploadsProgress = () => {
+  const fileUploadProgressContext = useContext(FileUploadProgressContext);
+
+  if (!fileUploadProgressContext) {
+    throw new Error("no FileUploadProgressContext value has been provided");
+  }
+
+  return fileUploadProgressContext;
 };
