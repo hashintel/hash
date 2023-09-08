@@ -6,8 +6,6 @@
     return_position_impl_trait_in_trait
 )]
 
-use std::future::Future;
-
 use futures::Stream;
 use graph_types::{account::AccountId, knowledge::entity::EntityId};
 
@@ -17,32 +15,11 @@ use crate::{
 };
 
 pub mod backend;
-
 pub mod zanzibar;
 
-pub trait AuthorizationApi {
-    async fn view_entity(
-        &self,
-        actor: AccountId,
-        entity: EntityId,
-        consistency: Consistency<'_>,
-    ) -> Result<(bool, zanzibar::Zookie<'static>), CheckError>;
+mod api;
 
-    fn view_entities(
-        &self,
-        actor: AccountId,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
-        consistency: Consistency<'_>,
-    ) -> impl Future<
-        Output = Result<
-            (
-                impl Stream<Item = Result<(EntityId, bool), CheckError>> + Send,
-                Zookie<'static>,
-            ),
-            CheckError,
-        >,
-    > + Send;
-}
+pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 
 #[derive(Debug, Default)]
 pub struct NoAuthorization;
@@ -73,5 +50,18 @@ impl AuthorizationApi for NoAuthorization {
             futures::stream::iter(entities.into_iter().map(|entity| Ok((entity, true)))),
             Zookie::empty(),
         ))
+    }
+}
+
+impl AuthorizationApiPool for NoAuthorization {
+    type Api<'pool> = Self;
+    type Error = std::convert::Infallible;
+
+    async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
+        Ok(Self)
+    }
+
+    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error> {
+        Ok(Self)
     }
 }
