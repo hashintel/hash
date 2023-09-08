@@ -232,7 +232,7 @@ where
         entity_types.push(entity_type);
     }
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -249,7 +249,7 @@ where
     let mut metadata = store
         .create_entity_types(
             actor_id,
-            &authorization_api,
+            &mut authorization_api,
             entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
@@ -380,7 +380,7 @@ where
         ))
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -398,7 +398,7 @@ where
         store
             .load_external_type(
                 actor_id,
-                &authorization_api,
+                &mut authorization_api,
                 &domain_validator,
                 OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
             )
@@ -538,13 +538,18 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .update_entity_type(actor_id, &authorization_api, entity_type, label_property)
+        .update_entity_type(
+            actor_id,
+            &mut authorization_api,
+            entity_type,
+            label_property,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
@@ -601,13 +606,13 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .archive_entity_type(actor_id, &authorization_api, &type_to_archive)
+        .archive_entity_type(actor_id, &mut authorization_api, &type_to_archive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive entity type");
@@ -667,13 +672,13 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .unarchive_entity_type(actor_id, &authorization_api, &type_to_unarchive)
+        .unarchive_entity_type(actor_id, &mut authorization_api, &type_to_unarchive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive entity type");

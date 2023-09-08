@@ -226,7 +226,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     // TODO: When we improve error management we need to match on it here, this will continue
     //  normally even if the DB is down
     if connection
-        .insert_account_id(root_account_id, &NoAuthorization, root_account_id)
+        .insert_account_id(root_account_id, &mut NoAuthorization, root_account_id)
         .await
         .change_context(GraphError)
         .is_err()
@@ -250,7 +250,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         if let Err(error) = connection
             .create_data_type(
                 root_account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 data_type,
                 data_type_metadata,
             )
@@ -297,7 +297,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     if let Err(error) = connection
         .create_entity_type(
             root_account_id,
-            &NoAuthorization,
+            &mut NoAuthorization,
             link_entity_type,
             link_entity_type_metadata,
         )

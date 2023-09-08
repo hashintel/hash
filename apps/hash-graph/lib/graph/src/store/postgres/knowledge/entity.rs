@@ -270,7 +270,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -437,7 +437,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -649,7 +649,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

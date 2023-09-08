@@ -50,10 +50,10 @@ use crate::{
 #[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type<A: AuthorizationApi + Sync>(
+    async fn insert_external_ontology_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &A,
+        authorization_api: &mut A,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyElementMetadata, InsertionError>;
 }
@@ -169,7 +169,7 @@ where
     A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
 {
-    async fn contains_ontology_type<Au: AuthorizationApi + Sync>(
+    async fn contains_ontology_type<Au: AuthorizationApi + Send + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
@@ -235,7 +235,7 @@ where
     async fn collect_external_ontology_types<
         'o,
         T: OntologyType + Sync,
-        Au: AuthorizationApi + Sync,
+        Au: AuthorizationApi + Send + Sync,
     >(
         &self,
         actor_id: AccountId,
@@ -261,7 +261,7 @@ where
         reason = "Large parts of this function is is written out three times and this should be \
                   moved to another function at some point."
     )]
-    async fn fetch_external_ontology_types<Au: AuthorizationApi + Sync>(
+    async fn fetch_external_ontology_types<Au: AuthorizationApi + Send + Sync>(
         &self,
         actor_id: AccountId,
         authorization_api: &Au,
@@ -388,12 +388,16 @@ where
         Ok(fetched_ontology_types)
     }
 
-    async fn insert_external_types<'o, T: OntologyType + Sync + 'o, Au: AuthorizationApi + Sync>(
+    async fn insert_external_types<'o, T, Au>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), InsertionError>
+    where
+        T: OntologyType + Sync + 'o,
+        Au: AuthorizationApi + Send + Sync,
+    {
         // Without collecting it first, we get a "Higher-ranked lifetime error" because of the
         // limitations of Rust being able to look into a `Pin<Box<dyn Future>>`, which is returned
         // by `#[async_trait]` methods.
@@ -452,10 +456,10 @@ where
         Ok(())
     }
 
-    async fn insert_external_types_by_reference<Au: AuthorizationApi + Sync>(
+    async fn insert_external_types_by_reference<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
         fetch_behavior: FetchBehavior,
@@ -525,10 +529,10 @@ where
     A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
 {
-    async fn insert_external_ontology_type<Au: AuthorizationApi + Sync>(
+    async fn insert_external_ontology_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         self.insert_external_types_by_reference(
@@ -577,10 +581,10 @@ where
     S: AccountStore + Send,
     A: Send + Sync,
 {
-    async fn insert_account_id<Au: AuthorizationApi + Sync>(
+    async fn insert_account_id<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         account_id: AccountId,
     ) -> Result<(), InsertionError> {
         self.store
@@ -595,10 +599,10 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_data_types<Au: AuthorizationApi + Sync>(
+    async fn create_data_types<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -628,10 +632,10 @@ where
             .await
     }
 
-    async fn update_data_type<Au: AuthorizationApi + Sync>(
+    async fn update_data_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(actor_id, authorization_api, [&data_type])
@@ -643,10 +647,10 @@ where
             .await
     }
 
-    async fn archive_data_type<Au: AuthorizationApi + Sync>(
+    async fn archive_data_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -654,10 +658,10 @@ where
             .await
     }
 
-    async fn unarchive_data_type<Au: AuthorizationApi + Sync>(
+    async fn unarchive_data_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -672,10 +676,10 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_property_types<Au: AuthorizationApi + Sync>(
+    async fn create_property_types<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
@@ -709,10 +713,10 @@ where
             .await
     }
 
-    async fn update_property_type<Au: AuthorizationApi + Sync>(
+    async fn update_property_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.insert_external_types(actor_id, authorization_api, [&property_type])
@@ -724,10 +728,10 @@ where
             .await
     }
 
-    async fn archive_property_type<Au: AuthorizationApi + Sync>(
+    async fn archive_property_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -735,10 +739,10 @@ where
             .await
     }
 
-    async fn unarchive_property_type<Au: AuthorizationApi + Sync>(
+    async fn unarchive_property_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -753,10 +757,10 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity_types<Au: AuthorizationApi + Sync>(
+    async fn create_entity_types<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -786,10 +790,10 @@ where
             .await
     }
 
-    async fn update_entity_type<Au: AuthorizationApi + Sync>(
+    async fn update_entity_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
@@ -802,10 +806,10 @@ where
             .await
     }
 
-    async fn archive_entity_type<Au: AuthorizationApi + Sync>(
+    async fn archive_entity_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -813,10 +817,10 @@ where
             .await
     }
 
-    async fn unarchive_entity_type<Au: AuthorizationApi + Sync>(
+    async fn unarchive_entity_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.store
@@ -831,10 +835,10 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity<Au: AuthorizationApi + Sync>(
+    async fn create_entity<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -870,10 +874,10 @@ where
 
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type<Au: AuthorizationApi + Sync>(
+    async fn insert_entities_batched_by_type<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -912,10 +916,10 @@ where
             .await
     }
 
-    async fn update_entity<Au: AuthorizationApi + Sync>(
+    async fn update_entity<Au: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &Au,
+        authorization_api: &mut Au,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

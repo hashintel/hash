@@ -45,7 +45,7 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, &NoAuthorization, account_id)
+        .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -80,7 +80,7 @@ async fn seed_db(
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             account_id,
-            &NoAuthorization,
+            &mut NoAuthorization,
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
             &entity_type_id,
         )

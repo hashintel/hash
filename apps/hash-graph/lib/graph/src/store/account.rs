@@ -13,10 +13,10 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`AccountId`] already exists.
-    async fn insert_account_id<A: AuthorizationApi + Sync>(
+    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &A,
+        authorization_api: &mut A,
         account_id: AccountId,
     ) -> Result<(), InsertionError>;
 }

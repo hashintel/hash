@@ -182,7 +182,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_types<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
@@ -320,7 +320,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
@@ -353,7 +353,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn archive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
@@ -364,7 +364,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn unarchive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))

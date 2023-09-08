@@ -125,7 +125,7 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(account_id, &NoAuthorization, account_id)
+            .insert_account_id(account_id, &mut NoAuthorization, account_id)
             .await
             .expect("could not insert account id");
 
@@ -146,7 +146,7 @@ impl DatabaseTestWrapper {
         store
             .create_data_types(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 data_types_iter,
                 ConflictBehavior::Skip,
             )
@@ -170,7 +170,7 @@ impl DatabaseTestWrapper {
         store
             .create_property_types(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 property_types_iter,
                 ConflictBehavior::Skip,
             )
@@ -197,7 +197,7 @@ impl DatabaseTestWrapper {
         store
             .create_entity_types(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 entity_types_iter,
                 ConflictBehavior::Skip,
             )
@@ -234,7 +234,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, &NoAuthorization, data_type, metadata)
+            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
             .await
     }
 
@@ -250,7 +250,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, &NoAuthorization, data_type, metadata)
+            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
             .await
     }
 
@@ -287,7 +287,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_data_type(self.account_id, &NoAuthorization, data_type)
+            .update_data_type(self.account_id, &mut NoAuthorization, data_type)
             .await
     }
 
@@ -303,7 +303,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_property_type(self.account_id, &NoAuthorization, property_type, metadata)
+            .create_property_type(self.account_id, &mut NoAuthorization, property_type, metadata)
             .await
     }
 
@@ -340,7 +340,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(self.account_id, &NoAuthorization, property_type)
+            .update_property_type(self.account_id, &mut NoAuthorization, property_type)
             .await
     }
 
@@ -359,7 +359,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_entity_type(self.account_id, &NoAuthorization, entity_type, metadata)
+            .create_entity_type(self.account_id, &mut NoAuthorization, entity_type, metadata)
             .await
     }
 
@@ -396,7 +396,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.store
-            .update_entity_type(self.account_id, &NoAuthorization, entity_type, None)
+            .update_entity_type(self.account_id, &mut NoAuthorization, entity_type, None)
             .await
     }
 
@@ -409,7 +409,7 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 Some(generate_decision_time()),
@@ -511,7 +511,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 self.account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 entity_id,
                 Some(generate_decision_time()),
                 false,
@@ -533,7 +533,7 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 None,
@@ -705,7 +705,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 self.account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 entity_id,
                 None,
                 true,

@@ -71,14 +71,14 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     let account_id = AccountId::new(Uuid::new_v4());
     store
-        .insert_account_id(actor_id, &authorization_api, account_id)
+        .insert_account_id(actor_id, &mut authorization_api, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create account id");

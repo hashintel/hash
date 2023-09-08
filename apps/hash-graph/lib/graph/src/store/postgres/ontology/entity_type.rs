@@ -210,7 +210,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn create_entity_types<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -350,7 +350,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn update_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
@@ -405,7 +405,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn archive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
@@ -416,7 +416,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn unarchive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))

@@ -33,10 +33,10 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn create_entity<A: AuthorizationApi + Sync>(
+    async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &A,
+        authorization_api: &mut A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -65,10 +65,10 @@ pub trait EntityStore: crud::Read<Entity> {
     /// [`EntityType`]: type_system::EntityType
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &A,
+        authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -105,10 +105,10 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn update_entity<A: AuthorizationApi + Sync>(
+    async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        authorization_api: &A,
+        authorization_api: &mut A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

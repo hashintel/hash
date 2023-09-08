@@ -1193,7 +1193,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     async fn insert_account_id<A: AuthorizationApi + Sync>(
         &mut self,
         _actor_id: AccountId,
-        _authorization_api: &A,
+        _authorization_api: &mut A,
         account_id: AccountId,
     ) -> Result<(), InsertionError> {
         self.as_client()

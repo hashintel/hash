@@ -127,7 +127,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id, &NoAuthorization, account_id)
+        .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -156,7 +156,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         let uuids = transaction
             .insert_entities_batched_by_type(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
                 &entity_type_id,
             )
@@ -178,7 +178,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         let uuids = transaction
             .insert_entities_batched_by_type(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])

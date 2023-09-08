@@ -217,7 +217,7 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_data_type(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 data_type.clone(),
                 PartialOntologyElementMetadata {
                     record_id: data_type.id().clone().into(),
@@ -232,7 +232,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(account_id, &NoAuthorization, data_type)
+                        .update_data_type(account_id, &mut NoAuthorization, data_type)
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -251,7 +251,7 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_property_type(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 property_type.clone(),
                 PartialOntologyElementMetadata {
                     record_id: property_type.id().clone().into(),
@@ -266,7 +266,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(account_id, &NoAuthorization, property_type)
+                        .update_property_type(account_id, &mut NoAuthorization, property_type)
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -285,7 +285,7 @@ pub async fn seed<D, P, E, C>(
         match store
             .create_entity_type(
                 account_id,
-                &NoAuthorization,
+                &mut NoAuthorization,
                 entity_type.clone(),
                 PartialEntityTypeMetadata {
                     record_id: entity_type.id().clone().into(),
@@ -303,7 +303,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(account_id, &NoAuthorization, entity_type, None)
+                        .update_entity_type(account_id, &mut NoAuthorization, entity_type, None)
                         .await
                         .expect("failed to update entity type");
                 } else {

@@ -136,7 +136,7 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -176,7 +176,7 @@ where
     let mut metadata = store
         .create_data_types(
             actor_id,
-            &authorization_api,
+            &mut authorization_api,
             data_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
@@ -246,7 +246,7 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -257,7 +257,7 @@ where
         store
             .load_external_type(
                 actor_id,
-                &authorization_api,
+                &mut authorization_api,
                 &domain_validator,
                 OntologyTypeReference::DataTypeReference((&data_type_id).into()),
             )
@@ -375,13 +375,13 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .update_data_type(actor_id, &authorization_api, data_type)
+        .update_data_type(actor_id, &mut authorization_api, data_type)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
@@ -438,13 +438,13 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .archive_data_type(actor_id, &authorization_api, &type_to_archive)
+        .archive_data_type(actor_id, &mut authorization_api, &type_to_archive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive data type");
@@ -504,13 +504,13 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
     store
-        .unarchive_data_type(actor_id, &authorization_api, &type_to_unarchive)
+        .unarchive_data_type(actor_id, &mut authorization_api, &type_to_unarchive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive data type");

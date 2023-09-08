@@ -138,7 +138,7 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -146,7 +146,7 @@ where
     store
         .create_entity(
             actor_id,
-            &authorization_api,
+            &mut authorization_api,
             owned_by_id,
             entity_uuid,
             None,
@@ -272,7 +272,7 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
         tracing::error!(?error, "Could not acquire access to the authorization API");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -280,7 +280,7 @@ where
     store
         .update_entity(
             actor_id,
-            &authorization_api,
+            &mut authorization_api,
             entity_id,
             None,
             archived,
