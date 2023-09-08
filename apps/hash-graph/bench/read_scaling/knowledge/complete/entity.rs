@@ -56,7 +56,7 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id)
+        .insert_account_id(account_id, &NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -93,6 +93,7 @@ async fn seed_db(
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             account_id,
+            &NoAuthorization,
             repeat((owned_by_id, None, properties.clone(), None, None)).take(total),
             &entity_type_id,
         )
@@ -102,6 +103,7 @@ async fn seed_db(
     let link_entity_metadata_list = transaction
         .insert_entities_batched_by_type(
             account_id,
+            &NoAuthorization,
             entity_metadata_list.iter().flat_map(|entity_a_metadata| {
                 entity_metadata_list.iter().map(|entity_b_metadata| {
                     (
@@ -166,6 +168,7 @@ pub fn bench_get_entity_by_id(
             store
                 .get_entity(
                     actor_id,
+                    &NoAuthorization,
                     &StructuralQuery {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         graph_resolve_depths,
@@ -177,7 +180,6 @@ pub fn bench_get_entity_by_id(
                             ),
                         },
                     },
-                    &NoAuthorization,
                 )
                 .await
                 .expect("failed to read entity from store");

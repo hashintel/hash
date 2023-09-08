@@ -33,9 +33,10 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn create_entity(
+    async fn create_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        authorization_api: &A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -64,9 +65,10 @@ pub trait EntityStore: crud::Read<Entity> {
     /// [`EntityType`]: type_system::EntityType
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type(
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        authorization_api: &A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -88,8 +90,8 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
         actor_id: AccountId,
-        query: &StructuralQuery<Entity>,
         authorization_api: &A,
+        query: &StructuralQuery<Entity>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -103,9 +105,10 @@ pub trait EntityStore: crud::Read<Entity> {
     ///
     /// [`EntityType`]: type_system::EntityType
     #[expect(clippy::too_many_arguments)]
-    async fn update_entity(
+    async fn update_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        authorization_api: &A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

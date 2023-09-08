@@ -66,6 +66,7 @@ impl<C: AsClient> PostgresStore<C> {
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
+        actor_id: AccountId,
         authorization_api: &A,
         zookie: Zookie<'static>,
         subgraph: &mut Subgraph,
@@ -183,7 +184,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     let permissions = authorization_api
                         .view_entities(
-                            AccountId::new(Uuid::nil()),
+                            actor_id,
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
                             entity_ids.iter().copied(),
@@ -265,10 +266,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn create_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
+    async fn create_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -432,9 +434,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type(
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -557,9 +560,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
-        _actor_id: AccountId,
-        query: &StructuralQuery<Entity>,
+        actor_id: AccountId,
         authorization_api: &A,
+        query: &StructuralQuery<Entity>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -585,11 +588,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
-            .view_entities(
-                AccountId::new(Uuid::nil()),
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
+            .view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
             .await
             .change_context(QueryError)?;
 
@@ -632,6 +631,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 })
                 .collect(),
             &mut traversal_context,
+            actor_id,
             authorization_api,
             zookie,
             &mut subgraph,
@@ -645,10 +645,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn update_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
+    async fn update_entity<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

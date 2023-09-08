@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
@@ -205,10 +206,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_types))]
-    async fn create_entity_types(
+    #[tracing::instrument(level = "info", skip(self, entity_types, _authorization_api))]
+    async fn create_entity_types<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -270,10 +272,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(inserted_entity_type_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn get_entity_type<A: AuthorizationApi + Sync>(
         &self,
         _actor_id: AccountId,
+        _authorization_api: &A,
         query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -343,10 +346,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, entity_type))]
-    async fn update_entity_type(
+    #[tracing::instrument(level = "info", skip(self, entity_type, _authorization_api))]
+    async fn update_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
@@ -397,18 +401,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         ))
     }
 
-    async fn archive_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn archive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
             .await
     }
 
-    async fn unarchive_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn unarchive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))

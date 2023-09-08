@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use authorization::NoAuthorization;
 use axum::{
     extract::BodyStream,
     response::Response,
@@ -8,10 +9,12 @@ use axum::{
 };
 use error_stack::{Context, Report};
 use futures::TryStreamExt;
+use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedRead, io::StreamReader};
+use uuid::Uuid;
 
 use crate::{
     api::{
@@ -113,21 +116,24 @@ async fn delete_accounts(
 ) -> Result<Response, Response> {
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
 
-    store.delete_accounts().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete accounts");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "ACCOUNT_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
+    store
+        .delete_accounts(AccountId::new(Uuid::nil()), &NoAuthorization)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete accounts");
+            status_to_response(Status::new(
+                report
+                    .request_ref::<StatusCode>()
+                    .copied()
+                    .next()
+                    .unwrap_or(StatusCode::Unknown),
+                Some(report.to_string()),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    HashMap::new(),
+                    "ACCOUNT_DELETION_FAILURE".to_owned(),
+                ))],
+            ))
+        })?;
 
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,

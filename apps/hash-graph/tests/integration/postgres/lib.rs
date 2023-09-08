@@ -125,7 +125,7 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(account_id)
+            .insert_account_id(account_id, &NoAuthorization, account_id)
             .await
             .expect("could not insert account id");
 
@@ -144,7 +144,12 @@ impl DatabaseTestWrapper {
             (data_type, metadata)
         });
         store
-            .create_data_types(account_id, data_types_iter, ConflictBehavior::Skip)
+            .create_data_types(
+                account_id,
+                &NoAuthorization,
+                data_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
@@ -163,7 +168,12 @@ impl DatabaseTestWrapper {
             (property_type, metadata)
         });
         store
-            .create_property_types(account_id, property_types_iter, ConflictBehavior::Skip)
+            .create_property_types(
+                account_id,
+                &NoAuthorization,
+                property_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
@@ -185,7 +195,12 @@ impl DatabaseTestWrapper {
             (entity_type, metadata)
         });
         store
-            .create_entity_types(account_id, entity_types_iter, ConflictBehavior::Skip)
+            .create_entity_types(
+                account_id,
+                &NoAuthorization,
+                entity_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         Ok(DatabaseApi { store, account_id })
@@ -219,7 +234,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, data_type, metadata)
+            .create_data_type(self.account_id, &NoAuthorization, data_type, metadata)
             .await
     }
 
@@ -235,7 +250,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_data_type(self.account_id, data_type, metadata)
+            .create_data_type(self.account_id, &NoAuthorization, data_type, metadata)
             .await
     }
 
@@ -247,6 +262,7 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_versioned_url(url),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -271,7 +287,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_data_type(self.account_id, data_type)
+            .update_data_type(self.account_id, &NoAuthorization, data_type)
             .await
     }
 
@@ -287,7 +303,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_property_type(self.account_id, property_type, metadata)
+            .create_property_type(self.account_id, &NoAuthorization, property_type, metadata)
             .await
     }
 
@@ -299,6 +315,7 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_versioned_url(url),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -323,7 +340,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(self.account_id, property_type)
+            .update_property_type(self.account_id, &NoAuthorization, property_type)
             .await
     }
 
@@ -342,7 +359,7 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_entity_type(self.account_id, entity_type, metadata)
+            .create_entity_type(self.account_id, &NoAuthorization, entity_type, metadata)
             .await
     }
 
@@ -354,6 +371,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity_type(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_versioned_url(url),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -378,7 +396,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.store
-            .update_entity_type(self.account_id, entity_type, None)
+            .update_entity_type(self.account_id, &NoAuthorization, entity_type, None)
             .await
     }
 
@@ -391,6 +409,7 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
+                &NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 Some(generate_decision_time()),
@@ -407,6 +426,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -418,7 +438,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -436,6 +455,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -447,7 +467,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -463,6 +482,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -471,7 +491,6 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -492,6 +511,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 self.account_id,
+                &NoAuthorization,
                 entity_id,
                 Some(generate_decision_time()),
                 false,
@@ -513,6 +533,7 @@ impl DatabaseApi<'_> {
         self.store
             .create_entity(
                 self.account_id,
+                &NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 None,
@@ -583,6 +604,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -594,7 +616,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?;
 
@@ -650,6 +671,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(
                 self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -658,7 +680,6 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
-                &NoAuthorization,
             )
             .await?;
 
@@ -684,6 +705,7 @@ impl DatabaseApi<'_> {
         self.store
             .update_entity(
                 self.account_id,
+                &NoAuthorization,
                 entity_id,
                 None,
                 true,

@@ -21,7 +21,7 @@ mod property_type;
 use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApiPool;
+use authorization::{AuthorizationApi, AuthorizationApiPool};
 use axum::{
     extract::{FromRequestParts, Path},
     http::{request::Parts, StatusCode},
@@ -109,9 +109,10 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type(
+    async fn load_external_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        authorization_api: &A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyElementMetadata, StatusCode>;
@@ -122,9 +123,10 @@ impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
 {
-    async fn load_external_type(
+    async fn load_external_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        authorization_api: &A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyElementMetadata, StatusCode> {
@@ -136,6 +138,7 @@ where
         self
             .insert_external_ontology_type(
                 actor_id,
+                authorization_api,
                 reference,
             )
             .await

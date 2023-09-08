@@ -4,6 +4,7 @@ use std::{
     str::FromStr,
 };
 
+use authorization::NoAuthorization;
 use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -126,7 +127,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id)
+        .insert_account_id(account_id, &NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -155,6 +156,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         let uuids = transaction
             .insert_entities_batched_by_type(
                 account_id,
+                &NoAuthorization,
                 repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
                 &entity_type_id,
             )
@@ -176,6 +178,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         let uuids = transaction
             .insert_entities_batched_by_type(
                 account_id,
+                &NoAuthorization,
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
