@@ -303,7 +303,12 @@ impl DatabaseApi<'_> {
         };
 
         self.store
-            .create_property_type(self.account_id, &mut NoAuthorization, property_type, metadata)
+            .create_property_type(
+                self.account_id,
+                &mut NoAuthorization,
+                property_type,
+                metadata,
+            )
             .await
     }
 
