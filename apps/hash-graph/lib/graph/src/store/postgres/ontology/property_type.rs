@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
@@ -177,10 +178,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, property_types))]
-    async fn create_property_types(
+    #[tracing::instrument(level = "info", skip(self, property_types, _authorization_api))]
+    async fn create_property_types<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &mut A,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
@@ -240,10 +242,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(inserted_property_type_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn get_property_type<A: AuthorizationApi + Sync>(
         &self,
         _actor_id: AccountId,
+        _authorization_api: &A,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -313,10 +316,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, property_type))]
-    async fn update_property_type(
+    #[tracing::instrument(level = "info", skip(self, property_type, _authorization_api))]
+    async fn update_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &mut A,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
@@ -345,18 +349,22 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn archive_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn archive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
             .await
     }
 
-    async fn unarchive_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn unarchive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
         actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
         self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))

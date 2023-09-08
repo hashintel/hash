@@ -1,3 +1,4 @@
+use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     store::{query::Filter, EntityTypeStore},
@@ -37,6 +38,7 @@ pub fn bench_get_entity_type_by_id(
             store
                 .get_entity_type(
                     actor_id,
+                    &NoAuthorization,
                     &StructuralQuery {
                         filter: Filter::for_versioned_url(entity_type_id),
                         graph_resolve_depths: GraphResolveDepths::default(),

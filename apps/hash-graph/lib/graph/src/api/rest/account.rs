@@ -38,7 +38,7 @@ impl RoutedResource for AccountResource {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/accounts",
-            Router::new().route("/", post(create_account_id::<S>)),
+            Router::new().route("/", post(create_account_id::<S, A>)),
         )
     }
 }
@@ -56,22 +56,29 @@ impl RoutedResource for AccountResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool))]
-async fn create_account_id<S>(
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn create_account_id<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
 ) -> Result<Json<AccountId>, StatusCode>
 where
     S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
 {
     let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     let account_id = AccountId::new(Uuid::new_v4());
     store
-        .insert_account_id(account_id)
+        .insert_account_id(actor_id, &mut authorization_api, account_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create account id");

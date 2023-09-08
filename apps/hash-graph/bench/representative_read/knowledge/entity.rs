@@ -43,6 +43,7 @@ pub fn bench_get_entity_by_id(
             let subgraph = store
                 .get_entity(
                     actor_id,
+                    &NoAuthorization,
                     &StructuralQuery {
                         filter: Filter::Equal(
                             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -56,7 +57,6 @@ pub fn bench_get_entity_by_id(
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
                     },
-                    &NoAuthorization,
                 )
                 .await
                 .expect("failed to read entity from store");
@@ -90,6 +90,7 @@ pub fn bench_get_entities_by_property(
         let subgraph = store
             .get_entity(
                 actor_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths,
@@ -101,7 +102,6 @@ pub fn bench_get_entities_by_property(
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await
             .expect("failed to read entity from store");
@@ -137,6 +137,7 @@ pub fn bench_get_link_by_target_by_property(
         let subgraph = store
             .get_entity(
                 actor_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths,
@@ -148,7 +149,6 @@ pub fn bench_get_link_by_target_by_property(
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await
             .expect("failed to read entity from store");

@@ -7,6 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -1188,8 +1189,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn insert_account_id<A: AuthorizationApi + Sync>(
+        &mut self,
+        _actor_id: AccountId,
+        _authorization_api: &mut A,
+        account_id: AccountId,
+    ) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
                 r#"
@@ -1208,9 +1214,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
     #[cfg(hash_graph_test_environment)]
-    pub async fn delete_accounts(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_accounts<A: AuthorizationApi + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        _authorization_api: &A,
+    ) -> Result<(), DeletionError> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM accounts;")
