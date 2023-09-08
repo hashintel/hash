@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApi;
+use authorization::AuthorizationApiPool;
 use axum::{
     http::StatusCode,
     routing::{post, put},
@@ -70,19 +70,21 @@ pub struct DataTypeResource;
 
 impl RoutedResource for DataTypeResource {
     /// Create routes for interacting with data types.
-    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    fn routes<S, A>() -> Router
     where
-        for<'pool> P::Store<'pool>: RestApiStore,
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'pool> S::Store<'pool>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/data-types",
             Router::new()
-                .route("/", post(create_data_type::<P>).put(update_data_type::<P>))
-                .route("/query", post(get_data_types_by_query::<P>))
-                .route("/load", post(load_external_data_type::<P>))
-                .route("/archive", put(archive_data_type::<P>))
-                .route("/unarchive", put(unarchive_data_type::<P>)),
+                .route("/", post(create_data_type::<S>).put(update_data_type::<S>))
+                .route("/query", post(get_data_types_by_query::<S>))
+                .route("/load", post(load_external_data_type::<S>))
+                .route("/archive", put(archive_data_type::<S>))
+                .route("/unarchive", put(unarchive_data_type::<S>)),
         )
     }
 }
@@ -111,17 +113,18 @@ struct CreateDataTypeRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn create_data_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool, domain_validator))]
+async fn create_data_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
 ) -> Result<Json<ListOrValue<OntologyElementMetadata>>, StatusCode>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -209,17 +212,18 @@ struct LoadExternalDataTypeRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn load_external_data_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool, domain_validator))]
+async fn load_external_data_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -252,13 +256,17 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn get_data_types_by_query<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn get_data_types_by_query<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
-    pool.acquire()
+) -> Result<Json<Subgraph>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
+    store_pool
+        .acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
             StatusCode::INTERNAL_SERVER_ERROR
@@ -306,12 +314,15 @@ struct UpdateDataTypeRequest {
     ),
     request_body = UpdateDataTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn update_data_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn update_data_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<UpdateDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(UpdateDataTypeRequest {
         schema,
         mut type_to_update,
@@ -326,7 +337,7 @@ async fn update_data_type<P: StorePool + Send>(
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -371,15 +382,18 @@ struct ArchiveDataTypeRequest {
     ),
     request_body = ArchiveDataTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn archive_data_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn archive_data_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<ArchiveDataTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(ArchiveDataTypeRequest { type_to_archive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -427,15 +441,18 @@ struct UnarchiveDataTypeRequest {
     ),
     request_body = UnarchiveDataTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn unarchive_data_type<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn unarchive_data_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<UnarchiveDataTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(UnarchiveDataTypeRequest { type_to_unarchive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;

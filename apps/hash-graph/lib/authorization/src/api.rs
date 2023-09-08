@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use error_stack::Result;
 use futures::Stream;
 use graph_types::{account::AccountId, knowledge::entity::EntityId};
 
@@ -33,15 +34,15 @@ pub trait AuthorizationApi {
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.
-pub trait AuthorizationApiPool: Sync {
+pub trait AuthorizationApiPool {
     /// The error returned when acquiring an [`AuthorizationApi`].
     type Error;
 
     /// The [`AuthorizationApi`] returned when acquiring.
-    type Api<'pool>: AuthorizationApi + Send;
+    type Api<'pool>: AuthorizationApi + Send + Sync;
 
     /// Retrieves an [`AuthorizationApi`] from the pool.
-    async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error>;
+    fn acquire(&self) -> impl Future<Output = Result<Self::Api<'_>, Self::Error>> + Send;
 
     /// Retrieves an owned [`AuthorizationApi`] from the pool.
     ///

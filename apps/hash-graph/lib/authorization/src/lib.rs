@@ -6,6 +6,7 @@
     return_position_impl_trait_in_trait
 )]
 
+use error_stack::Result;
 use futures::Stream;
 use graph_types::{account::AccountId, knowledge::entity::EntityId};
 

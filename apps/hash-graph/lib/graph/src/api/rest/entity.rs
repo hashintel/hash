@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApi;
+use authorization::AuthorizationApiPool;
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
 use graph_types::{
@@ -68,14 +68,17 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    fn routes<S, A>() -> Router
+    where
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entities",
             Router::new()
-                .route("/", post(create_entity::<P>).put(update_entity::<P>))
-                .route("/query", post(get_entities_by_query::<P, A>)),
+                .route("/", post(create_entity::<S>).put(update_entity::<S>))
+                .route("/query", post(get_entities_by_query::<S, A>)),
         )
     }
 }
@@ -112,12 +115,15 @@ struct CreateEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn create_entity<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn create_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<CreateEntityRequest>,
-) -> Result<Json<EntityMetadata>, StatusCode> {
+) -> Result<Json<EntityMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(CreateEntityRequest {
         properties,
         entity_type_id,
@@ -126,7 +132,7 @@ async fn create_entity<P: StorePool + Send>(
         link_data,
     }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
@@ -166,38 +172,49 @@ async fn create_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool, authorization_api))]
-async fn get_entities_by_query<P: StorePool + Send, A: AuthorizationApi + Send + Sync>(
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn get_entities_by_query<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
-    authorization_api: Extension<Arc<A>>,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
-    pool.acquire()
+) -> Result<Json<Subgraph>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let store = store_pool
+        .acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
             StatusCode::INTERNAL_SERVER_ERROR
         })
-        .and_then(|store| async move {
-            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
-                tracing::error!(?error, "Could not deserialize query");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            query.filter.convert_parameters().map_err(|error| {
-                tracing::error!(?error, "Could not validate query");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            store.get_entity(
-                actor_id,
-                &query,
-                &**authorization_api
-            ).await.map_err(|report| {
-                tracing::error!(error=?report, ?query, "Could not read entities from the store");
-                report_to_status_code(&report)
-            })
+        .await?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .map_err(|error| {
+            tracing::error!(?error, "Could not acquire access to the authorization API");
+            StatusCode::INTERNAL_SERVER_ERROR
         })
+        .await?;
+
+    let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+        tracing::error!(?error, "Could not deserialize query");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    query.filter.convert_parameters().map_err(|error| {
+        tracing::error!(?error, "Could not validate query");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let subgraph = store
+        .get_entity(actor_id, &query, &authorization_api)
         .await
-        .map(|subgraph| Json(subgraph.into()))
+        .map_err(|report| {
+            tracing::error!(error=?report, ?query, "Could not read entities from the store");
+            report_to_status_code(&report)
+        })?;
+
+    Ok(Json(subgraph.into()))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -229,12 +246,15 @@ struct UpdateEntityRequest {
     ),
     request_body = UpdateEntityRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn update_entity<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(store_pool))]
+async fn update_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    pool: Extension<Arc<P>>,
+    store_pool: Extension<Arc<S>>,
     body: Json<UpdateEntityRequest>,
-) -> Result<Json<EntityMetadata>, StatusCode> {
+) -> Result<Json<EntityMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+{
     let Json(UpdateEntityRequest {
         properties,
         entity_id,
@@ -243,7 +263,7 @@ async fn update_entity<P: StorePool + Send>(
         archived,
     }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
