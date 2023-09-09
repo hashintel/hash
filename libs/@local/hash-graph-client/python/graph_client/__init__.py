@@ -1,5 +1,6 @@
 """Client for the HASH API."""
 from typing import Literal, TypeAlias, TypeVar
+from uuid import UUID
 
 import httpx
 from pydantic import BaseModel
@@ -51,6 +52,7 @@ async def _send_request(
     endpoint: URL,
     method: Literal["POST", "PUT"],
     body: BaseModel,
+    actor: UUID,
     response_t: type[T],
 ) -> T:
     """Send a request to the HASH API."""
@@ -59,6 +61,9 @@ async def _send_request(
             method,
             str(endpoint),
             json=body.model_dump(by_alias=True, mode="json"),
+            headers={
+                "X-Authenticated-User-Actor-Id": str(actor),
+            },
         )
 
     response.raise_for_status()
@@ -71,10 +76,12 @@ class GraphClient:
     """Low-level implementation of the client for the HASH API."""
 
     base: URL
+    actor: UUID
 
-    def __init__(self, base: URL) -> None:
+    def __init__(self, base: URL, actor: UUID) -> None:
         """Initialize the client with the base URL."""
         self.base = base
+        self.actor = actor
 
     async def query_entity_types(self, query: EntityTypeStructuralQuery) -> Subgraph:
         """Query the HASH API for entity types."""
