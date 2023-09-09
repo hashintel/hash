@@ -19,7 +19,7 @@
       "dependsOn": ["codegen:blocking", "codegen:filter"]
     },
     "build": {
-      "dependsOn": ["^build", "codegen"],
+      "dependsOn": ["^build", "codegen", "lint"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
       "outputs": ["dist/**"]
     },
