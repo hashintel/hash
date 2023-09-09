@@ -6,11 +6,9 @@
       "persistent": true
     },
     "poetry:install": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "poetry:install-production": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "build:docker": {
