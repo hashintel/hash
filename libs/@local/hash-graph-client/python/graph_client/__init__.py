@@ -98,7 +98,10 @@ class GraphClient:
         return _assert_not_none(actor)
 
     async def query_entity_types(
-        self, query: EntityTypeStructuralQuery, *, actor: UUID | None = None
+        self,
+        query: EntityTypeStructuralQuery,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query the HASH API for entity types."""
         endpoint = self.base / "entity-types" / "query"
@@ -231,7 +234,10 @@ class GraphClient:
         )
 
     async def query_data_types(
-        self, query: DataTypeStructuralQuery, *, actor: UUID | None = None
+        self,
+        query: DataTypeStructuralQuery,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query the HASH API for data types."""
         endpoint = self.base / "data-types" / "query"
@@ -296,7 +302,10 @@ class GraphClient:
         )
 
     async def query_entities(
-        self, query: EntityStructuralQuery, *, actor: UUID | None = None
+        self,
+        query: EntityStructuralQuery,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query the HASH API for entities."""
         endpoint = self.base / "entities" / "query"
@@ -310,7 +319,10 @@ class GraphClient:
         )
 
     async def create_entity(
-        self, request: CreateEntityRequest, *, actor: UUID | None = None
+        self,
+        request: CreateEntityRequest,
+        *,
+        actor: UUID | None = None,
     ) -> EntityMetadata:
         """Create an entity."""
         endpoint = self.base / "entities"
@@ -324,7 +336,10 @@ class GraphClient:
         )
 
     async def update_entity(
-        self, request: UpdateEntityRequest, *, actor: UUID | None = None
+        self,
+        request: UpdateEntityRequest,
+        *,
+        actor: UUID | None = None,
     ) -> EntityMetadata:
         """Update an entity."""
         endpoint = self.base / "entities"

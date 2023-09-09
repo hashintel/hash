@@ -91,7 +91,10 @@ class HASHClient:
         return await self.inner.query_data_types(request, actor=actor)
 
     async def load_external_data_type(
-        self, url: URL, *, actor: UUID | None = None,
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external data type."""
         request = LoadExternalDataTypeRequest(
@@ -146,7 +149,10 @@ class HASHClient:
         return await self.inner.query_property_types(request, actor=actor)
 
     async def load_external_property_type(
-        self, url: URL, *, actor: UUID | None = None,
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external property type."""
         request = LoadExternalPropertyTypeRequest(
@@ -185,7 +191,11 @@ class HASHClient:
         return await self.inner.update_property_type(request, actor=actor)
 
     async def query_entity_types(
-        self, query: BaseFilter, options: Options, *, actor: UUID | None = None,
+        self,
+        query: BaseFilter,
+        options: Options,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query entity types."""
         request = EntityTypeStructuralQuery(
@@ -197,7 +207,10 @@ class HASHClient:
         return await self.inner.query_entity_types(request, actor=actor)
 
     async def load_external_entity_type(
-        self, url: URL, *, actor: UUID | None = None,
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external entity type."""
         request = LoadExternalEntityTypeRequest(
@@ -236,7 +249,11 @@ class HASHClient:
         return await self.inner.update_entity_type(request, actor=actor)
 
     async def query_entities(
-        self, query: BaseFilter, options: Options, *, actor: UUID | None = None,
+        self,
+        query: BaseFilter,
+        options: Options,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query entities."""
         request = EntityStructuralQuery(
