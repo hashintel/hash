@@ -6,7 +6,7 @@
       "outputs": ["./graph_client/models.py"]
     },
     "build": {
-      "dependsOn": ["^build", "codegen", "lint"],
+      "dependsOn": ["^build", "codegen", "lint:mypy"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
       "outputs": ["dist/**"]
     },
