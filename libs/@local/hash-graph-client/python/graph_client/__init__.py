@@ -72,18 +72,34 @@ async def _send_request(
     return response_t.model_validate(json, strict=False)
 
 
+def _assert_not_none(value: T | None) -> T:
+    """Assert that the value is not None."""
+    if value is None:
+        msg = "value cannot be None"
+        raise ValueError(msg)
+
+    return value
+
+
 class GraphClient:
     """Low-level implementation of the client for the HASH API."""
 
     base: URL
-    actor: UUID
+    actor: UUID | None
 
-    def __init__(self, base: URL, actor: UUID) -> None:
+    def __init__(self, base: URL, *, actor: UUID | None = None) -> None:
         """Initialize the client with the base URL."""
         self.base = base
         self.actor = actor
 
-    async def query_entity_types(self, query: EntityTypeStructuralQuery) -> Subgraph:
+    def _actor(self, override: UUID | None = None) -> UUID:
+        """Get the actor for the client."""
+        actor = override or self.actor
+        return _assert_not_none(actor)
+
+    async def query_entity_types(
+        self, query: EntityTypeStructuralQuery, *, actor: UUID | None = None
+    ) -> Subgraph:
         """Query the HASH API for entity types."""
         endpoint = self.base / "entity-types" / "query"
 
@@ -91,13 +107,15 @@ class GraphClient:
             endpoint,
             "POST",
             query,
-            self.actor,
+            self._actor(actor),
             Subgraph,
         )
 
     async def load_external_entity_type(
         self,
         request: LoadExternalEntityTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external entity type."""
         endpoint = self.base / "entity-types" / "load"
@@ -106,13 +124,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
     async def create_entity_types(
         self,
         request: CreateEntityTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create an entity type."""
         endpoint = self.base / "entity-types"
@@ -121,13 +141,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             MaybeListOfOntologyElementMetadata,
         )
 
     async def update_entity_type(
         self,
         request: UpdateEntityTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update an entity type."""
         endpoint = self.base / "entity-types"
@@ -136,13 +158,15 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
     async def query_property_types(
         self,
         query: PropertyTypeStructuralQuery,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query the HASH API for property types."""
         endpoint = self.base / "property-types" / "query"
@@ -151,13 +175,15 @@ class GraphClient:
             endpoint,
             "POST",
             query,
-            self.actor,
+            self._actor(actor),
             Subgraph,
         )
 
     async def load_external_property_type(
         self,
         request: LoadExternalPropertyTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external property type."""
         endpoint = self.base / "property-types" / "load"
@@ -166,13 +192,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
     async def create_property_types(
         self,
         request: CreatePropertyTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create a property type."""
         endpoint = self.base / "property-types"
@@ -181,13 +209,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             MaybeListOfOntologyElementMetadata,
         )
 
     async def update_property_type(
         self,
         request: UpdatePropertyTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update a property type."""
         endpoint = self.base / "property-types"
@@ -196,11 +226,13 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
-    async def query_data_types(self, query: DataTypeStructuralQuery) -> Subgraph:
+    async def query_data_types(
+        self, query: DataTypeStructuralQuery, *, actor: UUID | None = None
+    ) -> Subgraph:
         """Query the HASH API for data types."""
         endpoint = self.base / "data-types" / "query"
 
@@ -208,13 +240,15 @@ class GraphClient:
             endpoint,
             "POST",
             query,
-            self.actor,
+            self._actor(actor),
             Subgraph,
         )
 
     async def load_external_data_type(
         self,
         request: LoadExternalDataTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Load an external data type."""
         endpoint = self.base / "data-types" / "load"
@@ -223,13 +257,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
     async def create_data_types(
         self,
         request: CreateDataTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create a data type."""
         endpoint = self.base / "data-types"
@@ -238,13 +274,15 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             MaybeListOfOntologyElementMetadata,
         )
 
     async def update_data_type(
         self,
         request: UpdateDataTypeRequest,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update a data type."""
         endpoint = self.base / "data-types"
@@ -253,11 +291,13 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
-            self.actor,
+            self._actor(actor),
             OntologyElementMetadata,
         )
 
-    async def query_entities(self, query: EntityStructuralQuery) -> Subgraph:
+    async def query_entities(
+        self, query: EntityStructuralQuery, *, actor: UUID | None = None
+    ) -> Subgraph:
         """Query the HASH API for entities."""
         endpoint = self.base / "entities" / "query"
 
@@ -265,11 +305,13 @@ class GraphClient:
             endpoint,
             "POST",
             query,
-            self.actor,
+            self._actor(actor),
             Subgraph,
         )
 
-    async def create_entity(self, request: CreateEntityRequest) -> EntityMetadata:
+    async def create_entity(
+        self, request: CreateEntityRequest, *, actor: UUID | None = None
+    ) -> EntityMetadata:
         """Create an entity."""
         endpoint = self.base / "entities"
 
@@ -277,11 +319,13 @@ class GraphClient:
             endpoint,
             "POST",
             request,
-            self.actor,
+            self._actor(actor),
             EntityMetadata,
         )
 
-    async def update_entity(self, request: UpdateEntityRequest) -> EntityMetadata:
+    async def update_entity(
+        self, request: UpdateEntityRequest, *, actor: UUID | None = None
+    ) -> EntityMetadata:
         """Update an entity."""
         endpoint = self.base / "entities"
 
@@ -289,6 +333,6 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
-            self.actor,
+            self._actor(actor),
             EntityMetadata,
         )
