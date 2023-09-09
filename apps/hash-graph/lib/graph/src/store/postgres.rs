@@ -15,7 +15,7 @@ use graph_types::knowledge::{
     link::LinkOrder,
 };
 use graph_types::{
-    account::AccountId,
+    account::{AccountGroupId, AccountId},
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
@@ -1196,7 +1196,24 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _authorization_api: &mut A,
         account_id: AccountId,
     ) -> Result<(), InsertionError> {
-        self.as_client()
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        transaction
+            .as_client()
+            .query_one(
+                r#"
+                INSERT INTO owners (owner_id)
+                VALUES ($1)
+                RETURNING owner_id;
+                "#,
+                &[&account_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_id)?;
+
+        transaction
+            .as_client()
             .query_one(
                 r#"
                 INSERT INTO accounts (account_id)
@@ -1209,7 +1226,47 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(account_id)?;
 
-        Ok(())
+        transaction.commit().await.change_context(InsertionError)
+    }
+
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn insert_account_group_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        _actor_id: AccountId,
+        _authorization_api: &mut A,
+        account_group_id: AccountGroupId,
+    ) -> Result<(), InsertionError> {
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        transaction
+            .as_client()
+            .query_one(
+                r#"
+                INSERT INTO owners (owner_id)
+                VALUES ($1)
+                RETURNING owner_id;
+                "#,
+                &[&account_group_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_group_id)?;
+
+        transaction
+            .as_client()
+            .query_one(
+                r#"
+                INSERT INTO account_groups (accoun_group_id)
+                VALUES ($1)
+                RETURNING accoun_group_id;
+                "#,
+                &[&account_group_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_group_id)?;
+
+        transaction.commit().await.change_context(InsertionError)
     }
 }
 
@@ -1224,6 +1281,16 @@ impl<C: AsClient> PostgresStore<C> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM accounts;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM account_groups;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM owners;")
             .await
             .change_context(DeletionError)?;
 
