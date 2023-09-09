@@ -91,6 +91,7 @@ class GraphClient:
             endpoint,
             "POST",
             query,
+            self.actor,
             Subgraph,
         )
 
@@ -105,6 +106,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -119,6 +121,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             MaybeListOfOntologyElementMetadata,
         )
 
@@ -133,6 +136,7 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -147,6 +151,7 @@ class GraphClient:
             endpoint,
             "POST",
             query,
+            self.actor,
             Subgraph,
         )
 
@@ -161,6 +166,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -175,6 +181,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             MaybeListOfOntologyElementMetadata,
         )
 
@@ -189,6 +196,7 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -200,6 +208,7 @@ class GraphClient:
             endpoint,
             "POST",
             query,
+            self.actor,
             Subgraph,
         )
 
@@ -214,6 +223,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -228,6 +238,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             MaybeListOfOntologyElementMetadata,
         )
 
@@ -242,6 +253,7 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
+            self.actor,
             OntologyElementMetadata,
         )
 
@@ -253,6 +265,7 @@ class GraphClient:
             endpoint,
             "POST",
             query,
+            self.actor,
             Subgraph,
         )
 
@@ -264,6 +277,7 @@ class GraphClient:
             endpoint,
             "POST",
             request,
+            self.actor,
             EntityMetadata,
         )
 
@@ -275,5 +289,6 @@ class GraphClient:
             endpoint,
             "PUT",
             request,
+            self.actor,
             EntityMetadata,
         )
