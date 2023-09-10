@@ -72,7 +72,10 @@ async def _send_request(
     return response_t.model_validate(json, strict=False)
 
 
-def _assert_not_none(value: T | None) -> T:
+U = TypeVar("U")
+
+
+def _assert_not_none(value: U | None) -> U:
     """Assert that the value is not None."""
     if value is None:
         msg = "value cannot be None"
