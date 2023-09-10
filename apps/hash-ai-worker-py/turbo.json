@@ -34,6 +34,7 @@
       "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:mypy": {
+      "dependsOn": ["build"],
       "inputs": ["./**/*.py", "pyproject.toml"]
     }
   }
