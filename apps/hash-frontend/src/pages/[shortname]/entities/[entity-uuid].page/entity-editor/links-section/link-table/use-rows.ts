@@ -63,8 +63,9 @@ export const useRows = () => {
       );
 
       const isLoading =
-        relevantUpload?.status !== "complete" &&
-        relevantUpload?.status !== "error";
+        !!relevantUpload &&
+        relevantUpload.status !== "complete" &&
+        relevantUpload.status !== "error";
 
       let expectedEntityTypes: EntityTypeWithMetadata[] = [];
 
