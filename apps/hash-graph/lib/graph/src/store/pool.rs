@@ -5,7 +5,7 @@ use crate::store::Store;
 
 /// Managed pool to keep track about [`Store`]s.
 #[async_trait]
-pub trait StorePool: Sync {
+pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
     type Error;
 

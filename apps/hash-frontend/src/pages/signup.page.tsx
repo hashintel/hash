@@ -32,7 +32,10 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
 
   useEffect(() => {
     // If user registration is disabled, redirect the user to the login page
-    if (hashInstance && !hashInstance.userSelfRegistrationIsEnabled) {
+    if (
+      hashInstance &&
+      !hashInstance.properties.userSelfRegistrationIsEnabled
+    ) {
       void router.push("/login");
     }
   }, [hashInstance, router]);

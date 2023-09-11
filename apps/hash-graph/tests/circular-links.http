@@ -2,6 +2,7 @@
 
 ### Create account
 POST http://127.0.0.1:4000/accounts
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 
 > {%
   client.test("status", function() {
@@ -14,10 +15,10 @@ POST http://127.0.0.1:4000/accounts
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "schema": {
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -52,10 +53,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000A-0001-0000-0000-000000000000"
@@ -72,10 +73,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000B-0001-0000-0000-000000000000"
@@ -92,10 +93,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000C-0001-0000-0000-000000000000"
@@ -112,10 +113,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "http://localhost:3000/@snapshot/types/entity-type/object/v/1",
   "entityUuid": "0000000D-0001-0000-0000-000000000000"
@@ -132,10 +133,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000AB-0001-0000-0000-000000000000",
@@ -155,10 +156,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000BC-0001-0000-0000-000000000000",
@@ -178,10 +179,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000CD-0001-0000-0000-000000000000",
@@ -201,10 +202,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000DA-0001-0000-0000-000000000000",
@@ -225,10 +226,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000BA-0001-0000-0000-000000000000",
@@ -250,10 +251,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000CB-0001-0000-0000-000000000000",
@@ -275,10 +276,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000DC-0001-0000-0000-000000000000",
@@ -300,10 +301,10 @@ Accept: application/json
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
   "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
   "entityUuid": "000000AD-0001-0000-0000-000000000000",

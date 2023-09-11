@@ -45,21 +45,20 @@ describe("Comment", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "commentTest", logger);
+    const authentication = { actorId: testUser.accountId };
 
-    const textEntity = await createEntity(graphContext, {
+    const textEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
       },
       entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
-      actorId: testUser.accountId,
     });
 
-    testBlock = await createBlock(graphContext, {
+    testBlock = await createBlock(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       componentId: testBlockComponentId,
       blockData: textEntity,
-      actorId: testUser.accountId,
     });
   });
 
@@ -75,29 +74,32 @@ describe("Comment", () => {
   });
 
   it("createComment method can create a comment", async () => {
-    const comment = await createComment(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const comment = await createComment(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       parentEntityId: testBlock.entity.metadata.recordId.entityId,
       tokens: [],
       author: testUser,
-      actorId: testUser.accountId,
     });
 
     const commentEntityId = comment.entity.metadata.recordId.entityId;
 
-    const hasText = await getCommentText(graphContext, { commentEntityId });
+    const hasText = await getCommentText(graphContext, authentication, {
+      commentEntityId,
+    });
     expect(
       hasText.properties[
         SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
       ],
     ).toEqual([]);
 
-    const commentAuthor = await getCommentAuthor(graphContext, {
+    const commentAuthor = await getCommentAuthor(graphContext, authentication, {
       commentEntityId,
     });
     expect(commentAuthor.entity).toEqual(testUser.entity);
 
-    const parentBlock = await getCommentParent(graphContext, {
+    const parentBlock = await getCommentParent(graphContext, authentication, {
       commentEntityId,
     });
     expect(parentBlock).toEqual(testBlock.entity);

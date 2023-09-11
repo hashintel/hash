@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::Result;
 use graph_types::account::AccountId;
 
@@ -12,5 +13,10 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`AccountId`] already exists.
-    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError>;
+    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        account_id: AccountId,
+    ) -> Result<(), InsertionError>;
 }

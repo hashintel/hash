@@ -12,6 +12,7 @@ import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
+import { AuthenticationContext } from "../graphql/context";
 import { UploadableStorageProvider } from "../storage";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
@@ -28,6 +29,7 @@ export type ImpureGraphContext = {
 
 export type ImpureGraphFunction<Parameters, ReturnType> = (
   context: ImpureGraphContext,
+  authentication: AuthenticationContext,
   params: Parameters,
 ) => ReturnType;
 

@@ -30,6 +30,7 @@ import {
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
@@ -211,6 +212,8 @@ export const CommandBar: FunctionComponent = () => {
   const router = useRouter();
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
+  const { hashInstance } = useHashInstance();
 
   const [createUntitledPage] = useCreatePage(
     activeWorkspaceAccountId as OwnedById,
@@ -453,12 +456,19 @@ export const CommandBar: FunctionComponent = () => {
   }, [router]);
 
   useEffect(() => {
+    if (!hashInstance?.properties.pagesAreEnabled) {
+      return;
+    }
     createPageOption.activate({
       command: async () => {
         await createUntitledPage(lastRootPageIndex);
       },
     });
-  }, [createUntitledPage, lastRootPageIndex]);
+  }, [
+    createUntitledPage,
+    hashInstance?.properties.pagesAreEnabled,
+    lastRootPageIndex,
+  ]);
 
   return (
     <>

@@ -132,6 +132,14 @@ const systemEntityTypes = {
     title: "Text",
     description: undefined,
   },
+  file: {
+    title: "File",
+    description: "A file hosted at a URL",
+  },
+  imageFile: {
+    title: "Image",
+    description: "An image file hosted at a URL",
+  },
   user: {
     title: "User",
     description: undefined,
@@ -189,6 +197,11 @@ const systemPropertyTypes = {
   email: {
     title: "Email",
     description: undefined,
+  },
+  pagesAreEnabled: {
+    title: "Pages Are Enabled",
+    description:
+      "Whether or not user functionality related to pages is enabled.",
   },
   userSelfRegistrationIsEnabled: {
     title: "User Self Registration Is Enabled",
@@ -915,15 +928,16 @@ export const linearTypes: LinearTypeDefinitions = {
   ),
 };
 
-export const blockProtocolTypes = {
-  "remote-file": {
-    title: "Remote File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
-  },
-  "remote-image-file": {
-    title: "Remote Image File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-image-file/v/1",
-  },
-} as const;
+/**
+ * Add any Block Protocol entity types that we want to generate here.
+ *
+ * e.g.
+ * export const blockProtocolTypes = {
+ *   "remote-file": {
+ *     title: "Remote File",
+ *     entityTypeId:
+ *       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *   }
+ * }
+ */
+export const blockProtocolTypes = {} as const;

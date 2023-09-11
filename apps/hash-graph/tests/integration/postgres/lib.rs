@@ -50,7 +50,7 @@ use graph_types::{
         OntologyTypeVersion, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
         PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::OwnedById,
 };
 use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
@@ -125,7 +125,7 @@ impl DatabaseTestWrapper {
 
         let account_id = AccountId::new(Uuid::new_v4());
         store
-            .insert_account_id(account_id)
+            .insert_account_id(account_id, &mut NoAuthorization, account_id)
             .await
             .expect("could not insert account id");
 
@@ -137,10 +137,6 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id: RecordCreatedById::new(account_id),
-                        record_archived_by_id: None,
-                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             };
@@ -148,7 +144,12 @@ impl DatabaseTestWrapper {
             (data_type, metadata)
         });
         store
-            .create_data_types(data_types_iter, ConflictBehavior::Skip)
+            .create_data_types(
+                account_id,
+                &mut NoAuthorization,
+                data_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
@@ -160,10 +161,6 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id: RecordCreatedById::new(account_id),
-                        record_archived_by_id: None,
-                    },
                     owned_by_id: OwnedById::new(account_id),
                 },
             };
@@ -171,7 +168,12 @@ impl DatabaseTestWrapper {
             (property_type, metadata)
         });
         store
-            .create_property_types(property_types_iter, ConflictBehavior::Skip)
+            .create_property_types(
+                account_id,
+                &mut NoAuthorization,
+                property_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
@@ -184,10 +186,6 @@ impl DatabaseTestWrapper {
                 record_id: entity_type.id().clone().into(),
                 custom: PartialCustomEntityTypeMetadata {
                     common: PartialCustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata {
-                            record_created_by_id: RecordCreatedById::new(account_id),
-                            record_archived_by_id: None,
-                        },
                         owned_by_id: OwnedById::new(account_id),
                     },
                     label_property: None,
@@ -197,7 +195,12 @@ impl DatabaseTestWrapper {
             (entity_type, metadata)
         });
         store
-            .create_entity_types(entity_types_iter, ConflictBehavior::Skip)
+            .create_entity_types(
+                account_id,
+                &mut NoAuthorization,
+                entity_types_iter,
+                ConflictBehavior::Skip,
+            )
             .await?;
 
         Ok(DatabaseApi { store, account_id })
@@ -226,15 +229,13 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(self.account_id),
-                    record_archived_by_id: None,
-                },
                 owned_by_id: OwnedById::new(self.account_id),
             },
         };
 
-        self.store.create_data_type(data_type, metadata).await
+        self.store
+            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .await
     }
 
     pub async fn create_external_data_type(
@@ -244,15 +245,13 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(self.account_id),
-                    record_archived_by_id: None,
-                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
 
-        self.store.create_data_type(data_type, metadata).await
+        self.store
+            .create_data_type(self.account_id, &mut NoAuthorization, data_type, metadata)
+            .await
     }
 
     pub async fn get_data_type(
@@ -261,17 +260,21 @@ impl DatabaseApi<'_> {
     ) -> Result<DataTypeWithMetadata, QueryError> {
         Ok(self
             .store
-            .get_data_type(&StructuralQuery {
-                filter: Filter::for_versioned_url(url),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_data_type(
+                self.account_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter: Filter::for_versioned_url(url),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+            )
             .await?
             .vertices
             .data_types
@@ -284,7 +287,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_data_type(data_type, RecordCreatedById::new(self.account_id))
+            .update_data_type(self.account_id, &mut NoAuthorization, data_type)
             .await
     }
 
@@ -295,16 +298,17 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(self.account_id),
-                    record_archived_by_id: None,
-                },
                 owned_by_id: OwnedById::new(self.account_id),
             },
         };
 
         self.store
-            .create_property_type(property_type, metadata)
+            .create_property_type(
+                self.account_id,
+                &mut NoAuthorization,
+                property_type,
+                metadata,
+            )
             .await
     }
 
@@ -314,17 +318,21 @@ impl DatabaseApi<'_> {
     ) -> Result<PropertyTypeWithMetadata, QueryError> {
         Ok(self
             .store
-            .get_property_type(&StructuralQuery {
-                filter: Filter::for_versioned_url(url),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_property_type(
+                self.account_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter: Filter::for_versioned_url(url),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+            )
             .await?
             .vertices
             .property_types
@@ -337,7 +345,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
-            .update_property_type(property_type, RecordCreatedById::new(self.account_id))
+            .update_property_type(self.account_id, &mut NoAuthorization, property_type)
             .await
     }
 
@@ -349,17 +357,15 @@ impl DatabaseApi<'_> {
             record_id: entity_type.id().clone().into(),
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id: RecordCreatedById::new(self.account_id),
-                        record_archived_by_id: None,
-                    },
                     owned_by_id: OwnedById::new(self.account_id),
                 },
                 label_property: None,
             },
         };
 
-        self.store.create_entity_type(entity_type, metadata).await
+        self.store
+            .create_entity_type(self.account_id, &mut NoAuthorization, entity_type, metadata)
+            .await
     }
 
     pub async fn get_entity_type(
@@ -368,17 +374,21 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityTypeWithMetadata, QueryError> {
         Ok(self
             .store
-            .get_entity_type(&StructuralQuery {
-                filter: Filter::for_versioned_url(url),
-                graph_resolve_depths: GraphResolveDepths::default(),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity_type(
+                self.account_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter: Filter::for_versioned_url(url),
+                    graph_resolve_depths: GraphResolveDepths::default(),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+            )
             .await?
             .vertices
             .entity_types
@@ -391,7 +401,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.store
-            .update_entity_type(entity_type, RecordCreatedById::new(self.account_id), None)
+            .update_entity_type(self.account_id, &mut NoAuthorization, entity_type, None)
             .await
     }
 
@@ -403,10 +413,11 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
+                self.account_id,
+                &mut NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 Some(generate_decision_time()),
-                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -419,6 +430,8 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_entity(
+                self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -430,7 +443,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -447,6 +459,8 @@ impl DatabaseApi<'_> {
         let entities = self
             .store
             .get_entity(
+                self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -458,7 +472,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -473,6 +486,8 @@ impl DatabaseApi<'_> {
         let entities = self
             .store
             .get_entity(
+                self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter: Filter::for_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -481,7 +496,6 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
-                &NoAuthorization,
             )
             .await?
             .vertices
@@ -501,9 +515,10 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
+                self.account_id,
+                &mut NoAuthorization,
                 entity_id,
                 Some(generate_decision_time()),
-                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -522,10 +537,11 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
+                self.account_id,
+                &mut NoAuthorization,
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 None,
-                RecordCreatedById::new(self.account_id),
                 false,
                 entity_type_id,
                 properties,
@@ -592,6 +608,8 @@ impl DatabaseApi<'_> {
         let mut subgraph = self
             .store
             .get_entity(
+                self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -603,7 +621,6 @@ impl DatabaseApi<'_> {
                         ),
                     },
                 },
-                &NoAuthorization,
             )
             .await?;
 
@@ -658,6 +675,8 @@ impl DatabaseApi<'_> {
         let mut subgraph = self
             .store
             .get_entity(
+                self.account_id,
+                &NoAuthorization,
                 &StructuralQuery {
                     filter,
                     graph_resolve_depths: GraphResolveDepths::default(),
@@ -666,7 +685,6 @@ impl DatabaseApi<'_> {
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
                 },
-                &NoAuthorization,
             )
             .await?;
 
@@ -691,9 +709,10 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
+                self.account_id,
+                &mut NoAuthorization,
                 entity_id,
                 None,
-                RecordCreatedById::new(self.account_id),
                 true,
                 entity_type_id,
                 properties,

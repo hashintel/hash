@@ -1,5 +1,4 @@
 import {
-  AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -61,8 +60,8 @@ export const getBlockFromEntity: PureGraphFunction<
 export const getBlockById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<Block>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getBlockFromEntity({ entity });
 };
@@ -81,27 +80,25 @@ export const createBlock: ImpureGraphFunction<
     blockData: Entity;
   },
   Promise<Block>
-> = async (ctx, params) => {
-  const { componentId, blockData, ownedById, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { componentId, blockData, ownedById } = params;
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.componentId.metadata.recordId.baseUrl]:
       componentId,
   };
 
-  const entity = await createEntity(ctx, {
+  const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.block.schema.$id,
-    actorId,
   });
 
-  await createLinkEntity(ctx, {
+  await createLinkEntity(ctx, authentication, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
-    actorId,
   });
 
   return getBlockFromEntity({ entity });
@@ -115,12 +112,16 @@ export const createBlock: ImpureGraphFunction<
 export const getBlockData: ImpureGraphFunction<
   { block: Block },
   Promise<Entity>
-> = async (ctx, { block }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
-  });
+> = async (ctx, authentication, { block }) => {
+  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: block.entity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl:
+        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+    },
+  );
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
@@ -130,7 +131,9 @@ export const getBlockData: ImpureGraphFunction<
     );
   }
 
-  return getLinkEntityRightEntity(ctx, { linkEntity: outgoingBlockDataLink });
+  return getLinkEntityRightEntity(ctx, authentication, {
+    linkEntity: outgoingBlockDataLink,
+  });
 };
 
 /**
@@ -144,16 +147,19 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   {
     block: Block;
     newBlockDataEntity: Entity;
-    actorId: AccountId;
   },
   Promise<void>
-> = async (ctx, params) => {
-  const { block, newBlockDataEntity, actorId } = params;
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, {
-    entityId: block.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
-  });
+> = async (ctx, authentication, params) => {
+  const { block, newBlockDataEntity } = params;
+  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: block.entity.metadata.recordId.entityId,
+      linkEntityTypeVersionedUrl:
+        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+    },
+  );
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
@@ -163,9 +169,13 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  const existingBlockDataEntity = await getLinkEntityRightEntity(ctx, {
-    linkEntity: outgoingBlockDataLink,
-  });
+  const existingBlockDataEntity = await getLinkEntityRightEntity(
+    ctx,
+    authentication,
+    {
+      linkEntity: outgoingBlockDataLink,
+    },
+  );
 
   if (
     existingBlockDataEntity.metadata.recordId.entityId ===
@@ -176,16 +186,17 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  await archiveEntity(ctx, { entity: outgoingBlockDataLink, actorId });
+  await archiveEntity(ctx, authentication, {
+    entity: outgoingBlockDataLink,
+  });
 
-  await createLinkEntity(ctx, {
+  await createLinkEntity(ctx, authentication, {
     linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
     leftEntityId: block.entity.metadata.recordId.entityId,
     rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
       block.entity.metadata.recordId.entityId,
     ),
-    actorId,
   });
 };
 
@@ -197,15 +208,15 @@ export const updateBlockDataEntity: ImpureGraphFunction<
 export const getBlockComments: ImpureGraphFunction<
   { block: Block },
   Promise<Comment[]>
-> = async (ctx, { block }) => {
-  const blockCommentLinks = await getEntityIncomingLinks(ctx, {
+> = async (ctx, authentication, { block }) => {
+  const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
   });
 
   const commentEntities = await Promise.all(
     blockCommentLinks.map((linkEntity) =>
-      getLinkEntityLeftEntity(ctx, { linkEntity }),
+      getLinkEntityLeftEntity(ctx, authentication, { linkEntity }),
     ),
   );
 

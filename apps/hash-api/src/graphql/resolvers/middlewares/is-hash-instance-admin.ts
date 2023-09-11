@@ -12,7 +12,11 @@ export const isHashInstanceAdminMiddleware: ResolverMiddleware<
 > = (next) => async (obj, args, ctx, info) => {
   const context = dataSourcesToImpureGraphContext(ctx.dataSources);
 
-  if (!(await isUserHashInstanceAdmin(context, { user: ctx.user }))) {
+  if (
+    !(await isUserHashInstanceAdmin(context, ctx.authentication, {
+      user: ctx.user,
+    }))
+  ) {
     throw new ForbiddenError(
       "You must be a HASH instance admin to perform this action.",
     );

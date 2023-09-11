@@ -7,6 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -706,25 +707,20 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
+        record_created_by_id: RecordCreatedById,
         record_id: &OntologyTypeRecordId,
         custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
     ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
     {
         match custom_metadata {
-            PartialCustomOntologyMetadata::Owned {
-                provenance,
-                owned_by_id,
-            } => {
+            PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
@@ -733,10 +729,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     Ok(None)
                 }
             }
-            PartialCustomOntologyMetadata::External {
-                provenance,
-                fetched_at,
-            } => {
+            PartialCustomOntologyMetadata::External { fetched_at } => {
                 self.create_base_url(
                     &record_id.base_url,
                     ConflictBehavior::Skip,
@@ -746,10 +739,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
@@ -1199,8 +1189,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn insert_account_id<A: AuthorizationApi + Sync>(
+        &mut self,
+        _actor_id: AccountId,
+        _authorization_api: &mut A,
+        account_id: AccountId,
+    ) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
                 r#"
@@ -1219,9 +1214,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
     #[cfg(hash_graph_test_environment)]
-    pub async fn delete_accounts(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_accounts<A: AuthorizationApi + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        _authorization_api: &A,
+    ) -> Result<(), DeletionError> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM accounts;")

@@ -37,21 +37,19 @@ export const createEntityWithPlaceholdersFn =
         ) as EntityId;
       }
     });
-
+    const authentication = { actorId: entityActorId };
     if (entityDefinition.existingEntityId) {
-      return await getOrCreateEntity(context, {
+      return await getOrCreateEntity(context, authentication, {
         ownedById: entityActorId as OwnedById,
         // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
-        actorId: entityActorId,
       });
     } else {
-      return await createEntityWithLinks(context, {
+      return await createEntityWithLinks(context, authentication, {
         ownedById: entityActorId as OwnedById,
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
-        actorId: entityActorId,
       });
     }
   };
@@ -190,6 +188,7 @@ export const handleInsertNewBlock = async (
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
+    const authentication = { actorId: user.accountId };
 
     const blockData = await createEntityWithPlaceholders(
       entity,
@@ -209,7 +208,7 @@ export const handleInsertNewBlock = async (
           "InsertNewBlock: cannot set component id when using existing block entity",
         );
       }
-      const existingBlock = await getBlockById(context, {
+      const existingBlock = await getBlockById(context, authentication, {
         entityId: existingBlockEntityId,
       });
 
@@ -220,11 +219,10 @@ export const handleInsertNewBlock = async (
 
       block = existingBlock;
     } else if (blockComponentId) {
-      block = await createBlock(context, {
+      block = await createBlock(context, authentication, {
         blockData,
         ownedById: user.accountId as OwnedById,
         componentId: blockComponentId,
-        actorId: user.accountId,
       });
     } else {
       throw new Error(
@@ -264,8 +262,9 @@ export const handleSwapBlockData = async (
     swapBlockDataAction: { entityId },
     user,
   } = params;
+  const authentication = { actorId: user.accountId };
 
-  const block = await getBlockById(context, {
+  const block = await getBlockById(context, authentication, {
     entityId,
   });
 
@@ -276,14 +275,17 @@ export const handleSwapBlockData = async (
 
   const { newEntityEntityId } = params.swapBlockDataAction;
 
-  const newBlockDataEntity = await getLatestEntityById(context, {
-    entityId: newEntityEntityId,
-  });
+  const newBlockDataEntity = await getLatestEntityById(
+    context,
+    authentication,
+    {
+      entityId: newEntityEntityId,
+    },
+  );
 
-  await updateBlockDataEntity(context, {
+  await updateBlockDataEntity(context, authentication, {
     block,
     newBlockDataEntity,
-    actorId: user.accountId,
   });
 };
 
@@ -300,6 +302,7 @@ export const handleUpdateEntity = async (
   },
 ): Promise<void> => {
   const { action, placeholderResults, user } = params;
+  const authentication = { actorId: user.accountId };
 
   // If this entity ID is a placeholder, use that instead.
   let entityId = action.entityId;
@@ -307,16 +310,15 @@ export const handleUpdateEntity = async (
     entityId = placeholderResults.get(entityId) as EntityId;
   }
 
-  const entity = await getLatestEntityById(context, {
+  const entity = await getLatestEntityById(context, authentication, {
     entityId,
   });
 
-  await updateEntityProperties(context, {
+  await updateEntityProperties(context, authentication, {
     entity,
     updatedProperties: typedEntries(action.properties).map(([key, value]) => ({
       propertyTypeBaseUrl: key,
       value: (value ?? undefined) as PropertyValue,
     })),
-    actorId: user.accountId,
   });
 };

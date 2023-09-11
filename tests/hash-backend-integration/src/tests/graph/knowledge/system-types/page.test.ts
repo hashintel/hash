@@ -61,31 +61,33 @@ describe("Page", () => {
     await resetGraph();
   });
 
-  const createTestBlock = async () =>
-    await createBlock(graphContext, {
+  const createTestBlock = async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    return createBlock(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       componentId: "text",
-      blockData: await createEntity(graphContext, {
+      blockData: await createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
         properties: {
           [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
         },
-        actorId: testUser.accountId,
       }),
-      actorId: testUser.accountId,
     });
+  };
 
   let testPage: Page;
 
   it("can create a page", async () => {
-    testPage = await createPage(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    testPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page",
-      actorId: testUser.accountId,
     });
 
-    const initialBlocks = await getPageBlocks(graphContext, {
+    const initialBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
     });
 
@@ -95,21 +97,22 @@ describe("Page", () => {
   let testPage2: Page;
 
   it("can create a page with initial blocks", async () => {
+    const authentication = { actorId: testUser.accountId };
+
     const [initialBlock1, initialBlock2] = await Promise.all([
       createTestBlock(),
       createTestBlock(),
     ]);
 
-    testPage2 = await createPage(graphContext, {
+    testPage2 = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
-      actorId: testUser.accountId,
     });
 
     const initialBlocks = (
-      await getPageBlocks(graphContext, {
+      await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage2.entity.metadata.recordId.entityId,
       })
     ).map((block) => block.rightEntity);
@@ -122,7 +125,9 @@ describe("Page", () => {
   });
 
   it("can get a page by its entity id", async () => {
-    const fetchedPage = await getPageById(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const fetchedPage = await getPageById(graphContext, authentication, {
       entityId: testPage.entity.metadata.recordId.entityId,
     });
 
@@ -130,9 +135,15 @@ describe("Page", () => {
   });
 
   it("can get all pages in a workspace", async () => {
-    const allPages = await getAllPagesInWorkspace(graphContext, {
-      accountId: testUser.accountId,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    const allPages = await getAllPagesInWorkspace(
+      graphContext,
+      authentication,
+      {
+        accountId: testUser.accountId,
+      },
+    );
 
     expect(
       allPages.sort((a, b) =>
@@ -152,27 +163,27 @@ describe("Page", () => {
   let parentPage: Page;
 
   it("can get/set a parent page", async () => {
-    parentPage = await createPage(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    parentPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Parent Page",
       summary: "Test page summary",
-      actorId: testUser.accountId,
     });
 
     expect(
-      await getPageParentPage(graphContext, { page: testPage }),
+      await getPageParentPage(graphContext, authentication, { page: testPage }),
     ).toBeNull();
 
-    await setPageParentPage(graphContext, {
+    await setPageParentPage(graphContext, authentication, {
       page: testPage,
       parentPage,
-      actorId: testUser.accountId,
       prevIndex: null,
       nextIndex: null,
     });
-    expect(await getPageParentPage(graphContext, { page: testPage })).toEqual(
-      parentPage,
-    );
+    expect(
+      await getPageParentPage(graphContext, authentication, { page: testPage }),
+    ).toEqual(parentPage);
   });
 
   let testBlock1: Block;
@@ -182,7 +193,9 @@ describe("Page", () => {
   let testBlock3: Block;
 
   it("can insert blocks", async () => {
-    const existingBlocks = await getPageBlocks(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    const existingBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
     });
 
@@ -196,21 +209,19 @@ describe("Page", () => {
     ]);
 
     // insert block at un-specified position
-    await addBlockToPage(graphContext, {
+    await addBlockToPage(graphContext, authentication, {
       page: testPage,
       block: testBlock3,
-      actorId: testUser.accountId,
     });
     // insert block at specified position
-    await addBlockToPage(graphContext, {
+    await addBlockToPage(graphContext, authentication, {
       page: testPage,
       block: testBlock2,
       position: 1,
-      actorId: testUser.accountId,
     });
 
     const blocks = (
-      await getPageBlocks(graphContext, {
+      await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -221,15 +232,16 @@ describe("Page", () => {
   });
 
   it("can move a block", async () => {
-    await moveBlockInPage(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    await moveBlockInPage(graphContext, authentication, {
       page: testPage,
       currentPosition: 0,
       newPosition: 2,
-      actorId: testUser.accountId,
     });
 
     const initialBlocks = (
-      await getPageBlocks(graphContext, {
+      await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -240,15 +252,14 @@ describe("Page", () => {
       expect.arrayContaining(expectedInitialBlocks),
     );
 
-    await moveBlockInPage(graphContext, {
+    await moveBlockInPage(graphContext, authentication, {
       page: testPage,
       currentPosition: 2,
       newPosition: 0,
-      actorId: testUser.accountId,
     });
 
     const updatedBlocks = (
-      await getPageBlocks(graphContext, {
+      await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -260,14 +271,15 @@ describe("Page", () => {
   });
 
   it("can remove blocks", async () => {
-    await removeBlockFromPage(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    await removeBlockFromPage(graphContext, authentication, {
       page: testPage,
       position: 0,
-      actorId: testUser.accountId,
     });
 
     const blocks = (
-      await getPageBlocks(graphContext, {
+      await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
       })
     ).map((contentItem) => contentItem.rightEntity);

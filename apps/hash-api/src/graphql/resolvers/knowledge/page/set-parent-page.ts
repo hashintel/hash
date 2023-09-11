@@ -17,7 +17,7 @@ export const setParentPageResolver: ResolverFn<
 > = async (
   _,
   { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },
-  { dataSources, user },
+  { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
@@ -25,20 +25,19 @@ export const setParentPageResolver: ResolverFn<
     throw new ApolloError("A page cannot be the parent of itself");
   }
 
-  const page = await getPageById(context, {
+  const page = await getPageById(context, authentication, {
     entityId: pageEntityId,
   });
 
   const newParentPage = parentPageEntityId
-    ? await getPageById(context, {
+    ? await getPageById(context, authentication, {
         entityId: parentPageEntityId,
       })
     : null;
 
-  const updatedPage = await setPageParentPage(context, {
+  const updatedPage = await setPageParentPage(context, authentication, {
     page,
     parentPage: newParentPage,
-    actorId: user.accountId,
     prevIndex,
     nextIndex,
   });

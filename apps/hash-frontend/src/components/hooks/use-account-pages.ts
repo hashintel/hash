@@ -7,6 +7,7 @@ import {
   GetAccountPagesTreeQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { useHashInstance } from "./use-hash-instance";
 
 export type AccountPagesInfo = {
   data: GetAccountPagesTreeQuery["pages"];
@@ -18,11 +19,14 @@ export const useAccountPages = (
   ownedById: OwnedById,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
+  const { hashInstance } = useHashInstance();
+
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
     variables: { ownedById, includeArchived },
+    skip: !hashInstance?.properties.pagesAreEnabled,
   });
 
   const pages = useMemo(() => {

@@ -16,6 +16,7 @@ import { useCallback, useContext, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { EntityTypeEntitiesContext } from "../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
@@ -45,6 +46,8 @@ type ParsedQueryParams = {
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { activeWorkspace } = useContext(WorkspaceContext);
+
+  const { hashInstance } = useHashInstance();
 
   const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
     if (router.isReady) {
@@ -167,7 +170,7 @@ const EntitiesPage: NextPageWithLayout = () => {
                 loading={loading}
               />
             </Tabs>
-            {isViewAllPagesPage ? (
+            {isViewAllPagesPage && hashInstance?.properties.pagesAreEnabled ? (
               <Button
                 endIcon={<FileCirclePlusRegularIcon />}
                 variant="tertiary_quiet"

@@ -4,6 +4,7 @@ import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";
 
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
 import { useRoutePageInfo } from "../../routing";
@@ -22,6 +23,8 @@ export const PageSidebar: FunctionComponent = () => {
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
+
+  const { hashInstance } = useHashInstance();
 
   return (
     <Drawer
@@ -98,10 +101,12 @@ export const PageSidebar: FunctionComponent = () => {
         {activeWorkspaceAccountId ? (
           <>
             {/* PAGES */}
-            <AccountPageList
-              currentPageEntityUuid={routePageEntityUuid}
-              accountId={activeWorkspaceAccountId}
-            />
+            {hashInstance?.properties.pagesAreEnabled ? (
+              <AccountPageList
+                currentPageEntityUuid={routePageEntityUuid}
+                accountId={activeWorkspaceAccountId}
+              />
+            ) : null}
             {/* TYPES */}
             <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
           </>

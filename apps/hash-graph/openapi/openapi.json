@@ -16,6 +16,17 @@
           "Account"
         ],
         "operationId": "create_account_id",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -40,6 +51,17 @@
           "DataType"
         ],
         "operationId": "create_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -78,6 +100,17 @@
           "DataType"
         ],
         "operationId": "update_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -118,6 +151,17 @@
           "DataType"
         ],
         "operationId": "archive_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -161,6 +205,17 @@
           "DataType"
         ],
         "operationId": "load_external_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -201,6 +256,17 @@
           "DataType"
         ],
         "operationId": "get_data_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -238,6 +304,17 @@
           "DataType"
         ],
         "operationId": "unarchive_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -281,6 +358,17 @@
           "Entity"
         ],
         "operationId": "create_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -319,6 +407,17 @@
           "Entity"
         ],
         "operationId": "update_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -362,6 +461,17 @@
           "Entity"
         ],
         "operationId": "get_entities_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -399,6 +509,17 @@
           "EntityType"
         ],
         "operationId": "create_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -458,6 +579,17 @@
           "EntityType"
         ],
         "operationId": "update_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -498,6 +630,17 @@
           "EntityType"
         ],
         "operationId": "archive_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -541,6 +684,17 @@
           "EntityType"
         ],
         "operationId": "load_external_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -602,6 +756,17 @@
           "EntityType"
         ],
         "operationId": "get_entity_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -636,9 +801,20 @@
       "put": {
         "tags": [
           "Graph",
-          "DataType"
+          "EntityType"
         ],
         "operationId": "unarchive_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -682,6 +858,17 @@
           "PropertyType"
         ],
         "operationId": "create_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -720,6 +907,17 @@
           "PropertyType"
         ],
         "operationId": "update_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -760,6 +958,17 @@
           "PropertyType"
         ],
         "operationId": "archive_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -803,6 +1012,17 @@
           "PropertyType"
         ],
         "operationId": "load_external_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -843,6 +1063,17 @@
           "PropertyType"
         ],
         "operationId": "get_property_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -877,9 +1108,20 @@
       "put": {
         "tags": [
           "Graph",
-          "DataType"
+          "PropertyType"
         ],
         "operationId": "unarchive_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -926,13 +1168,9 @@
       "ArchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -941,13 +1179,9 @@
       "ArchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -956,13 +1190,9 @@
       "ArchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -998,13 +1228,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -1028,13 +1254,9 @@
         "required": [
           "properties",
           "entityTypeId",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
@@ -1064,13 +1286,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
@@ -1096,13 +1314,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -2006,13 +2220,9 @@
       "LoadExternalDataTypeRequest": {
         "type": "object",
         "required": [
-          "dataTypeId",
-          "actorId"
+          "dataTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "dataTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2021,13 +2231,9 @@
       "LoadExternalEntityTypeRequest": {
         "type": "object",
         "required": [
-          "entityTypeId",
-          "actorId"
+          "entityTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2036,13 +2242,9 @@
       "LoadExternalPropertyTypeRequest": {
         "type": "object",
         "required": [
-          "propertyTypeId",
-          "actorId"
+          "propertyTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "propertyTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2743,13 +2945,9 @@
       "UnarchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2758,13 +2956,9 @@
       "UnarchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2773,13 +2967,9 @@
       "UnarchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2814,13 +3004,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_data_type.json"
           },
@@ -2840,13 +3026,9 @@
               "properties",
               "entityId",
               "entityTypeId",
-              "actorId",
               "archived"
             ],
             "properties": {
-              "actorId": {
-                "$ref": "#/components/schemas/RecordCreatedById"
-              },
               "archived": {
                 "type": "boolean"
               },
@@ -2867,13 +3049,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
@@ -2889,13 +3067,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_property_type.json"
           },
