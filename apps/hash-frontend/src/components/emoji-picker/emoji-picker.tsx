@@ -28,11 +28,11 @@ export const EmojiPicker = ({
       {...bindPopover(popupState)}
       anchorOrigin={{
         vertical: "bottom",
-        horizontal: "center",
+        horizontal: "left",
       }}
       transformOrigin={{
         vertical: "top",
-        horizontal: "center",
+        horizontal: "left",
       }}
       elevation={4}
       sx={{ mt: 1 }}
