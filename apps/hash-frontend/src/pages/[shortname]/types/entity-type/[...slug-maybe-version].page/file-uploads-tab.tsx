@@ -91,7 +91,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
             borderRadius: 2,
             border: `1px solid ${palette.gray[30]}`,
             "thead th, tbody td": {
-              padding: "12px 16px",
+              padding: "8px 16px",
               "&:first-of-type": {
                 paddingLeft: "24px",
               },
@@ -158,6 +158,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                             `1px solid ${palette.gray[30]}`,
                           px: 1.2,
                           py: 0.8,
+                          minWidth: 76,
                         }}
                       >
                         {upload.status === "complete" ? (
@@ -169,7 +170,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                             sx={{
                               fill: ({ palette }) => palette.pink[80],
                               fontSize: 11,
-                              mr: 0.3,
+                              mr: 0.5,
                             }}
                           />
                         ) : (

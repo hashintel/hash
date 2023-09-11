@@ -1,6 +1,6 @@
 import { ArrowRotateLeftIcon } from "@hashintel/design-system";
 import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { Box, SxProps, Theme } from "@mui/material";
+import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
 import { useWorkspaceShortnameByAccountId } from "../../../../../../components/hooks/use-workspace-shortname-by-account-id";
 import { FileUpload } from "../../../../../../shared/file-upload-context";
@@ -17,6 +17,8 @@ const buttonSx: SxProps<Theme> = {
   transition: ({ transitions }) => transitions.create("opacity"),
 };
 
+const actionHeight = 33;
+
 export const Action = ({
   onRetry,
   upload,
@@ -31,31 +33,51 @@ export const Action = ({
   switch (upload.status) {
     case "complete":
       return (
-        <Link
-          href={`/@${shortname}/entities/${extractEntityUuidFromEntityId(
-            upload.createdEntities.fileEntity.metadata.recordId
-              .entityId as EntityId,
-          )}`}
-          p={1}
-        >
-          <ArrowUpRightIcon sx={buttonSx} />
-        </Link>
+        <Tooltip title="View entity">
+          <Link
+            href={`/@${shortname}/entities/${extractEntityUuidFromEntityId(
+              upload.createdEntities.fileEntity.metadata.recordId
+                .entityId as EntityId,
+            )}`}
+            sx={{
+              display: "block",
+              height: actionHeight,
+              p: 1,
+            }}
+          >
+            <ArrowUpRightIcon sx={buttonSx} />
+          </Link>
+        </Tooltip>
       );
     case "error":
       return (
-        <Box
-          component="button"
-          onClick={onRetry}
-          sx={{ background: "none", border: "none", cursor: "pointer", p: 1 }}
-        >
-          <ArrowRotateLeftIcon sx={buttonSx} />
-        </Box>
+        <Tooltip title="Retry upload">
+          <Box
+            component="button"
+            onClick={onRetry}
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              p: 1,
+              height: actionHeight,
+            }}
+          >
+            <ArrowRotateLeftIcon sx={buttonSx} />
+          </Box>
+        </Tooltip>
       );
     default:
       return (
-        <DashIcon
-          sx={{ fontSize: 14, fill: ({ palette }) => `${palette.gray[50]}` }}
-        />
+        <Stack
+          alignItems="center"
+          height={actionHeight}
+          justifyContent="center"
+        >
+          <DashIcon
+            sx={{ fontSize: 14, fill: ({ palette }) => `${palette.gray[50]}` }}
+          />
+        </Stack>
       );
   }
 };

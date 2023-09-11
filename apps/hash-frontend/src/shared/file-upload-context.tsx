@@ -318,12 +318,6 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             );
           }
 
-          const test = Math.random();
-
-          if (test < 0.3) {
-            throw new Error("Test throw");
-          }
-
           /**
            * Upload file with presignedPost data to storage provider
            */
