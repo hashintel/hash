@@ -47,13 +47,11 @@ _Undefined = object()
 
 
 @overload
-def constant(const_: T, /) -> type[T]:
-    ...
+def constant(const_: T, /) -> type[T]: ...
 
 
 @overload
-def constant(type_: type[T], const_: T, /) -> type[T]:
-    ...
+def constant(type_: type[T], const_: T, /) -> type[T]: ...
 
 
 def constant(type_: type[T] | T, const_: T | object = _Undefined, /) -> type[T]:
