@@ -12,9 +12,9 @@ use futures::{
 };
 
 use crate::snapshot::{
-    account,
     entity::{self, EntitySender},
     ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
+    owner,
     restore::batch::SnapshotRecordBatch,
     SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
 };
@@ -135,16 +135,16 @@ pub fn channel(
     UnboundedReceiver<SnapshotMetadata>,
 ) {
     let (metadata_tx, metadata_rx) = mpsc::unbounded();
-    let (account_tx, account_rx) = account::channel(chunk_size);
+    let (owner_tx, owner_rx) = owner::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
-        ontology::ontology_metadata_channel(chunk_size, account_tx.clone());
+        ontology::ontology_metadata_channel(chunk_size, owner_tx.clone());
     let (data_type_tx, data_type_rx) =
         ontology::data_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (property_type_tx, property_type_rx) =
         ontology::property_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (entity_type_tx, entity_type_rx) =
         ontology::entity_type_channel(chunk_size, ontology_metadata_tx);
-    let (entity_tx, entity_rx) = entity::channel(chunk_size, account_tx);
+    let (entity_tx, entity_rx) = entity::channel(chunk_size, owner_tx);
 
     (
         SnapshotRecordSender {
@@ -156,7 +156,7 @@ pub fn channel(
         },
         SnapshotRecordReceiver {
             stream: select_all(vec![
-                account_rx.map(SnapshotRecordBatch::Accounts).boxed(),
+                owner_rx.map(SnapshotRecordBatch::Accounts).boxed(),
                 ontology_metadata_rx
                     .map(SnapshotRecordBatch::OntologyTypes)
                     .boxed(),
