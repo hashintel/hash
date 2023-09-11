@@ -1,7 +1,5 @@
 """Concurrent (async) client for the HASH API."""
-from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Self, TypeVar
+from typing import TypeVar
 from uuid import UUID
 
 from graph_client import GraphClient as LowLevelClient
@@ -22,7 +20,6 @@ from graph_client.models import (
     OwnedById,
     PropertyType,
     PropertyTypeStructuralQuery,
-    RecordCreatedById,
     Subgraph,
     UpdateDataType,
     UpdateDataTypeRequest,
@@ -52,15 +49,6 @@ def assert_not_none(value: T | None) -> T:
     return value
 
 
-@contextmanager
-def with_actor(client: "HASHClient", actor: UUID) -> Generator[None, None, None]:
-    """Context manager for setting the actor on the client."""
-    old_actor = client.actor
-    client.actor = actor
-    yield
-    client.actor = old_actor
-
-
 # TODO: H-351: Use hash_graph_client for create_entity
 #   https://linear.app/hash/issue/H-351
 class HASHClient:
@@ -70,22 +58,28 @@ class HASHClient:
     """
 
     inner: LowLevelClient
-    actor: UUID | None = None
 
-    def __init__(self, base: URL) -> None:
+    def __init__(self, base: URL, *, actor: UUID | None = None) -> None:
         """Initialize the client with the base URL."""
-        self.inner = LowLevelClient(base)
+        self.inner = LowLevelClient(base, actor=actor)
         self.actor = None
 
-    def with_actor(self, actor: UUID) -> Self:
+    @property
+    def actor(self) -> UUID | None:
+        """Get the actor for the client."""
+        return self.inner.actor
+
+    @actor.setter
+    def actor(self, actor: UUID | None) -> None:
         """Set the actor for the client."""
-        self.actor = actor
-        return self
+        self.inner.actor = actor
 
     async def query_data_types(
         self,
         query: BaseFilter,
         options: Options,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query data types."""
         request = DataTypeStructuralQuery(
@@ -94,54 +88,56 @@ class HASHClient:
             temporal_axes=options.temporal_axes,
         )
 
-        return await self.inner.query_data_types(request)
+        return await self.inner.query_data_types(request, actor=actor)
 
-    async def load_external_data_type(self, url: URL) -> OntologyElementMetadata:
+    async def load_external_data_type(
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
+    ) -> OntologyElementMetadata:
         """Load an external data type."""
-        actor = assert_not_none(self.actor)
-
         request = LoadExternalDataTypeRequest(
             data_type_id=VersionedURL(root=Url(str(url))),
-            actor_id=RecordCreatedById(root=actor),
         )
 
-        return await self.inner.load_external_data_type(request)
+        return await self.inner.load_external_data_type(request, actor=actor)
 
     async def create_data_types(
         self,
         models: list[DataTypeSchema],
         owned_by_id: UUID,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create data types."""
-        actor = assert_not_none(self.actor)
-
         request = CreateDataTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
             schema_=[recast(DataType, model) for model in models],
         )
 
-        return await self.inner.create_data_types(request)
+        return await self.inner.create_data_types(request, actor=actor)
 
     async def update_data_type(
         self,
         model: DataTypeSchema,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update a data type."""
-        actor = assert_not_none(self.actor)
-
         request = UpdateDataTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateDataType, model),
             type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
-        return await self.inner.update_data_type(request)
+        return await self.inner.update_data_type(request, actor=actor)
 
     async def query_property_types(
         self,
         query: BaseFilter,
         options: Options,
+        *,
+        actor: UUID | None = None,
     ) -> Subgraph:
         """Query property types."""
         request = PropertyTypeStructuralQuery(
@@ -150,51 +146,57 @@ class HASHClient:
             temporal_axes=options.temporal_axes,
         )
 
-        return await self.inner.query_property_types(request)
+        return await self.inner.query_property_types(request, actor=actor)
 
-    async def load_external_property_type(self, url: URL) -> OntologyElementMetadata:
+    async def load_external_property_type(
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
+    ) -> OntologyElementMetadata:
         """Load an external property type."""
-        actor = assert_not_none(self.actor)
-
         request = LoadExternalPropertyTypeRequest(
             property_type_id=VersionedURL(root=Url(str(url))),
-            actor_id=RecordCreatedById(root=actor),
         )
 
-        return await self.inner.load_external_property_type(request)
+        return await self.inner.load_external_property_type(request, actor=actor)
 
     async def create_property_types(
         self,
         models: list[PropertyTypeSchema],
         owned_by_id: UUID,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create property types."""
-        actor = assert_not_none(self.actor)
-
         request = CreatePropertyTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
             schema_=[recast(PropertyType, model) for model in models],
         )
 
-        return await self.inner.create_property_types(request)
+        return await self.inner.create_property_types(request, actor=actor)
 
     async def update_property_type(
         self,
         model: PropertyTypeSchema,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update a property type."""
-        actor = assert_not_none(self.actor)
-
         request = UpdatePropertyTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdatePropertyType, model),
             type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
-        return await self.inner.update_property_type(request)
+        return await self.inner.update_property_type(request, actor=actor)
 
-    async def query_entity_types(self, query: BaseFilter, options: Options) -> Subgraph:
+    async def query_entity_types(
+        self,
+        query: BaseFilter,
+        options: Options,
+        *,
+        actor: UUID | None = None,
+    ) -> Subgraph:
         """Query entity types."""
         request = EntityTypeStructuralQuery(
             filter=query.to_ffi(),
@@ -202,51 +204,57 @@ class HASHClient:
             temporal_axes=options.temporal_axes,
         )
 
-        return await self.inner.query_entity_types(request)
+        return await self.inner.query_entity_types(request, actor=actor)
 
-    async def load_external_entity_type(self, url: URL) -> OntologyElementMetadata:
+    async def load_external_entity_type(
+        self,
+        url: URL,
+        *,
+        actor: UUID | None = None,
+    ) -> OntologyElementMetadata:
         """Load an external entity type."""
-        actor = assert_not_none(self.actor)
-
         request = LoadExternalEntityTypeRequest(
             entity_type_id=VersionedURL(root=Url(str(url))),
-            actor_id=RecordCreatedById(root=actor),
         )
 
-        return await self.inner.load_external_entity_type(request)
+        return await self.inner.load_external_entity_type(request, actor=actor)
 
     async def create_entity_types(
         self,
         models: list[EntityTypeSchema],
         owned_by_id: UUID,
+        *,
+        actor: UUID | None = None,
     ) -> MaybeListOfOntologyElementMetadata:
         """Create entity types."""
-        actor = assert_not_none(self.actor)
-
         request = CreateEntityTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             owned_by_id=OwnedById(root=owned_by_id),
             schema_=[recast(EntityType, model) for model in models],
         )
 
-        return await self.inner.create_entity_types(request)
+        return await self.inner.create_entity_types(request, actor=actor)
 
     async def update_entity_type(
         self,
         model: EntityTypeSchema,
+        *,
+        actor: UUID | None = None,
     ) -> OntologyElementMetadata:
         """Update an entity type."""
-        actor = assert_not_none(self.actor)
-
         request = UpdateEntityTypeRequest(
-            actor_id=RecordCreatedById(root=actor),
             schema_=recast(UpdateEntityType, model),
             type_to_update=VersionedURL(root=Url(model.identifier)),
         )
 
-        return await self.inner.update_entity_type(request)
+        return await self.inner.update_entity_type(request, actor=actor)
 
-    async def query_entities(self, query: BaseFilter, options: Options) -> Subgraph:
+    async def query_entities(
+        self,
+        query: BaseFilter,
+        options: Options,
+        *,
+        actor: UUID | None = None,
+    ) -> Subgraph:
         """Query entities."""
         request = EntityStructuralQuery(
             filter=query.to_ffi(),
@@ -254,4 +262,4 @@ class HASHClient:
             temporal_axes=options.temporal_axes,
         )
 
-        return await self.inner.query_entities(request)
+        return await self.inner.query_entities(request, actor=actor)
