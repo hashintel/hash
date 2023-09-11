@@ -206,53 +206,91 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     if (projected && over) {
       const { depth, parentPageEntityId } = projected;
 
-      const clonedItems = [...treeItems];
-
-      const overIndex = clonedItems.findIndex(
-        ({ page }) => page.metadata.recordId.entityId === over.id,
-      );
-      const activeIndex = clonedItems.findIndex(
+      // The page that's being repositioned
+      const activePage = treeItems.find(
         ({ page }) => page.metadata.recordId.entityId === active.id,
       );
-      const activeTreeItem = clonedItems[activeIndex];
 
-      if (
-        activeTreeItem &&
-        (activeTreeItem.depth !== depth || active.id !== over.id)
-      ) {
-        clonedItems[activeIndex] = {
-          page: activeTreeItem.page,
-          depth,
-        };
+      // The page that's being dragged "over"
+      const overPage = treeItems.find(
+        ({ page }) => page.metadata.recordId.entityId === over.id,
+      );
 
-        const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
+      if (activePage && (activePage.depth !== depth || active.id !== over.id)) {
+        const activePageIndex = treeItems.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === active.id,
+        );
 
-        const parentSortedItems = sortedItems.filter(({ page }) =>
+        const overPageIndex = treeItems.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === over.id,
+        );
+
+        const pagesWithParent = treeItems.filter(({ page }) =>
           parentPageEntityId
             ? page.parentPage?.metadata.recordId.entityId === parentPageEntityId
             : !page.parentPage,
         );
 
-        const newIndex = parentSortedItems.findIndex(
-          ({ page }) => page.metadata.recordId.entityId === activeId,
+        // The new sibling pages of the active page (i.e. all other pages with the same parent)
+        const siblingPages = pagesWithParent.filter(
+          ({ page }) =>
+            page.metadata.recordId.entityId !==
+            activePage.page.metadata.recordId.entityId,
         );
 
-        const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
-        const afterIndex = parentSortedItems[newIndex + 1]?.page.index ?? null;
+        const overPageLocalIndex = pagesWithParent.findIndex(
+          ({ page }) => page.metadata.recordId.entityId === over.id,
+        );
+
+        /**
+         * If the over page is at a lower depth than the active page, we want to
+         * insert the active page at the over page's index. Otherwise, we want to
+         * insert it before the over page's index.
+         */
+        const newIndex =
+          overPage && overPage.depth < activePage.depth
+            ? overPageLocalIndex
+            : overPageLocalIndex - 1;
+
+        const beforeFractionalIndex =
+          siblingPages[newIndex]?.page.index ?? null;
+
+        const afterFractionalIndex =
+          siblingPages[newIndex + 1]?.page.index ?? null;
 
         if (typeof active.id !== "string" || !isEntityId(active.id)) {
           throw new Error("Expected draggable element ID to be an `EntityId`");
         }
 
-        setTreeItems(sortedItems);
+        /**
+         * Manually construct the updated page tree so that the state can be
+         * updated immediately, without waiting for the API response.
+         */
+        const clonedTreeItems = [...treeItems];
+
+        const parentPage = treeItems.find(
+          ({ page }) => page.metadata.recordId.entityId === parentPageEntityId,
+        )?.page;
+
+        clonedTreeItems[activePageIndex] = {
+          page: { ...activePage.page, parentPage },
+          depth,
+        };
+
+        const sortedTreeItems = arrayMove(
+          clonedTreeItems,
+          activePageIndex,
+          overPageIndex,
+        );
+
+        setTreeItems(sortedTreeItems);
+
         reorderPage(
           active.id,
           parentPageEntityId,
-          beforeIndex,
-          afterIndex,
-        ).catch(() => {
-          setTreeItems(getTreeItemList(data));
-        });
+          beforeFractionalIndex,
+          afterFractionalIndex,
+        ).catch(() => setTreeItems(getTreeItemList(data)));
       }
     }
   };
