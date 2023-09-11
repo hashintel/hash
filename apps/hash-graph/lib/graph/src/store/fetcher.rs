@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::AccountId,
+    account::{AccountGroupId, AccountId},
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
@@ -589,6 +589,17 @@ where
     ) -> Result<(), InsertionError> {
         self.store
             .insert_account_id(actor_id, authorization_api, account_id)
+            .await
+    }
+
+    async fn insert_account_group_id<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        account_group_id: AccountGroupId,
+    ) -> Result<(), InsertionError> {
+        self.store
+            .insert_account_group_id(actor_id, authorization_api, account_group_id)
             .await
     }
 }
