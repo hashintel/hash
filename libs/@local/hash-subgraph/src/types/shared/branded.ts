@@ -1,8 +1,4 @@
 import {
-  MinimalOrg,
-  MinimalUser,
-} from "@apps/hash-frontend/src/lib/user-and-org";
-import {
   BaseUrl as BaseUrlBp,
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
