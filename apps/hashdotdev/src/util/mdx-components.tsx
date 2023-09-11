@@ -18,6 +18,8 @@ import slugify from "slugify";
 import { FontAwesomeIcon } from "../components/icons/font-awesome-icon";
 import { ImageWithText } from "../components/image-with-text";
 import { Link } from "../components/link";
+import { InfoCard } from "../components/mdx/info-card";
+import { InfoCardWrapper } from "../components/mdx/info-card-wrapper";
 import { usePageHeading } from "../components/mdx/shared/use-page-heading";
 import { stringifyChildren } from "../components/mdx/shared/util";
 import { MdxCallout } from "../components/mdx-callout";
@@ -217,4 +219,8 @@ export const mdxComponents: Record<string, ComponentType<any>> = {
   ImageWithText,
 
   TalkSlide: MdxTalkSlide,
+
+  InfoCard,
+
+  InfoCardWrapper,
 };

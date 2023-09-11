@@ -1,4 +1,4 @@
-import { Components } from "@mui/material";
+import { Components, Theme } from "@mui/material";
 
 // @todo rename this variables, use them instead of interpolation
 const size = (padding: number) => ({
@@ -10,12 +10,12 @@ const size = (padding: number) => ({
   paddingRight: `var(--padding)`,
 });
 
-export const MuiContainerThemeOptions: Components["MuiContainer"] = {
+export const MuiContainerThemeOptions: Components<Theme>["MuiContainer"] = {
   styleOverrides: {
-    root: {
+    root: ({ theme }) => ({
       ...size(16),
-      "@media (min-width: 600px)": size(24),
-      "@media (min-width: 1536px)": size(32),
-    },
+      [theme.breakpoints.up("sm")]: size(24),
+      [theme.breakpoints.up("xl")]: size(32),
+    }),
   },
 };

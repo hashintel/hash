@@ -28,7 +28,7 @@ type DocsPageProps = {
   sectionPages: SiteMapPage[];
 };
 
-const mdxContentMaxWidth = 1000;
+const mdxContentMaxWidth = 1125;
 
 const mdxParagraphMaxWidth = 750;
 
@@ -123,7 +123,12 @@ export const DocsContent: FunctionComponent<DocsPageProps> = ({
         sx={{
           margin: 0,
           width: "inherit",
-          maxWidth: mdxContentMaxWidth,
+          [theme.breakpoints.up("sm")]: {
+            maxWidth: mdxContentMaxWidth,
+          },
+          [theme.breakpoints.up("xl")]: {
+            maxWidth: mdxContentMaxWidth,
+          },
           minWidth: 0,
           paddingTop: {
             xs: 3,
