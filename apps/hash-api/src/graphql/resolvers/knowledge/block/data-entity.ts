@@ -14,12 +14,12 @@ export const blockChildEntityResolver: ResolverFn<
   UnresolvedBlockGQL,
   GraphQLContext,
   QueryBlocksArgs
-> = async ({ metadata }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const block = await getBlockById(context, {
+  const block = await getBlockById(context, authentication, {
     entityId: metadata.recordId.entityId,
   });
 
-  return mapEntityToGQL(await getBlockData(context, { block }));
+  return mapEntityToGQL(await getBlockData(context, authentication, { block }));
 };

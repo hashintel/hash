@@ -17,19 +17,22 @@ export const requestFileUpload: ResolverFn<
 > = async (
   _,
   { description, entityTypeId, displayName, name, ownedById, size },
-  { dataSources, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { presignedPost, entity } = await createFileFromUploadRequest(context, {
-    actorId: user.accountId,
-    description,
-    displayName,
-    entityTypeId,
-    name,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
-    size,
-  });
+  const { presignedPost, entity } = await createFileFromUploadRequest(
+    context,
+    authentication,
+    {
+      description,
+      displayName,
+      entityTypeId,
+      name,
+      ownedById: ownedById ?? (user.accountId as OwnedById),
+      size,
+    },
+  );
 
   return {
     presignedPost,

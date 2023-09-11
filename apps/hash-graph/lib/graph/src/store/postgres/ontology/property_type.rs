@@ -1,14 +1,16 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
+    account::AccountId,
     ontology::{
         OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{RecordArchivedById, RecordCreatedById},
+    provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, PropertyType};
@@ -176,9 +178,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, property_types))]
-    async fn create_property_types(
+    #[tracing::instrument(level = "info", skip(self, property_types, _authorization_api))]
+    async fn create_property_types<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         property_types: impl IntoIterator<
             Item = (PropertyType, PartialOntologyElementMetadata),
             IntoIter: Send,
@@ -188,12 +192,22 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let property_types = property_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let provenance = ProvenanceMetadata {
+            record_created_by_id: RecordCreatedById::new(actor_id),
+            record_archived_by_id: None,
+        };
+
         let mut inserted_property_types = Vec::new();
         let mut inserted_property_type_metadata =
             Vec::with_capacity(inserted_property_types.capacity());
         for (schema, metadata) in property_types {
             if let Some((ontology_id, transaction_time)) = transaction
-                .create_ontology_metadata(&metadata.record_id, &metadata.custom, on_conflict)
+                .create_ontology_metadata(
+                    provenance.record_created_by_id,
+                    &metadata.record_id,
+                    &metadata.custom,
+                    on_conflict,
+                )
                 .await?
             {
                 transaction
@@ -203,6 +217,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 inserted_property_types.push((ontology_id, schema));
                 inserted_property_type_metadata.push(OntologyElementMetadata::from_partial(
                     metadata,
+                    provenance,
                     transaction_time,
                 ));
             }
@@ -227,9 +242,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(inserted_property_type_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn get_property_type<A: AuthorizationApi + Sync>(
         &self,
+        _actor_id: AccountId,
+        _authorization_api: &A,
         query: &StructuralQuery<PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -299,11 +316,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, property_type))]
-    async fn update_property_type(
+    #[tracing::instrument(level = "info", skip(self, property_type, _authorization_api))]
+    async fn update_property_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         property_type: PropertyType,
-        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -311,7 +329,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (ontology_id, metadata) = transaction
-            .update::<PropertyType>(property_type.clone(), record_created_by_id)
+            .update::<PropertyType>(property_type.clone(), RecordCreatedById::new(actor_id))
             .await?;
 
         transaction
@@ -331,19 +349,25 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn archive_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn archive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
-        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, record_archived_by_id).await
+        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+            .await
     }
 
-    async fn unarchive_property_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn unarchive_property_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, record_created_by_id).await
+        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+            .await
     }
 }

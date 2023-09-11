@@ -66,6 +66,7 @@ impl<C: AsClient> PostgresStore<C> {
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
+        actor_id: AccountId,
         authorization_api: &A,
         zookie: Zookie<'static>,
         subgraph: &mut Subgraph,
@@ -183,7 +184,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     let permissions = authorization_api
                         .view_entities(
-                            AccountId::new(Uuid::nil()),
+                            actor_id,
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
                             entity_ids.iter().copied(),
@@ -265,13 +266,14 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn create_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
+    async fn create_entity<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -349,7 +351,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -423,7 +425,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             entity_type_id,
             ProvenanceMetadata {
-                record_created_by_id,
+                record_created_by_id: RecordCreatedById::new(actor_id),
                 record_archived_by_id: None,
             },
             archived,
@@ -432,8 +434,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type(
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -444,7 +448,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -510,7 +513,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, actor_id)
+            .insert_entity_records(entity_editions, RecordCreatedById::new(actor_id))
             .await?;
 
         let entity_versions = transaction
@@ -545,7 +548,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata {
-                        record_created_by_id: actor_id,
+                        record_created_by_id: RecordCreatedById::new(actor_id),
                         record_archived_by_id: None,
                     },
                     false,
@@ -557,8 +560,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_entity<A: AuthorizationApi + Sync>(
         &self,
-        query: &StructuralQuery<Entity>,
+        actor_id: AccountId,
         authorization_api: &A,
+        query: &StructuralQuery<Entity>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -584,11 +588,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
-            .view_entities(
-                AccountId::new(Uuid::nil()),
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
+            .view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
             .await
             .change_context(QueryError)?;
 
@@ -631,6 +631,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 })
                 .collect(),
             &mut traversal_context,
+            actor_id,
             authorization_api,
             zookie,
             &mut subgraph,
@@ -644,12 +645,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn update_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
+    async fn update_entity<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
@@ -677,7 +679,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -750,7 +752,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             entity_type_id,
             ProvenanceMetadata {
-                record_created_by_id,
+                record_created_by_id: RecordCreatedById::new(actor_id),
                 record_archived_by_id: None,
             },
             archived,

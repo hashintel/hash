@@ -17,12 +17,11 @@ export const createFileFromUrl: ResolverFn<
 > = async (
   _,
   { description, entityTypeId, ownedById, displayName, url },
-  { dataSources, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const entity = await createFileFromExternalUrl(context, {
-    actorId: user.accountId,
+  const entity = await createFileFromExternalUrl(context, authentication, {
     description,
     displayName,
     entityTypeId,

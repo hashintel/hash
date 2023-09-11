@@ -1,9 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use futures::{stream, TryStreamExt};
 use graph_types::{
+    account::AccountId,
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
@@ -204,9 +206,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, entity_types))]
-    async fn create_entity_types(
+    #[tracing::instrument(level = "info", skip(self, entity_types, _authorization_api))]
+    async fn create_entity_types<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         entity_types: impl IntoIterator<Item = (EntityType, PartialEntityTypeMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -214,12 +218,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
+        let provenance = ProvenanceMetadata {
+            record_created_by_id: RecordCreatedById::new(actor_id),
+            record_archived_by_id: None,
+        };
+
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata =
             Vec::with_capacity(inserted_entity_types.capacity());
         for (schema, metadata) in entity_types {
             if let Some((ontology_id, transaction_time)) = transaction
-                .create_ontology_metadata(&metadata.record_id, &metadata.custom.common, on_conflict)
+                .create_ontology_metadata(
+                    provenance.record_created_by_id,
+                    &metadata.record_id,
+                    &metadata.custom.common,
+                    on_conflict,
+                )
                 .await?
             {
                 transaction
@@ -231,8 +245,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .await?;
 
                 inserted_entity_types.push((ontology_id, schema));
-                inserted_entity_type_metadata
-                    .push(EntityTypeMetadata::from_partial(metadata, transaction_time));
+                inserted_entity_type_metadata.push(EntityTypeMetadata::from_partial(
+                    metadata,
+                    provenance,
+                    transaction_time,
+                ));
             }
         }
 
@@ -255,9 +272,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(inserted_entity_type_metadata)
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn get_entity_type<A: AuthorizationApi + Sync>(
         &self,
+        _actor_id: AccountId,
+        _authorization_api: &A,
         query: &StructuralQuery<EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -327,11 +346,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, entity_type))]
-    async fn update_entity_type(
+    #[tracing::instrument(level = "info", skip(self, entity_type, _authorization_api))]
+    async fn update_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         entity_type: EntityType,
-        record_created_by_id: RecordCreatedById,
         label_property: Option<BaseUrl>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
@@ -339,8 +359,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let url = entity_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
+        let provenance = ProvenanceMetadata {
+            record_created_by_id: RecordCreatedById::new(actor_id),
+            record_archived_by_id: None,
+        };
+
         let (ontology_id, owned_by_id, transaction_time) = transaction
-            .update_owned_ontology_id(url, record_created_by_id)
+            .update_owned_ontology_id(url, provenance.record_created_by_id)
             .await?;
         transaction
             .insert_entity_type_with_id(ontology_id, entity_type.clone(), label_property.as_ref())
@@ -350,13 +375,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let metadata = PartialEntityTypeMetadata {
             record_id,
             custom: PartialCustomEntityTypeMetadata {
-                common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id,
-                        record_archived_by_id: None,
-                    },
-                    owned_by_id,
-                },
+                common: PartialCustomOntologyMetadata::Owned { owned_by_id },
                 label_property,
             },
         };
@@ -375,22 +394,32 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(EntityTypeMetadata::from_partial(metadata, transaction_time))
+        Ok(EntityTypeMetadata::from_partial(
+            metadata,
+            provenance,
+            transaction_time,
+        ))
     }
 
-    async fn archive_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn archive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
-        record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.archive_ontology_type(id, record_archived_by_id).await
+        self.archive_ontology_type(id, RecordArchivedById::new(actor_id))
+            .await
     }
 
-    async fn unarchive_entity_type(
+    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    async fn unarchive_entity_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         id: &VersionedUrl,
-        record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(id, record_created_by_id).await
+        self.unarchive_ontology_type(id, RecordCreatedById::new(actor_id))
+            .await
     }
 }

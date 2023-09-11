@@ -60,9 +60,9 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
@@ -141,13 +141,13 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   { hashWorkspaceEntityId: EntityId; vaultClient: VaultClient },
   Promise<string>
-> = async (context, { hashWorkspaceEntityId, vaultClient }) => {
+> = async (context, authentication, { hashWorkspaceEntityId, vaultClient }) => {
   const [workspaceOwnedById, workspaceUuid] = splitEntityId(
     hashWorkspaceEntityId,
   );
 
   const linearIntegrationEntities = await context.graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
           {
@@ -196,14 +196,18 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
-  const secretEntity = await getLinearUserSecretByLinearOrgId(context, {
-    linearOrgId: integrationEntity.properties[
-      SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-    ] as string,
-    userAccountId: extractOwnedByIdFromEntityId(
-      integrationEntity.metadata.recordId.entityId,
-    ),
-  });
+  const secretEntity = await getLinearUserSecretByLinearOrgId(
+    context,
+    authentication,
+    {
+      linearOrgId: integrationEntity.properties[
+        SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
+      ] as string,
+      userAccountId: extractOwnedByIdFromEntityId(
+        integrationEntity.metadata.recordId.entityId,
+      ),
+    },
+  );
 
   const secret = await vaultClient.read({
     path: secretEntity.vaultPath,
