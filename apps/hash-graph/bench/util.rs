@@ -222,7 +222,7 @@ pub async fn seed<D, P, E, C>(
                 PartialOntologyElementMetadata {
                     record_id: data_type.id().clone().into(),
                     custom: PartialCustomOntologyMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id),
+                        owned_by_id: OwnedById::new(account_id.as_uuid()),
                     },
                 },
             )
@@ -256,7 +256,7 @@ pub async fn seed<D, P, E, C>(
                 PartialOntologyElementMetadata {
                     record_id: property_type.id().clone().into(),
                     custom: PartialCustomOntologyMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id),
+                        owned_by_id: OwnedById::new(account_id.as_uuid()),
                     },
                 },
             )
@@ -291,7 +291,7 @@ pub async fn seed<D, P, E, C>(
                     record_id: entity_type.id().clone().into(),
                     custom: PartialCustomEntityTypeMetadata {
                         common: PartialCustomOntologyMetadata::Owned {
-                            owned_by_id: OwnedById::new(account_id),
+                            owned_by_id: OwnedById::new(account_id.as_uuid()),
                         },
                         label_property: None,
                     },

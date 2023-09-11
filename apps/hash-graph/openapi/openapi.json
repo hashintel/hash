@@ -9,6 +9,41 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/account_groups": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "create_account_group",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The schema of the created account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountGroupId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/accounts": {
       "post": {
         "tags": [
@@ -1161,6 +1196,10 @@
   },
   "components": {
     "schemas": {
+      "AccountGroupId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "AccountId": {
         "type": "string",
         "format": "uuid"
