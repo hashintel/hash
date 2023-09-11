@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 import devtools
 from yarl import URL
@@ -14,8 +15,9 @@ from graph_sdk.query import Parameter
 from graph_sdk.utils import filter_latest_from_subgraph
 
 COMPANY_URL = "https://blockprotocol.org/@examples/types/entity-type/company/"
+ACTOR_ID = UUID(int=0)  # replace with your actor ID
 
-client = HASHClient(URL("http://localhost:4000/"))
+client = HASHClient(URL("http://localhost:4000/"), actor=ACTOR_ID)
 
 options = Options()
 options.temporal_axes = TemporalAxesBuilder.pinned_transaction_time(None).between(

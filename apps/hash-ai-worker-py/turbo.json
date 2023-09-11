@@ -6,11 +6,9 @@
       "persistent": true
     },
     "poetry:install": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "poetry:install-production": {
-      "dependsOn": ["^build"],
       "cache": false
     },
     "build:docker": {
@@ -36,6 +34,7 @@
       "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "lint:mypy": {
+      "dependsOn": ["build"],
       "inputs": ["./**/*.py", "pyproject.toml"]
     }
   }

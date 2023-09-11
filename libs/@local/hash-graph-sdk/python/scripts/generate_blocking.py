@@ -122,26 +122,12 @@ def call_inner(function_def: ast.FunctionDef) -> ast.Call:
     )
 
 
-# check the `with_actor` method, call the inner one and return self
-with_actor = next(
-    statement
-    for statement in client_ast.body
-    if isinstance(statement, ast.FunctionDef) and statement.name == "with_actor"
-)
-
-with_actor_args = with_actor.args
-with_actor.body = [
-    with_actor.body[0],
-    ast.Expr(value=call_inner(with_actor)),
-    ast.Return(value=ast.Name(id="self", ctx=ast.Load())),
-]
-
 # # go over each method that is sync, call the inner client instead
 for method in client_ast.body:
     if not isinstance(method, ast.FunctionDef):
         continue
 
-    if method.name in ("__init__", "__doc__", "with_actor"):
+    if method.name in ("__init__", "__doc__", "actor"):
         continue
 
     method_args = method.args
@@ -191,7 +177,10 @@ for method in client_ast.body:
                                         arg=keyword.arg,
                                         value=ast.Name(keyword.arg, ctx=ast.Load()),
                                     )
-                                    for keyword in (method_args.kwarg or [])
+                                    for keyword in (
+                                        (method_args.kwarg or [])
+                                        + (method_args.kwonlyargs or [])
+                                    )
                                 ],
                             ),
                         ],
