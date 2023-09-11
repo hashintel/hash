@@ -18,7 +18,6 @@ use crate::snapshot::{
     entity::{
         EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
     },
-    owner::{OwnerId, OwnerSender},
     EntitySnapshotRecord, SnapshotRestoreError,
 };
 
@@ -28,7 +27,6 @@ use crate::snapshot::{
 /// function.
 #[derive(Debug, Clone)]
 pub struct EntitySender {
-    owner: OwnerSender,
     id: Sender<EntityIdRow>,
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
@@ -42,7 +40,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.owner.poll_ready_unpin(cx)).attach_printable("could not poll owner sender")?;
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
@@ -63,17 +60,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         mut self: Pin<&mut Self>,
         entity: EntitySnapshotRecord,
     ) -> Result<(), Self::Error> {
-        self.owner
-            .start_send_unpin(OwnerId::Account(
-                entity
-                    .metadata
-                    .custom
-                    .provenance
-                    .record_created_by_id
-                    .as_account_id(),
-            ))
-            .attach_printable("could not send account")?;
-
         self.id
             .start_send_unpin(EntityIdRow {
                 owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
@@ -147,7 +133,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.owner.poll_flush_unpin(cx)).attach_printable("could not flush owner sender")?;
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
@@ -165,7 +150,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.owner.poll_close_unpin(cx)).attach_printable("could not close owner sender")?;
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
@@ -205,7 +189,7 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(chunk_size: usize, account_sender: OwnerSender) -> (EntitySender, EntityReceiver) {
+pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
@@ -213,7 +197,6 @@ pub fn channel(chunk_size: usize, account_sender: OwnerSender) -> (EntitySender,
 
     (
         EntitySender {
-            owner: account_sender,
             id: id_tx,
             edition: edition_tx,
             temporal_metadata: temporal_metadata_tx,

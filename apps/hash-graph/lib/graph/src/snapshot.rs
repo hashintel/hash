@@ -10,10 +10,14 @@ mod restore;
 use async_trait::async_trait;
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
-use graph_types::knowledge::entity::Entity;
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::Entity,
+};
 use hash_status::StatusCode;
+use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
-use tokio_postgres::error::SqlState;
+use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
@@ -27,10 +31,22 @@ use crate::{
     store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    id: AccountId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountGroup {
+    id: AccountGroupId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
+    Account(Account),
+    AccountGroup(AccountGroup),
     DataType(OntologyTypeSnapshotRecord<DataType>),
     PropertyType(OntologyTypeSnapshotRecord<PropertyType>),
     EntityType(OntologyTypeSnapshotRecord<EntityType>),
@@ -45,6 +61,12 @@ impl SnapshotEntry {
                     "graph version: {}",
                     global_metadata.block_protocol_module_versions.graph
                 ));
+            }
+            Self::Account(account) => {
+                context.push_body(format!("account: {}", account.id));
+            }
+            Self::AccountGroup(account_group) => {
+                context.push_body(format!("account group: {}", account_group.id));
             }
             Self::DataType(data_type) => {
                 context.push_body(format!("data type: {}", data_type.metadata.record_id));
@@ -108,6 +130,40 @@ impl<C> SnapshotStore<C> {
 }
 
 impl<C: AsClient> SnapshotStore<C> {
+    async fn read_accounts(
+        &self,
+    ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
+    {
+        Ok(self
+            .0
+            .as_client()
+            .query_raw(
+                "SELECT account_id FROM accounts",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
+            .map_ok(|row| Account { id: row.get(0) })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_account_groups(
+        &self,
+    ) -> Result<impl Stream<Item = Result<AccountGroup, SnapshotDumpError>> + Send, SnapshotDumpError>
+    {
+        Ok(self
+            .0
+            .as_client()
+            .query_raw(
+                "SELECT account_group_id FROM account_groups",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
+            .map_ok(|row| AccountGroup { id: row.get(0) })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
     /// Convenience function to create a stream of snapshot entries.
     async fn create_dump_stream<T>(
         &self,
@@ -148,6 +204,16 @@ impl<C: AsClient> SnapshotStore<C> {
             })
         })
         .map(Ok)
+        .chain(
+            self.read_accounts()
+                .try_flatten_stream()
+                .map_ok(SnapshotEntry::Account),
+        )
+        .chain(
+            self.read_account_groups()
+                .try_flatten_stream()
+                .map_ok(SnapshotEntry::AccountGroup),
+        )
         .chain(
             self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
                 .try_flatten_stream()
