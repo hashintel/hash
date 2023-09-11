@@ -3,6 +3,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountGroupId,
   AccountId,
   Entity,
   EntityId,
@@ -90,7 +91,6 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @param params.shortname - the shortname of the organization
  * @param params.name - the name of the organization
  * @param params.providedInfo - optional metadata about the organization
- * @param params.orgAccountId - the account Id of the org
  * @param params.website - the website of the organization
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
@@ -115,14 +115,18 @@ export const createOrg: ImpureGraphFunction<
     shortnameIsRestricted({ shortname }) ||
     (await shortnameIsTaken(ctx, authentication, { shortname }))
   ) {
-    throw new Error(`An account with shortname "${shortname}" already exists.`);
+    throw new Error(
+      `An account or an account group with shortname "${shortname}" already exists.`,
+    );
   }
 
   const { graphApi } = ctx;
 
-  const orgAccountId =
+  const orgAccountGroupId =
     params.orgAccountId ??
-    (await graphApi.createAccountId(authentication.actorId)).data;
+    (await graphApi
+      .createAccountGroup(authentication.actorId)
+      .then(({ data: accountGroupId }) => accountGroupId as AccountGroupId));
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
@@ -148,7 +152,7 @@ export const createOrg: ImpureGraphFunction<
     ownedById: systemUserAccountId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
-    entityUuid: orgAccountId as EntityUuid,
+    entityUuid: orgAccountGroupId as string as EntityUuid,
   });
 
   return getOrgFromEntity({ entity });
@@ -203,6 +207,10 @@ export const getOrgByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      // TODO: Should this be an all-time query? What happens if the org is
+      //       archived/deleted, do we want to allow orgs to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>

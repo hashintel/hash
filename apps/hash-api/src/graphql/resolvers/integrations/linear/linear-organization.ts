@@ -1,3 +1,5 @@
+import { OwnedById } from "@local/hash-subgraph";
+
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { getOrganization, listTeams } from "../../../../integrations/linear";
 import {
@@ -17,7 +19,7 @@ export const getLinearOrganizationResolver: ResolverFn<
     dataSources,
     authentication,
     {
-      userAccountId: user.accountId,
+      ownedById: user.accountId as OwnedById,
       linearOrgId: params.linearOrgId,
     },
   );

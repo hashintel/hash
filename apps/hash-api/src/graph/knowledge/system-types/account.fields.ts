@@ -28,6 +28,9 @@ export const shortnameIsRestricted: PureGraphFunction<
   return RESTRICTED_SHORTNAMES.includes(shortname);
 };
 
+// TODO: Depending on the approached chosen outlined in `get*ByShortname` functions, this function may be changed
+//       to use another function to determine existence of a shortname.
+//   see https://linear.app/hash/issue/H-757
 export const shortnameIsTaken: ImpureGraphFunction<
   { shortname: string },
   Promise<boolean>

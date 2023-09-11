@@ -241,13 +241,13 @@ export const isPageArchived: ImpureGraphFunction<
  */
 export const getAllPagesInWorkspace: ImpureGraphFunction<
   {
-    accountId: AccountId;
+    ownedById: OwnedById;
     includeArchived?: boolean;
   },
   Promise<Page[]>
 > = async (ctx, authentication, params) => {
   const { graphApi } = ctx;
-  const { accountId, includeArchived = false } = params;
+  const { ownedById, includeArchived = false } = params;
   const pageEntities = await graphApi
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
@@ -259,7 +259,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
             ],
           },
           {
-            equal: [{ path: ["ownedById"] }, { parameter: accountId }],
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
           },
         ],
       },

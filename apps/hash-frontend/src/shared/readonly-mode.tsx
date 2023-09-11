@@ -1,22 +1,15 @@
-import { AccountId } from "@local/hash-subgraph";
+import { AccountGroupId, AccountId } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 
 import { AuthenticatedUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
 export const canUserEditResource = (
-  resourceAccountId?: AccountId,
-  user?: AuthenticatedUser,
-) => {
-  if (!resourceAccountId || !user) {
-    return false;
-  }
-
-  return (
-    resourceAccountId === user.accountId ||
-    user.memberOf.find((org) => org.accountId === resourceAccountId)
-  );
-};
+  resourceAccountId: AccountId | AccountGroupId,
+  user: AuthenticatedUser,
+) =>
+  resourceAccountId === user.accountId ||
+  user.memberOf.find((org) => resourceAccountId === org.accountGroupId);
 
 export const useIsReadonlyModeForApp = () => {
   const router = useRouter();

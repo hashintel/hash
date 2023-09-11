@@ -8,11 +8,14 @@ import {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
+  AccountGroupEntityId,
+  AccountGroupId,
   AccountId,
   Entity,
   EntityRecordId,
   EntityRecordIdString,
   entityRecordIdToString,
+  extractAccountGroupId,
   extractAccountId,
   Subgraph,
   Timestamp,
@@ -188,7 +191,7 @@ export const constructAuthenticatedUser = (params: {
 export type MinimalOrg = {
   kind: "org";
   entityRecordId: EntityRecordId;
-  accountId: AccountId;
+  accountGroupId: AccountGroupId;
   description?: string;
   location?: string;
   name: string;
@@ -212,8 +215,8 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityRecordId: orgEntity.metadata.recordId,
-    accountId: extractAccountId(
-      orgEntity.metadata.recordId.entityId as AccountEntityId,
+    accountGroupId: extractAccountGroupId(
+      orgEntity.metadata.recordId.entityId as AccountGroupEntityId,
     ),
     description,
     location,

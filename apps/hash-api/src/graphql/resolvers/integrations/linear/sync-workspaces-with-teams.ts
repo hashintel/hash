@@ -46,7 +46,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     },
   );
 
-  const userAccountId = extractOwnedByIdFromEntityId(
+  const ownedById = extractOwnedByIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
   );
 
@@ -54,7 +54,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     dataSources,
     authentication,
     {
-      userAccountId,
+      ownedById,
       linearOrgId: linearIntegration.linearOrgId,
     },
   );
@@ -91,13 +91,12 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       }),
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceAccountId = extractEntityUuidFromEntityId(
-        workspaceEntityId,
-      ) as Uuid as AccountId;
+      const workspaceOwnedById =
+        extractOwnedByIdFromEntityId(workspaceEntityId);
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           authentication,
-          workspaceAccountId,
+          workspaceOwnedById,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWorkspace(dataSources, authentication, {

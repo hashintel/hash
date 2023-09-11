@@ -1,3 +1,5 @@
+import { OwnedById } from "@local/hash-subgraph";
+
 import {
   createPage,
   getAllPagesInWorkspace,
@@ -88,7 +90,7 @@ export const pagesResolver: ResolverFn<
   const accountId = ownedById ?? user.accountId;
 
   const pages = await getAllPagesInWorkspace(context, authentication, {
-    accountId,
+    ownedById: accountId as OwnedById,
     includeArchived: includeArchived ?? false,
   });
 

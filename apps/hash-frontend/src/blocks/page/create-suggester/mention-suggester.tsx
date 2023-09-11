@@ -42,7 +42,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     accountId as OwnedById,
   );
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const loading = usersLoading && pagesLoading && entitiesLoading;
 
@@ -54,8 +54,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         entityId: user.entityRecordId.entityId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ accountId: userAccountId }) =>
-            userAccountId === activeWorkspaceAccountId,
+          ({ accountGroupId: orgGroupId }) =>
+            orgGroupId === activeWorkspaceOwnedById,
         ),
       })) ?? [];
 
@@ -101,7 +101,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
-  }, [search, users, activeWorkspaceAccountId, pages, entities]);
+  }, [search, users, activeWorkspaceOwnedById, pages, entities]);
 
   return (
     <Suggester
