@@ -431,9 +431,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             </Box>
           )}
         </NavLink>
-        <ViewAllLink href="/pages" sx={{ marginLeft: 1 }}>
-          View all pages
-        </ViewAllLink>
+        <Box marginLeft={1} marginTop={0.5}>
+          <ViewAllLink href="/pages">View all pages</ViewAllLink>
+        </Box>
       </SortableContext>
     </DndContext>
   );
