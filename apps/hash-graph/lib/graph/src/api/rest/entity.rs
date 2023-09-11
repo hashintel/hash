@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use authorization::AuthorizationApi;
 use axum::{http::StatusCode, routing::post, Extension, Router};
 use futures::TryFutureExt;
 use graph_types::{
@@ -67,13 +68,14 @@ pub struct EntityResource;
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.
-    fn routes<P: StorePool + Send + 'static>() -> Router {
+    fn routes<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>() -> Router
+    {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<P>).put(update_entity::<P>))
-                .route("/query", post(get_entities_by_query::<P>)),
+                .route("/query", post(get_entities_by_query::<P, A>)),
         )
     }
 }
@@ -159,9 +161,10 @@ async fn create_entity<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn get_entities_by_query<P: StorePool + Send>(
+#[tracing::instrument(level = "info", skip(pool, authorization_api))]
+async fn get_entities_by_query<P: StorePool + Send, A: AuthorizationApi + Send + Sync>(
     pool: Extension<Arc<P>>,
+    authorization_api: Extension<Arc<A>>,
     Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
@@ -178,7 +181,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
                 tracing::error!(?error, "Could not validate query");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
-            store.get_entity(&query).await.map_err(|report| {
+            store.get_entity(&query, &**authorization_api).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read entities from the store");
                 report_to_status_code(&report)
             })

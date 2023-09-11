@@ -1,13 +1,10 @@
 #!/usr/bin/env just --justfile
 
 set fallback
-set dotenv-load
 
 repo := `git rev-parse --show-toplevel`
 profile := env_var_or_default('PROFILE', "dev")
 test-env-flags := "--cfg hash_graph_test_environment"
-
-export HASH_GRAPH_PG_DATABASE := env_var('HASH_GRAPH_PG_DEV_DATABASE')
 
 [private]
 default:

@@ -16,7 +16,7 @@ export const requestFileUpload: ResolverFn<
   MutationRequestFileUploadArgs
 > = async (
   _,
-  { description, entityTypeId, name, ownedById, size },
+  { description, entityTypeId, displayName, name, ownedById, size },
   { dataSources, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -24,6 +24,7 @@ export const requestFileUpload: ResolverFn<
   const { presignedPost, entity } = await createFileFromUploadRequest(context, {
     actorId: user.accountId,
     description,
+    displayName,
     entityTypeId,
     name,
     ownedById: ownedById ?? (user.accountId as OwnedById),

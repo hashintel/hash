@@ -8,7 +8,6 @@
   "dependencyDashboardApproval": true,
   "dependencyDashboardTitle": "🚀 Dependency Updates",
   "dependencyDashboardOSVVulnerabilitySummary": "none",
-  "ignorePaths": ["apps/engine/**"],
   "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
@@ -59,7 +58,10 @@
         "lockfile-lint",
         "markdownlint-cli",
         "^prettier",
-        "prettier$"
+        "prettier$",
+        "rimraf",
+        "turbo",
+        "yarn-deduplicate"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false

@@ -9,12 +9,12 @@ mod traversal_context;
 use async_trait::async_trait;
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
-use graph_types::knowledge::entity::{
-    EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata,
+use graph_types::knowledge::{
+    entity::{EntityEditionId, EntityId, EntityProperties, EntityTemporalMetadata},
+    link::LinkOrder,
 };
 use graph_types::{
     account::AccountId,
-    knowledge::link::LinkOrder,
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
@@ -77,9 +77,10 @@ where
         match on_conflict {
             ConflictBehavior::Fail => {
                 self.as_client()
-                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
-                        &base_url.as_str(),
-                    ])
+                    .query(
+                        "INSERT INTO base_urls (base_url) VALUES ($1);",
+                        &[&base_url.as_str()],
+                    )
                     .await
                     .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
@@ -231,11 +232,14 @@ where
 
         let optional = self
             .as_client()
-            .query_opt(query, &[
-                &id.base_url.as_str(),
-                &OntologyTypeVersion::new(id.version),
-                &record_archived_by_id,
-            ])
+            .query_opt(
+                query,
+                &[
+                    &id.base_url.as_str(),
+                    &OntologyTypeVersion::new(id.version),
+                    &record_archived_by_id,
+                ],
+            )
             .await
             .change_context(UpdateError)?;
         if let Some(row) = optional {
@@ -292,11 +296,14 @@ where
         Ok(OntologyTemporalMetadata {
             transaction_time: self
                 .as_client()
-                .query_one(query, &[
-                    &id.base_url.as_str(),
-                    &OntologyTypeVersion::new(id.version),
-                    &record_created_by_id,
-                ])
+                .query_one(
+                    query,
+                    &[
+                        &id.base_url.as_str(),
+                        &OntologyTypeVersion::new(id.version),
+                        &record_created_by_id,
+                    ],
+                )
                 .await
                 .map_err(Report::new)
                 .map_err(|report| match report.current_context().code() {
@@ -784,17 +791,20 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, OntologyElementMetadata {
-            record_id,
-            custom: CustomOntologyMetadata::Owned {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id,
-                    record_archived_by_id: None,
+        Ok((
+            ontology_id,
+            OntologyElementMetadata {
+                record_id,
+                custom: CustomOntologyMetadata::Owned {
+                    provenance: ProvenanceMetadata {
+                        record_created_by_id,
+                        record_archived_by_id: None,
+                    },
+                    owned_by_id,
+                    temporal_versioning: OntologyTemporalMetadata { transaction_time },
                 },
-                owned_by_id,
-                temporal_versioning: OntologyTemporalMetadata { transaction_time },
             },
-        }))
+        ))
     }
 
     /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
@@ -1034,13 +1044,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             )
             .await
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[
-            Type::JSONB,
-            Type::INT4,
-            Type::INT4,
-            Type::UUID,
-            Type::BOOL,
-        ]);
+        let writer = BinaryCopyInWriter::new(
+            sink,
+            &[Type::JSONB, Type::INT4, Type::INT4, Type::UUID, Type::BOOL],
+        );
         futures::pin_mut!(writer);
         for (properties, left_to_right_order, right_to_left_order) in entities {
             let properties = serde_json::to_value(properties).change_context(InsertionError)?;
@@ -1129,12 +1136,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             )
             .await
             .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::TIMESTAMPTZ,
-        ]);
+        let writer = BinaryCopyInWriter::new(
+            sink,
+            &[Type::UUID, Type::UUID, Type::UUID, Type::TIMESTAMPTZ],
+        );
         futures::pin_mut!(writer);
         for (entity_id, entity_edition_id, decision_time) in entities {
             writer

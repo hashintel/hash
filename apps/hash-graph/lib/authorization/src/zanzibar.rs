@@ -226,7 +226,13 @@ impl<'t> UntypedTuple<'t> {
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Zookie<'a>(Cow<'a, str>);
+pub struct Zookie<'t>(Cow<'t, str>);
+
+impl Zookie<'_> {
+    pub(crate) const fn empty() -> Self {
+        Self(Cow::Borrowed(""))
+    }
+}
 
 /// Specifies the desired consistency level on a per-request basis.
 ///
@@ -245,12 +251,12 @@ pub enum Consistency<'z> {
     /// point-in-time specified in the [`Zookie`].
     ///
     /// If newer information is available, it will be used.
-    AtLeastAsFresh(Zookie<'z>),
+    AtLeastAsFresh(&'z Zookie<'z>),
     /// Ensures that all data used for computing the response is that found at the exact
     /// point-in-time specified in the [`Zookie`].
     ///
     /// If the snapshot is not available, an error will be raised.
-    AtExactSnapshot(Zookie<'z>),
+    AtExactSnapshot(&'z Zookie<'z>),
     /// Ensure that all data used is fully consistent with the latest data available within the
     /// SpiceDB datastore.
     ///

@@ -1,9 +1,0 @@
-{
-  "keys": {
-    "strength": {
-      "nullable": true,
-      "type": "number"
-    }
-  },
-  "built_in_key_use": null
-}

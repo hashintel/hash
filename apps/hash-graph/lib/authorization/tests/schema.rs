@@ -5,6 +5,7 @@ pub struct Account(&'static str);
 
 pub const ALICE: Account = Account("alice");
 pub const BOB: Account = Account("bob");
+pub const CHARLIE: Account = Account("charlie");
 
 impl Resource for Account {
     type Id = str;
@@ -22,6 +23,8 @@ impl Resource for Account {
 pub struct Entity(&'static str);
 
 pub const ENTITY_A: Entity = Entity("a");
+pub const ENTITY_B: Entity = Entity("b");
+pub const ENTITY_C: Entity = Entity("c");
 
 impl Resource for Entity {
     type Id = str;

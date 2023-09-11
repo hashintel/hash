@@ -5,6 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::AccountId,
@@ -809,8 +810,12 @@ where
             .await
     }
 
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
-        self.store.get_entity(query).await
+    async fn get_entity<Au: AuthorizationApi + Sync>(
+        &self,
+        query: &StructuralQuery<Entity>,
+        authorization_api: &Au,
+    ) -> Result<Subgraph, QueryError> {
+        self.store.get_entity(query, authorization_api).await
     }
 
     async fn update_entity(

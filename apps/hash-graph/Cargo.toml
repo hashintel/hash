@@ -21,6 +21,7 @@ graph-test-data = { path = "tests/test_data" }
 # tested in CI if the dependency was changed.
 temporal-versioning = { path = "lib/temporal-versioning" }
 graph-types = { path = "lib/graph-types" }
+authorization = { path = "lib/authorization" }
 
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
 hash-status = { path = "../../libs/@local/status/crate" }
@@ -35,6 +36,7 @@ serde_json = "1.0.105"
 tokio = { version = "1.32.0", default-features = false }
 time = { version = "0.3.28", default-features = false }
 tracing = "0.1.37"
+futures = { version = "0.3.28", default-features = false }
 
 [profile.production]
 inherits = "release"

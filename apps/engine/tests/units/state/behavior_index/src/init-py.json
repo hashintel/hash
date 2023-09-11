@@ -1,7 +1,0 @@
-[
-  {
-    "behaviors": ["first.py", "second.py", "third.py"],
-    "valid": true,
-    "index": 0
-  }
-]

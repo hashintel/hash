@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use authorization::AuthorizationApi;
 use error_stack::Result;
 use graph_types::{
     knowledge::{
@@ -83,7 +84,11 @@ pub trait EntityStore: crud::Read<Entity> {
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError>;
+    async fn get_entity<A: AuthorizationApi + Sync>(
+        &self,
+        query: &StructuralQuery<Entity>,
+        authorization_api: &A,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///

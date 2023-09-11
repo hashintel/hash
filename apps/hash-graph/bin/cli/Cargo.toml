@@ -11,6 +11,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 graph = { path = "../../lib/graph", features = ["clap"] }
 graph-types = { workspace = true }
 type-fetcher = { path = "../../lib/type-fetcher" }
+authorization = { workspace = true }
 
 error-stack = { workspace = true }
 type-system = { workspace = true }
@@ -19,7 +20,7 @@ axum = "0.6.20"
 clap = { version = "4.4.2", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.4.0"
 futures = { version = "0.3.28" }
-regex = "1.9.4"
+regex = "1.9.5"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.18", default-features = false }
 serde_json = "1.0.105"

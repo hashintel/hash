@@ -267,10 +267,13 @@ fn range_to_inclusive_object_missing_end_err() {
 #[test]
 fn bound_unbounded() {
     assert_tokens(&Bound::<()>::Unbounded, &[Token::Str("Unbounded")]);
-    assert_tokens(&Bound::<()>::Unbounded, &[
-        Token::Object { length: Some(1) },
-        Token::Str("Unbounded"),
-        Token::Null,
-        Token::ObjectEnd,
-    ]);
+    assert_tokens(
+        &Bound::<()>::Unbounded,
+        &[
+            Token::Object { length: Some(1) },
+            Token::Str("Unbounded"),
+            Token::Null,
+            Token::ObjectEnd,
+        ],
+    );
 }

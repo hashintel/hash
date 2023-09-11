@@ -5,10 +5,10 @@ use std::{mem, thread::JoinHandle};
 
 use authorization::{
     backend::{
-        AuthorizationApi, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
+        CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDb,
+        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
     },
     zanzibar::{Consistency, Tuple, UntypedTuple},
 };
@@ -33,7 +33,7 @@ impl TestApi {
     ///
     /// After disconnecting every created relation will be deleted again.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)] // Only the cleanup thread may panic
+    #[allow(clippy::missing_panics_doc, clippy::print_stderr)] // Only the cleanup thread may panic
     pub fn connect() -> Self {
         let host =
             std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
@@ -68,10 +68,16 @@ impl TestApi {
 
                     let tuples: Vec<UntypedTuple> =
                         tuple_receiver.await.expect("failed to receive tuples");
-                    client
-                        .delete_relation(&tuples, [])
-                        .await
-                        .expect("failed to delete relations");
+
+                    if let Err(error) = client.delete_relations(&tuples, []).await {
+                        eprintln!(
+                            "failed to delete relations: {error:?} while cleaning up {} tuples",
+                            tuples.len()
+                        );
+                        for tuple in &tuples {
+                            eprintln!("\n  - {tuple}");
+                        }
+                    }
                 });
         });
 
@@ -96,7 +102,7 @@ impl Drop for TestApi {
     }
 }
 
-impl AuthorizationApi for TestApi {
+impl ZanzibarBackend for TestApi {
     async fn import_schema(
         &mut self,
         schema: &str,
@@ -108,7 +114,7 @@ impl AuthorizationApi for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relation<'p, 't, T>(
+    async fn create_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -124,14 +130,14 @@ impl AuthorizationApi for TestApi {
             })
             .unzip();
 
-        let result = self.client.create_relation(tuples, preconditions).await?;
+        let result = self.client.create_relations(tuples, preconditions).await?;
 
         self.tuples.extend(untyped_tuples);
 
         Ok(result)
     }
 
-    async fn delete_relation<'p, 't, T>(
+    async fn delete_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
         preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
@@ -139,15 +145,17 @@ impl AuthorizationApi for TestApi {
     where
         T: Tuple + Send + Sync + 't,
     {
-        self.client.delete_relation(tuples, preconditions).await
+        self.client.delete_relations(tuples, preconditions).await
     }
 
-    async fn delete_relations<'f>(
+    async fn delete_relations_by_filter<'f>(
         &mut self,
         filter: RelationFilter<'_>,
         preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
     ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>> {
-        self.client.delete_relations(filter, preconditions).await
+        self.client
+            .delete_relations_by_filter(filter, preconditions)
+            .await
     }
 
     async fn check(

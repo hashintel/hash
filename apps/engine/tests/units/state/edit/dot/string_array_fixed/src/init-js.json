@@ -1,6 +1,0 @@
-[
-  {
-    "behaviors": ["test.js"],
-    "s1": ["foo", "bar"]
-  }
-]
