@@ -15,10 +15,16 @@ use self::{args::Args, error::GraphError};
 fn main() -> Result<(), GraphError> {
     load_env(None);
 
-    let args = Args::parse_args();
+    let Args {
+        sentry_dsn,
+        subcommand,
+    } = Args::parse_args();
 
+    // Initialize Sentry
+    // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
+    // flushed. This means we need to keep the guard around for the entire lifetime of the program.
     let _sentry = sentry::init(sentry::ClientOptions {
-        dsn: args.sentry_dsn.clone().flatten(),
+        dsn: sentry_dsn,
         release: sentry::release_name!(),
         session_mode: sentry::SessionMode::Request,
         traces_sampler: Some(Arc::new(|ctx| {
@@ -33,5 +39,5 @@ fn main() -> Result<(), GraphError> {
         ..Default::default()
     });
 
-    args.subcommand.execute()
+    subcommand.execute()
 }

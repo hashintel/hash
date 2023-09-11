@@ -6,6 +6,8 @@ mod snapshot;
 mod test_server;
 mod type_fetcher;
 
+use std::future::Future;
+
 use error_stack::Result;
 
 #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
@@ -37,29 +39,27 @@ pub enum Subcommand {
     TestServer(TestServerArgs),
 }
 
+fn spawn_runtime(future: impl Future<Output = Result<(), GraphError>>) -> Result<(), GraphError> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("failed to create runtime")
+        .block_on(future)
+}
+
 impl Subcommand {
-    async fn delegate(self) -> Result<(), GraphError> {
+    pub(crate) fn execute(self) -> Result<(), GraphError> {
         match self {
-            Self::Server(args) => server(args).await,
-            Self::Migrate(args) => migrate(args).await,
-            Self::TypeFetcher(args) => type_fetcher(args).await,
+            Self::Server(args) => spawn_runtime(server(args)),
+            Self::Migrate(args) => spawn_runtime(migrate(args)),
+            Self::TypeFetcher(args) => spawn_runtime(type_fetcher(args)),
             Self::Completions(ref args) => {
                 completions(args);
                 Ok(())
             }
-            Self::Snapshot(args) => snapshot(args).await,
+            Self::Snapshot(args) => spawn_runtime(snapshot(args)),
             #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
-            Self::TestServer(args) => test_server(args).await,
+            Self::TestServer(args) => spawn_runtime(test_server(args)),
         }
-    }
-
-    pub(crate) fn execute(self) -> Result<(), GraphError> {
-        // create a runtime
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .expect("failed to create runtime");
-
-        runtime.block_on(self.delegate())
     }
 }
