@@ -162,7 +162,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               variant="smallTextLabels"
               sx={({ palette }) => ({
                 display: "block",
-                fontWeight: 400,
+                fontWeight: 500,
                 marginLeft: 0.75,
                 py: 1,
                 overflow: "hidden",
