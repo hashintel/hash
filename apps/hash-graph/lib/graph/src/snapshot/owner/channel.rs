@@ -112,8 +112,7 @@ impl Stream for OwnerReceiver {
 
 /// Creates a new [`OwnerSender`] and [`OwnerReceiver`] pair.
 ///
-/// The `chunk_size` parameter determines the number of [`AccountId`]s that are sent in a single
-/// [`AccountRowBatch`].
+/// The `chunk_size` parameter determines the number of ids are sent in a single batch.
 pub fn channel(chunk_size: usize) -> (OwnerSender, OwnerReceiver) {
     let (account_id_tx, account_id_rx) = mpsc::channel(chunk_size);
     let (account_group_id_tx, account_group_id_rx) = mpsc::channel(chunk_size);
