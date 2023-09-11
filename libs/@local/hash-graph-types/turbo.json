@@ -2,7 +2,7 @@
   "extends": ["//"],
   "pipeline": {
     "build": {
-      "dependsOn": ["^build", "codegen"],
+      "dependsOn": ["^build", "codegen", "lint:mypy"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],
       "outputs": ["dist/**"]
     },

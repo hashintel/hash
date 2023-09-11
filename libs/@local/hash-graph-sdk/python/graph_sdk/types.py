@@ -8,7 +8,7 @@ from graph_types import (
 )
 from yarl import URL
 
-from graph_sdk.client.concurrent import HASHClient, with_actor
+from graph_sdk.client.concurrent import HASHClient
 from graph_sdk.filter import (
     DataTypeQueryPath,
     EntityTypeQueryPath,
@@ -38,10 +38,7 @@ class TypeAPI:
         actor_id: UUID,
     ) -> DataTypeSchema:
         """Load an external data type."""
-        with with_actor(self.inner, actor_id):
-            await self.inner.load_external_data_type(
-                URL(data_type_id),
-            )
+        await self.inner.load_external_data_type(URL(data_type_id), actor=actor_id)
 
         return await self.get_data_type(
             data_type_id,
@@ -62,11 +59,11 @@ class TypeAPI:
         the actor ID to authenticate the request.
         TODO: remove this once H-136 is resolved.
         """
-        with with_actor(self.inner, actor_id):
-            subgraph = await self.inner.query_data_types(
-                DataTypeQueryPath().versioned_url() == Parameter(data_type_id),
-                Options(),
-            )
+        subgraph = await self.inner.query_data_types(
+            DataTypeQueryPath().versioned_url() == Parameter(data_type_id),
+            Options(),
+            actor=actor_id,
+        )
 
         latest = filter_latest_ontology_types_from_subgraph(subgraph)
         if not latest:
@@ -97,10 +94,10 @@ class TypeAPI:
         actor_id: UUID,
     ) -> PropertyTypeSchema:
         """Load an external property type."""
-        with with_actor(self.inner, actor_id):
-            await self.inner.load_external_property_type(
-                URL(property_type_id),
-            )
+        await self.inner.load_external_property_type(
+            URL(property_type_id),
+            actor=actor_id,
+        )
 
         return await self.get_property_type(
             property_type_id,
@@ -121,11 +118,11 @@ class TypeAPI:
         the actor ID to authenticate the request.
         TODO: remove this once H-136 is resolved.
         """
-        with with_actor(self.inner, actor_id):
-            subgraph = await self.inner.query_property_types(
-                PropertyTypeQueryPath().versioned_url() == Parameter(property_type_id),
-                Options(),
-            )
+        subgraph = await self.inner.query_property_types(
+            PropertyTypeQueryPath().versioned_url() == Parameter(property_type_id),
+            Options(),
+            actor=actor_id,
+        )
 
         latest = filter_latest_ontology_types_from_subgraph(subgraph)
         if not latest:
@@ -160,10 +157,10 @@ class TypeAPI:
         actor_id: UUID,
     ) -> EntityTypeSchema:
         """Load an external entity type."""
-        with with_actor(self.inner, actor_id):
-            await self.inner.load_external_entity_type(
-                URL(entity_type_id),
-            )
+        await self.inner.load_external_entity_type(
+            URL(entity_type_id),
+            actor=actor_id,
+        )
 
         return await self.get_entity_type(
             entity_type_id,
@@ -184,11 +181,11 @@ class TypeAPI:
         the actor ID to authenticate the request.
         TODO: remove this once H-136 is resolved.
         """
-        with with_actor(self.inner, actor_id):
-            subgraph = await self.inner.query_entity_types(
-                EntityTypeQueryPath().versioned_url() == Parameter(entity_type_id),
-                Options(),
-            )
+        subgraph = await self.inner.query_entity_types(
+            EntityTypeQueryPath().versioned_url() == Parameter(entity_type_id),
+            Options(),
+            actor=actor_id,
+        )
 
         latest = filter_latest_ontology_types_from_subgraph(subgraph)
 
