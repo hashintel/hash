@@ -314,7 +314,6 @@ impl Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use graph_types::{
-        account::AccountId,
         knowledge::entity::{EntityId, EntityUuid},
         ontology::DataTypeWithMetadata,
         provenance::OwnedById,
@@ -367,7 +366,7 @@ mod tests {
     #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+            owned_by_id: OwnedById::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
         };
 

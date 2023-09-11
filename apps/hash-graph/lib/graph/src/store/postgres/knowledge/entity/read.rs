@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
-    account::AccountId,
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityRecordId,
@@ -138,11 +137,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     VersionedUrl::from_str(row.get(type_id_index)).change_context(QueryError)?;
 
                 let link_data = {
-                    let left_owned_by_id: Option<AccountId> =
-                        row.get(left_entity_owned_by_id_index);
+                    let left_owned_by_id: Option<Uuid> = row.get(left_entity_owned_by_id_index);
                     let left_entity_uuid: Option<Uuid> = row.get(left_entity_uuid_index);
-                    let right_owned_by_id: Option<AccountId> =
-                        row.get(right_entity_owned_by_id_index);
+                    let right_owned_by_id: Option<Uuid> = row.get(right_entity_owned_by_id_index);
                     let right_entity_uuid: Option<Uuid> = row.get(right_entity_uuid_index);
                     match (
                         left_owned_by_id,

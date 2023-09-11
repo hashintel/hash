@@ -33,7 +33,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccountId"
+                  "$ref": "#/components/schemas/AccountGroupId"
                 }
               }
             }

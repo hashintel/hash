@@ -242,7 +242,6 @@ impl ToSchema<'_> for Edges {
 #[cfg(test)]
 mod tests {
     use graph_types::{
-        account::AccountId,
         knowledge::entity::{EntityId, EntityUuid},
         ontology::OntologyTypeVersion,
         provenance::OwnedById,
@@ -265,7 +264,7 @@ mod tests {
     fn merge_ontology() {
         let vertex_id = EntityVertexId {
             base_id: EntityId {
-                owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                owned_by_id: OwnedById::new(Uuid::new_v4()),
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
             },
             revision_id: Timestamp::now(),
@@ -280,7 +279,7 @@ mod tests {
             EdgeDirection::Outgoing,
             EntityIdWithInterval {
                 entity_id: EntityId {
-                    owned_by_id: OwnedById::new(AccountId::new(Uuid::new_v4())),
+                    owned_by_id: OwnedById::new(Uuid::new_v4()),
                     entity_uuid: EntityUuid::new(Uuid::new_v4()),
                 },
                 interval: LeftClosedTemporalInterval::new(

@@ -9,7 +9,7 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
+use graph_types::{account::AccountId, ontology::OntologyTypeVersion};
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
 };
@@ -65,14 +65,9 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         entity: EntitySnapshotRecord,
     ) -> Result<(), Self::Error> {
         self.account
-            .start_send_unpin(
-                entity
-                    .metadata
-                    .record_id
-                    .entity_id
-                    .owned_by_id
-                    .as_account_id(),
-            )
+            .start_send_unpin(AccountId::new(
+                entity.metadata.record_id.entity_id.owned_by_id.as_uuid(),
+            ))
             .attach_printable("could not send account")?;
 
         self.id
@@ -93,20 +88,8 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 right_to_left_order: entity
                     .link_data
                     .and_then(|link_data| link_data.order.right_to_left),
-                record_created_by_id: entity.metadata.custom.provenance.map_or_else(
-                    || {
-                        RecordCreatedById::new(
-                            entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .owned_by_id
-                                .as_account_id(),
-                        )
-                    },
-                    |p| p.record_created_by_id,
-                ),
-                archived: entity.metadata.custom.archived.unwrap_or(false),
+                record_created_by_id: entity.metadata.custom.provenance.record_created_by_id,
+                archived: entity.metadata.custom.archived,
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
                 entity_type_version: OntologyTypeVersion::new(
                     entity.metadata.entity_type_id.version,

@@ -7,6 +7,11 @@ from uuid import UUID
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, RootModel
 
 
+class AccountGroupId(RootModel):
+    model_config = ConfigDict(populate_by_name=True)
+    root: UUID
+
+
 class AccountId(RootModel):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID

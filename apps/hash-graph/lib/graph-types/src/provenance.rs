@@ -50,7 +50,6 @@ macro_rules! define_provenance_id {
     };
 }
 
-define_provenance_id!(OwnedById);
 define_provenance_id!(RecordCreatedById);
 define_provenance_id!(RecordArchivedById);
 
@@ -64,4 +63,28 @@ pub struct ProvenanceMetadata {
     pub record_created_by_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub record_archived_by_id: Option<RecordArchivedById>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[repr(transparent)]
+pub struct OwnedById(Uuid);
+
+impl OwnedById {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
+    }
+}
+
+impl fmt::Display for OwnedById {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
 }
