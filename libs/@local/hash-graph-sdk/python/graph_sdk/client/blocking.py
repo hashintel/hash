@@ -12,9 +12,7 @@ at the source code)
 """
 from graph_sdk.client.concurrent import HASHClient as ConcurrentHASHClient
 from graph_sdk.utils import async_to_sync
-from collections.abc import Generator
-from contextlib import contextmanager
-from typing import Self, TypeVar
+from typing import TypeVar
 from uuid import UUID
 from graph_client import GraphClient as LowLevelClient
 from graph_client.models import (
@@ -34,7 +32,6 @@ from graph_client.models import (
     OwnedById,
     PropertyType,
     PropertyTypeStructuralQuery,
-    RecordCreatedById,
     Subgraph,
     UpdateDataType,
     UpdateDataTypeRequest,
