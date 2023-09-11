@@ -134,6 +134,8 @@ impl<C: AsClient> SnapshotStore<C> {
         &self,
     ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
     {
+        // TODO: Make accounts a first-class `Record` type
+        //   see https://linear.app/hash/issue/H-752
         Ok(self
             .0
             .as_client()
@@ -151,6 +153,8 @@ impl<C: AsClient> SnapshotStore<C> {
         &self,
     ) -> Result<impl Stream<Item = Result<AccountGroup, SnapshotDumpError>> + Send, SnapshotDumpError>
     {
+        // TODO: Make account groups a first-class `Record` type
+        //   see https://linear.app/hash/issue/H-752
         Ok(self
             .0
             .as_client()
