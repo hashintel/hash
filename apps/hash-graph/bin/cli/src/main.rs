@@ -3,6 +3,7 @@
 
 mod args;
 mod error;
+mod parser;
 mod subcommand;
 
 use std::sync::Arc;
@@ -19,6 +20,12 @@ fn main() -> Result<(), GraphError> {
         sentry_dsn,
         subcommand,
     } = Args::parse_args();
+
+    if let Some(dsn) = &sentry_dsn {
+        let client = sentry::Client::from_config(dsn);
+
+        assert!(client.is_enabled(), "Invalid Sentry DSN has been provided");
+    }
 
     // Initialize Sentry
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
