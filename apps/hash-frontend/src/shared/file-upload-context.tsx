@@ -25,6 +25,7 @@ import {
   CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
   CreateFileFromUrlMutationVariables,
+  PresignedFormPost,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
 } from "../graphql/api-types.gen";
@@ -63,6 +64,8 @@ type FileUploadRequestData = {
   fileData: UploadFileRequestData;
   linkedEntityData?: FileLinkData;
   ownedById: OwnedById;
+  // Pass if retrying an earlier request
+  requestId?: string;
 };
 
 type FileUploadEntities = {
@@ -70,10 +73,30 @@ type FileUploadEntities = {
   linkEntity?: LinkEntity;
 };
 
-type FileUploadVariant<T> = FileUploadRequestData & { requestId: string } & T;
+type FileUploadStatus =
+  | "creating-file-entity"
+  | "uploading-file-locally"
+  | "creating-link-entity"
+  | "archiving-link-entity"
+  | "error"
+  | "complete";
 
-type FileUploadLoading = FileUploadVariant<{
-  status: "uploading-file";
+type FileUploadVariant<T extends { status: FileUploadStatus }> =
+  FileUploadRequestData & { requestId: string } & T;
+
+type FileCreatingFileEntity = FileUploadVariant<{
+  status: "creating-file-entity";
+}>;
+
+type FileUploadUploading = FileUploadVariant<{
+  createdEntities: Pick<FileUploadEntities, "fileEntity">;
+  presignedPostForm: PresignedFormPost;
+  status: "uploading-file-locally";
+}>;
+
+type FileUploadDeletingLinkEntity = FileUploadVariant<{
+  createdEntities: Pick<FileUploadEntities, "fileEntity">;
+  status: "archiving-link-entity";
 }>;
 
 type FileUploadCreatingLinkEntity = FileUploadVariant<{
@@ -84,6 +107,8 @@ type FileUploadCreatingLinkEntity = FileUploadVariant<{
 type FileUploadError = FileUploadVariant<{
   createdEntities?: Pick<FileUploadEntities, "fileEntity">;
   errorMessage: string;
+  failedStep: FileUploadStatus;
+  presignedPostForm?: PresignedFormPost;
   status: "error";
 }>;
 
@@ -93,7 +118,9 @@ type FileUploadComplete = FileUploadVariant<{
 }>;
 
 export type FileUpload =
-  | FileUploadLoading
+  | FileCreatingFileEntity
+  | FileUploadDeletingLinkEntity
+  | FileUploadUploading
   | FileUploadCreatingLinkEntity
   | FileUploadError
   | FileUploadComplete;
@@ -125,6 +152,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     {},
   );
 
+  // @todo ellipsis or break for entity name
+
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
@@ -155,25 +184,58 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
   );
 
   const uploadFile: FileUploadsContextValue["uploadFile"] = useCallback(
-    async ({ fileData, linkedEntityData, ownedById }) => {
-      const requestId = uuid();
+    async ({ fileData, linkedEntityData, ownedById, requestId }) => {
+      const existingUpload = requestId
+        ? uploads.find((upload) => upload.requestId === requestId)
+        : null;
 
-      const upload: FileUpload = {
-        fileData,
-        linkedEntityData,
-        ownedById,
-        requestId,
-        status: "uploading-file",
-      };
+      if (requestId && !existingUpload) {
+        throw new Error(
+          `Could not find existing upload with requestId ${requestId}`,
+        );
+      }
 
-      setUploads((prevUploads) => [...prevUploads, upload]);
+      if (existingUpload && existingUpload.status !== "error") {
+        throw new Error(
+          `File upload request ${requestId} is not in error status, cannot retry. Current status: ${existingUpload.status}`,
+        );
+      }
 
-      let fileEntity;
+      const newRequestId = requestId ? undefined : uuid();
+
+      const upload = existingUpload
+        ? ({
+            createdEntities: existingUpload.createdEntities,
+            fileData: existingUpload.fileData,
+            linkedEntityData: existingUpload.linkedEntityData,
+            requestId,
+            ownedById: existingUpload.ownedById,
+            status: existingUpload.failedStep,
+          } as FileUpload)
+        : ({
+            fileData,
+            linkedEntityData,
+            ownedById,
+            requestId: newRequestId!,
+            status: "creating-file-entity",
+          } satisfies FileUpload);
+
+      if (!existingUpload) {
+        setUploads((prevUploads) => [...prevUploads, upload]);
+      } else {
+        updateUpload(upload);
+      }
 
       const { description, entityTypeId, name } = fileData;
 
+      // if retrying an earlier request, we might already have a file entity
+      let fileEntity =
+        "createdEntities" in upload
+          ? upload.createdEntities?.fileEntity
+          : undefined;
+
       // First, upload the file (either from a url or from a file)
-      if ("url" in fileData && fileData.url.trim()) {
+      if (!fileEntity && "url" in fileData && fileData.url.trim()) {
         try {
           const { data, errors } = await createFileFromUrlFn({
             variables: {
@@ -197,43 +259,81 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             fileData.url
           }: ${(err as Error).message}`;
 
-          updateUpload({
+          const updatedUpload: FileUpload = {
             ...upload,
+            failedStep: "creating-file-entity",
             status: "error",
             errorMessage,
-          });
-          throw new Error(errorMessage, { cause: err });
-        }
-      } else if ("file" in fileData) {
-        try {
-          const { data, errors } = await requestFileUploadFn({
-            variables: {
-              description,
-              entityTypeId,
-              ownedById,
-              displayName: name,
-              name: fileData.file.name,
-              size: fileData.file.size,
-            },
-          });
+          };
 
-          if (!data || errors) {
-            throw new Error(errors?.[0]?.message ?? "unknown error");
+          updateUpload(updatedUpload);
+
+          return updatedUpload;
+        }
+      } else if (
+        "file" in fileData &&
+        // if we failed at link deletion / creation, we've already done all this
+        existingUpload?.failedStep !== "creating-link-entity" &&
+        existingUpload?.failedStep !== "archiving-link-entity"
+      ) {
+        let presignedPostForm: PresignedFormPost | undefined =
+          "presignedPostForm" in upload ? upload.presignedPostForm : undefined;
+
+        try {
+          if (!fileEntity) {
+            // if we are resuming a previous step and have a file entity, we can skip this step
+            const { data, errors } = await requestFileUploadFn({
+              variables: {
+                description,
+                entityTypeId,
+                ownedById,
+                displayName: name,
+                name: fileData.file.name,
+                size: fileData.file.size,
+              },
+            });
+
+            if (!data || errors) {
+              throw new Error(errors?.[0]?.message ?? "unknown error");
+            }
+
+            fileEntity = data.requestFileUpload
+              .entity as unknown as FileEntityType;
+
+            presignedPostForm = data.requestFileUpload.presignedPost;
+
+            const updatedUpload: FileUpload = {
+              ...upload,
+              createdEntities: { fileEntity },
+              presignedPostForm,
+              status: "uploading-file-locally",
+            };
+            updateUpload(updatedUpload);
           }
 
-          fileEntity = data.requestFileUpload
-            .entity as unknown as FileEntityType;
+          if (!presignedPostForm) {
+            // We should never get here as we should have the presigned form from an existing upload or the requestFileUploadFn call above
+            throw new Error(
+              `No presignedPostForm found for requestId ${requestId}, cannot upload file`,
+            );
+          }
+
+          const test = Math.random();
+
+          if (test < 0.3) {
+            throw new Error("Test throw");
+          }
 
           /**
            * Upload file with presignedPost data to storage provider
            */
           await uploadFileToStorageProvider(
-            data.requestFileUpload.presignedPost,
+            presignedPostForm,
             fileData.file,
             (progress) => {
               setUploadsProgress((prevProgress) => ({
                 ...prevProgress,
-                [requestId]: progress,
+                [upload.requestId]: progress,
               }));
             },
           );
@@ -247,6 +347,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           const updatedUpload: FileUpload = {
             ...upload,
             status: "error",
+            failedStep: "uploading-file-locally",
             errorMessage,
           };
           updateUpload(updatedUpload);
@@ -263,7 +364,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
       // If we don't have any links to delete or create, we're done
       if (!linkedEntityData || linkedEntityData.skipLinkCreationAndDeletion) {
-        const updatedUpload: FileUpload = {
+        const updatedUpload: FileUploadComplete = {
           ...upload,
           status: "complete",
           createdEntities: { fileEntity },
@@ -279,16 +380,19 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         linkEntityTypeId,
       } = linkedEntityData;
 
-      updateUpload({
-        ...upload,
-        createdEntities: {
-          fileEntity,
-        },
-        status: "creating-link-entity",
-      });
-
       // Delete the old link entity if requested
-      if (linkEntityIdToDelete) {
+      if (
+        linkEntityIdToDelete &&
+        existingUpload?.failedStep !== "creating-link-entity"
+      ) {
+        updateUpload({
+          ...upload,
+          createdEntities: {
+            fileEntity,
+          },
+          status: "archiving-link-entity",
+        });
+
         try {
           const { data: archiveData, errors: archiveErrors } =
             await archiveEntity({
@@ -308,6 +412,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           const updatedUpload: FileUpload = {
             ...upload,
             createdEntities: { fileEntity },
+            failedStep: "archiving-link-entity",
             status: "error",
             errorMessage,
           };
@@ -316,6 +421,14 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           return updatedUpload;
         }
       }
+
+      updateUpload({
+        ...upload,
+        createdEntities: {
+          fileEntity,
+        },
+        status: "creating-link-entity",
+      });
 
       try {
         const { data, errors } = await createEntity({
@@ -351,6 +464,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         const updatedUpload: FileUpload = {
           ...upload,
           createdEntities: { fileEntity },
+          failedStep: "creating-link-entity",
           status: "error",
           errorMessage,
         };
@@ -365,6 +479,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       createFileFromUrlFn,
       requestFileUploadFn,
       updateUpload,
+      uploads,
     ],
   );
 

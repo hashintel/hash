@@ -64,8 +64,6 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
     setShowUploadForm(false);
   };
 
-  console.log("Rendering");
-
   return (
     <SectionWrapper
       title="Upload file"
@@ -133,10 +131,11 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
               return (
                 <TableRow key={upload.requestId}>
-                  <TableCell>
+                  <TableCell sx={{ maxWidth: 600 }}>
                     <Typography
                       variant="smallTextLabels"
                       sx={{
+                        display: "block",
                         whiteSpace: "nowrap",
                         textOverflow: "ellipsis",
                         overflow: "hidden",
@@ -148,7 +147,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                         : upload.fileData.url.split("/").pop()}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ width: "60%" }}>
+                  <TableCell sx={{ width: "60%", minWidth: 300 }}>
                     <Stack direction="row" alignItems="center">
                       <Stack
                         direction="row"
@@ -185,7 +184,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                   </TableCell>
                   <TableCell sx={{ textAlign: "center", width: 85 }}>
                     <Action
-                      onRetry={() => console.log("Retrying")}
+                      onRetry={() => uploadFile(upload)}
                       upload={upload}
                     />
                   </TableCell>

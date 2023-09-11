@@ -16,7 +16,7 @@
   "scripts": {
     "codegen": "turbo codegen",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
-    "dev": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
+    "dev": "turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
     "dev:backend": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --",
     "dev:backend:api": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:backend:realtime": "turbo dev --log-order stream --filter '@apps/hash-realtime' --",

@@ -11,7 +11,6 @@ import {
   getFormDataFromSchema,
   getSchemaFromFormData,
   useEntityTypeForm,
-  useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
@@ -74,11 +73,6 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const parentRefs = useEntityTypeFormWatch({
-    control: formMethods.control,
-    name: "allOf",
-  });
-
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
       const entityType = JSON.parse(
@@ -130,6 +124,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType?.schema ?? draftEntityType;
 
+  const parentRefs = formMethods.watch("allOf");
   const { isLink, isFile, isImage } = useIsSpecialEntityType({
     allOf: parentRefs.map((id) => ({ $ref: id })),
     $id: entityType?.$id,
