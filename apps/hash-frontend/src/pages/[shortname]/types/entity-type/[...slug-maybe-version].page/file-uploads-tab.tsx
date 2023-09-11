@@ -1,6 +1,6 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { CheckIcon } from "@hashintel/block-design-system";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { CloseIcon, FontAwesomeIcon } from "@hashintel/design-system";
 import { OwnedById } from "@local/hash-subgraph";
 import {
   Box,
@@ -157,11 +157,21 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                           border: ({ palette }) =>
                             `1px solid ${palette.gray[30]}`,
                           px: 1.2,
-                          py: 0.5,
+                          py: 0.8,
                         }}
                       >
                         {upload.status === "complete" ? (
-                          <CheckIcon sx={{ color: "blue.70", fontSize: 14 }} />
+                          <CheckIcon
+                            sx={{ color: "blue.70", fontSize: 14, mr: 0.3 }}
+                          />
+                        ) : upload.status === "error" ? (
+                          <CloseIcon
+                            sx={{
+                              fill: ({ palette }) => palette.pink[80],
+                              fontSize: 11,
+                              mr: 0.3,
+                            }}
+                          />
                         ) : (
                           <CircularProgress
                             {...progressIndicatorProps}
@@ -171,9 +181,12 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                         <Typography
                           variant="microText"
                           fontWeight={600}
+                          lineHeight={1}
                           ml={0.5}
                         >
-                          {progressPercent.toFixed(0)}%
+                          {upload.status === "error"
+                            ? "Error"
+                            : `${progressPercent.toFixed(0)}%`}
                         </Typography>
                       </Stack>
                       <LinearProgress

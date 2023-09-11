@@ -17,6 +17,7 @@ export * from "./icon-asterisk-regular";
 export * from "./icon-barcode";
 export * from "./icon-button";
 export * from "./icon-circle-plus";
+export * from "./icon-close";
 export * from "./icon-graph";
 export * from "./icon-image-regular";
 export * from "./icon-image-solid";
