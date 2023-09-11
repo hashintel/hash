@@ -50,7 +50,7 @@
           "Graph",
           "Account"
         ],
-        "operationId": "create_account",
+        "operationId": "create_account_id",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
