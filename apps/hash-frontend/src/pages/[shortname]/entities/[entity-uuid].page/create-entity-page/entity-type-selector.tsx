@@ -38,7 +38,7 @@ export const EntityTypeSelector: FunctionComponent<{
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
-        Icon: isSpecialEntityTypeLookup?.[$id]?.link
+        Icon: isSpecialEntityTypeLookup?.[$id]?.isLink
           ? LinkTypeIcon
           : EntityTypeIcon,
         typeId: $id,

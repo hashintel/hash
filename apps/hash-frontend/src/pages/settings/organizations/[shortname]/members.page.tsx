@@ -1,6 +1,5 @@
 import {
   styled,
-  Table,
   TableBody,
   TableCell,
   TableFooter,

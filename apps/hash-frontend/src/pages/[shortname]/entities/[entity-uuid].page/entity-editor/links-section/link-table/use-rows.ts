@@ -63,8 +63,8 @@ export const useRows = () => {
       );
 
       const isLoading =
-        relevantUpload?.status === "uploading-file" ||
-        relevantUpload?.status === "creating-link-entity";
+        relevantUpload?.status !== "complete" &&
+        relevantUpload?.status !== "error";
 
       let expectedEntityTypes: EntityTypeWithMetadata[] = [];
 
@@ -143,7 +143,7 @@ export const useRows = () => {
 
       const isFile = expectedEntityTypes.some(
         (expectedType) =>
-          isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
+          isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
       );
 
       return {

@@ -144,7 +144,7 @@ export const TypesTable: FunctionComponent<{
             title: type.schema.title,
             kind:
               type.schema.kind === "entityType"
-                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.file
+                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
