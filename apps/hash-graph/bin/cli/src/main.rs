@@ -26,7 +26,9 @@ fn main() -> Result<(), GraphError> {
         let client = sentry::Client::from_config(dsn);
 
         if !client.is_enabled() {
-            return Err(Report::new(SentryError::InvalidDsn).change_context(GraphError));
+            return Err(Report::new(SentryError::InvalidDsn)
+                .attach_printable(dsn.clone())
+                .change_context(GraphError));
         }
     }
 
