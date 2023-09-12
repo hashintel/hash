@@ -157,7 +157,14 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .insert_entities_batched_by_type(
                 account_id,
                 &mut NoAuthorization,
-                repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
+                repeat((
+                    OwnedById::new(account_id.as_uuid()),
+                    None,
+                    properties,
+                    None,
+                    None,
+                ))
+                .take(quantity),
                 &entity_type_id,
             )
             .await
@@ -184,7 +191,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity_metadata, right_entity_metadata)| {
                         (
-                            OwnedById::new(account_id),
+                            OwnedById::new(account_id.as_uuid()),
                             None,
                             EntityProperties::empty(),
                             Some(LinkData {

@@ -44,9 +44,6 @@ services:
       HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
       HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
       HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
-      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
-      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
-      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
       HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER}"
       HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD}"
       HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DATABASE}"
@@ -61,7 +58,8 @@ services:
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     healthcheck:
-      test: ["CMD", "pg_isready", "-q", "-h", "postgres"]
+      test:
+        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
       interval: 2s
       timeout: 2s
       retries: 5

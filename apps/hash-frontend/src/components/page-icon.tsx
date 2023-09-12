@@ -28,6 +28,7 @@ export const PageIcon = ({ icon, size = "medium", sx = [] }: PageIconProps) => {
           width: sizes.container,
           height: sizes.container,
           fontSize: sizes.font,
+          fontFamily: "auto",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",

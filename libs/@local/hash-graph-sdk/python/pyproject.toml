@@ -18,8 +18,8 @@ setuptools = "^68.0.0"
 devtools = "^0.11.0"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.7.0"
-ruff = "^0.0.287"
+black = "^23.9.1"
+ruff = "^0.0.288"
 mypy = "^1.5.1"
 
 hash-graph-client = { path = "../../hash-graph-client/python", develop = true }

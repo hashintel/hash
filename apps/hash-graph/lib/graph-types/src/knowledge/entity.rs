@@ -14,7 +14,6 @@ use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    account::AccountId,
     knowledge::link::LinkData,
     provenance::{OwnedById, ProvenanceMetadata},
 };
@@ -203,9 +202,9 @@ impl<'de> Deserialize<'de> for EntityId {
             })
             .and_then(|(owned_by_id, entity_uuid)| {
                 Ok(Self {
-                    owned_by_id: OwnedById::new(AccountId::new(
+                    owned_by_id: OwnedById::new(
                         Uuid::from_str(owned_by_id).map_err(de::Error::custom)?,
-                    )),
+                    ),
                     entity_uuid: EntityUuid::new(
                         Uuid::from_str(entity_uuid).map_err(de::Error::custom)?,
                     ),
