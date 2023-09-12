@@ -25,7 +25,6 @@ export interface PageTreeItemProps {
   depth: number;
   selected: boolean;
   expanded: boolean;
-  expandable: boolean;
   collapsed: boolean;
   createSubPage: () => Promise<void>;
   icon?: string | null;
@@ -46,7 +45,6 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     {
       pageEntityId,
       title,
-      expandable,
       pagePath,
       depth,
       selected,
@@ -131,16 +129,9 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             unpadded
             rounded
             sx={({ transitions }) => ({
-              visibility: "hidden",
-              pointerEvents: "none",
               mr: 0.5,
-
-              ...(expandable && {
-                visibility: "visible",
-                pointerEvents: "auto",
-                transform: expanded ? `rotate(90deg)` : "none",
-                transition: transitions.create("transform", { duration: 300 }),
-              }),
+              transform: expanded ? `rotate(90deg)` : "none",
+              transition: transitions.create("transform", { duration: 300 }),
             })}
           >
             <FontAwesomeIcon icon={faChevronRight} />
@@ -171,7 +162,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
               variant="smallTextLabels"
               sx={({ palette }) => ({
                 display: "block",
-                fontWeight: 400,
+                fontWeight: 500,
                 marginLeft: 0.75,
                 py: 1,
                 overflow: "hidden",
@@ -185,16 +176,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             </Typography>
           </Tooltip>
 
-          <Tooltip
-            title="Add subpages, delete, duplicate and more"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  width: 175,
-                },
-              },
-            }}
-          >
+          <Tooltip title="Options">
             <Box>
               <IconButton
                 {...trigger}

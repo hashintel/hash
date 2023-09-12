@@ -141,7 +141,6 @@ export const AccountEntityTypeList: FunctionComponent<
               alignItems: "center",
               mx: 0.5,
               minHeight: 36,
-              my: 0.25,
               borderRadius: "4px",
               // "&:hover": {
               //   backgroundColor: palette.gray[20],

@@ -32,6 +32,10 @@ services:
     #   - ../../var/hash-external-service/opensearch/data:/usr/share/opensearch/data
 
   postgres:
+    environment:
+      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
+      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
+      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
 
