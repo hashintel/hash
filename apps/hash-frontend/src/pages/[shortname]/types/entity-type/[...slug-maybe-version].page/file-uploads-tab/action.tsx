@@ -75,7 +75,7 @@ export const Action = ({
           justifyContent="center"
         >
           <DashIcon
-            sx={{ fontSize: 14, fill: ({ palette }) => `${palette.gray[50]}` }}
+            sx={{ fontSize: 14, fill: ({ palette }) => palette.gray[50] }}
           />
         </Stack>
       );
