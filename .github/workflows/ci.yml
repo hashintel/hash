@@ -412,7 +412,7 @@ jobs:
       - name: Launch external services
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          # if we use turbo here, this would cost time with the docker build step needing to check that all the layers are cached          
+          # if we use turbo here, this would cost time with the docker build step needing to check that all the layers are cached
           yarn workspace @apps/hash-external-services deploy up --detach
 
       ## @todo: re-implement seed-data scripts for the new type system, so that they can be used here. Can potentially be addressed as part of https://app.asana.com/0/1202805690238892/1203106234191606/f
