@@ -8,7 +8,7 @@ mod subcommand;
 
 use std::sync::Arc;
 
-use error_stack::{Report, Result};
+use error_stack::{ensure, Report, Result};
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
