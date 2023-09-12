@@ -15,7 +15,7 @@ import {
 } from "@hashintel/type-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Theme, Typography } from "@mui/material";
+import { Box, Container, Theme } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -326,36 +326,7 @@ const Page: NextPageWithLayout = () => {
                     ontologyChip={
                       <OntologyChip
                         domain={frontendDomain}
-                        path={
-                          <>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {router.query.shortname}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /types/entity-type/
-                            </Typography>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {slug}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /v/{currentVersion}
-                            </Typography>
-                          </>
-                        }
+                        path={`${router.query.shortname}/types/entity-type/${slug}/v/${currentVersion}`}
                       />
                     }
                     entityType={entityType}

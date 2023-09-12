@@ -4,7 +4,7 @@ import { EntityQueryEditor } from "@hashintel/query-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useCallback, useState } from "react";
@@ -89,30 +89,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
             chip={
               <OntologyChip
                 domain={frontendDomain}
-                path={
-                  <Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                      fontWeight="bold"
-                    >
-                      {owner}
-                    </Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                    >
-                      /entities/
-                    </Typography>
-                    <Typography
-                      color={(theme) => theme.palette.blue[70]}
-                      component="span"
-                      fontWeight="bold"
-                    >
-                      {entityUuid}
-                    </Typography>
-                  </Typography>
-                }
+                path={`${owner}/entities/${entityUuid}`}
               />
             }
           />
