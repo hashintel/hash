@@ -104,7 +104,7 @@ install-cargo-tool tool install version:
 
 [private]
 install-cargo-hack:
-  @just install-cargo-tool 'cargo hack' cargo-hack 0.5.26
+  @just install-cargo-tool 'cargo hack' cargo-hack 0.6.7
 
 [private]
 install-cargo-nextest:
