@@ -8,10 +8,11 @@ mod subcommand;
 
 use std::sync::Arc;
 
-use error_stack::Result;
+use error_stack::{Report, Result};
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
+use crate::error::SentryError;
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
@@ -24,7 +25,9 @@ fn main() -> Result<(), GraphError> {
     if let Some(dsn) = &sentry_dsn {
         let client = sentry::Client::from_config(dsn);
 
-        assert!(client.is_enabled(), "Invalid Sentry DSN has been provided");
+        if !client.is_enabled() {
+            return Err(Report::new(SentryError::InvalidDsn).change_context(GraphError));
+        }
     }
 
     // Initialize Sentry

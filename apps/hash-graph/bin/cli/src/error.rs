@@ -28,3 +28,17 @@ impl fmt::Display for HealthcheckError {
 }
 
 impl Context for HealthcheckError {}
+
+pub enum SentryError {
+    InvalidDsn,
+}
+
+impl fmt::Display for SentryError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidDsn => fmt.write_str("invalid Sentry DSN"),
+        }
+    }
+}
+
+impl Context for SentryError {}

@@ -39,7 +39,7 @@ pub enum Subcommand {
     TestServer(TestServerArgs),
 }
 
-fn spawn_runtime(future: impl Future<Output = Result<(), GraphError>>) -> Result<(), GraphError> {
+fn block_on(future: impl Future<Output = Result<(), GraphError>>) -> Result<(), GraphError> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -50,16 +50,16 @@ fn spawn_runtime(future: impl Future<Output = Result<(), GraphError>>) -> Result
 impl Subcommand {
     pub(crate) fn execute(self) -> Result<(), GraphError> {
         match self {
-            Self::Server(args) => spawn_runtime(server(args)),
-            Self::Migrate(args) => spawn_runtime(migrate(args)),
-            Self::TypeFetcher(args) => spawn_runtime(type_fetcher(args)),
+            Self::Server(args) => block_on(server(args)),
+            Self::Migrate(args) => block_on(migrate(args)),
+            Self::TypeFetcher(args) => block_on(type_fetcher(args)),
             Self::Completions(ref args) => {
                 completions(args);
                 Ok(())
             }
-            Self::Snapshot(args) => spawn_runtime(snapshot(args)),
+            Self::Snapshot(args) => block_on(snapshot(args)),
             #[cfg(all(hash_graph_test_environment, feature = "test-server"))]
-            Self::TestServer(args) => spawn_runtime(test_server(args)),
+            Self::TestServer(args) => block_on(test_server(args)),
         }
     }
 }

@@ -8,7 +8,6 @@ services:
   graph:
     image: hash-graph:prod
     environment:
-      HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-info}"
       RUST_BACKTRACE: 0
 
