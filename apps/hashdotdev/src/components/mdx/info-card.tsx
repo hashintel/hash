@@ -38,18 +38,18 @@ export const InfoCard: FunctionComponent<InfoCardProps> = ({
         key={index}
         sx={{
           marginTop: 1,
-          color: ({ palette }) => palette[paperVariant][60],
+          color: ({ palette }) => palette[paperVariant][70],
           fontSize: 15,
           lineHeight: 1.5,
           "& a": ({ palette }) => ({
-            color: palette[paperVariant][60],
-            borderColor: palette[paperVariant][60],
+            color: palette[paperVariant][70],
+            borderColor: palette[paperVariant][70],
             ":hover": {
-              color: palette[paperVariant][70],
-              borderColor: palette[paperVariant][70],
+              color: palette[paperVariant][80],
+              borderColor: palette[paperVariant][80],
             },
             ":focus-visible": {
-              outlineColor: palette[paperVariant][60],
+              outlineColor: palette[paperVariant][70],
             },
           }),
         }}
@@ -77,7 +77,7 @@ export const InfoCard: FunctionComponent<InfoCardProps> = ({
         variant="hashLargeText"
         sx={{
           fontWeight: 600,
-          color: ({ palette }) => palette[paperVariant][60],
+          color: ({ palette }) => palette[paperVariant][70],
           fontSize: 15,
         }}
       >
