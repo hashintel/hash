@@ -29,6 +29,7 @@ impl fmt::Display for HealthcheckError {
 
 impl Context for HealthcheckError {}
 
+#[derive(Debug)]
 pub enum SentryError {
     InvalidDsn,
 }
