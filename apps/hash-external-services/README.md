@@ -65,10 +65,10 @@ To apply the backups you can use:
 # we use `-c -f` here to force output, `pg-backup` always ends archives with `.dmp`, which gunzip will otherwise refuse to uncompress
 # You can skip this step if you haven't compressed (`-Z`) the backup.
 gunzip -c -f /local/registry/backups/[date].dev_kratos.dmp > .tmp
-./compose.sh -T --env PGPASSWORD=[password] postgres psql --user postgres dev_kratos -v ON_ERROR_STOP=1 < .tmp
+./compose.sh exec -T --env PGPASSWORD=[password] postgres psql --user postgres dev_kratos -v ON_ERROR_STOP=1 < .tmp
 
 gunzip -c -f /local/registry/backups/[date].dev_graph.dmp > .tmp
-./compose.sh -T --env PGPASSWORD=[password] postgres psql --user postgres dev_graph -v ON_ERROR_STOP=1 < .tmp
+./compose.sh exec -T --env PGPASSWORD=[password] postgres psql --user postgres dev_graph -v ON_ERROR_STOP=1 < .tmp
 ```
 
 You do **not** need to restore the `globals.sql` file, the init script of the postgres container already does this for you.
