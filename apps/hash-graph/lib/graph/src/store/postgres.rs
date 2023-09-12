@@ -1256,9 +1256,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .as_client()
             .query_one(
                 r#"
-                INSERT INTO account_groups (accoun_group_id)
+                INSERT INTO account_groups (account_group_id)
                 VALUES ($1)
-                RETURNING accoun_group_id;
+                RETURNING account_group_id;
                 "#,
                 &[&account_group_id],
             )
