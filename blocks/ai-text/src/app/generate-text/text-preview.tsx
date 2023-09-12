@@ -1,8 +1,7 @@
 import { AiAssistantMessage } from "@hashintel/block-design-system";
-import { Button } from "@hashintel/design-system";
+import { ArrowRotateLeftIcon, Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 
-import { ArrowRotateLeftIcon } from "../../icons/arrow-rotate-left";
 import { BroomWideIcon } from "../../icons/broom-wide";
 import { CheckIcon } from "../../icons/check";
 import { TextIcon } from "../../icons/text";

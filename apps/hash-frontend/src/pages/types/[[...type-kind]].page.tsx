@@ -61,7 +61,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
             (entityType) =>
-              !isSpecialEntityTypeLookup[entityType.schema.$id]?.link,
+              !isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
     [isSpecialEntityTypeLookup, latestEntityTypes],
@@ -72,7 +72,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
             (entityType) =>
-              isSpecialEntityTypeLookup[entityType.schema.$id]?.link,
+              isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
     [isSpecialEntityTypeLookup, latestEntityTypes],

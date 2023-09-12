@@ -88,13 +88,13 @@ export const EntitySelector = ({
 
   const isFileType = expectedEntityTypes.some(
     (expectedType) =>
-      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.file,
+      isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isFile,
   );
   const isImage =
     isFileType &&
     expectedEntityTypes.some(
       (expectedType) =>
-        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.image,
+        isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
     );
 
   const [entities, setEntities] = useState<Entity[]>([]);
