@@ -3,7 +3,6 @@ import { Table, TableProps } from "@mui/material";
 export const OrgTable = ({ sx, ...props }: TableProps) => (
   <Table
     sx={[
-      ...(Array.isArray(sx) ? sx : [sx]),
       ({ palette }) => ({
         borderRadius: 1,
         boxShadow: ({ boxShadows }) => boxShadows.xs,
@@ -20,6 +19,7 @@ export const OrgTable = ({ sx, ...props }: TableProps) => (
           borderBottom: `1px solid ${palette.gray[20]}`,
         },
       }),
+      ...(Array.isArray(sx) ? sx : [sx]),
     ]}
     {...props}
   />
