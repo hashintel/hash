@@ -40,7 +40,7 @@ export const EntitiesTable: FunctionComponent<{
 }> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns, height }) => {
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeGlobal: false,
@@ -73,7 +73,7 @@ export const EntitiesTable: FunctionComponent<{
             ? true
             : extractOwnedByIdFromEntityId(
                 entity.metadata.recordId.entityId,
-              ) === activeWorkspaceAccountId) &&
+              ) === activeWorkspaceOwnedById) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
           entity.metadata.entityTypeId !== types.entityType.page.entityTypeId
@@ -82,7 +82,7 @@ export const EntitiesTable: FunctionComponent<{
                 extractBaseUrl(types.propertyType.archived.propertyTypeId)
               ] !== true),
       ),
-    [entities, filterState, activeWorkspaceAccountId],
+    [entities, filterState, activeWorkspaceOwnedById],
   );
 
   const { columns, rows } =

@@ -5,12 +5,7 @@ import {
   GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
-import {
-  Entity,
-  EntityId,
-  EntityTypeWithMetadata,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { Entity, EntityId, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { PaperProps, Stack, Typography } from "@mui/material";
 import {
@@ -162,11 +157,11 @@ export const EntitySelector = ({
   };
 
   const { uploadFile } = useFileUploads();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const onFileProvided = useCallback(
     async (file: File) => {
-      if (!activeWorkspaceAccountId) {
+      if (!activeWorkspaceOwnedById) {
         throw new Error("Cannot upload file without active workspace");
       }
 
@@ -175,7 +170,7 @@ export const EntitySelector = ({
 
       const upload = await uploadFile({
         fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
-        ownedById: activeWorkspaceAccountId as OwnedById,
+        ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
          * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
@@ -193,7 +188,7 @@ export const EntitySelector = ({
       // @todo handle errored uploads – H-724
     },
     [
-      activeWorkspaceAccountId,
+      activeWorkspaceOwnedById,
       entityId,
       expectedEntityTypes,
       linkEntityTypeId,

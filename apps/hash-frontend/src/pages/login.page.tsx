@@ -1,5 +1,6 @@
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 import { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
@@ -26,7 +27,7 @@ const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
   const { refetch } = useAuthInfo();
-  const { updateActiveWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { updateActiveWorkspaceOwnedById } = useContext(WorkspaceContext);
   const { hashInstance } = useHashInstance();
 
   const {
@@ -157,7 +158,9 @@ const LoginPage: NextPageWithLayout = () => {
               );
             }
 
-            updateActiveWorkspaceAccountId(authenticatedUser.accountId);
+            updateActiveWorkspaceOwnedById(
+              authenticatedUser.accountId as OwnedById,
+            );
 
             void router.push(returnTo ?? flow.return_to ?? "/");
           })

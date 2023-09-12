@@ -1,5 +1,5 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
@@ -15,7 +15,7 @@ export type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: EntityId, mentionType: MentionType): void;
-  accountId: AccountId;
+  ownedById: OwnedById;
 }
 
 type SearchableItem = {
@@ -31,16 +31,14 @@ type SearchableItem = {
 export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
-  accountId,
+  ownedById,
 }) => {
   const { users, loading: usersLoading } = useUsers();
   const { entities, loading: entitiesLoading } = useAllEntitiesExcept([
     types.entityType.user.entityTypeId,
     types.entityType.page.entityTypeId,
   ]);
-  const { data: pages, loading: pagesLoading } = useAccountPages(
-    accountId as OwnedById,
-  );
+  const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 

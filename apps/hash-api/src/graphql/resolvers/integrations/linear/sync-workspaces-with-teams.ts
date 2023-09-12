@@ -1,10 +1,4 @@
-import {
-  AccountId,
-  Entity,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  Uuid,
-} from "@local/hash-subgraph";
+import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
 import { archiveEntity } from "../../../../graph/knowledge/primitive/entity";
 import {

@@ -74,7 +74,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 }) => {
   const viewRef = useRef<EditorView>();
   const [portals, renderPortal] = usePortals();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
   const editorContainerRef = useRef<HTMLDivElement>();
   const editableRef = useRef(false);
   const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
@@ -100,7 +100,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   useEffect(() => {
     const editorContainer = editorContainerRef.current;
 
-    if (editorContainer && activeWorkspaceAccountId) {
+    if (editorContainer && activeWorkspaceOwnedById) {
       const schema = createSchema({
         doc: {
           content: "inline*",
@@ -133,7 +133,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
           formatKeymap(schema),
           createSuggester(
             renderPortal,
-            activeWorkspaceAccountId,
+            activeWorkspaceOwnedById,
             editorContainer,
           ),
           commentPlaceholderPlugin(renderPortal),
@@ -144,7 +144,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         state,
         editorContainer,
         renderPortal,
-        activeWorkspaceAccountId,
+        activeWorkspaceOwnedById,
         {
           dispatchTransaction: (tr) => {
             const newState = view.state.apply(tr);
@@ -187,7 +187,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         viewRef.current = undefined;
       };
     }
-  }, [onChange, activeWorkspaceAccountId, renderPortal]);
+  }, [onChange, activeWorkspaceOwnedById, renderPortal]);
 
   useEffect(() => {
     viewRef.current?.setProps({ editable: () => editable });

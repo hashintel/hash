@@ -3,7 +3,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
   Entity,
   EntityId,
   EntityRootType,

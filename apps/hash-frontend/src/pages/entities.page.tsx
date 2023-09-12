@@ -1,7 +1,7 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractOwnedById, isBaseUrl, OwnedById } from "@local/hash-subgraph";
+import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
@@ -45,7 +45,7 @@ type ParsedQueryParams = {
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { activeWorkspace } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const { hashInstance } = useHashInstance();
 
@@ -67,12 +67,8 @@ const EntitiesPage: NextPageWithLayout = () => {
     return {};
   }, [router]);
 
-  const lastRootPageIndex = activeWorkspace
-    ? useAccountPages(extractOwnedById(activeWorkspace)).lastRootPageIndex
-    : undefined;
-  const [createUntitledPage] = useCreatePage(
-    activeWorkspace?.accountId as OwnedById,
-  );
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById!);
 
   const createPage = useCallback(async () => {
     await createUntitledPage(lastRootPageIndex);

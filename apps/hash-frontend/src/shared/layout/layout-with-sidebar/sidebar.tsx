@@ -20,7 +20,7 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
@@ -98,17 +98,17 @@ export const PageSidebar: FunctionComponent = () => {
           overflowY: "auto",
         }}
       >
-        {activeWorkspaceAccountId ? (
+        {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
             {hashInstance?.properties.pagesAreEnabled ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
-                accountId={activeWorkspaceAccountId}
+                ownedById={activeWorkspaceOwnedById}
               />
             ) : null}
             {/* TYPES */}
-            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
+            <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
           </>
         ) : null}
       </Box>

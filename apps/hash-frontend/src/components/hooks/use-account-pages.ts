@@ -16,7 +16,7 @@ export type AccountPagesInfo = {
 };
 
 export const useAccountPages = (
-  ownedById: OwnedById,
+  ownedById?: OwnedById,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();

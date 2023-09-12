@@ -21,7 +21,9 @@ export const useIsReadonlyModeForApp = () => {
   return isReadonlyMode;
 };
 
-export const useIsReadonlyModeForResource = (resourceAccountId?: AccountId) => {
+export const useIsReadonlyModeForResource = (
+  resourceAccountId?: AccountId | AccountGroupId,
+) => {
   const { authenticatedUser } = useAuthInfo();
 
   const appIsReadOnly = useIsReadonlyModeForApp();
@@ -31,6 +33,8 @@ export const useIsReadonlyModeForResource = (resourceAccountId?: AccountId) => {
   }
 
   return (
-    appIsReadOnly || !canUserEditResource(resourceAccountId, authenticatedUser)
+    !resourceAccountId ||
+    appIsReadOnly ||
+    !canUserEditResource(resourceAccountId, authenticatedUser)
   );
 };

@@ -42,7 +42,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const editionIdentifier = genId();
 
   const key = uploadProvider.getFileEntityStorageKey({
-    accountId: ownedById,
+    ownedById,
     editionIdentifier,
     filename: name,
   });

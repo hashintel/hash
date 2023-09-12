@@ -24,6 +24,7 @@ import {
 import { Grid } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
+import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
@@ -72,7 +73,7 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: true,
@@ -126,16 +127,16 @@ export const TypesTable: FunctionComponent<{
         .map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
+            : type.metadata.custom.ownedById !== activeWorkspaceOwnedById;
 
-          const namespaceAccountId = isExternalOntologyElementMetadata(
+          const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
           )
             ? undefined
             : type.metadata.custom.ownedById;
 
           const namespace = namespaces?.find(
-            ({ accountId }) => accountId === namespaceAccountId,
+            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
           );
 
           return {
@@ -165,7 +166,7 @@ export const TypesTable: FunctionComponent<{
       types,
       namespaces,
       filterState,
-      activeWorkspaceAccountId,
+      activeWorkspaceOwnedById,
     ],
   );
 

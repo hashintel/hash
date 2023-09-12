@@ -1,5 +1,4 @@
 import { Chip, TextField } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph/.";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -211,16 +210,12 @@ export const CommandBar: FunctionComponent = () => {
 
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const { hashInstance } = useHashInstance();
 
-  const [createUntitledPage] = useCreatePage(
-    activeWorkspaceAccountId as OwnedById,
-  );
-  const { lastRootPageIndex } = useAccountPages(
-    activeWorkspaceAccountId as OwnedById,
-  );
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById!);
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<

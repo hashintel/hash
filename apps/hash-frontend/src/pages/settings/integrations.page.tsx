@@ -2,6 +2,7 @@ import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { Box, Container, Paper, Typography } from "@mui/material";
 import { FunctionComponent, useContext } from "react";
 
+import { extractOwnedById } from "../../lib/user-and-org";
 import { NextPageWithLayout } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkspaceContext } from "../shared/workspace-context";
@@ -30,7 +31,9 @@ const AddNewIntegrations: FunctionComponent = () => {
               openInNewTab={false}
               variant="tertiary"
               size="small"
-              href={`${apiOrigin}/oauth/linear?ownedById=${activeWorkspace.accountId}`}
+              href={`${apiOrigin}/oauth/linear?ownedById=${extractOwnedById(
+                activeWorkspace,
+              )}`}
               sx={{
                 padding: ({ spacing }) => spacing(1, 1.5),
                 minHeight: 1,

@@ -2,7 +2,6 @@ import { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityPropertiesObject,
   extractEntityUuidFromEntityId,
-  OwnedById,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
@@ -44,10 +43,10 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
   const [draftEntitySubgraph, setDraftEntitySubgraph, loading] =
     useDraftEntitySubgraph(entityTypeId);
 
-  const { activeWorkspace, activeWorkspaceAccountId } =
+  const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
   const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
+    activeWorkspaceOwnedById ?? null,
   );
 
   const [creating, setCreating] = useState(false);

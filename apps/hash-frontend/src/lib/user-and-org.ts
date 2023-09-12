@@ -17,6 +17,7 @@ import {
   entityRecordIdToString,
   extractAccountGroupId,
   extractAccountId,
+  OwnedById,
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
@@ -339,3 +340,18 @@ export const constructOrg = (params: {
 
   return org;
 };
+
+export const isUser = (
+  userOrOrg: MinimalUser | MinimalOrg,
+): userOrOrg is MinimalUser => "accountId" in userOrOrg;
+
+export const isOrg = (
+  userOrOrg: MinimalUser | MinimalOrg,
+): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
+
+export const extractOwnedById = (
+  userOrOrg: MinimalUser | MinimalOrg,
+): OwnedById =>
+  isUser(userOrOrg)
+    ? (userOrOrg.accountId as OwnedById)
+    : (userOrOrg.accountGroupId as OwnedById);

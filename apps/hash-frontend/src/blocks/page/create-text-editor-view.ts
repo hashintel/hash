@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
 
@@ -10,7 +10,7 @@ export const createTextEditorView = (
   state: EditorState,
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
-  accountId: AccountId,
+  ownedById: OwnedById,
   editorProps?: Partial<DirectEditorProps>,
 ) =>
   new EditorView(renderNode, {
@@ -21,6 +21,6 @@ export const createTextEditorView = (
     ),
     nodeViews: {
       ...(editorProps?.nodeViews ?? {}),
-      mention: mentionNodeView(renderPortal, accountId),
+      mention: mentionNodeView(renderPortal, ownedById),
     },
   });

@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 
@@ -13,7 +13,7 @@ export class MentionView implements NodeView {
     public view: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public accountId: AccountId,
+    public ownedById: OwnedById,
   ) {
     this.dom = document.createElement("span");
     this.dom.classList.add("mention-stuff");
@@ -32,7 +32,7 @@ export class MentionView implements NodeView {
       <MentionDisplay
         entityId={node.attrs.entityId}
         mentionType={node.attrs.mentionType}
-        accountId={this.accountId}
+        ownedById={this.ownedById}
       />,
       this.dom,
     );

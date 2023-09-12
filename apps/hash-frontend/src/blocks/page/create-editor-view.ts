@@ -12,7 +12,7 @@ import {
 // import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { debounce } from "lodash";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -132,7 +132,7 @@ const createSavePlugin = (
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
-  accountId: AccountId,
+  ownedById: OwnedById,
   pageEntityId: EntityId,
   blocks: () => ComponentIdHashBlockMap,
   readonly: boolean,
@@ -148,14 +148,14 @@ export const createEditorView = (
     ? []
     : [
         ...createFormatPlugins(renderPortal),
-        createSuggester(renderPortal, accountId, renderNode, () => manager),
+        createSuggester(renderPortal, ownedById, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
         createFocusPageTitlePlugin(pageTitleRef),
-        createSavePlugin(accountId as OwnedById, pageEntityId, blocks, client),
+        createSavePlugin(ownedById, pageEntityId, blocks, client),
       ];
 
-  const state = createProseMirrorState({ accountId, plugins });
+  const state = createProseMirrorState({ ownedById, plugins });
 
   let connection: EditorConnection | undefined;
 
@@ -163,7 +163,7 @@ export const createEditorView = (
     state,
     renderNode,
     renderPortal,
-    accountId,
+    ownedById,
     {
       nodeViews: {
         block(currentNode, currentView, getPos) {
@@ -190,7 +190,7 @@ export const createEditorView = (
 
   manager = new ProsemirrorManager(
     state.schema,
-    accountId,
+    ownedById,
     view,
     (block) => (node, editorView, getPos) => {
       if (typeof getPos === "boolean") {
