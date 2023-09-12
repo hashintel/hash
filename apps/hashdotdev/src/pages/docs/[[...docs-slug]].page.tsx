@@ -200,7 +200,7 @@ DocsPage.getLayout = (page, asPath) => {
         },
       }}
       navbarLogoEndAdornment={
-        <DocsSlugIcon sx={{ height: 20, width: 66, marginLeft: -2.25 }} />
+        <DocsSlugIcon sx={{ height: 19, width: 70, marginLeft: -2.5 }} />
       }
     >
       {page}
