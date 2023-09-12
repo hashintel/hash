@@ -41,7 +41,7 @@ export const PageNavLinks: FunctionComponent<PageNavLinksProps> = ({
         {prevPage && (
           <Box display="flex" alignItems="flex-end">
             <Box>
-              <Typography sx={{ color: theme.palette.gray[70] }} component="p">
+              <Typography sx={{ color: theme.palette.gray[50] }} component="p">
                 Previous
               </Typography>
               <Box
@@ -88,7 +88,7 @@ export const PageNavLinks: FunctionComponent<PageNavLinksProps> = ({
             alignItems="flex-end"
             sx={{ position: "relative", left: hideIcons ? 0 : "31px" }}
           >
-            <Typography sx={{ color: theme.palette.gray[70] }} component="p">
+            <Typography sx={{ color: theme.palette.gray[50] }} component="p">
               Next
             </Typography>
             <Box
