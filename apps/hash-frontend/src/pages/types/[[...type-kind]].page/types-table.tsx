@@ -21,7 +21,12 @@ import {
   useState,
 } from "react";
 
-import { Grid } from "../../../components/grid/grid";
+import {
+  Grid,
+  gridHeaderHeightWithBorder,
+  gridHorizontalScrollbarHeight,
+  gridRowHeight,
+} from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -254,13 +259,17 @@ export const TypesTable: FunctionComponent<{
         sortable
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
-        height={
-          filteredRows.length > 10
-            ? `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-              }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
-            : undefined
-        }
+        height={`
+          min(
+            calc(100vh - (${
+              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            calc(
+              ${gridHeaderHeightWithBorder}px +
+              (${filteredRows.length} * ${gridRowHeight}px) +
+              ${gridHorizontalScrollbarHeight}px
+            )
+          )`}
         customRenderers={[renderTextIconCell]}
       />
     </Box>

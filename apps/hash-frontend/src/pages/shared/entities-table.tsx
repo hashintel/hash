@@ -18,7 +18,12 @@ import {
   useState,
 } from "react";
 
-import { Grid } from "../../components/grid/grid";
+import {
+  Grid,
+  gridHeaderHeightWithBorder,
+  gridHorizontalScrollbarHeight,
+  gridRowHeight,
+} from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
@@ -212,16 +217,16 @@ export const EntitiesTable: FunctionComponent<{
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
           rows={rows}
-          height={
-            filteredEntities && filteredEntities.length > 10
-              ? `calc(100vh - (${
-                  HEADER_HEIGHT +
-                  TOP_CONTEXT_BAR_HEIGHT +
-                  179 +
-                  tableHeaderHeight
-                }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`
-              : undefined
-          }
+          height={`
+            min(
+              calc(100vh - (${
+                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+              }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+             calc(
+              ${gridHeaderHeightWithBorder}px +
+              (${rows.length} * ${gridRowHeight}px) +
+              ${gridHorizontalScrollbarHeight}px)
+            )`}
           createGetCellContent={createGetCellContent}
           customRenderers={[renderTextIconCell, renderChipCell]}
         />
