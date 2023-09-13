@@ -1,7 +1,6 @@
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { EntityPropertiesObject } from "@local/hash-subgraph";
-import { Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { ReactNode, useState } from "react";
 
@@ -76,30 +75,7 @@ export const EntityEditorPage = ({
               chip={
                 <OntologyChip
                   domain={frontendDomain}
-                  path={
-                    <Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                        fontWeight="bold"
-                      >
-                        {owner}
-                      </Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                      >
-                        /entities/
-                      </Typography>
-                      <Typography
-                        color={(theme) => theme.palette.blue[70]}
-                        component="span"
-                        fontWeight="bold"
-                      >
-                        {entityUuid}
-                      </Typography>
-                    </Typography>
-                  }
+                  path={`${owner}/entities/${entityUuid}`}
                 />
               }
             />

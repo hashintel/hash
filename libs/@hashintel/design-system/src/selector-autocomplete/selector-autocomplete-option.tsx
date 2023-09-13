@@ -172,15 +172,6 @@ export const SelectorAutocompleteOption = ({
             <Tooltip title={typeId}>
               <OntologyChip
                 {...ontology}
-                path={
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color={(theme) => theme.palette.blue[70]}
-                  >
-                    {ontology.path}
-                  </Typography>
-                }
                 sx={({ palette }) => ({
                   border: `1px solid ${palette.gray[30]}`,
                   flexShrink: 1,
