@@ -17,17 +17,15 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
-import { useBlockProtocolQueryEntities } from "../../../../../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
+import { useQueryEntities } from "../../../../../../../../../components/hooks/use-query-entities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../../../../../../../../shared/filters";
 import { Button } from "../../../../../../../../../shared/ui/button";
 import { FileUploadDropzone } from "../../../../../../../../settings/shared/file-upload-dropzone";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
@@ -76,7 +74,6 @@ export const EntitySelector = ({
   linkEntityTypeId,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
-  const { queryEntities } = useBlockProtocolQueryEntities();
   const [search, setSearch] = useState("");
 
   const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
@@ -97,40 +94,17 @@ export const EntitySelector = ({
         isSpecialEntityTypeLookup?.[expectedType.schema.$id]?.isImage,
     );
 
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { entitiesSubgraph, loading } = useQueryEntities({
+    includeEntityTypeIds: expectedEntityTypes.map((type) => type.schema.$id),
+  });
+
   const highlightedRef = useRef<null | Entity>(null);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        const { data } = await queryEntities({
-          data: {
-            operation: {
-              multiFilter: {
-                filters: expectedEntityTypes.map(({ schema }) =>
-                  entityHasEntityTypeByVersionedUrlFilter(schema.$id),
-                ),
-                operator: expectedEntityTypes.length > 0 ? "OR" : "AND",
-              },
-            },
-          },
-        });
-
-        if (data) {
-          setEntities(getRoots(data));
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void init();
-  }, [queryEntities, expectedEntityTypes]);
-
   const sortedAndFilteredEntities = useMemo(() => {
-    return [...entities]
+    if (!entitiesSubgraph) {
+      return [];
+    }
+    return [...getRoots(entitiesSubgraph)]
       .filter(
         (entity) =>
           !entityIdsToFilterOut?.includes(entity.metadata.recordId.entityId),
@@ -140,7 +114,7 @@ export const EntitySelector = ({
           b.metadata.temporalVersioning.decisionTime.start.limit,
         ),
       );
-  }, [entities, entityIdsToFilterOut]);
+  }, [entitiesSubgraph, entityIdsToFilterOut]);
 
   const onCreateNew = () => {
     if (!expectedEntityTypes[0]) {
@@ -240,7 +214,7 @@ export const EntitySelector = ({
            * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
            * */
           typeId: entity.metadata.entityTypeId,
-          title: generateEntityLabel(entitySubgraph, entity),
+          title: generateEntityLabel(entitiesSubgraph!, entity),
         })}
         inputPlaceholder={isFileType ? "No file" : "No entity"}
         inputValue={search}

@@ -9,7 +9,13 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
-import { BaseUrl, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  Entity,
+  EntityId,
+  EntityPropertiesObject,
+  OwnedById,
+} from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
@@ -209,11 +215,15 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * 2. It does not do this translation for any entities that are not the root entity
      * @todo address the issues described above
      */
+
+    const newProperties: EntityPropertiesObject = { ...rootEntity.properties };
+
     const textTokens = rootEntity.properties[
       TEXT_TOKEN_PROPERTY_TYPE_BASE_URL as BaseUrl
     ] as TextToken[] | undefined;
+
     if (textTokens) {
-      rootEntity.properties[
+      newProperties[
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as BaseUrl
       ] = textTokens
         .map((token) =>
@@ -226,7 +236,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       ...graphProperties,
       blockEntity: {
         entityId: rootEntity.metadata.recordId.entityId,
-        properties: rootEntity.properties,
+        properties: newProperties,
       },
       blockEntitySubgraph: graphProperties.blockEntitySubgraph,
       readonly: !!graphProperties.readonly,
