@@ -94,6 +94,7 @@ export const generateEntityLabel = (
     "preferredName",
     "displayName",
     "title",
+    "organizationName",
     "shortname",
     "fileName",
     "originalFileName",
