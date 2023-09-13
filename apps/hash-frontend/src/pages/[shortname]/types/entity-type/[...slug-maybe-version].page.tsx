@@ -326,7 +326,7 @@ const Page: NextPageWithLayout = () => {
                           },
                         }
                   }
-                  key={entityType.$id} // reset edit bar state when the entity tpye changes
+                  key={entityType.$id} // reset edit bar state when the entity type changes
                 />
               )}
 
