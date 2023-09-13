@@ -72,6 +72,8 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
+  const [showSearch, setShowSearch] = useState<boolean>(false);
+
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
@@ -245,6 +247,8 @@ export const TypesTable: FunctionComponent<{
         setFilterState={setFilterState}
       />
       <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         rows={filteredRows}
         sortable
