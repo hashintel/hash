@@ -18,6 +18,7 @@ import { FunctionComponent, useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { PlusRegularIcon } from "../../icons/plus-regular";
 import { MenuItem } from "../../ui";
 import { CreatePageMenuItem } from "./actions-dropdown/create-page-menu-item";
 import { HeaderIconButton } from "./shared/header-icon-button";
@@ -83,6 +84,13 @@ const ActionsDropdownInner: FunctionComponent<{
         <Divider />
         <MenuItem href="/new/entity" onClick={popupState.close}>
           <ListItemText primary="Create entity" />
+          <PlusRegularIcon
+            sx={{
+              color: ({ palette }) => palette.gray[50],
+              width: 14,
+              height: 14,
+            }}
+          />
         </MenuItem>
         <Divider />
         <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
