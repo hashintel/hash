@@ -75,8 +75,8 @@ export const TypesTable: FunctionComponent<{
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
-    includeArchived: true,
-    includeGlobal: true,
+    includeArchived: false,
+    includeGlobal: false,
   });
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
