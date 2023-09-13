@@ -150,7 +150,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         >
           <Chip
             icon={<EarthAmericasRegularIcon />}
-            label={`${numberOfGlobalItems} globally`}
+            label={`${numberOfGlobalItems} others`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
