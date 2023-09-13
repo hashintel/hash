@@ -51,7 +51,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
             paddingX: loading ? 0.5 : 1,
             paddingY: loading ? 0.5 : 0.25,
             borderRadius: 30,
-            background: active ? palette.blue[20] : palette.gray[30],
+            background: active ? palette.blue[20] : palette.gray[20],
           })}
         >
           {loading ? (
