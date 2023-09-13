@@ -1,8 +1,9 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { AccountId } from "@local/hash-subgraph";
+import { AccountId, linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
+  Divider,
   listItemSecondaryActionClasses,
   ListItemText,
   Menu,
@@ -79,14 +80,20 @@ const ActionsDropdownInner: FunctionComponent<{
             onClick={popupState.close}
           />
         ) : null}
-        {[
-          { href: "/new/entity", label: "Create Entity" },
-          { href: "/new/types/entity-type", label: "Create Entity Type" },
-        ].map(({ href, label }) => (
-          <MenuItem key={href} href={href} onClick={popupState.close}>
-            <ListItemText primary={label} />
-          </MenuItem>
-        ))}
+        <Divider />
+        <MenuItem href="/new/entity" onClick={popupState.close}>
+          <ListItemText primary="Create entity" />
+        </MenuItem>
+        <Divider />
+        <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
+          <ListItemText primary="Create entity type" />
+        </MenuItem>
+        <MenuItem
+          href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
+          onClick={popupState.close}
+        >
+          <ListItemText primary="Create link type" />
+        </MenuItem>
       </Menu>
     </Box>
   );
