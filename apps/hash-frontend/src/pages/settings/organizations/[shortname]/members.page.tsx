@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
@@ -42,6 +42,14 @@ const OrgMembersPage: NextPageWithLayout = () => {
   const org = authenticatedUser.memberOf.find(
     (orgOption) => orgOption.shortname === shortname,
   );
+
+  useEffect(() => {
+    const [_, anchorTag] = router.asPath.split("#");
+
+    if (anchorTag && anchorTag === "invite") {
+      setShowAddMemberForm(true);
+    }
+  }, [router]);
 
   if (!org) {
     // @todo show a 404 page
