@@ -171,7 +171,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         sx={{
           display: "flex",
           justifyContent: "flex-end",
-          background: ({ palette }) => palette.common.white,
+          background: ({ palette }) =>
+            displayFilters || Object.values(filterState).some((value) => value)
+              ? palette.common.white
+              : "transparent",
+          transition: ({ transitions }) => transitions.create("background"),
           borderRadius: 15,
         }}
       >
