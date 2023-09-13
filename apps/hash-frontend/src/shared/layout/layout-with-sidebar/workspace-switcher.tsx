@@ -147,10 +147,6 @@ export const WorkspaceSwitcher: FunctionComponent<
 
         {[
           {
-            title: "Settings",
-            href: "/settings",
-          },
-          {
             title: "Create an organization",
             href: "/settings/organizations/new",
           },
