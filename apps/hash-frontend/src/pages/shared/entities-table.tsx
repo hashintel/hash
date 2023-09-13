@@ -5,9 +5,9 @@ import {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import {
   FunctionComponent,
@@ -18,10 +18,15 @@ import {
   useState,
 } from "react";
 
-import { Grid, GridProps } from "../../components/grid/grid";
+import { Grid } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
-import { FilterState, TableHeader } from "../../shared/table-header";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import {
+  FilterState,
+  TableHeader,
+  tableHeaderHeight,
+} from "../../shared/table-header";
 import { renderChipCell } from "../[shortname]/entities/[entity-uuid].page/entity-editor/properties-section/property-table/cells/chip-cell";
 import {
   renderTextIconCell,
@@ -31,13 +36,13 @@ import {
   TypeEntitiesRow,
   useEntitiesTable,
 } from "./entities-table/use-entities-table";
+import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { WorkspaceContext } from "./workspace-context";
 
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
-  height?: GridProps<Entity[]>["height"];
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns, height }) => {
+}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
   const router = useRouter();
 
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
@@ -191,6 +196,8 @@ export const EntitiesTable: FunctionComponent<{
     [columns, router, isViewingPages],
   );
 
+  const theme = useTheme();
+
   return (
     <Box>
       <TableHeader
@@ -205,7 +212,16 @@ export const EntitiesTable: FunctionComponent<{
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
           rows={rows}
-          height={height}
+          height={
+            filteredEntities && filteredEntities.length > 10
+              ? `calc(100vh - (${
+                  HEADER_HEIGHT +
+                  TOP_CONTEXT_BAR_HEIGHT +
+                  179 +
+                  tableHeaderHeight
+                }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`
+              : undefined
+          }
           createGetCellContent={createGetCellContent}
           customRenderers={[renderTextIconCell, renderChipCell]}
         />
