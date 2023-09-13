@@ -165,6 +165,7 @@ const EntitiesPage: NextPageWithLayout = () => {
               <TabLink
                 href="/"
                 value="all"
+                active
                 label={`All ${pageTitle}`}
                 count={entities?.length}
                 loading={loading}
