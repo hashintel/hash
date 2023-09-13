@@ -3,16 +3,17 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountEntityId,
   AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
+  extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -87,9 +88,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountId: extractAccountId(
+      entity.metadata.recordId.entityId as AccountEntityId,
+    ),
     shortname,
     preferredName,
     isAccountSignupComplete,

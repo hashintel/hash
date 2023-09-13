@@ -3,6 +3,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountGroupEntityId,
   AccountGroupId,
   AccountId,
   Entity,
@@ -10,10 +11,9 @@ import {
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
-  extractEntityUuidFromEntityId,
+  extractAccountGroupId,
   OwnedById,
   Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -50,7 +50,7 @@ export type OrgProvidedInfo = {
 };
 
 export type Org = {
-  accountId: AccountId;
+  accountGroupId: AccountGroupId;
   orgName: string;
   shortname: string;
   entity: Entity;
@@ -76,9 +76,9 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   ] as string;
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountGroupId: extractAccountGroupId(
+      entity.metadata.recordId.entityId as AccountGroupEntityId,
+    ),
     shortname,
     orgName,
     entity,
