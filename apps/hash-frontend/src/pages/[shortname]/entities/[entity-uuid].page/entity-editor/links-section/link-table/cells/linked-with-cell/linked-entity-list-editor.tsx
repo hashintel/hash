@@ -15,6 +15,7 @@ import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
+import { getImageUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { LinkAndTargetEntity } from "../../types";
 import { LinkedWithCell } from "../linked-with-cell";
@@ -154,6 +155,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
           return (
             <LinkedEntityListRow
               key={linkEntityId}
+              imageSrc={getImageUrlFromFileProperties(rightEntity.properties)}
               title={generateEntityLabel(entitySubgraph, rightEntity)}
               onDelete={() => {
                 const newCell = produce(cell, (draftCell) => {

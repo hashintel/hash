@@ -8,11 +8,13 @@ import { ValueChip } from "../../../../../properties-section/property-table/cell
 export const LinkedEntityListRow = ({
   title,
   onDelete,
+  imageSrc,
   selected,
   onSelect,
 }: {
   title: string;
   selected: boolean;
+  imageSrc?: string;
   onDelete: () => void;
   onSelect: () => void;
 }) => {
@@ -37,7 +39,7 @@ export const LinkedEntityListRow = ({
       }}
       onClick={onSelect}
     >
-      <ValueChip selected={selected} title={title} />
+      <ValueChip imageSrc={imageSrc} selected={selected} title={title} />
 
       <Box
         className="actions"

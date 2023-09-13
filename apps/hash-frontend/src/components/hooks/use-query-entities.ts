@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityId,
   EntityRootType,
   GraphResolveDepths,
   Subgraph,
@@ -16,15 +17,17 @@ import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queri
 export const useQueryEntities = ({
   excludeEntityTypeIds,
   includeEntityTypeIds,
+  includeEntityIds,
   graphResolveDepths,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
   includeEntityTypeIds?: VersionedUrl[];
+  includeEntityIds?: EntityId[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
 }) => {
-  if (excludeEntityTypeIds && includeEntityTypeIds) {
+  if (excludeEntityTypeIds && (includeEntityTypeIds || includeEntityIds)) {
     throw new Error(
-      "Passing both excludeEntityTypeIds and includeEntityTypeIds is currently not supported, because the query syntax only supports a single AND or OR operator.",
+      "Passing excludeEntityTypeIds with an inclusive filter is currently unsupported because the query syntax only supports a single AND or OR operator across all filters.",
     );
   }
 
@@ -40,6 +43,11 @@ export const useQueryEntities = ({
                 operator: "DOES_NOT_EQUAL" as const,
                 value: entityTypeId,
               })),
+              ...(includeEntityIds ?? []).map((entityId) => ({
+                field: ["metadata", "recordId", "entityId"],
+                operator: "EQUALS" as const,
+                value: entityId,
+              })),
               ...(includeEntityTypeIds ?? []).map((entityTypeId) => ({
                 field: ["metadata", "entityTypeId"],
                 operator: "EQUALS" as const,
@@ -47,7 +55,8 @@ export const useQueryEntities = ({
               })),
             ],
             operator:
-              excludeEntityTypeIds || !includeEntityTypeIds?.length
+              excludeEntityTypeIds ||
+              (!includeEntityTypeIds?.length && !includeEntityIds?.length)
                 ? "AND"
                 : "OR",
           },
