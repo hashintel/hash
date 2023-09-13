@@ -27,18 +27,7 @@ export const MemberContextMenu = ({
     <Box>
       <ContextButton {...bindTrigger(popupState)}>...</ContextButton>
 
-      <Menu
-        {...bindMenu(popupState)}
-        {...contextMenuProps}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-      >
+      <Menu {...bindMenu(popupState)} {...contextMenuProps}>
         <MenuItem
           onClick={() => {
             removeFromOrg();

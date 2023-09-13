@@ -18,18 +18,7 @@ export const OrgContextMenu = ({ leaveOrg }: { leaveOrg: () => void }) => {
     <Box>
       <ContextButton {...bindTrigger(popupState)}>...</ContextButton>
 
-      <Menu
-        {...bindMenu(popupState)}
-        {...contextMenuProps}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-      >
+      <Menu {...bindMenu(popupState)} {...contextMenuProps}>
         <MenuItem
           onClick={() => {
             leaveOrg();
