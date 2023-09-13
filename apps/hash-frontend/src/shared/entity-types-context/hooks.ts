@@ -74,7 +74,7 @@ export const useIsSpecialEntityType = (
 
   return useMemo(() => {
     if (loading) {
-      return false;
+      return { isFile: false, isImage: false, isLink: false };
     }
 
     const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =

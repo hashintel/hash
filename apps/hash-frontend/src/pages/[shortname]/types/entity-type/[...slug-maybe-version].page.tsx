@@ -88,7 +88,7 @@ const Page: NextPageWithLayout = () => {
          * This hacky timeout is here because without it we encounter a bug in the following circumstances:
          * 1. Be on a published type with at least one property or link of its own (inherited are irrelevant)
          * 2. Click 'extend type' to create a new draft type, which calls 'reset' on the form (this line)
-         * 3. The react-hook-form state will incorrectly have malformed entries for as many properties as the source type
+         * 3. The react-hook-form state will incorrectly have malformed entries for as many properties as the source type has
          *
          * This does not happen if the field inputs are not rendered, so it is probably something to do with array field
          * values being retained across a reset somehow.
@@ -97,7 +97,7 @@ const Page: NextPageWithLayout = () => {
          *
          * Moving the reset into a useEffect does not work.
          */
-        setTimeout(() => reset(getFormDataFromSchema(entityType)), 100);
+        setTimeout(() => reset(getFormDataFromSchema(entityType)), 10);
 
         return entityType as EntityType;
       } else {
