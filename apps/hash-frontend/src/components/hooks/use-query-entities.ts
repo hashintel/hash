@@ -22,6 +22,12 @@ export const useQueryEntities = ({
   includeEntityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
 }) => {
+  if (excludeEntityTypeIds && includeEntityTypeIds) {
+    throw new Error(
+      "Passing both excludeEntityTypeIds and includeEntityTypeIds is currently not supported, because the query syntax only supports a single AND or OR operator.",
+    );
+  }
+
   const response = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
     queryEntitiesQuery,
     {
@@ -40,14 +46,17 @@ export const useQueryEntities = ({
                 value: entityTypeId,
               })),
             ],
-            operator: "AND",
+            operator:
+              excludeEntityTypeIds || !includeEntityTypeIds?.length
+                ? "AND"
+                : "OR",
           },
         },
         constrainsValuesOn: { outgoing: 0 },
         constrainsPropertiesOn: { outgoing: 0 },
         constrainsLinksOn: { outgoing: 0 },
         constrainsLinkDestinationsOn: { outgoing: 0 },
-        inheritsFrom: { outgoing: 0 },
+        inheritsFrom: { outgoing: 255 },
         isOfType: { outgoing: 1 },
         hasLeftEntity: { incoming: 0, outgoing: 0 },
         hasRightEntity: { incoming: 0, outgoing: 0 },
