@@ -84,7 +84,21 @@ const Page: NextPageWithLayout = () => {
 
       const validationResult = validateEntityType(entityType);
       if (validationResult.type === "Ok") {
-        reset(getFormDataFromSchema(entityType));
+        /**
+         * This hacky timeout is here because without it we encounter a bug in the following circumstances:
+         * 1. Be on a published type with at least one property or link of its own (inherited are irrelevant)
+         * 2. Click 'extend type' to create a new draft type, which calls 'reset' on the form (this line)
+         * 3. The react-hook-form state will incorrectly have malformed entries for as many properties as the source type
+         *
+         * This does not happen if the field inputs are not rendered, so it is probably something to do with array field
+         * values being retained across a reset somehow.
+         *
+         * shouldUnregister might help, but has wider consequences.
+         *
+         * Moving the reset into a useEffect does not work.
+         */
+        setTimeout(() => reset(getFormDataFromSchema(entityType)), 100);
+
         return entityType as EntityType;
       } else {
         throw Error(
@@ -152,8 +166,14 @@ const Page: NextPageWithLayout = () => {
   const isDirty = formMethods.formState.isDirty;
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!isDirty) {
-      // prevent creating new types when there are no changes
+    if (!isDirty && !isDraft) {
+      /**
+       * Prevent publishing a type unless:
+       * 1. The form has been touched by the user (isDirty) – don't publish versions without changes
+       * OR
+       * 2. It's a new draft type – the user may not have touched the form from its initial state,
+       *    which is set from input the user supplies in a separate form/modal.
+       */
       return;
     }
 
@@ -306,6 +326,7 @@ const Page: NextPageWithLayout = () => {
                           },
                         }
                   }
+                  key={entityType.$id} // reset edit bar state when the entity tpye changes
                 />
               )}
 
