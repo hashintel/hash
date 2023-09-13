@@ -1,3 +1,4 @@
+import { EntityPropertyValue } from "@blockprotocol/graph";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Entity,
@@ -86,7 +87,9 @@ export const generateEntityLabel = (
     );
   }
 
-  const simplifiedProperties = simplifyProperties(entityToLabel.properties);
+  const simplifiedProperties = simplifyProperties(
+    entityToLabel.properties,
+  ) as Record<string, EntityPropertyValue>;
 
   // fallback to some likely display name properties
   const options = [
@@ -98,11 +101,14 @@ export const generateEntityLabel = (
     "shortname",
     "fileName",
     "originalFileName",
-  ] as (keyof typeof simplifiedProperties)[];
+  ];
 
   for (const option of options) {
-    if (typeof simplifiedProperties[option] === "string") {
-      return simplifiedProperties[option];
+    if (
+      simplifiedProperties[option] &&
+      typeof simplifiedProperties[option] === "string"
+    ) {
+      return simplifiedProperties[option] as string;
     }
   }
 
