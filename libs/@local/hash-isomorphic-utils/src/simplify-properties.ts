@@ -38,13 +38,11 @@ export type Simplified<T extends Entity | BpEntity> = Omit<T, "properties"> & {
 export const simplifyProperties = <T extends EntityPropertiesObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  const simpleProperties = typedEntries(properties).reduce(
+  return typedEntries(properties).reduce(
     (acc, [key, value]) => ({
       ...acc,
       [camelCase(key.split("/").slice(-2, -1).pop())]: value,
     }),
     {} as SimpleProperties<T>,
   );
-
-  return simpleProperties;
 };
