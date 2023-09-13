@@ -215,6 +215,7 @@ const LoginPage: NextPageWithLayout = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <TextField
           label="Password"
@@ -229,6 +230,7 @@ const LoginPage: NextPageWithLayout = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <Button type="submit">Log in to your account</Button>
         {flow?.ui.messages?.map(({ text, id }) => (
