@@ -51,7 +51,7 @@ tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.21.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }

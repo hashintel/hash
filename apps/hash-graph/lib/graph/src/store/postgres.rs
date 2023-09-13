@@ -160,7 +160,7 @@ where
                     ontology_id,
                     base_url,
                     version
-                  ) VALUES (gen_random_uuid(), $1, $2)
+                  ) VALUES ($1, $2, $3)
                   ON CONFLICT DO NOTHING
                   RETURNING ontology_ids.ontology_id;
                 "#
@@ -171,13 +171,20 @@ where
                     ontology_id,
                     base_url,
                     version
-                  ) VALUES (gen_random_uuid(), $1, $2)
+                  ) VALUES ($1, $2, $3)
                   RETURNING ontology_ids.ontology_id;
                 "#
             }
         };
         self.as_client()
-            .query_opt(query, &[&record_id.base_url.as_str(), &record_id.version])
+            .query_opt(
+                query,
+                &[
+                    &OntologyId::from_record_id(record_id),
+                    &record_id.base_url.as_str(),
+                    &record_id.version,
+                ],
+            )
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
