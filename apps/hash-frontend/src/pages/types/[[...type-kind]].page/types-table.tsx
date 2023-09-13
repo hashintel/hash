@@ -88,7 +88,7 @@ export const TypesTable: FunctionComponent<{
       {
         id: "title",
         title: "Title",
-        width: 250,
+        width: 252,
         grow: 2,
       },
       ...(kind === "all"
