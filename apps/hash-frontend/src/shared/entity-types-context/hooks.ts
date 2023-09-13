@@ -65,19 +65,23 @@ export const useLatestEntityTypesOptional = (params?: {
  *
  * For types already in the db, do this instead:
  *   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
- *   const { file, image, link } = isSpecialEntityTypeLookup?.[entityType.$id] ?? {};
+ *   const { isFile, isImage, isLink } = isSpecialEntityTypeLookup?.[entityType.$id] ?? {};
  */
 export const useIsSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
 ) => {
-  const entityTypes = useEntityTypesOptional({ includeArchived: true });
+  const { loading, entityTypes } = useEntityTypesContextRequired();
 
   return useMemo(() => {
+    if (loading) {
+      return { isFile: false, isImage: false, isLink: false };
+    }
+
     const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
       Object.fromEntries(
         (entityTypes ?? []).map((type) => [type.schema.$id, type]),
       );
 
     return isSpecialEntityType(entityType, typesByVersion);
-  }, [entityType, entityTypes]);
+  }, [entityType, entityTypes, loading]);
 };
