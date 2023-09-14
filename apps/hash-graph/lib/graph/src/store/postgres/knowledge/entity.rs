@@ -485,7 +485,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut entity_editions = Vec::with_capacity(entities.size_hint().0);
         let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
         for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
-            let entity_uuid: Option<EntityUuid> = entity_uuid;
             entity_ids.push((
                 EntityId {
                     owned_by_id,

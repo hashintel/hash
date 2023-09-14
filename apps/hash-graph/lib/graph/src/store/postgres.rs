@@ -1310,7 +1310,7 @@ impl<C: AsClient> PostgresStore<C> {
     #[cfg(hash_graph_test_environment)]
     pub async fn delete_accounts<A: AuthorizationApi + Sync>(
         &mut self,
-        _actor_id: AccountId,
+        actor_id: AccountId,
         _authorization_api: &A,
     ) -> Result<(), DeletionError> {
         self.as_client()
