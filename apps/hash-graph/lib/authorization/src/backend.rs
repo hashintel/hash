@@ -5,7 +5,7 @@ use std::error::Error;
 
 use error_stack::Report;
 
-pub use self::spicedb::{SpiceDb, SpiceDbConfig};
+pub use self::spicedb::SpiceDbOpenApi;
 use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.

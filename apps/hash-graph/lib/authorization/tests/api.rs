@@ -8,7 +8,7 @@ use authorization::{
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
+        Precondition, RelationFilter, SpiceDbOpenApi, ZanzibarBackend,
     },
     zanzibar::{Consistency, Tuple, UntypedTuple},
 };
@@ -16,7 +16,7 @@ use error_stack::Report;
 use tokio::sync::oneshot::Sender;
 
 pub struct TestApi {
-    client: SpiceDb,
+    client: SpiceDbOpenApi,
 
     tuples: Vec<UntypedTuple<'static>>,
     cleanup: Option<(Sender<Vec<UntypedTuple<'static>>>, JoinHandle<()>)>,
@@ -42,13 +42,8 @@ impl TestApi {
         let key = std::env::var("HASH_SPICEDB_GRPC_PRESHARED_KEY")
             .unwrap_or_else(|_| "secret".to_owned());
 
-        let client = SpiceDb {
-            configuration: authorization::backend::SpiceDbConfig {
-                base_path: std::borrow::Cow::Owned(format!("{host}:{http_port}")),
-                client: reqwest::Client::new(),
-                key: std::borrow::Cow::Owned(key.clone()),
-            },
-        };
+        let client = SpiceDbOpenApi::new(format!("{host}:{http_port}"), &key)
+            .expect("failed to connect to SpiceDB");
 
         let (tuple_sender, tuple_receiver) = tokio::sync::oneshot::channel();
 
@@ -56,15 +51,10 @@ impl TestApi {
             tokio::runtime::Runtime::new()
                 .expect("failed to create runtime")
                 .block_on(async {
-                    let mut client = SpiceDb {
-                        configuration: authorization::backend::SpiceDbConfig {
-                            base_path: std::borrow::Cow::Owned(format!("{host}:{http_port}")),
-                            // Sending the client to another thread seems to break the client
-                            // so we create a new one here
-                            client: reqwest::Client::new(),
-                            key: std::borrow::Cow::Owned(key.clone()),
-                        },
-                    };
+                    // Sending the client to another thread seems to break the client
+                    // so we create a new one here
+                    let mut client = SpiceDbOpenApi::new(format!("{host}:{http_port}"), &key)
+                        .expect("failed to connect to SpiceDB");
 
                     let tuples: Vec<UntypedTuple> =
                         tuple_receiver.await.expect("failed to receive tuples");

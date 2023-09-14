@@ -8,7 +8,7 @@ use crate::{
         spicedb::model, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
+        Precondition, RelationFilter, SpiceDbOpenApi, ZanzibarBackend,
     },
     zanzibar::{Consistency, Tuple, UntypedTuple, Zookie},
 };
@@ -43,23 +43,17 @@ impl From<reqwest::Error> for InvocationError {
 
 impl Error for InvocationError {}
 
-impl SpiceDb {
+impl SpiceDbOpenApi {
     async fn call<R: DeserializeOwned>(
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
     ) -> Result<R, InvocationError> {
         let result = self
-            .configuration
             .client
             .execute(
-                self.configuration
-                    .client
-                    .post(format!("{}{}", self.configuration.base_path, path))
-                    .header(
-                        "Authorization",
-                        format!("Bearer {}", self.configuration.key),
-                    )
+                self.client
+                    .post(format!("{}{}", self.base_path, path))
                     .json(&body)
                     .build()?,
             )
@@ -143,7 +137,7 @@ impl SpiceDb {
     }
 }
 
-impl ZanzibarBackend for SpiceDb {
+impl ZanzibarBackend for SpiceDbOpenApi {
     async fn import_schema(
         &mut self,
         schema: &str,
