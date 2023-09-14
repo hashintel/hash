@@ -10,7 +10,15 @@ import { useEntityType } from "./shared/entity-type-context";
 import { getEntityTypeBaseUrl } from "./shared/get-entity-type-base-url";
 import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
-export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
+export const EntityTypeTabs = ({
+  isDraft,
+  isFile,
+  isImage,
+}: {
+  isDraft: boolean;
+  isFile: boolean;
+  isImage: boolean;
+}) => {
   const router = useRouter();
 
   const entityType = useEntityType();
@@ -52,12 +60,20 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
                 active={currentTab === "entities"}
               />,
               <TabLink
-                key="create"
-                value="create"
-                href={`/new/entity?entity-type-id=${encodeURIComponent(
-                  entityType.$id,
-                )}`}
-                label="Create new entity"
+                key={isFile ? "upload" : "create"}
+                value={isFile ? "upload" : "create"}
+                href={
+                  isFile
+                    ? getTabUrl(baseUrl, "upload")
+                    : `/new/entity?entity-type-id=${encodeURIComponent(
+                        entityType.$id,
+                      )}`
+                }
+                label={
+                  isFile
+                    ? `Add new ${isImage ? "image" : "file"}`
+                    : "Create new entity"
+                }
                 sx={(theme) => ({
                   ml: "auto",
                   color: "inherit",

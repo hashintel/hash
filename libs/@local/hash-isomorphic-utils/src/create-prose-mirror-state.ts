@@ -1,3 +1,4 @@
+import { OwnedById } from "@local/hash-subgraph";
 import { cloneDeep } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
@@ -31,11 +32,11 @@ const defaultPlugins: Plugin<unknown>[] = [
 ];
 
 export const createProseMirrorState = ({
-  accountId,
+  ownedById,
   doc = createInitialDoc(),
   plugins = [],
 }: {
-  accountId: string;
+  ownedById: OwnedById;
   doc?: Node;
   plugins?: Plugin<unknown>[];
 }) => {
@@ -43,7 +44,7 @@ export const createProseMirrorState = ({
     doc,
     plugins: [
       ...defaultPlugins,
-      createEntityStorePlugin({ accountId }),
+      createEntityStorePlugin({ ownedById }),
       formatKeymap(doc.type.schema),
       ...plugins,
     ],

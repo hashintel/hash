@@ -101,7 +101,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -110,7 +110,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@0163f6cf65d9b9bb0e5d1f0e3ae19280a06be4b0 # v2.18.9
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -139,7 +139,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@00e563ead9f72a8461b24876bee2d0c2e8bd2ee8 # v2.21.5
+        uses: github/codeql-action/upload-sarif@701f152f28d4350ad289a5e31435e9ab6169a7ca # v2.21.6
         if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -206,7 +206,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
@@ -216,7 +216,7 @@ jobs:
       - name: Install tools
         uses: taiki-e/install-action@0163f6cf65d9b9bb0e5d1f0e3ae19280a06be4b0 # v2.18.9
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37
 
       - name: Install Poetry dependencies
         working-directory: ${{ matrix.directory }}
@@ -279,7 +279,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
@@ -332,7 +332,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         uses: taiki-e/install-action@0163f6cf65d9b9bb0e5d1f0e3ae19280a06be4b0 # v2.18.9
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

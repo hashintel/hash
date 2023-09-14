@@ -1,6 +1,5 @@
 import {
   styled,
-  Table,
   TableBody,
   TableCell,
   TableFooter,
@@ -10,13 +9,14 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { Cell } from "../shared/cell";
 import { OrgSettingsContainer } from "../shared/org-settings-container";
+import { OrgTable } from "../shared/org-table";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 
@@ -43,6 +43,14 @@ const OrgMembersPage: NextPageWithLayout = () => {
     (orgOption) => orgOption.shortname === shortname,
   );
 
+  useEffect(() => {
+    const [_, anchorTag] = router.asPath.split("#");
+
+    if (anchorTag && anchorTag === "invite") {
+      setShowAddMemberForm(true);
+    }
+  }, [router]);
+
   if (!org) {
     // @todo show a 404 page
     void router.push("/");
@@ -58,25 +66,8 @@ const OrgMembersPage: NextPageWithLayout = () => {
         sectionLabel="Members"
         ref={topRef}
       >
-        <Table
-          sx={{
-            borderRadius: 1,
-            "th, td": {
-              padding: "12px 16px",
-              "&:first-of-type": {
-                paddingLeft: "24px",
-              },
-              "&:last-of-type": {
-                paddingRight: "24px",
-              },
-            },
-          }}
-        >
-          <TableHead
-            sx={({ palette }) => ({
-              borderBottom: `1px solid ${palette.gray[20]}`,
-            })}
-          >
+        <OrgTable>
+          <TableHead>
             <TableRow>
               <Cell width="70%">Name</Cell>
               <Cell>Username</Cell>
@@ -127,7 +118,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
               </TableCell>
             </TableRow>
           </TableFooter>
-        </Table>
+        </OrgTable>
       </OrgSettingsContainer>
     </>
   );

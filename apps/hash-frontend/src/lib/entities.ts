@@ -1,16 +1,48 @@
-import { typedKeys } from "@local/advanced-types/typed-entries";
+import { EntityPropertyValue } from "@blockprotocol/graph";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  BaseUrl,
   Entity,
   EntityRootType,
+  EntityTypeWithMetadata,
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  getEntityTypeById,
-  getPropertyTypesByBaseUrl,
+  getEntityTypeAndParentsById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+
+const getLabelPropertyValue = (
+  entityToLabel: Entity,
+  entityType: EntityTypeWithMetadata,
+) => {
+  if (entityType.metadata.custom.labelProperty) {
+    const label =
+      entityToLabel.properties[entityType.metadata.custom.labelProperty];
+
+    if (label) {
+      return label.toString();
+    }
+  }
+};
+
+const getFallbackLabel = ({
+  entityType,
+  entity,
+}: {
+  entityType?: EntityTypeWithMetadata;
+  entity: Entity;
+}) => {
+  // fallback to the entity type and a few characters of the entityUuid
+  const entityId = entity.metadata.recordId.entityId;
+
+  const entityTypeName = entityType?.schema.title ?? "Entity";
+
+  return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
+    0,
+    5,
+  )}`;
+};
 
 /**
  * Generate a display label for an entity
@@ -23,71 +55,62 @@ export const generateEntityLabel = (
 ): string => {
   const entityToLabel: Entity = entity ?? getRoots(entitySubgraph)[0]!;
 
-  const getFallbackLabel = () => {
-    // fallback to the entity type and a few characters of the entityUuid
-    const entityId = entityToLabel.metadata.recordId.entityId;
+  const entityTypeAndAncestors = getEntityTypeAndParentsById(
+    entitySubgraph,
+    entityToLabel.metadata.entityTypeId,
+  );
 
-    const entityType = getEntityTypeById(
-      entitySubgraph,
-      entityToLabel.metadata.entityTypeId,
-    );
-    const entityTypeName = entityType?.schema.title ?? "Entity";
+  const entityType = entityTypeAndAncestors[0];
 
-    return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
-      0,
-      5,
-    )}`;
-  };
+  const entityTypesToCheck = entityType ? [entityType] : [];
 
-  const getFallbackIfNotString = (val: any) => {
-    if (!val || typeof val !== "string") {
-      return getFallbackLabel();
+  /**
+   * Return any truthy value for a property which is set as the labelProperty for the entity's type,
+   * or any of its ancestors, using a breadth-first search in the inheritance tree starting from the entity's own type.
+   */
+  for (let i = 0; i < entityTypesToCheck.length; i++) {
+    const typeToCheck = entityTypesToCheck[i]!;
+
+    const label = getLabelPropertyValue(entityToLabel, typeToCheck);
+
+    if (label) {
+      return label;
     }
 
-    return val;
-  };
+    entityTypesToCheck.push(
+      ...entityTypeAndAncestors.filter(
+        (type) =>
+          typeToCheck.schema.allOf?.find(
+            ({ $ref }) => $ref === type.schema.$id,
+          ),
+      ),
+    );
+  }
+
+  const simplifiedProperties = simplifyProperties(
+    entityToLabel.properties,
+  ) as Record<string, EntityPropertyValue>;
 
   // fallback to some likely display name properties
   const options = [
     "name",
-    "preferred name",
-    "display name",
+    "preferredName",
+    "displayName",
     "title",
+    "organizationName",
     "shortname",
-    "file name",
-    "original file name",
+    "fileName",
+    "originalFileName",
   ];
 
-  const propertyTypes: { title?: string; propertyTypeBaseUrl: BaseUrl }[] =
-    typedKeys(entityToLabel.properties).map((propertyTypeBaseUrl) => {
-      /** @todo - pick the latest version rather than first element? */
-      const [propertyType] = getPropertyTypesByBaseUrl(
-        entitySubgraph,
-        propertyTypeBaseUrl,
-      );
-
-      return propertyType
-        ? {
-            title: propertyType.schema.title.toLowerCase(),
-            propertyTypeBaseUrl,
-          }
-        : {
-            title: undefined,
-            propertyTypeBaseUrl,
-          };
-    });
-
   for (const option of options) {
-    const found = propertyTypes.find(
-      ({ title }) => title && title.toLowerCase() === option.toLowerCase(),
-    );
-
-    if (found) {
-      return getFallbackIfNotString(
-        entityToLabel.properties[found.propertyTypeBaseUrl],
-      );
+    if (
+      simplifiedProperties[option] &&
+      typeof simplifiedProperties[option] === "string"
+    ) {
+      return simplifiedProperties[option] as string;
     }
   }
 
-  return getFallbackLabel();
+  return getFallbackLabel({ entityType, entity: entityToLabel });
 };

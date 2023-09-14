@@ -8,6 +8,7 @@ import {
   EntityId,
   EntityRootType,
   extractOwnedByIdFromEntityId,
+  OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -66,7 +67,10 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: userAccountId as OwnedById },
+            ],
           },
           {
             equal: [
@@ -205,7 +209,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       ] as string,
       userAccountId: extractOwnedByIdFromEntityId(
         integrationEntity.metadata.recordId.entityId,
-      ),
+      ) as AccountId,
     },
   );
 

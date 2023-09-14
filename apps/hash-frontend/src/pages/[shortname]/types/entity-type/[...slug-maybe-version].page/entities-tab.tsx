@@ -14,7 +14,7 @@ import { useEntityType } from "./shared/entity-type-context";
 export const EntitiesTab: FunctionComponent = () => {
   const { entities } = useEntityTypeEntities();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const entityType = useEntityType();
 
@@ -23,14 +23,14 @@ export const EntitiesTab: FunctionComponent = () => {
       entities?.filter(
         (entity) =>
           extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
-          activeWorkspaceAccountId,
+          activeWorkspaceOwnedById,
       ) ?? [];
 
     return {
       namespace: namespaceEntities.length,
       public: (entities?.length ?? 0) - namespaceEntities.length,
     };
-  }, [entities, activeWorkspaceAccountId]);
+  }, [entities, activeWorkspaceOwnedById]);
 
   const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
 

@@ -29,6 +29,7 @@ import {
 } from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
+import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
@@ -79,7 +80,7 @@ export const TypesTable: FunctionComponent<{
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: false,
@@ -133,16 +134,16 @@ export const TypesTable: FunctionComponent<{
         .map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
+            : type.metadata.custom.ownedById !== activeWorkspaceOwnedById;
 
-          const namespaceAccountId = isExternalOntologyElementMetadata(
+          const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
           )
             ? undefined
             : type.metadata.custom.ownedById;
 
           const namespace = namespaces?.find(
-            ({ accountId }) => accountId === namespaceAccountId,
+            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
           );
 
           return {
@@ -151,7 +152,7 @@ export const TypesTable: FunctionComponent<{
             title: type.schema.title,
             kind:
               type.schema.kind === "entityType"
-                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.file
+                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
@@ -172,7 +173,7 @@ export const TypesTable: FunctionComponent<{
       types,
       namespaces,
       filterState,
-      activeWorkspaceAccountId,
+      activeWorkspaceOwnedById,
     ],
   );
 

@@ -2,6 +2,7 @@ import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
+import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { LinksSection } from "./entity-editor/links-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
@@ -19,6 +20,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
     <EntityEditorContextProvider {...props}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
         <TypesSection />
+
+        <FilePreviewSection />
 
         <PropertiesSection />
 

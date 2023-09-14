@@ -12,7 +12,7 @@ import {
   useEntityTypeForm,
 } from "@hashintel/type-editor";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
-import { Backdrop, Box, Slide, Typography } from "@mui/material";
+import { Backdrop, Box, Slide } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -141,7 +141,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                     isLink={
                       !!entityTypesContext.isSpecialEntityTypeLookup?.[
                         remoteEntityType.schema.$id
-                      ]?.file
+                      ]?.isFile
                     }
                     ontologyChip={
                       <Link
@@ -149,18 +149,7 @@ export const TypePreviewSlide: FunctionComponent<TypePreviewSlideProps> = ({
                         target="_blank"
                         style={{ textDecoration: "none" }}
                       >
-                        <OntologyChip
-                          {...ontology}
-                          path={
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {ontology.path}
-                            </Typography>
-                          }
-                        />
+                        <OntologyChip {...ontology} />
                       </Link>
                     }
                     entityType={remoteEntityType.schema}

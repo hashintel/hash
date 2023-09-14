@@ -24,7 +24,7 @@ async-trait = "0.1.73"
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
 bytes = { workspace = true }
-clap = { version = "4.4.2", features = ["derive", "env"], optional = true }
+clap = { version = "4.4.3", features = ["derive", "env"], optional = true }
 derivative = "2.2.0"
 dotenv-flow = "0.15.0"
 futures = { workspace = true }
@@ -36,6 +36,7 @@ opentelemetry-otlp = "0.13.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 regex = "1.9.5"
 semver = { version = "1.0.18", default-features = false, features = ["serde"] }
+sentry = { version = "0.31.6", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
@@ -50,7 +51,7 @@ tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.21.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }

@@ -52,18 +52,7 @@ const Page: NextPageWithLayout = () => {
           <Container>
             <OntologyChip
               domain={frontendDomain}
-              path={
-                <Typography color={(theme) => theme.palette.blue[70]}>
-                  <Typography
-                    component="span"
-                    fontWeight="bold"
-                    color="inherit"
-                  >
-                    {`@${activeWorkspace.shortname}`}
-                  </Typography>
-                  /types/entity-type
-                </Typography>
-              }
+              path={`@${activeWorkspace.shortname}/types/entity-type`}
               sx={[{ marginBottom: 2 }]}
             />
             <Typography variant="h1" fontWeight="bold">

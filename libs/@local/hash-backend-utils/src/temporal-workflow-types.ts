@@ -31,7 +31,7 @@ export type ReadLinearTeamsWorkflow = (params: {
 export type SyncWorkspaceWorkflow = (params: {
   authentication: { actorId: AccountId };
   apiKey: string;
-  workspaceAccountId: AccountId;
+  workspaceOwnedById: OwnedById;
   teamIds: string[];
 }) => Promise<void>;
 

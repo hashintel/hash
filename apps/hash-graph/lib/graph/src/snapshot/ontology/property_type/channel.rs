@@ -62,19 +62,20 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        ontology_type: OntologyTypeSnapshotRecord<PropertyType>,
+        property_type: OntologyTypeSnapshotRecord<PropertyType>,
     ) -> Result<(), Self::Error> {
-        let property_type = PropertyType::try_from(ontology_type.schema)
+        let schema = PropertyType::try_from(property_type.schema)
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to property type")?;
 
-        let ontology_id = Uuid::new_v4();
+        let record_id = property_type.metadata.record_id.to_string();
+        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
-            .start_send_unpin((ontology_id, ontology_type.metadata))
+            .start_send_unpin((ontology_id, property_type.metadata))
             .attach_printable("could not send metadata")?;
 
-        let values: Vec<_> = property_type
+        let values: Vec<_> = schema
             .data_type_references()
             .into_iter()
             .map(|data_type_ref| {
@@ -93,7 +94,7 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
                 .attach_printable("could not send constrains values edge")?;
         }
 
-        let properties: Vec<_> = property_type
+        let properties: Vec<_> = schema
             .property_type_references()
             .into_iter()
             .map(|property_type_ref| {
@@ -115,7 +116,7 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         self.schema
             .start_send_unpin(PropertyTypeRow {
                 ontology_id,
-                schema: Json(property_type.into()),
+                schema: Json(schema.into()),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

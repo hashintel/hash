@@ -56,7 +56,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <OrgContextMenu leaveOrg={leaveOrg} />
+        <OrgContextMenu org={org} leaveOrg={leaveOrg} />
       </TableCell>
     </TableRow>
   );

@@ -41,23 +41,7 @@ export const SelectEntityTypePage = () => {
           chip={
             <OntologyChip
               domain={frontendDomain}
-              path={
-                <>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    fontWeight="bold"
-                    component="span"
-                  >
-                    @{activeWorkspace.shortname}
-                  </Typography>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    component="span"
-                  >
-                    /entities
-                  </Typography>
-                </>
-              }
+              path={`@${activeWorkspace.shortname}/entities`}
             />
           }
         />

@@ -1,4 +1,4 @@
-import { AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { DataSource } from "apollo-datasource";
 
 export enum StorageType {
@@ -21,7 +21,7 @@ export interface StorageProvider {
 }
 
 export interface GetFileEntityStorageKeyParams {
-  accountId: AccountId;
+  ownedById: OwnedById;
   editionIdentifier: string;
   filename: string;
 }

@@ -60,24 +60,28 @@ export const useLatestEntityTypesOptional = (params?: {
 };
 
 /**
- * Check if a specific entity type is or would be a link type, based on the provided 'allOf'
+ * Check if a specific entity type is or would be a special type, based on the provided 'allOf'
  * Specifically for use for checking types which aren't already in the db, e.g. draft or proposed types
  *
  * For types already in the db, do this instead:
  *   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
- *   const isLinkType = isSpecialEntityTypeLookup?.[entityType.$id]?.link;
+ *   const { isFile, isImage, isLink } = isSpecialEntityTypeLookup?.[entityType.$id] ?? {};
  */
-export const useIsLinkType = (
+export const useIsSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },
 ) => {
-  const entityTypes = useEntityTypesOptional({ includeArchived: true });
+  const { loading, entityTypes } = useEntityTypesContextRequired();
 
   return useMemo(() => {
+    if (loading) {
+      return { isFile: false, isImage: false, isLink: false };
+    }
+
     const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
       Object.fromEntries(
         (entityTypes ?? []).map((type) => [type.schema.$id, type]),
       );
 
-    return isSpecialEntityType(entityType, typesByVersion).link;
-  }, [entityType, entityTypes]);
+    return isSpecialEntityType(entityType, typesByVersion);
+  }, [entityType, entityTypes, loading]);
 };

@@ -40,6 +40,7 @@ use graph_types::{
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use include_dir::{include_dir, Dir};
+use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -229,6 +230,8 @@ where
     // Make sure extensions are added at the end so they are made available to merged routers.
     // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
     merged_routes
+        .layer(NewSentryLayer::new_from_top())
+        .layer(SentryHttpLayer::with_transaction())
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.domain_regex))
