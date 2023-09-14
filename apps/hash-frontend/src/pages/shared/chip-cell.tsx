@@ -5,16 +5,14 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import {
-  Chip,
-  ChipProps,
-  customColors,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Chip, customColors, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
-import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
-import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
+
+export type ChipCellColor = "blue" | "gray" | "white";
+export type ChipCellVariant = "outlined" | "filled";
 
 export interface ChipCellProps {
   readonly kind: "chip-cell";
@@ -23,27 +21,46 @@ export interface ChipCellProps {
     icon?: CustomIcon;
     faIconDefinition?: Pick<IconDefinition, "icon">;
   }[];
-  color?: ChipProps["color"];
-  variant?: ChipProps["variant"];
+  color?: ChipCellColor;
+  variant?: ChipCellVariant;
 }
 
 export type ChipCell = CustomCell<ChipCellProps>;
 
 export const getChipColors = (
-  color: ChipProps["color"],
-  variant: ChipProps["variant"] = "filled",
-) => {
+  color: ChipCellColor,
+  variant: ChipCellVariant = "filled",
+): {
+  textColor: string;
+  bgColor: string;
+  borderColor: string;
+  iconColor: string;
+} => {
   const isOutlined = variant === "outlined";
   switch (color) {
     case "blue":
       return {
         textColor: customColors.blue[70],
         bgColor: isOutlined ? customColors.blue[10] : customColors.blue[20],
-        borderColor: isOutlined ? customColors.blue[30] : "white",
+        borderColor: isOutlined ? customColors.blue[30] : customColors.blue[20],
+        iconColor: customColors.blue[70],
+      };
+
+    case "gray":
+      return {
+        textColor: customColors.gray[70],
+        bgColor: customColors.gray[10],
+        borderColor: customColors.gray[20],
+        iconColor: customColors.gray[70],
       };
 
     default:
-      return {};
+      return {
+        textColor: customColors.gray[80],
+        bgColor: customColors.white,
+        borderColor: customColors.gray[20],
+        iconColor: customColors.blue[70],
+      };
   }
 };
 
@@ -58,17 +75,15 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
 
-    const { bgColor, textColor, borderColor } = getChipColors(color, variant);
     for (let i = 0; i < chips.length; i++) {
       const { icon, text = "" } = chips[i] ?? {};
       const chipWidth = drawChipWithIcon({
         args,
+        color,
         text,
         left: chipLeft,
-        textColor,
-        bgColor,
         icon,
-        borderColor,
+        variant,
       });
 
       chipLeft += chipWidth + chipGap;
@@ -77,7 +92,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     drawCellFadeOutGradient(args);
   },
   provideEditor: (cell) => {
-    const { chips, color = "gray", variant } = cell.data;
+    const { chips, color, variant } = cell.data;
 
     return {
       disablePadding: true,
@@ -99,7 +114,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
               <Chip
                 key={text}
                 label={text}
-                color={color}
+                color={color === "white" ? "gray" : color}
                 variant={variant}
                 icon={<FontAwesomeIcon icon={faIconDefinition ?? faAsterisk} />}
               />

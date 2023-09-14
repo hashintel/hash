@@ -22,7 +22,7 @@ import { Grid, GridProps } from "../../components/grid/grid";
 import { BlankCell, blankCell } from "../../components/grid/utils";
 import { useEntityTypeEntities } from "../../shared/entity-type-entities-context";
 import { FilterState, TableHeader } from "../../shared/table-header";
-import { renderChipCell } from "../[shortname]/entities/[entity-uuid].page/entity-editor/properties-section/property-table/cells/chip-cell";
+import { renderChipCell } from "./chip-cell";
 import {
   renderTextIconCell,
   TextIconCell,

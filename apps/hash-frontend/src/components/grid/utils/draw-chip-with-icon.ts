@@ -2,33 +2,31 @@ import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 
+import {
+  ChipCellColor,
+  ChipCellVariant,
+  getChipColors,
+} from "../../../pages/shared/chip-cell";
 import { getYCenter } from "../utils";
 import { drawChip } from "./draw-chip";
 
 const drawClippedImage = ({
   ctx,
-  height: proposedHeight,
+  height,
   image,
   left,
-  top: proposedTop,
-  maxWidth,
+  top,
+  width,
 }: {
   ctx: CanvasRenderingContext2D;
-  image: HTMLImageElement;
+  image: HTMLImageElement | ImageBitmap;
   top: number;
   left: number;
   height: number;
-  maxWidth: number;
+  width: number;
 }) => {
   // Save the context so we can restore it after clipping the image with the rounded rect we're about to draw
   ctx.save();
-
-  const proposedWidth =
-    (image.naturalWidth / image.naturalHeight) * proposedHeight;
-
-  const width = Math.min(proposedWidth, maxWidth);
-  const height = (image.naturalHeight / image.naturalWidth) * width;
-  const top = proposedTop + (proposedHeight - height) / 2;
 
   const topRightCorner = [left + width, top] as const;
   const bottomRightCorner = [left + width, top + height] as const;
@@ -78,8 +76,11 @@ const drawClippedImage = ({
  * @param args draw args of cell
  * @param text text content of chip
  * @param left left position of chip
- * @param textColor text color
- * @param bgColor background color
+ * @param color the chip color
+ * @param [variant] the chip variant
+ * @param [icon] the icon to draw
+ * @param [imageSrc] the image to draw
+ *
  * @returns width of the drawn chip
  */
 export const drawChipWithIcon = ({
@@ -88,19 +89,18 @@ export const drawChipWithIcon = ({
   icon = "bpAsterisk",
   imageSrc,
   left,
-  textColor,
-  borderColor,
+  color,
+  variant,
 }: {
   args: DrawArgs<CustomCell>;
   text: string;
   icon?: CustomIcon;
   imageSrc?: string;
   left: number;
-  textColor?: string;
-  bgColor?: string;
-  borderColor?: string;
+  color: ChipCellColor;
+  variant?: ChipCellVariant;
 }) => {
-  const { ctx, theme } = args;
+  const { ctx, theme, imageLoader, col, row } = args;
   const yCenter = getYCenter(args);
 
   const paddingX = 12;
@@ -111,53 +111,42 @@ export const drawChipWithIcon = ({
 
   ctx.font = args.theme.baseFontStyle;
   const textWidth = ctx.measureText(text).width;
-  let chipWidth = iconHeight + gap + textWidth + 2 * paddingX;
-
-  const textColorInner = textColor ?? theme.textBubble;
 
   const iconTop = yCenter - iconHeight / 2;
 
+  const { bgColor, borderColor, iconColor, textColor } = getChipColors(
+    color,
+    variant,
+  );
+
+  let chipWidth = iconHeight + gap + textWidth + 2 * paddingX;
+
   if (imageSrc) {
-    // We'll only want to load the image once
-    let imgElement: HTMLImageElement | null = document.querySelector(
-      `[src='${imageSrc}']`,
-    );
+    const image = imageLoader.loadOrGetImage(imageSrc, col, row);
 
-    if (!imgElement) {
-      imgElement = new Image();
-      imgElement.src = imageSrc;
-      imgElement.style.display = "none";
-      document.body.appendChild(imgElement);
-    }
+    if (image) {
+      const maxWidth = 80;
 
-    const maxWidth = 80;
+      const proposedWidth = (image.width / image.height) * iconHeight;
 
-    if (imgElement.complete) {
-      const imageWidth = drawClippedImage({
+      const width = Math.min(proposedWidth, maxWidth);
+      const height = (image.height / image.width) * width;
+      const top = iconTop + (iconHeight - height) / 2;
+
+      chipWidth = width + gap + textWidth + 2 * paddingX;
+
+      drawChip(args, left, chipWidth, bgColor, borderColor);
+      drawClippedImage({
         ctx,
-        image: imgElement,
+        image,
         left: iconLeft,
-        top: iconTop,
-        height: iconHeight,
-        maxWidth,
-      });
-
-      chipWidth = imageWidth + gap + textWidth + 2 * paddingX;
-    } else {
-      imgElement.addEventListener("load", () => {
-        const imageWidth = drawClippedImage({
-          ctx,
-          image: imgElement!,
-          left: iconLeft,
-          top: iconTop,
-          height: iconHeight,
-          maxWidth,
-        });
-
-        chipWidth = imageWidth + gap + textWidth + 2 * paddingX;
+        top,
+        height,
+        width,
       });
     }
   } else {
+    drawChip(args, left, chipWidth, bgColor, borderColor);
     args.spriteManager.drawSprite(
       icon,
       "normal",
@@ -165,15 +154,13 @@ export const drawChipWithIcon = ({
       iconLeft,
       iconTop,
       iconHeight,
-      { ...theme, fgIconHeader: textColorInner },
+      { ...theme, fgIconHeader: iconColor },
     );
   }
 
-  drawChip(args, left, chipWidth, "transparent", borderColor ?? "white");
-
   const textLeft = left + chipWidth - paddingX - textWidth;
 
-  ctx.fillStyle = textColorInner;
+  ctx.fillStyle = textColor;
   ctx.fillText(text, textLeft, yCenter);
 
   return chipWidth;

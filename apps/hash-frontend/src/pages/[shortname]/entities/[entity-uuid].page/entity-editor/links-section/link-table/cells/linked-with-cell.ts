@@ -84,8 +84,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
       const chipWidth = drawChipWithIcon({
         args,
-        bgColor: "white",
-        borderColor: customColors.gray[20],
+        color: "white",
         imageSrc,
         text: label,
         left: accumulatedLeft,

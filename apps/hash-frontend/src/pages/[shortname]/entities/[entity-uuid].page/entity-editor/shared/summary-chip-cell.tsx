@@ -5,9 +5,9 @@ import {
 } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system";
 
-import { getYCenter } from "../../../../../../../../components/grid/utils";
-import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
-import { drawRoundRect } from "../../../../../../../../components/grid/utils/draw-round-rect";
+import { getYCenter } from "../../../../../../components/grid/utils";
+import { drawCellFadeOutGradient } from "../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawRoundRect } from "../../../../../../components/grid/utils/draw-round-rect";
 
 export interface SummaryChipCellProps {
   readonly kind: "summary-chip-cell";

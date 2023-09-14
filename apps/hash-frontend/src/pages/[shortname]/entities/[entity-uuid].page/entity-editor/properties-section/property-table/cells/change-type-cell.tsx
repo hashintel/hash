@@ -15,7 +15,6 @@ import { drawChip } from "../../../../../../../../components/grid/utils/draw-chi
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { propertyGridIndexes } from "../constants";
 import { PropertyRow } from "../types";
-import { getChipColors } from "./chip-cell";
 import { editorSpecs } from "./value-cell/editor-specs";
 import { ValueCell } from "./value-cell/types";
 import { guessEditorTypeFromExpectedType } from "./value-cell/utils";
@@ -43,14 +42,12 @@ export const createRenderChangeTypeCell = (
     kind: GridCellKind.Custom,
     isMatch: (cell: CustomCell): cell is ChangeTypeCell =>
       (cell.data as any).kind === "change-type-cell",
-    draw: (args, cell) => {
+    draw: async (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
       const { currentType } = cell.data;
       const yCenter = getYCenter(args);
 
       const chipLeft = rect.x + theme.cellHorizontalPadding;
-
-      const { bgColor, textColor } = getChipColors("blue");
 
       ctx.font = changeTextFont;
       const changeTextWidth = ctx.measureText(changeText).width;
@@ -63,8 +60,7 @@ export const createRenderChangeTypeCell = (
           args,
           text: currentType,
           left: chipLeft,
-          textColor,
-          bgColor,
+          color: "blue",
           icon: editorSpec.gridIcon,
         });
 

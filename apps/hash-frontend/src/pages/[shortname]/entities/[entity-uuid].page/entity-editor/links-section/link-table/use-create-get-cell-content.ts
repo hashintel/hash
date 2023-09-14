@@ -1,9 +1,9 @@
 import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 
+import { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
-import { ChipCell } from "../../properties-section/property-table/cells/chip-cell";
-import { SummaryChipCell } from "../../properties-section/property-table/cells/summary-chip-cell";
+import { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { LinkCell } from "./cells/link-cell";
 import { LinkedWithCell } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
@@ -63,7 +63,7 @@ export const useCreateGetCellContent = () => {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
-              allowOverlay: true,
+              allowOverlay: true, // in case we have so many expected types that we need to open on click to see them all
               copyData: String(row.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
@@ -72,8 +72,7 @@ export const useCreateGetCellContent = () => {
                   : row.expectedEntityTypeTitles.map((title) => ({
                       text: title,
                     })),
-                color: "blue",
-                variant: expectsAnything ? "outlined" : "filled",
+                color: expectsAnything ? "blue" : "white",
               },
             };
         }
