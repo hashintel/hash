@@ -2,7 +2,9 @@ import {
   AccountEntityId,
   Entity,
   extractAccountId,
-  extractOwnedByIdFromEntityId,
+  extractEntityUuidFromEntityId,
+  OwnedById,
+  Uuid,
 } from "@local/hash-subgraph";
 
 import { archiveEntity } from "../../../../graph/knowledge/primitive/entity";
@@ -90,8 +92,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       }),
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceOwnedById =
-        extractOwnedByIdFromEntityId(workspaceEntityId);
+      const workspaceOwnedById = extractEntityUuidFromEntityId(
+        workspaceEntityId,
+      ) as Uuid as OwnedById;
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           authentication,
