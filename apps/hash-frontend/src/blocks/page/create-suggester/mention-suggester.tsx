@@ -1,5 +1,5 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, EntityId, OwnedById } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
@@ -17,7 +17,7 @@ export type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: EntityId, mentionType: MentionType): void;
-  accountId: AccountId;
+  ownedById: OwnedById;
 }
 
 type SearchableItem = {
@@ -33,7 +33,7 @@ type SearchableItem = {
 export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
-  accountId,
+  ownedById,
 }) => {
   const { users, loading: usersLoading } = useUsers();
   const { entitiesSubgraph, loading: entitiesLoading } = useQueryEntities({
@@ -42,11 +42,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       types.entityType.page.entityTypeId,
     ],
   });
-  const { data: pages, loading: pagesLoading } = useAccountPages(
-    accountId as OwnedById,
-  );
+  const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const loading = usersLoading && pagesLoading && entitiesLoading;
 
@@ -58,8 +56,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         entityId: user.entityRecordId.entityId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ accountId: userAccountId }) =>
-            userAccountId === activeWorkspaceAccountId,
+          ({ accountGroupId: orgGroupId }) =>
+            orgGroupId === activeWorkspaceOwnedById,
         ),
       })) ?? [];
 
@@ -108,7 +106,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
-  }, [search, users, activeWorkspaceAccountId, pages, entitiesSubgraph]);
+  }, [search, users, activeWorkspaceOwnedById, pages, entitiesSubgraph]);
 
   return (
     <Suggester

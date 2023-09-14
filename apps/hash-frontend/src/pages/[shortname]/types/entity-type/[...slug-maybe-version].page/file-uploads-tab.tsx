@@ -1,7 +1,6 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { CheckIcon } from "@hashintel/block-design-system";
 import { CloseIcon, FontAwesomeIcon } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph";
 import {
   Box,
   CircularProgress,
@@ -45,7 +44,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   const uploadsProgress = useFileUploadsProgress();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const relevantUploads = uploads.filter(
     (upload) => upload.fileData.entityTypeId === entityType.$id,
@@ -59,7 +58,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
         entityTypeId: entityType.$id,
         file,
       },
-      ownedById: activeWorkspaceAccountId as OwnedById,
+      ownedById: activeWorkspaceOwnedById!,
     });
     setShowUploadForm(false);
   };

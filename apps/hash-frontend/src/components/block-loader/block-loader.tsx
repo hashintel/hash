@@ -14,7 +14,6 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
-  OwnedById,
 } from "@local/hash-subgraph";
 import {
   FunctionComponent,
@@ -66,18 +65,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   wrappingEntityId,
   readonly,
 }) => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
   const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
+    activeWorkspaceOwnedById ?? null,
     readonly,
   );
   const { archiveEntity: deleteEntity } = useBlockProtocolArchiveEntity();
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
   const { uploadFile } = useBlockProtocolFileUpload(
-    activeWorkspaceAccountId as OwnedById | undefined,
+    activeWorkspaceOwnedById,
     readonly,
   );
 

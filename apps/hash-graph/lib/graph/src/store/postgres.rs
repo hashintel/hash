@@ -59,6 +59,15 @@ enum OntologyLocation {
     External,
 }
 
+// TODO: Replace with something permission specific which can directly be reused once permissions
+//       are implemented.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VisibilityScope {
+    Public,
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
+}
+
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -336,20 +345,37 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<VisibilityScope, InsertionError> {
         let query: &str = r#"
-              INSERT INTO ontology_owned_metadata (
-                ontology_id,
-                owned_by_id
-              ) VALUES ($1, $2);
+                WITH inserted_owners AS (
+                    INSERT INTO ontology_owned_metadata (
+                        ontology_id,
+                        owned_by_id
+                    ) VALUES ($1, $2)
+                    RETURNING owned_by_id
+                )
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM account_groups
+                    JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
+                );
             "#;
 
-        self.as_client()
-            .query(query, &[&ontology_id, &owned_by_id])
+        let is_account_group: bool = self
+            .as_client()
+            .query_one(query, &[&ontology_id, &owned_by_id])
             .await
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?
+            .get(0);
 
-        Ok(())
+        let owned_by_uuid = owned_by_id.as_uuid();
+        if is_account_group {
+            Ok(VisibilityScope::AccountGroup(AccountGroupId::new(
+                owned_by_uuid,
+            )))
+        } else {
+            Ok(VisibilityScope::Account(AccountId::new(owned_by_uuid)))
+        }
     }
 
     async fn create_ontology_external_metadata(
@@ -718,8 +744,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         record_id: &OntologyTypeRecordId,
         custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
-    {
+    ) -> Result<
+        Option<(
+            OntologyId,
+            LeftClosedTemporalInterval<TransactionTime>,
+            VisibilityScope,
+        )>,
+        InsertionError,
+    > {
         match custom_metadata {
             PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
@@ -729,9 +761,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
-                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                    let visibility = self
+                        .create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((ontology_id, transaction_time, visibility)))
                 } else {
                     Ok(None)
                 }
@@ -750,7 +783,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((
+                        ontology_id,
+                        transaction_time,
+                        VisibilityScope::Public,
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -1263,9 +1300,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .as_client()
             .query_one(
                 r#"
-                INSERT INTO account_groups (accoun_group_id)
+                INSERT INTO account_groups (account_group_id)
                 VALUES ($1)
-                RETURNING accoun_group_id;
+                RETURNING account_group_id;
                 "#,
                 &[&account_group_id],
             )

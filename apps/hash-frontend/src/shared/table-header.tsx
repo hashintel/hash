@@ -87,7 +87,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   setFilterState,
   toggleSearch,
 }) => {
-  const { activeWorkspace } = useContext(WorkspaceContext);
+  const { activeWorkspace, activeWorkspaceOwnedById } =
+    useContext(WorkspaceContext);
 
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
 
@@ -96,15 +97,15 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       ? items.filter(({ metadata }) =>
           "entityTypeId" in metadata
             ? extractOwnedByIdFromEntityId(metadata.recordId.entityId) ===
-              activeWorkspace.accountId
+              activeWorkspaceOwnedById
             : isExternalOntologyElementMetadata(metadata)
             ? false
-            : metadata.custom.ownedById === activeWorkspace.accountId,
+            : metadata.custom.ownedById === activeWorkspaceOwnedById,
         )
       : undefined;
 
     return activeWorkspaceItems ? activeWorkspaceItems.length : undefined;
-  }, [items, activeWorkspace]);
+  }, [items, activeWorkspace, activeWorkspaceOwnedById]);
 
   const numberOfGlobalItems =
     typeof numberOfActiveWorkspaceItems !== "undefined"
@@ -150,7 +151,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         >
           <Chip
             icon={<EarthAmericasRegularIcon />}
-            label={`${numberOfGlobalItems} globally`}
+            label={`${numberOfGlobalItems} others`}
             sx={{
               [`.${chipClasses.label}`]: {
                 fontSize: 13,
@@ -171,7 +172,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         sx={{
           display: "flex",
           justifyContent: "flex-end",
-          background: ({ palette }) => palette.common.white,
+          background: ({ palette }) =>
+            displayFilters || Object.values(filterState).some((value) => value)
+              ? palette.common.white
+              : "transparent",
+          transition: ({ transitions }) => transitions.create("background"),
           borderRadius: 15,
         }}
       >

@@ -21,9 +21,15 @@ import {
   useState,
 } from "react";
 
-import { Grid } from "../../../components/grid/grid";
+import {
+  Grid,
+  gridHeaderHeightWithBorder,
+  gridHorizontalScrollbarHeight,
+  gridRowHeight,
+} from "../../../components/grid/grid";
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
+import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
@@ -72,11 +78,13 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const [showSearch, setShowSearch] = useState<boolean>(false);
+
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
-    includeArchived: true,
-    includeGlobal: true,
+    includeArchived: false,
+    includeGlobal: false,
   });
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -86,7 +94,7 @@ export const TypesTable: FunctionComponent<{
       {
         id: "title",
         title: "Title",
-        width: 250,
+        width: 252,
         grow: 2,
       },
       ...(kind === "all"
@@ -126,16 +134,16 @@ export const TypesTable: FunctionComponent<{
         .map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : type.metadata.custom.ownedById !== activeWorkspaceAccountId;
+            : type.metadata.custom.ownedById !== activeWorkspaceOwnedById;
 
-          const namespaceAccountId = isExternalOntologyElementMetadata(
+          const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
           )
             ? undefined
             : type.metadata.custom.ownedById;
 
           const namespace = namespaces?.find(
-            ({ accountId }) => accountId === namespaceAccountId,
+            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
           );
 
           return {
@@ -165,7 +173,7 @@ export const TypesTable: FunctionComponent<{
       types,
       namespaces,
       filterState,
-      activeWorkspaceAccountId,
+      activeWorkspaceOwnedById,
     ],
   );
 
@@ -245,18 +253,24 @@ export const TypesTable: FunctionComponent<{
         setFilterState={setFilterState}
       />
       <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         rows={filteredRows}
         sortable
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
-        height={
-          filteredRows.length > 10
-            ? `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-              }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`
-            : undefined
-        }
+        height={`
+          min(
+            calc(100vh - (${
+              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            calc(
+              ${gridHeaderHeightWithBorder}px +
+              (${filteredRows.length} * ${gridRowHeight}px) +
+              ${gridHorizontalScrollbarHeight}px
+            )
+          )`}
         customRenderers={[renderTextIconCell]}
       />
     </Box>

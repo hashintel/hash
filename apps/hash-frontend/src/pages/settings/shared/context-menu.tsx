@@ -23,11 +23,11 @@ export const ContextButton = styled("button")`
 export const contextMenuProps: Partial<MenuProps> = {
   anchorOrigin: {
     vertical: "bottom",
-    horizontal: "right",
+    horizontal: "left",
   },
   transformOrigin: {
     vertical: "top",
-    horizontal: "right",
+    horizontal: "left",
   },
   PaperProps: {
     elevation: 4,
