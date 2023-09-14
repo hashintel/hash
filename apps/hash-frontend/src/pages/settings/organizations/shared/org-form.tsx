@@ -73,6 +73,7 @@ export type OrgFormData = Omit<
 > & { accountId?: Org["accountId"]; entityRecordId?: Org["entityRecordId"] };
 
 type OrgFormProps = {
+  autoFocusDisplayName?: boolean;
   onSubmit: (org: OrgFormData) => Promise<void>;
   /**
    * An existing org to edit. Editing the shortname will not be allowed.
@@ -83,6 +84,7 @@ type OrgFormProps = {
 };
 
 export const OrgForm = ({
+  autoFocusDisplayName = false,
   onSubmit,
   org: initialOrg,
   submitLabel,
@@ -203,7 +205,7 @@ export const OrgForm = ({
           required
         />
         <TextField
-          autoFocus
+          autoFocus={autoFocusDisplayName}
           error={!!nameError}
           id="name"
           helperText={nameError}

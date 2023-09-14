@@ -172,6 +172,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <TextField
           label="Password"
@@ -186,6 +187,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <Button type="submit">Sign up with email</Button>
         {flow?.ui.messages?.map(({ text, id }) => (
