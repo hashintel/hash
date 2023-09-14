@@ -17,7 +17,7 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        create_account_id,
+        create_account,
         create_account_group,
     ),
     components(
@@ -38,7 +38,7 @@ impl RoutedResource for AccountResource {
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new()
-            .route("/accounts", post(create_account_id::<S, A>))
+            .route("/accounts", post(create_account::<S, A>))
             .route("/account_groups", post(create_account_group::<S, A>))
     }
 }
@@ -57,7 +57,7 @@ impl RoutedResource for AccountResource {
     )
 )]
 #[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn create_account_id<S, A>(
+async fn create_account<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,

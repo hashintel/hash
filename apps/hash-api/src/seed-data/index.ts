@@ -1,4 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { ImpureGraphContext } from "../graph";
 import {
@@ -55,7 +56,7 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(pageTitles, sharedOrg.accountId, params);
+  await seedPages(pageTitles, sharedOrg.accountGroupId as OwnedById, params);
 
   logger.info(
     `Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`,
@@ -108,7 +109,7 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(pageTitles, user.accountId, params);
+      await seedPages(pageTitles, user.accountId as OwnedById, params);
       logger.info(
         `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
       );

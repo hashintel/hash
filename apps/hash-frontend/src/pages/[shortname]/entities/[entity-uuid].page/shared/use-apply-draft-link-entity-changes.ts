@@ -1,4 +1,4 @@
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-subgraph";
 import { useContext } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
@@ -10,12 +10,12 @@ import {
 } from "./use-draft-link-state";
 
 export const useApplyDraftLinkEntityChanges = () => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    (activeWorkspaceAccountId as OwnedById | undefined) ?? null,
+    activeWorkspaceOwnedById ?? null,
   );
 
   const applyDraftLinkEntityChanges = async (

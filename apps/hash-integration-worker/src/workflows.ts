@@ -21,14 +21,14 @@ const linear = proxyActivities<
 });
 
 export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceAccountId, authentication, teamIds } = params;
+  const { apiKey, workspaceOwnedById, authentication, teamIds } = params;
 
   const organization = linear
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linear.createPartialEntities({
         authentication,
-        workspaceAccountId,
+        workspaceOwnedById,
         entities: [organizationEntity],
       }),
     );
@@ -36,7 +36,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
   const users = linear.readLinearUsers({ apiKey }).then((userEntities) =>
     linear.createPartialEntities({
       authentication,
-      workspaceAccountId,
+      workspaceOwnedById,
       entities: userEntities,
     }),
   );
@@ -47,7 +47,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
       .then((issueEntities) =>
         linear.createPartialEntities({
           authentication,
-          workspaceAccountId,
+          workspaceOwnedById,
           entities: issueEntities,
         }),
       ),
@@ -60,7 +60,7 @@ export const createHashUser: CreateHashUserWorkflow = async (params) => {
   await linear.createHashUser({
     authentication: params.authentication,
     user: params.payload,
-    workspaceAccountId: params.ownedById,
+    workspaceOwnedById: params.ownedById,
   });
 };
 
@@ -74,7 +74,7 @@ export const createHashIssue: CreateHashIssueWorkflow = async (params) => {
   await linear.createHashIssue({
     authentication: params.authentication,
     issue: params.payload,
-    workspaceAccountId: params.ownedById,
+    workspaceOwnedById: params.ownedById,
   });
 };
 

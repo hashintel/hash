@@ -9,6 +9,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useEffect, useMemo, useState } from "react";
 
+import { User } from "../../lib/user-and-org";
 import { useBlockProtocolGetEntity } from "./block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useWorkspaceByShortname } from "./use-workspace-by-shortname";
 
@@ -26,7 +27,10 @@ export const useWorkspaceShortnameByEntityUuid = (params: {
   const {
     workspace: systemUserWorkspace,
     loading: loadingSystemUserWorkspace,
-  } = useWorkspaceByShortname(systemUserShortname);
+  } = useWorkspaceByShortname(systemUserShortname) as {
+    workspace?: User;
+    loading: boolean;
+  };
 
   const systemUserOwnedById = useMemo(
     () => systemUserWorkspace?.accountId as OwnedById | undefined,

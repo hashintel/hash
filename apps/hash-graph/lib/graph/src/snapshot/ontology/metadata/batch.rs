@@ -63,6 +63,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_ids_tmp
                             SELECT * FROM UNNEST($1::ontology_ids[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_ids],
@@ -95,6 +96,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_owned_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_owned_metadata[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_owned_metadata],
@@ -111,6 +113,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_external_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_external_metadata[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_external_metadata],

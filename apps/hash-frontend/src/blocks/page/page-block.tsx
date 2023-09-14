@@ -2,7 +2,7 @@ import "prosemirror-view/style/prosemirror.css";
 
 import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { AccountId, EntityId } from "@local/hash-subgraph";
+import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 import { SxProps } from "@mui/system";
 import { EditorView } from "prosemirror-view";
@@ -27,7 +27,7 @@ import {
 type PageBlockProps = {
   contents: PageContentItem[];
   pageComments: PageThread[];
-  accountId: AccountId;
+  ownedById: OwnedById;
   entityId: EntityId;
 };
 
@@ -40,7 +40,7 @@ type PageBlockProps = {
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
   contents,
   pageComments,
-  accountId,
+  ownedById,
   entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
@@ -68,7 +68,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     currentBlocks.current = newestBlocks;
   }, [newestBlocks]);
 
-  const isReadonlyMode = useIsReadonlyModeForResource(accountId);
+  const isReadonlyMode = useIsReadonlyModeForResource(ownedById);
 
   const { setEditorContext, pageTitleRef } = usePageContext();
 
@@ -88,7 +88,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     const { view, connection, manager } = createEditorView(
       node,
       renderPortal,
-      accountId,
+      ownedById,
       entityId,
       () => currentBlocks.current,
       isReadonlyMode,
@@ -113,7 +113,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
     };
   }, [
-    accountId,
+    ownedById,
     currentBlocks,
     entityId,
     renderPortal,

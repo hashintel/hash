@@ -19,7 +19,6 @@ import {
 } from "@dnd-kit/sortable";
 import { IconButton } from "@hashintel/design-system";
 import {
-  AccountId,
   EntityUuid,
   extractEntityUuidFromEntityId,
   isEntityId,
@@ -40,7 +39,7 @@ import { useArchivePage } from "../../../../components/hooks/use-archive-page";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
-import { useWorkspaceShortnameByAccountId } from "../../../../components/hooks/use-workspace-shortname-by-account-id";
+import { useWorkspaceShortnameByOwnedById } from "../../../../components/hooks/use-workspace-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
@@ -57,7 +56,7 @@ import {
 } from "./utils";
 
 type AccountPageListProps = {
-  accountId: AccountId;
+  ownedById: OwnedById;
   currentPageEntityUuid?: EntityUuid;
 };
 
@@ -69,21 +68,18 @@ const measuringConfig = {
 
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
-  accountId,
+  ownedById,
 }) => {
-  const { data, loading: pagesLoading } = useAccountPages(
-    accountId as OwnedById,
-  );
+  const { data, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const { shortname: ownerShortname } = useWorkspaceShortnameByAccountId({
-    accountId,
+  const { shortname: ownerShortname } = useWorkspaceShortnameByOwnedById({
+    ownedById,
   });
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage(accountId as OwnedById);
-  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage(
-    accountId as OwnedById,
-  );
+    useCreatePage(ownedById);
+  const [createSubPage, { loading: createSubpageLoading }] =
+    useCreateSubPage(ownedById);
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const { archivePage, loading: archivePageLoading } = useArchivePage();
 

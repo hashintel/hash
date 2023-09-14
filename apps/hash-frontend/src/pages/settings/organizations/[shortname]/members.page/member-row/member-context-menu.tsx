@@ -29,6 +29,7 @@ export const MemberContextMenu = ({
 
       <Menu {...bindMenu(popupState)} {...contextMenuProps}>
         <MenuItem
+          dangerous
           onClick={() => {
             removeFromOrg();
             popupState.close();

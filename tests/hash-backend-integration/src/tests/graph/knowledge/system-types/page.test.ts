@@ -141,7 +141,7 @@ describe("Page", () => {
       graphContext,
       authentication,
       {
-        accountId: testUser.accountId,
+        ownedById: testUser.accountId as OwnedById,
       },
     );
 
