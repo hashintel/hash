@@ -1,15 +1,15 @@
-import { AccountGroupId, AccountId } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 
 import { AuthenticatedUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
 export const canUserEditResource = (
-  resourceAccountId: AccountId | AccountGroupId,
+  resourceOwnerId: OwnedById,
   user: AuthenticatedUser,
 ) =>
-  resourceAccountId === user.accountId ||
-  user.memberOf.find((org) => resourceAccountId === org.accountGroupId);
+  resourceOwnerId === user.accountId ||
+  user.memberOf.find((org) => resourceOwnerId === org.accountGroupId);
 
 export const useIsReadonlyModeForApp = () => {
   const router = useRouter();
@@ -21,9 +21,7 @@ export const useIsReadonlyModeForApp = () => {
   return isReadonlyMode;
 };
 
-export const useIsReadonlyModeForResource = (
-  resourceAccountId?: AccountId | AccountGroupId,
-) => {
+export const useIsReadonlyModeForResource = (resourceOwnerId?: OwnedById) => {
   const { authenticatedUser } = useAuthInfo();
 
   const appIsReadOnly = useIsReadonlyModeForApp();
@@ -33,8 +31,8 @@ export const useIsReadonlyModeForResource = (
   }
 
   return (
-    !resourceAccountId ||
+    !resourceOwnerId ||
     appIsReadOnly ||
-    !canUserEditResource(resourceAccountId, authenticatedUser)
+    !canUserEditResource(resourceOwnerId, authenticatedUser)
   );
 };

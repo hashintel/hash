@@ -1,4 +1,9 @@
-import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  AccountGroupEntityId,
+  EntityId,
+  extractAccountGroupId,
+  OwnedById,
+} from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -60,7 +65,9 @@ export const createOrgMembership: ImpureGraphFunction<
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
   const linkEntity = await createLinkEntity(ctx, authentication, {
-    ownedById: extractOwnedByIdFromEntityId(orgEntityId),
+    ownedById: extractAccountGroupId(
+      orgEntityId as AccountGroupEntityId,
+    ) as OwnedById,
     linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
     leftEntityId: userEntityId,
     rightEntityId: orgEntityId,

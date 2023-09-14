@@ -3,12 +3,11 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountEntityId,
   AccountId,
   Entity,
   EntityId,
   EntityRootType,
-  extractAccountId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -208,9 +207,9 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       linearOrgId: integrationEntity.properties[
         SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
       ] as string,
-      userAccountId: extractAccountId(
-        integrationEntity.metadata.recordId.entityId as AccountEntityId,
-      ),
+      userAccountId: extractOwnedByIdFromEntityId(
+        integrationEntity.metadata.recordId.entityId,
+      ) as AccountId,
     },
   );
 

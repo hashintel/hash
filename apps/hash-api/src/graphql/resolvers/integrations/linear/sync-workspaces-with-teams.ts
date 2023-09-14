@@ -1,8 +1,8 @@
 import {
-  AccountEntityId,
+  AccountId,
   Entity,
-  extractAccountId,
   extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
@@ -47,9 +47,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     },
   );
 
-  const userAccountId = extractAccountId(
-    linearIntegration.entity.metadata.recordId.entityId as AccountEntityId,
-  );
+  const userAccountId = extractOwnedByIdFromEntityId(
+    linearIntegration.entity.metadata.recordId.entityId,
+  ) as AccountId;
 
   const linearUserSecret = await getLinearUserSecretByLinearOrgId(
     dataSources,

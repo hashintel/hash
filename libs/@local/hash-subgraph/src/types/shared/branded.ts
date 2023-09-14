@@ -72,10 +72,10 @@ export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
 /** An account ID of an actor that has created a record */
 export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
 
-/** An `EntityId` which is the base of an Account Entity */
+/** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
 
-/** An `EntityId` which is the base of an Account Group Entity */
+/** An `EntityId`identifying an Account Group Entity, e.g. an `Org` */
 export type AccountGroupEntityId = Brand<EntityId, "AccountGroupEntityId">;
 
 /** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
