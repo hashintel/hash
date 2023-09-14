@@ -53,7 +53,7 @@ export const CreatePageMenuItem = ({
         onClick();
       }}
     >
-      <ListItemText primary="Create Page" />
+      <ListItemText primary="Create page" />
     </MenuItem>
   );
 };
