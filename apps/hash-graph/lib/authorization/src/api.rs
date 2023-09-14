@@ -8,7 +8,7 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse},
+    backend::{CheckError, CheckResponse, ModifyRelationError},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -40,25 +40,25 @@ pub trait AuthorizationApi {
         &mut self,
         group: AccountGroupId,
         member: AccountId,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_account_group_member(
         &mut self,
         group: AccountGroupId,
         member: AccountId,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn add_entity_owner(
         &mut self,
         actor: AccountId,
         scope: VisibilityScope,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_entity_owner(
         &mut self,
         actor: AccountId,
         scope: VisibilityScope,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_create_entity(
         &self,

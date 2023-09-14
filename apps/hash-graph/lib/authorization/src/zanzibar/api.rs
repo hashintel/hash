@@ -1,19 +1,4 @@
-#![feature(
-    associated_type_bounds,
-    async_fn_in_trait,
-    impl_trait_in_assoc_type,
-    lint_reasons,
-    return_position_impl_trait_in_trait
-)]
-
-pub mod backend;
-pub mod zanzibar;
-
-pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
-
-mod api;
-
-use error_stack::Result;
+use error_stack::{Report, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
@@ -21,14 +6,26 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError},
+    backend::{CheckError, CheckResponse, ModifyRelationError, ZanzibarBackend},
     zanzibar::{Consistency, Zookie},
+    AuthorizationApi, VisibilityScope,
 };
 
-#[derive(Debug, Default, Copy, Clone)]
-pub struct NoAuthorization;
+#[derive(Debug, Clone)]
+pub struct ZanzibarClient<B> {
+    _backend: B,
+}
 
-impl AuthorizationApi for NoAuthorization {
+impl<B> ZanzibarClient<B> {
+    pub const fn new(backend: B) -> Self {
+        Self { _backend: backend }
+    }
+}
+
+impl<B> AuthorizationApi for ZanzibarClient<B>
+where
+    B: ZanzibarBackend + Send + Sync,
+{
     async fn can_add_group_members(
         &self,
         _actor: AccountId,
@@ -36,7 +33,7 @@ impl AuthorizationApi for NoAuthorization {
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
-            has_permission: true,
+            has_permission: false,
             checked_at: Zookie::empty(),
         })
     }
@@ -48,7 +45,7 @@ impl AuthorizationApi for NoAuthorization {
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
-            has_permission: true,
+            has_permission: false,
             checked_at: Zookie::empty(),
         })
     }
@@ -58,7 +55,7 @@ impl AuthorizationApi for NoAuthorization {
         _group: AccountGroupId,
         _member: AccountId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }
 
     async fn remove_account_group_member(
@@ -66,7 +63,7 @@ impl AuthorizationApi for NoAuthorization {
         _group: AccountGroupId,
         _member: AccountId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }
 
     async fn add_entity_owner(
@@ -74,7 +71,7 @@ impl AuthorizationApi for NoAuthorization {
         _actor: AccountId,
         _scope: VisibilityScope,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }
 
     async fn remove_entity_owner(
@@ -82,7 +79,7 @@ impl AuthorizationApi for NoAuthorization {
         _actor: AccountId,
         _scope: VisibilityScope,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }
 
     async fn can_create_entity(
@@ -92,7 +89,7 @@ impl AuthorizationApi for NoAuthorization {
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
-            has_permission: true,
+            has_permission: false,
             checked_at: Zookie::empty(),
         })
     }
@@ -104,7 +101,7 @@ impl AuthorizationApi for NoAuthorization {
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
-            has_permission: true,
+            has_permission: false,
             checked_at: Zookie::empty(),
         })
     }
@@ -116,24 +113,8 @@ impl AuthorizationApi for NoAuthorization {
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
-            has_permission: true,
+            has_permission: false,
             checked_at: Zookie::empty(),
         })
-    }
-}
-
-impl<A> AuthorizationApiPool for A
-where
-    A: AuthorizationApi + Clone + Send + Sync,
-{
-    type Api<'pool> = Self;
-    type Error = std::convert::Infallible;
-
-    async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
-        Ok(self.clone())
-    }
-
-    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error> {
-        Ok(self.clone())
     }
 }

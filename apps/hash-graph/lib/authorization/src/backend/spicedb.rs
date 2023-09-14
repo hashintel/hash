@@ -1,7 +1,8 @@
 mod api;
 mod model;
-
 use std::fmt;
+
+use error_stack::Result;
 
 #[derive(Clone)]
 pub struct SpiceDbOpenApi {

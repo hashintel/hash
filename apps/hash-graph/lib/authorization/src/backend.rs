@@ -223,6 +223,17 @@ impl fmt::Display for CheckError {
 impl Error for CheckError {}
 
 #[derive(Debug)]
+pub struct ModifyRelationError;
+
+impl fmt::Display for ModifyRelationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("failed to modify relation")
+    }
+}
+
+impl Error for ModifyRelationError {}
+
+#[derive(Debug)]
 pub struct PermissionAssertion;
 
 impl fmt::Display for PermissionAssertion {

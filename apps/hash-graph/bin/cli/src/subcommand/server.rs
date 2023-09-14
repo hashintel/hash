@@ -6,7 +6,11 @@ use std::{
     time::Duration,
 };
 
-use authorization::NoAuthorization;
+use authorization::{
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
+    zanzibar::ZanzibarClient,
+    NoAuthorization,
+};
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
@@ -117,6 +121,21 @@ pub struct ServerArgs {
     /// Starts a server without connecting to the type fetcher
     #[clap(long, default_value_t = false, conflicts_with_all = ["type_fetcher_host", "type_fetcher_port"])]
     pub offline: bool,
+
+    /// The host the Spice DB server is listening at.
+    #[cfg_attr(feature = "authorization", clap(long, env = "HASH_SPICEDB_HOST"))]
+    pub spicedb_host: String,
+
+    /// The port the Spice DB server is listening at.
+    #[cfg_attr(feature = "authorization", clap(long, env = "HASH_SPICEDB_HTTP_PORT"))]
+    pub spicedb_http_port: u16,
+
+    /// The secret key used to authenticate with the Spice DB server.
+    #[cfg_attr(
+        feature = "authorization",
+        clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")
+    )]
+    pub spicedb_grpc_preshared_key: String,
 }
 
 // TODO: Consider making this a refinery migration
@@ -378,9 +397,27 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         )
     };
 
+    #[cfg(feature = "authorization")]
+    let authorization_api = {
+        let mut spicedb_client = SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            &args.spicedb_grpc_preshared_key,
+        )
+        .change_context(GraphError)?;
+        spicedb_client
+            .import_schema(include_str!(
+                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+            ))
+            .await
+            .change_context(GraphError)?;
+        ZanzibarClient::new(spicedb_client)
+    };
+    #[cfg(not(feature = "authorization"))]
+    let authorization_api = NoAuthorization;
+
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
-        authorization_api: Arc::new(NoAuthorization),
+        authorization_api: Arc::new(authorization_api),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 
