@@ -12,9 +12,11 @@ import {
 import clsx from "clsx";
 import { FunctionComponent, HTMLAttributes, useRef, useState } from "react";
 
+import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
 import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip, parseUrlForOntologyChip } from "../ontology-chip";
+import { EntityTypeIcon } from "../ontology-icons";
 
 const descriptionPropertyKey: BaseUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
@@ -36,6 +38,12 @@ export type SelectorAutocompleteOptionProps = {
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
   typeId: VersionedUrl;
 };
+
+const slugToTitleCase = (slug: string) =>
+  slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 export const SelectorAutocompleteOption = ({
   liProps,
@@ -65,6 +73,8 @@ export const SelectorAutocompleteOption = ({
   const onMouseEnter = () => (imageUrl ? setShowPreviewPane(true) : null);
   const onMouseLeave = () => (imageUrl ? setShowPreviewPane(false) : null);
 
+  const typeTitle = slugToTitleCase(typeId.split("/").slice(-3, -2)[0]!);
+
   return (
     <li
       {...liProps}
@@ -89,14 +99,26 @@ export const SelectorAutocompleteOption = ({
           }}
         >
           <Paper sx={{ borderRadius: 1, padding: 2, width: 300 }}>
-            <Stack>
+            <Stack
+              sx={{
+                borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                pb: 1,
+              }}
+            >
               <ImageWithCheckedBackground
                 alt={subtitle ?? title}
                 src={imageUrl}
-                sx={{ mb: 2 }}
+                sx={{ mb: 1 }}
               />
-              <Typography sx={{ fontWeight: 500, mb: 1 }}>{title}</Typography>
-              <Typography variant="smallTextLabels">{subtitle}</Typography>
+              <Typography sx={{ fontWeight: 500 }}>{title}</Typography>
+              {subtitle && (
+                <Typography variant="smallTextLabels" mt={1.5}>
+                  {subtitle}
+                </Typography>
+              )}
+            </Stack>
+            <Stack direction="row" mt={1}>
+              <Chip color="gray" icon={<EntityTypeIcon />} label={typeTitle} />
             </Stack>
           </Paper>
         </Popper>
@@ -170,30 +192,43 @@ export const SelectorAutocompleteOption = ({
               )}
             </Box>
             <Tooltip title={typeId}>
-              <OntologyChip
-                {...ontology}
-                sx={({ palette }) => ({
-                  border: `1px solid ${palette.gray[30]}`,
-                  flexShrink: 1,
-                  minWidth: 150,
-                  ml: 1.25,
-                  mr: 2,
-                })}
-              />
+              {entityProperties ? (
+                <Chip
+                  icon={<EntityTypeIcon />}
+                  color="gray"
+                  label={typeTitle}
+                  sx={{
+                    ml: 1,
+                  }}
+                />
+              ) : (
+                <OntologyChip
+                  {...ontology}
+                  sx={({ palette }) => ({
+                    border: `1px solid ${palette.gray[30]}`,
+                    flexShrink: 1,
+                    minWidth: 150,
+                    ml: 1.25,
+                    mr: 2,
+                  })}
+                />
+              )}
             </Tooltip>
           </Box>
-          <Typography
-            component={Box}
-            variant="microText"
-            sx={(theme) => ({
-              color: theme.palette.gray[50],
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-            })}
-          >
-            {subtitle}
-          </Typography>
+          {subtitle && (
+            <Typography
+              component={Box}
+              variant="microText"
+              sx={(theme) => ({
+                color: theme.palette.gray[50],
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+                overflow: "hidden",
+              })}
+            >
+              {subtitle}
+            </Typography>
+          )}
         </Stack>
         {imageUrl && (
           <Box
