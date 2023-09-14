@@ -1,12 +1,13 @@
+import { OwnedById } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
 
-export const useWorkspaceShortnameByAccountId = (params: {
-  accountId: string;
+export const useWorkspaceShortnameByOwnedById = (params: {
+  ownedById: OwnedById;
 }) => {
-  const { accountId } = params;
+  const { ownedById } = params;
   /**
    * @todo: getting an org or user by their account ID should not be happening
    * client side. This could be addressed by exposing structural querying
@@ -20,10 +21,10 @@ export const useWorkspaceShortnameByAccountId = (params: {
   const shortname = useMemo(
     () =>
       (
-        orgs?.find((org) => org.accountId === accountId) ??
-        users?.find((user) => user.accountId === accountId)
+        orgs?.find((org) => org.accountGroupId === ownedById) ??
+        users?.find((user) => user.accountId === ownedById)
       )?.shortname,
-    [users, orgs, accountId],
+    [users, orgs, ownedById],
   );
 
   return { shortname, loading: loadingUsers || loadingOrgs };

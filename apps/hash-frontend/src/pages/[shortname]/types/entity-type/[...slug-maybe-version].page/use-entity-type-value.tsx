@@ -18,10 +18,7 @@ import {
   getEntityTypesByBaseUrl,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -147,8 +144,10 @@ export const useEntityTypeValue = (
   );
 
   const entityTypesSubgraph = useEntityTypesSubgraphOptional();
-  const entityTypesLoading = useEntityTypesLoading() || !entityTypeBaseUrl;
+  const entityTypesLoading = useEntityTypesLoading();
   const refetch = useFetchEntityTypes();
+
+  const isDraft = !entityTypeBaseUrl;
 
   const { updateEntityType } = useBlockProtocolUpdateEntityType();
 
@@ -156,7 +155,7 @@ export const useEntityTypeValue = (
     contextEntityType: EntityTypeWithMetadata | null;
     latestVersion: number | null;
   }>(() => {
-    if (entityTypesLoading || !entityTypesSubgraph) {
+    if (entityTypesLoading || !entityTypesSubgraph || isDraft) {
       return { contextEntityType: null, latestVersion: null };
     }
 
@@ -207,20 +206,19 @@ export const useEntityTypeValue = (
     entityTypeBaseUrl,
     entityTypesLoading,
     entityTypesSubgraph,
+    isDraft,
     requestedVersion,
   ]);
 
   const [stateEntityType, setStateEntityType] = useState(contextEntityType);
 
-  if (
-    stateEntityType !== contextEntityType &&
-    (contextEntityType ||
-      (stateEntityType &&
-        (requestedVersion && entityTypeBaseUrl
-          ? stateEntityType.schema.$id !==
-            versionedUrlFromComponents(entityTypeBaseUrl, requestedVersion)
-          : extractBaseUrl(stateEntityType.schema.$id) !== entityTypeBaseUrl)))
-  ) {
+  /**
+   * Update the state entity type from the one from the entity types context if
+   * the two values are different, and one of the following is true:
+   *   a. we're on a draft, new entity type (in which case there's nothing from context)
+   *   b. we have a context entity type
+   */
+  if (stateEntityType !== contextEntityType && (isDraft || contextEntityType)) {
     setStateEntityType(contextEntityType);
   }
 
@@ -273,9 +271,12 @@ export const useEntityTypeValue = (
   // Moving it back into a useLayoutEffect also causes a bug with the property table loading, which was previously
   // fixed by a patch in https://github.com/hashintel/hash/pull/2012, but that patch _also_ seems to contribute to the bug.
   // @todo figure out what the issue in interaction between react-hook-form's form data, and the property options in React state
-  if (stateEntityType && completedRef.current !== stateEntityType.schema.$id) {
-    completedRef.current = stateEntityType.schema.$id;
-    onCompleted?.(stateEntityType);
+  if (completedRef.current !== stateEntityType?.schema.$id) {
+    // We need to change this to 'null' to detect a change if we move to a draft type (no stateEntityType) and then back to the original type
+    completedRef.current = stateEntityType?.schema.$id ?? null;
+    if (stateEntityType) {
+      onCompleted?.(stateEntityType);
+    }
   }
 
   const entityTypeUnavailable = entityTypesLoading && !stateEntityType;
@@ -283,7 +284,7 @@ export const useEntityTypeValue = (
   const lastFetchedBaseUrl = useRef(entityTypeBaseUrl);
 
   useEffect(() => {
-    if (lastFetchedBaseUrl.current !== entityTypeBaseUrl) {
+    if (lastFetchedBaseUrl.current !== entityTypeBaseUrl && entityTypeBaseUrl) {
       lastFetchedBaseUrl.current = entityTypeBaseUrl;
       void refetch();
     }

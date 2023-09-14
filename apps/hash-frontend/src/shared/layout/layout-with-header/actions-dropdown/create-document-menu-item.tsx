@@ -1,4 +1,4 @@
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
@@ -9,20 +9,16 @@ import { FilesLinesRegularIcon } from "../../../icons/file-lines-regular-icon";
 import { MenuItem } from "../../../ui/menu-item";
 
 export const CreateDocumentMenuItem = ({
-  activeWorkspaceAccountId,
+  activeWorkspaceOwnedById,
   onClick,
 }: {
-  activeWorkspaceAccountId: AccountId;
+  activeWorkspaceOwnedById: OwnedById;
   onClick: () => void;
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const { lastRootPageIndex } = useAccountPages(
-    activeWorkspaceAccountId as OwnedById,
-  );
-  const [createUntitledPage] = useCreatePage(
-    activeWorkspaceAccountId as OwnedById,
-  );
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById);
 
   const popupState = usePopupState({
     variant: "popover",

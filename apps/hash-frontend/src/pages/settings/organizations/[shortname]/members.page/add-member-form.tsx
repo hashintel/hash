@@ -31,7 +31,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
   const { refetch } = useAuthenticatedUser();
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    org.accountId as OwnedById,
+    org.accountGroupId as OwnedById,
   );
   const [queryEntities] = useLazyQuery<
     QueryEntitiesQuery,

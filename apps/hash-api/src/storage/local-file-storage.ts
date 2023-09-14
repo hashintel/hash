@@ -76,17 +76,17 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   }
 
   getFileEntityStorageKey({
-    accountId,
+    ownedById,
     editionIdentifier,
     filename,
   }: GetFileEntityStorageKeyParams) {
-    const folder = `${accountId}/${editionIdentifier}`;
+    const folder = `${ownedById}/${editionIdentifier}`;
 
     if (!fs.existsSync(path.join(this.fileUploadPath, folder))) {
       fs.mkdirSync(path.join(this.fileUploadPath, folder), { recursive: true });
     }
 
-    return `${accountId}/${editionIdentifier}/${filename}`;
+    return `${ownedById}/${editionIdentifier}/${filename}`;
   }
 
   /** Sets up express routes required for uploading and downloading files */

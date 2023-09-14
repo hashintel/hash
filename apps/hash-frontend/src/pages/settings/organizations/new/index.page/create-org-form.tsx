@@ -32,5 +32,11 @@ export const CreateOrgForm = () => {
     void router.push(`/@${orgData.shortname}`);
   };
 
-  return <OrgForm onSubmit={onSubmit} submitLabel="Create organization" />;
+  return (
+    <OrgForm
+      onSubmit={onSubmit}
+      submitLabel="Create organization"
+      autoFocusDisplayName
+    />
+  );
 };

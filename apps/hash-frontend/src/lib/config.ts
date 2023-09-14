@@ -5,7 +5,7 @@ export const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
  * keys used by HASH in the browser.
  */
 export const localStorageKeys = {
-  workspaceAccountId: "workspaceAccountId",
+  workspaceOwnedById: "workspaceOwnedById",
 } as const;
 
 export const resetLocalStorage = () => {

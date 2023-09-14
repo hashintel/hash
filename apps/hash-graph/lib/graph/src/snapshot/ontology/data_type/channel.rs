@@ -47,21 +47,22 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        ontology_type: OntologyTypeSnapshotRecord<DataType>,
+        data_type: OntologyTypeSnapshotRecord<DataType>,
     ) -> Result<(), Self::Error> {
-        let data_type = DataType::try_from(ontology_type.schema)
+        let schema = DataType::try_from(data_type.schema)
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to data type")?;
 
-        let ontology_id = Uuid::new_v4();
+        let record_id = data_type.metadata.record_id.to_string();
+        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
-            .start_send_unpin((ontology_id, ontology_type.metadata))
+            .start_send_unpin((ontology_id, data_type.metadata))
             .attach_printable("could not send metadata")?;
         self.schema
             .start_send_unpin(DataTypeRow {
                 ontology_id,
-                schema: Json(data_type.into()),
+                schema: Json(schema.into()),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

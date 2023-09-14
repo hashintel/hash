@@ -201,7 +201,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_property_type_metadata =
             Vec::with_capacity(inserted_property_types.capacity());
         for (schema, metadata) in property_types {
-            if let Some((ontology_id, transaction_time)) = transaction
+            if let Some((ontology_id, transaction_time, _visibility_scope)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -220,6 +220,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
+
+                // TODO: Insert permission for property type, something like
+                //       ```
+                //       authorization_api.grant_permission(
+                //           visibility_scope,
+                //           Relation::Admin,
+                //           ontology_id
+                //       )
+                //       ```
+                //       Make sure this will revoke the permission if the transaction fails.
             }
         }
 

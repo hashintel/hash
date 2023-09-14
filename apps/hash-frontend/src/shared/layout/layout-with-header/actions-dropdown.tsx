@@ -1,7 +1,7 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { AsteriskRegularIcon, FontAwesomeIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, linkEntityTypeUrl } from "@local/hash-subgraph";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -28,8 +28,8 @@ import { CreateDocumentMenuItem } from "./actions-dropdown/create-document-menu-
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 const ActionsDropdownInner: FunctionComponent<{
-  activeWorkspaceAccountId: AccountId;
-}> = ({ activeWorkspaceAccountId }) => {
+  activeWorkspaceOwnedById: OwnedById;
+}> = ({ activeWorkspaceOwnedById }) => {
   const theme = useTheme();
 
   const { hashInstance } = useHashInstance();
@@ -93,7 +93,7 @@ const ActionsDropdownInner: FunctionComponent<{
         </Typography>
         {hashInstance?.properties.pagesAreEnabled ? (
           <CreateDocumentMenuItem
-            activeWorkspaceAccountId={activeWorkspaceAccountId}
+            activeWorkspaceOwnedById={activeWorkspaceOwnedById}
             onClick={popupState.close}
           />
         ) : null}
@@ -134,9 +134,9 @@ const ActionsDropdownInner: FunctionComponent<{
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  return activeWorkspaceAccountId ? (
-    <ActionsDropdownInner activeWorkspaceAccountId={activeWorkspaceAccountId} />
+  return activeWorkspaceOwnedById ? (
+    <ActionsDropdownInner activeWorkspaceOwnedById={activeWorkspaceOwnedById} />
   ) : null;
 };

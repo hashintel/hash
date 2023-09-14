@@ -3,6 +3,7 @@ import {
   Entity,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 
@@ -48,7 +49,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
   const userAccountId = extractOwnedByIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
-  );
+  ) as AccountId;
 
   const linearUserSecret = await getLinearUserSecretByLinearOrgId(
     dataSources,
@@ -91,13 +92,13 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       }),
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceAccountId = extractEntityUuidFromEntityId(
+      const workspaceOwnedById = extractEntityUuidFromEntityId(
         workspaceEntityId,
-      ) as Uuid as AccountId;
+      ) as Uuid as OwnedById;
       return Promise.all([
         linearClient.triggerWorkspaceSync({
           authentication,
-          workspaceAccountId,
+          workspaceOwnedById,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWorkspace(dataSources, authentication, {

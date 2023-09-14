@@ -1,5 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { AccountId, Entity, EntityId, OwnedById } from "@local/hash-subgraph";
+import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -26,10 +26,15 @@ import {
   UpdateEntityAction,
   UpdatePageAction,
 } from "../../../api-types.gen";
+import { AuthenticationContext } from "../../../context";
 
 export const createEntityWithPlaceholdersFn =
-  (context: ImpureGraphContext, placeholderResults: PlaceholderResultsMap) =>
-  async (originalDefinition: EntityDefinition, entityActorId: AccountId) => {
+  (
+    authentication: AuthenticationContext,
+    context: ImpureGraphContext,
+    placeholderResults: PlaceholderResultsMap,
+  ) =>
+  async (originalDefinition: EntityDefinition, ownedById: OwnedById) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
         draft.existingEntityId = placeholderResults.get(
@@ -37,16 +42,16 @@ export const createEntityWithPlaceholdersFn =
         ) as EntityId;
       }
     });
-    const authentication = { actorId: entityActorId };
+
     if (entityDefinition.existingEntityId) {
       return await getOrCreateEntity(context, authentication, {
-        ownedById: entityActorId as OwnedById,
+        ownedById,
         // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
       });
     } else {
       return await createEntityWithLinks(context, authentication, {
-        ownedById: entityActorId as OwnedById,
+        ownedById,
         entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
@@ -127,7 +132,7 @@ export const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: EntityDefinition,
-    entityActorId: AccountId,
+    entityOwnedById: OwnedById,
   ) => Promise<Entity>;
 }): Promise<void> => {
   try {
@@ -169,7 +174,7 @@ export const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: EntityDefinition,
-      entityActorId: AccountId,
+      entityOwnedById: OwnedById,
     ) => Promise<Entity>;
     placeholderResults: PlaceholderResultsMap;
   },
