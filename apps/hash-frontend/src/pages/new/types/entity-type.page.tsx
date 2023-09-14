@@ -43,6 +43,7 @@ const Page: NextPageWithLayout = () => {
             {
               title: "Types",
               id: "types",
+              href: "/types",
             },
             {
               title: `${isCreateLinkEntityType ? "Link" : "Entity"} types`,
