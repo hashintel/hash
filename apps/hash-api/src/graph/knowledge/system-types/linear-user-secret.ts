@@ -3,10 +3,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountEntityId,
+  AccountId,
   Entity,
   EntityId,
   EntityRootType,
-  extractOwnedByIdFromEntityId,
+  extractAccountId,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -58,15 +60,18 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
  * Get a Linear user secret by the linear org ID
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
-  { ownedById: OwnedById; linearOrgId: string },
+  { userAccountId: AccountId; linearOrgId: string },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { actorId }, { ownedById, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: userAccountId as OwnedById },
+            ],
           },
           {
             equal: [
@@ -203,8 +208,8 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       linearOrgId: integrationEntity.properties[
         SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
       ] as string,
-      ownedById: extractOwnedByIdFromEntityId(
-        integrationEntity.metadata.recordId.entityId,
+      userAccountId: extractAccountId(
+        integrationEntity.metadata.recordId.entityId as AccountEntityId,
       ),
     },
   );
