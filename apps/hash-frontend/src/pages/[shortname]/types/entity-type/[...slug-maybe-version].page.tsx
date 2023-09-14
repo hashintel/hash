@@ -145,7 +145,7 @@ const Page: NextPageWithLayout = () => {
   });
 
   const userUnauthorized = useIsReadonlyModeForResource(
-    routeNamespace?.accountId,
+    routeNamespace?.accountId as OwnedById,
   );
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;

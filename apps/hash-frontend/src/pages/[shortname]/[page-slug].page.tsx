@@ -18,7 +18,6 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -54,6 +53,7 @@ import { constructPageRelativeUrl } from "../../lib/routes";
 import {
   constructMinimalOrg,
   constructMinimalUser,
+  extractOwnedById,
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
@@ -162,7 +162,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     );
   }
 
-  const pageOwnedById = pageWorkspace.accountId as OwnedById;
+  const pageOwnedById = extractOwnedById(pageWorkspace);
 
   const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
     pageOwnedById,
@@ -442,7 +442,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <PageBlock
-                  accountId={pageWorkspace.accountId}
+                  ownedById={extractOwnedById(pageWorkspace)}
                   contents={contents}
                   pageComments={pageComments}
                   entityId={pageEntityId}

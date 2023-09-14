@@ -14,11 +14,14 @@ export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
 /** Valid Uuids of the system */
 export type Uuid = Brand<string, "Uuid">;
 
-/** An ID to uniquely identify an account (e.g. a User or an Org) */
+/** An ID to uniquely identify an account (e.g. a User) */
 export type AccountId = Brand<Uuid, "AccountId">;
 
+/** An ID to uniquely identify an account group (e.g. an Org) */
+export type AccountGroupId = Brand<Uuid, "AccountGroupId">;
+
 /** An account ID of an actor that is the owner of something */
-export type OwnedById = Brand<AccountId, "OwnedById">;
+export type OwnedById = Brand<AccountId | AccountGroupId, "OwnedById">;
 
 /** A `Uuid` that points to an Entity without any edition */
 export type EntityUuid = Brand<Uuid, "EntityUuid">;
@@ -69,11 +72,20 @@ export type RecordCreatedById = Brand<AccountId, "RecordCreatedById">;
 /** An account ID of an actor that has created a record */
 export type RecordArchivedById = Brand<AccountId, "RecordArchivedById">;
 
-/** An `EntityId` which is the base of an Account Entity */
+/** An `EntityId` identifying a `User` Entity */
 export type AccountEntityId = Brand<EntityId, "AccountEntityId">;
 
-/** If the underlying entityUuid is an accountId, use this cast to convert the type */
+/** An `EntityId`identifying an Account Group Entity, e.g. an `Org` */
+export type AccountGroupEntityId = Brand<EntityId, "AccountGroupEntityId">;
+
+/** If the underlying `EntityUuid` is an `AccountId`, use this cast to convert the type */
 export const extractAccountId = extractEntityUuidFromEntityId as (
   entityId: AccountEntityId,
-  // The type cannot be cast directly to AccountId, so we do it over two casts, but without `unknown`
+  // The type cannot be cast directly to `AccountId`, so we do it over two casts, but without `unknown`
 ) => string as (entityId: AccountEntityId) => AccountId;
+
+/** If the underlying `EntityUuid` is an `AccountGroupId`, use this cast to convert the type */
+export const extractAccountGroupId = extractEntityUuidFromEntityId as (
+  entityId: AccountGroupEntityId,
+  // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
+) => string as (entityId: AccountGroupEntityId) => AccountGroupId;

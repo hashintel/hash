@@ -1,6 +1,5 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
-  AccountId,
   EntityId,
   extractEntityUuidFromEntityId,
   OwnedById,
@@ -10,7 +9,7 @@ import { FunctionComponent, useMemo } from "react";
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useUsers } from "../../../components/hooks/use-users";
-import { useWorkspaceShortnameByAccountId } from "../../../components/hooks/use-workspace-shortname-by-account-id";
+import { useWorkspaceShortnameByOwnedById } from "../../../components/hooks/use-workspace-shortname-by-owned-by-id";
 import { PageIcon } from "../../../components/page-icon";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
@@ -20,22 +19,20 @@ import { MentionType } from "../create-suggester/mention-suggester";
 interface MentionDisplayProps {
   entityId: EntityId;
   mentionType: MentionType;
-  accountId: AccountId;
+  ownedById: OwnedById;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   entityId,
   mentionType,
-  accountId,
+  ownedById,
 }) => {
   const { users, loading: usersLoading } = useUsers(true);
-  const { data: pages, loading: pagesLoading } = useAccountPages(
-    accountId as OwnedById,
-  );
+  const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
 
   const { shortname: workspaceShortname, loading: workspaceShortnameLoading } =
-    useWorkspaceShortnameByAccountId({ accountId });
+    useWorkspaceShortnameByOwnedById({ ownedById });
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {

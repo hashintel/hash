@@ -3,16 +3,17 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountEntityId,
   AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
+  extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -87,9 +88,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountId: extractAccountId(
+      entity.metadata.recordId.entityId as AccountEntityId,
+    ),
     shortname,
     preferredName,
     isAccountSignupComplete,
@@ -146,6 +147,10 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      // TODO: Should this be an all-time query? What happens if the user is
+      //       archived/deleted, do we want to allow users to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>
@@ -272,7 +277,9 @@ export const createUser: ImpureGraphFunction<
 
   const userAccountId =
     params.userAccountId ??
-    (await graphApi.createAccountId(authentication.actorId)).data;
+    (await graphApi
+      .createAccount(authentication.actorId)
+      .then(({ data: accountId }) => accountId as AccountId));
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
@@ -296,7 +303,7 @@ export const createUser: ImpureGraphFunction<
     ownedById: systemUserAccountId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
-    entityUuid: userAccountId as EntityUuid,
+    entityUuid: userAccountId as string as EntityUuid,
   });
 
   const user = getUserFromEntity({ entity });

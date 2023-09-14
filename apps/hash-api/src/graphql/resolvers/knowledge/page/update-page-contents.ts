@@ -68,6 +68,7 @@ export const updatePageContents: ResolverFn<
   const placeholderResults = new PlaceholderResultsMap();
 
   const createEntityWithPlaceholders = createEntityWithPlaceholdersFn(
+    authentication,
     context,
     placeholderResults,
   );

@@ -16,7 +16,7 @@ export type AccountPagesInfo = {
 };
 
 export const useAccountPages = (
-  ownedById: OwnedById,
+  ownedById?: OwnedById,
   includeArchived?: boolean,
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
@@ -26,7 +26,7 @@ export const useAccountPages = (
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
     variables: { ownedById, includeArchived },
-    skip: !hashInstance?.properties.pagesAreEnabled,
+    skip: !ownedById || !hashInstance?.properties.pagesAreEnabled,
   });
 
   const pages = useMemo(() => {
