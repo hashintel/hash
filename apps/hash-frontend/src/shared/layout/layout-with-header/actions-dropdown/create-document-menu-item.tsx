@@ -1,13 +1,14 @@
 import { AccountId, OwnedById } from "@local/hash-subgraph";
-import { ListItemText } from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
+import { FilesLinesRegularIcon } from "../../../icons/file-lines-regular-icon";
 import { MenuItem } from "../../../ui/menu-item";
 
-export const CreatePageMenuItem = ({
+export const CreateDocumentMenuItem = ({
   activeWorkspaceAccountId,
   onClick,
 }: {
@@ -53,7 +54,10 @@ export const CreatePageMenuItem = ({
         onClick();
       }}
     >
-      <ListItemText primary="Create page" />
+      <ListItemIcon>
+        <FilesLinesRegularIcon />
+      </ListItemIcon>
+      <ListItemText primary="Document" />
     </MenuItem>
   );
 };
