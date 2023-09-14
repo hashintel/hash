@@ -67,7 +67,6 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    #[must_use]
     fn can_view_entities(
         &self,
         actor: AccountId,
