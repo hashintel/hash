@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use authorization::{
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
+    AuthorizationApi, VisibilityScope,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -33,7 +33,7 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
-            TraversalContext, VisibilityScope,
+            TraversalContext,
         },
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -308,21 +308,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .get(0);
 
         let owned_by_uuid = owned_by_id.as_uuid();
-        let _visibility_scope = if is_account_group {
+        let visibility_scope = if is_account_group {
             VisibilityScope::AccountGroup(AccountGroupId::new(owned_by_uuid))
         } else {
             VisibilityScope::Account(AccountId::new(owned_by_uuid))
         };
-
-        // TODO: Insert permission for entity, something like
-        //       ```
-        //       authorization_api.grant_permission(
-        //           visibility_scope,
-        //           Relation::Admin,
-        //           entity_id
-        //       )
-        //       ```
-        //       Make sure this will revoke the permission if the transaction fails.
 
         let link_order = if let Some(link_data) = link_data {
             transaction
@@ -438,7 +428,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        transaction.commit().await.change_context(InsertionError)?;
+        authorization_api
+            .add_entity_owner(actor_id, visibility_scope)
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(error) = transaction.commit().await {
+            authorization_api
+                .remove_entity_owner(actor_id, visibility_scope)
+                .await
+                .change_context(InsertionError)?;
+
+            return Err(error.change_context(InsertionError));
+        }
 
         Ok(EntityMetadata::new(
             EntityRecordId {
@@ -483,6 +485,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let mut entity_editions = Vec::with_capacity(entities.size_hint().0);
         let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
         for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
+            let entity_uuid: Option<EntityUuid> = entity_uuid;
             entity_ids.push((
                 EntityId {
                     owned_by_id,

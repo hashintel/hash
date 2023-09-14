@@ -6,25 +6,61 @@
     return_position_impl_trait_in_trait
 )]
 
+pub mod backend;
+pub mod zanzibar;
+
+pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+
+mod api;
+
 use error_stack::Result;
-use graph_types::{account::AccountId, knowledge::entity::EntityId, provenance::OwnedById};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityId,
+    provenance::OwnedById,
+};
 
 use crate::{
     backend::{CheckError, CheckResponse},
     zanzibar::{Consistency, Zookie},
 };
 
-pub mod backend;
-pub mod zanzibar;
-
-mod api;
-
-pub use self::api::{AuthorizationApi, AuthorizationApiPool};
-
 #[derive(Debug, Default)]
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
+    async fn add_account_group_member(
+        &mut self,
+        _actor: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_account_group_member(
+        &mut self,
+        _actor: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_entity_owner(
+        &mut self,
+        _actor: AccountId,
+        _scope: VisibilityScope,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_owner(
+        &mut self,
+        _actor: AccountId,
+        _scope: VisibilityScope,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
     async fn can_create_entity(
         &self,
         _actor: AccountId,

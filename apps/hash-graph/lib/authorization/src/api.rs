@@ -1,14 +1,51 @@
 use std::{collections::HashMap, future::Future};
 
 use error_stack::Result;
-use graph_types::{account::AccountId, knowledge::entity::EntityId, provenance::OwnedById};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityId,
+    provenance::OwnedById,
+};
 
 use crate::{
     backend::{CheckError, CheckResponse},
     zanzibar::{Consistency, Zookie},
 };
 
+// TODO: Replace with something permission specific which can directly be reused once permissions
+//       are implemented.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VisibilityScope {
+    Public,
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
+}
+
 pub trait AuthorizationApi {
+    fn add_account_group_member(
+        &mut self,
+        actor: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn remove_account_group_member(
+        &mut self,
+        actor: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn add_entity_owner(
+        &mut self,
+        actor: AccountId,
+        scope: VisibilityScope,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn remove_entity_owner(
+        &mut self,
+        actor: AccountId,
+        scope: VisibilityScope,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
     fn can_create_entity(
         &self,
         actor: AccountId,
