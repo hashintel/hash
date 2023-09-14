@@ -37,7 +37,6 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const { linkRow, readonly } = cell.data;
     const {
       linkAndTargetEntities,
-      entitySubgraph,
       markLinkAsArchived,
       isFile,
       isList,
@@ -77,8 +76,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     );
 
     // draw linked entity chips
-    for (const { rightEntity } of sortedLinkedEntities) {
-      const label = generateEntityLabel(entitySubgraph, rightEntity);
+    for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
+      const label = generateEntityLabel(sourceSubgraph, rightEntity);
 
       const imageSrc = getImageUrlFromFileProperties(rightEntity.properties);
 

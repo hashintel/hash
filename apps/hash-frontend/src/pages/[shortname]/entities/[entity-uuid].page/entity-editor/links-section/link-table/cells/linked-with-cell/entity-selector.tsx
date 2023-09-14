@@ -8,8 +8,10 @@ import {
 import {
   Entity,
   EntityId,
+  EntityRootType,
   EntityTypeWithMetadata,
   OwnedById,
+  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { PaperProps, Stack, Typography } from "@mui/material";
@@ -32,7 +34,10 @@ import { WorkspaceContext } from "../../../../../../../../shared/workspace-conte
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
-  onSelect: (option: Entity) => void;
+  onSelect: (
+    option: Entity,
+    sourceSubgraph: Subgraph<EntityRootType> | null,
+  ) => void;
   onFinishedEditing: () => void;
   expectedEntityTypes: EntityTypeWithMetadata[];
   entityIdsToFilterOut?: EntityId[];
@@ -162,13 +167,18 @@ export const EntitySelector = ({
       });
 
       if (upload.status === "complete") {
-        onSelect(upload.createdEntities.fileEntity as unknown as Entity);
+        // The subgraph is only used for labelling purposes, so we needn't block file upload if it isn't available
+        onSelect(
+          upload.createdEntities.fileEntity as unknown as Entity,
+          entitiesSubgraph ?? null,
+        );
       }
       // @todo handle errored uploads – H-724
     },
     [
       activeWorkspaceAccountId,
       entityId,
+      entitiesSubgraph,
       expectedEntityTypes,
       linkEntityTypeId,
       onFinishedEditing,
@@ -223,7 +233,7 @@ export const EntitySelector = ({
           highlightedRef.current = value;
         }}
         onChange={(_, option) => {
-          onSelect(option);
+          onSelect(option, entitiesSubgraph ?? null);
         }}
         onKeyUp={(evt) => {
           if (evt.key === "Enter" && !highlightedRef.current) {

@@ -50,41 +50,47 @@ const getFallbackLabel = ({
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  entitySubgraph: Subgraph<EntityRootType>,
+  entitySubgraph: Subgraph<EntityRootType> | null,
   entity?: Entity,
 ): string => {
-  const entityToLabel: Entity = entity ?? getRoots(entitySubgraph)[0]!;
+  if (!entitySubgraph && !entity) {
+    throw new Error(`One of entitySubgraph or entity must be provided`);
+  }
+  const entityToLabel: Entity = entity ?? getRoots(entitySubgraph!)[0]!;
 
-  const entityTypeAndAncestors = getEntityTypeAndParentsById(
-    entitySubgraph,
-    entityToLabel.metadata.entityTypeId,
-  );
-
-  const entityType = entityTypeAndAncestors[0];
-
-  const entityTypesToCheck = entityType ? [entityType] : [];
-
-  /**
-   * Return any truthy value for a property which is set as the labelProperty for the entity's type,
-   * or any of its ancestors, using a breadth-first search in the inheritance tree starting from the entity's own type.
-   */
-  for (let i = 0; i < entityTypesToCheck.length; i++) {
-    const typeToCheck = entityTypesToCheck[i]!;
-
-    const label = getLabelPropertyValue(entityToLabel, typeToCheck);
-
-    if (label) {
-      return label;
-    }
-
-    entityTypesToCheck.push(
-      ...entityTypeAndAncestors.filter(
-        (type) =>
-          typeToCheck.schema.allOf?.find(
-            ({ $ref }) => $ref === type.schema.$id,
-          ),
-      ),
+  let entityType: EntityTypeWithMetadata | undefined;
+  if (entitySubgraph) {
+    const entityTypeAndAncestors = getEntityTypeAndParentsById(
+      entitySubgraph,
+      entityToLabel.metadata.entityTypeId,
     );
+
+    entityType = entityTypeAndAncestors[0];
+
+    const entityTypesToCheck = entityType ? [entityType] : [];
+
+    /**
+     * Return any truthy value for a property which is set as the labelProperty for the entity's type,
+     * or any of its ancestors, using a breadth-first search in the inheritance tree starting from the entity's own type.
+     */
+    for (let i = 0; i < entityTypesToCheck.length; i++) {
+      const typeToCheck = entityTypesToCheck[i]!;
+
+      const label = getLabelPropertyValue(entityToLabel, typeToCheck);
+
+      if (label) {
+        return label;
+      }
+
+      entityTypesToCheck.push(
+        ...entityTypeAndAncestors.filter(
+          (type) =>
+            typeToCheck.schema.allOf?.find(
+              ({ $ref }) => $ref === type.schema.$id,
+            ),
+        ),
+      );
+    }
   }
 
   const simplifiedProperties = simplifyProperties(

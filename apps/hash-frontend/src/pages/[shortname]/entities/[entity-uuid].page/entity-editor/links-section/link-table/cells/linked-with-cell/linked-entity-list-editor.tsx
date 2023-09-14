@@ -3,7 +3,9 @@ import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import {
   Entity,
   EntityId,
+  EntityRootType,
   RecordCreatedById,
+  Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -17,7 +19,6 @@ import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/array-editor/add-another-button";
 import { getImageUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
-import { LinkAndTargetEntity } from "../../types";
 import { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
@@ -86,7 +87,10 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
-  const onSelect = (selectedEntity: Entity) => {
+  const onSelect = (
+    selectedEntity: Entity,
+    sourceSubgraph: Subgraph<EntityRootType> | null,
+  ) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
         rightEntity.metadata.recordId.entityId ===
@@ -108,9 +112,10 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       linkEntityTypeId,
     });
 
-    const newLinkAndTargetEntity: LinkAndTargetEntity = {
+    const newLinkAndTargetEntity = {
       linkEntity,
       rightEntity: selectedEntity,
+      sourceSubgraph,
     };
 
     setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
@@ -146,30 +151,32 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   return (
     <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
-        {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
-          const linkEntityId = linkEntity.metadata.recordId.entityId;
-          return (
-            <LinkedEntityListRow
-              key={linkEntityId}
-              imageSrc={getImageUrlFromFileProperties(rightEntity.properties)}
-              title={generateEntityLabel(entitySubgraph, rightEntity)}
-              onDelete={() => {
-                const newCell = produce(cell, (draftCell) => {
-                  draftCell.data.linkRow.linkAndTargetEntities =
-                    draftCell.data.linkRow.linkAndTargetEntities.filter(
-                      (item) =>
-                        item.linkEntity.metadata.recordId.entityId !==
-                        linkEntityId,
-                    );
-                });
+        {sortedLinkAndTargetEntities.map(
+          ({ rightEntity, linkEntity, sourceSubgraph }) => {
+            const linkEntityId = linkEntity.metadata.recordId.entityId;
+            return (
+              <LinkedEntityListRow
+                key={linkEntityId}
+                imageSrc={getImageUrlFromFileProperties(rightEntity.properties)}
+                title={generateEntityLabel(sourceSubgraph, rightEntity)}
+                onDelete={() => {
+                  const newCell = produce(cell, (draftCell) => {
+                    draftCell.data.linkRow.linkAndTargetEntities =
+                      draftCell.data.linkRow.linkAndTargetEntities.filter(
+                        (item) =>
+                          item.linkEntity.metadata.recordId.entityId !==
+                          linkEntityId,
+                      );
+                  });
 
-                onChange(newCell);
+                  onChange(newCell);
 
-                markLinkEntityToArchive(linkEntityId);
-              }}
-            />
-          );
-        })}
+                  markLinkEntityToArchive(linkEntityId);
+                }}
+              />
+            );
+          },
+        )}
       </Box>
       {!canAddMore && <MaxItemsReached limit={maxItems} />}
       {canAddMore &&

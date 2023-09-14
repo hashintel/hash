@@ -132,6 +132,7 @@ export const useRows = () => {
           linkAndTargetEntities.push({
             linkEntity: latestLinkEntityRevision,
             rightEntity: latestTargetEntityRevision,
+            sourceSubgraph: entitySubgraph,
           });
         }
       }
