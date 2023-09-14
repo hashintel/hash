@@ -99,7 +99,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            if let Some((ontology_id, transaction_time)) = transaction
+            if let Some((ontology_id, transaction_time, _visibility_scope)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -116,6 +116,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     provenance,
                     transaction_time,
                 ));
+
+                // TODO: Insert permission for data type, something like
+                //       ```
+                //       authorization_api.grant_permission(
+                //           visibility_scope,
+                //           Relation::Admin,
+                //           ontology_id
+                //       )
+                //       ```
+                //       Make sure this will revoke the permission if the transaction fails.
             }
         }
 

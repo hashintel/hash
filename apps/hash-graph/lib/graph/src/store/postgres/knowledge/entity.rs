@@ -9,7 +9,7 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::AccountId,
+    account::{AccountGroupId, AccountId},
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
@@ -33,7 +33,7 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
-            TraversalContext,
+            TraversalContext, VisibilityScope,
         },
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -286,17 +286,43 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        transaction
+        let is_account_group: bool = transaction
             .as_client()
-            .query(
+            .query_one(
                 r#"
-                    INSERT INTO entity_ids (owned_by_id, entity_uuid)
-                    VALUES ($1, $2);
+                    WITH inserted_owners AS (
+                        INSERT INTO entity_ids (owned_by_id, entity_uuid)
+                        VALUES ($1, $2)
+                        RETURNING owned_by_id
+                    )
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM account_groups
+                        JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
+                    );
                 "#,
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?
+            .get(0);
+
+        let owned_by_uuid = owned_by_id.as_uuid();
+        let _visibility_scope = if is_account_group {
+            VisibilityScope::AccountGroup(AccountGroupId::new(owned_by_uuid))
+        } else {
+            VisibilityScope::Account(AccountId::new(owned_by_uuid))
+        };
+
+        // TODO: Insert permission for entity, something like
+        //       ```
+        //       authorization_api.grant_permission(
+        //           visibility_scope,
+        //           Relation::Admin,
+        //           entity_id
+        //       )
+        //       ```
+        //       Make sure this will revoke the permission if the transaction fails.
 
         let link_order = if let Some(link_data) = link_data {
             transaction
