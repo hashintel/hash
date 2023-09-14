@@ -34,7 +34,7 @@ export const ValueChip = ({
             src={imageSrc}
             sx={{
               borderRadius: 1,
-              height: 24,
+              height: 25,
               width: "auto",
               objectFit: "contain",
               maxWidth: 80,

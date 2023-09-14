@@ -1,9 +1,5 @@
 import { ImageWithCheckedBackground } from "@hashintel/design-system";
-import {
-  descriptionPropertyTypeUrl,
-  fileUrlPropertyTypeUrl,
-  mimeTypePropertyTypeUrl,
-} from "@local/hash-subgraph";
+import { descriptionPropertyTypeUrl } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";

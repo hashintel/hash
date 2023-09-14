@@ -42,7 +42,7 @@ export const createRenderChangeTypeCell = (
     kind: GridCellKind.Custom,
     isMatch: (cell: CustomCell): cell is ChangeTypeCell =>
       (cell.data as any).kind === "change-type-cell",
-    draw: async (args, cell) => {
+    draw: (args, cell) => {
       const { theme, rect, ctx, spriteManager } = args;
       const { currentType } = cell.data;
       const yCenter = getYCenter(args);

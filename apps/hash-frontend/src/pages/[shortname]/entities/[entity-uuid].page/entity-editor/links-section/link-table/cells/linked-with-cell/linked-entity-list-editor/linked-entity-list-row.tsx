@@ -1,6 +1,5 @@
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
-import clsx from "clsx";
 
 import { RowAction } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/row-action";
 import { ValueChip } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/value-chip";
@@ -9,18 +8,13 @@ export const LinkedEntityListRow = ({
   title,
   onDelete,
   imageSrc,
-  selected,
-  onSelect,
 }: {
   title: string;
-  selected: boolean;
   imageSrc?: string;
   onDelete: () => void;
-  onSelect: () => void;
 }) => {
   return (
     <Box
-      className={clsx(selected && "selected")}
       sx={{
         height: 48,
         display: "flex",
@@ -31,15 +25,14 @@ export const LinkedEntityListRow = ({
         outline: "none",
         px: 1.5,
 
-        "&.selected, :hover": {
+        "&:hover": {
           "> .actions": {
             visibility: "visible",
           },
         },
       }}
-      onClick={onSelect}
     >
-      <ValueChip imageSrc={imageSrc} selected={selected} title={title} />
+      <ValueChip imageSrc={imageSrc} selected={false} title={title} />
 
       <Box
         className="actions"

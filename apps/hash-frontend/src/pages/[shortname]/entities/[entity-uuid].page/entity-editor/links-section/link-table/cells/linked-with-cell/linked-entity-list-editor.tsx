@@ -85,9 +85,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   } = cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
-  const [selectedLinkEntityId, setSelectedLinkEntityId] = useState<
-    string | null
-  >(null);
 
   const onSelect = (selectedEntity: Entity) => {
     const alreadyLinked = linkAndTargetEntities.find(
@@ -151,7 +148,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
           const linkEntityId = linkEntity.metadata.recordId.entityId;
-          const selected = selectedLinkEntityId === linkEntityId;
           return (
             <LinkedEntityListRow
               key={linkEntityId}
@@ -171,10 +167,6 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
                 markLinkEntityToArchive(linkEntityId);
               }}
-              selected={selected}
-              onSelect={() =>
-                setSelectedLinkEntityId(selected ? null : linkEntityId)
-              }
             />
           );
         })}
