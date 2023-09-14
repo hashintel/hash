@@ -99,7 +99,7 @@ export const useEntitiesTable = (params: {
             )?.title ?? "Entity"
           : "Entity",
         id: "entity",
-        width: 250,
+        width: 252,
         grow: 1,
       },
       ...(hideEntityTypeVersionColumn
