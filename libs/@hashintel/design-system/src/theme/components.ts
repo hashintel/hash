@@ -18,6 +18,7 @@ import {
   MuiRadioThemeOptions,
   MuiSwitchThemeOptions,
 } from "./components/inputs";
+import { MuiInputBaseThemeOptions } from "./components/inputs/mui-input-base-theme-options";
 import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
 import {
   MuiDrawerThemeOptions,
@@ -38,6 +39,7 @@ export const components: Components<Theme> = {
   MuiCheckbox: MuiCheckboxThemeOptions,
   MuiSelect: MuiSelectThemeOptions,
   MuiFormHelperText: MuiFormHelperTextThemeOptions,
+  MuiInputBase: MuiInputBaseThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiChip: MuiChipThemeOptions,
   MuiIconButton: MuiIconButtonThemeOptions,
