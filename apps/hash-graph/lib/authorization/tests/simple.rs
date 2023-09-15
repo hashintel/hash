@@ -176,9 +176,9 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
                 &(ENTITY_C, EntityRelation::Reader, BOB),
             ],
             [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
+                RelationFilter::for_object(&ENTITY_C)
                     .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
+                    .with_user(&CHARLIE),
             )],
         )
         .await
@@ -213,9 +213,9 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
                 &(ENTITY_C, EntityRelation::Reader, BOB),
             ],
             [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
+                RelationFilter::for_object(&ENTITY_C)
                     .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
+                    .with_user(&CHARLIE),
             )],
         )
         .await?
@@ -240,11 +240,11 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
 
     let _ = api
         .delete_relations_by_filter(
-            RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
+            RelationFilter::for_object(&ENTITY_C).by_relation(&EntityRelation::Reader),
             [Precondition::must_not_match(
-                RelationFilter::for_resource(&ENTITY_C)
+                RelationFilter::for_object(&ENTITY_C)
                     .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
+                    .with_user(&CHARLIE),
             )],
         )
         .await
@@ -252,11 +252,11 @@ async fn test_preconditions() -> Result<(), Box<dyn Error>> {
 
     let token = api
         .delete_relations_by_filter(
-            RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
+            RelationFilter::for_object(&ENTITY_C).by_relation(&EntityRelation::Reader),
             [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
+                RelationFilter::for_object(&ENTITY_C)
                     .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
+                    .with_user(&CHARLIE),
             )],
         )
         .await?
