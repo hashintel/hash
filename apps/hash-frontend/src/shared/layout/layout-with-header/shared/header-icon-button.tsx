@@ -29,6 +29,9 @@ export const HeaderIconButton = styled(IconButton)(({ theme }) => ({
         color: theme.palette.blue[70],
       },
     },
+    "&:focus-visible:after": {
+      borderWidth: 0,
+    },
     "&:active": {
       background: theme.palette.blue[70],
       [`> .${svgIconClasses.root}`]: {
