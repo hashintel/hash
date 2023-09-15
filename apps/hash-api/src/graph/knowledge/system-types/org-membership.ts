@@ -1,7 +1,10 @@
 import {
+  AccountEntityId,
   AccountGroupEntityId,
   EntityId,
   extractAccountGroupId,
+  extractAccountId,
+  extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
 
@@ -64,15 +67,35 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const linkEntity = await createLinkEntity(ctx, authentication, {
-    ownedById: extractAccountGroupId(
-      orgEntityId as AccountGroupEntityId,
-    ) as OwnedById,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
-    leftEntityId: userEntityId,
-    rightEntityId: orgEntityId,
-    properties: {},
-  });
+  const userAccountId = extractAccountId(userEntityId as AccountEntityId);
+  const orgAccountGroupId = extractAccountGroupId(
+    orgEntityId as AccountGroupEntityId,
+  );
+
+  await ctx.graphApi.addAccountGroupMember(
+    authentication.actorId,
+    orgAccountGroupId,
+    userAccountId,
+  );
+
+  let linkEntity;
+  try {
+    linkEntity = await createLinkEntity(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
+      leftEntityId: userEntityId,
+      rightEntityId: orgEntityId,
+      properties: {},
+    });
+  } catch (error) {
+    await ctx.graphApi.removeAccountGroupMember(
+      authentication.actorId,
+      extractEntityUuidFromEntityId(orgEntityId),
+      extractAccountId(userEntityId as AccountEntityId),
+    );
+
+    throw error;
+  }
 
   return getOrgMembershipFromLinkEntity({ linkEntity });
 };
