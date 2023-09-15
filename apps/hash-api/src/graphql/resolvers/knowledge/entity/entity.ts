@@ -39,9 +39,10 @@ import {
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
   QueryResolvers,
+  QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
@@ -156,6 +157,17 @@ export const queryEntitiesResolver: Extract<
   });
 
   return entitySubgraph;
+};
+
+export const structuralQueryEntitiesResolver: ResolverFn<
+  Promise<Subgraph>,
+  {},
+  GraphQLContext,
+  QueryStructuralQueryEntitiesArgs
+> = async (_, { query }, context) => {
+  return getEntities(context.dataSources, context.authentication, {
+    query,
+  });
 };
 
 export const getEntityResolver: ResolverFn<

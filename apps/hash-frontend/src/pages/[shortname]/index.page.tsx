@@ -1,14 +1,14 @@
 import { Avatar } from "@hashintel/design-system";
-import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 
-import { useOrgs } from "../../components/hooks/use-orgs";
-import { useUsers } from "../../components/hooks/use-users";
+
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
+import { useUserOrOrg } from "../../shared/use-user-or-org";
+import { constructUser } from "../../lib/user-and-org";
 
 const menuBarHeight = 60;
 
@@ -31,26 +31,40 @@ const Page: NextPageWithLayout = () => {
 
   const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
 
-  /**
-   * @todo: getting an org or user by their shortname should not be happening
-   * client side. This could be addressed by exposing structural querying
-   * to the frontend.
-   *
-   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
-   */
-  const { users, loading: loadingUsers } = useUsers();
-  const { orgs, loading: loadingOrgs } = useOrgs();
+  const { userOrOrg, loading } = useUserOrOrg({
+    shortname: profileShortname,
+    graphResolveDepths: {
+      // Required to retrieve avatars. Will need amending if we want an org's memberships (incoming links)
+      hasLeftEntity: { incoming: 1, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 1 },
+    },
+  });
 
-  const profile = useMemo(() => {
-    return [...(users ?? []), ...(orgs ?? [])].find(
-      (userOrOrg) => userOrOrg.shortname === profileShortname,
-    );
-  }, [profileShortname, users, orgs]);
+  const fullUserOrOrg = useMemo(() => {
+    if (!userOrOrg) {
+      return undefined;
+    }
 
-  const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
+    if (userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId) {
+      return constructUser(userOrOrg);
+    }
 
-  const websiteUrl =
-    profile && "website" in profile && sanitizeHref(profile.website);
+    const { org, memberships } = userOrOrg;
+
+    return {
+      ...org,
+      memberships,
+    };
+  }
+
+  if (loading) {
+    return "Loading...";
+  }
+
+  // const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
+  //
+  // const websiteUrl =
+  //   profile && "website" in profile && sanitizeHref(profile.website);
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
