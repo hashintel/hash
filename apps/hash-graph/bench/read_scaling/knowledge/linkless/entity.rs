@@ -82,7 +82,7 @@ async fn seed_db(
             account_id,
             &mut NoAuthorization,
             repeat((
-                OwnedById::new(account_id.as_uuid()),
+                OwnedById::new(account_id.into_uuid()),
                 None,
                 properties,
                 None,

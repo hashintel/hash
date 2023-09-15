@@ -158,7 +158,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 account_id,
                 &mut NoAuthorization,
                 repeat((
-                    OwnedById::new(account_id.as_uuid()),
+                    OwnedById::new(account_id.into_uuid()),
                     None,
                     properties,
                     None,
@@ -191,7 +191,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity_metadata, right_entity_metadata)| {
                         (
-                            OwnedById::new(account_id.as_uuid()),
+                            OwnedById::new(account_id.into_uuid()),
                             None,
                             EntityProperties::empty(),
                             Some(LinkData {

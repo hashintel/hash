@@ -31,7 +31,12 @@ impl EntityUuid {
     }
 
     #[must_use]
-    pub const fn as_uuid(self) -> Uuid {
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
         self.0
     }
 }
@@ -247,7 +252,12 @@ impl EntityEditionId {
     }
 
     #[must_use]
-    pub const fn as_uuid(self) -> Uuid {
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
         self.0
     }
 }
