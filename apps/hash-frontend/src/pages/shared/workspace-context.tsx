@@ -4,6 +4,7 @@ import {
   FunctionComponent,
   ReactElement,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -29,6 +30,10 @@ const defaultWorkspaceContextValue: WorkspaceContextValue = {
 export const WorkspaceContext = createContext<WorkspaceContextValue>(
   defaultWorkspaceContextValue,
 );
+
+export const useActiveWorkspace = () => {
+  return useContext(WorkspaceContext);
+};
 
 export const WorkspaceContextProvider: FunctionComponent<{
   children: ReactElement;

@@ -1,4 +1,4 @@
-import { ApolloQueryResult, NetworkStatus, useQuery } from "@apollo/client";
+import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
@@ -25,11 +25,10 @@ export const useOrgsWithLinks = ({
   orgAccountGroupIds: AccountGroupId[];
 }): {
   loading: boolean;
-  networkStatus: NetworkStatus;
   orgs?: Org[];
   refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
 } => {
-  const { data, loading, refetch, networkStatus } = useQuery<
+  const { data, loading, refetch } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
@@ -77,7 +76,6 @@ export const useOrgsWithLinks = ({
 
   return {
     loading,
-    networkStatus,
     orgs,
     refetch,
   };

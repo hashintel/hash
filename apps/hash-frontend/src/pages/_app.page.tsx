@@ -36,10 +36,7 @@ import { FileUploadsProvider } from "../shared/file-upload-context";
 import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
-import {
-  RoutePageInfoProvider,
-  RouteWorkspaceInfoProvider,
-} from "../shared/routing";
+import { RoutePageInfoProvider } from "../shared/routing";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { fetchKratosSession } from "./shared/ory-kratos";
@@ -135,23 +132,21 @@ const App: FunctionComponent<AppProps> = ({
         <CacheProvider value={emotionCache}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <RouteWorkspaceInfoProvider>
-              <RoutePageInfoProvider>
-                <WorkspaceContextProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    <EntityTypesContextProvider>
-                      <LatestPropertyTypesContextProvider>
-                        <FileUploadsProvider>
-                          <SidebarContextProvider>
-                            {getLayout(<Component {...pageProps} />)}
-                          </SidebarContextProvider>
-                        </FileUploadsProvider>
-                      </LatestPropertyTypesContextProvider>
-                    </EntityTypesContextProvider>
-                  </SnackbarProvider>
-                </WorkspaceContextProvider>
-              </RoutePageInfoProvider>
-            </RouteWorkspaceInfoProvider>
+            <RoutePageInfoProvider>
+              <WorkspaceContextProvider>
+                <SnackbarProvider maxSnack={3}>
+                  <EntityTypesContextProvider>
+                    <LatestPropertyTypesContextProvider>
+                      <FileUploadsProvider>
+                        <SidebarContextProvider>
+                          {getLayout(<Component {...pageProps} />)}
+                        </SidebarContextProvider>
+                      </FileUploadsProvider>
+                    </LatestPropertyTypesContextProvider>
+                  </EntityTypesContextProvider>
+                </SnackbarProvider>
+              </WorkspaceContextProvider>
+            </RoutePageInfoProvider>
           </ThemeProvider>
         </CacheProvider>
         {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}

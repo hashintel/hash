@@ -15,12 +15,12 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useContext, useMemo } from "react";
+import { FunctionComponent, useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { getImageUrlFromFileProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 
 type WorkspaceSwitcherProps = {};
@@ -35,7 +35,7 @@ export const WorkspaceSwitcher: FunctionComponent<
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
   const { activeWorkspaceOwnedById, updateActiveWorkspaceOwnedById } =
-    useContext(WorkspaceContext);
+    useActiveWorkspace();
 
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
