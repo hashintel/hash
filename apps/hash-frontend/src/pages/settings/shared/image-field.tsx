@@ -20,6 +20,7 @@ export const ImageField = ({
 
   useEffect(() => {
     if (imageUrlFromProps) {
+      setEditingImage(false);
       setImageUrl(imageUrlFromProps);
     }
   }, [imageUrlFromProps]);

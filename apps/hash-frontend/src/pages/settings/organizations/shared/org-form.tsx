@@ -69,9 +69,8 @@ const InputGroup = ({ children }: PropsWithChildren) => {
 
 export type OrgFormData = Omit<
   Org,
-  "accountGroupId" | "kind" | "entityRecordId" | "memberships"
+  "kind" | "entityRecordId" | "memberships"
 > & {
-  accountId?: Org["accountGroupId"];
   entityRecordId?: Org["entityRecordId"];
 };
 
@@ -96,11 +95,11 @@ export const OrgForm = ({
   const [loading, setLoading] = useState(false);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    (initialOrg?.accountId as OwnedById | undefined) ?? null,
+    (initialOrg?.accountGroupId as OwnedById | undefined) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { uploadFile } = useBlockProtocolFileUpload(
-    initialOrg?.accountId as OwnedById | undefined,
+    initialOrg?.accountGroupId as OwnedById | undefined,
   );
 
   const {
