@@ -123,18 +123,18 @@ pub struct ServerArgs {
     pub offline: bool,
 
     /// The host the Spice DB server is listening at.
-    #[cfg_attr(feature = "authorization", clap(long, env = "HASH_SPICEDB_HOST"))]
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
 
     /// The port the Spice DB server is listening at.
-    #[cfg_attr(feature = "authorization", clap(long, env = "HASH_SPICEDB_HTTP_PORT"))]
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
     pub spicedb_http_port: u16,
 
     /// The secret key used to authenticate with the Spice DB server.
-    #[cfg_attr(
-        feature = "authorization",
-        clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")
-    )]
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
     pub spicedb_grpc_preshared_key: String,
 }
 
