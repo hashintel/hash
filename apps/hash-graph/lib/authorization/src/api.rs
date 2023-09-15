@@ -22,6 +22,18 @@ pub enum VisibilityScope {
 }
 
 pub trait AuthorizationApi {
+    fn add_account_group_admin(
+        &mut self,
+        member: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_account_group_admin(
+        &mut self,
+        member: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     fn can_add_group_members(
         &self,
         actor: AccountId,
@@ -38,14 +50,14 @@ pub trait AuthorizationApi {
 
     fn add_account_group_member(
         &mut self,
-        group: AccountGroupId,
         member: AccountId,
+        group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_account_group_member(
         &mut self,
-        group: AccountGroupId,
         member: AccountId,
+        group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn add_entity_owner(
