@@ -51,6 +51,14 @@ export type GridProps<T> = Omit<
   sortRows?: (rows: T, sort: ColumnSort<string>) => T;
 };
 
+const gridHeaderHeight = 42;
+
+export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
+
+export const gridRowHeight = 42;
+
+export const gridHorizontalScrollbarHeight = 17;
+
 export const Grid = <T extends Rows>({
   customRenderers,
   onVisibleRegionChanged,
@@ -226,8 +234,8 @@ export const Grid = <T extends Rows>({
         getRowThemeOverride={getRowThemeOverride}
         gridSelection={selection}
         width="100%"
-        headerHeight={42}
-        rowHeight={42}
+        headerHeight={gridHeaderHeight}
+        rowHeight={gridRowHeight}
         drawFocusRing={false}
         rangeSelect="cell"
         columnSelect="none"
