@@ -40,8 +40,8 @@ const OrgMembersPage: NextPageWithLayout = () => {
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
   const org = authenticatedUser.memberOf.find(
-    (orgOption) => orgOption.shortname === shortname,
-  );
+    ({ org: orgOption }) => orgOption.shortname === shortname,
+  )?.org;
 
   useEffect(() => {
     const [_, anchorTag] = router.asPath.split("#");
@@ -77,7 +77,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
           <TableBody>
             {org.memberships
               .sort(
-                ({ rightEntity: a }, { rightEntity: b }) =>
+                ({ user: a }, { user: b }) =>
                   a.preferredName?.localeCompare(b.preferredName ?? "ZZZ") ?? 1,
               )
               .map((membership) => (
@@ -85,8 +85,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
                   self={
-                    membership.rightEntity.accountId ===
-                    authenticatedUser.accountId
+                    membership.user.accountId === authenticatedUser.accountId
                   }
                 />
               ))}

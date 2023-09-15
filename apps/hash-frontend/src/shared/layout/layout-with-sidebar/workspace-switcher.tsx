@@ -44,16 +44,18 @@ export const WorkspaceSwitcher: FunctionComponent<
         name: authenticatedUser.preferredName || authenticatedUser.shortname!,
       };
     } else {
-      const activeOrg = authenticatedUser.memberOf.find(
-        ({ accountGroupId }) => accountGroupId === activeWorkspaceOwnedById,
-      );
+      const { org: activeOrg } =
+        authenticatedUser.memberOf.find(
+          ({ org: { accountGroupId } }) =>
+            accountGroupId === activeWorkspaceOwnedById,
+        ) ?? {};
 
       if (activeOrg) {
         return {
           name: activeOrg.name,
           avatarSrc: activeOrg.hasAvatar
             ? getImageUrlFromFileProperties(
-                activeOrg.hasAvatar.rightEntity.properties,
+                activeOrg.hasAvatar.imageEntity.properties,
               )
             : undefined,
         };
@@ -73,13 +75,13 @@ export const WorkspaceSwitcher: FunctionComponent<
         avatarSrc: undefined,
       },
       ...authenticatedUser.memberOf.map(
-        ({ accountGroupId, name, memberships, hasAvatar }) => ({
+        ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
           ownedById: accountGroupId as OwnedById,
           title: name,
           subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
           avatarSrc: hasAvatar
-            ? getImageUrlFromFileProperties(hasAvatar.rightEntity.properties)
+            ? getImageUrlFromFileProperties(hasAvatar.imageEntity.properties)
             : undefined,
         }),
       ),

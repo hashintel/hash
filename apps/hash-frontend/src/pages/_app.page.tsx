@@ -238,7 +238,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   }
 
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
-  await TypeSystemInitializer.initialize();
+  // await TypeSystemInitializer.initialize();
 
   // If the user is logged in but hasn't completed signup and isn't on the signup page...
   if (

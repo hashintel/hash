@@ -10,11 +10,11 @@ import {
 } from "react";
 
 import { localStorageKeys } from "../../lib/config";
-import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
+import { MinimalUser, Org } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
-  activeWorkspace?: MinimalUser | MinimalOrg;
+  activeWorkspace?: MinimalUser | Org;
   activeWorkspaceOwnedById?: OwnedById;
   updateActiveWorkspaceOwnedById: (
     updatedActiveWorkspaceAccountId: OwnedById,
@@ -83,8 +83,9 @@ export const WorkspaceContextProvider: FunctionComponent<{
       authenticatedUser.accountId === activeWorkspaceOwnedById
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
-            ({ accountGroupId }) => accountGroupId === activeWorkspaceOwnedById,
-          );
+            ({ org: { accountGroupId } }) =>
+              accountGroupId === activeWorkspaceOwnedById,
+          )?.org;
 
     /**
      * If there is an `activeWorkspaceOwnedById` and an `authenticatedUser`, but

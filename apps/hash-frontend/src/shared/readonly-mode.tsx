@@ -9,7 +9,7 @@ export const canUserEditResource = (
   user: AuthenticatedUser,
 ) =>
   resourceOwnerId === user.accountId ||
-  user.memberOf.find((org) => resourceOwnerId === org.accountGroupId);
+  user.memberOf.find(({ org }) => resourceOwnerId === org.accountGroupId);
 
 export const useIsReadonlyModeForApp = () => {
   const router = useRouter();

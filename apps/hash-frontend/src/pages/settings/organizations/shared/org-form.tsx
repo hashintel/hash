@@ -136,7 +136,7 @@ export const OrgForm = ({
   const nameWatcher = watch("name");
 
   const avatarUrl =
-    initialOrg?.hasAvatar?.rightEntity.properties[
+    initialOrg?.hasAvatar?.imageEntity.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 

@@ -30,10 +30,10 @@ export const MemberRow = ({
     <TableRow key={membership.linkEntity.metadata.recordId.entityId}>
       <Cell>
         <Link
-          href={`/@${membership.rightEntity.shortname}`}
+          href={`/@${membership.user.shortname}`}
           sx={{ textDecoration: "none" }}
         >
-          {membership.rightEntity.preferredName}
+          {membership.user.preferredName}
         </Link>
       </Cell>
       <TableCell>
@@ -50,7 +50,7 @@ export const MemberRow = ({
             whiteSpace: "nowrap",
           })}
         >
-          @{membership.rightEntity.shortname}
+          @{membership.user.shortname}
         </Typography>
       </TableCell>
       <TableCell>

@@ -26,8 +26,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const { refetch: refetchOrgs } = useOrgs();
 
   const org = authenticatedUser.memberOf.find(
-    (orgOption) => orgOption.shortname === shortname,
-  );
+    ({ org: orgOption }) => orgOption.shortname === shortname,
+  )?.org;
 
   if (!org) {
     // @todo show a 404 page

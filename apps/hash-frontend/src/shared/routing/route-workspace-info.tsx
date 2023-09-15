@@ -8,11 +8,11 @@ import {
 } from "react";
 
 import { useWorkspaceByShortname } from "../../components/hooks/use-workspace-by-shortname";
-import { MinimalOrg, User } from "../../lib/user-and-org";
+import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 
 type RouteWorkspaceInfo = {
   routeWorkspaceShortname: string;
-  routeWorkspace?: User | MinimalOrg;
+  routeWorkspace?: MinimalUser | MinimalOrg;
 };
 
 const RouteWorkspaceInfoContext = createContext<RouteWorkspaceInfo | undefined>(

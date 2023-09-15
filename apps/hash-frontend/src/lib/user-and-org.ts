@@ -95,11 +95,11 @@ export const constructMinimalUser = (params: {
 export type Org = MinimalOrg & {
   hasAvatar?: {
     linkEntity: LinkEntity;
-    rightEntity: Image;
+    imageEntity: Image;
   };
   memberships: {
     linkEntity: Entity<OrgMembershipProperties>;
-    rightEntity: MinimalUser;
+    user: MinimalUser;
   }[];
 };
 
@@ -140,7 +140,7 @@ export const constructOrg = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
-        rightEntity: hasAvatar.rightEntity[0] as unknown as Image,
+        imageEntity: hasAvatar.rightEntity[0] as unknown as Image,
       }
     : undefined;
 
@@ -182,7 +182,7 @@ export const constructOrg = (params: {
     const userEntity = userEntityRevisions.at(-1)!;
 
     return {
-      rightEntity: constructMinimalUser({
+      user: constructMinimalUser({
         userEntity,
       }),
       linkEntity,
@@ -193,7 +193,14 @@ export const constructOrg = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: Org[];
+  hasAvatar?: {
+    linkEntity: LinkEntity;
+    imageEntity: Image;
+  };
+  memberOf: {
+    linkEntity: Entity<OrgMembershipProperties>;
+    org: Org;
+  }[];
 };
 
 export type AuthenticatedUser = User & {
@@ -202,26 +209,21 @@ export type AuthenticatedUser = User & {
 };
 
 /**
- * Constructs an authenticated user.
+ * Constructs a user, including linked entities depending on the depth of the traversal rooted at the user which produced the subgraph.
  *
- * With the subgraph rooted at the user, the following depths are required to construct the user:
+ * The following depths ensure that the user's avatar, org membership links and the orgs themselves are available.
  *
  *   -  hasLeftEntity: { incoming: 1 }, hasRightEntity: { outgoing: 1 }
  *
- * This will ensure that the user's org membership links AND the orgs themselves are available.
+ * To include other things linked from or to the user's orgs (avatars, other members) either:
  *
- * The subgraph will also include anything else linked to from the user (e.g. an avatar).
+ * 1. Pass an org which has already been constructed to include these, or
+ * 2. Pass a subgraph rooted at the user with traversal depths of:
+ *   - hasLeftEntity: { incoming: 2, outgoing: 1 }, hasRightEntity: { outgoing: 2, incoming: 1 }
  *
- * Further links from the orgs (e.g. avatars, other memberships) will not be included.
- * To include avatars, this would require depths of:
- *   -  hasLeftEntity: { incoming: 2 }, hasRightEntity: { outgoing: 2 }
- * or to also include other memberships
- *   -  hasLeftEntity: { incoming: 2, outgoing: 1 }, hasRightEntity: { outgoing: 2, incoming: 1 }
- * Without the ability to discriminate on which links are followed, this could result in fetching a lot of data.
- *
- * The function takes an optional `allOrgs` param which can be used to augment the subgraph with
+ * @param params.orgMembershipLinks provides a minor optimization to avoid looking up these links if they are already known.
  */
-export const constructAuthenticatedUser = (params: {
+export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
@@ -254,7 +256,9 @@ export const constructAuthenticatedUser = (params: {
         types.linkEntityType.orgMembership.linkEntityTypeId,
     );
 
-  user.memberOf = orgMemberships.map(({ linkData, metadata }) => {
+  user.memberOf = orgMemberships.map((linkEntity) => {
+    const { linkData, metadata } = linkEntity;
+
     if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }
@@ -263,7 +267,10 @@ export const constructAuthenticatedUser = (params: {
       (org) => org.entityRecordId.entityId === linkData.rightEntityId,
     );
     if (fullyResolvedOrg) {
-      return fullyResolvedOrg;
+      return {
+        linkEntity,
+        org: fullyResolvedOrg,
+      };
     }
 
     const orgEntityRevisions = getRightEntityForLinkEntity(
@@ -287,11 +294,34 @@ export const constructAuthenticatedUser = (params: {
     );
     const orgEntity = orgEntityRevisions.at(-1)!;
 
-    return constructOrg({
-      subgraph,
-      orgEntity,
-    });
+    return {
+      linkEntity,
+      org: constructOrg({
+        subgraph,
+        orgEntity,
+      }),
+    };
   });
+
+  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasAvatar.linkEntityTypeId,
+  );
+
+  const hasAvatar = avatarLinkAndEntities[0];
+
+  user.hasAvatar = hasAvatar
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
+        imageEntity: hasAvatar.rightEntity[0] as unknown as Image,
+      }
+    : undefined;
 
   /**
    * @todo: determine whether an authenticated user is an instance admin from the subgraph

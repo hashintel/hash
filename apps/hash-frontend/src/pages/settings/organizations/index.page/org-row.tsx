@@ -22,7 +22,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
 
     await archiveEntity({
       data: {
-        entityId: membership.membershipEntity.metadata.recordId.entityId,
+        entityId: membership.linkEntity.metadata.recordId.entityId,
       },
     });
     void refetch();
