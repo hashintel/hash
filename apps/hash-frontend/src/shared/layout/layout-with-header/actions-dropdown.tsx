@@ -1,5 +1,9 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { AsteriskRegularIcon, FontAwesomeIcon } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import {
@@ -114,7 +118,7 @@ const ActionsDropdownInner: FunctionComponent<{
           onClick={popupState.close}
         >
           <ListItemIcon>
-            <AsteriskRegularIcon />
+            <LinkIcon />
           </ListItemIcon>
           <ListItemText primary="Link type" />
         </MenuItem>
