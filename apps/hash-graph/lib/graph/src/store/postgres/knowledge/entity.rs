@@ -1,17 +1,13 @@
 mod read;
 
-use std::{
-    collections::{HashMap, HashSet},
-    future::ready,
-};
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
+    AuthorizationApi, VisibilityScope,
 };
 use error_stack::{Report, Result, ResultExt};
-use futures::TryStreamExt;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::{
@@ -37,7 +33,7 @@ use crate::{
         error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
-            TraversalContext, VisibilityScope,
+            TraversalContext,
         },
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -183,7 +179,7 @@ impl<C: AsClient> PostgresStore<C> {
                     }
 
                     let permissions = authorization_api
-                        .view_entities(
+                        .can_view_entities(
                             actor_id,
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
@@ -192,10 +188,7 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await
                         .change_context(QueryError)?
-                        .0
-                        .try_collect::<HashMap<_, _>>()
-                        .await
-                        .change_context(QueryError)?;
+                        .0;
 
                     entity_queue.extend(
                         knowledge_edges
@@ -266,11 +259,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
-    async fn create_entity<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -279,6 +272,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
+        authorization_api
+            .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
+            .await
+            .change_context(InsertionError)?
+            .assert_permission()
+            .change_context(InsertionError)?;
+
         let entity_id = EntityId {
             owned_by_id,
             entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
@@ -308,21 +308,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .get(0);
 
         let owned_by_uuid = owned_by_id.as_uuid();
-        let _visibility_scope = if is_account_group {
+        let visibility_scope = if is_account_group {
             VisibilityScope::AccountGroup(AccountGroupId::new(owned_by_uuid))
         } else {
             VisibilityScope::Account(AccountId::new(owned_by_uuid))
         };
-
-        // TODO: Insert permission for entity, something like
-        //       ```
-        //       authorization_api.grant_permission(
-        //           visibility_scope,
-        //           Relation::Admin,
-        //           entity_id
-        //       )
-        //       ```
-        //       Make sure this will revoke the permission if the transaction fails.
 
         let link_order = if let Some(link_data) = link_data {
             transaction
@@ -438,7 +428,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        transaction.commit().await.change_context(InsertionError)?;
+        authorization_api
+            .add_entity_owner(actor_id, visibility_scope)
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(error) = transaction.commit().await {
+            authorization_api
+                .remove_entity_owner(actor_id, visibility_scope)
+                .await
+                .change_context(InsertionError)?;
+
+            return Err(error.change_context(InsertionError));
+        }
 
         Ok(EntityMetadata::new(
             EntityRecordId {
@@ -614,17 +616,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
-            .view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
+            .can_view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
             .await
             .change_context(QueryError)?;
 
         let permitted_ids = permissions
-            .try_filter_map(|(entity_id, has_permission)| {
-                ready(Ok(has_permission.then_some(entity_id)))
-            })
-            .try_collect::<HashSet<_>>()
-            .await
-            .change_context(QueryError)?;
+            .into_iter()
+            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+            .collect::<HashSet<_>>();
 
         entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id));
 
@@ -671,11 +670,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, properties, _authorization_api))]
-    async fn update_entity<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -683,6 +682,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
+        authorization_api
+            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         if transaction

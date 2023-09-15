@@ -184,11 +184,28 @@ impl Error for DeleteRelationsError {}
 
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]
+#[must_use]
 pub struct CheckResponse {
     /// If the subject has the specified permission or relation to an [`Resource`].
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
+}
+
+impl CheckResponse {
+    /// Asserts that the subject has the specified permission or relation to an [`Resource`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the subject does not have the specified permission or relation to the
+    /// [`Resource`].
+    pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
+        if self.has_permission {
+            Ok(self.checked_at)
+        } else {
+            Err(PermissionAssertion)
+        }
+    }
 }
 
 /// Error returned from [`ZanzibarBackend::check`].
@@ -204,6 +221,17 @@ impl fmt::Display for CheckError {
 }
 
 impl Error for CheckError {}
+
+#[derive(Debug)]
+pub struct PermissionAssertion;
+
+impl fmt::Display for PermissionAssertion {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Permission denied")
+    }
+}
+
+impl Error for PermissionAssertion {}
 
 pub struct SubjectFilter<'s> {
     pub namespace: &'s str,

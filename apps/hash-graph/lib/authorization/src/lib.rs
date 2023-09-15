@@ -6,51 +6,95 @@
     return_position_impl_trait_in_trait
 )]
 
-use error_stack::Result;
-use futures::Stream;
-use graph_types::{account::AccountId, knowledge::entity::EntityId};
-
-use crate::{
-    backend::CheckError,
-    zanzibar::{Consistency, Zookie},
-};
-
 pub mod backend;
 pub mod zanzibar;
 
+pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+
 mod api;
 
-pub use self::api::{AuthorizationApi, AuthorizationApiPool};
+use error_stack::Result;
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityId,
+    provenance::OwnedById,
+};
+
+use crate::{
+    backend::{CheckError, CheckResponse},
+    zanzibar::{Consistency, Zookie},
+};
 
 #[derive(Debug, Default)]
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
-    async fn view_entity(
+    async fn add_account_group_member(
+        &mut self,
+        _actor: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_account_group_member(
+        &mut self,
+        _actor: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_entity_owner(
+        &mut self,
+        _actor: AccountId,
+        _scope: VisibilityScope,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_owner(
+        &mut self,
+        _actor: AccountId,
+        _scope: VisibilityScope,
+    ) -> Result<Zookie<'static>, CheckError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_create_entity(
+        &self,
+        _actor: AccountId,
+        _web: OwnedById,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn can_update_entity(
         &self,
         _actor: AccountId,
         _entity: EntityId,
         _consistency: Consistency<'_>,
-    ) -> Result<(bool, Zookie<'static>), CheckError> {
-        Ok((true, Zookie::empty()))
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
     }
 
-    async fn view_entities(
+    async fn can_view_entity(
         &self,
         _actor: AccountId,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        _entity: EntityId,
         _consistency: Consistency<'_>,
-    ) -> Result<
-        (
-            impl Stream<Item = Result<(EntityId, bool), CheckError>> + Send,
-            Zookie<'static>,
-        ),
-        CheckError,
-    > {
-        Ok((
-            futures::stream::iter(entities.into_iter().map(|entity| Ok((entity, true)))),
-            Zookie::empty(),
-        ))
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
     }
 }
 

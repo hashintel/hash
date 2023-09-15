@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::{AuthorizationApi, VisibilityScope};
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -57,15 +57,6 @@ pub struct PostgresStore<C> {
 enum OntologyLocation {
     Owned,
     External,
-}
-
-// TODO: Replace with something permission specific which can directly be reused once permissions
-//       are implemented.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum VisibilityScope {
-    Public,
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
 }
 
 impl<C> PostgresStore<C>
