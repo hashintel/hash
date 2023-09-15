@@ -8,6 +8,7 @@ import {
   MuiTooltipThemeOptions,
 } from "./components/data-display";
 import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
+import { MuiListItemIconThemeOptions } from "./components/data-display/mui-list-item-icon-theme-options";
 import { MuiSkeletonThemeOptions } from "./components/feedback/mui-skeleton-theme-options";
 import {
   MuiButtonThemeOptions,
@@ -46,6 +47,7 @@ export const components: Components<Theme> = {
   MuiTooltip: MuiTooltipThemeOptions,
   MuiListItemButton: MuiListItemButtonThemeOptions,
   MuiListItemText: MuiListItemTextThemeOptions,
+  MuiListItemIcon: MuiListItemIconThemeOptions,
   MuiListItemSecondaryAction: MuiListItemSecondaryActionThemeOptions,
 
   /** ===== FEEDBACK ===== */

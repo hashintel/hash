@@ -1,11 +1,19 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import {
   Box,
+  Divider,
+  ListItemIcon,
   listItemSecondaryActionClasses,
   ListItemText,
   Menu,
+  Typography,
   useTheme,
 } from "@mui/material";
 import {
@@ -17,8 +25,10 @@ import { FunctionComponent, useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
+import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
-import { CreatePageMenuItem } from "./actions-dropdown/create-page-menu-item";
+import { CreateDocumentMenuItem } from "./actions-dropdown/create-document-menu-item";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 const ActionsDropdownInner: FunctionComponent<{
@@ -73,20 +83,55 @@ const ActionsDropdownInner: FunctionComponent<{
           },
         }}
       >
+        <Typography
+          sx={{
+            marginTop: 1,
+            marginX: 1.5,
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 12,
+            fontWeight: 600,
+            textTransform: "uppercase",
+          }}
+        >
+          Create New
+        </Typography>
         {hashInstance?.properties.pagesAreEnabled ? (
-          <CreatePageMenuItem
+          <CreateDocumentMenuItem
             activeWorkspaceOwnedById={activeWorkspaceOwnedById}
             onClick={popupState.close}
           />
         ) : null}
-        {[
-          { href: "/new/entity", label: "Create Entity" },
-          { href: "/new/types/entity-type", label: "Create Entity Type" },
-        ].map(({ href, label }) => (
-          <MenuItem key={href} href={href} onClick={popupState.close}>
-            <ListItemText primary={label} />
-          </MenuItem>
-        ))}
+        <MenuItem href="/new/entity" onClick={popupState.close}>
+          <ListItemIcon>
+            <HashtagRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity" />
+        </MenuItem>
+        <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
+          <ListItemIcon>
+            <AsteriskRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity type" />
+        </MenuItem>
+        <MenuItem
+          href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <LinkIcon />
+          </ListItemIcon>
+          <ListItemText primary="Link type" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          href={`${types.entityType.file.entityTypeId}?tab=upload`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <UploadRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Upload a file" />
+        </MenuItem>
       </Menu>
     </Box>
   );

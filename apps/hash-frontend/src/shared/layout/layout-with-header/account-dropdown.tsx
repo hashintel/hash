@@ -134,17 +134,19 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           )}
         </Box>
         <Divider />
+        <MenuItem href="/settings" onClick={() => popupState.close()}>
+          <ListItemText primary="Settings" />
+        </MenuItem>
         {/*  
           Commented out menu items whose functionality have not been implemented yet
           @todo uncomment when functionality has been implemented 
         */}
-        {/* <MenuItem onClick={popupState.close}>
-          <ListItemText primary="Account Settings" />
-        </MenuItem>
+        {/*
         <MenuItem onClick={popupState.close}>
           <ListItemText primary="Appearance" />
         </MenuItem>
-        <Divider /> */}
+        */}
+        <Divider />
         <MenuItem onClick={logout} faded>
           <ListItemText primary="Sign Out" />
         </MenuItem>
