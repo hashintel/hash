@@ -11,6 +11,7 @@ import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-p
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
 import { Org } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui/button";
+import { useAuthInfo } from "../../../shared/auth-info-context";
 import { ImageField } from "../../shared/image-field";
 
 const Label = ({
@@ -102,6 +103,8 @@ export const OrgForm = ({
     initialOrg?.accountGroupId as OwnedById | undefined,
   );
 
+  const { refetch: refetchUserAndOrgs } = useAuthInfo();
+
   const {
     control,
     formState: { errors, isDirty, isValid, touchedFields },
@@ -179,6 +182,9 @@ export const OrgForm = ({
         properties: {},
       },
     });
+
+    // Refetch the authenticated user and their orgs so that avatar changes are reflected immediately in the UI
+    void refetchUserAndOrgs();
   };
 
   const nameError =
