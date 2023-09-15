@@ -1,7 +1,11 @@
-import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { ApolloQueryResult, NetworkStatus, useQuery } from "@apollo/client";
 import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  AccountGroupId,
+  Entity,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,30 +14,34 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/user-and-org";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+import { constructOrg, Org } from "../../lib/user-and-org";
 
 /**
- * Retrieves a list of organizations
+ * Retrieves a specific set of organizations, with their avatars and members populated
  */
-export const useOrgs = (): {
+export const useOrgsWithLinks = ({
+  orgAccountGroupIds,
+}: {
+  orgAccountGroupIds: AccountGroupId[];
+}): {
   loading: boolean;
-  orgs?: MinimalOrg[];
+  networkStatus: NetworkStatus;
+  orgs?: Org[];
   refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
 } => {
-  const { data, loading, refetch } = useQuery<
+  const { data, loading, refetch, networkStatus } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
       operation: {
         multiFilter: {
-          filters: [
-            entityHasEntityTypeByVersionedUrlFilter(
-              types.entityType.org.entityTypeId,
-            ),
-          ],
-          operator: "AND",
+          filters: orgAccountGroupIds.map((entityId) => ({
+            field: ["metadata", "recordId", "uuid"],
+            operator: "EQUALS",
+            value: entityId,
+          })),
+          operator: "OR",
         },
       },
       constrainsValuesOn: { outgoing: 0 },
@@ -42,10 +50,14 @@ export const useOrgs = (): {
       constrainsLinkDestinationsOn: { outgoing: 0 },
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
+      // These depths are chosen to cover the following:
+      // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+      // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
+      hasLeftEntity: { incoming: 1, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     fetchPolicy: "cache-and-network",
+    skip: !orgAccountGroupIds.length,
   });
 
   const { queryEntities: subgraph } = data ?? {};
@@ -56,7 +68,8 @@ export const useOrgs = (): {
     }
 
     return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
-      constructMinimalOrg({
+      constructOrg({
+        subgraph,
         orgEntity: orgEntity as Entity<OrgProperties>,
       }),
     );
@@ -64,6 +77,7 @@ export const useOrgs = (): {
 
   return {
     loading,
+    networkStatus,
     orgs,
     refetch,
   };

@@ -18,6 +18,7 @@ import {
 import { FunctionComponent, useContext, useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
+import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
@@ -35,6 +36,26 @@ export const WorkspaceSwitcher: FunctionComponent<
   const { logout } = useLogoutFlow();
   const { activeWorkspaceOwnedById, updateActiveWorkspaceOwnedById } =
     useContext(WorkspaceContext);
+
+  const { orgs: allOrgs } = useOrgs();
+  const userOrgs = useMemo(() => {
+    if (!allOrgs) {
+      return authenticatedUser.memberOf;
+    }
+
+    const orgs = allOrgs.filter(({ accountGroupId }) =>
+      authenticatedUser.memberOf.some(
+        ({ accountGroupId: userOrgAccountGroupId }) =>
+          accountGroupId === userOrgAccountGroupId,
+      ),
+    );
+
+    if (orgs.length === authenticatedUser.memberOf.length) {
+      return orgs;
+    } else {
+      return authenticatedUser.memberOf;
+    }
+  }, [allOrgs, authenticatedUser.memberOf]);
 
   const activeWorkspaceName = useMemo(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {

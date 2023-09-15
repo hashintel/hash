@@ -20,20 +20,20 @@ export const MemberRow = ({
   const removeFromOrg = async () => {
     await archiveEntity({
       data: {
-        entityId: membership.membershipEntity.metadata.recordId.entityId,
+        entityId: membership.linkEntity.metadata.recordId.entityId,
       },
     });
     void refetch();
   };
 
   return (
-    <TableRow key={membership.membershipEntity.metadata.recordId.entityId}>
+    <TableRow key={membership.linkEntity.metadata.recordId.entityId}>
       <Cell>
         <Link
-          href={`/@${membership.user.shortname}`}
+          href={`/@${membership.rightEntity.shortname}`}
           sx={{ textDecoration: "none" }}
         >
-          {membership.user.preferredName}
+          {membership.rightEntity.preferredName}
         </Link>
       </Cell>
       <TableCell>
@@ -50,7 +50,7 @@ export const MemberRow = ({
             whiteSpace: "nowrap",
           })}
         >
-          @{membership.user.shortname}
+          @{membership.rightEntity.shortname}
         </Typography>
       </TableCell>
       <TableCell>

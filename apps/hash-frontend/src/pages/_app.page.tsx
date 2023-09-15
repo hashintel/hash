@@ -1,7 +1,6 @@
 /* eslint-disable import/first */
-// @todo have webpack polyfill this
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
+// @todo have webpack polyfill this
 require("setimmediate");
 
 import "./globals.scss";
@@ -11,6 +10,7 @@ import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
@@ -30,10 +30,7 @@ import {
 import { MeQuery } from "../graphql/api-types.gen";
 import { meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import {
-  AuthenticatedUser,
-  constructAuthenticatedUser,
-} from "../lib/user-and-org";
+import { constructMinimalUser } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
@@ -86,7 +83,7 @@ const InitTypeSystem = dynamic(
 const clientSideEmotionCache = createEmotionCache();
 
 type AppInitialProps = {
-  initialAuthenticatedUser?: AuthenticatedUser;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
 };
 
 type AppProps = {
@@ -179,11 +176,13 @@ const App: FunctionComponent<AppProps> = ({
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUser } = props;
+  const { initialAuthenticatedUserSubgraph } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
-      <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+      <AuthInfoProvider
+        initialAuthenticatedUserSubgraph={initialAuthenticatedUserSubgraph}
+      >
         <App {...props} />
       </AuthInfoProvider>
     </ApolloProvider>
@@ -210,19 +209,25 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    *   on subsequent loads it will be cached so long as the cookie value remains the same.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    */
-  const [subgraph, kratosSession] = await Promise.all([
+  const [initialAuthenticatedUserSubgraph, kratosSession] = await Promise.all([
     apolloClient
       .query<MeQuery>({
         query: meQuery,
         context: { headers: { cookie } },
       })
-      .then(({ data }) => data.me)
+      .then(({ data }) => data.me as Subgraph<EntityRootType>)
       .catch(() => undefined),
     fetchKratosSession(cookie),
   ]);
 
+  const userEntity = initialAuthenticatedUserSubgraph
+    ? (getRoots<EntityRootType>(initialAuthenticatedUserSubgraph)[0] as
+        | Entity<UserProperties>
+        | undefined)
+    : undefined;
+
   /** @todo: make additional pages publicly accessible */
-  if (!subgraph || !kratosSession) {
+  if (!userEntity || !kratosSession) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
@@ -232,27 +237,19 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     return {};
   }
 
-  const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
-
   // The type system package needs to be initialized before calling `constructAuthenticatedUser`
   await TypeSystemInitializer.initialize();
 
-  const initialAuthenticatedUser = constructAuthenticatedUser({
-    userEntity: userEntity as Entity<UserProperties>,
-    subgraph,
-    kratosSession,
-  });
-
   // If the user is logged in but hasn't completed signup and isn't on the signup page...
   if (
-    !initialAuthenticatedUser.accountSignupComplete &&
+    !constructMinimalUser({ userEntity }).accountSignupComplete &&
     !pathname.startsWith("/signup")
   ) {
     // ...then redirect them to the signup page.
     redirectInGetInitialProps({ appContext, location: "/signup" });
   }
 
-  return { initialAuthenticatedUser };
+  return { initialAuthenticatedUserSubgraph };
 };
 
 export default AppWithTypeSystemContextProvider;

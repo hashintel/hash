@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 
-import { Org, User } from "../../lib/user-and-org";
+import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { useOrgs } from "./use-orgs";
 import { useUsers } from "./use-users";
 
 export const useWorkspaceByShortname = (
   shortname?: string,
-): { workspace?: User | Org; loading: boolean } => {
+): { workspace?: MinimalUser | MinimalOrg; loading: boolean } => {
   /**
    * @todo: getting an org or user by their shortname should not be happening
    * client side. This could be addressed by exposing structural querying

@@ -27,7 +27,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   ownedById,
 }) => {
-  const { users, loading: usersLoading } = useUsers(true);
+  const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
 

@@ -1,7 +1,21 @@
 import { useLazyQuery } from "@apollo/client";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  AccountGroupId,
+  Entity,
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+  Timestamp,
+  Uuid,
+} from "@local/hash-subgraph";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+  intervalForTimestamp,
+} from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   createContext,
   FunctionComponent,
@@ -12,6 +26,7 @@ import {
   useState,
 } from "react";
 
+import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
 import {
@@ -24,66 +39,111 @@ type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: AuthenticatedUser;
 }>;
 
-type AuthInfoState = {
+type AuthInfoContextValue = {
   authenticatedUser?: AuthenticatedUser;
   refetch: RefetchAuthInfoFunction;
 };
 
-export const AuthInfoContext = createContext<AuthInfoState | undefined>(
+export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
   undefined,
 );
 
 type AuthInfoProviderProps = {
-  initialAuthenticatedUser?: AuthenticatedUser;
+  initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
   children: ReactElement;
 };
 
 export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
-  initialAuthenticatedUser,
+  initialAuthenticatedUserSubgraph,
   children,
 }) => {
-  const [authenticatedUser, setAuthenticatedUser] = useState<
-    AuthenticatedUser | undefined
-  >(initialAuthenticatedUser); // use the initial server-sent data to start – after that, the client controls the value
+  const [authenticatedUserSubgraph, setAuthenticatedUserSubgraph] = useState(
+    initialAuthenticatedUserSubgraph,
+  ); // use the initial server-sent data to start – after that, the client controls the value
 
   const [getMe] = useLazyQuery<MeQuery>(meQuery, {
     fetchPolicy: "cache-and-network",
   });
 
+  const userMemberOfLinks = useMemo(() => {
+    if (!authenticatedUserSubgraph) {
+      return undefined;
+    }
+
+    const userEntity = getRoots(
+      authenticatedUserSubgraph,
+    )[0] as Entity<UserProperties>;
+
+    return getOutgoingLinksForEntity(
+      authenticatedUserSubgraph,
+      userEntity.metadata.recordId.entityId,
+      intervalForTimestamp(new Date().toISOString() as Timestamp),
+    ).filter(
+      (linkEntity) =>
+        linkEntity.metadata.entityTypeId ===
+        types.linkEntityType.orgMembership.linkEntityTypeId,
+    ) as LinkEntity[];
+  }, [authenticatedUserSubgraph]);
+
+  const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
+    orgAccountGroupIds:
+      userMemberOfLinks?.map(
+        (link) =>
+          extractEntityUuidFromEntityId(
+            link.linkData.rightEntityId,
+          ) as Uuid as AccountGroupId,
+      ) ?? [],
+  });
+
+  const constructUserValue = useCallback(
+    (subgraph: Subgraph<EntityRootType> | undefined) => {
+      if (!subgraph) {
+        return undefined;
+      }
+
+      return constructAuthenticatedUser({
+        orgMembershipLinks: userMemberOfLinks,
+        subgraph,
+        resolvedOrgs,
+      });
+    },
+    [resolvedOrgs, userMemberOfLinks],
+  );
+
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {
       const [subgraph, kratosSession] = await Promise.all([
         getMe()
-          .then(({ data }) => data?.me)
+          .then(({ data }) => data?.me as Subgraph<EntityRootType>)
           .catch(() => undefined),
         fetchKratosSession(),
       ]);
 
       if (!subgraph || !kratosSession) {
-        setAuthenticatedUser(undefined);
+        setAuthenticatedUserSubgraph(undefined);
         return {};
       }
-      const userEntity = getRoots(subgraph as Subgraph<EntityRootType>)[0]!;
 
-      const latestAuthenticatedUser = constructAuthenticatedUser({
-        userEntity: userEntity as Entity<UserProperties>,
-        subgraph,
-        kratosSession,
-      });
+      setAuthenticatedUserSubgraph(subgraph);
 
-      setAuthenticatedUser(latestAuthenticatedUser);
-
-      return {
-        authenticatedUser: latestAuthenticatedUser,
-      };
-    }, [getMe]);
+      return { authenticatedUser: constructUserValue(subgraph) };
+    }, [constructUserValue, getMe]);
 
   const value = useMemo(
     () => ({
-      authenticatedUser,
-      refetch: fetchAuthenticatedUser,
+      authenticatedUser: constructUserValue(authenticatedUserSubgraph),
+      refetch: async () => {
+        // Refetch the detail on orgs in case this refetch is following them being modified
+        await refetchOrgs();
+        return fetchAuthenticatedUser();
+      },
     }),
-    [authenticatedUser, fetchAuthenticatedUser],
+    [
+      authenticatedUserSubgraph,
+      constructUserValue,
+      fetchAuthenticatedUser,
+      refetchOrgs,
+    ],
   );
 
   return (
@@ -93,7 +153,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   );
 };
 
-export const useAuthInfo = (): AuthInfoState => {
+export const useAuthInfo = (): AuthInfoContextValue => {
   const authInfo = useContext(AuthInfoContext);
 
   if (!authInfo) {
@@ -111,7 +171,7 @@ export const useAuthInfo = (): AuthInfoState => {
  * @throws if there is no user authenticated in the application.
  * @returns `AuthInfo` where the `authenticatedUser` is always defined.
  */
-export const useAuthenticatedUser = (): AuthInfoState & {
+export const useAuthenticatedUser = (): AuthInfoContextValue & {
   authenticatedUser: AuthenticatedUser;
 } => {
   const { authenticatedUser, ...remainingAuthInfo } = useAuthInfo();

@@ -77,17 +77,16 @@ const OrgMembersPage: NextPageWithLayout = () => {
           <TableBody>
             {org.memberships
               .sort(
-                (a, b) =>
-                  a.user.preferredName?.localeCompare(
-                    b.user.preferredName ?? "ZZZ",
-                  ) ?? 1,
+                ({ rightEntity: a }, { rightEntity: b }) =>
+                  a.preferredName?.localeCompare(b.preferredName ?? "ZZZ") ?? 1,
               )
               .map((membership) => (
                 <MemberRow
-                  key={membership.membershipEntity.metadata.recordId.entityId}
+                  key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
                   self={
-                    membership.user.accountId === authenticatedUser.accountId
+                    membership.rightEntity.accountId ===
+                    authenticatedUser.accountId
                   }
                 />
               ))}

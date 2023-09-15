@@ -53,7 +53,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     if (
       org.memberships.find(
-        (membership) => membership.user.shortname === shortname,
+        (membership) => membership.rightEntity.shortname === shortname,
       )
     ) {
       setError("Already a member");
