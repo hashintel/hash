@@ -62,3 +62,9 @@ export const archivePropertyTypeMutation = gql`
     archivePropertyType(propertyTypeId: $propertyTypeId)
   }
 `;
+
+export const unarchivePropertyTypeMutation = gql`
+  mutation unarchivePropertyType($propertyTypeId: VersionedUrl!) {
+    unarchivePropertyType(propertyTypeId: $propertyTypeId)
+  }
+`;

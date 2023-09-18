@@ -27,8 +27,14 @@ import {
   ArchiveEntityTypeMutationVariables,
   ArchivePropertyTypeMutation,
   ArchivePropertyTypeMutationVariables,
+  UnarchiveEntityTypeMutation,
+  UnarchiveEntityTypeMutationVariables,
+  UnarchivePropertyTypeMutation,
 } from "../../graphql/api-types.gen";
-import { archiveEntityTypeMutation } from "../../graphql/queries/ontology/entity-type.queries";
+import {
+  archiveEntityTypeMutation,
+  unarchiveEntityTypeMutation,
+} from "../../graphql/queries/ontology/entity-type.queries";
 import { archivePropertyTypeMutation } from "../../graphql/queries/ontology/property-type.queries";
 import { useFetchEntityTypes } from "../entity-types-context/hooks";
 import { BoxArchiveIcon } from "../icons/box-archive-icon";
@@ -50,7 +56,7 @@ export const BulkActionsDropdown: FunctionComponent<{
     | DataTypeWithMetadata
   )[];
 }> = ({ selectedItems }) => {
-  const { archivePage } = useArchivePage();
+  const { archivePage, unarchivePage } = useArchivePage();
 
   const refetchEntityTypes = useFetchEntityTypes();
 
@@ -58,6 +64,13 @@ export const BulkActionsDropdown: FunctionComponent<{
     ArchiveEntityTypeMutation,
     ArchiveEntityTypeMutationVariables
   >(archiveEntityTypeMutation, {
+    onCompleted: refetchEntityTypes,
+  });
+
+  const [unarchiveEntityType] = useMutation<
+    UnarchiveEntityTypeMutation,
+    UnarchiveEntityTypeMutationVariables
+  >(unarchiveEntityTypeMutation, {
     onCompleted: refetchEntityTypes,
   });
 
@@ -71,17 +84,22 @@ export const BulkActionsDropdown: FunctionComponent<{
     onCompleted: refetchPropertyTypes,
   });
 
+  const [unarchivePropertyType] = useMutation<
+    UnarchivePropertyTypeMutation,
+    ArchivePropertyTypeMutationVariables
+  >(archivePropertyTypeMutation, {
+    onCompleted: refetchPropertyTypes,
+  });
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "table-header-bulk-actions-dropdown-menu",
   });
 
-  const canArchiveSelectedItems = useMemo(
+  // Whether or not the selected items can be archived or un-archived
+  const itemsAreArchiveable = useMemo(
     () =>
       selectedItems.filter((item) => {
-        if (isItemArchived(item)) {
-          return false;
-        }
         /**
          * @todo: also check whether the user has permission to archive the item
          */
@@ -106,6 +124,15 @@ export const BulkActionsDropdown: FunctionComponent<{
         return false;
       }).length === selectedItems.length,
     [selectedItems],
+  );
+
+  // Whether or not the selected items can be archived
+  const canArchiveSelectedItems = useMemo(
+    () =>
+      itemsAreArchiveable &&
+      selectedItems.filter((item) => !isItemArchived(item)).length ===
+        selectedItems.length,
+    [selectedItems, itemsAreArchiveable],
   );
 
   const archiveItem = useCallback(async () => {
@@ -136,6 +163,48 @@ export const BulkActionsDropdown: FunctionComponent<{
     );
   }, [selectedItems, archiveEntityType, archivePage, archivePropertyType]);
 
+  // Whether or not the selected items can be un-archived
+  const canUnarchiveSelectedItems = useMemo(
+    () =>
+      itemsAreArchiveable &&
+      selectedItems.filter((item) => isItemArchived(item)).length ===
+        selectedItems.length,
+    [selectedItems, itemsAreArchiveable],
+  );
+
+  const unarchiveItem = useCallback(async () => {
+    await Promise.all(
+      selectedItems.map(async (item) => {
+        if (isType(item)) {
+          if (isTypeEntityType(item)) {
+            await unarchiveEntityType({
+              variables: {
+                entityTypeId: item.schema.$id,
+              },
+            });
+          } else if (isTypePropertyType(item)) {
+            await unarchivePropertyType({
+              variables: {
+                propertyTypeId: item.schema.$id,
+              },
+            });
+          } else {
+            throw new Error("Archiving data types is not yet supported.");
+          }
+        } else if (isEntityPageEntity(item)) {
+          await unarchivePage(item.metadata.recordId.entityId);
+        } else {
+          throw new Error("Archiving entities is not yet supported.");
+        }
+      }),
+    );
+  }, [
+    selectedItems,
+    unarchiveEntityType,
+    unarchivePage,
+    unarchivePropertyType,
+  ]);
+
   const menuItems = useMemo(() => {
     return [
       {
@@ -144,8 +213,19 @@ export const BulkActionsDropdown: FunctionComponent<{
         onClick: archiveItem,
         disabled: !canArchiveSelectedItems,
       },
+      {
+        icon: <BoxArchiveIcon />,
+        label: "Un-Archive",
+        onClick: unarchiveItem,
+        disabled: !canUnarchiveSelectedItems,
+      },
     ];
-  }, [canArchiveSelectedItems, archiveItem]);
+  }, [
+    canArchiveSelectedItems,
+    archiveItem,
+    unarchiveItem,
+    canUnarchiveSelectedItems,
+  ]);
 
   return (
     <Box>
