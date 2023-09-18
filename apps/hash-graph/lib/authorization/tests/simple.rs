@@ -42,9 +42,9 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     let token = api
         .create_relations([
-            &(ENTITY_A, EntityRelation::DirectOwner, ALICE),
-            &(ENTITY_A, EntityRelation::DirectViewer, BOB),
-            &(ENTITY_B, EntityRelation::DirectOwner, BOB),
+            (ENTITY_A, EntityRelation::DirectOwner, ALICE),
+            (ENTITY_A, EntityRelation::DirectViewer, BOB),
+            (ENTITY_B, EntityRelation::DirectOwner, BOB),
         ])
         .await?
         .written_at;
@@ -142,7 +142,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relations([&(ENTITY_A, EntityRelation::DirectViewer, BOB)])
+        .delete_relations([(ENTITY_A, EntityRelation::DirectViewer, BOB)])
         .await?
         .deleted_at;
 

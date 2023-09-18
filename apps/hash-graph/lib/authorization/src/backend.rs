@@ -1,7 +1,7 @@
 mod spicedb;
 
 use core::fmt;
-use std::error::Error;
+use std::{error::Error, future::Future};
 
 use error_stack::Report;
 
@@ -36,24 +36,24 @@ pub trait ZanzibarBackend {
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relations<'t, T>(
+    fn create_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
     where
-        T: Tuple + Sync + 't;
+        T: Tuple + Send + Sync;
 
     /// Deletes the relation specified by the [`Tuple`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relations<'t, T>(
+    fn delete_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<DeleteRelationResponse, Report<DeleteRelationError>>> + Send
     where
-        T: Tuple + Sync + 't;
+        T: Tuple + Send + Sync;
 
     /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
     /// [`Resource`].
@@ -67,11 +67,11 @@ pub trait ZanzibarBackend {
     /// set to `false`.
     ///
     /// [`Resource`]: crate::zanzibar::Resource
-    async fn check<T>(
+    fn check<T>(
         &self,
         tuple: &T,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>>
+    ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
         T: Tuple + Sync;
 }

@@ -23,6 +23,7 @@ use graph_types::{
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError},
+    schema::OwnerId,
     zanzibar::{Consistency, Zookie},
 };
 
@@ -42,6 +43,22 @@ impl AuthorizationApi for NoAuthorization {
         &mut self,
         _member: AccountId,
         _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_namespace(
+        &mut self,
+        _namespace: impl Into<OwnedById> + Send,
+        _owner: OwnerId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_namespace(
+        &mut self,
+        _namespace: impl Into<OwnedById> + Send,
+        _owner: OwnerId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -88,16 +105,16 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn add_entity_owner(
         &mut self,
-        _actor: AccountId,
         _scope: VisibilityScope,
+        _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
 
     async fn remove_entity_owner(
         &mut self,
-        _actor: AccountId,
         _scope: VisibilityScope,
+        _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -105,7 +122,7 @@ impl AuthorizationApi for NoAuthorization {
     async fn can_create_entity(
         &self,
         _actor: AccountId,
-        _web: OwnedById,
+        _namespace: impl Into<OwnedById> + Send,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {

@@ -1,4 +1,4 @@
-use error_stack::{Report, Result};
+use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
@@ -7,18 +7,22 @@ use graph_types::{
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ZanzibarBackend},
+    schema::{
+        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
+        OwnerPermission, OwnerRelation,
+    },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi, VisibilityScope,
 };
 
 #[derive(Debug, Clone)]
 pub struct ZanzibarClient<B> {
-    _backend: B,
+    backend: B,
 }
 
 impl<B> ZanzibarClient<B> {
     pub const fn new(backend: B) -> Self {
-        Self { _backend: backend }
+        Self { backend }
     }
 }
 
@@ -28,109 +32,223 @@ where
 {
     async fn add_account_group_admin(
         &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
+        member: AccountId,
+        account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(self
+            .backend
+            .create_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
     }
 
     async fn remove_account_group_admin(
         &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
+        member: AccountId,
+        account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(self
+            .backend
+            .delete_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
+            .await
+            .change_context(ModifyRelationError)?
+            .deleted_at)
+    }
+
+    async fn add_namespace(
+        &mut self,
+        namespace: impl Into<OwnedById> + Send,
+        owner: OwnerId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match owner {
+            OwnerId::Account(account) => {
+                self.backend
+                    .create_relations([(namespace.into(), OwnerRelation::DirectOwner, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .create_relations([(
+                        namespace.into(),
+                        OwnerRelation::DirectOwner,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .written_at)
+    }
+
+    async fn remove_namespace(
+        &mut self,
+        namespace: impl Into<OwnedById> + Send,
+        owner: OwnerId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match owner {
+            OwnerId::Account(account) => {
+                self.backend
+                    .delete_relations([(namespace.into(), OwnerRelation::DirectOwner, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .delete_relations([(
+                        namespace.into(),
+                        OwnerRelation::DirectOwner,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .deleted_at)
     }
 
     async fn can_add_group_members(
         &self,
-        _actor: AccountId,
-        _account_group: AccountGroupId,
-        _consistency: Consistency<'_>,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
-        Ok(CheckResponse {
-            has_permission: false,
-            checked_at: Zookie::empty(),
-        })
+        self.backend
+            .check(
+                &(account_group, AccountGroupPermission::AddMember, actor),
+                consistency,
+            )
+            .await
     }
 
     async fn can_remove_group_members(
         &self,
-        _actor: AccountId,
-        _account_group: AccountGroupId,
-        _consistency: Consistency<'_>,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
-        Ok(CheckResponse {
-            has_permission: false,
-            checked_at: Zookie::empty(),
-        })
+        self.backend
+            .check(
+                &(account_group, AccountGroupPermission::RemoveMember, actor),
+                consistency,
+            )
+            .await
     }
 
     async fn add_account_group_member(
         &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
+        member: AccountId,
+        account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(self
+            .backend
+            .create_relations([(account_group, AccountGroupRelation::DirectMember, member)])
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
     }
 
     async fn remove_account_group_member(
         &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
+        member: AccountId,
+        account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(self
+            .backend
+            .delete_relations([(account_group, AccountGroupRelation::DirectMember, member)])
+            .await
+            .change_context(ModifyRelationError)?
+            .deleted_at)
     }
 
     async fn add_entity_owner(
         &mut self,
-        _actor: AccountId,
-        _scope: VisibilityScope,
+        scope: VisibilityScope,
+        entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(match scope {
+            VisibilityScope::Public => unimplemented!(),
+            VisibilityScope::Account(account) => {
+                self.backend
+                    .create_relations([(entity, EntityRelation::DirectOwner, account)])
+                    .await
+            }
+            VisibilityScope::AccountGroup(account_group) => {
+                self.backend
+                    .create_relations([(
+                        entity,
+                        EntityRelation::DirectOwner,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .written_at)
     }
 
     async fn remove_entity_owner(
         &mut self,
-        _actor: AccountId,
-        _scope: VisibilityScope,
+        scope: VisibilityScope,
+        entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+        Ok(match scope {
+            VisibilityScope::Public => unimplemented!(),
+            VisibilityScope::Account(account) => {
+                self.backend
+                    .delete_relations([(entity, EntityRelation::DirectOwner, account)])
+                    .await
+            }
+            VisibilityScope::AccountGroup(account_group) => {
+                self.backend
+                    .delete_relations([(
+                        entity,
+                        EntityRelation::DirectOwner,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .deleted_at)
     }
 
     async fn can_create_entity(
         &self,
-        _actor: AccountId,
-        _web: OwnedById,
-        _consistency: Consistency<'_>,
+        actor: AccountId,
+        namespace: impl Into<OwnedById> + Send,
+        consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
-        Ok(CheckResponse {
-            has_permission: false,
-            checked_at: Zookie::empty(),
-        })
+        self.backend
+            .check(
+                &(namespace.into(), OwnerPermission::CreateEntity, actor),
+                consistency,
+            )
+            .await
     }
 
     async fn can_update_entity(
         &self,
-        _actor: AccountId,
-        _entity: EntityId,
-        _consistency: Consistency<'_>,
+        actor: AccountId,
+        entity: EntityId,
+        consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
-        Ok(CheckResponse {
-            has_permission: false,
-            checked_at: Zookie::empty(),
-        })
+        self.backend
+            .check(&(entity, EntityPermission::Update, actor), consistency)
+            .await
     }
 
     async fn can_view_entity(
         &self,
-        _actor: AccountId,
-        _entity: EntityId,
-        _consistency: Consistency<'_>,
+        actor: AccountId,
+        entity: EntityId,
+        consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
-        Ok(CheckResponse {
-            has_permission: false,
-            checked_at: Zookie::empty(),
-        })
+        self.backend
+            .check(&(entity, EntityPermission::View, actor), consistency)
+            .await
     }
 }

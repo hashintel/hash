@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
-use authorization::{AuthorizationApi, VisibilityScope};
+use authorization::{schema::OwnerId, AuthorizationApi, VisibilityScope};
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -472,7 +472,7 @@ where
         for property_type in property_type.property_type_references() {
             self.as_client()
                 .query_one(
-                r#"
+                    r#"
                         INSERT INTO property_type_constrains_properties_on (
                             source_property_type_ontology_id,
                             target_property_type_ontology_id
@@ -486,7 +486,7 @@ where
                         &property_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(property_type.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -495,7 +495,7 @@ where
         for data_type in property_type.data_type_references() {
             self.as_client()
                 .query_one(
-                r#"
+                    r#"
                         INSERT INTO property_type_constrains_values_on (
                             source_property_type_ontology_id,
                             target_data_type_ontology_id
@@ -509,7 +509,7 @@ where
                         &data_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(data_type.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -542,7 +542,7 @@ where
                         &OntologyTypeVersion::new(property_type.url().version),
                     ],
                 )
-            .await
+                .await
 
                 .change_context(InsertionError)?;
         }
@@ -550,7 +550,7 @@ where
         for inherits_from in entity_type.inherits_from().all_of() {
             self.as_client()
                 .query_one(
-                r#"
+                    r#"
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
@@ -564,7 +564,7 @@ where
                         &inherits_from.url().base_url.as_str(),
                         &OntologyTypeVersion::new(inherits_from.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -589,16 +589,16 @@ where
                         &link_reference.url().base_url.as_str(),
                         &OntologyTypeVersion::new(link_reference.url().version),
                     ],
-            )
-            .await
+                )
+                .await
 
                 .change_context(InsertionError)?;
 
             if let Some(destinations) = destinations {
                 for destination in destinations {
                     self.as_client()
-                .query_one(
-                    r#"
+                        .query_one(
+                            r#"
                         INSERT INTO entity_type_constrains_link_destinations_on (
                         source_entity_type_ontology_id,
                         target_entity_type_ontology_id
@@ -607,15 +607,15 @@ where
                                 (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                             ) RETURNING target_entity_type_ontology_id;
                     "#,
-                        &[
-                            &ontology_id,
-                            &destination.url().base_url.as_str(),
-                            &OntologyTypeVersion::new(destination.url().version),
-                        ],
-                )
-                .await
+                            &[
+                                &ontology_id,
+                                &destination.url().base_url.as_str(),
+                                &OntologyTypeVersion::new(destination.url().version),
+                            ],
+                        )
+                        .await
 
-                .change_context(InsertionError)?;
+                        .change_context(InsertionError)?;
                 }
             }
         }
@@ -1224,11 +1224,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
-    async fn insert_account_id<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
         &mut self,
         _actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         account_id: AccountId,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -1261,7 +1261,26 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(account_id)?;
 
-        transaction.commit().await.change_context(InsertionError)
+        authorization_api
+            .add_namespace(account_id, OwnerId::Account(account_id))
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .remove_namespace(account_id, OwnerId::Account(account_id))
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 
     #[tracing::instrument(level = "info", skip(self, authorization_api))]
@@ -1306,9 +1325,23 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
+        authorization_api
+            .add_namespace(account_group_id, OwnerId::AccountGroup(account_group_id))
+            .await
+            .change_context(InsertionError)?;
+
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
                 .remove_account_group_admin(actor_id, account_group_id)
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+            if let Err(auth_error) = authorization_api
+                .remove_namespace(account_group_id, OwnerId::AccountGroup(account_group_id))
                 .await
                 .change_context(InsertionError)
             {
