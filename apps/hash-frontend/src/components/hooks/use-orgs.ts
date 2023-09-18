@@ -49,7 +49,7 @@ export const useOrgs = (
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: cache ? "cache-first" : "no-cache",
+    fetchPolicy: cache ? "cache-and-network" : "no-cache",
   });
 
   const { queryEntities: subgraph } = data ?? {};

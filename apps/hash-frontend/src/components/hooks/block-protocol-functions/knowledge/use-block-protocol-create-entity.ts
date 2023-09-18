@@ -18,10 +18,7 @@ export const useBlockProtocolCreateEntity = (
   const [createFn] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
-  >(createEntityMutation, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  >(createEntityMutation);
 
   const createEntity: CreateEntityMessageCallback = useCallback(
     async ({ data }) => {

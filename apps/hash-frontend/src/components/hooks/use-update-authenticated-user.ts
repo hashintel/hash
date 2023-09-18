@@ -24,7 +24,9 @@ type UpdateAuthenticatedUserParams = {
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthInfo();
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,

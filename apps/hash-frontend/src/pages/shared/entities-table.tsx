@@ -32,7 +32,7 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
-import { renderChipCell } from "../[shortname]/entities/[entity-uuid].page/entity-editor/properties-section/property-table/cells/chip-cell";
+import { renderChipCell } from "./chip-cell";
 import {
   renderTextIconCell,
   TextIconCell,

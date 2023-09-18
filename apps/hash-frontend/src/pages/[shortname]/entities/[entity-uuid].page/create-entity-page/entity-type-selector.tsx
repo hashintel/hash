@@ -7,6 +7,7 @@ import {
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
+import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
@@ -15,8 +16,9 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const { entityTypes, isSpecialEntityTypeLookup } =
-    useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const entityTypes = useLatestEntityTypesOptional();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);

@@ -7,11 +7,13 @@ import {
   PopperProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import { createContext, Ref, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { Button, ButtonProps } from "./button";
 import { Chip } from "./chip";
+import { GRID_CLICK_IGNORE_CLASS } from "./constants";
 import { fluidFontClassName } from "./fluid-fonts";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { StyledPlusCircleIcon } from "./icon-circle-plus";
@@ -262,7 +264,7 @@ export const SelectorAutocomplete = <
           popper: {
             modifiers: allModifiers,
             anchorEl,
-            className: fluidFontClassName,
+            className: clsx([fluidFontClassName, GRID_CLICK_IGNORE_CLASS]),
           },
         }}
         {...rest}

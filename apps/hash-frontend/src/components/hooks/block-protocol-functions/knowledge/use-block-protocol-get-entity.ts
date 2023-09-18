@@ -15,8 +15,7 @@ export const useBlockProtocolGetEntity = (): {
   const [getEntityFn] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntityQuery,
     {
-      /** @todo reconsider caching. This is done for testing/demo purposes. */
-      fetchPolicy: "no-cache",
+      fetchPolicy: "cache-and-network",
     },
   );
 

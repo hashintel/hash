@@ -1,6 +1,6 @@
 import { PaletteValue, ThemeOptions } from "@mui/material";
 
-type colorKeys =
+type ColorKey =
   | "gray"
   | "blue"
   | "purple"
@@ -12,15 +12,19 @@ type colorKeys =
   | "teal"
   | "lime"
   | "copper"
-  | "navy"
-  | "black"
-  | "white";
+  | "navy";
+
+type SingleColorKey = "black" | "white";
 
 type CustomColorsType = {
-  [P in colorKeys]: (string | PaletteValue) & {
+  [P in ColorKey]: PaletteValue & {
     contrastText?: string;
     main?: string;
   };
+};
+
+type SimpleColorsType = {
+  [T in SingleColorKey]: string;
 };
 
 export const customColors = {
@@ -186,7 +190,7 @@ export const customColors = {
   },
   black: "#0E1114",
   white: "#FFFFFF",
-} as CustomColorsType;
+} as CustomColorsType & SimpleColorsType;
 
 // This adds `contrastText` and `main` to each palette field since MUI uses them internally
 // in components like MuiChip. This prevents components like MuiChip from
@@ -237,8 +241,8 @@ export const palette: ThemeOptions["palette"] = {
     disabled: customColors.gray[50],
   },
   common: {
-    black: customColors.black as string,
-    white: customColors.white as string,
+    black: customColors.black,
+    white: customColors.white,
   },
   ...customColors,
 };

@@ -1,12 +1,14 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FunctionComponent, useContext, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
-import { useAllEntitiesExcept } from "../../../components/hooks/use-all-entities-except";
+import { useQueryEntities } from "../../../components/hooks/use-query-entities";
 import { useUsers } from "../../../components/hooks/use-users";
 import { PageIcon } from "../../../components/page-icon";
+import { generateEntityLabel } from "../../../lib/entities";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import { Suggester } from "./suggester";
@@ -34,10 +36,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   ownedById,
 }) => {
   const { users, loading: usersLoading } = useUsers();
-  const { entities, loading: entitiesLoading } = useAllEntitiesExcept([
-    types.entityType.user.entityTypeId,
-    types.entityType.page.entityTypeId,
-  ]);
+  const { entitiesSubgraph, loading: entitiesLoading } = useQueryEntities({
+    excludeEntityTypeIds: [
+      types.entityType.user.entityTypeId,
+      types.entityType.page.entityTypeId,
+    ],
+  });
   const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
@@ -64,15 +68,18 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       mentionType: "page",
     }));
 
-    const iterableEntities: Array<SearchableItem> =
-      entities?.map(({ entity, label, entityTypeTitle }) => {
-        return {
-          entityId: entity.metadata.recordId.entityId,
-          mentionType: "entity",
-          name: label,
-          desc: entityTypeTitle,
-        };
-      }) ?? [];
+    const iterableEntities: Array<SearchableItem> = entitiesSubgraph
+      ? getRoots(entitiesSubgraph).map((entity) => {
+          return {
+            entityId: entity.metadata.recordId.entityId,
+            mentionType: "entity",
+            name: generateEntityLabel(entitiesSubgraph, entity),
+            desc:
+              getEntityTypeById(entitiesSubgraph, entity.metadata.entityTypeId)
+                ?.schema.title ?? "Unknown",
+          };
+        })
+      : [];
 
     const peopleSearch = fuzzySearchBy(iterableAccounts, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
@@ -99,7 +106,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
-  }, [search, users, activeWorkspaceOwnedById, pages, entities]);
+  }, [search, users, activeWorkspaceOwnedById, pages, entitiesSubgraph]);
 
   return (
     <Suggester
