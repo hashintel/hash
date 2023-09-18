@@ -80,6 +80,8 @@ export const TypesTable: FunctionComponent<{
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
+  const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
+
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
@@ -251,12 +253,20 @@ export const TypesTable: FunctionComponent<{
         items={types}
         filterState={filterState}
         setFilterState={setFilterState}
+        selectedItems={types.filter((type) =>
+          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
+        )}
       />
       <Grid
         showSearch={showSearch}
         onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         rows={filteredRows}
+        enableCheckboxSelection
+        selectedRows={selectedRows}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
         sortable
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
