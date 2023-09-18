@@ -39,11 +39,14 @@ export type SelectorAutocompleteOptionProps = {
   typeId: VersionedUrl;
 };
 
-const slugToTitleCase = (slug: string) =>
+// This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
+const slugToTitleCase = (slug?: string) =>
   slug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    ? slug
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
+    : undefined;
 
 export const SelectorAutocompleteOption = ({
   liProps,
@@ -73,7 +76,7 @@ export const SelectorAutocompleteOption = ({
   const onMouseEnter = () => (imageUrl ? setShowPreviewPane(true) : null);
   const onMouseLeave = () => (imageUrl ? setShowPreviewPane(false) : null);
 
-  const typeTitle = slugToTitleCase(typeId.split("/").slice(-3, -2)[0]!);
+  const typeTitle = slugToTitleCase(typeId.split("/").slice(-3, -2)[0]);
 
   return (
     <li
@@ -192,7 +195,7 @@ export const SelectorAutocompleteOption = ({
               )}
             </Box>
             <Tooltip title={typeId}>
-              {entityProperties ? (
+              {entityProperties && typeTitle ? (
                 <Chip
                   icon={<EntityTypeIcon />}
                   color="gray"
