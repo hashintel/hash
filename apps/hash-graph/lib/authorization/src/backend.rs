@@ -65,6 +65,8 @@ pub trait ZanzibarBackend {
     /// Note, that this will not fail if the subject does not have the specified permission or
     /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
     async fn check<T>(
         &self,
         tuple: &T,
@@ -157,6 +159,8 @@ impl Error for DeleteRelationError {}
 #[must_use]
 pub struct CheckResponse {
     /// If the subject has the specified permission or relation to an [`Resource`].
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
@@ -169,6 +173,8 @@ impl CheckResponse {
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
     /// [`Resource`].
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)
