@@ -26,7 +26,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
-  getRoots,
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
@@ -37,13 +36,7 @@ export const constructMinimalOrg = (params: {
 }): MinimalOrg => {
   const { orgEntity } = params;
 
-  const {
-    description,
-    location,
-    organizationName: name,
-    shortname,
-    website,
-  } = simplifyProperties(orgEntity.properties);
+  const simpleProperties = simplifyProperties(orgEntity.properties);
 
   return {
     kind: "org",
@@ -51,11 +44,8 @@ export const constructMinimalOrg = (params: {
     accountGroupId: extractAccountGroupId(
       orgEntity.metadata.recordId.entityId as AccountGroupEntityId,
     ),
-    description,
-    location,
-    shortname,
-    name,
-    website,
+    name: simpleProperties.organizationName,
+    ...simpleProperties,
   };
 };
 
