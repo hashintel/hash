@@ -26,13 +26,13 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
-import { isTypeArchived } from "../../../../shared/entity-types-context/util";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
+import { isTypeArchived } from "../../../../shared/util";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { ArchiveMenuItem } from "../../shared/archive-menu-item";
 import { useRouteNamespace } from "../../shared/use-route-namespace";

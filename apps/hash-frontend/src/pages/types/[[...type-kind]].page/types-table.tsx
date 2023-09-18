@@ -31,13 +31,13 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { isTypeArchived } from "../../../shared/entity-types-context/util";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
   TableHeader,
   tableHeaderHeight,
 } from "../../../shared/table-header";
+import { isTypeArchived } from "../../../shared/util";
 import {
   renderTextIconCell,
   TextIconCell,

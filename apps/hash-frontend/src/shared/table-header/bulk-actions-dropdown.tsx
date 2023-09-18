@@ -34,6 +34,7 @@ import { BoxArchiveIcon } from "../icons/box-archive-icon";
 import { MenuItem } from "../ui";
 import {
   isEntityPageEntity,
+  isItemArchived,
   isType,
   isTypeEntityType,
   isTypePropertyType,
@@ -67,6 +68,9 @@ export const BulkActionsDropdown: FunctionComponent<{
   const canArchiveSelectedItems = useMemo(
     () =>
       selectedItems.filter((item) => {
+        if (isItemArchived(item)) {
+          return false;
+        }
         /**
          * @todo: also check whether the user has permission to archive the item
          */
