@@ -6,6 +6,7 @@ export type EntityTypeEntitiesContextValue = {
   entities?: Entity[];
   entityTypes?: EntityType[];
   loading: boolean;
+  refetch: () => Promise<void>;
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
 };
