@@ -79,7 +79,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
           ),
           generateVersionedUrlMatchingFilter(
             SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
-            { ignoreParents: true },
+            { ignoreParents: true, pathPrefix: ["incomingLinks"] },
           ),
           generateVersionedUrlMatchingFilter(
             SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
@@ -149,7 +149,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
             SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
             {
               ignoreParents: true,
-              pathPrefix: ["outgoingLInks"],
+              pathPrefix: ["outgoingLinks"],
             },
           ),
           {

@@ -1,6 +1,15 @@
 import { GraphResolveDepths } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { Filter } from "@local/hash-graph-client";
+import {
+  DataTypeQueryToken,
+  EntityQueryToken,
+  EntityTypeQueryToken,
+  Filter,
+  PathExpression,
+  PathExpressionPathInner,
+  PropertyTypeQueryToken,
+  Selector,
+} from "@local/hash-graph-client";
 import { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -70,7 +79,13 @@ export const generateVersionedUrlMatchingFilter = (
   versionedUrl: VersionedUrl,
   options?: {
     ignoreParents?: boolean;
-    pathPrefix?: string[];
+    pathPrefix?: (
+      | DataTypeQueryToken
+      | EntityQueryToken
+      | EntityTypeQueryToken
+      | PropertyTypeQueryToken
+      | Selector
+    )[];
   },
 ): Filter => {
   const { ignoreParents = false, pathPrefix = [] } = options ?? {};
