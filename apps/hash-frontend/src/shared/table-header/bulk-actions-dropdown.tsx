@@ -13,6 +13,7 @@ import {
   ListItemIcon,
   ListItemText,
   Menu,
+  Tooltip,
 } from "@mui/material";
 import {
   bindMenu,
@@ -212,12 +213,16 @@ export const BulkActionsDropdown: FunctionComponent<{
         label: "Archive",
         onClick: archiveItem,
         disabled: !canArchiveSelectedItems,
+        tooltipTitle: "Cannot archive one or more of the selected items.",
       },
       {
         icon: <BoxArchiveIcon />,
         label: "Un-Archive",
         onClick: unarchiveItem,
         disabled: !canUnarchiveSelectedItems,
+        tooltipTitle: canUnarchiveSelectedItems
+          ? undefined
+          : "Cannot un-archive one or more of the selected items.",
       },
     ];
   }, [
@@ -262,18 +267,25 @@ export const BulkActionsDropdown: FunctionComponent<{
           horizontal: "left",
         }}
       >
-        {menuItems.map(({ label, onClick, icon, disabled }) => (
-          <MenuItem
-            key={label}
-            onClick={async () => {
-              await onClick();
-              popupState.close();
-            }}
-            disabled={disabled}
-          >
-            <ListItemIcon>{icon}</ListItemIcon>
-            <ListItemText primary={label} />
-          </MenuItem>
+        {menuItems.map(({ label, onClick, icon, disabled, tooltipTitle }) => (
+          <Tooltip key={label} title={tooltipTitle}>
+            {/**
+             * We need this wrapper to display the tooltip on disabled menu items
+             * @see https://mui.com/material-ui/react-tooltip/#disabled-elements
+             */}
+            <Box>
+              <MenuItem
+                onClick={async () => {
+                  await onClick();
+                  popupState.close();
+                }}
+                disabled={disabled}
+              >
+                <ListItemIcon>{icon}</ListItemIcon>
+                <ListItemText primary={label} />
+              </MenuItem>
+            </Box>
+          </Tooltip>
         ))}
       </Menu>
     </Box>
