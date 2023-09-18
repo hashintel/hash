@@ -29,12 +29,13 @@ import {
 
 import { isTypeArchived } from "../../shared/entity-types-context/util";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
+import { isEntityPageEntity } from "../../shared/util";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
-import { isEntityPageEntity, isItemEntityType } from "./top-context-bar/util";
+import { isItemEntityType } from "./top-context-bar/util";
 
-export { isEntityPageEntity, isItemEntityType };
+export { isItemEntityType };
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 
 const PageRestoredMessageWrapper: FunctionComponent<{

@@ -18,7 +18,8 @@ import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
 import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { Button, Link } from "../../../shared/ui";
-import { isEntityPageEntity, isItemEntityType } from "./util";
+import { isEntityPageEntity } from "../../../shared/util";
+import { isItemEntityType } from "./util";
 
 type ArchivedItemBannerProps = {
   item: Entity | EntityTypeWithMetadata;

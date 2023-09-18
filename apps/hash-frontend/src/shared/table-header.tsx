@@ -30,6 +30,7 @@ import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
+import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import { Button } from "./ui";
 
 export const tableHeaderHeight = 50;
@@ -76,6 +77,12 @@ type TableHeaderProps = {
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
+  selectedItems?: (
+    | Entity
+    | EntityTypeWithMetadata
+    | PropertyTypeWithMetadata
+    | DataTypeWithMetadata
+  )[];
   filterState: FilterState;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
@@ -83,6 +90,7 @@ type TableHeaderProps = {
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   items,
+  selectedItems,
   filterState,
   setFilterState,
   toggleSearch,
@@ -129,39 +137,46 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       }}
     >
       <Box display="flex" gap={1.5}>
-        <Tooltip
-          title={`Visible to you inside @${activeWorkspace?.shortname}`}
-          placement="top"
-        >
-          <Chip
-            icon={<HouseRegularIcon />}
-            label={`${numberOfActiveWorkspaceItems} in @${activeWorkspace?.shortname}`}
-            sx={{
-              [`.${chipClasses.label}`]: {
-                fontSize: 13,
-              },
-              border: ({ palette }) => palette.common.white,
-              background: ({ palette }) => palette.gray[5],
-            }}
-          />
-        </Tooltip>
-        <Tooltip
-          title={`Visible to you outside of @${activeWorkspace?.shortname}`}
-          placement="top"
-        >
-          <Chip
-            icon={<EarthAmericasRegularIcon />}
-            label={`${numberOfGlobalItems} others`}
-            sx={{
-              [`.${chipClasses.label}`]: {
-                fontSize: 13,
-              },
-              fontSize: 13,
-              border: ({ palette }) => palette.gray[30],
-              background: ({ palette }) => palette.common.white,
-            }}
-          />
-        </Tooltip>
+        {selectedItems?.length ? (
+          <BulkActionsDropdown selectedItems={selectedItems} />
+        ) : (
+          <>
+            <Tooltip
+              title={`Visible to you inside @${activeWorkspace?.shortname}`}
+              placement="top"
+            >
+              <Chip
+                icon={<HouseRegularIcon />}
+                label={`${numberOfActiveWorkspaceItems} in @${activeWorkspace?.shortname}`}
+                sx={{
+                  [`.${chipClasses.label}`]: {
+                    fontSize: 13,
+                  },
+                  border: ({ palette }) => palette.common.white,
+                  background: ({ palette }) => palette.gray[5],
+                }}
+              />
+            </Tooltip>
+            <Tooltip
+              title={`Visible to you outside of @${activeWorkspace?.shortname}`}
+              placement="top"
+            >
+              <Chip
+                icon={<EarthAmericasRegularIcon />}
+                label={`${numberOfGlobalItems} others`}
+                sx={{
+                  [`.${chipClasses.label}`]: {
+                    fontSize: 13,
+                  },
+                  fontSize: 13,
+                  border: ({ palette }) => palette.gray[30],
+                  background: ({ palette }) => palette.common.white,
+                }}
+              />
+            </Tooltip>
+          </>
+        )}
+
         {toggleSearch ? (
           <IconButton onClick={toggleSearch}>
             <MagnifyingGlassRegularIcon />

@@ -12,8 +12,8 @@ import { archiveEntityTypeMutation } from "../../../graphql/queries/ontology/ent
 import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
 import { MenuItem } from "../../../shared/ui/menu-item";
+import { isEntityPageEntity } from "../../../shared/util";
 import {
-  isEntityPageEntity,
   isItemEntityType,
   useContextBarActionsContext,
 } from "../../shared/top-context-bar";
