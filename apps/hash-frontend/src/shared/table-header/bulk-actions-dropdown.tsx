@@ -30,7 +30,9 @@ import {
 } from "../../graphql/api-types.gen";
 import { archiveEntityTypeMutation } from "../../graphql/queries/ontology/entity-type.queries";
 import { archivePropertyTypeMutation } from "../../graphql/queries/ontology/property-type.queries";
+import { useFetchEntityTypes } from "../entity-types-context/hooks";
 import { BoxArchiveIcon } from "../icons/box-archive-icon";
+import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
 import { MenuItem } from "../ui";
 import {
   isEntityPageEntity,
@@ -50,15 +52,24 @@ export const BulkActionsDropdown: FunctionComponent<{
 }> = ({ selectedItems }) => {
   const { archivePage } = useArchivePage();
 
+  const refetchEntityTypes = useFetchEntityTypes();
+
   const [archiveEntityType] = useMutation<
     ArchiveEntityTypeMutation,
     ArchiveEntityTypeMutationVariables
-  >(archiveEntityTypeMutation);
+  >(archiveEntityTypeMutation, {
+    onCompleted: refetchEntityTypes,
+  });
+
+  /** @todo: figure out why this isn't working */
+  const refetchPropertyTypes = useFetchLatestPropertyTypes();
 
   const [archivePropertyType] = useMutation<
     ArchivePropertyTypeMutation,
     ArchivePropertyTypeMutationVariables
-  >(archivePropertyTypeMutation);
+  >(archivePropertyTypeMutation, {
+    onCompleted: refetchPropertyTypes,
+  });
 
   const popupState = usePopupState({
     variant: "popover",

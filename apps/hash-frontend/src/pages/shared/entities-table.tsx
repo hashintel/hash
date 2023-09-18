@@ -218,11 +218,13 @@ export const EntitiesTable: FunctionComponent<{
     <Box>
       <TableHeader
         items={entities ?? []}
-        selectedItems={entities?.filter((entity) =>
-          selectedRows.some(
-            ({ entityId }) => entity.metadata.recordId.entityId === entityId,
-          ),
-        )}
+        selectedItems={
+          entities?.filter((entity) =>
+            selectedRows.some(
+              ({ entityId }) => entity.metadata.recordId.entityId === entityId,
+            ),
+          ) ?? []
+        }
         filterState={filterState}
         setFilterState={setFilterState}
         toggleSearch={() => setShowSearch(true)}

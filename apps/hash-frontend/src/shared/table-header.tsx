@@ -77,7 +77,7 @@ type TableHeaderProps = {
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  selectedItems?: (
+  selectedItems: (
     | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
@@ -137,7 +137,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       }}
     >
       <Box display="flex" gap={1.5}>
-        {selectedItems?.length ? (
+        {selectedItems.length ? (
           <BulkActionsDropdown selectedItems={selectedItems} />
         ) : (
           <>
