@@ -2,19 +2,18 @@ use std::fmt;
 
 use graph_types::account::AccountGroupId;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
 
 impl Resource for AccountGroupId {
-    type Id = Uuid;
+    type Id = Self;
 
     fn namespace() -> &'static str {
         "graph/account_group"
     }
 
     fn id(&self) -> &Self::Id {
-        self.as_uuid()
+        self
     }
 }
 

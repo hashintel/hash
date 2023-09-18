@@ -11,9 +11,9 @@ graph-types = { workspace = true }
 futures = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-uuid =  { workspace = true }
 
 reqwest = { version = "0.11.20", default-features = false, features = ["json"] }
 
 [dev-dependencies]
+uuid =  { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
