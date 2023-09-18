@@ -6,14 +6,9 @@ mod schema;
 
 use std::error::Error;
 
-use authorization::{
-    backend::{Precondition, RelationFilter, ZanzibarBackend},
-    zanzibar::Consistency,
-};
+use authorization::{backend::ZanzibarBackend, zanzibar::Consistency};
 
-use crate::schema::{
-    EntityPermission, EntityRelation, ALICE, BOB, CHARLIE, ENTITY_A, ENTITY_B, ENTITY_C,
-};
+use crate::schema::{EntityPermission, EntityRelation, ALICE, BOB, ENTITY_A, ENTITY_B};
 
 #[tokio::test]
 async fn test_schema() -> Result<(), Box<dyn Error>> {
@@ -42,14 +37,11 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let token = api
-        .create_relations(
-            [
-                &(ENTITY_A, EntityRelation::Writer, ALICE),
-                &(ENTITY_A, EntityRelation::Reader, BOB),
-                &(ENTITY_B, EntityRelation::Reader, ALICE),
-            ],
-            [],
-        )
+        .create_relations([
+            &(ENTITY_A, EntityRelation::Writer, ALICE),
+            &(ENTITY_A, EntityRelation::Reader, BOB),
+            &(ENTITY_B, EntityRelation::Reader, ALICE),
+        ])
         .await?
         .written_at;
 
@@ -146,133 +138,13 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relations([&(ENTITY_A, EntityRelation::Reader, BOB)], [])
+        .delete_relations([&(ENTITY_A, EntityRelation::Reader, BOB)])
         .await?
         .deleted_at;
 
     assert!(
         !api.check(
             &(ENTITY_A, EntityPermission::View, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_preconditions() -> Result<(), Box<dyn Error>> {
-    let mut api = api::TestApi::connect();
-
-    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
-        .await?;
-
-    let _ = api
-        .create_relations(
-            [
-                &(ENTITY_C, EntityRelation::Reader, ALICE),
-                &(ENTITY_C, EntityRelation::Reader, BOB),
-            ],
-            [Precondition::must_match(
-                RelationFilter::for_object(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_user(&CHARLIE),
-            )],
-        )
-        .await
-        .expect_err("precondition should not be met");
-
-    let token = api
-        .create_relations([&(ENTITY_C, EntityRelation::Writer, CHARLIE)], [])
-        .await?
-        .written_at;
-
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    let token = api
-        .create_relations(
-            [
-                &(ENTITY_C, EntityRelation::Reader, ALICE),
-                &(ENTITY_C, EntityRelation::Reader, BOB),
-            ],
-            [Precondition::must_match(
-                RelationFilter::for_object(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_user(&CHARLIE),
-            )],
-        )
-        .await?
-        .written_at;
-
-    assert!(
-        api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    let _ = api
-        .delete_relations_by_filter(
-            RelationFilter::for_object(&ENTITY_C).by_relation(&EntityRelation::Reader),
-            [Precondition::must_not_match(
-                RelationFilter::for_object(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_user(&CHARLIE),
-            )],
-        )
-        .await
-        .expect_err("precondition should not be met");
-
-    let token = api
-        .delete_relations_by_filter(
-            RelationFilter::for_object(&ENTITY_C).by_relation(&EntityRelation::Reader),
-            [Precondition::must_match(
-                RelationFilter::for_object(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_user(&CHARLIE),
-            )],
-        )
-        .await?
-        .deleted_at;
-
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
