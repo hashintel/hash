@@ -19,6 +19,15 @@ impl fmt::Debug for SpiceDbOpenApi {
 }
 
 impl SpiceDbOpenApi {
+    /// Creates a new `OpenAPI` client for `SpiceDB`.
+    ///
+    /// # Panics
+    ///
+    /// - Panics if `key` is not a valid value for the token
+    ///
+    /// # Errors
+    ///
+    /// - Errors if the client could not be built
     pub fn new(base_path: impl Into<String>, key: &str) -> Result<Self, reqwest::Error> {
         Ok(Self {
             base_path: base_path.into(),

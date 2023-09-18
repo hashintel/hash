@@ -6,10 +6,11 @@ use std::{
     time::Duration,
 };
 
+use authorization::NoAuthorization;
+#[cfg(feature = "authorization")]
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
