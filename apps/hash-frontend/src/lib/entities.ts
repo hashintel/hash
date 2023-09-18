@@ -60,12 +60,20 @@ export const generateEntityLabel = (
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {
-    const entityTypeAndAncestors = getEntityTypeAndParentsById(
-      entitySubgraph,
-      entityToLabel.metadata.entityTypeId,
-    );
+    let entityTypeAndAncestors: EntityTypeWithMetadata[] | undefined;
+    try {
+      entityTypeAndAncestors = getEntityTypeAndParentsById(
+        entitySubgraph,
+        entityToLabel.metadata.entityTypeId,
+      );
 
-    entityType = entityTypeAndAncestors[0];
+      entityType = entityTypeAndAncestors[0];
+    } catch (err) {
+      // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
+      console.error(
+        `Error looking for entity type and ancestors in provided subgraph: ${err}}`,
+      );
+    }
 
     const entityTypesToCheck = entityType ? [entityType] : [];
 
@@ -83,7 +91,7 @@ export const generateEntityLabel = (
       }
 
       entityTypesToCheck.push(
-        ...entityTypeAndAncestors.filter(
+        ...(entityTypeAndAncestors ?? []).filter(
           (type) =>
             typeToCheck.schema.allOf?.find(
               ({ $ref }) => $ref === type.schema.$id,

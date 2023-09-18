@@ -166,10 +166,11 @@ export const EntitySelector = ({
       });
 
       if (upload.status === "complete") {
-        // The subgraph is only used for labelling purposes, so we needn't block file upload if it isn't available
         onSelect(
           upload.createdEntities.fileEntity as unknown as Entity,
-          entitiesSubgraph ?? null,
+          // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
+          // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
+          entitySubgraph,
         );
       }
       // @todo handle errored uploads – H-724
@@ -177,7 +178,7 @@ export const EntitySelector = ({
     [
       activeWorkspaceOwnedById,
       entityId,
-      entitiesSubgraph,
+      entitySubgraph,
       expectedEntityTypes,
       linkEntityTypeId,
       onFinishedEditing,
