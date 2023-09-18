@@ -29,15 +29,15 @@ import {
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { AuthenticatedUser, constructUser } from "../../lib/user-and-org";
+import { constructUser, User } from "../../lib/user-and-org";
 import { fetchKratosSession } from "./ory-kratos";
 
 type RefetchAuthInfoFunction = () => Promise<{
-  authenticatedUser?: AuthenticatedUser;
+  authenticatedUser?: User;
 }>;
 
 type AuthInfoContextValue = {
-  authenticatedUser?: AuthenticatedUser;
+  authenticatedUser?: User;
   refetch: RefetchAuthInfoFunction;
 };
 
@@ -98,10 +98,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         return undefined;
       }
 
+      const userEntity = getRoots(subgraph)[0] as Entity<UserProperties>;
+
       return constructUser({
         orgMembershipLinks: userMemberOfLinks,
         subgraph,
         resolvedOrgs,
+        userEntity,
       });
     },
     [resolvedOrgs, userMemberOfLinks],
@@ -169,7 +172,7 @@ export const useAuthInfo = (): AuthInfoContextValue => {
  * @returns `AuthInfo` where the `authenticatedUser` is always defined.
  */
 export const useAuthenticatedUser = (): AuthInfoContextValue & {
-  authenticatedUser: AuthenticatedUser;
+  authenticatedUser: User;
 } => {
   const { authenticatedUser, ...remainingAuthInfo } = useAuthInfo();
 

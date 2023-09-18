@@ -14,14 +14,14 @@ import {
 } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useMemo } from "react";
 
-import { AuthenticatedUser } from "../../../lib/user-and-org";
+import { User } from "../../../lib/user-and-org";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
   avatar?: string;
   logout: () => void;
-  authenticatedUser: AuthenticatedUser;
+  authenticatedUser: User;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({

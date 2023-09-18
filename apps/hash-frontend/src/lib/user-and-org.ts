@@ -193,19 +193,16 @@ export const constructOrg = (params: {
 };
 
 export type User = MinimalUser & {
+  emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
     imageEntity: Image;
   };
+  isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<OrgMembershipProperties>;
     org: Org;
   }[];
-};
-
-export type AuthenticatedUser = User & {
-  isInstanceAdmin: boolean;
-  emails: { address: string; primary: boolean; verified: boolean }[];
 };
 
 /**
@@ -217,20 +214,19 @@ export type AuthenticatedUser = User & {
  *
  * To include other things linked from or to the user's orgs (avatars, other members) either:
  *
- * 1. Pass an org which has already been constructed to include these, or
+ * 1. Pass orgs which have already been constructed as 'resolvedOrgs' to include these, or
  * 2. Pass a subgraph rooted at the user with traversal depths of:
  *   - hasLeftEntity: { incoming: 2, outgoing: 1 }, hasRightEntity: { outgoing: 2, incoming: 1 }
  *
- * @param params.orgMembershipLinks provides a minor optimization to avoid looking up these links if they are already known.
+ * @param params.orgMembershipLinks provides a minor optimization to avoid looking up membership links if they are already known
  */
 export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
   subgraph: Subgraph<EntityRootType>;
   resolvedOrgs?: Org[];
-}): AuthenticatedUser => {
-  const { orgMembershipLinks, resolvedOrgs, subgraph } = params;
-
-  const userEntity = getRoots(subgraph)[0] as Entity<UserProperties>;
+  userEntity: Entity<UserProperties>;
+}): User => {
+  const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
   const { email } = simplifyProperties(userEntity.properties);
 
@@ -324,10 +320,7 @@ export const constructUser = (params: {
     : undefined;
 
   /**
-   * @todo: determine whether an authenticated user is an instance admin from the subgraph
-   * when querying the incoming links of an entity rooted subgraph is supported
-   *
-   * @see https://app.asana.com/0/1202805690238892/1203250435416416/f
+   * @todo: determine whether a user is an instance admin from the subgraph
    */
   const isInstanceAdmin = false;
 

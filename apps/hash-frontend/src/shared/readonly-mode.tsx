@@ -1,13 +1,10 @@
 import { OwnedById } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 
-import { AuthenticatedUser } from "../lib/user-and-org";
+import { User } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-export const canUserEditResource = (
-  resourceOwnerId: OwnedById,
-  user: AuthenticatedUser,
-) =>
+export const canUserEditResource = (resourceOwnerId: OwnedById, user: User) =>
   resourceOwnerId === user.accountId ||
   user.memberOf.find(({ org }) => resourceOwnerId === org.accountGroupId);
 

@@ -1,14 +1,21 @@
 import { Avatar } from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity } from "@local/hash-subgraph";
 import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { useMemo } from "react";
 
-
+import { constructOrg, constructUser } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserOrOrg } from "../../shared/use-user-or-org";
-import { constructUser } from "../../lib/user-and-org";
+import { getImageUrlFromFileProperties } from "./entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 
 const menuBarHeight = 60;
 
@@ -31,40 +38,43 @@ const Page: NextPageWithLayout = () => {
 
   const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
 
-  const { userOrOrg, loading } = useUserOrOrg({
+  const { userOrOrg, userOrOrgSubgraph, loading } = useUserOrOrg({
     shortname: profileShortname,
     graphResolveDepths: {
-      // Required to retrieve avatars. Will need amending if we want an org's memberships (incoming links)
+      // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
       hasLeftEntity: { incoming: 1, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
   });
 
-  const fullUserOrOrg = useMemo(() => {
-    if (!userOrOrg) {
+  const profile = useMemo(() => {
+    if (!userOrOrgSubgraph || !userOrOrg) {
       return undefined;
     }
 
-    if (userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId) {
-      return constructUser(userOrOrg);
+    if (
+      userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId
+    ) {
+      return constructUser({
+        subgraph: userOrOrgSubgraph,
+        userEntity: userOrOrg as Entity<UserProperties>,
+      });
     }
 
-    const { org, memberships } = userOrOrg;
+    return constructOrg({
+      orgEntity: userOrOrg as Entity<OrgProperties>,
+      subgraph: userOrOrgSubgraph,
+    });
+  }, [userOrOrgSubgraph, userOrOrg]);
 
-    return {
-      ...org,
-      memberships,
-    };
-  }
+  const profileNotFound = !profile && !loading;
 
-  if (loading) {
-    return "Loading...";
-  }
+  const websiteUrl =
+    profile && "website" in profile && sanitizeHref(profile.website);
 
-  // const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
-  //
-  // const websiteUrl =
-  //   profile && "website" in profile && sanitizeHref(profile.website);
+  const avatarSrc = profile?.hasAvatar
+    ? getImageUrlFromFileProperties(profile.hasAvatar.imageEntity.properties)
+    : undefined;
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
@@ -85,6 +95,7 @@ const Page: NextPageWithLayout = () => {
                   bgcolor={
                     profile ? undefined : ({ palette }) => palette.gray[20]
                   }
+                  src={avatarSrc}
                   title={
                     profile
                       ? profile.kind === "user"

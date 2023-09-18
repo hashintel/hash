@@ -13,7 +13,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { AuthenticatedUser } from "../../lib/user-and-org";
+import { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {
@@ -39,7 +39,7 @@ export const useUpdateAuthenticatedUser = () => {
     async (
       params: UpdateAuthenticatedUserParams,
     ): Promise<{
-      updatedAuthenticatedUser?: AuthenticatedUser;
+      updatedAuthenticatedUser?: User;
       errors?: readonly GraphQLError[] | undefined;
     }> => {
       if (!authenticatedUser) {

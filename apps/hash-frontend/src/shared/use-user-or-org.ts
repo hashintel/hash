@@ -6,10 +6,17 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import {
   AccountGroupId,
   AccountId,
+  Entity,
+  EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
+  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -89,11 +96,17 @@ export const useUserOrOrg = (
 
   return useMemo(() => {
     const rootEntity = data
-      ? getRoots(data.structuralQueryEntities)[0]
+      ? (getRoots(data.structuralQueryEntities)[0] as
+          | Entity<OrgProperties>
+          | Entity<UserProperties>
+          | undefined)
       : undefined;
 
     return {
-      userOrOrg: userOrOrgS,
+      userOrOrgSubgraph: data?.structuralQueryEntities as
+        | Subgraph<EntityRootType>
+        | undefined,
+      userOrOrg: rootEntity,
       loading,
     };
   }, [data, loading]);
