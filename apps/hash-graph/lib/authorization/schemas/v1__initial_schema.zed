@@ -19,3 +19,9 @@ definition graph/entity {
 	permission update = direct_owner
 	permission view = direct_viewer + update
 }
+
+definition graph/namespace {
+	relation direct_owner: graph/account | graph/account_group#member
+
+	permission create_entity = direct_owner
+}
