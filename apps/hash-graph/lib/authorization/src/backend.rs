@@ -5,7 +5,7 @@ use std::error::Error;
 
 use error_stack::Report;
 
-pub use self::spicedb::{SpiceDb, SpiceDbConfig};
+pub use self::spicedb::SpiceDbOpenApi;
 use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
@@ -221,6 +221,17 @@ impl fmt::Display for CheckError {
 }
 
 impl Error for CheckError {}
+
+#[derive(Debug)]
+pub struct ModifyRelationError;
+
+impl fmt::Display for ModifyRelationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("failed to modify relation")
+    }
+}
+
+impl Error for ModifyRelationError {}
 
 #[derive(Debug)]
 pub struct PermissionAssertion;

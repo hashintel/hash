@@ -19,11 +19,11 @@ use crate::schema::{
 async fn test_schema() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    api.import_schema(include_str!("schemas/simple.zed"))
+    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
 
     let mut schema = api.export_schema().await?.schema;
-    let mut imported_schema = include_str!("schemas/simple.zed").to_owned();
+    let mut imported_schema = include_str!("../schemas/v1__initial_schema.zed").to_owned();
 
     // Remove whitespace from schemas, they are not preserved
     schema.retain(|c| !c.is_whitespace());
@@ -38,7 +38,7 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    api.import_schema(include_str!("schemas/simple.zed"))
+    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
 
     let token = api
@@ -166,7 +166,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 async fn test_preconditions() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    api.import_schema(include_str!("schemas/simple.zed"))
+    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
 
     let _ = api

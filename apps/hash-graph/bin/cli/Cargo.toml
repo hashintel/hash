@@ -36,3 +36,4 @@ uuid = "1.4.1"
 
 [features]
 test-server = ["graph/test-server"]
+authorization = []
