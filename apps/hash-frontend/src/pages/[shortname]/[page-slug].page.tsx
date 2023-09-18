@@ -8,6 +8,7 @@ import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -136,18 +137,14 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                 },
                 {
                   any: [
-                    {
-                      equal: [
-                        { path: ["type", "versionedUrl"] },
-                        { parameter: types.entityType.user.entityTypeId },
-                      ],
-                    },
-                    {
-                      equal: [
-                        { path: ["type", "versionedUrl"] },
-                        { parameter: types.entityType.org.entityTypeId },
-                      ],
-                    },
+                    generateVersionedUrlMatchingFilter(
+                      types.entityType.user.entityTypeId,
+                      { ignoreParents: true },
+                    ),
+                    generateVersionedUrlMatchingFilter(
+                      types.entityType.org.entityTypeId,
+                      { ignoreParents: true },
+                    ),
                   ],
                 },
               ],
