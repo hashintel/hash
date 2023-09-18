@@ -1,6 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext } from "react";
@@ -30,6 +31,9 @@ const Page: NextPageWithLayout = () => {
     name: typeof router.query.name === "string" ? router.query.name : undefined,
   };
 
+  const isCreateLinkEntityType =
+    initialData.extendsEntityTypeId === linkEntityTypeUrl;
+
   return (
     <Stack sx={{ height: "100vh" }}>
       <Box bgcolor="white">
@@ -39,10 +43,11 @@ const Page: NextPageWithLayout = () => {
             {
               title: "Types",
               id: "types",
+              href: "/types",
             },
             {
-              title: "Entity types",
-              href: "#",
+              title: `${isCreateLinkEntityType ? "Link" : "Entity"} types`,
+              href: `/types/${isCreateLinkEntityType ? "link" : "entity"}-type`,
               id: "entity-types",
             },
           ]}
@@ -56,7 +61,7 @@ const Page: NextPageWithLayout = () => {
               sx={[{ marginBottom: 2 }]}
             />
             <Typography variant="h1" fontWeight="bold">
-              Create new entity type
+              Create new {isCreateLinkEntityType ? "link" : "entity"} type
             </Typography>
           </Container>
         </Box>

@@ -1,36 +1,109 @@
-use std::future::Future;
+use std::{collections::HashMap, future::Future};
 
 use error_stack::Result;
-use futures::Stream;
-use graph_types::{account::AccountId, knowledge::entity::EntityId};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityId,
+    provenance::OwnedById,
+};
 
 use crate::{
-    backend::CheckError,
+    backend::{CheckError, CheckResponse},
     zanzibar::{Consistency, Zookie},
 };
 
+// TODO: Replace with something permission specific which can directly be reused once permissions
+//       are implemented.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VisibilityScope {
+    Public,
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
+}
+
 pub trait AuthorizationApi {
-    async fn view_entity(
+    fn can_add_group_members(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn can_remove_group_members(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn add_account_group_member(
+        &mut self,
+        group: AccountGroupId,
+        member: AccountId,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn remove_account_group_member(
+        &mut self,
+        group: AccountGroupId,
+        member: AccountId,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn add_entity_owner(
+        &mut self,
+        actor: AccountId,
+        scope: VisibilityScope,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn remove_entity_owner(
+        &mut self,
+        actor: AccountId,
+        scope: VisibilityScope,
+    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+
+    fn can_create_entity(
+        &self,
+        actor: AccountId,
+        web: OwnedById,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn can_update_entity(
         &self,
         actor: AccountId,
         entity: EntityId,
         consistency: Consistency<'_>,
-    ) -> Result<(bool, Zookie<'static>), CheckError>;
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn view_entities(
+    fn can_view_entity(
+        &self,
+        actor: AccountId,
+        entity: EntityId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn can_view_entities(
         &self,
         actor: AccountId,
         entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> impl Future<
-        Output = Result<
-            (
-                impl Stream<Item = Result<(EntityId, bool), CheckError>> + Send,
-                Zookie<'static>,
-            ),
-            CheckError,
-        >,
-    > + Send;
+    ) -> impl Future<Output = Result<(HashMap<EntityId, bool>, Zookie<'static>), CheckError>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let mut zookie = Zookie::empty();
+            let mut result = HashMap::new();
+            for entity_id in entities {
+                let CheckResponse {
+                    has_permission,
+                    checked_at,
+                } = self.can_view_entity(actor, entity_id, consistency).await?;
+                result.insert(entity_id, has_permission);
+                zookie = checked_at;
+            }
+            Ok((result, zookie))
+        }
+    }
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

@@ -163,7 +163,9 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           error,
           autoResize,
           multiline: textFieldProps.multiline,
-          inputProps: theme.components?.MuiInputBase?.defaultProps?.inputProps,
+          slotProps: {
+            input: theme.components?.MuiInputBase?.defaultProps?.inputProps,
+          },
         })}
         helperText={
           <Collapse in={!!helperText}>

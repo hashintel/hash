@@ -238,7 +238,7 @@ impl Zookie<'_> {
 ///
 /// This allows for the API consumers dynamically trade-off less fresh data for more performance
 /// when possible.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Consistency<'z> {
     /// Attempts to minimize the latency of the API call, using whatever caches are available.
     ///
