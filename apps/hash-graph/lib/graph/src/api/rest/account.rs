@@ -196,7 +196,7 @@ where
     }
 
     authorization_api
-        .add_account_group_member(account_group_id, account_id)
+        .add_account_group_member(account_id, account_group_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add account group member");
@@ -254,7 +254,7 @@ where
     }
 
     authorization_api
-        .remove_account_group_member(account_group_id, account_id)
+        .remove_account_group_member(account_id, account_group_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove account group member");

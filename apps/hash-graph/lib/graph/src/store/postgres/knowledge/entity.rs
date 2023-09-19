@@ -433,31 +433,36 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        if let Err(error) = transaction.commit().await {
-            authorization_api
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
                 .remove_entity_owner(actor_id, visibility_scope)
                 .await
-                .change_context(InsertionError)?;
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
 
-            return Err(error.change_context(InsertionError));
+            Err(error)
+        } else {
+            Ok(EntityMetadata::new(
+                EntityRecordId {
+                    entity_id,
+                    edition_id,
+                },
+                EntityTemporalMetadata {
+                    decision_time: row.get(0),
+                    transaction_time: row.get(1),
+                },
+                entity_type_id,
+                ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(actor_id),
+                    record_archived_by_id: None,
+                },
+                archived,
+            ))
         }
-
-        Ok(EntityMetadata::new(
-            EntityRecordId {
-                entity_id,
-                edition_id,
-            },
-            EntityTemporalMetadata {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
-            },
-            entity_type_id,
-            ProvenanceMetadata {
-                record_created_by_id: RecordCreatedById::new(actor_id),
-                record_archived_by_id: None,
-            },
-            archived,
-        ))
     }
 
     #[doc(hidden)]
