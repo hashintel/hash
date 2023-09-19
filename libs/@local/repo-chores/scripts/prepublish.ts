@@ -71,7 +71,7 @@ const script = async () => {
     (packageJson: Record<string, string | any>) => {
       if ("main" in packageJson) {
         /* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign -- see comment on updateJson() for potential improvement */
-        if (packageJson.main === expectedMainName) {
+        if (packageJson.main !== expectedMainName) {
           throw new UserFriendlyError(
             `Unexpected value for field "main" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.main}"`,
           );
