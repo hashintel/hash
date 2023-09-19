@@ -10,7 +10,7 @@ pub const CHARLIE: Account = Account("charlie");
 impl Resource for Account {
     type Id = str;
 
-    fn namespace(&self) -> &'static str {
+    fn namespace() -> &'static str {
         "graph/account"
     }
 
@@ -29,7 +29,7 @@ pub const ENTITY_C: Entity = Entity("c");
 impl Resource for Entity {
     type Id = str;
 
-    fn namespace(&self) -> &'static str {
+    fn namespace() -> &'static str {
         "graph/entity"
     }
 

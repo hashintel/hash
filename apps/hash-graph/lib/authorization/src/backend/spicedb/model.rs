@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-use crate::{backend, zanzibar};
+use crate::{
+    backend, zanzibar,
+    zanzibar::{Resource, Tuple},
+};
 
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
@@ -14,28 +17,63 @@ pub struct RpcStatus {
     pub details: Vec<serde_json::Value>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ObjectReference<'r> {
-    pub object_type: &'r str,
-    pub object_id: &'r str,
+#[derive(Debug)]
+pub struct ObjectReference<'r, R>
+where
+    R: Resource + ?Sized,
+{
+    pub object_id: &'r R::Id,
 }
 
-impl<'r, R: zanzibar::Resource + ?Sized> From<&'r R> for ObjectReference<'r> {
-    fn from(resource: &'r R) -> Self {
+impl<R> Serialize for ObjectReference<'_, R>
+where
+    R: Resource + ?Sized,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut serialize = serializer.serialize_struct("ObjectReference", 2)?;
+        serialize.serialize_field("objectType", R::namespace())?;
+        serialize.serialize_field("objectId", self.object_id)?;
+        serialize.end()
+    }
+}
+
+impl<'t, T> From<&'t T> for ObjectReference<'t, T::Object>
+where
+    T: Tuple,
+{
+    fn from(tuple: &'t T) -> Self {
         Self {
-            object_type: resource.namespace(),
-            object_id: resource.id().as_ref(),
+            object_id: tuple.object_id(),
         }
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SubjectReference<'a> {
-    pub object: ObjectReference<'a>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_relation: Option<&'a str>,
+#[derive(Serialize)]
+#[serde(bound = "")]
+pub struct SubjectReference<'a, U>
+where
+    U: Resource + ?Sized,
+{
+    pub object: ObjectReference<'a, U>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalRelation")]
+    pub relation: Option<&'a str>,
+}
+
+impl<'t, T> From<&'t T> for SubjectReference<'t, T::User>
+where
+    T: Tuple,
+{
+    fn from(tuple: &'t T) -> Self {
+        Self {
+            object: ObjectReference {
+                object_id: tuple.user_id(),
+            },
+            relation: tuple.user_set(),
+        }
+    }
 }
 
 pub struct Consistency<'z>(zanzibar::Consistency<'z>);
@@ -87,40 +125,83 @@ impl From<ZedToken> for zanzibar::Zookie<'static> {
 }
 
 /// A filter on the subject of a relationship.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SubjectFilter<'a> {
-    pub subject_type: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_subject_id: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_relation: Option<&'a str>,
+#[derive(Debug)]
+pub struct SubjectFilter<'a, U>
+where
+    U: Resource + ?Sized,
+{
+    pub subject_id: Option<&'a U::Id>,
+    pub relation: Option<&'a str>,
+}
+
+impl<U> Serialize for SubjectFilter<'_, U>
+where
+    U: Resource + ?Sized,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut serialize = serializer.serialize_struct("SubjectFilter", 3)?;
+        serialize.serialize_field("subjectType", U::namespace())?;
+        if let Some(subject_id) = self.subject_id {
+            serialize.serialize_field("optionalSubjectId", subject_id)?;
+        }
+        if let Some(relation) = self.relation {
+            serialize.serialize_field("optionalRelation", relation)?;
+        }
+        serialize.end()
+    }
 }
 
 /// A collection of filters which when applied to a relationship will return relationships that
 /// have exactly matching fields.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RelationshipFilter<'a> {
-    pub resource_type: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_resource_id: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_relation: Option<&'a str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_subject_filter: Option<SubjectFilter<'a>>,
+pub struct RelationshipFilter<'a, O, U>
+where
+    O: Resource + ?Sized,
+    U: Resource + ?Sized,
+{
+    pub resource_id: Option<&'a O::Id>,
+    pub relation: Option<&'a str>,
+    pub subject_filter: Option<SubjectFilter<'a, U>>,
 }
 
-impl<'f> From<backend::RelationFilter<'f>> for RelationshipFilter<'f> {
-    fn from(filter: backend::RelationFilter<'f>) -> Self {
+impl<O, U> Serialize for RelationshipFilter<'_, O, U>
+where
+    O: Resource + ?Sized,
+    U: Resource + ?Sized,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut serialize = serializer.serialize_struct("RelationshipFilter", 4)?;
+        serialize.serialize_field("resourceType", O::namespace())?;
+        if let Some(resource_id) = self.resource_id {
+            serialize.serialize_field("optionalResourceId", resource_id)?;
+        }
+        if let Some(relation) = self.relation {
+            serialize.serialize_field("optionalRelation", relation)?;
+        }
+        if let Some(subject_filter) = &self.subject_filter {
+            serialize.serialize_field("optionalSubjectFilter", subject_filter)?;
+        }
+        serialize.end()
+    }
+}
+
+impl<'f, O, U> From<backend::RelationFilter<'f, O, U>> for RelationshipFilter<'f, O, U>
+where
+    O: Resource + ?Sized,
+    U: Resource + ?Sized,
+{
+    fn from(filter: backend::RelationFilter<'f, O, U>) -> Self {
         Self {
-            resource_type: filter.namespace,
-            optional_resource_id: filter.id.map(AsRef::as_ref),
-            optional_relation: filter.affiliation,
-            optional_subject_filter: filter.subject.map(|subject| SubjectFilter {
-                subject_type: subject.namespace,
-                optional_subject_id: subject.id,
-                optional_relation: subject.affiliation,
+            resource_id: filter.id,
+            relation: filter.affiliation,
+            subject_filter: filter.subject.map(|subject| SubjectFilter {
+                subject_id: subject.id,
+                relation: subject.affiliation,
             }),
         }
     }
@@ -140,15 +221,23 @@ pub enum PreconditionOperation {
 
 /// Specifies how and the existence or absence of certain relationships as expressed through the
 /// accompanying filter should affect whether or not the operation proceeds.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Precondition<'a> {
+#[derive(Serialize)]
+#[serde(bound = "")]
+pub struct Precondition<'a, O, U>
+where
+    O: Resource + ?Sized,
+    U: Resource + ?Sized,
+{
     pub operation: PreconditionOperation,
-    pub filter: RelationshipFilter<'a>,
+    pub filter: RelationshipFilter<'a, O, U>,
 }
 
-impl<'f> From<backend::Precondition<'f>> for Precondition<'f> {
-    fn from(precondition: backend::Precondition<'f>) -> Self {
+impl<'f, O, U> From<backend::Precondition<'f, O, U>> for Precondition<'f, O, U>
+where
+    O: Resource + ?Sized,
+    U: Resource + ?Sized,
+{
+    fn from(precondition: backend::Precondition<'f, O, U>) -> Self {
         let operation = if precondition.must_match {
             PreconditionOperation::MustMatch
         } else {
@@ -178,7 +267,7 @@ pub enum RelationshipUpdateOperation {
 
 /// Represents a reference to a caveat to be used by caveated relationships.
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", bound = "")]
 pub struct ContextualizedCaveat<'a> {
     /// The name of the caveat expression to use, as defined in the schema.
     pub caveat_name: &'a str,
@@ -192,11 +281,14 @@ pub struct ContextualizedCaveat<'a> {
 ///
 /// Relationships form the data for the graph over which all permissions questions are answered.
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Relationship<'a> {
-    pub resource: ObjectReference<'a>,
+#[serde(bound = "")]
+pub struct Relationship<'a, T>
+where
+    T: Tuple,
+{
+    pub resource: ObjectReference<'a, T::Object>,
     pub relation: &'a str,
-    pub subject: SubjectReference<'a>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub optional_caveat: Option<ContextualizedCaveat<'a>>,
+    pub subject: SubjectReference<'a, T::User>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "optionalCaveat")]
+    pub caveat: Option<ContextualizedCaveat<'a>>,
 }

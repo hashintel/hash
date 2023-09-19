@@ -10,7 +10,7 @@ use crate::{
         ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
         Precondition, RelationFilter, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Tuple, UntypedTuple, Zookie},
+    zanzibar::{Consistency, Resource, Tuple, UntypedTuple, Zookie},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,24 +74,28 @@ impl SpiceDbOpenApi {
             Item = (model::RelationshipUpdateOperation, &'t T),
             IntoIter: Send,
         > + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
+        + Send
+        + 'p,
     ) -> Result<Zookie<'static>, InvocationError>
     where
-        T: Tuple + Send + Sync + 't,
+        T: Tuple + 't,
+        <T::Object as Resource>::Id: Sync + 'p,
+        <T::User as Resource>::Id: Sync + 'p,
     {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RelationshipUpdate<'a> {
+        #[serde(bound = "")]
+        struct RelationshipUpdate<'a, T: Tuple> {
             operation: model::RelationshipUpdateOperation,
-            relationship: model::Relationship<'a>,
+            relationship: model::Relationship<'a, T>,
         }
 
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RequestBody<'a> {
-            updates: Vec<RelationshipUpdate<'a>>,
+        #[serde(rename_all = "camelCase", bound = "")]
+        struct RequestBody<'a, T: Tuple> {
+            updates: Vec<RelationshipUpdate<'a, T>>,
             #[serde(skip_serializing_if = "Vec::is_empty")]
-            optional_preconditions: Vec<model::Precondition<'a>>,
+            optional_preconditions: Vec<model::Precondition<'a, T::Object, T::User>>,
         }
 
         #[derive(Deserialize)]
@@ -106,22 +110,13 @@ impl SpiceDbOpenApi {
                 &RequestBody {
                     updates: operations
                         .into_iter()
-                        .map(|(operation, tuple)| RelationshipUpdate {
+                        .map(|(operation, tuple)| RelationshipUpdate::<T> {
                             operation,
                             relationship: model::Relationship {
-                                resource: model::ObjectReference {
-                                    object_type: tuple.resource_namespace(),
-                                    object_id: tuple.resource_id(),
-                                },
+                                resource: model::ObjectReference::from(tuple),
                                 relation: tuple.affiliation(),
-                                subject: model::SubjectReference {
-                                    object: model::ObjectReference {
-                                        object_type: tuple.subject_namespace(),
-                                        object_id: tuple.subject_id(),
-                                    },
-                                    optional_relation: tuple.subject_set(),
-                                },
-                                optional_caveat: None,
+                                subject: model::SubjectReference::from(tuple),
+                                caveat: None,
                             },
                         })
                         .collect(),
@@ -194,10 +189,14 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     async fn create_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
+        + Send
+        + 'p,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + Send + Sync + 't,
+        T: Tuple + 't,
+        <T::Object as Resource>::Id: Sync + 'p,
+        <T::User as Resource>::Id: Sync + 'p,
     {
         self.modify_relations(
             repeat(model::RelationshipUpdateOperation::Create).zip(tuples),
@@ -215,10 +214,14 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     async fn delete_relations<'p, 't, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
+        + Send
+        + 'p,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + Send + Sync + 't,
+        T: Tuple + 't,
+        <T::Object as Resource>::Id: Sync + 'p,
+        <T::User as Resource>::Id: Sync + 'p,
     {
         self.modify_relations(
             repeat(model::RelationshipUpdateOperation::Delete).zip(tuples),
@@ -233,17 +236,25 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relations_by_filter<'f>(
+    async fn delete_relations_by_filter<'f, O, U>(
         &mut self,
-        filter: RelationFilter<'_>,
-        preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>> {
+        filter: RelationFilter<'_, O, U>,
+        preconditions: impl IntoIterator<Item = Precondition<'f, O, U>> + Send,
+    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>
+    where
+        O: Resource<Id: Sync + 'f> + ?Sized,
+        U: Resource<Id: Sync + 'f> + ?Sized,
+    {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RequestBody<'a> {
-            relationship_filter: model::RelationshipFilter<'a>,
+        #[serde(rename_all = "camelCase", bound = "")]
+        struct RequestBody<'a, O, U>
+        where
+            O: Resource + ?Sized,
+            U: Resource + ?Sized,
+        {
+            relationship_filter: model::RelationshipFilter<'a, O, U>,
             #[serde(skip_serializing_if = "Vec::is_empty")]
-            optional_preconditions: Vec<model::Precondition<'a>>,
+            optional_preconditions: Vec<model::Precondition<'a, O, U>>,
             #[serde(skip_serializing_if = "Option::is_none")]
             optional_limit: Option<u32>,
             #[serde(skip_serializing_if = "Option::is_none")]
@@ -259,7 +270,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         }
 
         #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
+        #[serde(rename_all = "camelCase", bound = "")]
         struct RequestResponse {
             deleted_at: model::ZedToken,
             deletion_progress: DeletionProgress,
@@ -292,18 +303,23 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn check(
+    async fn check<T>(
         &self,
-        tuple: &(impl Tuple + Sync),
+        tuple: &T,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>> {
+    ) -> Result<CheckResponse, Report<CheckError>>
+    where
+        T: Tuple + Sync,
+        <T::Object as Resource>::Id: Sync,
+        <T::User as Resource>::Id: Sync,
+    {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
-        struct RequestBody<'a> {
+        struct RequestBody<'a, T: Tuple> {
             consistency: model::Consistency<'a>,
-            resource: model::ObjectReference<'a>,
+            resource: model::ObjectReference<'a, T::Object>,
             permission: &'a str,
-            subject: model::SubjectReference<'a>,
+            subject: model::SubjectReference<'a, T::User>,
         }
 
         #[derive(Deserialize)]
@@ -323,20 +339,11 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             permissionship: Permissionship,
         }
 
-        let request = RequestBody {
+        let request = RequestBody::<T> {
             consistency: consistency.into(),
-            resource: model::ObjectReference {
-                object_type: tuple.resource_namespace(),
-                object_id: tuple.resource_id(),
-            },
+            resource: model::ObjectReference::from(tuple),
             permission: tuple.affiliation(),
-            subject: model::SubjectReference {
-                object: model::ObjectReference {
-                    object_type: tuple.subject_namespace(),
-                    object_id: tuple.subject_id(),
-                },
-                optional_relation: tuple.subject_set(),
-            },
+            subject: model::SubjectReference::from(tuple),
         };
 
         let response: RequestResponse = self
