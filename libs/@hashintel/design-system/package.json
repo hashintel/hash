@@ -9,8 +9,24 @@
   },
   "license": "AGPL-3.0",
   "sideEffects": false,
-  "main": "src/main.ts",
-  "types": "src/main.ts",
+  "exports": {
+    ".": "./src/components.ts",
+    "./constants": "./src/constants.ts",
+    "./theme": "./src/theme.ts"
+  },
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./src/components.ts"
+      ],
+      "constants": [
+        "./src/constants.ts"
+      ],
+      "theme": [
+        "./src/theme.ts"
+      ]
+    }
+  },
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",

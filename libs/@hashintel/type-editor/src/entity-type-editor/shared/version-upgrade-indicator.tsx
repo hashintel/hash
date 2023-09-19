@@ -1,10 +1,10 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
-  fluidFontClassName,
   FontAwesomeIcon,
   IconArrowRight,
   IconButton,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 
 type VersionUpgradeIndicatorProps = {

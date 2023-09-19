@@ -10,7 +10,7 @@ import { ApolloProvider } from "@apollo/client/react";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import wasm from "@blockprotocol/type-system/type-system.wasm";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import { createEmotionCache, theme } from "@hashintel/design-system";
+import { createEmotionCache, theme } from "@hashintel/design-system/theme";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";

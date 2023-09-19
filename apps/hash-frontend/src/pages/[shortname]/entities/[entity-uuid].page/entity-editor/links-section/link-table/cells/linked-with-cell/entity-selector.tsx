@@ -2,9 +2,9 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
   AutocompleteDropdown,
-  GRID_CLICK_IGNORE_CLASS,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import {
   Entity,
   EntityId,

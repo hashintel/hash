@@ -12,6 +12,9 @@ import {
 } from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
+const replaceWithDistPath = (path: string, extension: ".d.ts" | ".js") =>
+  path.replace("dist", "src").replace(".ts", extension);
+
 const script = async () => {
   console.log(chalk.bold("Cleaning up before publishing..."));
 
@@ -66,24 +69,36 @@ const script = async () => {
   await updateJson(
     path.resolve(packageInfo.path, "package.json"),
     (packageJson) => {
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign -- see comment on updateJson() for potential improvement */
-      if (packageJson.main !== "src/main.ts") {
-        throw new UserFriendlyError(
-          `Unexpected value for field "main" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.main}"`,
-        );
-      }
-      packageJson.main = "dist/main.js";
+      if ("main" in packageJson) {
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign -- see comment on updateJson() for potential improvement */
+        if (packageJson.main === expectedMainName) {
+          throw new UserFriendlyError(
+            `Unexpected value for field "main" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.main}"`,
+          );
+        }
+        packageJson.main = "dist/main.js";
 
-      if (packageJson.types !== "src/main.ts") {
+        if (packageJson.types !== "src/main.ts") {
+          throw new UserFriendlyError(
+            `Unexpected value for field "types" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.types}"`,
+          );
+        }
+        packageJson.types = "dist/main.d.ts";
+      } else if (packageJson.exports) {
+        for (const [key, exportPath] of packageJson.exports) {
+          packageJson.exports[key] = replaceWithDistPath(
+            exportPath as string,
+            ".js",
+          );
+        }
+        for (const [key, typePathArray] of packageJson.typesVersions["*"]) {
+          packageJson.typesVersions["*"][key] = (typePathArray as string[]).map(
+            (typePath: string) => replaceWithDistPath(typePath, ".d.ts"),
+          );
+        }
+      } else {
         throw new UserFriendlyError(
-          `Unexpected value for field "types" in package.json. Please align this package with other publishable packages for consistency. Expected: "${expectedMainName}". Got: "${packageJson.types}"`,
-        );
-      }
-      packageJson.types = "dist/main.d.ts";
-
-      if (packageJson.exports) {
-        throw new UserFriendlyError(
-          "Please replace `exports` in `package.json` with `main` and `types` for consistency. If different `exports` paths are unavoidable, the prepublish script must be updated to accommodate them.",
+          "Unrecognised package.json export format – please either a single 'main' export or an 'exports' group.",
         );
       }
 
