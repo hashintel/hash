@@ -29,7 +29,7 @@ export const CreateOrgForm = () => {
       throw new Error(errors[0].message);
     }
 
-    await refetchUser();
+    void refetchUser();
     void refetchOrgs();
 
     void router.push(`/@${orgData.shortname}`);
