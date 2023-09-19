@@ -697,7 +697,7 @@
         ],
         "responses": {
           "204": {
-            "description": "The entity was made public"
+            "description": "The entity was made private"
           },
           "403": {
             "description": "Permission denied"

@@ -373,7 +373,7 @@ where
         ("entity_id" = EntityId, Path, description = "The Entity to make private"),
     ),
     responses(
-        (status = 204, description = "The entity was made public"),
+        (status = 204, description = "The entity was made private"),
 
         (status = 403, description = "Permission denied"),
     )
