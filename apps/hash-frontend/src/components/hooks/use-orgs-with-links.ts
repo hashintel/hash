@@ -35,10 +35,10 @@ export const useOrgsWithLinks = ({
     variables: {
       operation: {
         multiFilter: {
-          filters: orgAccountGroupIds.map((entityId) => ({
+          filters: orgAccountGroupIds.map((accountGroupId) => ({
             field: ["metadata", "recordId", "uuid"],
             operator: "EQUALS",
-            value: entityId,
+            value: accountGroupId,
           })),
           operator: "OR",
         },
