@@ -1,3 +1,4 @@
+import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -7,6 +8,7 @@ import {
   extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -16,13 +18,12 @@ import {
   CreateLinkEntityParams,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
-  LinkEntity,
 } from "../primitive/link-entity";
 import { getOrgFromEntity, Org } from "./org";
 import { getUserFromEntity, User } from "./user";
 
 export type OrgMembership = {
-  linkEntity: LinkEntity;
+  linkEntity: LinkEntity<OrgMembershipProperties>;
 };
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<

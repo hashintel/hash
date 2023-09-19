@@ -1,6 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  OrgMembershipProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
   Entity,
@@ -79,7 +82,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
         types.linkEntityType.orgMembership.linkEntityTypeId,
-    ) as LinkEntity[];
+    ) as LinkEntity<OrgMembershipProperties>[];
   }, [authenticatedUserSubgraph]);
 
   const { orgs: resolvedOrgs, refetch: refetchOrgs } = useOrgsWithLinks({
