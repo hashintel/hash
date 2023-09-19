@@ -9,6 +9,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -26,7 +27,6 @@ import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitiv
 import {
   createLinkEntity,
   isEntityLinkEntity,
-  LinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
