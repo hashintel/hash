@@ -2,8 +2,10 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApiPool;
-use axum::{http::StatusCode, routing::post, Extension, Router};
+use authorization::{
+    zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool, VisibilityScope,
+};
+use axum::{extract::Path, http::StatusCode, routing::post, Extension, Router};
 use graph_types::{
     knowledge::{
         entity::{
@@ -37,6 +39,8 @@ use crate::{
         create_entity,
         get_entities_by_query,
         update_entity,
+        make_entity_public,
+        make_entity_private,
     ),
     components(
         schemas(
@@ -77,6 +81,10 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
+                .route(
+                    "/:entity_id/public",
+                    post(make_entity_public::<A>).delete(make_entity_private::<A>),
+                )
                 .route("/query", post(get_entities_by_query::<S, A>)),
         )
     }
@@ -302,4 +310,108 @@ where
             }
         })
         .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/{entity_id}/public",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to make public"),
+    ),
+    responses(
+        (status = 204, description = "The entity was made public"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn make_entity_public<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_id): Path<EntityId>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not check if entity can be made public");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .add_entity_viewer(VisibilityScope::Public, entity_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not make entity public");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/entities/{entity_id}/public",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to make private"),
+    ),
+    responses(
+        (status = 204, description = "The entity was made public"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn make_entity_private<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_id): Path<EntityId>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not check if entity can be made private");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .remove_entity_viewer(VisibilityScope::Public, entity_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not make entity private");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
