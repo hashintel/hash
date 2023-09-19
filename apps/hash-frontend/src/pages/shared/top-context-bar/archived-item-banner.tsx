@@ -17,8 +17,8 @@ import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks"
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
 import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
+import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { Button, Link } from "../../../shared/ui";
-import { isEntityPageEntity } from "../../../shared/util";
 import { isItemEntityType } from "./util";
 
 type ArchivedItemBannerProps = {

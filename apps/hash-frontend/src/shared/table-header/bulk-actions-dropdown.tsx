@@ -43,15 +43,15 @@ import {
 } from "../../graphql/queries/ontology/property-type.queries";
 import { useFetchEntityTypes } from "../entity-types-context/hooks";
 import { BoxArchiveIcon } from "../icons/box-archive-icon";
-import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
-import { MenuItem } from "../ui";
+import { isItemArchived } from "../is-archived";
 import {
   isEntityPageEntity,
-  isItemArchived,
   isType,
   isTypeEntityType,
   isTypePropertyType,
-} from "../util";
+} from "../is-of-type";
+import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
+import { MenuItem } from "../ui";
 
 export const BulkActionsDropdown: FunctionComponent<{
   selectedItems: (

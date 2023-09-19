@@ -25,8 +25,9 @@ import {
   useState,
 } from "react";
 
+import { isItemArchived } from "../../shared/is-archived";
+import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import { isEntityPageEntity, isItemArchived } from "../../shared/util";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
