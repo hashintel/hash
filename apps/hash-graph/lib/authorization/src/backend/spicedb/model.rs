@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-use crate::{
-    zanzibar,
-    zanzibar::{Relation, Resource, Tuple},
-};
+use crate::zanzibar::{self, Tuple};
 
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
@@ -140,16 +137,6 @@ impl From<ZedToken> for zanzibar::Zookie<'static> {
     }
 }
 
-/// A filter on the subject of a relationship.
-#[derive(Debug)]
-pub struct SubjectFilter<'a, U, S>
-where
-    U: Resource + ?Sized,
-    S: Relation<U> + ?Sized,
-{
-    pub subject_id: Option<&'a U::Id>,
-    pub relation: Option<&'a S>,
-}
 /// Used for mutating a single relationship within the service.
 #[derive(Debug, Copy, Clone, Serialize)]
 pub enum RelationshipUpdateOperation {
