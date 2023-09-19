@@ -31,12 +31,16 @@ import {
   UnarchiveEntityTypeMutation,
   UnarchiveEntityTypeMutationVariables,
   UnarchivePropertyTypeMutation,
+  UnarchivePropertyTypeMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
   archiveEntityTypeMutation,
   unarchiveEntityTypeMutation,
 } from "../../graphql/queries/ontology/entity-type.queries";
-import { archivePropertyTypeMutation } from "../../graphql/queries/ontology/property-type.queries";
+import {
+  archivePropertyTypeMutation,
+  unarchivePropertyTypeMutation,
+} from "../../graphql/queries/ontology/property-type.queries";
 import { useFetchEntityTypes } from "../entity-types-context/hooks";
 import { BoxArchiveIcon } from "../icons/box-archive-icon";
 import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
@@ -87,8 +91,8 @@ export const BulkActionsDropdown: FunctionComponent<{
 
   const [unarchivePropertyType] = useMutation<
     UnarchivePropertyTypeMutation,
-    ArchivePropertyTypeMutationVariables
-  >(archivePropertyTypeMutation, {
+    UnarchivePropertyTypeMutationVariables
+  >(unarchivePropertyTypeMutation, {
     onCompleted: refetchPropertyTypes,
   });
 

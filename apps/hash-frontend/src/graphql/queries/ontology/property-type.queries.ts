@@ -23,10 +23,14 @@ export const queryPropertyTypesQuery = gql`
   query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $latestOnly: Boolean = true
+    $includeArchived: Boolean = false
   ) {
     queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      latestOnly: $latestOnly
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }

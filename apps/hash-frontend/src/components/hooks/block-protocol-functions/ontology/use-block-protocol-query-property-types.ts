@@ -45,6 +45,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           ...graphResolveDepths,
+          includeArchived: true,
         },
       });
 
