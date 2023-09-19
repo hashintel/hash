@@ -97,6 +97,11 @@ const script = async () => {
             (typePath: string) => replaceWithDistPath(typePath, ".d.ts"),
           );
         }
+
+        packageJson.types = replaceWithDistPath(
+          packageJson.types as string,
+          ".d.ts",
+        );
       } else {
         throw new UserFriendlyError(
           "Unrecognised package.json export format – please either a single 'main' export or an 'exports' group.",
