@@ -86,6 +86,7 @@ type TableHeaderProps = {
   filterState: FilterState;
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
+  onBulkActionCompleted?: () => void;
 };
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
@@ -94,6 +95,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   filterState,
   setFilterState,
   toggleSearch,
+  onBulkActionCompleted,
 }) => {
   const { activeWorkspace, activeWorkspaceOwnedById } =
     useContext(WorkspaceContext);
@@ -138,7 +140,10 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
     >
       <Box display="flex" gap={1.5}>
         {selectedItems.length ? (
-          <BulkActionsDropdown selectedItems={selectedItems} />
+          <BulkActionsDropdown
+            selectedItems={selectedItems}
+            onBulkActionCompleted={onBulkActionCompleted}
+          />
         ) : (
           <>
             <Tooltip

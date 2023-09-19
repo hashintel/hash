@@ -60,7 +60,8 @@ export const BulkActionsDropdown: FunctionComponent<{
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-}> = ({ selectedItems }) => {
+  onBulkActionCompleted?: () => void;
+}> = ({ selectedItems, onBulkActionCompleted }) => {
   const { archivePage, unarchivePage } = useArchivePage();
 
   const refetchEntityTypes = useFetchEntityTypes();
@@ -282,6 +283,7 @@ export const BulkActionsDropdown: FunctionComponent<{
                 onClick={async () => {
                   await onClick();
                   popupState.close();
+                  onBulkActionCompleted?.();
                 }}
                 disabled={disabled}
               >

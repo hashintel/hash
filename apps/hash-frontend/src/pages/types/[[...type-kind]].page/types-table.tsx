@@ -256,6 +256,7 @@ export const TypesTable: FunctionComponent<{
         selectedItems={types.filter((type) =>
           selectedRows.some(({ typeId }) => type.schema.$id === typeId),
         )}
+        onBulkActionCompleted={() => setSelectedRows([])}
       />
       <Grid
         showSearch={showSearch}

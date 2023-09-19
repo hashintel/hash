@@ -228,6 +228,7 @@ export const EntitiesTable: FunctionComponent<{
         filterState={filterState}
         setFilterState={setFilterState}
         toggleSearch={() => setShowSearch(true)}
+        onBulkActionCompleted={() => setSelectedRows([])}
       />
       {columns && rows ? (
         <Grid
