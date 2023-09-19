@@ -27,7 +27,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(OntologyId::as_uuid)
+            .map(OntologyId::into_uuid)
             .collect::<Vec<_>>();
 
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
@@ -56,7 +56,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(OntologyId::as_uuid)
+            .map(OntologyId::into_uuid)
             .collect::<Vec<_>>();
 
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
@@ -85,7 +85,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let ids = vertex_ids
             .into_iter()
-            .map(OntologyId::as_uuid)
+            .map(OntologyId::into_uuid)
             .collect::<Vec<_>>();
 
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
@@ -114,7 +114,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let ids = edition_ids
             .into_iter()
-            .map(EntityEditionId::as_uuid)
+            .map(EntityEditionId::into_uuid)
             .collect::<Vec<_>>();
 
         for entity in <Self as Read<Entity>>::read_vec(

@@ -359,7 +359,7 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        let owned_by_uuid = owned_by_id.as_uuid();
+        let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
             Ok(VisibilityScope::AccountGroup(AccountGroupId::new(
                 owned_by_uuid,

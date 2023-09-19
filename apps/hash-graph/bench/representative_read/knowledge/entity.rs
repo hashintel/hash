@@ -48,7 +48,7 @@ pub fn bench_get_entity_by_id(
                         filter: Filter::Equal(
                             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                             Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.as_uuid(),
+                                entity_uuid.into_uuid(),
                             ))),
                         ),
                         graph_resolve_depths: GraphResolveDepths::default(),

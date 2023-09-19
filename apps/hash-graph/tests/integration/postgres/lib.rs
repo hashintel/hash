@@ -137,7 +137,7 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: data_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.as_uuid()),
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
 
@@ -161,7 +161,7 @@ impl DatabaseTestWrapper {
             let metadata = PartialOntologyElementMetadata {
                 record_id: property_type.id().clone().into(),
                 custom: PartialCustomOntologyMetadata::Owned {
-                    owned_by_id: OwnedById::new(account_id.as_uuid()),
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
 
@@ -186,7 +186,7 @@ impl DatabaseTestWrapper {
                 record_id: entity_type.id().clone().into(),
                 custom: PartialCustomEntityTypeMetadata {
                     common: PartialCustomOntologyMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id.as_uuid()),
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                     label_property: None,
                 },
@@ -229,7 +229,7 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.as_uuid()),
+                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
 
@@ -298,7 +298,7 @@ impl DatabaseApi<'_> {
         let metadata = PartialOntologyElementMetadata {
             record_id: property_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::Owned {
-                owned_by_id: OwnedById::new(self.account_id.as_uuid()),
+                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
 
@@ -357,7 +357,7 @@ impl DatabaseApi<'_> {
             record_id: entity_type.id().clone().into(),
             custom: PartialCustomEntityTypeMetadata {
                 common: PartialCustomOntologyMetadata::Owned {
-                    owned_by_id: OwnedById::new(self.account_id.as_uuid()),
+                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
                 },
                 label_property: None,
             },
@@ -415,7 +415,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
-                OwnedById::new(self.account_id.as_uuid()),
+                OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
@@ -539,7 +539,7 @@ impl DatabaseApi<'_> {
             .create_entity(
                 self.account_id,
                 &mut NoAuthorization,
-                OwnedById::new(self.account_id.as_uuid()),
+                OwnedById::new(self.account_id.into_uuid()),
                 entity_uuid,
                 None,
                 false,
@@ -570,7 +570,7 @@ impl DatabaseApi<'_> {
                     direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid.as_uuid(),
+                    source_entity_id.entity_uuid.into_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -580,7 +580,7 @@ impl DatabaseApi<'_> {
                     direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id.as_uuid(),
+                    source_entity_id.owned_by_id.into_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -653,7 +653,7 @@ impl DatabaseApi<'_> {
                     direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.entity_uuid.as_uuid(),
+                    source_entity_id.entity_uuid.into_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -663,7 +663,7 @@ impl DatabaseApi<'_> {
                     direction: EdgeDirection::Outgoing,
                 })),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.owned_by_id.as_uuid(),
+                    source_entity_id.owned_by_id.into_uuid(),
                 ))),
             ),
             Filter::Equal(
