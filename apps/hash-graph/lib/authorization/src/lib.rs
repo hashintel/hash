@@ -119,6 +119,22 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
+    async fn add_entity_viewer(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_viewer(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
     async fn can_create_entity(
         &self,
         _actor: AccountId,
