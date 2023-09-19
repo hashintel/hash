@@ -1,8 +1,9 @@
 import { PenIcon } from "@hashintel/block-design-system";
-import { IconButton, LoadingSpinner } from "@hashintel/design-system";
+import { ArrowRotateLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
+import { GrayToBlueIconButton } from "../../shared/gray-to-blue-icon-button";
 import { FileUploadDropzone } from "./file-upload-dropzone";
 
 type ImageFieldProps = {
@@ -49,27 +50,40 @@ export const ImageField = ({
       })}
     >
       {editingImage ? (
-        <FileUploadDropzone image onFileProvided={setNewImage} />
+        <>
+          {imageUrl ? (
+            <Box sx={{ position: "absolute", top: 5, right: 5 }}>
+              <GrayToBlueIconButton
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingImage(false);
+                  setImageUrl(imageUrlFromProps);
+                }}
+                sx={{
+                  p: 0.5,
+                  zIndex: 2,
+                }}
+              >
+                <ArrowRotateLeftIcon sx={{ width: 13, height: 13 }} />
+              </GrayToBlueIconButton>{" "}
+            </Box>
+          ) : null}
+          <FileUploadDropzone image onFileProvided={setNewImage} />
+        </>
       ) : (
         <>
-          <Box sx={{ position: "absolute", top: 2, right: 2 }}>
+          <Box sx={{ position: "absolute", top: 5, right: 5 }}>
             {newImageUploading ? (
               <LoadingSpinner color="gray.40" />
             ) : (
-              <IconButton
+              <GrayToBlueIconButton
                 onClick={() => setEditingImage(true)}
                 sx={{
-                  color: "gray.50",
-                  p: 1,
-                  transition: ({ transitions }) => transitions.create("color"),
-                  "&:hover": {
-                    color: "gray.10",
-                    background: "none",
-                  },
+                  p: 0.5,
                 }}
               >
-                <PenIcon />
-              </IconButton>
+                <PenIcon sx={{ width: 13, height: 13 }} />
+              </GrayToBlueIconButton>
             )}
           </Box>
           <Box
