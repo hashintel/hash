@@ -26,7 +26,6 @@ import {
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
 import {
   createEntity,
   CreateEntityParams,
@@ -297,7 +296,7 @@ export const createUser: ImpureGraphFunction<
   };
 
   const entity = await createEntity(ctx, authentication, {
-    ownedById: systemUserAccountId as OwnedById,
+    ownedById: userAccountId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
     entityUuid: userAccountId as string as EntityUuid,
