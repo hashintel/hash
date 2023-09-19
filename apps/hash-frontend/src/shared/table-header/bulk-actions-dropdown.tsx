@@ -5,6 +5,7 @@ import {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import {
@@ -41,6 +42,7 @@ import {
   archivePropertyTypeMutation,
   unarchivePropertyTypeMutation,
 } from "../../graphql/queries/ontology/property-type.queries";
+import { useAuthenticatedUser } from "../../pages/shared/auth-info-context";
 import { useFetchEntityTypes } from "../entity-types-context/hooks";
 import { BoxArchiveIcon } from "../icons/box-archive-icon";
 import { isItemArchived } from "../is-archived";
@@ -62,6 +64,8 @@ export const BulkActionsDropdown: FunctionComponent<{
   )[];
   onBulkActionCompleted?: () => void;
 }> = ({ selectedItems, onBulkActionCompleted }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const { archivePage, unarchivePage } = useArchivePage();
 
   const refetchEntityTypes = useFetchEntityTypes();
@@ -105,9 +109,26 @@ export const BulkActionsDropdown: FunctionComponent<{
   const itemsAreArchiveable = useMemo(
     () =>
       selectedItems.filter((item) => {
+        const itemOwnedById = isType(item)
+          ? item.metadata.custom.provenance.recordCreatedById
+          : extractOwnedByIdFromEntityId(item.metadata.recordId.entityId);
+
+        // The item has to be owned by the user or an org the user is a member of
+        if (
+          ![
+            authenticatedUser.accountId,
+            ...authenticatedUser.memberOf.map(
+              ({ accountGroupId }) => accountGroupId,
+            ),
+          ].includes(itemOwnedById)
+        ) {
+          return false;
+        }
+
         /**
-         * @todo: also check whether the user has permission to archive the item
+         * @todo: check whether the user has permission to archive the item
          */
+
         if (isType(item)) {
           if (isTypeEntityType(item)) {
             // Entity types can be archived
@@ -128,7 +149,7 @@ export const BulkActionsDropdown: FunctionComponent<{
         // Everything else cannot be archived
         return false;
       }).length === selectedItems.length,
-    [selectedItems],
+    [selectedItems, authenticatedUser],
   );
 
   // Whether or not the selected items can be archived
