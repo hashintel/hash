@@ -4,11 +4,10 @@
 use authorization::{
     backend::{
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
-        DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
-        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDbOpenApi, ZanzibarBackend,
+        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
+        ImportSchemaError, ImportSchemaResponse, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Resource, Tuple},
+    zanzibar::{Consistency, Tuple},
 };
 use error_stack::Report;
 
@@ -55,48 +54,24 @@ impl ZanzibarBackend for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relations<'p, 't, T>(
+    async fn create_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
-        + Send
-        + 'p,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + 't,
-        <T::Object as Resource>::Id: Sync + 'p,
-        <T::User as Resource>::Id: Sync + 'p,
+        T: Tuple + Sync + 't,
     {
-        self.client.create_relations(tuples, preconditions).await
+        self.client.create_relations(tuples).await
     }
 
-    async fn delete_relations<'p, 't, T>(
+    async fn delete_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
-        + Send
-        + 'p,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + 't,
-        <T::Object as Resource>::Id: Sync + 'p,
-        <T::User as Resource>::Id: Sync + 'p,
+        T: Tuple + Sync + 't,
     {
-        self.client.delete_relations(tuples, preconditions).await
-    }
-
-    async fn delete_relations_by_filter<'f, O, U>(
-        &mut self,
-        filter: RelationFilter<'_, O, U>,
-        preconditions: impl IntoIterator<Item = Precondition<'f, O, U>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>
-    where
-        O: Resource<Id: Sync + 'f> + ?Sized,
-        U: Resource<Id: Sync + 'f> + ?Sized,
-    {
-        self.client
-            .delete_relations_by_filter(filter, preconditions)
-            .await
+        self.client.delete_relations(tuples).await
     }
 
     async fn check<T>(
@@ -106,8 +81,6 @@ impl ZanzibarBackend for TestApi {
     ) -> Result<CheckResponse, Report<CheckError>>
     where
         T: Tuple + Sync,
-        <T::Object as Resource>::Id: Sync,
-        <T::User as Resource>::Id: Sync,
     {
         self.client.check(tuple, consistency).await
     }

@@ -1,16 +1,15 @@
 use std::{error::Error, fmt, iter::repeat};
 
-use error_stack::{ensure, Report, ResultExt};
+use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     backend::{
         spicedb::model, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
-        DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
-        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDbOpenApi, ZanzibarBackend,
+        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
+        ImportSchemaError, ImportSchemaResponse, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Resource, Tuple, UntypedTuple, Zookie},
+    zanzibar::{Consistency, Tuple, UntypedTuple, Zookie},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,34 +67,30 @@ impl SpiceDbOpenApi {
 
     // TODO: Expose batch-version
     //   see https://linear.app/hash/issue/H-642
-    async fn modify_relations<'p, 't, T>(
+    async fn modify_relations<'t, T>(
         &self,
         operations: impl IntoIterator<
             Item = (model::RelationshipUpdateOperation, &'t T),
             IntoIter: Send,
         > + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
-        + Send
-        + 'p,
     ) -> Result<Zookie<'static>, InvocationError>
     where
-        T: Tuple + 't,
-        <T::Object as Resource>::Id: Sync + 'p,
-        <T::User as Resource>::Id: Sync + 'p,
+        T: Tuple + Sync + 't,
     {
         #[derive(Serialize)]
         #[serde(bound = "")]
-        struct RelationshipUpdate<'a, T: Tuple> {
+        struct RelationshipUpdate<'t, T: Tuple> {
             operation: model::RelationshipUpdateOperation,
-            relationship: model::Relationship<'a, T>,
+            relationship: model::Relationship<'t, T>,
         }
 
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'a, T: Tuple> {
-            updates: Vec<RelationshipUpdate<'a, T>>,
-            #[serde(skip_serializing_if = "Vec::is_empty")]
-            optional_preconditions: Vec<model::Precondition<'a, T::Object, T::User>>,
+        struct RequestBody<'t, T>
+        where
+            T: Tuple,
+        {
+            updates: Vec<RelationshipUpdate<'t, T>>,
         }
 
         #[derive(Deserialize)]
@@ -112,17 +107,8 @@ impl SpiceDbOpenApi {
                         .into_iter()
                         .map(|(operation, tuple)| RelationshipUpdate::<T> {
                             operation,
-                            relationship: model::Relationship {
-                                resource: model::ObjectReference::from(tuple),
-                                relation: tuple.affiliation(),
-                                subject: model::SubjectReference::from(tuple),
-                                caveat: None,
-                            },
+                            relationship: model::Relationship(tuple),
                         })
-                        .collect(),
-                    optional_preconditions: preconditions
-                        .into_iter()
-                        .map(model::Precondition::from)
                         .collect(),
                 },
             )
@@ -186,117 +172,34 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relations<'p, 't, T>(
+    async fn create_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
-        + Send
-        + 'p,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + 't,
-        <T::Object as Resource>::Id: Sync + 'p,
-        <T::User as Resource>::Id: Sync + 'p,
+        T: Tuple + Sync + 't,
     {
-        self.modify_relations(
-            repeat(model::RelationshipUpdateOperation::Create).zip(tuples),
-            preconditions,
-        )
-        .await
-        .map(|written_at| CreateRelationResponse { written_at })
-        .change_context(CreateRelationError)
+        self.modify_relations(repeat(model::RelationshipUpdateOperation::Create).zip(tuples))
+            .await
+            .map(|written_at| CreateRelationResponse { written_at })
+            .change_context(CreateRelationError)
     }
 
     #[expect(
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relations<'p, 't, T>(
+    async fn delete_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p, T::Object, T::User>, IntoIter: Send>
-        + Send
-        + 'p,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + 't,
-        <T::Object as Resource>::Id: Sync + 'p,
-        <T::User as Resource>::Id: Sync + 'p,
+        T: Tuple + Sync + 't,
     {
-        self.modify_relations(
-            repeat(model::RelationshipUpdateOperation::Delete).zip(tuples),
-            preconditions,
-        )
-        .await
-        .map(|deleted_at| DeleteRelationResponse { deleted_at })
-        .change_context(DeleteRelationError)
-    }
-
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
-    async fn delete_relations_by_filter<'f, O, U>(
-        &mut self,
-        filter: RelationFilter<'_, O, U>,
-        preconditions: impl IntoIterator<Item = Precondition<'f, O, U>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>
-    where
-        O: Resource<Id: Sync + 'f> + ?Sized,
-        U: Resource<Id: Sync + 'f> + ?Sized,
-    {
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'a, O, U>
-        where
-            O: Resource + ?Sized,
-            U: Resource + ?Sized,
-        {
-            relationship_filter: model::RelationshipFilter<'a, O, U>,
-            #[serde(skip_serializing_if = "Vec::is_empty")]
-            optional_preconditions: Vec<model::Precondition<'a, O, U>>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            optional_limit: Option<u32>,
-            #[serde(skip_serializing_if = "Option::is_none")]
-            optional_allow_partial_deletions: Option<bool>,
-        }
-
-        #[derive(Deserialize)]
-        enum DeletionProgress {
-            #[serde(rename = "DELETION_PROGRESS_COMPLETE")]
-            Complete,
-            #[serde(rename = "DELETION_PROGRESS_PARTIAL")]
-            Partial,
-        }
-
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestResponse {
-            deleted_at: model::ZedToken,
-            deletion_progress: DeletionProgress,
-        }
-
-        let request = RequestBody {
-            relationship_filter: filter.into(),
-            optional_preconditions: preconditions.into_iter().map(Precondition::into).collect(),
-            optional_limit: None,
-            optional_allow_partial_deletions: None,
-        };
-
-        let response: RequestResponse = self
-            .call("/v1/relationships/delete", &request)
+        self.modify_relations(repeat(model::RelationshipUpdateOperation::Delete).zip(tuples))
             .await
-            .change_context(DeleteRelationsError)?;
-
-        ensure!(
-            matches!(response.deletion_progress, DeletionProgress::Complete),
-            Report::new(DeleteRelationsError)
-                .attach_printable("Only partial deletion was performed")
-        );
-
-        Ok(DeleteRelationsResponse {
-            deleted_at: response.deleted_at.into(),
-        })
+            .map(|deleted_at| DeleteRelationResponse { deleted_at })
+            .change_context(DeleteRelationError)
     }
 
     #[expect(
@@ -310,16 +213,14 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     ) -> Result<CheckResponse, Report<CheckError>>
     where
         T: Tuple + Sync,
-        <T::Object as Resource>::Id: Sync,
-        <T::User as Resource>::Id: Sync,
     {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RequestBody<'a, T: Tuple> {
-            consistency: model::Consistency<'a>,
-            resource: model::ObjectReference<'a, T::Object>,
-            permission: &'a str,
-            subject: model::SubjectReference<'a, T::User>,
+        #[serde(rename_all = "camelCase", bound = "")]
+        struct RequestBody<'t, T: Tuple> {
+            consistency: model::Consistency<'t>,
+            resource: model::ObjectReference<'t, T>,
+            permission: model::RelationReference<'t, T>,
+            subject: model::SubjectReference<'t, T>,
         }
 
         #[derive(Deserialize)]
@@ -339,11 +240,11 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             permissionship: Permissionship,
         }
 
-        let request = RequestBody::<T> {
+        let request = RequestBody {
             consistency: consistency.into(),
-            resource: model::ObjectReference::from(tuple),
-            permission: tuple.affiliation(),
-            subject: model::SubjectReference::from(tuple),
+            resource: model::ObjectReference(tuple),
+            permission: model::RelationReference(tuple),
+            subject: model::SubjectReference(tuple),
         };
 
         let response: RequestResponse = self
