@@ -2,6 +2,7 @@ import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { createContext, PropsWithChildren, useContext } from "react";
 
+import { isTypeArchived } from "./is-archived";
 import { useLatestPropertyTypesContextValue } from "./latest-property-types-context/use-latest-property-types-context-value";
 
 export type LatestPropertyTypesContextValues = {
@@ -12,22 +13,35 @@ export type LatestPropertyTypesContextValues = {
 export const LatestPropertyTypesContext =
   createContext<null | LatestPropertyTypesContextValues>(null);
 
-export const useLatestPropertyTypes = () => {
-  return useContext(LatestPropertyTypesContext)?.propertyTypes;
-};
+export const useLatestPropertyTypesContextRequired = (params?: {
+  includeArchived?: boolean;
+}) => {
+  const { includeArchived = false } = params ?? {};
+  const latestPropertyTypesContext = useContext(LatestPropertyTypesContext);
 
-export const usePropertyTypesContextRequired = () => {
-  const context = useContext(LatestPropertyTypesContext);
-
-  if (!context) {
+  if (!latestPropertyTypesContext) {
     throw new Error("Context missing");
   }
 
-  return context;
+  return {
+    ...latestPropertyTypesContext,
+    propertyTypes:
+      latestPropertyTypesContext.propertyTypes && !includeArchived
+        ? Object.entries(latestPropertyTypesContext.propertyTypes)
+            .filter(([_, propertyType]) => !isTypeArchived(propertyType))
+            .reduce<LatestPropertyTypesContextValues["propertyTypes"]>(
+              (prev, [propertyTypeId, propertyType]) => ({
+                ...prev,
+                [propertyTypeId]: propertyType,
+              }),
+              {},
+            )
+        : latestPropertyTypesContext.propertyTypes,
+  };
 };
 
 export const useFetchLatestPropertyTypes = () => {
-  return usePropertyTypesContextRequired().refetch;
+  return useLatestPropertyTypesContextRequired().refetch;
 };
 
 export const LatestPropertyTypesContextProvider = ({
