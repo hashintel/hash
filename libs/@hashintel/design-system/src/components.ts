@@ -29,6 +29,7 @@ export * from "./menu-item";
 export * from "./modal";
 export * from "./ontology-chip";
 export * from "./ontology-icons";
+export * from "./parse-url-for-ontology-chip";
 export * from "./popper-placement-modifier";
 export * from "./select";
 export * from "./selector-autocomplete";

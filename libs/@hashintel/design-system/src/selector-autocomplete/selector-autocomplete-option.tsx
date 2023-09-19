@@ -15,8 +15,9 @@ import { FunctionComponent, HTMLAttributes, useRef, useState } from "react";
 import { Chip } from "../chip";
 import { GRID_CLICK_IGNORE_CLASS } from "../constants";
 import { ImageWithCheckedBackground } from "../image-with-checked-background";
-import { OntologyChip, parseUrlForOntologyChip } from "../ontology-chip";
+import { OntologyChip } from "../ontology-chip";
 import { EntityTypeIcon } from "../ontology-icons";
+import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
 
 const descriptionPropertyKey: BaseUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/";
