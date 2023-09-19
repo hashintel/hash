@@ -1,5 +1,3 @@
-#![cfg_attr(nightly, feature(saturating_int_impl))]
-
 #[cfg(nightly)]
 use core::num::Saturating;
 use core::num::Wrapping;
