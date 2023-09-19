@@ -112,7 +112,7 @@ impl ErrorProperties for () {
 
     fn value<'a>(_: &[&'a Frame]) -> Self::Value<'a> {}
 
-    fn output<S>(_: Self::Value<'_>, _: &mut S) -> error_stack::Result<(), SerdeSerializeError>
+    fn output<S>((): Self::Value<'_>, _: &mut S) -> error_stack::Result<(), SerdeSerializeError>
     where
         S: SerializeMap,
     {

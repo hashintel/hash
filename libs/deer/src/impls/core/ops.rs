@@ -52,7 +52,7 @@ where
         match discriminant {
             BoundDiscriminant::Unbounded => deserializer
                 .deserialize_optional(UnitVariantVisitor)
-                .map(|_| Bound::Unbounded)
+                .map(|()| Bound::Unbounded)
                 .attach(Location::Variant("Unbounded"))
                 .change_context(VisitorError),
             BoundDiscriminant::Included => T::deserialize(deserializer)
@@ -206,7 +206,7 @@ where
             })
             .attach(Location::Tuple(1));
 
-        let (start, end, _) = (start, end, array.end())
+        let (start, end, ()) = (start, end, array.end())
             .fold_reports()
             .change_context(VisitorError)?;
 
