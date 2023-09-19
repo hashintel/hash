@@ -20,8 +20,8 @@ temporalio = "^1.2"
 setuptools = "^68.0.0"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.7.0"
-ruff = "^0.0.287"
+black = "^23.9.1"
+ruff = "^0.0.290"
 mypy = "^1.5.1"
 
 

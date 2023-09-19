@@ -11,7 +11,10 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import {
+  systemUser,
+  systemUserAccountId,
+} from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -60,15 +63,22 @@ describe("OrgMembership", () => {
   let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
-    testOrgMembership = await createOrgMembership(graphContext, {
-      orgEntityId: testOrg.entity.metadata.recordId.entityId,
-      actorId: testUser.accountId,
-      userEntityId: testUser.entity.metadata.recordId.entityId,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    testOrgMembership = await createOrgMembership(
+      graphContext,
+      authentication,
+      {
+        orgEntityId: testOrg.entity.metadata.recordId.entityId,
+        userEntityId: testUser.entity.metadata.recordId.entityId,
+      },
+    );
   });
 
   it("can get the org of an org membership", async () => {
-    const fetchedOrg = await getOrgMembershipOrg(graphContext, {
+    const authentication = { actorId: systemUserAccountId };
+
+    const fetchedOrg = await getOrgMembershipOrg(graphContext, authentication, {
       orgMembership: testOrgMembership,
     });
 
@@ -76,9 +86,15 @@ describe("OrgMembership", () => {
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedUser = await getOrgMembershipUser(graphContext, {
-      orgMembership: testOrgMembership,
-    });
+    const authentication = { actorId: systemUserAccountId };
+
+    const fetchedUser = await getOrgMembershipUser(
+      graphContext,
+      authentication,
+      {
+        orgMembership: testOrgMembership,
+      },
+    );
 
     expect(fetchedUser.entity).toEqual(testUser.entity);
   });

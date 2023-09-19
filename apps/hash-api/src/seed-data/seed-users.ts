@@ -48,6 +48,7 @@ export const ensureUsersAreSeeded = async ({
   context: ImpureGraphContext;
 }): Promise<User[]> => {
   const createdUsers = [];
+  const authentication = { actorId: systemUserAccountId };
 
   // Only use `devUsers` if we are in a dev environment
   let usersToSeed = isDevEnv ? devUsers : [];
@@ -104,23 +105,20 @@ export const ensureUsersAreSeeded = async ({
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
       const { emails } = traits;
 
-      let user = await createUser(context, {
+      let user = await createUser(context, authentication, {
         emails,
         kratosIdentityId,
-        actorId: systemUserAccountId,
         isInstanceAdmin,
       });
 
-      user = await updateUserShortname(context, {
+      user = await updateUserShortname(context, authentication, {
         user,
         updatedShortname: shortname,
-        actorId: systemUserAccountId,
       });
 
-      user = await updateUserPreferredName(context, {
+      user = await updateUserPreferredName(context, authentication, {
         user,
         updatedPreferredName: preferredName,
-        actorId: systemUserAccountId,
       });
 
       createdUsers.push(user);

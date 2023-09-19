@@ -1,8 +1,13 @@
 use std::mem::ManuallyDrop;
 
-use graph::store::{
-    AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-    EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+use authorization::NoAuthorization;
+use graph::{
+    load_env,
+    store::{
+        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
+        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
+    },
+    Environment,
 };
 use graph_types::{
     account::AccountId,
@@ -10,7 +15,7 @@ use graph_types::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    provenance::OwnedById,
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -26,10 +31,18 @@ pub struct StoreWrapper {
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
     pub store: ManuallyDrop<Store>,
+    pub account_id: AccountId,
 }
 
 impl StoreWrapper {
-    pub async fn new(bench_db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> Self {
+    pub async fn new(
+        bench_db_name: &str,
+        fail_on_exists: bool,
+        delete_on_drop: bool,
+        account_id: AccountId,
+    ) -> Self {
+        load_env(Environment::Test);
+
         let super_user = std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned());
         let super_password =
             std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned());
@@ -141,6 +154,7 @@ impl StoreWrapper {
             bench_db_name: bench_db_name.to_owned(),
             pool: ManuallyDrop::new(pool),
             store: ManuallyDrop::new(store),
+            account_id,
         }
     }
 }
@@ -202,15 +216,13 @@ pub async fn seed<D, P, E, C>(
 
         match store
             .create_data_type(
+                account_id,
+                &mut NoAuthorization,
                 data_type.clone(),
                 PartialOntologyElementMetadata {
                     record_id: data_type.id().clone().into(),
                     custom: PartialCustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata {
-                            record_created_by_id: RecordCreatedById::new(account_id),
-                            record_archived_by_id: None,
-                        },
-                        owned_by_id: OwnedById::new(account_id),
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
             )
@@ -220,7 +232,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(data_type, RecordCreatedById::new(account_id))
+                        .update_data_type(account_id, &mut NoAuthorization, data_type)
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -238,15 +250,13 @@ pub async fn seed<D, P, E, C>(
 
         match store
             .create_property_type(
+                account_id,
+                &mut NoAuthorization,
                 property_type.clone(),
                 PartialOntologyElementMetadata {
                     record_id: property_type.id().clone().into(),
                     custom: PartialCustomOntologyMetadata::Owned {
-                        provenance: ProvenanceMetadata {
-                            record_created_by_id: RecordCreatedById::new(account_id),
-                            record_archived_by_id: None,
-                        },
-                        owned_by_id: OwnedById::new(account_id),
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
             )
@@ -256,7 +266,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(property_type, RecordCreatedById::new(account_id))
+                        .update_property_type(account_id, &mut NoAuthorization, property_type)
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -274,16 +284,14 @@ pub async fn seed<D, P, E, C>(
 
         match store
             .create_entity_type(
+                account_id,
+                &mut NoAuthorization,
                 entity_type.clone(),
                 PartialEntityTypeMetadata {
                     record_id: entity_type.id().clone().into(),
                     custom: PartialCustomEntityTypeMetadata {
                         common: PartialCustomOntologyMetadata::Owned {
-                            provenance: ProvenanceMetadata {
-                                record_created_by_id: RecordCreatedById::new(account_id),
-                                record_archived_by_id: None,
-                            },
-                            owned_by_id: OwnedById::new(account_id),
+                            owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
                         label_property: None,
                     },
@@ -295,7 +303,7 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(entity_type, RecordCreatedById::new(account_id), None)
+                        .update_entity_type(account_id, &mut NoAuthorization, entity_type, None)
                         .await
                         .expect("failed to update entity type");
                 } else {
@@ -306,10 +314,19 @@ pub async fn seed<D, P, E, C>(
     }
 }
 
-pub fn setup(db_name: &str, fail_on_exists: bool, delete_on_drop: bool) -> (Runtime, StoreWrapper) {
+pub fn setup(
+    db_name: &str,
+    fail_on_exists: bool,
+    delete_on_drop: bool,
+    account_id: AccountId,
+) -> (Runtime, StoreWrapper) {
     let runtime = Runtime::new().expect("could not create runtime");
 
-    let store_wrapper =
-        runtime.block_on(StoreWrapper::new(db_name, fail_on_exists, delete_on_drop));
+    let store_wrapper = runtime.block_on(StoreWrapper::new(
+        db_name,
+        fail_on_exists,
+        delete_on_drop,
+        account_id,
+    ));
     (runtime, store_wrapper)
 }

@@ -46,7 +46,9 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     AuthenticatedUser | undefined
   >(initialAuthenticatedUser); // use the initial server-sent data to start – after that, the client controls the value
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const fetchAuthenticatedUser =
     useCallback<RefetchAuthInfoFunction>(async () => {

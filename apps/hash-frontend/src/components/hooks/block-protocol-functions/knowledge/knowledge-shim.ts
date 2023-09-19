@@ -11,10 +11,10 @@ import {
   CreateResourceError,
   QueryOperationInput,
   ReadOrModifyResourceError,
-  UploadFileData,
-  UploadFileReturn,
+  UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
 import {
   Entity,
   EntityId,
@@ -61,10 +61,14 @@ export type UpdateEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type UploadFileRequestData = BpUploadFileData & {
+  entityTypeId?: VersionedUrl;
+};
+
 export type UploadFileRequestCallback = MessageCallback<
-  UploadFileData & { entityTypeId?: VersionedUrl },
+  UploadFileRequestData,
   null,
-  MessageReturn<UploadFileReturn>,
+  MessageReturn<FileEntityType>,
   CreateResourceError
 >;
 

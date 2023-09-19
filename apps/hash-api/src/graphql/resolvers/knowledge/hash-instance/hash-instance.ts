@@ -10,10 +10,10 @@ export const hashInstanceEntityResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { dataSources }) => {
+> = async (_, __, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const hashInstance = await getHashInstance(context, {});
+  const hashInstance = await getHashInstance(context, authentication, {});
 
   return hashInstance.entity;
 };

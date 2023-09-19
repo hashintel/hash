@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
-    account::AccountId,
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityRecordId,
@@ -138,11 +137,9 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     VersionedUrl::from_str(row.get(type_id_index)).change_context(QueryError)?;
 
                 let link_data = {
-                    let left_owned_by_id: Option<AccountId> =
-                        row.get(left_entity_owned_by_id_index);
+                    let left_owned_by_id: Option<Uuid> = row.get(left_entity_owned_by_id_index);
                     let left_entity_uuid: Option<Uuid> = row.get(left_entity_uuid_index);
-                    let right_owned_by_id: Option<AccountId> =
-                        row.get(right_entity_owned_by_id_index);
+                    let right_owned_by_id: Option<Uuid> = row.get(right_entity_owned_by_id_index);
                     let right_entity_uuid: Option<Uuid> = row.get(right_entity_uuid_index);
                     match (
                         left_owned_by_id,
@@ -356,7 +353,7 @@ impl<C: AsClient> PostgresStore<C> {
         traversal_data: &'t EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
-    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, QueryError> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -430,26 +427,30 @@ impl<C: AsClient> PostgresStore<C> {
             .into_iter()
             .map(|row| {
                 let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
-                KnowledgeEdgeTraversal {
-                    left_endpoint: EntityVertexId {
-                        base_id: EntityId {
-                            owned_by_id: traversal_data.owned_by_ids[index],
-                            entity_uuid: traversal_data.entity_uuids[index],
+                let right_endpoint_base_id = EntityId {
+                    owned_by_id: row.get(1),
+                    entity_uuid: row.get(2),
+                };
+                (
+                    right_endpoint_base_id,
+                    KnowledgeEdgeTraversal {
+                        left_endpoint: EntityVertexId {
+                            base_id: EntityId {
+                                owned_by_id: traversal_data.owned_by_ids[index],
+                                entity_uuid: traversal_data.entity_uuids[index],
+                            },
+                            revision_id: traversal_data.entity_revision_ids[index],
                         },
-                        revision_id: traversal_data.entity_revision_ids[index],
-                    },
-                    right_endpoint: EntityVertexId {
-                        base_id: EntityId {
-                            owned_by_id: row.get(1),
-                            entity_uuid: row.get(2),
+                        right_endpoint: EntityVertexId {
+                            base_id: right_endpoint_base_id,
+                            revision_id: row.get::<_, Timestamp<()>>(3).cast(),
                         },
-                        revision_id: row.get::<_, Timestamp<()>>(3).cast(),
+                        right_endpoint_edition_id: row.get(4),
+                        edge_interval: row.get(5),
+                        resolve_depths: traversal_data.resolve_depths[index],
+                        traversal_interval: row.get(6),
                     },
-                    right_endpoint_edition_id: row.get(4),
-                    edge_interval: row.get(5),
-                    resolve_depths: traversal_data.resolve_depths[index],
-                    traversal_interval: row.get(6),
-                }
+                )
             }))
     }
 }

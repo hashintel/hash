@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityQueryPath,
@@ -16,7 +17,7 @@ use graph::{
         },
     },
 };
-use graph_types::knowledge::entity::EntityUuid;
+use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
@@ -27,6 +28,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
     b.to_async(runtime).iter_batched(
@@ -39,19 +41,23 @@ pub fn bench_get_entity_by_id(
         },
         |entity_uuid| async move {
             let subgraph = store
-                .get_entity(&StructuralQuery {
-                    filter: Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            entity_uuid.as_uuid(),
-                        ))),
-                    ),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                .get_entity(
+                    actor_id,
+                    &NoAuthorization,
+                    &StructuralQuery {
+                        filter: Filter::Equal(
+                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                            Some(FilterExpression::Parameter(Parameter::Uuid(
+                                entity_uuid.into_uuid(),
+                            ))),
+                        ),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
                     },
-                })
+                )
                 .await
                 .expect("failed to read entity from store");
             assert_eq!(subgraph.roots.len(), 1);
@@ -64,6 +70,7 @@ pub fn bench_get_entities_by_property(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
@@ -81,17 +88,21 @@ pub fn bench_get_entities_by_property(
             .convert_parameters()
             .expect("failed to convert parameters");
         let subgraph = store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths,
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                actor_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+            )
             .await
             .expect("failed to read entity from store");
         assert_eq!(subgraph.roots.len(), 100);
@@ -102,6 +113,7 @@ pub fn bench_get_link_by_target_by_property(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
     b.to_async(runtime).iter(|| async move {
@@ -123,17 +135,21 @@ pub fn bench_get_link_by_target_by_property(
             .convert_parameters()
             .expect("failed to convert parameters");
         let subgraph = store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths,
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
+            .get_entity(
+                actor_id,
+                &NoAuthorization,
+                &StructuralQuery {
+                    filter,
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
+                    },
                 },
-            })
+            )
             .await
             .expect("failed to read entity from store");
         assert_eq!(subgraph.roots.len(), 100);

@@ -5,6 +5,7 @@ import {
   OntologyChip,
   WhiteCard,
 } from "@hashintel/design-system";
+import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
@@ -39,24 +40,8 @@ export const SelectEntityTypePage = () => {
           lightTitle
           chip={
             <OntologyChip
-              domain="hash.ai"
-              path={
-                <>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    fontWeight="bold"
-                    component="span"
-                  >
-                    @{activeWorkspace.shortname}
-                  </Typography>
-                  <Typography
-                    color={(theme) => theme.palette.blue[70]}
-                    component="span"
-                  >
-                    /entities
-                  </Typography>
-                </>
-              }
+              domain={frontendDomain}
+              path={`@${activeWorkspace.shortname}/entities`}
             />
           }
         />

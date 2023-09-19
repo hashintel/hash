@@ -1,5 +1,6 @@
+import { Entity as BpEntity } from "@blockprotocol/graph";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { EntityPropertiesObject } from "@local/hash-subgraph";
+import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { camelCase } from "lodash";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
@@ -30,16 +31,18 @@ export type SimpleProperties<Properties extends EntityPropertiesObject> = {
   >]: Properties[Key];
 };
 
+export type Simplified<T extends Entity | BpEntity> = Omit<T, "properties"> & {
+  properties: SimpleProperties<T["properties"]>;
+};
+
 export const simplifyProperties = <T extends EntityPropertiesObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  const simpleProperties = typedEntries(properties).reduce(
+  return typedEntries(properties).reduce(
     (acc, [key, value]) => ({
       ...acc,
       [camelCase(key.split("/").slice(-2, -1).pop())]: value,
     }),
     {} as SimpleProperties<T>,
   );
-
-  return simpleProperties;
 };

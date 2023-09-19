@@ -46,8 +46,8 @@ export const getEntityTypeById = (
  *
  * @param subgraph a subgraph containing the entity type and its ancestors
  * @param entityTypeId the `VersionedUrl` of the entity type
- * @throws if the entity type or any of its ancestors aren't present in the subgraph
- * @returns an array of `EntityTypeWithMetadata`
+ * @throws Error if the entity type or any of its ancestors aren't present in the subgraph
+ * @returns EntityTypeWithMetadata[] an array of `EntityTypeWithMetadata`, where the first element is the entity type
  */
 export const getEntityTypeAndParentsById = (
   subgraph: Subgraph,
@@ -63,6 +63,7 @@ export const getEntityTypeAndParentsById = (
     (parent) => parent.$ref,
   );
 
+  // Return the entity type, followed by its ancestors
   return [
     entityType,
     ...parentIds.flatMap((parentId) =>

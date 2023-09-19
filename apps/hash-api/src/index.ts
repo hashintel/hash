@@ -9,11 +9,13 @@ import {
 } from "@local/hash-backend-utils/environment";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
+import { oryKratosPublicUrl } from "@local/hash-isomorphic-utils/environment";
 import { Session } from "@ory/client";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { json } from "body-parser";
 import cors from "cors";
 import express, { raw } from "express";
+import proxy from "express-http-proxy";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { createHttpTerminator } from "http-terminator";
@@ -281,6 +283,55 @@ const main = async () => {
       });
     }
     next();
+  });
+
+  /**
+   * Add a proxy for requests to the Ory Kratos public API, to be consumed
+   * by the frontend for authentication related requests made in the
+   * browser. Note that server-side frontend authentication requests
+   * can be sent the the Ory Kratos public URL directly, because the
+   * CORS requirements are not as strict as the one from the browser.
+   */
+  app.use("/auth/*", cors(CORS_CONFIG), (req, res, next) => {
+    const expectedAccessControlAllowOriginHeader = res.getHeader(
+      "Access-Control-Allow-Origin",
+    );
+
+    if (!oryKratosPublicUrl) {
+      throw new Error("`ORY_KRATOS_PUBLIC_URL` has not been provided");
+    }
+
+    return proxy(oryKratosPublicUrl, {
+      /**
+       * Remove the `/auth` prefix from the request path, so the path is
+       * formatted correctly for the Ory Kratos API.
+       */
+      proxyReqPathResolver: ({ originalUrl }) =>
+        originalUrl.replace("/auth", ""),
+      /**
+       * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+       * by default, which is not permitted by browsers when including credentials
+       * in requests.
+       *
+       * When setting the value of the `Access-Control-Allow-Origin` header in
+       * the Ory Kratos configuration, the frontend URL is included twice in the
+       * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+       * which is also not permitted by browsers when including credentials in requests.
+       *
+       * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+       * expected value here before returning the response, to prevent CORS errors
+       * in modern browsers.
+       */
+      userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+        if (typeof expectedAccessControlAllowOriginHeader === "string") {
+          userRes.set(
+            "Access-Control-Allow-Origin",
+            expectedAccessControlAllowOriginHeader,
+          );
+        }
+        return proxyResData;
+      },
+    })(req, res, next);
   });
 
   // Integrations

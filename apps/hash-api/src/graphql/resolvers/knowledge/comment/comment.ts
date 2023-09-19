@@ -11,15 +11,18 @@ export const createCommentResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateCommentArgs
-> = async (_, { parentEntityId, tokens }, { dataSources, user }) => {
+> = async (
+  _,
+  { parentEntityId, tokens },
+  { dataSources, authentication, user },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const comment = await createComment(context, {
+  const comment = await createComment(context, authentication, {
     tokens,
     ownedById: extractOwnedByIdFromEntityId(parentEntityId),
     parentEntityId,
     author: user,
-    actorId: user.accountId,
   });
 
   return mapCommentToGQL(comment);

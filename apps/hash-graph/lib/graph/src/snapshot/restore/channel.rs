@@ -12,9 +12,10 @@ use futures::{
 };
 
 use crate::snapshot::{
-    account,
     entity::{self, EntitySender},
     ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
+    owner,
+    owner::{OwnerId, OwnerSender},
     restore::batch::SnapshotRecordBatch,
     SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
 };
@@ -22,6 +23,7 @@ use crate::snapshot::{
 #[derive(Debug, Clone)]
 pub struct SnapshotRecordSender {
     metadata: UnboundedSender<SnapshotMetadata>,
+    owner: OwnerSender,
     data_type: DataTypeSender,
     property_type: PropertyTypeSender,
     entity_type: EntityTypeSender,
@@ -38,6 +40,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll metadata sender")?;
+        ready!(self.owner.poll_ready_unpin(cx)).attach_printable("could not poll owner sender")?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
         ready!(self.property_type.poll_ready_unpin(cx))
@@ -57,6 +60,14 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .start_send_unpin(snapshot)
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send snapshot metadata"),
+            SnapshotEntry::Account(account) => self
+                .owner
+                .start_send_unpin(OwnerId::Account(account.id))
+                .attach_printable("could not send account"),
+            SnapshotEntry::AccountGroup(account_group) => self
+                .owner
+                .start_send_unpin(OwnerId::AccountGroup(account_group.id))
+                .attach_printable("could not send account group"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
                 .start_send_unpin(data_type)
@@ -83,6 +94,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush metadata sender")?;
+        ready!(self.owner.poll_flush_unpin(cx)).attach_printable("could not flush owner sender")?;
         ready!(self.data_type.poll_flush_unpin(cx))
             .attach_printable("could not flush data type sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
@@ -102,6 +114,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close metadata sender")?;
+        ready!(self.owner.poll_close_unpin(cx)).attach_printable("could not close owner sender")?;
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
@@ -135,19 +148,20 @@ pub fn channel(
     UnboundedReceiver<SnapshotMetadata>,
 ) {
     let (metadata_tx, metadata_rx) = mpsc::unbounded();
-    let (account_tx, account_rx) = account::channel(chunk_size);
+    let (owner_tx, owner_rx) = owner::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
-        ontology::ontology_metadata_channel(chunk_size, account_tx.clone());
+        ontology::ontology_metadata_channel(chunk_size);
     let (data_type_tx, data_type_rx) =
         ontology::data_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (property_type_tx, property_type_rx) =
         ontology::property_type_channel(chunk_size, ontology_metadata_tx.clone());
     let (entity_type_tx, entity_type_rx) =
         ontology::entity_type_channel(chunk_size, ontology_metadata_tx);
-    let (entity_tx, entity_rx) = entity::channel(chunk_size, account_tx);
+    let (entity_tx, entity_rx) = entity::channel(chunk_size);
 
     (
         SnapshotRecordSender {
+            owner: owner_tx,
             metadata: metadata_tx,
             data_type: data_type_tx,
             property_type: property_type_tx,
@@ -156,7 +170,7 @@ pub fn channel(
         },
         SnapshotRecordReceiver {
             stream: select_all(vec![
-                account_rx.map(SnapshotRecordBatch::Accounts).boxed(),
+                owner_rx.map(SnapshotRecordBatch::Accounts).boxed(),
                 ontology_metadata_rx
                     .map(SnapshotRecordBatch::OntologyTypes)
                     .boxed(),

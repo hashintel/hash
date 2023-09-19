@@ -1,6 +1,12 @@
 import { useQuery } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  Simplified,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  HASHInstance,
+  HASHInstanceProperties,
+} from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import { useMemo } from "react";
 
 import {
@@ -9,62 +15,32 @@ import {
 } from "../../graphql/api-types.gen";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash-instance.queries";
 
-type HashInstance = {
-  userSelfRegistrationIsEnabled: boolean;
-  orgSelfRegistrationIsEnabled: boolean;
-  userRegistrationByInviteIsEnabled: boolean;
-};
-
 /**
  * Retrieves the HASH instance.
  */
 export const useHashInstance = (): {
   loading: boolean;
-  hashInstance?: HashInstance;
+  hashInstance?: Simplified<HASHInstance>;
 } => {
-  /**
-   * @todo: use queryEntities instead so that all entities don't have to
-   *   be fetched to get the HASH instance entity.
-   */
   const { data, loading } = useQuery<
     GetHashInstanceEntityQueryQuery,
     GetHashInstanceEntityQueryQueryVariables
   >(getHashInstanceEntityQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const { hashInstanceEntity } = data ?? {};
 
-  const hashInstance = useMemo<HashInstance | undefined>(() => {
+  const hashInstance = useMemo<Simplified<HASHInstance> | undefined>(() => {
     if (!hashInstanceEntity) {
       return undefined;
     }
 
-    const { properties } = hashInstanceEntity;
-
-    const userSelfRegistrationIsEnabled = properties[
-      extractBaseUrl(
-        types.propertyType.userSelfRegistrationIsEnabled.propertyTypeId,
-      )
-    ] as boolean;
-
-    const orgSelfRegistrationIsEnabled = properties[
-      extractBaseUrl(
-        types.propertyType.orgSelfRegistrationIsEnabled.propertyTypeId,
-      )
-    ] as boolean;
-
-    const userRegistrationByInviteIsEnabled = properties[
-      extractBaseUrl(
-        types.propertyType.userRegistrationByInviteIsEnabled.propertyTypeId,
-      )
-    ] as boolean;
-
     return {
-      userSelfRegistrationIsEnabled,
-      userRegistrationByInviteIsEnabled,
-      orgSelfRegistrationIsEnabled,
+      ...hashInstanceEntity,
+      properties: simplifyProperties(
+        hashInstanceEntity.properties as HASHInstanceProperties,
+      ),
     };
   }, [hashInstanceEntity]);
 

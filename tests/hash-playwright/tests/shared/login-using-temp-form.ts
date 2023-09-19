@@ -1,5 +1,4 @@
-import { expect } from "@playwright/test";
-import { Page } from "playwright";
+import { expect, Page } from "@playwright/test";
 
 /**
  * @todo Remove this function in favor of `loginUsingUi`once we have a proper login flow
@@ -27,7 +26,7 @@ export const loginUsingTempForm = async ({
 
   // Wait for the redirect to the account page
   await expect(page.locator("text=Welcome to HASH")).toBeVisible({
-    timeout: 30_000,
+    timeout: 60_000,
   });
 
   // Wait for user avatar to appear

@@ -1,10 +1,9 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  AccountId,
+  AccountEntityId,
   EntityId,
-  extractEntityUuidFromEntityId,
-  Uuid,
+  extractAccountId,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -81,9 +80,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const authorId = useMemo(
     () =>
-      extractEntityUuidFromEntityId(
-        comment.author.metadata.recordId.entityId,
-      ) as Uuid as AccountId,
+      extractAccountId(
+        comment.author.metadata.recordId.entityId as AccountEntityId,
+      ),
     [comment.author],
   );
 

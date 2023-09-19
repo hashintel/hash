@@ -3,12 +3,12 @@ use error_stack::Result;
 
 use crate::{
     snapshot::{
-        account::AccountRowBatch,
         entity::EntityRowBatch,
         ontology::{
             DataTypeRowBatch, EntityTypeRowBatch, OntologyTypeMetadataRowBatch,
             PropertyTypeRowBatch,
         },
+        owner::AccountRowBatch,
         WriteBatch,
     },
     store::{AsClient, InsertionError, PostgresStore},

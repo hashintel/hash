@@ -1,10 +1,15 @@
 mod read;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
+use authorization::{
+    zanzibar::{Consistency, Zookie},
+    AuthorizationApi, VisibilityScope,
+};
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
+    account::{AccountGroupId, AccountId},
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
@@ -45,8 +50,11 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, traversal_context, subgraph))]
-    pub(crate) async fn traverse_entities(
+    #[tracing::instrument(
+        level = "trace",
+        skip(self, traversal_context, subgraph, authorization_api, zookie)
+    )]
+    pub(crate) async fn traverse_entities<A>(
         &self,
         mut entity_queue: Vec<(
             EntityVertexId,
@@ -54,8 +62,14 @@ impl<C: AsClient> PostgresStore<C> {
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
+        actor_id: AccountId,
+        authorization_api: &A,
+        zookie: Zookie<'static>,
         subgraph: &mut Subgraph,
-    ) -> Result<(), QueryError> {
+    ) -> Result<(), QueryError>
+    where
+        A: AuthorizationApi + Sync,
+    {
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
@@ -155,9 +169,40 @@ impl<C: AsClient> PostgresStore<C> {
                 if let Some(traversal_data) =
                     knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
                 {
+                    let (entity_ids, knowledge_edges): (Vec<_>, Vec<_>) = self
+                        .read_knowledge_edges(traversal_data, table, edge_direction)
+                        .await?
+                        .unzip();
+
+                    if knowledge_edges.is_empty() {
+                        continue;
+                    }
+
+                    let permissions = authorization_api
+                        .can_view_entities(
+                            actor_id,
+                            // TODO: Filter for entities, which were not already added to the
+                            //       subgraph to avoid unnecessary lookups.
+                            entity_ids.iter().copied(),
+                            Consistency::AtExactSnapshot(&zookie),
+                        )
+                        .await
+                        .change_context(QueryError)?
+                        .0;
+
                     entity_queue.extend(
-                        self.read_knowledge_edges(traversal_data, table, edge_direction)
-                            .await?
+                        knowledge_edges
+                            .into_iter()
+                            .zip(entity_ids)
+                            .filter_map(|(edge, entity_id)| {
+                                // We can unwrap here because we checked permissions for all
+                                // entities in question.
+                                permissions
+                                    .get(&entity_id)
+                                    .copied()
+                                    .unwrap_or(true)
+                                    .then_some(edge)
+                            })
                             .flat_map(|edge| {
                                 subgraph.insert_edge(
                                     &edge.left_endpoint,
@@ -214,18 +259,26 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> EntityStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn create_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    async fn create_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
+        authorization_api
+            .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
+            .await
+            .change_context(InsertionError)?
+            .assert_permission()
+            .change_context(InsertionError)?;
+
         let entity_id = EntityId {
             owned_by_id,
             entity_uuid: entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
@@ -233,17 +286,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        transaction
+        let is_account_group: bool = transaction
             .as_client()
-            .query(
+            .query_one(
                 r#"
-                    INSERT INTO entity_ids (owned_by_id, entity_uuid)
-                    VALUES ($1, $2);
+                    WITH inserted_owners AS (
+                        INSERT INTO entity_ids (owned_by_id, entity_uuid)
+                        VALUES ($1, $2)
+                        RETURNING owned_by_id
+                    )
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM account_groups
+                        JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
+                    );
                 "#,
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?
+            .get(0);
+
+        let owned_by_uuid = owned_by_id.into_uuid();
+        let visibility_scope = if is_account_group {
+            VisibilityScope::AccountGroup(AccountGroupId::new(owned_by_uuid))
+        } else {
+            VisibilityScope::Account(AccountId::new(owned_by_uuid))
+        };
 
         let link_order = if let Some(link_data) = link_data {
             transaction
@@ -298,7 +367,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -359,30 +428,49 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        transaction.commit().await.change_context(InsertionError)?;
+        authorization_api
+            .add_entity_owner(actor_id, visibility_scope)
+            .await
+            .change_context(InsertionError)?;
 
-        Ok(EntityMetadata::new(
-            EntityRecordId {
-                entity_id,
-                edition_id,
-            },
-            EntityTemporalMetadata {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
-            },
-            entity_type_id,
-            ProvenanceMetadata {
-                record_created_by_id,
-                record_archived_by_id: None,
-            },
-            archived,
-        ))
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .remove_entity_owner(actor_id, visibility_scope)
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(EntityMetadata::new(
+                EntityRecordId {
+                    entity_id,
+                    edition_id,
+                },
+                EntityTemporalMetadata {
+                    decision_time: row.get(0),
+                    transaction_time: row.get(1),
+                },
+                entity_type_id,
+                ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(actor_id),
+                    record_archived_by_id: None,
+                },
+                archived,
+            ))
+        }
     }
 
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type(
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
         &mut self,
+        actor_id: AccountId,
+        _authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -393,7 +481,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        actor_id: RecordCreatedById,
         entity_type_id: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -459,7 +546,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         let entity_edition_ids = transaction
-            .insert_entity_records(entity_editions, actor_id)
+            .insert_entity_records(entity_editions, RecordCreatedById::new(actor_id))
             .await?;
 
         let entity_versions = transaction
@@ -494,7 +581,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_version,
                     entity_type_id.clone(),
                     ProvenanceMetadata {
-                        record_created_by_id: actor_id,
+                        record_created_by_id: RecordCreatedById::new(actor_id),
                         record_archived_by_id: None,
                     },
                     false,
@@ -503,8 +590,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect())
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity(&self, query: &StructuralQuery<Entity>) -> Result<Subgraph, QueryError> {
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn get_entity<A: AuthorizationApi + Sync>(
+        &self,
+        actor_id: AccountId,
+        authorization_api: &A,
+        query: &StructuralQuery<Entity>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
@@ -514,11 +606,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
+        let mut entities = Read::<Entity>::read_vec(self, filter, Some(&temporal_axes))
             .await?
             .into_iter()
             .map(|entity| (entity.vertex_id(time_axis), entity))
-            .collect();
+            .collect::<HashMap<_, _>>();
+        // TODO: The subgraph structure differs from the API interface. At the API the vertices
+        //       are stored in a nested `HashMap` and here it's flattened. We need to adjust the
+        //       the subgraph anyway so instead of refactoring this now this will just copy the ids.
+        //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
+        let filtered_ids = entities
+            .keys()
+            .map(|vertex_id| vertex_id.base_id)
+            .collect::<HashSet<_>>();
+
+        let (permissions, zookie) = authorization_api
+            .can_view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
+            .await
+            .change_context(QueryError)?;
+
+        let permitted_ids = permissions
+            .into_iter()
+            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+            .collect::<HashSet<_>>();
+
+        entities.retain(|vertex_id, _| permitted_ids.contains(&vertex_id.base_id));
 
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
@@ -549,6 +661,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 })
                 .collect(),
             &mut traversal_context,
+            actor_id,
+            authorization_api,
+            zookie,
             &mut subgraph,
         )
         .await?;
@@ -560,17 +675,25 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, properties))]
-    async fn update_entity(
+    #[tracing::instrument(level = "info", skip(self, properties, authorization_api))]
+    async fn update_entity<A: AuthorizationApi + Send + Sync>(
         &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
-        record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
+        authorization_api
+            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         if transaction
@@ -593,7 +716,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let edition_id = transaction
             .insert_entity_edition(
-                record_created_by_id,
+                RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
                 properties,
@@ -666,7 +789,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             },
             entity_type_id,
             ProvenanceMetadata {
-                record_created_by_id,
+                record_created_by_id: RecordCreatedById::new(actor_id),
                 record_archived_by_id: None,
             },
             archived,

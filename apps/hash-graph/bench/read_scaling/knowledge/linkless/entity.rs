@@ -1,5 +1,6 @@
 use std::{iter::repeat, str::FromStr};
 
+use authorization::NoAuthorization;
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
@@ -17,7 +18,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{EntityMetadata, EntityProperties},
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
@@ -44,7 +45,7 @@ async fn seed_db(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id)
+        .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -78,8 +79,16 @@ async fn seed_db(
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(
-            repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
-            RecordCreatedById::new(account_id),
+            account_id,
+            &mut NoAuthorization,
+            repeat((
+                OwnedById::new(account_id.into_uuid()),
+                None,
+                properties,
+                None,
+                None,
+            ))
+            .take(total),
             &entity_type_id,
         )
         .await
@@ -104,6 +113,7 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
+    actor_id: AccountId,
     entity_metadata_list: &[EntityMetadata],
 ) {
     b.to_async(runtime).iter_batched(
@@ -118,17 +128,21 @@ pub fn bench_get_entity_by_id(
         },
         |entity_record_id| async move {
             store
-                .get_entity(&StructuralQuery {
-                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                    graph_resolve_depths: GraphResolveDepths::default(),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                .get_entity(
+                    actor_id,
+                    &NoAuthorization,
+                    &StructuralQuery {
+                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                        graph_resolve_depths: GraphResolveDepths::default(),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
                     },
-                })
+                )
                 .await
                 .expect("failed to read entity from store");
         },
@@ -146,7 +160,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     );
 
     for size in [1, 10, 100, 1_000, 10_000] {
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
@@ -158,7 +172,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_metadata_list)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list);
+                bench_get_entity_by_id(b, &runtime, store, account_id, entity_metadata_list);
             },
         );
     }

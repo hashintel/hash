@@ -61,7 +61,7 @@ const getSelectorItems = (options: Option[], value: string) =>
             },
           })}
         >
-          {active ? <CheckIcon /> : icon}
+          {active ? <CheckIcon sx={{ fontSize: 22 }} /> : icon}
         </Box>
 
         <Box>

@@ -11,6 +11,7 @@ import {
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { forwardRef, FunctionComponent, useState } from "react";
 
@@ -115,6 +116,8 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   ) => {
     const frozenHelperText = useFrozenValue(helperText);
 
+    const theme = useTheme();
+
     return (
       <MuiTextField
         ref={ref}
@@ -160,6 +163,9 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
           error,
           autoResize,
           multiline: textFieldProps.multiline,
+          slotProps: {
+            input: theme.components?.MuiInputBase?.defaultProps?.inputProps,
+          },
         })}
         helperText={
           <Collapse in={!!helperText}>

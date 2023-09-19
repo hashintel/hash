@@ -36,11 +36,11 @@ runs:
           export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
           yarn install
 
-    - name: yarn playwright install-deps
+    - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
       uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
       with:
         max_attempts: 3
         timeout_minutes: 10
         shell: bash
-        command: yarn playwright install-deps ${{ inputs.playwright-deps }}
+        command: npx playwright install --with-deps ${{ inputs.playwright-deps }}

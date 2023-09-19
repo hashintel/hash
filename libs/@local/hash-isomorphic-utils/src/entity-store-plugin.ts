@@ -1,4 +1,8 @@
-import { EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
+import {
+  EntityId,
+  EntityPropertiesObject,
+  OwnedById,
+} from "@local/hash-subgraph";
 import { castDraft, Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -75,7 +79,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        accountId: string;
+        ownedById: OwnedById;
         draftId: string;
         entityId: EntityId | null;
       };
@@ -452,7 +456,7 @@ class ProsemirrorStateChangeHandler {
 
   constructor(
     private state: EditorState,
-    private accountId: string,
+    private ownedById: OwnedById,
   ) {
     this.tr = state.tr;
   }
@@ -624,7 +628,7 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          accountId: this.accountId,
+          ownedById: this.ownedById,
           draftId,
           entityId: entityId ?? null,
         },
@@ -705,9 +709,9 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 });
 
 export const createEntityStorePlugin = ({
-  accountId,
+  ownedById,
 }: {
-  accountId: string;
+  ownedById: OwnedById;
 }) => {
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,
@@ -753,7 +757,7 @@ export const createEntityStorePlugin = ({
         return;
       }
 
-      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
+      return new ProsemirrorStateChangeHandler(state, ownedById).handleDoc();
     },
   });
   return entityStorePlugin;

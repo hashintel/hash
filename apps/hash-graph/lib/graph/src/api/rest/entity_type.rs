@@ -2,20 +2,20 @@
 
 use std::{collections::hash_map, sync::Arc};
 
+use authorization::AuthorizationApiPool;
 use axum::{
     http::StatusCode,
     response::Response,
     routing::{post, put},
     Extension, Router,
 };
-use futures::TryFutureExt;
 use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, OntologyTypeReference, PartialCustomEntityTypeMetadata,
         PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
-    provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ use crate::{
             report_to_status_code,
             status::status_to_response,
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-            RestApiStore,
+            AuthenticatedUserHeader, RestApiStore,
         },
     },
     ontology::{
@@ -79,9 +79,11 @@ pub struct EntityTypeResource;
 
 impl RoutedResource for EntityTypeResource {
     /// Create routes for interacting with entity types.
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<S, A>() -> Router
     where
-        for<'pool> P::Store<'pool>: RestApiStore,
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'pool> S::Store<'pool>: RestApiStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
@@ -89,12 +91,12 @@ impl RoutedResource for EntityTypeResource {
             Router::new()
                 .route(
                     "/",
-                    post(create_entity_type::<P>).put(update_entity_type::<P>),
+                    post(create_entity_type::<S, A>).put(update_entity_type::<S, A>),
                 )
-                .route("/query", post(get_entity_types_by_query::<P>))
-                .route("/load", post(load_external_entity_type::<P>))
-                .route("/archive", put(archive_entity_type::<P>))
-                .route("/unarchive", put(unarchive_entity_type::<P>)),
+                .route("/query", post(get_entity_types_by_query::<S, A>))
+                .route("/load", post(load_external_entity_type::<S, A>))
+                .route("/archive", put(archive_entity_type::<S, A>))
+                .route("/unarchive", put(unarchive_entity_type::<S, A>)),
         )
     }
 }
@@ -105,7 +107,6 @@ struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
@@ -116,6 +117,9 @@ struct CreateEntityTypeRequest {
     path = "/entity-types",
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = MaybeListOfEntityTypeMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
@@ -124,18 +128,25 @@ struct CreateEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn create_entity_type<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, domain_validator)
+)]
+async fn create_entity_type<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
+    A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -160,7 +171,6 @@ where
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
-        actor_id,
         label_property,
     }) = body;
 
@@ -214,13 +224,7 @@ where
         partial_metadata.push(PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
             custom: PartialCustomEntityTypeMetadata {
-                common: PartialCustomOntologyMetadata::Owned {
-                    provenance: ProvenanceMetadata {
-                        record_created_by_id: actor_id,
-                        record_archived_by_id: None,
-                    },
-                    owned_by_id,
-                },
+                common: PartialCustomOntologyMetadata::Owned { owned_by_id },
                 label_property: label_property.clone(),
             },
         });
@@ -228,8 +232,24 @@ where
         entity_types.push(entity_type);
     }
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire authorization API. This is an internal error, please report to \
+                 the developers of the HASH Graph with whatever information you can provide \
+                 including request details and logs."
+                    .to_owned(),
+            ),
+            vec![],
+        ))
+    })?;
+
     let mut metadata = store
         .create_entity_types(
+            actor_id,
+            &mut authorization_api,
             entity_types.into_iter().zip(partial_metadata),
             ConflictBehavior::Fail,
         )
@@ -300,7 +320,6 @@ where
 struct LoadExternalEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
@@ -308,6 +327,9 @@ struct LoadExternalEntityTypeRequest {
     path = "/entity-types/load",
     request_body = LoadExternalEntityTypeRequest,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
         (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = VAR_STATUS),
@@ -316,23 +338,27 @@ struct LoadExternalEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = VAR_STATUS),
     ),
 )]
-#[tracing::instrument(level = "info", skip(pool, domain_validator))]
-async fn load_external_entity_type<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, domain_validator)
+)]
+async fn load_external_entity_type<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<OntologyElementMetadata>, Response>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync,
+    for<'pool> S::Store<'pool>: RestApiStore,
+    A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(LoadExternalEntityTypeRequest {
-        entity_type_id,
-        actor_id,
-    }) = body;
+    let Json(LoadExternalEntityTypeRequest { entity_type_id }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
             hash_status::StatusCode::Internal,
@@ -354,12 +380,27 @@ where
         ))
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        status_to_response(Status::new(
+            hash_status::StatusCode::Internal,
+            Some(
+                "Could not acquire authorization API. This is an internal error, please report to \
+                 the developers of the HASH Graph with whatever information you can provide \
+                 including request details and logs."
+                    .to_owned(),
+            ),
+            vec![],
+        ))
+    })?;
+
     Ok(Json(
         store
             .load_external_type(
+                actor_id,
+                &mut authorization_api,
                 &domain_validator,
                 OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
-                actor_id,
             )
             .await
             .map_err(|error| {
@@ -387,41 +428,54 @@ where
     path = "/entity-types/query",
     request_body = EntityTypeStructuralQuery,
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn get_entity_types_by_query<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn get_entity_types_by_query<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
-    pool.acquire()
-        .map_err(|error| {
-            tracing::error!(?error, "Could not acquire access to the store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .and_then(|store| async move {
-            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
-                tracing::error!(?error, "Could not deserialize query");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            query.filter.convert_parameters().map_err(|error| {
-                tracing::error!(?error, "Could not validate query");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            store
-                .get_entity_type(&query)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, ?query, "Could not read entity types from the store");
-                    report_to_status_code(&report)
-                })
-        })
+) -> Result<Json<Subgraph>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let store = store_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+        tracing::error!(?error, "Could not deserialize query");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    query.filter.convert_parameters().map_err(|error| {
+        tracing::error!(?error, "Could not validate query");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let subgraph = store
+        .get_entity_type(actor_id, &authorization_api, &query)
         .await
-        .map(|subgraph| Json(subgraph.into()))
+        .map_err(|report| {
+            tracing::error!(error=?report, ?query, "Could not read entity types from the store");
+            report_to_status_code(&report)
+        })?;
+
+    Ok(Json(subgraph.into()))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -431,7 +485,6 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_update: VersionedUrl,
-    actor_id: RecordCreatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
@@ -441,6 +494,9 @@ struct UpdateEntityTypeRequest {
     put,
     path = "/entity-types",
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -450,15 +506,20 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn update_entity_type<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn update_entity_type<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<EntityTypeMetadata>, StatusCode> {
+) -> Result<Json<EntityTypeMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
     let Json(UpdateEntityTypeRequest {
         schema,
         mut type_to_update,
-        actor_id,
         label_property,
     }) = body;
 
@@ -472,13 +533,23 @@ async fn update_entity_type<P: StorePool + Send>(
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .update_entity_type(entity_type, actor_id, label_property)
+        .update_entity_type(
+            actor_id,
+            &mut authorization_api,
+            entity_type,
+            label_property,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
@@ -498,13 +569,15 @@ async fn update_entity_type<P: StorePool + Send>(
 struct ArchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_archive: VersionedUrl,
-    actor_id: RecordArchivedById,
 }
 
 #[utoipa::path(
     put,
     path = "/entity-types/archive",
     tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -515,23 +588,31 @@ struct ArchiveEntityTypeRequest {
     ),
     request_body = ArchiveEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn archive_entity_type<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn archive_entity_type<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     body: Json<ArchiveEntityTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(ArchiveEntityTypeRequest {
-        type_to_archive,
-        actor_id,
-    }) = body;
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(ArchiveEntityTypeRequest { type_to_archive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .archive_entity_type(&type_to_archive, actor_id)
+        .archive_entity_type(actor_id, &mut authorization_api, &type_to_archive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not archive entity type");
@@ -554,13 +635,15 @@ async fn archive_entity_type<P: StorePool + Send>(
 struct UnarchiveEntityTypeRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     type_to_unarchive: VersionedUrl,
-    actor_id: RecordCreatedById,
 }
 
 #[utoipa::path(
     put,
     path = "/entity-types/unarchive",
-    tag = "DataType",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
     responses(
         (status = 200, content_type = "application/json", description = "The temporal metadata of the updated entity type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
@@ -571,23 +654,31 @@ struct UnarchiveEntityTypeRequest {
     ),
     request_body = UnarchiveEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(pool))]
-async fn unarchive_entity_type<P: StorePool + Send>(
-    pool: Extension<Arc<P>>,
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn unarchive_entity_type<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
     body: Json<UnarchiveEntityTypeRequest>,
-) -> Result<Json<OntologyTemporalMetadata>, StatusCode> {
-    let Json(UnarchiveEntityTypeRequest {
-        type_to_unarchive,
-        actor_id,
-    }) = body;
+) -> Result<Json<OntologyTemporalMetadata>, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let Json(UnarchiveEntityTypeRequest { type_to_unarchive }) = body;
 
-    let mut store = pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     store
-        .unarchive_entity_type(&type_to_unarchive, actor_id)
+        .unarchive_entity_type(actor_id, &mut authorization_api, &type_to_unarchive)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not unarchive entity type");

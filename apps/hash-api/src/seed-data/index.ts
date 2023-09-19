@@ -1,4 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { ImpureGraphContext } from "../graph";
 import {
@@ -17,12 +18,13 @@ const seedOrg = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }): Promise<Org> => {
+  const authentication = { actorId: systemUserAccountId };
   const { logger, context } = params;
 
   const exampleOrgShortname = "example-org";
   const exampleOrgName = "Example";
 
-  const existingOrg = await getOrgByShortname(context, {
+  const existingOrg = await getOrgByShortname(context, authentication, {
     shortname: exampleOrgShortname,
   });
 
@@ -30,13 +32,12 @@ const seedOrg = async (params: {
     return existingOrg;
   }
 
-  const sharedOrg = await createOrg(context, {
+  const sharedOrg = await createOrg(context, authentication, {
     name: exampleOrgName,
     shortname: exampleOrgShortname,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemUserAccountId,
   });
 
   logger.info(
@@ -55,7 +56,7 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(pageTitles, sharedOrg.accountId, params);
+  await seedPages(pageTitles, sharedOrg.accountGroupId as OwnedById, params);
 
   logger.info(
     `Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`,
@@ -69,6 +70,7 @@ export const seedOrgsAndUsers = async (params: {
   context: ImpureGraphContext;
 }): Promise<void> => {
   const { logger, context } = params;
+  const authentication = { actorId: systemUserAccountId };
 
   const createdUsers = await ensureUsersAreSeeded(params);
 
@@ -76,10 +78,9 @@ export const seedOrgsAndUsers = async (params: {
     const sharedOrg = await seedOrg(params);
 
     for (const user of createdUsers) {
-      await joinOrg(context, {
+      await joinOrg(context, authentication, {
         userEntityId: user.entity.metadata.recordId.entityId,
         orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
-        actorId: systemUserAccountId,
       });
 
       logger.info(
@@ -108,7 +109,7 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(pageTitles, user.accountId, params);
+      await seedPages(pageTitles, user.accountId as OwnedById, params);
       logger.info(
         `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
       );

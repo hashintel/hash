@@ -13,7 +13,6 @@ use graph_types::ontology::{CustomOntologyMetadata, OntologyElementMetadata};
 use uuid::Uuid;
 
 use crate::snapshot::{
-    account::AccountSender,
     ontology::{
         table::OntologyTemporalMetadataRow, OntologyExternalMetadataRow, OntologyIdRow,
         OntologyOwnedMetadataRow, OntologyTypeMetadataRowBatch,
@@ -23,7 +22,6 @@ use crate::snapshot::{
 
 #[derive(Debug, Clone)]
 pub struct OntologyTypeMetadataSender {
-    account: AccountSender,
     id: Sender<OntologyIdRow>,
     temporal_metadata: Sender<OntologyTemporalMetadataRow>,
     owned_metadata: Sender<OntologyOwnedMetadataRow>,
@@ -34,8 +32,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_ready_unpin(cx))
-            .attach_printable("could not poll account sender")?;
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
@@ -87,10 +83,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
             }
         };
 
-        self.account
-            .start_send_unpin(provenance.record_created_by_id.as_account_id())
-            .attach_printable("could not send account")?;
-
         self.id
             .start_send(OntologyIdRow {
                 ontology_id,
@@ -114,8 +106,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_flush_unpin(cx))
-            .attach_printable("could not flush account sender")?;
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
@@ -133,8 +123,6 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_close_unpin(cx))
-            .attach_printable("could not close account sender")?;
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
@@ -166,7 +154,6 @@ impl Stream for OntologyTypeMetadataReceiver {
 
 pub fn ontology_metadata_channel(
     chunk_size: usize,
-    account_sender: AccountSender,
 ) -> (OntologyTypeMetadataSender, OntologyTypeMetadataReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
@@ -175,7 +162,6 @@ pub fn ontology_metadata_channel(
 
     (
         OntologyTypeMetadataSender {
-            account: account_sender,
             id: id_tx,
             temporal_metadata: temporal_metadata_tx,
             owned_metadata: owned_metadata_tx,

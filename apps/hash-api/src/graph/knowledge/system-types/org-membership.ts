@@ -1,8 +1,11 @@
 import {
+  AccountEntityId,
+  AccountGroupEntityId,
   EntityId,
+  extractAccountGroupId,
+  extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -63,15 +66,36 @@ export const createOrgMembership: ImpureGraphFunction<
     userEntityId: EntityId;
   },
   Promise<OrgMembership>
-> = async (ctx, { userEntityId, orgEntityId, actorId }) => {
-  const linkEntity = await createLinkEntity(ctx, {
-    ownedById: extractEntityUuidFromEntityId(orgEntityId) as Uuid as OwnedById,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
-    leftEntityId: userEntityId,
-    rightEntityId: orgEntityId,
-    properties: {},
-    actorId,
-  });
+> = async (ctx, authentication, { userEntityId, orgEntityId }) => {
+  const userAccountId = extractAccountId(userEntityId as AccountEntityId);
+  const orgAccountGroupId = extractAccountGroupId(
+    orgEntityId as AccountGroupEntityId,
+  );
+
+  await ctx.graphApi.addAccountGroupMember(
+    authentication.actorId,
+    orgAccountGroupId,
+    userAccountId,
+  );
+
+  let linkEntity;
+  try {
+    linkEntity = await createLinkEntity(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
+      leftEntityId: userEntityId,
+      rightEntityId: orgEntityId,
+      properties: {},
+    });
+  } catch (error) {
+    await ctx.graphApi.removeAccountGroupMember(
+      authentication.actorId,
+      extractEntityUuidFromEntityId(orgEntityId),
+      extractAccountId(userEntityId as AccountEntityId),
+    );
+
+    throw error;
+  }
 
   return getOrgMembershipFromLinkEntity({ linkEntity });
 };
@@ -84,8 +108,8 @@ export const createOrgMembership: ImpureGraphFunction<
 export const getOrgMembershipOrg: ImpureGraphFunction<
   { orgMembership: OrgMembership },
   Promise<Org>
-> = async (ctx, { orgMembership }) => {
-  const orgEntity = await getLinkEntityRightEntity(ctx, {
+> = async (ctx, authentication, { orgMembership }) => {
+  const orgEntity = await getLinkEntityRightEntity(ctx, authentication, {
     linkEntity: orgMembership.linkEntity,
   });
 
@@ -100,8 +124,8 @@ export const getOrgMembershipOrg: ImpureGraphFunction<
 export const getOrgMembershipUser: ImpureGraphFunction<
   { orgMembership: OrgMembership },
   Promise<User>
-> = async (ctx, { orgMembership }) => {
-  const userEntity = await getLinkEntityLeftEntity(ctx, {
+> = async (ctx, authentication, { orgMembership }) => {
+  const userEntity = await getLinkEntityLeftEntity(ctx, authentication, {
     linkEntity: orgMembership.linkEntity,
   });
 

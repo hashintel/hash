@@ -7,6 +7,11 @@ from uuid import UUID
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, RootModel
 
 
+class AccountGroupId(RootModel):
+    model_config = ConfigDict(populate_by_name=True)
+    root: UUID
+
+
 class AccountId(RootModel):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
@@ -516,19 +521,16 @@ class Status(BaseModel):
 
 class ArchiveDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordArchivedById = Field(..., alias="actorId")
     type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
 class ArchiveEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordArchivedById = Field(..., alias="actorId")
     type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
 class ArchivePropertyTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordArchivedById = Field(..., alias="actorId")
     type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
 
 
@@ -545,14 +547,12 @@ class ClosedTemporalBound(RootModel):
 
 class CreateDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: DataType | list[DataType] = Field(..., alias="schema")
 
 
 class CreateEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     label_property: BaseURL | None = Field(None, alias="labelProperty")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: EntityType | list[EntityType] = Field(..., alias="schema")
@@ -647,19 +647,16 @@ class LinkData(EntityLinkOrder):
 
 class LoadExternalDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     data_type_id: VersionedURL = Field(..., alias="dataTypeId")
 
 
 class LoadExternalEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
 
 
 class LoadExternalPropertyTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     property_type_id: VersionedURL = Field(..., alias="propertyTypeId")
 
 
@@ -703,19 +700,16 @@ class TemporalBound(RootModel):
 
 class UnarchiveDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
 
 
 class UnarchiveEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
 
 
 class UnarchivePropertyTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     type_to_unarchive: VersionedURL = Field(..., alias="typeToUnarchive")
 
 
@@ -727,14 +721,12 @@ class UnresolvedRightBoundedTemporalInterval(BaseModel):
 
 class UpdateDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     schema_: UpdateDataType = Field(..., alias="schema")
     type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
 class UpdateEntityRequest(EntityLinkOrder):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     archived: bool
     entity_id: EntityId = Field(..., alias="entityId")
     entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
@@ -743,7 +735,6 @@ class UpdateEntityRequest(EntityLinkOrder):
 
 class UpdateEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     label_property: BaseURL | None = Field(None, alias="labelProperty")
     schema_: UpdateEntityType = Field(..., alias="schema")
     type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
@@ -751,7 +742,6 @@ class UpdateEntityTypeRequest(BaseModel):
 
 class CreateEntityRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     entity_type_id: VersionedURL = Field(..., alias="entityTypeId")
     entity_uuid: EntityUuid | None = Field(None, alias="entityUuid")
     link_data: LinkData | None = Field(None, alias="linkData")
@@ -1114,7 +1104,6 @@ class KnowledgeGraphVertices(RootModel):
 
 class CreatePropertyTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: PropertyType | list[PropertyType] = Field(..., alias="schema")
 
@@ -1202,7 +1191,6 @@ class Subgraph(BaseModel):
 
 class UpdatePropertyTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    actor_id: RecordCreatedById = Field(..., alias="actorId")
     schema_: UpdatePropertyType = Field(..., alias="schema")
     type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 

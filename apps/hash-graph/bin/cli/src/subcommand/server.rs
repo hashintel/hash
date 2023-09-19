@@ -6,6 +6,12 @@ use std::{
     time::Duration,
 };
 
+use authorization::NoAuthorization;
+#[cfg(feature = "authorization")]
+use authorization::{
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
+    zanzibar::ZanzibarClient,
+};
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
 use graph::{
@@ -23,7 +29,6 @@ use graph_types::{
         PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
         PartialOntologyElementMetadata,
     },
-    provenance::{ProvenanceMetadata, RecordCreatedById},
 };
 use regex::Regex;
 use reqwest::Client;
@@ -117,6 +122,21 @@ pub struct ServerArgs {
     /// Starts a server without connecting to the type fetcher
     #[clap(long, default_value_t = false, conflicts_with_all = ["type_fetcher_host", "type_fetcher_port"])]
     pub offline: bool,
+
+    /// The host the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HOST")]
+    pub spicedb_host: String,
+
+    /// The port the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
+    pub spicedb_http_port: u16,
+
+    /// The secret key used to authenticate with the Spice DB server.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
+    pub spicedb_grpc_preshared_key: String,
 }
 
 // TODO: Consider making this a refinery migration
@@ -226,7 +246,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     // TODO: When we improve error management we need to match on it here, this will continue
     //  normally even if the DB is down
     if connection
-        .insert_account_id(root_account_id)
+        .insert_account_id(root_account_id, &mut NoAuthorization, root_account_id)
         .await
         .change_context(GraphError)
         .is_err()
@@ -243,16 +263,17 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         let data_type_metadata = PartialOntologyElementMetadata {
             record_id: data_type.id().clone().into(),
             custom: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(root_account_id),
-                    record_archived_by_id: None,
-                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
         };
 
         if let Err(error) = connection
-            .create_data_type(data_type, data_type_metadata)
+            .create_data_type(
+                root_account_id,
+                &mut NoAuthorization,
+                data_type,
+                data_type_metadata,
+            )
             .await
             .change_context(GraphError)
         {
@@ -285,10 +306,6 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         record_id: link_entity_type.id().clone().into(),
         custom: PartialCustomEntityTypeMetadata {
             common: PartialCustomOntologyMetadata::External {
-                provenance: ProvenanceMetadata {
-                    record_created_by_id: RecordCreatedById::new(root_account_id),
-                    record_archived_by_id: None,
-                },
                 fetched_at: OffsetDateTime::now_utc(),
             },
             label_property: None,
@@ -298,7 +315,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let title = link_entity_type.title().to_owned();
 
     if let Err(error) = connection
-        .create_entity_type(link_entity_type, link_entity_type_metadata)
+        .create_entity_type(
+            root_account_id,
+            &mut NoAuthorization,
+            link_entity_type,
+            link_entity_type_metadata,
+        )
         .await
     {
         if error.contains::<VersionedUrlAlreadyExists>() {
@@ -376,8 +398,27 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         )
     };
 
+    #[cfg(feature = "authorization")]
+    let authorization_api = {
+        let mut spicedb_client = SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            &args.spicedb_grpc_preshared_key,
+        )
+        .change_context(GraphError)?;
+        spicedb_client
+            .import_schema(include_str!(
+                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+            ))
+            .await
+            .change_context(GraphError)?;
+        ZanzibarClient::new(spicedb_client)
+    };
+    #[cfg(not(feature = "authorization"))]
+    let authorization_api = NoAuthorization;
+
     let router = rest_api_router(RestRouterDependencies {
         store: Arc::new(pool),
+        authorization_api: Arc::new(authorization_api),
         domain_regex: DomainValidator::new(args.allowed_url_domain),
     });
 

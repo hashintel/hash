@@ -1,11 +1,19 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  LinkIcon,
+} from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import {
   Box,
+  Divider,
+  ListItemIcon,
   listItemSecondaryActionClasses,
   ListItemText,
   Menu,
+  Typography,
   useTheme,
 } from "@mui/material";
 import {
@@ -13,44 +21,27 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useContext, useState } from "react";
+import { FunctionComponent, useContext } from "react";
 
-import { useAccountPages } from "../../../components/hooks/use-account-pages";
-import { useCreatePage } from "../../../components/hooks/use-create-page";
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
+import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
+import { CreateDocumentMenuItem } from "./actions-dropdown/create-document-menu-item";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
-export const ActionsDropdownInner: FunctionComponent<{
-  accountId: AccountId;
-}> = ({ accountId }) => {
+const ActionsDropdownInner: FunctionComponent<{
+  activeWorkspaceOwnedById: OwnedById;
+}> = ({ activeWorkspaceOwnedById }) => {
   const theme = useTheme();
-  const { activeWorkspace } = useContext(WorkspaceContext);
-  const [loading, setLoading] = useState(false);
-  const { lastRootPageIndex } = useAccountPages(accountId as OwnedById);
-  const [createUntitledPage] = useCreatePage(accountId as OwnedById);
+
+  const { hashInstance } = useHashInstance();
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",
   });
-
-  // @todo handle loading/error states properly
-  const addPage = useCallback(async () => {
-    if (loading) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await createUntitledPage(lastRootPageIndex);
-    } catch (err) {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Could not create page: ", err);
-    } finally {
-      popupState.close();
-      setLoading(false);
-    }
-  }, [createUntitledPage, loading, popupState, lastRootPageIndex]);
 
   return (
     <Box>
@@ -92,33 +83,64 @@ export const ActionsDropdownInner: FunctionComponent<{
           },
         }}
       >
-        <MenuItem
-          onClick={() => {
-            void addPage();
-            popupState.close();
+        <Typography
+          sx={{
+            marginTop: 1,
+            marginX: 1.5,
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 12,
+            fontWeight: 600,
+            textTransform: "uppercase",
           }}
         >
-          <ListItemText primary="Create Page" />
+          Create New
+        </Typography>
+        {hashInstance?.properties.pagesAreEnabled ? (
+          <CreateDocumentMenuItem
+            activeWorkspaceOwnedById={activeWorkspaceOwnedById}
+            onClick={popupState.close}
+          />
+        ) : null}
+        <MenuItem href="/new/entity" onClick={popupState.close}>
+          <ListItemIcon>
+            <HashtagRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity" />
         </MenuItem>
-        {activeWorkspace
-          ? [
-              { href: "/new/entity", label: "Create Entity" },
-              { href: "/new/types/entity-type", label: "Create Entity Type" },
-            ].map(({ href, label }) => (
-              <MenuItem key={href} href={href} onClick={popupState.close}>
-                <ListItemText primary={label} />
-              </MenuItem>
-            ))
-          : null}
+        <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
+          <ListItemIcon>
+            <AsteriskRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Entity type" />
+        </MenuItem>
+        <MenuItem
+          href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <LinkIcon />
+          </ListItemIcon>
+          <ListItemText primary="Link type" />
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          href={`${types.entityType.file.entityTypeId}?tab=upload`}
+          onClick={popupState.close}
+        >
+          <ListItemIcon>
+            <UploadRegularIcon />
+          </ListItemIcon>
+          <ListItemText primary="Upload a file" />
+        </MenuItem>
       </Menu>
     </Box>
   );
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  return activeWorkspaceAccountId ? (
-    <ActionsDropdownInner accountId={activeWorkspaceAccountId} />
+  return activeWorkspaceOwnedById ? (
+    <ActionsDropdownInner activeWorkspaceOwnedById={activeWorkspaceOwnedById} />
   ) : null;
 };

@@ -59,17 +59,17 @@ const addInheritedValuesForEntityType = (
   inheritedValuesMap: ValueMap,
   inheritanceChainToHere: EntityType[] = [],
 ) => {
-  const entity = entityTypeOptions[entityTypeId];
+  const entityType = entityTypeOptions[entityTypeId];
 
-  if (!entity) {
+  if (!entityType) {
     throw new Error(
       `Entity type ${entityTypeId} not found in entity type options`,
     );
   }
 
-  const newInheritanceChain = [...inheritanceChainToHere, entity];
+  const newInheritanceChain = [...inheritanceChainToHere, entityType];
 
-  const { properties, links } = getFormDataFromSchema(entity);
+  const { properties, links } = getFormDataFromSchema(entityType);
 
   for (const link of links) {
     // eslint-disable-next-line no-param-reassign
@@ -97,11 +97,11 @@ const addInheritedValuesForEntityType = (
     };
   }
 
-  if (!entity.allOf?.length) {
+  if (!entityType.allOf?.length) {
     // we have reached a root entity type, add the inheritance chain to the map
     inheritedValuesMap.inheritanceChains.push(newInheritanceChain);
   } else {
-    entity.allOf.map(({ $ref }) =>
+    entityType.allOf.map(({ $ref }) =>
       addInheritedValuesForEntityType(
         $ref,
         entityTypeOptions,

@@ -1,3 +1,4 @@
+use authorization::AuthorizationApiPool;
 use axum::Router;
 
 use crate::{api::rest::RestApiStore, store::StorePool};
@@ -9,9 +10,11 @@ use crate::{api::rest::RestApiStore, store::StorePool};
 /// through a `Router`, making it explicitly clear we want to provide `OpenApi` specification as
 /// documentation for the routes.
 pub(super) trait RoutedResource: utoipa::OpenApi {
-    fn routes<P: StorePool + Send + 'static>() -> Router
+    fn routes<S, A>() -> Router
     where
-        for<'pool> P::Store<'pool>: RestApiStore;
+        S: StorePool + Send + Sync + 'static,
+        A: AuthorizationApiPool + Send + Sync + 'static,
+        for<'pool> S::Store<'pool>: RestApiStore;
 
     fn documentation() -> utoipa::openapi::OpenApi {
         Self::openapi()

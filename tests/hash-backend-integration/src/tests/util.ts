@@ -87,20 +87,26 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await createUser(context, {
-    emails: [`${shortname}@example.com`],
-    kratosIdentityId,
-    actorId: systemUserAccountId,
-  }).catch((err) => {
+  const createdUser = await createUser(
+    context,
+    { actorId: systemUserAccountId },
+    {
+      emails: [`${shortname}@example.com`],
+      kratosIdentityId,
+    },
+  ).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
   });
 
-  return await updateUserShortname(context, {
-    user: createdUser,
-    updatedShortname: shortname,
-    actorId: createdUser.accountId,
-  }).catch((err) => {
+  return await updateUserShortname(
+    context,
+    { actorId: createdUser.accountId },
+    {
+      user: createdUser,
+      updatedShortname: shortname,
+    },
+  ).catch((err) => {
     logger.error(`Error updating shortname for UserModel to ${shortname}`);
     throw err;
   });
@@ -112,15 +118,15 @@ export const createTestOrg = async (
   logger: Logger,
 ) => {
   await ensureSystemTypesExist({ logger, context });
+  const authentication = { actorId: systemUserAccountId };
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await createOrg(context, {
+  return await createOrg(context, authentication, {
     name: "Test org",
     shortname,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemUserAccountId,
   });
 };

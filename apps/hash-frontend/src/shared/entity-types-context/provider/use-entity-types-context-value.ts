@@ -5,14 +5,18 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import { EntityTypesContextValue } from "../shared/context-types";
-import { isLinkEntityType } from "../shared/is-link-entity-type";
+import {
+  getParentIds,
+  isSpecialEntityType,
+} from "../shared/is-special-entity-type";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<
     Omit<EntityTypesContextValue, "refetch" | "ensureFetched">
   >({
     entityTypes: null,
-    isLinkTypeLookup: null,
+    isSpecialEntityTypeLookup: null,
+    entityTypeParentIds: null,
     loading: true,
     subgraph: null,
   });
@@ -48,16 +52,24 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
       Object.fromEntries(entityTypes.map((type) => [type.schema.$id, type]));
 
-    const isLinkTypeLookup = Object.fromEntries(
+    const isSpecialEntityTypeLookup = Object.fromEntries(
       entityTypes.map((type) => [
         type.schema.$id,
-        isLinkEntityType(type.schema, typesByVersion),
+        isSpecialEntityType(type.schema, typesByVersion),
+      ]),
+    );
+
+    const entityTypeParentIds = Object.fromEntries(
+      entityTypes.map((type) => [
+        type.schema.$id,
+        getParentIds(type.schema, typesByVersion),
       ]),
     );
 
     setTypes({
       entityTypes,
-      isLinkTypeLookup,
+      entityTypeParentIds,
+      isSpecialEntityTypeLookup,
       subgraph: subgraph ?? null,
       loading: false,
     });

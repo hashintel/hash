@@ -23,4 +23,4 @@ serde = ["dep:serde", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde
 
 [dev-dependencies]
 jsonschema = { version = "0.17.1", default-features = false }
-coverage-helper = "0.1.0"
+coverage-helper = "0.2.0"

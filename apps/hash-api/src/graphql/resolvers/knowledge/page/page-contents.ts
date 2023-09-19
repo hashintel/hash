@@ -16,10 +16,10 @@ export const pageContents: ResolverFn<
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}
-> = async (page, _, { dataSources }) => {
+> = async (page, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const contentItems = await getPageBlocks(context, {
+  const contentItems = await getPageBlocks(context, authentication, {
     pageEntityId: page.metadata.recordId.entityId,
   });
 

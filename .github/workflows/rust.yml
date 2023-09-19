@@ -101,16 +101,16 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@5692c4095a0678a0783fb9efe3a7fee3df081104 # v2.18.0
+        uses: taiki-e/install-action@2358ab643982f73276ef3aef08759c6cc3693530 # v2.18.13
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
@@ -139,7 +139,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@00e563ead9f72a8461b24876bee2d0c2e8bd2ee8 # v2.21.5
+        uses: github/codeql-action/upload-sarif@04daf014b50eaf774287bf3f0f1869d4b4c4b913 # v2.21.7
         if: always()
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -197,7 +197,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -206,7 +206,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
@@ -214,9 +214,9 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@5692c4095a0678a0783fb9efe3a7fee3df081104 # v2.18.0
+        uses: taiki-e/install-action@2358ab643982f73276ef3aef08759c6cc3693530 # v2.18.13
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37
 
       - name: Install Poetry dependencies
         working-directory: ${{ matrix.directory }}
@@ -234,7 +234,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -270,7 +270,7 @@ jobs:
         if: matrix.directory == 'apps/hash-graph'
         run: |
           yarn turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy up graph --wait
+          yarn workspace @apps/hash-external-services deploy:test up graph --wait
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -279,7 +279,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4 # v2.6.2
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
@@ -287,7 +287,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@5692c4095a0678a0783fb9efe3a7fee3df081104 # v2.18.0
+        uses: taiki-e/install-action@2358ab643982f73276ef3aef08759c6cc3693530 # v2.18.13
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -308,7 +308,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ (success() || failure()) && matrix.directory == 'apps/hash-graph' }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn workspace @apps/hash-external-services deploy:test logs --timestamps
 
   publish:
     name: publish
@@ -330,9 +330,9 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@5692c4095a0678a0783fb9efe3a7fee3df081104 # v2.18.0
+        uses: taiki-e/install-action@2358ab643982f73276ef3aef08759c6cc3693530 # v2.18.13
         with:
-          tool: just@1.13.0,cargo-hack@0.5.26,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
       - name: Run lints
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}

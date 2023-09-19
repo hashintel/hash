@@ -18,7 +18,7 @@ export const useDraftEntitySubgraph = (
   Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>,
   boolean,
 ] => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
 
@@ -27,8 +27,6 @@ export const useDraftEntitySubgraph = (
   useEffect(() => {
     const init = async () => {
       try {
-        setLoading(true);
-
         const { data: subgraph } = await getEntityType({
           data: {
             entityTypeId,

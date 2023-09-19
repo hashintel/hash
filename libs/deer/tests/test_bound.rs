@@ -80,13 +80,15 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
         let error = array.end();
 
         match (errors, error) {
-            (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.change_context(VisitorError)),
+            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
+                Err(errors.change_context(VisitorError))
+            }
             (Err(mut errors), Err(error)) => {
                 errors.extend_one(error);
 
                 Err(errors.change_context(VisitorError))
             }
-            (Ok(_), Ok(_)) => Ok(stats),
+            (Ok(()), Ok(())) => Ok(stats),
         }
     }
 }
@@ -331,13 +333,15 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
         let error = object.end();
 
         match (errors, error) {
-            (Err(errors), Ok(_)) | (Ok(_), Err(errors)) => Err(errors.change_context(VisitorError)),
+            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
+                Err(errors.change_context(VisitorError))
+            }
             (Err(mut errors), Err(error)) => {
                 errors.extend_one(error);
 
                 Err(errors.change_context(VisitorError))
             }
-            (Ok(_), Ok(_)) => Ok(stats),
+            (Ok(()), Ok(())) => Ok(stats),
         }
     }
 }

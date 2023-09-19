@@ -5,7 +5,7 @@ use crate::store::Store;
 
 /// Managed pool to keep track about [`Store`]s.
 #[async_trait]
-pub trait StorePool: Sync {
+pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
     type Error;
 
@@ -17,8 +17,10 @@ pub trait StorePool: Sync {
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
-    /// Using an owned [`Store`] makes it easier to leak the connection pool. Therefore,
-    /// [`StorePool::acquire`] (which stores a lifetime-bound reference to the `StorePool`) should
-    /// be preferred whenever possible.
+    /// Using an owned [`Store`] makes it easier to leak the connection pool and it's not possible
+    /// to reuse that connection. Therefore, [`acquire`] (which stores a lifetime-bound reference to
+    /// the `StorePool`) should be preferred whenever possible.
+    ///
+    /// [`acquire`]: Self::acquire
     async fn acquire_owned(&self) -> Result<Self::Store<'static>, Self::Error>;
 }

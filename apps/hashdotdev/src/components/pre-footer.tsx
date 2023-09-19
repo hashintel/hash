@@ -130,12 +130,11 @@ export const Subscribe: FunctionComponent<
               sx={{
                 color: ({ palette }) => palette.teal[50],
                 fontWeight: 900,
-                fontSize: 48,
                 lineHeight: 1,
                 mb: 2,
               }}
             >
-              <EnvelopeDotSolidIcon />
+              <EnvelopeDotSolidIcon sx={{ fontSize: 48 }} />
             </Box>
             <Typography
               variant="hashHeading2"

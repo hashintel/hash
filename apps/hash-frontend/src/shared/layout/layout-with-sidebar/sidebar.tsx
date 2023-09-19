@@ -4,6 +4,7 @@ import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent, useContext } from "react";
 
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
 import { useRoutePageInfo } from "../../routing";
@@ -19,9 +20,11 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
+
+  const { hashInstance } = useHashInstance();
 
   return (
     <Drawer
@@ -95,15 +98,17 @@ export const PageSidebar: FunctionComponent = () => {
           overflowY: "auto",
         }}
       >
-        {activeWorkspaceAccountId ? (
+        {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
-            <AccountPageList
-              currentPageEntityUuid={routePageEntityUuid}
-              accountId={activeWorkspaceAccountId}
-            />
+            {hashInstance?.properties.pagesAreEnabled ? (
+              <AccountPageList
+                currentPageEntityUuid={routePageEntityUuid}
+                ownedById={activeWorkspaceOwnedById}
+              />
+            ) : null}
             {/* TYPES */}
-            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
+            <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
           </>
         ) : null}
       </Box>

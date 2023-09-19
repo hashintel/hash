@@ -9,11 +9,13 @@ export const blocksResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryBlocksArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const blocks = await Promise.all(
-    params.blocks.map((entityId) => getBlockById(context, { entityId })),
+    params.blocks.map((entityId) =>
+      getBlockById(context, authentication, { entityId }),
+    ),
   );
 
   return blocks.map(({ componentId, entity }) => ({

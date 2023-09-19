@@ -1,5 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { AccountId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 
 import { ImpureGraphContext } from "../graph";
 import {
@@ -7,6 +7,7 @@ import {
   Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
+import { systemUserAccountId } from "../graph/system-user";
 
 export type PageDefinition = {
   title: string;
@@ -15,7 +16,7 @@ export type PageDefinition = {
 
 export const seedPages = async (
   pageDefinitions: PageDefinition[],
-  owningActorId: AccountId,
+  ownedById: OwnedById,
   sharedParams: {
     logger: Logger;
     context: ImpureGraphContext;
@@ -23,21 +24,20 @@ export const seedPages = async (
   parentPage?: Page,
 ) => {
   const { context } = sharedParams;
+  const authentication = { actorId: systemUserAccountId };
 
   let prevIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
-    const newPage: Page = await createPage(context, {
-      actorId: owningActorId,
-      ownedById: owningActorId as OwnedById,
+    const newPage: Page = await createPage(context, authentication, {
+      ownedById,
       title: pageDefinition.title,
       prevIndex,
     });
 
     if (parentPage) {
-      await setPageParentPage(context, {
+      await setPageParentPage(context, authentication, {
         page: newPage,
-        actorId: owningActorId,
         parentPage,
         prevIndex: parentPage.index ?? null,
         nextIndex: null,
@@ -49,7 +49,7 @@ export const seedPages = async (
     if (pageDefinition.nestedPages) {
       await seedPages(
         pageDefinition.nestedPages,
-        owningActorId,
+        ownedById,
         sharedParams,
         newPage,
       );

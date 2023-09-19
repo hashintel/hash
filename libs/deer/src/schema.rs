@@ -462,6 +462,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::std_instead_of_alloc)] // Reason: `assert_serde_eq!` uses `std`
     fn integration() {
         // patented sanity integration test™
         let document = Vertex::document();

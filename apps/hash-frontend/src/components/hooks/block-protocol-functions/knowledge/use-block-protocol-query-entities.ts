@@ -16,8 +16,7 @@ export const useBlockProtocolQueryEntities = (): {
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const queryEntities = useCallback<QueryEntitiesMessageCallback>(

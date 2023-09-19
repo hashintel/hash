@@ -16,8 +16,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
     QueryPropertyTypesQuery,
     QueryPropertyTypesQueryVariables
   >(queryPropertyTypesQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const queryPropertyTypes = useCallback<QueryPropertyTypesMessageCallback>(

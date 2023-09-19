@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
-    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "dev": "NODE_ENV=development node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -59,6 +59,7 @@
     "cross-env": "7.0.3",
     "dedent": "0.7.0",
     "express": "4.17.3",
+    "express-http-proxy": "2.0.0",
     "fractional-indexing": "2.1.0",
     "graphql": "15.5.1",
     "graphql-scalars": "1.17.0",
@@ -91,6 +92,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/app-root-path": "1.2.4",
     "@types/dedent": "0.7.0",
+    "@types/express-http-proxy": "1.6.3",
     "@types/html-to-text": "8.1.1",
     "@types/jest": "29.5.4",
     "@types/jsonpath": "0.2.0",
@@ -100,7 +102,7 @@
     "@types/node-fetch": "^2.6.2",
     "@types/nodemailer": "6.4.6",
     "eslint": "8.33.0",
-    "jest": "29.6.4",
+    "jest": "29.7.0",
     "rimraf": "^5.0.1",
     "ts-jest": "29.1.1",
     "ts-node-dev": "2.0.0"

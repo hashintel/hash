@@ -6,15 +6,25 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
   BooleanDataType,
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
+  DisplayNamePropertyValue,
   EmailPropertyValue,
+  File,
+  FileHashPropertyValue,
   FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
+  FileSizePropertyValue,
   FileURLPropertyValue,
   HasAvatar,
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -22,6 +32,7 @@ import {
   LinkProperties,
   LocationPropertyValue,
   MIMETypePropertyValue,
+  NumberDataType,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -34,15 +45,10 @@ import {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
+  OriginalFileNamePropertyValue,
+  OriginalSourcePropertyValue,
+  OriginalURLPropertyValue,
   PreferredNamePropertyValue,
-  RemoteFile,
-  RemoteFileOutgoingLinkAndTarget,
-  RemoteFileOutgoingLinksByLinkEntityTypeId,
-  RemoteFileProperties,
-  RemoteImageFile,
-  RemoteImageFileOutgoingLinkAndTarget,
-  RemoteImageFileOutgoingLinksByLinkEntityTypeId,
-  RemoteImageFileProperties,
   ShortnamePropertyValue,
   TextDataType,
   User,
@@ -56,15 +62,25 @@ import {
 
 export type {
   BooleanDataType,
-  Description0PropertyValue,
-  Description1PropertyValue,
+  DescriptionPropertyValue,
+  DisplayNamePropertyValue,
   EmailPropertyValue,
+  File,
+  FileHashPropertyValue,
   FileNamePropertyValue,
+  FileOutgoingLinkAndTarget,
+  FileOutgoingLinksByLinkEntityTypeId,
+  FileProperties,
+  FileSizePropertyValue,
   FileURLPropertyValue,
   HasAvatar,
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
+  Image,
+  ImageOutgoingLinkAndTarget,
+  ImageOutgoingLinksByLinkEntityTypeId,
+  ImageProperties,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -72,6 +88,7 @@ export type {
   LinkProperties,
   LocationPropertyValue,
   MIMETypePropertyValue,
+  NumberDataType,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -84,15 +101,10 @@ export type {
   OrgOutgoingLinkAndTarget,
   OrgOutgoingLinksByLinkEntityTypeId,
   OrgProperties,
+  OriginalFileNamePropertyValue,
+  OriginalSourcePropertyValue,
+  OriginalURLPropertyValue,
   PreferredNamePropertyValue,
-  RemoteFile,
-  RemoteFileOutgoingLinkAndTarget,
-  RemoteFileOutgoingLinksByLinkEntityTypeId,
-  RemoteFileProperties,
-  RemoteImageFile,
-  RemoteImageFileOutgoingLinkAndTarget,
-  RemoteImageFileOutgoingLinksByLinkEntityTypeId,
-  RemoteImageFileProperties,
   ShortnamePropertyValue,
   TextDataType,
   User,
@@ -133,6 +145,7 @@ export type HASHInstanceOutgoingLinksByLinkEntityTypeId = {
  */
 export type HASHInstanceProperties = {
   "http://localhost:3000/@system-user/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValue;
 };
@@ -141,6 +154,11 @@ export type HASHInstanceProperties = {
  * Whether or not a user can self-register an org (note this does not apply to instance admins).
  */
 export type OrgSelfRegistrationIsEnabledPropertyValue = BooleanDataType;
+
+/**
+ * Whether or not user functionality related to pages is enabled.
+ */
+export type PagesAreEnabledPropertyValue = BooleanDataType;
 
 /**
  * Whether or not a user is able to register another user by inviting them to an org.

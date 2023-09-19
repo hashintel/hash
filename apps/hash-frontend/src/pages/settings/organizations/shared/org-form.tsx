@@ -1,10 +1,7 @@
 import { TextField } from "@hashintel/design-system";
-import {
-  blockProtocolTypes,
-  types,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -72,10 +69,14 @@ const InputGroup = ({ children }: PropsWithChildren) => {
 
 export type OrgFormData = Omit<
   Org,
-  "accountId" | "kind" | "entityRecordId" | "memberships"
-> & { accountId?: Org["accountId"]; entityRecordId?: Org["entityRecordId"] };
+  "accountGroupId" | "kind" | "entityRecordId" | "memberships"
+> & {
+  accountId?: Org["accountGroupId"];
+  entityRecordId?: Org["entityRecordId"];
+};
 
 type OrgFormProps = {
+  autoFocusDisplayName?: boolean;
   onSubmit: (org: OrgFormData) => Promise<void>;
   /**
    * An existing org to edit. Editing the shortname will not be allowed.
@@ -86,6 +87,7 @@ type OrgFormProps = {
 };
 
 export const OrgForm = ({
+  autoFocusDisplayName = false,
   onSubmit,
   org: initialOrg,
   submitLabel,
@@ -122,6 +124,8 @@ export const OrgForm = ({
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
 
+  const shortnameWatcher = watch("shortname");
+
   const shortnameError = getShortnameError(
     errors.shortname?.message,
     !!touchedFields.shortname,
@@ -143,10 +147,10 @@ export const OrgForm = ({
     const { data: fileUploadData, errors: fileUploadErrors } = await uploadFile(
       {
         data: {
-          description: `${nameWatcher}'s avatar`,
-          entityTypeId: blockProtocolTypes["remote-image-file"].entityTypeId,
+          description: `The avatar for the ${nameWatcher} organization in HASH`,
+          name: `${nameWatcher}'s avatar`,
+          entityTypeId: types.entityType.imageFile.entityTypeId,
           file,
-          name: file.name,
         },
       },
     );
@@ -206,7 +210,7 @@ export const OrgForm = ({
           required
         />
         <TextField
-          autoFocus
+          autoFocus={autoFocusDisplayName}
           error={!!nameError}
           id="name"
           helperText={nameError}
@@ -237,15 +241,6 @@ export const OrgForm = ({
                 error={!!shortnameError}
                 helperText={shortnameError}
                 id="shortname"
-                inputProps={{
-                  sx: {
-                    borderColor: shortnameError ? "#FCA5A5" : "initial",
-                    "&:focus": {
-                      borderColor: shortnameError ? "#EF4444" : "initial",
-                    },
-                    paddingLeft: "2.25rem",
-                  },
-                }}
                 onBlur={field.onBlur}
                 onChange={(evt) => {
                   const newEvt = { ...evt };
@@ -254,22 +249,38 @@ export const OrgForm = ({
                   );
                   field.onChange(newEvt);
                 }}
+                InputProps={{
+                  startAdornment: (
+                    <Box
+                      component="span"
+                      sx={{
+                        marginLeft: 2,
+                        color: ({ palette }) =>
+                          shortnameError
+                            ? palette.red[80]
+                            : shortnameWatcher === ""
+                            ? "#9CA3AF"
+                            : palette.gray[80],
+                      }}
+                    >
+                      @
+                    </Box>
+                  ),
+                  sx: {
+                    borderColor: shortnameError ? "#FCA5A5" : "initial",
+                    "&:focus": {
+                      borderColor: shortnameError ? "#EF4444" : "initial",
+                    },
+                    [`.${outlinedInputClasses.input}`]: {
+                      paddingLeft: 0,
+                    },
+                  },
+                }}
                 placeholder="acme"
                 sx={{ width: 300 }}
               />
             )}
           />
-          <span
-            style={{
-              position: "absolute",
-              left: "1rem",
-              top: "1.5rem",
-              transform: "translateY(-50%)",
-              color: "#9CA3AF",
-            }}
-          >
-            @
-          </span>
         </Box>
       </InputGroup>
       {initialOrg && (

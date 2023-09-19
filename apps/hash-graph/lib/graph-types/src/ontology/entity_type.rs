@@ -13,13 +13,16 @@ use utoipa::{
     ToSchema,
 };
 
-use crate::ontology::{
-    CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
-    OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
-    PartialCustomOntologyMetadata,
-};
 #[cfg(feature = "utoipa")]
-use crate::provenance::{OwnedById, ProvenanceMetadata};
+use crate::provenance::OwnedById;
+use crate::{
+    ontology::{
+        CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeRecordId, OntologyTypeReference, OntologyTypeWithMetadata,
+        PartialCustomOntologyMetadata,
+    },
+    provenance::ProvenanceMetadata,
+};
 
 /// A [`CustomEntityTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,6 +114,7 @@ impl EntityTypeMetadata {
     #[must_use]
     pub fn from_partial(
         partial: PartialEntityTypeMetadata,
+        provenance: ProvenanceMetadata,
         transaction_time: LeftClosedTemporalInterval<TransactionTime>,
     ) -> Self {
         Self {
@@ -118,11 +122,7 @@ impl EntityTypeMetadata {
             custom: match partial.custom {
                 PartialCustomEntityTypeMetadata {
                     label_property,
-                    common:
-                        PartialCustomOntologyMetadata::Owned {
-                            provenance,
-                            owned_by_id,
-                        },
+                    common: PartialCustomOntologyMetadata::Owned { owned_by_id },
                 } => CustomEntityTypeMetadata {
                     label_property,
                     common: CustomOntologyMetadata::Owned {
@@ -133,11 +133,7 @@ impl EntityTypeMetadata {
                 },
                 PartialCustomEntityTypeMetadata {
                     label_property,
-                    common:
-                        PartialCustomOntologyMetadata::External {
-                            provenance,
-                            fetched_at,
-                        },
+                    common: PartialCustomOntologyMetadata::External { fetched_at },
                 } => CustomEntityTypeMetadata {
                     label_property,
                     common: CustomOntologyMetadata::External {
