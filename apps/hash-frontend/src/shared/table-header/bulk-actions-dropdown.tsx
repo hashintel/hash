@@ -217,7 +217,9 @@ export const BulkActionsDropdown: FunctionComponent<{
         label: "Archive",
         onClick: archiveItem,
         disabled: !canArchiveSelectedItems,
-        tooltipTitle: "Cannot archive one or more of the selected items.",
+        tooltipTitle: canArchiveSelectedItems
+          ? undefined
+          : "Cannot archive one or more of the selected items.",
       },
       {
         icon: <BoxArchiveIcon />,
