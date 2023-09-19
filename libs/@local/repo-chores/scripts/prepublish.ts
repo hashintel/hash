@@ -12,8 +12,8 @@ import {
 } from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
-const replaceWithDistPath = (path: string, extension: ".d.ts" | ".js") =>
-  path.replace("dist", "src").replace(".ts", extension);
+const replaceWithDistPath = (exportPath: string, extension: ".d.ts" | ".js") =>
+  exportPath.replace("src", "dist").replace(".ts", extension);
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up before publishing..."));
@@ -68,7 +68,7 @@ const script = async () => {
 
   await updateJson(
     path.resolve(packageInfo.path, "package.json"),
-    (packageJson) => {
+    (packageJson: Record<string, string | any>) => {
       if ("main" in packageJson) {
         /* eslint-disable @typescript-eslint/no-unsafe-member-access,@typescript-eslint/restrict-template-expressions,no-param-reassign -- see comment on updateJson() for potential improvement */
         if (packageJson.main === expectedMainName) {
@@ -85,14 +85,15 @@ const script = async () => {
         }
         packageJson.types = "dist/main.d.ts";
       } else if (packageJson.exports) {
-        for (const [key, exportPath] of packageJson.exports) {
-          packageJson.exports[key] = replaceWithDistPath(
-            exportPath as string,
-            ".js",
-          );
+        for (const [key, exportPath] of Object.entries(
+          packageJson.exports as Record<string, string>,
+        )) {
+          packageJson.exports[key] = replaceWithDistPath(exportPath, ".js");
         }
-        for (const [key, typePathArray] of packageJson.typesVersions["*"]) {
-          packageJson.typesVersions["*"][key] = (typePathArray as string[]).map(
+        for (const [key, typePathArray] of Object.entries(
+          packageJson.typesVersions["*"] as Record<string, string[]>,
+        )) {
+          packageJson.typesVersions["*"][key] = typePathArray.map(
             (typePath: string) => replaceWithDistPath(typePath, ".d.ts"),
           );
         }
