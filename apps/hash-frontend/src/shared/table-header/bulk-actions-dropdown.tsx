@@ -80,7 +80,6 @@ export const BulkActionsDropdown: FunctionComponent<{
     onCompleted: refetchEntityTypes,
   });
 
-  /** @todo: figure out why this isn't working */
   const refetchPropertyTypes = useFetchLatestPropertyTypes();
 
   const [archivePropertyType] = useMutation<
