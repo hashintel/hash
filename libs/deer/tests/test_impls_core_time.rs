@@ -1,3 +1,4 @@
+#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use core::time::Duration;
 
 use deer_desert::{assert_tokens_with_assertion, Token};

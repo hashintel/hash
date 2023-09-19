@@ -390,8 +390,8 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                     value.extend_one(errors);
                     Err(value)
                 }
-                (Err(error), Ok(_)) | (Ok(_), Err(error)) => Err(error),
-                (Ok(value), Ok(_)) => Ok(value),
+                (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+                (Ok(value), Ok(())) => Ok(value),
             }
         } else {
             visitor
