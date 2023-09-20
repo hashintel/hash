@@ -1,9 +1,6 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  fluidFontClassName,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   chipClasses,

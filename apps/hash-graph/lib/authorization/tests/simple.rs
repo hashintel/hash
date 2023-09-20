@@ -6,9 +6,13 @@ mod schema;
 
 use std::error::Error;
 
-use authorization::{backend::ZanzibarBackend, zanzibar::Consistency};
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{EntityPermission, EntityRelation},
+    zanzibar::Consistency,
+};
 
-use crate::schema::{EntityPermission, EntityRelation, ALICE, BOB, ENTITY_A, ENTITY_B};
+use crate::schema::{ALICE, BOB, ENTITY_A, ENTITY_B};
 
 #[tokio::test]
 async fn test_schema() -> Result<(), Box<dyn Error>> {
@@ -38,9 +42,9 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     let token = api
         .create_relations([
-            &(ENTITY_A, EntityRelation::Writer, ALICE),
-            &(ENTITY_A, EntityRelation::Reader, BOB),
-            &(ENTITY_B, EntityRelation::Reader, ALICE),
+            &(ENTITY_A, EntityRelation::DirectOwner, ALICE),
+            &(ENTITY_A, EntityRelation::DirectViewer, BOB),
+            &(ENTITY_B, EntityRelation::DirectOwner, BOB),
         ])
         .await?
         .written_at;
@@ -48,7 +52,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     // Test relations
     assert!(
         api.check(
-            &(ENTITY_A, EntityRelation::Writer, ALICE),
+            &(ENTITY_A, EntityRelation::DirectOwner, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -56,7 +60,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_A, EntityRelation::Reader, BOB),
+            &(ENTITY_A, EntityRelation::DirectViewer, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -64,7 +68,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_B, EntityRelation::Reader, ALICE),
+            &(ENTITY_B, EntityRelation::DirectOwner, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -81,7 +85,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        !api.check(
             &(ENTITY_B, EntityPermission::View, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
@@ -97,7 +101,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        !api.check(
+        api.check(
             &(ENTITY_B, EntityPermission::View, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
@@ -106,7 +110,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_A, EntityPermission::Edit, ALICE),
+            &(ENTITY_A, EntityPermission::Update, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -114,7 +118,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         !api.check(
-            &(ENTITY_B, EntityPermission::Edit, ALICE),
+            &(ENTITY_B, EntityPermission::Update, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -122,15 +126,15 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         !api.check(
-            &(ENTITY_A, EntityPermission::Edit, BOB),
+            &(ENTITY_A, EntityPermission::Update, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
         .has_permission
     );
     assert!(
-        !api.check(
-            &(ENTITY_B, EntityPermission::Edit, BOB),
+        api.check(
+            &(ENTITY_B, EntityPermission::Update, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -138,7 +142,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relations([&(ENTITY_A, EntityRelation::Reader, BOB)])
+        .delete_relations([&(ENTITY_A, EntityRelation::DirectViewer, BOB)])
         .await?
         .deleted_at;
 

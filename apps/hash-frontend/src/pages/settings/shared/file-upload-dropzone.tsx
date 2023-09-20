@@ -74,13 +74,13 @@ export const FileUploadDropzone = ({
         variant="smallTextLabels"
         sx={{ color: "gray.90", display: "block", fontWeight: 600 }}
       >
-        or drag and drop a file here
+        or drag and drop a file
       </Typography>
       <Typography
         variant="microText"
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
-        {image ? "Any image file is accepted" : "All file types are accepted"}
+        {image ? "Any image file accepted" : "All file types accepted"}
       </Typography>
     </Box>
   );

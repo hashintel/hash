@@ -3,7 +3,6 @@ import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   faCheck,
-  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   MenuItem,
@@ -11,6 +10,7 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Divider,

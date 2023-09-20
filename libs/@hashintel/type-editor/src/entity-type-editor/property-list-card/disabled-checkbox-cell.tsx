@@ -1,4 +1,4 @@
-import { fluidFontClassName } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Checkbox,

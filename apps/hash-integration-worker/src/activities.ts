@@ -8,6 +8,7 @@ import {
 } from "@linear/sdk";
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
+import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
@@ -51,12 +52,9 @@ const createOrUpdateHashEntity = async (params: {
   }
 
   const filters = [
-    {
-      equal: [
-        { path: ["type", "versionedUrl"] },
-        { parameter: params.entity.entityTypeId },
-      ],
-    },
+    generateVersionedUrlMatchingFilter(params.entity.entityTypeId, {
+      ignoreParents: true,
+    }),
     {
       equal: [
         {

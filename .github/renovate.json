@@ -1,5 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/target/**",
+    "**/dist/**"
+  ],
   "extends": ["config:base"],
 
   "automerge": true,
@@ -47,7 +54,8 @@
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
-      "reviewers": ["team:Rust"]
+      "reviewers": ["team:Rust"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -182,8 +190,7 @@
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` Rust crates",
-      "dependencyDashboardApproval": false
+      "groupName": "`criterion` Rust crates"
     },
     {
       "matchManagers": ["cargo"],

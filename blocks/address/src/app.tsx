@@ -10,7 +10,8 @@ import {
   BlockSettingsButton,
   GetHelpLink,
 } from "@hashintel/block-design-system";
-import { Autocomplete, FontAwesomeIcon, theme } from "@hashintel/design-system";
+import { Autocomplete, FontAwesomeIcon } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import {
   CircularProgress,
   Collapse,

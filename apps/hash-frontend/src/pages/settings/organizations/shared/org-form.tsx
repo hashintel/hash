@@ -11,6 +11,7 @@ import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-p
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
 import { Org } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui/button";
+import { useAuthInfo } from "../../../shared/auth-info-context";
 import { ImageField } from "../../shared/image-field";
 
 const Label = ({
@@ -69,9 +70,8 @@ const InputGroup = ({ children }: PropsWithChildren) => {
 
 export type OrgFormData = Omit<
   Org,
-  "accountGroupId" | "kind" | "entityRecordId" | "memberships"
+  "kind" | "entityRecordId" | "memberships"
 > & {
-  accountId?: Org["accountGroupId"];
   entityRecordId?: Org["entityRecordId"];
 };
 
@@ -96,12 +96,14 @@ export const OrgForm = ({
   const [loading, setLoading] = useState(false);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    (initialOrg?.accountId as OwnedById | undefined) ?? null,
+    (initialOrg?.accountGroupId as OwnedById | undefined) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { uploadFile } = useBlockProtocolFileUpload(
-    initialOrg?.accountId as OwnedById | undefined,
+    initialOrg?.accountGroupId as OwnedById | undefined,
   );
+
+  const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const {
     control,
@@ -134,7 +136,7 @@ export const OrgForm = ({
   const nameWatcher = watch("name");
 
   const avatarUrl =
-    initialOrg?.hasAvatar?.rightEntity.properties[
+    initialOrg?.hasAvatar?.imageEntity.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 
@@ -180,6 +182,9 @@ export const OrgForm = ({
         properties: {},
       },
     });
+
+    // Refetch the authenticated user and their orgs so that avatar changes are reflected immediately in the UI
+    void refetchUserAndOrgs();
   };
 
   const nameError =

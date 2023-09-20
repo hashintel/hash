@@ -1,6 +1,6 @@
 import type { SpriteProps } from "@glideapps/glide-data-grid/dist/ts/common/utils";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 
 export const customGridIcons: Record<
   CustomIcon,

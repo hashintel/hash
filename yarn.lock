@@ -8270,10 +8270,10 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
-"@types/jest@29.5.4":
-  version "29.5.4"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.4.tgz#9d0a16edaa009a71e6a71a999acd582514dab566"
-  integrity sha512-PhglGmhWeD46FYOVLt3X7TiWjzwuVGW9wG/4qocPevXMjCmrIc5b6db9WjeGE4QYVpUAWMDv3v0IiBwObY289A==
+"@types/jest@29.5.5":
+  version "29.5.5"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-29.5.5.tgz#727204e06228fe24373df9bae76b90f3e8236a2a"
+  integrity sha512-ebylz2hnsWR9mYvmBFbXJXr+33UPc4+ZdxyDXh5w0FlPBTfCVN3wPL+kuOiQt3xvrK419v7XWeAs+AeOksafXg==
   dependencies:
     expect "^29.0.0"
     pretty-format "^29.0.0"
@@ -12945,10 +12945,10 @@ eslint-plugin-import@2.27.5:
     semver "^6.3.0"
     tsconfig-paths "^3.14.1"
 
-eslint-plugin-jest@27.2.3:
-  version "27.2.3"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-27.2.3.tgz#6f8a4bb2ca82c0c5d481d1b3be256ab001f5a3ec"
-  integrity sha512-sRLlSCpICzWuje66Gl9zvdF6mwD5X86I4u55hJyFBsxYOsBCmT5+kSUjf+fkFWVMMgpzNEupjW8WzUqi83hJAQ==
+eslint-plugin-jest@27.4.0:
+  version "27.4.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-27.4.0.tgz#3926cca723c40c3d7a3fe0e1fd911eff5e681f50"
+  integrity sha512-ukVeKmMPAUA5SWjHenvyyXnirKfHKMdOsTZdn5tZx5EW05HGVQwBohigjFZGGj3zuv1cV6hc82FvWv6LdIbkgg==
   dependencies:
     "@typescript-eslint/utils" "^5.10.0"
 
@@ -14950,10 +14950,10 @@ https-proxy-agent@^7.0.1:
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.6.6:
-  version "6.6.6"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.6.6.tgz#a9713553734d69e536cfaf17545a4f19802599b5"
-  integrity sha512-Ch17NzFjrk9qNXKbjXphvMCutWNu+o2f6Jx9QNphQyfh7r7GiYl1XZF+thKvHpIswukpkELVsjmAWqXMvuMwZQ==
+httpyac@6.6.7:
+  version "6.6.7"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.6.7.tgz#3e9163dc425149d1e164c9225df16874656e6f83"
+  integrity sha512-RPij5pytN6StOJio202jEToo5UTcCS2P4ElvPSes1O0kAAtE3/wBYkAvtKGAodG5vKDq7RgDRL5LrGkseioNlg==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.9.0"

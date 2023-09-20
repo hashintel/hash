@@ -6,7 +6,7 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, buttonClasses, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useCallback, useContext, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -24,7 +24,7 @@ import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
-import { WorkspaceContext } from "./shared/workspace-context";
+import { useActiveWorkspace } from "./shared/workspace-context";
 
 const contentMaxWidth = 1000;
 
@@ -34,7 +34,7 @@ type ParsedQueryParams = {
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
 
@@ -57,7 +57,10 @@ const EntitiesPage: NextPageWithLayout = () => {
   }, [router]);
 
   const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
-  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById!);
+  const [createUntitledPage] = useCreatePage({
+    shortname: activeWorkspace?.shortname,
+    ownedById: activeWorkspaceOwnedById,
+  });
 
   const createPage = useCallback(async () => {
     await createUntitledPage(lastRootPageIndex);

@@ -44,7 +44,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
   const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspace } = useContext(WorkspaceContext);
 
   const loading = usersLoading && pagesLoading && entitiesLoading;
 
@@ -55,10 +55,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         name: user.preferredName ?? user.shortname ?? "User",
         entityId: user.entityRecordId.entityId,
         mentionType: "user",
-        isActiveOrgMember: user.memberOf.some(
-          ({ accountGroupId: orgGroupId }) =>
-            orgGroupId === activeWorkspaceOwnedById,
-        ),
+        isActiveOrgMember:
+          activeWorkspace?.kind === "org"
+            ? activeWorkspace.memberships.some(
+                (membership) => membership.user.accountId === user.accountId,
+              )
+            : false,
       })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
@@ -106,7 +108,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch, ...entitiesSearch];
-  }, [search, users, activeWorkspaceOwnedById, pages, entitiesSubgraph]);
+  }, [search, users, activeWorkspace, pages, entitiesSubgraph]);
 
   return (
     <Suggester

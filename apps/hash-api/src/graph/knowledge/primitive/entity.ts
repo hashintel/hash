@@ -24,6 +24,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -33,11 +34,7 @@ import {
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
-import {
-  createLinkEntity,
-  isEntityLinkEntity,
-  LinkEntity,
-} from "./link-entity";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;

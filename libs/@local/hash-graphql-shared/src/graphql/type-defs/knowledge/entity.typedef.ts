@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar EntityPropertiesObject
   scalar EntityMetadata
+  scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
 
@@ -79,6 +80,8 @@ export const entityTypedef = gql`
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
+
+    structuralQueryEntities(query: EntityStructuralQuery!): Subgraph!
 
     """
     Get a subgraph rooted at an entity resolved by its id.

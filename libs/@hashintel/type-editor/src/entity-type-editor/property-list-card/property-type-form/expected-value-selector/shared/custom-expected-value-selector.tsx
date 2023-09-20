@@ -1,9 +1,6 @@
 import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  fluidFontClassName,
-  FontAwesomeIcon,
-  TextField,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Autocomplete,
   autocompleteClasses,

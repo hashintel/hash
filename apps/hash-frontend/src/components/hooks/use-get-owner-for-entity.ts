@@ -7,11 +7,9 @@ import { useUsers } from "./use-users";
 export const useGetOwnerForEntity = () => {
   /*
    * This is a simple way of getting all users and orgs to find an entity's owner's name
-   * @todo rethink caching here – users and orgs added since session start won't appear
-   * @todo probably replace this with something like fetching owners individually instead
    */
-  const { users = [] } = useUsers(true);
-  const { orgs = [] } = useOrgs(true);
+  const { users = [] } = useUsers();
+  const { orgs = [] } = useOrgs();
 
   return useCallback(
     (entity: Entity) => {

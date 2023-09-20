@@ -1,24 +1,27 @@
-import { OwnedById } from "@local/hash-subgraph";
 import { ListItemIcon, ListItemText } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
+import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { FilesLinesRegularIcon } from "../../../icons/file-lines-regular-icon";
 import { MenuItem } from "../../../ui/menu-item";
 
 export const CreateDocumentMenuItem = ({
-  activeWorkspaceOwnedById,
   onClick,
 }: {
-  activeWorkspaceOwnedById: OwnedById;
   onClick: () => void;
 }) => {
   const [loading, setLoading] = useState(false);
 
+  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
+
   const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
-  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage({
+    shortname: activeWorkspace?.shortname,
+    ownedById: activeWorkspaceOwnedById,
+  });
 
   const popupState = usePopupState({
     variant: "popover",

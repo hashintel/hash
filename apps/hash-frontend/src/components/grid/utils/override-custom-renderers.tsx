@@ -3,11 +3,11 @@ import {
   isObjectEditorCallbackResult,
   Item,
 } from "@glideapps/glide-data-grid";
-import { useScrollLock } from "@hashintel/design-system";
 import { MutableRefObject, PropsWithChildren } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { InteractableManager } from "./interactable-manager";
+import { useScrollLock } from "./override-custom-renderers/use-scroll-lock";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
   /**

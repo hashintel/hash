@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -187,12 +188,9 @@ export const getOrgByShortname: ImpureGraphFunction<
     .getEntitiesByQuery(actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.org.schema.$id,
+          ),
           {
             equal: [
               {

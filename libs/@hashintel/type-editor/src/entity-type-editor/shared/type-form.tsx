@@ -3,12 +3,12 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
-  fluidFontClassName,
   FontAwesomeIcon,
   IconButton,
   Modal,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import {
   Box,
   Divider,
