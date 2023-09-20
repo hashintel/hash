@@ -21,6 +21,7 @@ use graph_types::{
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 #[cfg(hash_graph_test_environment)]
 use temporal_versioning::{DecisionTime, Timestamp};
@@ -1262,13 +1263,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .attach_printable(account_id)?;
 
         authorization_api
-            .add_web_owner(OwnerId::Account(account_id), account_id)
+            .add_web_owner(OwnerId::from(account_id), WebId::from(account_id))
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_web_owner(OwnerId::Account(account_id), account_id)
+                .remove_web_owner(OwnerId::from(account_id), WebId::from(account_id))
                 .await
                 .change_context(InsertionError)
             {
@@ -1326,7 +1327,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         authorization_api
-            .add_web_owner(OwnerId::AccountGroup(account_group_id), account_group_id)
+            .add_web_owner(
+                OwnerId::from(account_group_id),
+                WebId::from(account_group_id),
+            )
             .await
             .change_context(InsertionError)?;
 
@@ -1341,7 +1345,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 error.extend_one(auth_error);
             }
             if let Err(auth_error) = authorization_api
-                .remove_web_owner(OwnerId::AccountGroup(account_group_id), account_group_id)
+                .remove_web_owner(
+                    OwnerId::from(account_group_id),
+                    WebId::from(account_group_id),
+                )
                 .await
                 .change_context(InsertionError)
             {

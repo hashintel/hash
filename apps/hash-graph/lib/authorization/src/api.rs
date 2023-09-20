@@ -38,13 +38,13 @@ pub trait AuthorizationApi {
     fn add_web_owner(
         &mut self,
         owner: OwnerId,
-        web: impl Into<WebId> + Send,
+        web: WebId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_web_owner(
         &mut self,
         owner: OwnerId,
-        web: impl Into<WebId> + Send,
+        web: WebId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_add_group_members(

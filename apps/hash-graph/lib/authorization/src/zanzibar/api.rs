@@ -59,18 +59,18 @@ where
     async fn add_web_owner(
         &mut self,
         owner: OwnerId,
-        web: impl Into<WebId> + Send,
+        web: WebId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(web.into(), WebRelation::DirectOwner, account)])
+                    .create_relations([(web, WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .create_relations([(
-                        web.into(),
+                        web,
                         WebRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,
@@ -85,18 +85,18 @@ where
     async fn remove_web_owner(
         &mut self,
         owner: OwnerId,
-        web: impl Into<WebId> + Send,
+        web: WebId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(web.into(), WebRelation::DirectOwner, account)])
+                    .delete_relations([(web, WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .delete_relations([(
-                        web.into(),
+                        web,
                         WebRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,

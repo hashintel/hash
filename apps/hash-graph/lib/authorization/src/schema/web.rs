@@ -14,6 +14,18 @@ pub enum OwnerId {
     AccountGroup(AccountGroupId),
 }
 
+impl From<AccountId> for OwnerId {
+    fn from(account_id: AccountId) -> Self {
+        Self::Account(account_id)
+    }
+}
+
+impl From<AccountGroupId> for OwnerId {
+    fn from(account_group_id: AccountGroupId) -> Self {
+        Self::AccountGroup(account_group_id)
+    }
+}
+
 impl Resource for WebId {
     type Id = Self;
 

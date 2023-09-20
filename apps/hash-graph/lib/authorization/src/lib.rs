@@ -50,7 +50,7 @@ impl AuthorizationApi for NoAuthorization {
     async fn add_web_owner(
         &mut self,
         _owner: OwnerId,
-        _web: impl Into<WebId> + Send,
+        _web: WebId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -58,7 +58,7 @@ impl AuthorizationApi for NoAuthorization {
     async fn remove_web_owner(
         &mut self,
         _owner: OwnerId,
-        _web: impl Into<WebId> + Send,
+        _web: WebId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
