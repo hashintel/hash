@@ -1,20 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base"],
+
   "automerge": true,
   "branchPrefix": "deps/",
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "dependencyDashboardTitle": "🚀 Dependency Updates",
   "dependencyDashboardOSVVulnerabilitySummary": "none",
-  "npm": {
-    "minimumReleaseAge": "3 days"
-  },
+  "npm": { "minimumReleaseAge": "3 days" },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
   "schedule": ["before 4am every weekday", "every weekend"],
+
   "packageRules": [
     {
       "extends": ["packages:linters", "packages:test"],
