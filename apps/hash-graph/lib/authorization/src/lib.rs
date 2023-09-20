@@ -30,18 +30,42 @@ use crate::{
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
-    async fn add_account_group_admin(
+    async fn can_add_group_owner(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn add_account_group_owner(
         &mut self,
         _member: AccountId,
-        _group: AccountGroupId,
+        _account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
 
-    async fn remove_account_group_admin(
+    async fn can_remove_group_owner(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn remove_account_group_owner(
         &mut self,
         _member: AccountId,
-        _group: AccountGroupId,
+        _account_group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -62,7 +86,7 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
-    async fn can_add_group_members(
+    async fn can_add_group_admin(
         &self,
         _actor: AccountId,
         _account_group: AccountGroupId,
@@ -74,7 +98,35 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
-    async fn can_remove_group_members(
+    async fn add_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_remove_group_admin(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn remove_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_add_group_member(
         &self,
         _actor: AccountId,
         _account_group: AccountGroupId,
@@ -92,6 +144,18 @@ impl AuthorizationApi for NoAuthorization {
         _group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
+    }
+
+    async fn can_remove_group_member(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
     }
 
     async fn remove_account_group_member(
