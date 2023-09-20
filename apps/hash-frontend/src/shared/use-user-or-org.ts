@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -66,18 +67,14 @@ export const useUserOrOrg = (
                 },
             {
               any: [
-                {
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: types.entityType.user.entityTypeId },
-                  ],
-                },
-                {
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: types.entityType.org.entityTypeId },
-                  ],
-                },
+                generateVersionedUrlMatchingFilter(
+                  types.entityType.user.entityTypeId,
+                  { ignoreParents: true },
+                ),
+                generateVersionedUrlMatchingFilter(
+                  types.entityType.org.entityTypeId,
+                  { ignoreParents: true },
+                ),
               ],
             },
           ],

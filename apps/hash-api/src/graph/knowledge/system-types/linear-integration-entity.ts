@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -66,14 +67,10 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
           {
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               {
@@ -129,15 +126,10 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
           {
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
@@ -192,15 +184,10 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
           {
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               { path: ["leftEntity", "uuid"] },

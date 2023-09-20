@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -72,31 +73,21 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
               { parameter: userAccountId as OwnedById },
             ],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "leftEntity", "type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.userSecret.schema.$id,
+            { ignoreParents: true },
+          ),
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
+            { ignoreParents: true, pathPrefix: ["incomingLinks"] },
+          ),
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            {
+              ignoreParents: true,
+              pathPrefix: ["incomingLinks", "leftEntity"],
+            },
+          ),
           {
             equal: [
               {
@@ -154,15 +145,13 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["outgoingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            {
+              ignoreParents: true,
+              pathPrefix: ["outgoingLinks"],
+            },
+          ),
           {
             equal: [
               { path: ["outgoingLinks", "rightEntity", "uuid"] },

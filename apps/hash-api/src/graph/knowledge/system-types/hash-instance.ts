@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -62,14 +63,10 @@ export const getHashInstance: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }) => {
   const entities = await graphApi
     .getEntitiesByQuery(actorId, {
-      filter: {
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          {
-            parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-          },
-        ],
-      },
+      filter: generateVersionedUrlMatchingFilter(
+        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+        { ignoreParents: true },
+      ),
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })

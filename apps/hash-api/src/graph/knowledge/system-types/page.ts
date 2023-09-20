@@ -2,6 +2,7 @@ import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -252,12 +253,11 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.page.schema.$id,
+            // ignoreParents assumes we don't have types which are children of Page which should be returned here
+            { ignoreParents: true },
+          ),
           {
             equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
           },

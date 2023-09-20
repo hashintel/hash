@@ -2,6 +2,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -43,12 +44,10 @@ export const ensureSystemUserAccountIdExists = async (params: {
 
   const { data: existingUserEntitiesSubgraph } =
     await graphApi.getEntitiesByQuery(publicUserAccountId, {
-      filter: {
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: types.entityType.user.entityTypeId },
-        ],
-      },
+      filter: generateVersionedUrlMatchingFilter(
+        types.entityType.user.entityTypeId,
+        { ignoreParents: true },
+      ),
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     });
