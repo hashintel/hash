@@ -244,12 +244,12 @@ export const BulkActionsDropdown: FunctionComponent<{
       },
       {
         icon: <BoxArchiveIcon />,
-        label: "Un-Archive",
+        label: "Unarchive",
         onClick: unarchiveItem,
         disabled: !canUnarchiveSelectedItems,
         tooltipTitle: canUnarchiveSelectedItems
           ? undefined
-          : "Cannot un-archive one or more of the selected items.",
+          : "Cannot unarchive one or more of the selected items.",
       },
     ];
   }, [
