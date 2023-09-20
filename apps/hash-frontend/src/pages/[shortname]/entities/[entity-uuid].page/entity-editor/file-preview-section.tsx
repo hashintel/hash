@@ -24,6 +24,7 @@ import {
   useFileUploadsProgress,
 } from "../../../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
+import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
@@ -57,6 +58,7 @@ const ReplaceFile = ({
   close: () => void;
 }) => {
   const { entitySubgraph, replaceWithLatestDbVersion } = useEntityEditor();
+  const { refetch: refetchUser } = useAuthInfo();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -87,6 +89,10 @@ const ReplaceFile = ({
       ),
     });
     await replaceWithLatestDbVersion();
+
+    // Refetch the user in case we've replaced a file connected to them (e.g. avatar)
+    void refetchUser();
+
     close();
   };
 
