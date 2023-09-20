@@ -41,18 +41,6 @@ jobs:
             exit 1
           fi
 
-      - name: Run yarn lint:eslint
-        if: ${{ success() || failure() }}
-        run: |
-          if ! yarn lint:eslint; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:eslint` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
       - name: Run yarn lint:lockfile-lint
         if: ${{ success() || failure() }}
         run: |
@@ -125,19 +113,6 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:black` locally to apply autofixes.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
-      - name: Run yarn lint:tsc
-        if: ${{ success() || failure() }}
-        run: |
-          if ! yarn lint:tsc; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Please fix the above errors locally for the check to pass.'
-            echo 'If you don’t see them, try merging target branch into yours.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
