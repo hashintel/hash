@@ -111,8 +111,10 @@ jobs:
       - name: Find lint steps to run
         id: lints
         run: |
-          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
-          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []')
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []')
 
           ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]] && echo 'true' || echo 'false')
 
