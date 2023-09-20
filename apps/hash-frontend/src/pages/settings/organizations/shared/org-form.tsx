@@ -273,9 +273,12 @@ export const OrgForm = ({
                       component="span"
                       sx={{
                         marginLeft: 2,
+                        marginRight: 0.2,
                         color: ({ palette }) =>
                           shortnameError
                             ? palette.red[80]
+                            : initialOrg
+                            ? palette.gray[50]
                             : shortnameWatcher === ""
                             ? "#9CA3AF"
                             : palette.gray[80],
