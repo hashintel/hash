@@ -13,7 +13,9 @@
       "persistent": true,
       "dependsOn": ["build"]
     },
-
+    "lint": {
+      "dependsOn": ["^build", "codegen"]
+    },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["^build", "codegen"]
@@ -27,6 +29,8 @@
   },
   "globalDependencies": [
     "**/turbo.json",
+    ".github/workflows/**",
+    ".github/actions/**",
     ".env",
     ".env.local",
     ".justfile",
