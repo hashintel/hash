@@ -10,14 +10,12 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructUser, User } from "../../lib/user-and-org";
+import { constructMinimalUser, MinimalUser } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
-export const useUsers = (
-  cache = false,
-): {
+export const useUsers = (): {
   loading: boolean;
-  users?: User[];
+  users?: MinimalUser[];
 } => {
   const { data, loading } = useQuery<
     QueryEntitiesQuery,
@@ -40,11 +38,12 @@ export const useUsers = (
       constrainsLinkDestinationsOn: { outgoing: 0 },
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
-      hasLeftEntity: { incoming: 1, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 1 },
+      // as there may be a lot of users, we don't fetch anything linked to them (e.g. org memberships, avatars)
+      // @todo don't fetch all users, fetch a sensible short list on load and others dynamically as needed
+      hasLeftEntity: { incoming: 0, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: cache ? "cache-first" : "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const { queryEntities: subgraph } = data ?? {};
@@ -54,17 +53,9 @@ export const useUsers = (
       return undefined;
     }
 
-    // Sharing the same resolved map makes the map below slightly more efficient
-    const resolvedUsers = {};
-    const resolvedOrgs = {};
-
-    /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
     return getRoots(subgraph as Subgraph<EntityRootType>).map((userEntity) =>
-      constructUser({
-        subgraph,
+      constructMinimalUser({
         userEntity: userEntity as Entity<UserProperties>,
-        resolvedUsers,
-        resolvedOrgs,
       }),
     );
   }, [subgraph]);

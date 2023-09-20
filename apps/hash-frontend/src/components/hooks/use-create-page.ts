@@ -1,10 +1,8 @@
 import { useMutation } from "@apollo/client";
 import {
-  EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  Uuid,
 } from "@local/hash-subgraph";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -16,14 +14,15 @@ import {
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
-import { useWorkspaceShortnameByEntityUuid } from "./use-workspace-shortname-by-entity-uuid";
 
-export const useCreatePage = (ownedById: OwnedById) => {
+export const useCreatePage = ({
+  shortname,
+  ownedById,
+}: {
+  shortname?: string;
+  ownedById?: OwnedById;
+}) => {
   const router = useRouter();
-
-  const { workspaceShortname } = useWorkspaceShortnameByEntityUuid({
-    entityUuid: ownedById as Uuid as EntityUuid,
-  });
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
     CreatePageMutation,
@@ -47,20 +46,27 @@ export const useCreatePage = (ownedById: OwnedById) => {
 
   const createUntitledPage = useCallback(
     async (prevIndex: string | null) => {
+      if (!ownedById) {
+        throw new Error("No ownedById provided to useCreatePage");
+      }
+
       const response = await createPageFn({
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
       const pageEntityId = response.data?.createPage.metadata.recordId.entityId;
 
-      if (pageEntityId && workspaceShortname) {
+      if (pageEntityId && shortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
         return router.push(
-          constructPageRelativeUrl({ workspaceShortname, pageEntityUuid }),
+          constructPageRelativeUrl({
+            workspaceShortname: shortname,
+            pageEntityUuid,
+          }),
         );
       }
     },
-    [createPageFn, ownedById, router, workspaceShortname],
+    [createPageFn, ownedById, router, shortname],
   );
 
   return [createUntitledPage, { loading: createPageLoading }] as const;

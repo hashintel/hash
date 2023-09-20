@@ -2,7 +2,7 @@ import { ArrowRotateLeftIcon } from "@hashintel/design-system";
 import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
-import { useWorkspaceShortnameByOwnedById } from "../../../../../../components/hooks/use-workspace-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByOwnedById } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { FileUpload } from "../../../../../../shared/file-upload-context";
 import { ArrowUpRightIcon } from "../../../../../../shared/icons/arrow-up-right-icon";
 import { DashIcon } from "../../../../../../shared/icons/dash-icon";
@@ -26,7 +26,7 @@ export const Action = ({
   onRetry: () => void;
   upload: FileUpload;
 }) => {
-  const { shortname } = useWorkspaceShortnameByOwnedById({
+  const { shortname } = useUserOrOrgShortnameByOwnedById({
     ownedById: upload.ownedById,
   });
 

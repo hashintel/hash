@@ -4,17 +4,18 @@ import {
   FunctionComponent,
   ReactElement,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
 
 import { localStorageKeys } from "../../lib/config";
-import { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
+import { MinimalUser, Org } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
 
 export type WorkspaceContextValue = {
-  activeWorkspace?: MinimalUser | MinimalOrg;
+  activeWorkspace?: MinimalUser | Org;
   activeWorkspaceOwnedById?: OwnedById;
   updateActiveWorkspaceOwnedById: (
     updatedActiveWorkspaceAccountId: OwnedById,
@@ -29,6 +30,10 @@ const defaultWorkspaceContextValue: WorkspaceContextValue = {
 export const WorkspaceContext = createContext<WorkspaceContextValue>(
   defaultWorkspaceContextValue,
 );
+
+export const useActiveWorkspace = () => {
+  return useContext(WorkspaceContext);
+};
 
 export const WorkspaceContextProvider: FunctionComponent<{
   children: ReactElement;
@@ -83,8 +88,9 @@ export const WorkspaceContextProvider: FunctionComponent<{
       authenticatedUser.accountId === activeWorkspaceOwnedById
         ? authenticatedUser
         : authenticatedUser?.memberOf.find(
-            ({ accountGroupId }) => accountGroupId === activeWorkspaceOwnedById,
-          );
+            ({ org: { accountGroupId } }) =>
+              accountGroupId === activeWorkspaceOwnedById,
+          )?.org;
 
     /**
      * If there is an `activeWorkspaceOwnedById` and an `authenticatedUser`, but

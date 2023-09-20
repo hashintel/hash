@@ -6,6 +6,7 @@ import { NextSeo } from "next-seo";
 import { useRef } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useOrgs } from "../../../../components/hooks/use-orgs";
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
@@ -21,11 +22,12 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  const { authenticatedUser, refetch } = useAuthenticatedUser();
+  const { authenticatedUser, refetch: refetchUser } = useAuthenticatedUser();
+  const { refetch: refetchOrgs } = useOrgs();
 
   const org = authenticatedUser.memberOf.find(
-    (orgOption) => orgOption.shortname === shortname,
-  );
+    ({ org: orgOption }) => orgOption.shortname === shortname,
+  )?.org;
 
   if (!org) {
     // @todo show a 404 page
@@ -77,7 +79,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
     topRef.current?.scrollIntoView({ behavior: "smooth" });
 
-    void refetch();
+    void refetchUser();
+    void refetchOrgs();
   };
 
   return (

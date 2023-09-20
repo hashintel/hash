@@ -1,9 +1,5 @@
 import { ImageWithCheckedBackground } from "@hashintel/design-system";
-import {
-  descriptionPropertyTypeUrl,
-  fileUrlPropertyTypeUrl,
-  mimeTypePropertyTypeUrl,
-} from "@local/hash-subgraph";
+import { descriptionPropertyTypeUrl } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
@@ -11,6 +7,7 @@ import { Box } from "@mui/material";
 import { generateEntityLabel } from "../../../../../lib/entities";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
+import { getImageUrlFromFileProperties } from "./shared/get-image-url-from-properties";
 
 const maxImageHeight = 300;
 
@@ -19,15 +16,7 @@ export const FilePreviewSection = () => {
 
   const entity = getRoots(entitySubgraph)[0]!;
 
-  const mimeType = entity.properties[
-    extractBaseUrl(mimeTypePropertyTypeUrl)
-  ] as string | undefined;
-
-  const imageUrl = mimeType?.startsWith("image/")
-    ? (entity.properties[extractBaseUrl(fileUrlPropertyTypeUrl)] as
-        | string
-        | undefined)
-    : undefined;
+  const imageUrl = getImageUrlFromFileProperties(entity.properties);
 
   if (!imageUrl) {
     return null;

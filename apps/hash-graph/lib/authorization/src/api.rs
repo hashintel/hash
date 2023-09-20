@@ -8,7 +8,7 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse},
+    backend::{CheckError, CheckResponse, ModifyRelationError},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -22,6 +22,18 @@ pub enum VisibilityScope {
 }
 
 pub trait AuthorizationApi {
+    fn add_account_group_admin(
+        &mut self,
+        member: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_account_group_admin(
+        &mut self,
+        member: AccountId,
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     fn can_add_group_members(
         &self,
         actor: AccountId,
@@ -38,27 +50,27 @@ pub trait AuthorizationApi {
 
     fn add_account_group_member(
         &mut self,
-        group: AccountGroupId,
         member: AccountId,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_account_group_member(
         &mut self,
-        group: AccountGroupId,
         member: AccountId,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+        group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn add_entity_owner(
         &mut self,
         actor: AccountId,
         scope: VisibilityScope,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_entity_owner(
         &mut self,
         actor: AccountId,
         scope: VisibilityScope,
-    ) -> impl Future<Output = Result<Zookie<'static>, CheckError>> + Send;
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_create_entity(
         &self,
@@ -120,8 +132,8 @@ pub trait AuthorizationApiPool {
     /// Retrieves an owned [`AuthorizationApi`] from the pool.
     ///
     /// Using an owned [`AuthorizationApi`] makes it easier to leak the connection pool and it's not
-    /// possible to reuse that connection. Therefore, [`acquire`] (which stores a
-    /// lifetime-bound reference to the `StorePool`) should be preferred whenever possible.
+    /// possible to reuse that connection. Therefore, [`acquire`] (which stores a lifetime-bound
+    /// reference to the `AuthorizationApiPool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
     async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error>;

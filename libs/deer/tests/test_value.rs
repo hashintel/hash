@@ -1,3 +1,4 @@
+#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use deer::{
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     value::{

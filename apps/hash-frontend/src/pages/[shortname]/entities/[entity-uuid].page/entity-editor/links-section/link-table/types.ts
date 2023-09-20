@@ -20,7 +20,10 @@ export type LinkRow = {
   isLoading: boolean;
   expectedEntityTypes: EntityTypeWithMetadata[];
   expectedEntityTypeTitles: string[];
-  linkAndTargetEntities: LinkAndTargetEntity[];
+  linkAndTargetEntities: (LinkAndTargetEntity & {
+    // Adding the subgraph we found these in makes it easy to retrieve their type(s), e.g. for labelling
+    sourceSubgraph: Subgraph<EntityRootType> | null;
+  })[];
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
 };

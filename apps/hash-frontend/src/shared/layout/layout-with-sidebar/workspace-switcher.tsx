@@ -15,11 +15,12 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useContext, useMemo } from "react";
+import { FunctionComponent, useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
+import { getImageUrlFromFileProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
 
 type WorkspaceSwitcherProps = {};
@@ -34,23 +35,34 @@ export const WorkspaceSwitcher: FunctionComponent<
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
   const { activeWorkspaceOwnedById, updateActiveWorkspaceOwnedById } =
-    useContext(WorkspaceContext);
+    useActiveWorkspace();
 
-  const activeWorkspaceName = useMemo(() => {
+  const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
-      return authenticatedUser.preferredName || authenticatedUser.shortname!;
+      return {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
+        name: authenticatedUser.preferredName || authenticatedUser.shortname!,
+      };
     } else {
-      const activeOrg = authenticatedUser.memberOf.find(
-        ({ accountGroupId }) => accountGroupId === activeWorkspaceOwnedById,
-      );
+      const { org: activeOrg } =
+        authenticatedUser.memberOf.find(
+          ({ org: { accountGroupId } }) =>
+            accountGroupId === activeWorkspaceOwnedById,
+        ) ?? {};
 
       if (activeOrg) {
-        return activeOrg.name;
+        return {
+          name: activeOrg.name,
+          avatarSrc: activeOrg.hasAvatar
+            ? getImageUrlFromFileProperties(
+                activeOrg.hasAvatar.imageEntity.properties,
+              )
+            : undefined,
+        };
       }
     }
 
-    return "User";
+    return { name: "User" };
   }, [activeWorkspaceOwnedById, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
@@ -60,13 +72,17 @@ export const WorkspaceSwitcher: FunctionComponent<
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
+        avatarSrc: undefined,
       },
       ...authenticatedUser.memberOf.map(
-        ({ accountGroupId, name, memberships }) => ({
+        ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
           ownedById: accountGroupId as OwnedById,
           title: name,
-          subText: `${memberships.length} members`,
+          subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
+          avatarSrc: hasAvatar
+            ? getImageUrlFromFileProperties(hasAvatar.imageEntity.properties)
+            : undefined,
         }),
       ),
     ];
@@ -74,7 +90,7 @@ export const WorkspaceSwitcher: FunctionComponent<
 
   return (
     <Box>
-      <Tooltip placement="bottom" title={activeWorkspaceName}>
+      <Tooltip placement="bottom" title={activeWorkspace.name}>
         <Button
           variant="tertiary_quiet"
           fullWidth
@@ -87,7 +103,11 @@ export const WorkspaceSwitcher: FunctionComponent<
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar size={22} title={activeWorkspaceName} />
+          <Avatar
+            size={22}
+            src={activeWorkspace.avatarSrc}
+            title={activeWorkspace.name}
+          />
           <Typography
             sx={{
               pr: 1,
@@ -101,7 +121,7 @@ export const WorkspaceSwitcher: FunctionComponent<
             }}
             variant="smallTextLabels"
           >
-            {activeWorkspaceName}
+            {activeWorkspace.name}
           </Typography>
           <FontAwesomeIcon
             icon={faChevronDown}
@@ -119,7 +139,7 @@ export const WorkspaceSwitcher: FunctionComponent<
         }}
         autoFocus={false}
       >
-        {workspaceList.map(({ title, subText, ownedById }) => (
+        {workspaceList.map(({ title, subText, ownedById, avatarSrc }) => (
           <MenuItem
             key={ownedById}
             selected={ownedById === activeWorkspaceOwnedById}
@@ -130,6 +150,7 @@ export const WorkspaceSwitcher: FunctionComponent<
           >
             <ListItemAvatar>
               <Avatar
+                src={avatarSrc}
                 size={34}
                 title={
                   ownedById === authenticatedUser.accountId

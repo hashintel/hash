@@ -9,6 +9,7 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -26,7 +27,6 @@ import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitiv
 import {
   createLinkEntity,
   isEntityLinkEntity,
-  LinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
@@ -39,9 +39,10 @@ import {
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
   QueryResolvers,
+  QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
@@ -156,6 +157,17 @@ export const queryEntitiesResolver: Extract<
   });
 
   return entitySubgraph;
+};
+
+export const structuralQueryEntitiesResolver: ResolverFn<
+  Promise<Subgraph>,
+  {},
+  GraphQLContext,
+  QueryStructuralQueryEntitiesArgs
+> = async (_, { query }, context) => {
+  return getEntities(context.dataSources, context.authentication, {
+    query,
+  });
 };
 
 export const getEntityResolver: ResolverFn<

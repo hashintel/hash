@@ -11,8 +11,8 @@ import { useUsers } from "./use-users";
 export const useGetAccountIdForShortname = (
   shortname: string | undefined,
 ): { loading: boolean; accountId: AccountId | undefined } => {
-  const { loading: usersLoading, users } = useUsers(true);
-  const { loading: orgsLoading, orgs } = useOrgs(true);
+  const { loading: usersLoading, users } = useUsers();
+  const { loading: orgsLoading, orgs } = useOrgs();
 
   const accountId = useMemo(() => {
     /** @todo - don't do extract anymore */

@@ -1,3 +1,4 @@
+#![allow(clippy::ignored_unit_patterns)] // Reason: `proptest` does not match against `Ok(())` but `Ok(_)`
 use core::ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 use deer::Deserialize;
