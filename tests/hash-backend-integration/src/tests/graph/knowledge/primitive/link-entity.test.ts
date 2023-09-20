@@ -12,7 +12,6 @@ import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
-  LinkEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -30,6 +29,7 @@ import {
   linkEntityTypeUrl,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";

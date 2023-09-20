@@ -7,6 +7,7 @@ import {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -20,10 +21,6 @@ export type CreateLinkEntityParams = {
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
-};
-
-export type LinkEntity = Entity & {
-  linkData: NonNullable<Entity["linkData"]>;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>

@@ -21,6 +21,7 @@ import {
   getEntityResolver,
   inferEntitiesResolver,
   queryEntitiesResolver,
+  structuralQueryEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
@@ -93,6 +94,7 @@ export const resolvers = {
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
+    structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(

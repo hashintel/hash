@@ -63,7 +63,10 @@ const DataAccess: FunctionComponent<{
   >(syncLinearIntegrationWithWorkspacesMutation, { awaitRefetchQueries: true });
 
   const possibleWorkspaces = useMemo(
-    () => [authenticatedUser, ...authenticatedUser.memberOf],
+    () => [
+      authenticatedUser,
+      ...authenticatedUser.memberOf.map(({ org }) => org),
+    ],
     [authenticatedUser],
   );
 

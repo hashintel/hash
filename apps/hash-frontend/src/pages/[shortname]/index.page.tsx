@@ -1,14 +1,21 @@
 import { Avatar } from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
+import {
+  OrgProperties,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import { Entity } from "@local/hash-subgraph";
 import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { useOrgs } from "../../components/hooks/use-orgs";
-import { useUsers } from "../../components/hooks/use-users";
+import { constructOrg, constructUser } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
+import { useUserOrOrg } from "../../shared/use-user-or-org";
+import { getImageUrlFromFileProperties } from "./entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 
 const menuBarHeight = 60;
 
@@ -31,26 +38,43 @@ const Page: NextPageWithLayout = () => {
 
   const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
 
-  /**
-   * @todo: getting an org or user by their shortname should not be happening
-   * client side. This could be addressed by exposing structural querying
-   * to the frontend.
-   *
-   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
-   */
-  const { users, loading: loadingUsers } = useUsers();
-  const { orgs, loading: loadingOrgs } = useOrgs();
+  const { userOrOrg, userOrOrgSubgraph, loading } = useUserOrOrg({
+    shortname: profileShortname,
+    graphResolveDepths: {
+      // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
+      hasLeftEntity: { incoming: 1, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 1 },
+    },
+  });
 
   const profile = useMemo(() => {
-    return [...(users ?? []), ...(orgs ?? [])].find(
-      (userOrOrg) => userOrOrg.shortname === profileShortname,
-    );
-  }, [profileShortname, users, orgs]);
+    if (!userOrOrgSubgraph || !userOrOrg) {
+      return undefined;
+    }
 
-  const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
+    if (
+      userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId
+    ) {
+      return constructUser({
+        subgraph: userOrOrgSubgraph,
+        userEntity: userOrOrg as Entity<UserProperties>,
+      });
+    }
+
+    return constructOrg({
+      orgEntity: userOrOrg as Entity<OrgProperties>,
+      subgraph: userOrOrgSubgraph,
+    });
+  }, [userOrOrgSubgraph, userOrOrg]);
+
+  const profileNotFound = !profile && !loading;
 
   const websiteUrl =
     profile && "website" in profile && sanitizeHref(profile.website);
+
+  const avatarSrc = profile?.hasAvatar
+    ? getImageUrlFromFileProperties(profile.hasAvatar.imageEntity.properties)
+    : undefined;
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
@@ -71,6 +95,7 @@ const Page: NextPageWithLayout = () => {
                   bgcolor={
                     profile ? undefined : ({ palette }) => palette.gray[20]
                   }
+                  src={avatarSrc}
                   title={
                     profile
                       ? profile.kind === "user"

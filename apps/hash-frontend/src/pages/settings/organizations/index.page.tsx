@@ -57,8 +57,8 @@ const OrganizationListPage: NextPageWithLayout = () => {
           </TableHead>
           <TableBody>
             {authenticatedUser.memberOf
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((org) => (
+              .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
+              .map(({ org }) => (
                 <OrgRow key={org.accountGroupId} org={org} />
               ))}
           </TableBody>

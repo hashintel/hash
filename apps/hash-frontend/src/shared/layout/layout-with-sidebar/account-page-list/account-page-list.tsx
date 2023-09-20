@@ -39,7 +39,7 @@ import { useArchivePage } from "../../../../components/hooks/use-archive-page";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
-import { useWorkspaceShortnameByOwnedById } from "../../../../components/hooks/use-workspace-shortname-by-owned-by-id";
+import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
@@ -72,14 +72,17 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const { shortname: ownerShortname } = useWorkspaceShortnameByOwnedById({
+  const { shortname: ownerShortname } = useUserOrOrgShortnameByOwnedById({
     ownedById,
   });
 
   const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage(ownedById);
-  const [createSubPage, { loading: createSubpageLoading }] =
-    useCreateSubPage(ownedById);
+    useCreatePage({ ownedById, shortname: ownerShortname });
+
+  const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage({
+    ownedById,
+    shortname: ownerShortname,
+  });
   const [reorderPage, { loading: reorderLoading }] = useReorderPage();
   const { archivePage, loading: archivePageLoading } = useArchivePage();
 

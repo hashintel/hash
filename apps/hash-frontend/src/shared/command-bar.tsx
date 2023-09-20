@@ -30,7 +30,7 @@ import {
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
-import { WorkspaceContext } from "../pages/shared/workspace-context";
+import { useActiveWorkspace } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   // childMenu,
@@ -210,12 +210,15 @@ export const CommandBar: FunctionComponent = () => {
 
   const router = useRouter();
 
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
 
   const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
-  const [createUntitledPage] = useCreatePage(activeWorkspaceOwnedById!);
+  const [createUntitledPage] = useCreatePage({
+    shortname: activeWorkspace?.shortname,
+    ownedById: activeWorkspaceOwnedById,
+  });
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<
