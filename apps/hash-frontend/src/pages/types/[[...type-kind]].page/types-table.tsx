@@ -269,6 +269,7 @@ export const TypesTable: FunctionComponent<{
           setSelectedRows(updatedSelectedRows)
         }
         sortable
+        firstColumnLeftPadding={false}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
         height={`

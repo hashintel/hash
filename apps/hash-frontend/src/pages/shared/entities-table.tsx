@@ -241,6 +241,7 @@ export const EntitiesTable: FunctionComponent<{
           onSelectedRowsChange={(updatedSelectedRows) =>
             setSelectedRows(updatedSelectedRows)
           }
+          firstColumnLeftPadding={false}
           height={`
             min(
               calc(100vh - (${

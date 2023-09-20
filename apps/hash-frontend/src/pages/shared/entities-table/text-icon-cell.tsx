@@ -26,7 +26,7 @@ export const renderTextIconCell: CustomRenderer<TextIconCell> = {
     const { theme, rect, ctx } = args;
     const { value, icon } = cell.data;
 
-    const columnPadding = getCellHorizontalPadding(true);
+    const columnPadding = getCellHorizontalPadding();
     const iconLeft = rect.x + columnPadding;
 
     // prepare to fill text

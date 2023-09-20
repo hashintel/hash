@@ -31,13 +31,16 @@ const drawHeaderSortIndicator = (
 export const useDrawHeader = <T extends string>(
   sort: ColumnSort<T> | undefined,
   columns: GridColumn[],
+  firstColumnLeftPadding: boolean = true,
 ) => {
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
       const { ctx, rect, column, columnIndex, theme } = args;
       const { x } = rect;
 
-      const paddingLeft = getCellHorizontalPadding(columnIndex === 0);
+      const paddingLeft = getCellHorizontalPadding(
+        firstColumnLeftPadding && columnIndex === 0,
+      );
 
       // center of the rectangle, we'll use it to draw the text & sort indicator
       const centerY = getYCenter(args);
@@ -64,7 +67,7 @@ export const useDrawHeader = <T extends string>(
 
       return true;
     },
-    [sort, columns],
+    [sort, columns, firstColumnLeftPadding],
   );
 
   return drawHeader;
