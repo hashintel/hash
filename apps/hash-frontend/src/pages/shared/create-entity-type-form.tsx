@@ -150,7 +150,7 @@ export const CreateEntityTypeForm = ({
   const potentiallyUndesiredCrossWebAction =
     crossWebAction &&
     authenticatedUser.memberOf.find(
-      (org) =>
+      ({ org }) =>
         org.shortname === parentWebName ||
         org.shortname === activeWorkspace.shortname,
     );

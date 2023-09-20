@@ -1,10 +1,12 @@
+//! General types and traits used throughout the Zanzibar authorization system.
+
 use core::fmt;
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
 /// The relation or permission of a [`Resource`] to another [`Resource`].
-pub trait Affiliation<R: Resource + ?Sized>: AsRef<str> {}
+pub trait Affiliation<R: Resource + ?Sized>: Serialize + Display {}
 
 /// A computed set of [`Resource`]s for another particular [`Resource`].
 pub trait Permission<R: Resource + ?Sized>: Affiliation<R> {}
@@ -13,100 +15,82 @@ pub trait Permission<R: Resource + ?Sized>: Affiliation<R> {}
 pub trait Relation<R: Resource + ?Sized>: Affiliation<R> {}
 
 pub trait Tuple {
-    fn resource_namespace(&self) -> &str;
-    fn resource_id(&self) -> &str;
-    fn affiliation(&self) -> &str;
-    fn subject_namespace(&self) -> &str;
-    fn subject_id(&self) -> &str;
-    fn subject_set(&self) -> Option<&str>;
+    fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized);
+    fn object_id(&self) -> &(impl Serialize + Display + ?Sized);
+    fn affiliation(&self) -> &(impl Serialize + Display + ?Sized);
+    fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized);
+    fn user_id(&self) -> &(impl Serialize + Display + ?Sized);
+    fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)>;
 }
 
-impl Tuple for UntypedTuple<'_> {
-    fn resource_namespace(&self) -> &str {
-        self.resource.namespace.as_ref()
-    }
-
-    fn resource_id(&self) -> &str {
-        self.resource.id.as_ref()
-    }
-
-    fn affiliation(&self) -> &str {
-        self.affiliation.as_ref()
-    }
-
-    fn subject_namespace(&self) -> &str {
-        self.subject.namespace.as_ref()
-    }
-
-    fn subject_id(&self) -> &str {
-        self.subject.id.as_ref()
-    }
-
-    fn subject_set(&self) -> Option<&str> {
-        self.subject_set.as_ref().map(AsRef::as_ref)
-    }
-}
-
-impl<R, A, S> Tuple for (R, A, S)
+impl<O, A, U> Tuple for (O, A, U)
 where
-    R: Resource,
-    A: Affiliation<R>,
-    S: Resource,
+    O: Resource,
+    A: Affiliation<O>,
+    U: Resource,
 {
-    fn resource_namespace(&self) -> &str {
-        self.0.namespace()
+    fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        O::namespace()
     }
 
-    fn resource_id(&self) -> &str {
-        self.0.id().as_ref()
+    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        self.0.id()
     }
 
-    fn affiliation(&self) -> &str {
-        self.1.as_ref()
+    fn affiliation(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.1
     }
 
-    fn subject_namespace(&self) -> &str {
-        self.2.namespace()
+    fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        U::namespace()
     }
 
-    fn subject_id(&self) -> &str {
-        self.2.id().as_ref()
+    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        self.2.id()
     }
 
-    fn subject_set(&self) -> Option<&str> {
-        None
+    fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)> {
+        #[derive(Serialize)]
+        struct Unspecified;
+        impl Display for Unspecified {
+            fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
+                Ok(())
+            }
+        }
+
+        None::<&Unspecified>
     }
 }
 
-impl<R, A, S, SA> Tuple for (R, A, S, SA)
+impl<O, A, U, S> Tuple for (O, A, U, S)
 where
-    R: Resource,
-    A: Affiliation<R>,
-    S: Resource,
-    SA: Affiliation<S>,
+    O: Resource,
+    A: Affiliation<O>,
+    U: Resource,
+    S: Affiliation<U>,
 {
-    fn resource_namespace(&self) -> &str {
-        self.0.namespace()
+    fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        O::namespace()
     }
 
-    fn resource_id(&self) -> &str {
-        self.0.id().as_ref()
+    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        self.0.id()
     }
 
-    fn affiliation(&self) -> &str {
-        self.1.as_ref()
+    fn affiliation(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.1
     }
 
-    fn subject_namespace(&self) -> &str {
-        self.2.namespace()
+    fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        U::namespace()
     }
 
-    fn subject_id(&self) -> &str {
-        self.2.id().as_ref()
+    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        self.2.id()
     }
 
-    fn subject_set(&self) -> Option<&str> {
-        Some(self.3.as_ref())
+    fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)> {
+        Some(&self.3)
     }
 }
 
@@ -116,53 +100,13 @@ where
 /// two values separated by a colon.
 pub trait Resource {
     /// The unique identifier for this `Resource`.
-    type Id: AsRef<str> + ?Sized;
+    type Id: Serialize + Display + ?Sized;
 
     /// Returns the namespace for this `Resource`.
-    fn namespace(&self) -> &str;
+    fn namespace() -> &'static str;
 
     /// Returns the unique identifier for this `Resource`.
     fn id(&self) -> &Self::Id;
-}
-
-/// A [`Resource`] that only holds the string representation of it's namespace and id.
-///
-/// This is useful for when the [`Id`] type is not known at compile-time, e.g. when parsing a
-/// [`Tuple`] from a string.
-///
-/// [`Id`]: Resource::Id
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct UntypedResource<'r> {
-    pub namespace: Cow<'r, str>,
-    pub id: Cow<'r, str>,
-}
-
-impl UntypedResource<'_> {
-    #[must_use]
-    pub fn into_owned(self) -> UntypedResource<'static> {
-        UntypedResource {
-            namespace: Cow::Owned(self.namespace.into_owned()),
-            id: Cow::Owned(self.id.into_owned()),
-        }
-    }
-}
-
-impl Resource for UntypedResource<'_> {
-    type Id = str;
-
-    fn namespace(&self) -> &str {
-        &self.namespace
-    }
-
-    fn id(&self) -> &Self::Id {
-        &self.id
-    }
-}
-
-impl fmt::Display for UntypedResource<'_> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}:{}", self.namespace, self.id,)
-    }
 }
 
 /// An untyped [`Tuple`] that only holds it's string representation.
@@ -171,20 +115,50 @@ impl fmt::Display for UntypedResource<'_> {
 /// [`Tuple`] from a string.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UntypedTuple<'t> {
-    pub resource: UntypedResource<'t>,
+    pub object_namespace: Cow<'t, str>,
+    pub object_id: Cow<'t, str>,
     pub affiliation: Cow<'t, str>,
-    pub subject: UntypedResource<'t>,
-    pub subject_set: Option<Cow<'t, str>>,
+    pub user_namespace: Cow<'t, str>,
+    pub user_id: Cow<'t, str>,
+    pub user_set: Option<Cow<'t, str>>,
+}
+
+impl Tuple for UntypedTuple<'_> {
+    fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.object_namespace
+    }
+
+    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.object_id
+    }
+
+    fn affiliation(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.affiliation
+    }
+
+    fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.user_namespace
+    }
+
+    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+        &self.user_id
+    }
+
+    fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)> {
+        self.user_set.as_ref()
+    }
 }
 
 impl UntypedTuple<'_> {
     #[must_use]
     pub fn into_owned(self) -> UntypedTuple<'static> {
         UntypedTuple {
-            resource: self.resource.into_owned(),
+            object_namespace: Cow::Owned(self.object_namespace.into_owned()),
+            object_id: Cow::Owned(self.object_id.into_owned()),
             affiliation: Cow::Owned(self.affiliation.into_owned()),
-            subject: self.subject.into_owned(),
-            subject_set: self.subject_set.map(|cow| Cow::Owned(cow.into_owned())),
+            user_namespace: Cow::Owned(self.user_namespace.into_owned()),
+            user_id: Cow::Owned(self.user_id.into_owned()),
+            user_set: self.user_set.map(|cow| Cow::Owned(cow.into_owned())),
         }
     }
 }
@@ -193,10 +167,14 @@ impl fmt::Display for UntypedTuple<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
-            "{}#{}@{}",
-            self.resource, self.affiliation, self.subject
+            "{}:{}#{}@{}:{}",
+            self.object_namespace,
+            self.object_id,
+            self.affiliation,
+            self.user_namespace,
+            self.user_id
         )?;
-        if let Some(affiliation) = &self.subject_set {
+        if let Some(affiliation) = &self.user_set {
             write!(fmt, "#{affiliation}")?;
         }
         Ok(())
@@ -205,18 +183,16 @@ impl fmt::Display for UntypedTuple<'_> {
 
 impl<'t> UntypedTuple<'t> {
     #[must_use]
-    pub fn from_tuple(tuple: &'t impl Tuple) -> Self {
+    pub fn from_tuple<T: Tuple>(tuple: &'t T) -> Self {
         Self {
-            resource: UntypedResource {
-                namespace: Cow::Borrowed(tuple.resource_namespace()),
-                id: Cow::Borrowed(tuple.resource_id()),
-            },
-            affiliation: Cow::Borrowed(tuple.affiliation()),
-            subject: UntypedResource {
-                namespace: Cow::Borrowed(tuple.subject_namespace()),
-                id: Cow::Borrowed(tuple.subject_id()),
-            },
-            subject_set: tuple.subject_set().map(Cow::Borrowed),
+            object_namespace: Cow::Owned(tuple.object_namespace().to_string()),
+            object_id: Cow::Owned(tuple.object_id().to_string()),
+            affiliation: Cow::Owned(tuple.affiliation().to_string()),
+            user_namespace: Cow::Owned(tuple.user_namespace().to_string()),
+            user_id: Cow::Owned(tuple.user_id().to_string()),
+            user_set: tuple
+                .user_set()
+                .map(|user_set| Cow::Owned(user_set.to_string())),
         }
     }
 }

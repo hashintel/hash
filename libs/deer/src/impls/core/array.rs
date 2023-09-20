@@ -110,7 +110,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         }
 
         result
-            .map(|_| {
+            .map(|()| {
                 // this is taken from the source code of `array_assume_init`, which is still
                 // unstable, with a bunch of of clippy suggestions, this included:
                 // * `cast` instead of `*const _ as *const [T; N]`

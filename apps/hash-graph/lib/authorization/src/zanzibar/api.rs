@@ -26,6 +26,22 @@ impl<B> AuthorizationApi for ZanzibarClient<B>
 where
     B: ZanzibarBackend + Send + Sync,
 {
+    async fn add_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+    }
+
+    async fn remove_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
+    }
+
     async fn can_add_group_members(
         &self,
         _actor: AccountId,
@@ -52,16 +68,16 @@ where
 
     async fn add_account_group_member(
         &mut self,
-        _group: AccountGroupId,
         _member: AccountId,
+        _group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }
 
     async fn remove_account_group_member(
         &mut self,
-        _group: AccountGroupId,
         _member: AccountId,
+        _group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Err(Report::new(ModifyRelationError).attach_printable("not implemented"))
     }

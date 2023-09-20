@@ -29,6 +29,22 @@ use crate::{
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
+    async fn add_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
     async fn can_add_group_members(
         &self,
         _actor: AccountId,
@@ -55,16 +71,16 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn add_account_group_member(
         &mut self,
-        _group: AccountGroupId,
         _member: AccountId,
+        _group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
 
     async fn remove_account_group_member(
         &mut self,
-        _group: AccountGroupId,
         _member: AccountId,
+        _group: AccountGroupId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }

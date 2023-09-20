@@ -12,10 +12,12 @@ import {
   SidebarItemData,
 } from "./settings-layout/settings-sidebar";
 
-const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
+const generateMenuLinks = (
+  organizations: { org: Org }[],
+): SidebarItemData[] => {
   const organizationItems: SidebarItemData[] = organizations
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((org) => [
+    .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
+    .map(({ org }) => [
       {
         label: org.name,
         href: `/settings/organizations/${org.shortname}/general`,

@@ -4,6 +4,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -14,6 +15,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -31,7 +33,6 @@ import {
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
-  LinkEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
 import {
@@ -436,7 +437,7 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { pageEntityId }) => {
   const outgoingBlockDataLinks = await getEntityOutgoingLinks(
     ctx,

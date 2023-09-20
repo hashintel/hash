@@ -5,7 +5,7 @@ import {
   LinkIcon,
 } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
+import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -31,9 +31,7 @@ import { MenuItem } from "../../ui";
 import { CreateDocumentMenuItem } from "./actions-dropdown/create-document-menu-item";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
-const ActionsDropdownInner: FunctionComponent<{
-  activeWorkspaceOwnedById: OwnedById;
-}> = ({ activeWorkspaceOwnedById }) => {
+const ActionsDropdownInner: FunctionComponent = () => {
   const theme = useTheme();
 
   const { hashInstance } = useHashInstance();
@@ -96,10 +94,7 @@ const ActionsDropdownInner: FunctionComponent<{
           Create New
         </Typography>
         {hashInstance?.properties.pagesAreEnabled ? (
-          <CreateDocumentMenuItem
-            activeWorkspaceOwnedById={activeWorkspaceOwnedById}
-            onClick={popupState.close}
-          />
+          <CreateDocumentMenuItem onClick={popupState.close} />
         ) : null}
         <MenuItem href="/new/entity" onClick={popupState.close}>
           <ListItemIcon>
@@ -140,7 +135,5 @@ const ActionsDropdownInner: FunctionComponent<{
 export const ActionsDropdown: FunctionComponent = () => {
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  return activeWorkspaceOwnedById ? (
-    <ActionsDropdownInner activeWorkspaceOwnedById={activeWorkspaceOwnedById} />
-  ) : null;
+  return activeWorkspaceOwnedById ? <ActionsDropdownInner /> : null;
 };

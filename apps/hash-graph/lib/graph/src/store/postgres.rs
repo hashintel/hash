@@ -359,7 +359,7 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        let owned_by_uuid = owned_by_id.as_uuid();
+        let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
             Ok(VisibilityScope::AccountGroup(AccountGroupId::new(
                 owned_by_uuid,
@@ -1264,11 +1264,11 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         transaction.commit().await.change_context(InsertionError)
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn insert_account_group_id<A: AuthorizationApi + Send + Sync>(
         &mut self,
-        _actor_id: AccountId,
-        _authorization_api: &mut A,
+        actor_id: AccountId,
+        authorization_api: &mut A,
         account_group_id: AccountGroupId,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
@@ -1301,7 +1301,26 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .change_context(InsertionError)
             .attach_printable(account_group_id)?;
 
-        transaction.commit().await.change_context(InsertionError)
+        authorization_api
+            .add_account_group_admin(actor_id, account_group_id)
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .remove_account_group_admin(actor_id, account_group_id)
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 }
 

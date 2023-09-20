@@ -88,7 +88,7 @@ async fn seed_db(
         .id()
         .clone();
 
-    let owned_by_id = OwnedById::new(account_id.as_uuid());
+    let owned_by_id = OwnedById::new(account_id.into_uuid());
 
     let entity_metadata_list = transaction
         .insert_entities_batched_by_type(

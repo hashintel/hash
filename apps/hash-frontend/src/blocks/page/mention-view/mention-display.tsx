@@ -8,8 +8,8 @@ import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
+import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { useUsers } from "../../../components/hooks/use-users";
-import { useWorkspaceShortnameByOwnedById } from "../../../components/hooks/use-workspace-shortname-by-owned-by-id";
 import { PageIcon } from "../../../components/page-icon";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
@@ -27,12 +27,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   ownedById,
 }) => {
-  const { users, loading: usersLoading } = useUsers(true);
+  const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
 
   const { shortname: workspaceShortname, loading: workspaceShortnameLoading } =
-    useWorkspaceShortnameByOwnedById({ ownedById });
+    useUserOrOrgShortnameByOwnedById({ ownedById });
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {

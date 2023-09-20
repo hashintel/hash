@@ -107,7 +107,7 @@ where
                 .change_context(DeserializerError));
         };
 
-        let (value, _) = (value, access.end())
+        let (value, ()) = (value, access.end())
             .fold_reports()
             .change_context(DeserializerError)?;
 

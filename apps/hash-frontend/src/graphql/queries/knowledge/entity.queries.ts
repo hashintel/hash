@@ -79,6 +79,15 @@ export const queryEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
+export const structuralQueryEntitiesQuery = gql`
+  query structuralQueryEntities($query: EntityStructuralQuery!) {
+    structuralQueryEntities(query: $query) {
+      ...SubgraphFields
+    }
+  }
+  ${subgraphFieldsFragment}
+`;
+
 export const updateEntityMutation = gql`
   mutation updateEntity(
     $entityId: EntityId!

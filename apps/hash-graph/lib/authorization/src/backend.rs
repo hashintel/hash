@@ -6,7 +6,7 @@ use std::error::Error;
 use error_stack::Report;
 
 pub use self::spicedb::SpiceDbOpenApi;
-use crate::zanzibar::{Affiliation, Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
+use crate::zanzibar::{Consistency, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait ZanzibarBackend {
@@ -36,37 +36,24 @@ pub trait ZanzibarBackend {
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    async fn create_relations<'p, 't, T>(
+    async fn create_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + Send + Sync + 't;
+        T: Tuple + Sync + 't;
 
     /// Deletes the relation specified by the [`Tuple`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    async fn delete_relations<'p, 't, T>(
+    async fn delete_relations<'t, T>(
         &mut self,
         tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + Send + Sync + 't;
-
-    /// Deletes all relations matching the specified [`RelationFilter`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the relations could not be deleted.
-    async fn delete_relations_by_filter<'f>(
-        &mut self,
-        filter: RelationFilter<'_>,
-        preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>>;
+        T: Tuple + Sync + 't;
 
     /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
     /// [`Resource`].
@@ -78,17 +65,21 @@ pub trait ZanzibarBackend {
     /// Note, that this will not fail if the subject does not have the specified permission or
     /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    async fn check(
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
+    async fn check<T>(
         &self,
-        tuple: &(impl Tuple + Sync),
+        tuple: &T,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>>;
+    ) -> Result<CheckResponse, Report<CheckError>>
+    where
+        T: Tuple + Sync;
 }
 
 /// Return value for [`ZanzibarBackend::import_schema`].
 #[derive(Debug)]
 pub struct ImportSchemaResponse {
-    /// A token to determine the time at which the schema was writte.
+    /// A token to determine the time at which the schema was written.
     pub written_at: Zookie<'static>,
 }
 
@@ -163,30 +154,13 @@ impl fmt::Display for DeleteRelationError {
 
 impl Error for DeleteRelationError {}
 
-/// Return value for [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationsResponse {
-    /// A token to determine the time at which the relation was deleted.
-    pub deleted_at: Zookie<'static>,
-}
-
-/// Error returned from [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationsError;
-
-impl fmt::Display for DeleteRelationsError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to delete relations")
-    }
-}
-
-impl Error for DeleteRelationsError {}
-
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
     /// If the subject has the specified permission or relation to an [`Resource`].
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
@@ -199,6 +173,8 @@ impl CheckResponse {
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
     /// [`Resource`].
+    ///
+    /// [`Resource`]: crate::zanzibar::Resource
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)
@@ -243,110 +219,3 @@ impl fmt::Display for PermissionAssertion {
 }
 
 impl Error for PermissionAssertion {}
-
-pub struct SubjectFilter<'s> {
-    pub namespace: &'s str,
-    pub id: Option<&'s str>,
-    pub affiliation: Option<&'s str>,
-}
-
-pub struct RelationFilter<'f> {
-    pub namespace: &'f str,
-    pub id: Option<&'f str>,
-    pub affiliation: Option<&'f str>,
-    pub subject: Option<SubjectFilter<'f>>,
-}
-
-pub struct Precondition<'f> {
-    pub must_match: bool,
-    pub filter: RelationFilter<'f>,
-}
-
-impl<'f> Precondition<'f> {
-    #[must_use]
-    pub const fn must_match(filter: RelationFilter<'f>) -> Self {
-        Self {
-            must_match: true,
-            filter,
-        }
-    }
-
-    #[must_use]
-    pub const fn must_not_match(filter: RelationFilter<'f>) -> Self {
-        Self {
-            must_match: false,
-            filter,
-        }
-    }
-}
-
-impl<'f> RelationFilter<'f> {
-    #[must_use]
-    pub const fn for_resource_namespace(namespace: &'f str) -> Self {
-        Self {
-            namespace,
-            id: None,
-            affiliation: None,
-            subject: None,
-        }
-    }
-
-    pub fn for_resource<R>(resource: &'f R) -> Self
-    where
-        R: Resource + ?Sized,
-    {
-        Self {
-            namespace: resource.namespace(),
-            id: Some(resource.id().as_ref()),
-            affiliation: None,
-            subject: None,
-        }
-    }
-
-    #[must_use]
-    pub fn by_relation<A, R>(mut self, relation: &'f A) -> Self
-    where
-        A: Relation<R> + ?Sized,
-        R: Resource + ?Sized,
-    {
-        self.affiliation = Some(relation.as_ref());
-        self
-    }
-
-    #[must_use]
-    pub const fn with_subject_namespace<S>(mut self, namespace: &'f str) -> Self {
-        self.subject = Some(SubjectFilter {
-            namespace,
-            id: None,
-            affiliation: None,
-        });
-        self
-    }
-
-    #[must_use]
-    pub fn with_subject<S>(mut self, subject: &'f S) -> Self
-    where
-        S: Resource + ?Sized,
-    {
-        self.subject = Some(SubjectFilter {
-            namespace: subject.namespace(),
-            id: Some(subject.id().as_ref()),
-            affiliation: None,
-        });
-        self
-    }
-
-    #[must_use]
-    pub fn with_subject_set<S, A>(mut self, subject: &'f S, affiliation: &'f A) -> Self
-    where
-        S: Resource + ?Sized,
-        A: Affiliation<S> + ?Sized,
-    {
-        self.subject = Some(SubjectFilter {
-            namespace: subject.namespace(),
-            id: Some(subject.id().as_ref()),
-            affiliation: Some(affiliation.as_ref()),
-        });
-        self
-    }
-}

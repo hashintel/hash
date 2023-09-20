@@ -83,13 +83,13 @@ impl<'p> Filter<'p, Entity> {
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.owned_by_id.as_uuid(),
+                    entity_id.owned_by_id.into_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid.as_uuid(),
+                    entity_id.entity_uuid.into_uuid(),
                 ))),
             ),
         ])
