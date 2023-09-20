@@ -5,7 +5,7 @@ import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { useLatestPropertyTypesContextRequired } from "../../../../../shared/latest-property-types-context";
+import { useLatestPropertyTypes } from "../../../../../shared/latest-property-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
@@ -27,7 +27,7 @@ export const DefinitionTab = ({
 }: DefinitionTabProps) => {
   const entityTypesContext = useEntityTypesContextRequired();
   const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
-    useLatestPropertyTypesContextRequired();
+    useLatestPropertyTypes();
 
   const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
     const propertyTypesWithMetadata = {

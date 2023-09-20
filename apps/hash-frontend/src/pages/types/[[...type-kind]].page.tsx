@@ -9,7 +9,7 @@ import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-pro
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
-import { useLatestPropertyTypesContextRequired } from "../../shared/latest-property-types-context";
+import { useLatestPropertyTypes } from "../../shared/latest-property-types-context";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { TopContextBar } from "../shared/top-context-bar";
 import {
@@ -80,8 +80,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 
-  const { propertyTypes: latestPropertyTypesObject } =
-    useLatestPropertyTypesContextRequired({ includeArchived: true });
+  const { propertyTypes: latestPropertyTypesObject } = useLatestPropertyTypes({
+    includeArchived: true,
+  });
 
   const latestPropertyTypes = useMemo(
     () =>

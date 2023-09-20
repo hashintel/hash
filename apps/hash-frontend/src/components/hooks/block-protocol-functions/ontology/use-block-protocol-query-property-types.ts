@@ -33,7 +33,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
         };
       }
 
-      const { graphResolveDepths } = data;
+      const { graphResolveDepths, includeArchived, latestOnly } = data;
       /**
        * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
@@ -45,7 +45,8 @@ export const useBlockProtocolQueryPropertyTypes = (): {
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           ...graphResolveDepths,
-          includeArchived: true,
+          includeArchived,
+          latestOnly,
         },
       });
 

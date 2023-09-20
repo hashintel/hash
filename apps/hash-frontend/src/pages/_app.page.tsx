@@ -143,7 +143,7 @@ const App: FunctionComponent<AppProps> = ({
                 <WorkspaceContextProvider>
                   <SnackbarProvider maxSnack={3}>
                     <EntityTypesContextProvider>
-                      <LatestPropertyTypesContextProvider>
+                      <LatestPropertyTypesContextProvider includeArchived>
                         <FileUploadsProvider>
                           <SidebarContextProvider>
                             {getLayout(<Component {...pageProps} />)}

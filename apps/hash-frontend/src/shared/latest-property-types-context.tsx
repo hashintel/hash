@@ -1,6 +1,11 @@
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { PropertyTypeWithMetadata } from "@local/hash-subgraph";
-import { createContext, PropsWithChildren, useContext } from "react";
+import {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+} from "react";
 
 import { isTypeArchived } from "./is-archived";
 import { useLatestPropertyTypesContextValue } from "./latest-property-types-context/use-latest-property-types-context-value";
@@ -13,7 +18,7 @@ export type LatestPropertyTypesContextValues = {
 export const LatestPropertyTypesContext =
   createContext<null | LatestPropertyTypesContextValues>(null);
 
-export const useLatestPropertyTypesContextRequired = (params?: {
+export const useLatestPropertyTypes = (params?: {
   includeArchived?: boolean;
 }) => {
   const { includeArchived = false } = params ?? {};
@@ -41,13 +46,13 @@ export const useLatestPropertyTypesContextRequired = (params?: {
 };
 
 export const useFetchLatestPropertyTypes = () => {
-  return useLatestPropertyTypesContextRequired().refetch;
+  return useLatestPropertyTypes().refetch;
 };
 
-export const LatestPropertyTypesContextProvider = ({
-  children,
-}: PropsWithChildren) => {
-  const value = useLatestPropertyTypesContextValue();
+export const LatestPropertyTypesContextProvider: FunctionComponent<
+  { includeArchived?: boolean } & PropsWithChildren
+> = ({ children, includeArchived }) => {
+  const value = useLatestPropertyTypesContextValue({ includeArchived });
 
   return (
     <LatestPropertyTypesContext.Provider value={value}>
