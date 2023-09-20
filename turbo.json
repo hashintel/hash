@@ -31,8 +31,7 @@
     "**/turbo.json",
     ".github/workflows/**",
     ".github/actions/**",
-    ".env",
-    ".env.local",
+    ".env*",
     ".justfile",
     ".yarnrc",
     "package.json"

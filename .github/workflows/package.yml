@@ -1,4 +1,4 @@
-name: Test
+name: Package
 
 on:
   pull_request:
@@ -100,6 +100,14 @@ jobs:
     if: always()
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install turbo
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
+        run: yarn global add turbo
+
       - name: Find lint steps to run
         id: lints
         run: |
@@ -112,14 +120,6 @@ jobs:
           echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
           echo "any-changed=$ANY_CHANGED" >> $GITHUB_OUTPUT
-
-      - name: Checkout
-        if: ${{ steps.lints.outputs.any-changed == 'true' }}
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-
-      - name: Install turbo
-        if: ${{ steps.lints.outputs.any-changed == 'true' }}
-        run: yarn global add turbo
 
       - name: Prune repository
         if: ${{ steps.lints.outputs.any-changed == 'true' }}
