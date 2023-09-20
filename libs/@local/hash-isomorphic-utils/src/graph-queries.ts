@@ -5,8 +5,6 @@ import {
   EntityQueryToken,
   EntityTypeQueryToken,
   Filter,
-  PathExpression,
-  PathExpressionPathInner,
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
