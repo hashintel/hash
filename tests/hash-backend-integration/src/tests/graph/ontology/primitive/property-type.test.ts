@@ -12,6 +12,7 @@ import {
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -151,7 +152,11 @@ describe("Property type CRU", () => {
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
 
     await expect(
-      getPropertyTypeById(graphContext, authentication, { propertyTypeId }),
+      getPropertyTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { propertyTypeId },
+      ),
     ).rejects.toThrow("Could not find property type with ID");
 
     await expect(

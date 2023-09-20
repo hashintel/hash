@@ -31,7 +31,7 @@ import {
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
+  makeEntityPublic,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -271,11 +271,11 @@ export const createUser: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const userAccountId =
-    params.userAccountId ??
-    (await graphApi
-      .createAccount(authentication.actorId)
-      .then(({ data: accountId }) => accountId as AccountId));
+  const userAccountId = params.userAccountId
+    ? params.userAccountId
+    : await graphApi
+        .createAccount(authentication.actorId)
+        .then(({ data: accountId }) => accountId as AccountId);
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
@@ -295,12 +295,21 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const entity = await createEntity(ctx, authentication, {
-    ownedById: userAccountId as OwnedById,
-    properties,
-    entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
-    entityUuid: userAccountId as string as EntityUuid,
-  });
+  const entity = await createEntity(
+    ctx,
+    { actorId: userAccountId },
+    {
+      ownedById: userAccountId as OwnedById,
+      properties,
+      entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
+      entityUuid: userAccountId as string as EntityUuid,
+    },
+  );
+  await makeEntityPublic(
+    ctx,
+    { actorId: userAccountId },
+    { entityId: entity.metadata.recordId.entityId },
+  );
 
   const user = getUserFromEntity({ entity });
 
@@ -362,90 +371,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
       },
     },
   });
-};
-
-/**
- * Update the shortname of a User.
- *
- * @param params.user - the user
- * @param params.updatedShortname - the new shortname to assign to the User
- * @param params.actorId - the id of the account that is updating the shortname
- */
-export const updateUserShortname: ImpureGraphFunction<
-  { user: User; updatedShortname: string },
-  Promise<User>
-> = async (ctx, authentication, params) => {
-  const { user, updatedShortname } = params;
-
-  if (shortnameIsInvalid({ shortname: updatedShortname })) {
-    throw new Error(`The shortname "${updatedShortname}" is invalid`);
-  }
-
-  if (
-    shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, authentication, {
-      shortname: updatedShortname,
-    }))
-  ) {
-    throw new Error(
-      `An account with shortname "${updatedShortname}" already exists.`,
-    );
-  }
-
-  const previousShortname = user.shortname;
-
-  const updatedUser = await updateEntityProperty(ctx, authentication, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-    value: updatedShortname,
-  }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
-
-  await updateUserKratosIdentityTraits(ctx, authentication, {
-    user: updatedUser,
-    updatedTraits: { shortname: updatedShortname },
-  }).catch(async (error) => {
-    // If an error occurred updating the entity, set the property to have the previous shortname
-    await updateEntityProperty(ctx, authentication, {
-      entity: user.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-      value: previousShortname,
-    });
-
-    return Promise.reject(error);
-  });
-
-  return updatedUser;
-};
-
-/**
- * Update the preferred name of a User.
- *
- * @param params.user - the user
- * @param params.updatedPreferredName - the new preferred name to assign to the User
- * @param params.actorId - the id of the account that is updating the preferred name
- */
-export const updateUserPreferredName: ImpureGraphFunction<
-  { user: User; updatedPreferredName: string },
-  Promise<User>
-> = async (ctx, authentication, params) => {
-  const { user, updatedPreferredName } = params;
-
-  if (updatedPreferredName === "") {
-    throw new Error(
-      `Preferred name "${updatedPreferredName}" cannot be removed.`,
-    );
-  }
-
-  const updatedEntity = await updateEntityProperty(ctx, authentication, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl,
-    value: updatedPreferredName,
-  });
-
-  return getUserFromEntity({ entity: updatedEntity });
 };
 
 /**

@@ -71,12 +71,16 @@ describe("Hash Instance", () => {
       "hashInstTest",
       logger,
     );
+
+    await addHashInstanceAdmin(
+      graphContext,
+      { actorId: systemUserAccountId },
+      {
+        user: testHashInstanceAdmin,
+      },
+    );
+
     const authentication = { actorId: testHashInstanceAdmin.accountId };
-
-    await addHashInstanceAdmin(graphContext, authentication, {
-      user: testHashInstanceAdmin,
-    });
-
     const hashOutgoingAdminLinks = await getEntityOutgoingLinks(
       graphContext,
       authentication,
