@@ -24,6 +24,11 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 
+import {
+  FileEntityCreationInput,
+  FileEntityUpdateInput,
+} from "../../../../graphql/api-types.gen";
+
 /* Entity CRU */
 
 export type GetEntityData = {
@@ -61,9 +66,13 @@ export type UpdateEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type UploadFileRequestData = BpUploadFileData & {
-  entityTypeId?: VersionedUrl;
-};
+export type UploadFileRequestData = BpUploadFileData &
+  (
+    | {
+        fileEntityCreationInput: Omit<FileEntityCreationInput, "ownedById">;
+      }
+    | { fileEntityUpdateInput: FileEntityUpdateInput }
+  );
 
 export type UploadFileRequestCallback = MessageCallback<
   UploadFileRequestData,

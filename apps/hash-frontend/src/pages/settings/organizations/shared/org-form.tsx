@@ -135,14 +135,16 @@ export const OrgForm = ({
 
   const nameWatcher = watch("name");
 
+  const existingImageEntity = initialOrg?.hasAvatar?.imageEntity;
+
   const avatarUrl =
-    initialOrg?.hasAvatar?.imageEntity.properties[
+    existingImageEntity?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 
   const setAvatar = async (file: File) => {
     if (!initialOrg?.entityRecordId) {
-      throw new Error("Cannot set org avatar without its entityRecordId");
+      throw new Error("Cannot set org avatar without the org's entityRecordId");
     }
 
     // Upload the file and get a file entity which describes it
@@ -151,8 +153,19 @@ export const OrgForm = ({
         data: {
           description: `The avatar for the ${nameWatcher} organization in HASH`,
           name: `${nameWatcher}'s avatar`,
-          entityTypeId: types.entityType.imageFile.entityTypeId,
           file,
+          ...(existingImageEntity
+            ? {
+                fileEntityUpdateInput: {
+                  existingFileEntityId: existingImageEntity.metadata.recordId
+                    .entityId as EntityId,
+                },
+              }
+            : {
+                fileEntityCreationInput: {
+                  entityTypeId: types.entityType.imageFile.entityTypeId,
+                },
+              }),
         },
       },
     );

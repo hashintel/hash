@@ -1,50 +1,224 @@
-import { ImageWithCheckedBackground } from "@hashintel/design-system";
-import { descriptionPropertyTypeUrl } from "@local/hash-subgraph";
+import {
+  ArrowLeftIcon,
+  DownloadIcon,
+  FileIcon,
+  ImageWithCheckedBackground,
+  RotateIcon,
+} from "@hashintel/design-system";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { PropsWithChildren, useState } from "react";
 
 import { generateEntityLabel } from "../../../../../lib/entities";
+import {
+  useFileUploads,
+  useFileUploadsProgress,
+} from "../../../../../shared/file-upload-context";
+import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
+import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { getImageUrlFromFileProperties } from "./shared/get-image-url-from-properties";
+import { getFileUrlFromFileProperties } from "./shared/get-image-url-from-properties";
 
-const maxImageHeight = 300;
+const previewHeight = 250;
 
-export const FilePreviewSection = () => {
-  const { entitySubgraph } = useEntityEditor();
+const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
+  <Stack
+    direction="row"
+    spacing={1}
+    sx={{
+      position: "absolute",
+      top: 10,
+      right: 10,
+    }}
+  >
+    {children}
+  </Stack>
+);
+
+const ReplaceFile = ({
+  description,
+  displayName,
+  isImage,
+  close,
+}: {
+  description?: string;
+  displayName?: string;
+  isImage: boolean;
+  close: () => void;
+}) => {
+  const { entitySubgraph, replaceWithLatestDbVersion } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
-  const imageUrl = getImageUrlFromFileProperties(entity.properties);
+  const { uploadFile, uploads } = useFileUploads();
+  const uploadsProgress = useFileUploadsProgress();
 
-  if (!imageUrl) {
-    return null;
+  const upload = uploads.find(
+    (option) =>
+      "fileEntityUpdateInput" in option.fileData &&
+      option.fileData.fileEntityUpdateInput.existingFileEntityId ===
+        entity.metadata.recordId.entityId &&
+      option.status !== "complete",
+  );
+  const progress = upload && uploadsProgress[upload.requestId];
+
+  const onFileProvided = async (file: File) => {
+    await uploadFile({
+      fileData: {
+        file,
+        description,
+        name: displayName,
+        fileEntityUpdateInput: {
+          existingFileEntityId: entity.metadata.recordId.entityId,
+        },
+      },
+      ownedById: extractOwnedByIdFromEntityId(
+        entity.metadata.recordId.entityId,
+      ),
+    });
+    await replaceWithLatestDbVersion();
+    close();
+  };
+
+  if (typeof progress === "number") {
+    return (
+      <Box sx={{ position: "relative" }}>
+        <CircularProgress
+          color={upload?.status === "error" ? "error" : "primary"}
+          size={72}
+          variant="determinate"
+          value={progress}
+        />
+        <Box
+          sx={{
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            position: "absolute",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography
+            variant="smallTextLabels"
+            sx={{ fontWeight: 500, mb: 1 }}
+          >{`${progress.toFixed(0)}%`}</Typography>
+        </Box>
+      </Box>
+    );
   }
 
-  const description = entity.properties[
-    extractBaseUrl(descriptionPropertyTypeUrl)
-  ] as string | undefined;
+  return (
+    <>
+      <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
+      <ActionButtonsContainer>
+        <Tooltip title="Cancel">
+          <Box>
+            <GrayToBlueIconButton onClick={close}>
+              <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
+            </GrayToBlueIconButton>
+          </Box>
+        </Tooltip>
+      </ActionButtonsContainer>
+    </>
+  );
+};
 
-  const title = generateEntityLabel(entitySubgraph);
+export const FilePreviewSection = () => {
+  const [replacing, setReplacing] = useState(false);
+
+  const { isDirty, entitySubgraph } = useEntityEditor();
+
+  const entity = getRoots(entitySubgraph)[0]!;
+
+  const { isImage, url } = getFileUrlFromFileProperties(entity.properties);
+
+  const { description, displayName, fileName } = simplifyProperties(
+    entity.properties as FileProperties,
+  );
+
+  const title = displayName ?? generateEntityLabel(entitySubgraph);
 
   const alt = description ?? title;
 
   return (
     <SectionWrapper title="File Preview">
-      <Box
+      <Stack
         sx={({ boxShadows }) => ({
+          alignItems: "center",
+          justifyContent: "center",
           boxShadow: boxShadows.sm,
           borderRadius: 1,
-          maxHeight: maxImageHeight,
+          height: previewHeight,
+          position: "relative",
         })}
       >
-        <ImageWithCheckedBackground
-          alt={alt}
-          src={imageUrl}
-          sx={{ maxHeight: maxImageHeight }}
-        />
-      </Box>
+        {replacing ? (
+          <ReplaceFile
+            close={() => setReplacing(false)}
+            description={description}
+            displayName={displayName}
+            isImage={!!isImage}
+          />
+        ) : (
+          <>
+            <ActionButtonsContainer>
+              <Tooltip
+                title={
+                  isDirty
+                    ? "Save or discard your changes to replace the file"
+                    : "Replace"
+                }
+              >
+                <Box>
+                  <GrayToBlueIconButton
+                    disabled={isDirty}
+                    onClick={() => setReplacing(true)}
+                  >
+                    <RotateIcon sx={{ width: 13, height: 13 }} />
+                  </GrayToBlueIconButton>
+                </Box>
+              </Tooltip>
+              <Tooltip title="Download">
+                <Box
+                  component="a"
+                  href={url}
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                >
+                  <GrayToBlueIconButton>
+                    <DownloadIcon sx={{ width: 13, height: 13 }} />
+                  </GrayToBlueIconButton>
+                </Box>
+              </Tooltip>
+            </ActionButtonsContainer>
+            {isImage ? (
+              <ImageWithCheckedBackground
+                alt={alt}
+                src={url}
+                sx={{ height: previewHeight }}
+              />
+            ) : (
+              <Stack alignItems="center" spacing={2}>
+                <FileIcon sx={{ color: "gray.50", fontSize: 48 }} />
+                <Typography sx={{ color: "gray.70" }}>{fileName}</Typography>
+              </Stack>
+            )}
+          </>
+        )}
+      </Stack>
     </SectionWrapper>
   );
 };

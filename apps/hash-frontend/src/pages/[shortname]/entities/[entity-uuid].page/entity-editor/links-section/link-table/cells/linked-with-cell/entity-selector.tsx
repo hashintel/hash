@@ -152,7 +152,12 @@ export const EntitySelector = ({
       onFinishedEditing();
 
       const upload = await uploadFile({
-        fileData: { entityTypeId: expectedEntityTypes[0]?.schema.$id, file },
+        fileData: {
+          file,
+          fileEntityCreationInput: {
+            entityTypeId: expectedEntityTypes[0]?.schema.$id,
+          },
+        },
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,

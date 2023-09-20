@@ -95,16 +95,18 @@ export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Save Changes" placement="top" disableInteractive>
-                <IconButton
-                  disabled={!isValid}
-                  rounded
-                  sx={{ color: "white" }}
-                  onClick={() => {
-                    onChange(JSON.parse(innerValue));
-                  }}
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                </IconButton>
+                <Box>
+                  <IconButton
+                    disabled={!isValid}
+                    rounded
+                    sx={{ color: "white" }}
+                    onClick={() => {
+                      onChange(JSON.parse(innerValue));
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faCheck} />
+                  </IconButton>
+                </Box>
               </Tooltip>
             </Box>
           </Box>

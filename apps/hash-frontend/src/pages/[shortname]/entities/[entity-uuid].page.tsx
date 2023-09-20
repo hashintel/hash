@@ -9,7 +9,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import produce from "immer";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -23,8 +22,8 @@ import {
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
+import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
-import { EditBar } from "../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
 import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
@@ -115,20 +114,8 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const newDraftEntitySubgraph = produce(subgraph, (val) => {
-      /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const entityToUpdate = getRoots(val)[0];
-      const draftEntity = getRoots(draftEntitySubgraph)[0];
-
-      if (entityToUpdate && draftEntity && "properties" in entityToUpdate) {
-        entityToUpdate.properties = draftEntity.properties;
-      }
-    });
-
     setEntitySubgraphFromDb(subgraph);
-    setDraftEntitySubgraph(newDraftEntitySubgraph);
+    setDraftEntitySubgraph(subgraph);
   };
 
   const resetDraftState = () => {
@@ -219,13 +206,14 @@ const Page: NextPageWithLayout = () => {
       entityUuid={entityUuid}
       owner={String(router.query.shortname)}
       isQueryEntity={isQueryEntity}
+      isDirty={isDirty}
       draftLinksToCreate={draftLinksToCreate}
       setDraftLinksToCreate={setDraftLinksToCreate}
       draftLinksToArchive={draftLinksToArchive}
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={readonly}
-      refetch={refetch}
+      replaceWithLatestDbVersion={refetch}
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(

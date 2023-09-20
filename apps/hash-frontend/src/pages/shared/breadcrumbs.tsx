@@ -116,39 +116,41 @@ export const Breadcrumbs = ({
 
         return (
           <Tooltip placement="bottom-start" key={item.title} title={item.title}>
-            <Button
-              disabled={!item.href}
-              variant="tertiary_quiet"
-              // don't attach href if it's the current page
-              {...(item.href &&
-                !item.href.includes(router.asPath) && { href: item.href })}
-              onClick={() => {
-                if (item.href?.includes(router.asPath)) {
-                  scrollToTop();
-                }
-              }}
-              size="xs"
-              startIcon={item.icon ?? defaultIcon}
-              sx={({ palette }) => ({
-                "&:disabled": {
-                  background: palette.common.white,
-                  borderColor: palette.common.white,
-                },
-                px: 1,
-              })}
-            >
-              <Box
-                component="span"
-                sx={{
-                  maxWidth: `${maxLength}ch`,
-                  whiteSpace: "nowrap",
-                  overflowX: "hidden",
-                  textOverflow: "ellipsis",
+            <Box>
+              <Button
+                disabled={!item.href}
+                variant="tertiary_quiet"
+                // don't attach href if it's the current page
+                {...(item.href &&
+                  !item.href.includes(router.asPath) && { href: item.href })}
+                onClick={() => {
+                  if (item.href?.includes(router.asPath)) {
+                    scrollToTop();
+                  }
                 }}
+                size="xs"
+                startIcon={item.icon ?? defaultIcon}
+                sx={({ palette }) => ({
+                  "&:disabled": {
+                    background: palette.common.white,
+                    borderColor: palette.common.white,
+                  },
+                  px: 1,
+                })}
               >
-                {item.title || PAGE_TITLE_PLACEHOLDER}
-              </Box>
-            </Button>
+                <Box
+                  component="span"
+                  sx={{
+                    maxWidth: `${maxLength}ch`,
+                    whiteSpace: "nowrap",
+                    overflowX: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {item.title || PAGE_TITLE_PLACEHOLDER}
+                </Box>
+              </Button>
+            </Box>
           </Tooltip>
         );
       })}

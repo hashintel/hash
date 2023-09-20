@@ -6,16 +6,16 @@ export const requestFileUpload = gql`
     $name: String!
     $description: String
     $displayName: String
-    $entityTypeId: VersionedUrl
-    $ownedById: OwnedById
+    $fileEntityCreationInput: FileEntityCreationInput
+    $fileEntityUpdateInput: FileEntityUpdateInput
   ) {
     requestFileUpload(
       size: $size
       name: $name
       description: $description
       displayName: $displayName
-      entityTypeId: $entityTypeId
-      ownedById: $ownedById
+      fileEntityCreationInput: $fileEntityCreationInput
+      fileEntityUpdateInput: $fileEntityUpdateInput
     ) {
       presignedPost {
         url
@@ -31,15 +31,15 @@ export const createFileFromUrl = gql`
     $url: String!
     $displayName: String
     $description: String
-    $entityTypeId: VersionedUrl
-    $ownedById: OwnedById
+    $fileEntityCreationInput: FileEntityCreationInput
+    $fileEntityUpdateInput: FileEntityUpdateInput
   ) {
     createFileFromUrl(
       url: $url
       displayName: $displayName
       description: $description
-      entityTypeId: $entityTypeId
-      ownedById: $ownedById
+      fileEntityCreationInput: $fileEntityCreationInput
+      fileEntityUpdateInput: $fileEntityUpdateInput
     )
   }
 `;
