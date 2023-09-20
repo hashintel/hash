@@ -1,4 +1,4 @@
-import { theme } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 import {
   listItemSecondaryActionClasses,
   MenuProps,

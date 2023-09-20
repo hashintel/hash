@@ -1,4 +1,4 @@
-import { fluidFontClassName } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { TableCell, Tooltip } from "@mui/material";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";

@@ -16,9 +16,9 @@ module.exports = {
       {
         patterns: [
           {
-            group: ["*/main"],
+            group: ["components", "!./theme/components", "!components/"],
             message:
-              "Please import from the component file directly, not main.ts",
+              "Please import from the component's file directly, not components.ts",
           },
           {
             group: ["@mui/material/*"],

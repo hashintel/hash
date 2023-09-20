@@ -5,7 +5,7 @@ import {
   GridCellKind,
   Item,
 } from "@glideapps/glide-data-grid";
-import { customColors } from "@hashintel/design-system";
+import { customColors } from "@hashintel/design-system/theme";
 import produce from "immer";
 import { RefObject } from "react";
 

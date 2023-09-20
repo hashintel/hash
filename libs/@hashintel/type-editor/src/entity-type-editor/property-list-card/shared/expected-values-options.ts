@@ -18,8 +18,8 @@ import {
   faListTree,
   faSquareCheck,
   faText,
-  theme,
 } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 
 const chipColors = {
   blue: {
