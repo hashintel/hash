@@ -5,6 +5,7 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
@@ -59,10 +60,14 @@ const validateVersionedUrl = (url: string): url is VersionedUrl =>
   !!url.match(versionedUrlRegExp);
 
 export const returnTypeAsJson = async (request: NextRequest) => {
-  const { url } = request;
+  const {
+    nextUrl: { pathname },
+  } = request;
 
-  const ontologyType = url.match(versionedUrlRegExp)?.[1];
-  const isUrlValid = validateVersionedUrl(url);
+  const reconstructedUrl = `${frontendUrl}${pathname}`;
+
+  const ontologyType = reconstructedUrl.match(versionedUrlRegExp)?.[1];
+  const isUrlValid = validateVersionedUrl(reconstructedUrl);
 
   if (!isUrlValid) {
     return generateErrorResponse(
@@ -72,7 +77,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   }
 
   const { query, variables } = generateQueryArgs(
-    url,
+    reconstructedUrl,
     ontologyType as "data-type" | "entity-type" | "property-type",
   );
 
@@ -106,7 +111,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   if (!root) {
     return generateErrorResponse(
       404,
-      `Could not find requested ${ontologyType} type at URL ${url}`,
+      `Could not find requested ${ontologyType} type at URL ${reconstructedUrl}`,
     );
   }
 

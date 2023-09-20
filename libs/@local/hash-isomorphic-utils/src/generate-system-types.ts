@@ -3,6 +3,8 @@
 // eslint-disable-next-line no-restricted-imports
 import "@local/hash-backend-utils/environment";
 
+import dns from "node:dns";
+
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import slugify from "slugify";
 
@@ -12,6 +14,8 @@ import {
   linearTypes,
   types,
 } from "./ontology-types";
+
+dns.setDefaultResultOrder("ipv4first");
 
 const generateTypes = async (
   typeMap: Record<string, EntityTypeDefinition>,

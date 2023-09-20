@@ -62,7 +62,7 @@ jobs:
   build-hash-graph:
     runs-on: ubuntu-latest
     needs: [setup]
-    if: needs.setup.outputs.be-tests == 'true' || needs.setup.outputs.pw-tests == 'true'
+    # if: needs.setup.outputs.be-tests == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
@@ -76,7 +76,7 @@ jobs:
   build-hash-ai-worker-ts:
     runs-on: ubuntu-latest
     needs: [setup]
-    if: needs.setup.outputs.ai-worker-ts == 'true' || needs.setup.outputs.pw-tests == 'true'
+    # if: needs.setup.outputs.ai-worker-ts == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
@@ -90,7 +90,7 @@ jobs:
   build-hash-ai-worker-py:
     runs-on: ubuntu-latest
     needs: [setup]
-    if: needs.setup.outputs.ai-worker-py == 'true' || needs.setup.outputs.pw-tests == 'true'
+    # if: needs.setup.outputs.ai-worker-py == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
@@ -104,7 +104,7 @@ jobs:
   build-hash-integration-worker:
     runs-on: ubuntu-latest
     needs: [setup]
-    if: needs.setup.outputs.integration-worker == 'true' || needs.setup.outputs.pw-tests == 'true'
+    # if: needs.setup.outputs.integration-worker == 'true' || needs.setup.outputs.pw-tests == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
@@ -369,6 +369,79 @@ jobs:
             var/logs
           ## Getting permission denied for docker volumes (e.g. postgres data)
           ## https://github.com/actions/upload-artifact/issues/192
+
+  ensure-system-types-were-generated:
+    name: Ensure system types were generated
+    runs-on: ubuntu-latest
+    needs: [setup, build-hash-graph]
+    steps:
+      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+
+      - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # v3.3.2
+        with:
+          path: apps/hash-frontend/.next/cache
+          key: ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('apps/hash-frontend/**') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-next-cache-${{ hashFiles('yarn.lock') }}-
+            ${{ runner.os }}-frontend-next-cache
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-graph: true
+          hash-ai-worker-ts: true
+          hash-ai-worker-py: true
+          hash-integration-worker: true
+
+      - name: Launch external services
+        env:
+          HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: http://0.0.0.0:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/
+        run: |
+          yarn turbo codegen --filter '@apps/hash-external-services'
+          # if we use turbo here, this would cost time with the docker build step needing to check that all the layers are cached
+          yarn workspace @apps/hash-external-services deploy up --detach
+
+      - name: Launch backend
+        env:
+          FRONTEND_URL: http://0.0.0.0:3000
+          LINEAR_CLIENT_ID: "fake-linear-client-id"
+        run: |
+          yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
+          yarn wait-on --timeout 120000 http://0.0.0.0:5001
+
+      - name: Build and launch frontend
+        env:
+          FRONTEND_URL: http://0.0.0.0:3000
+        run: |
+          yarn workspace @apps/hash-frontend next build
+          yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
+          yarn wait-on --timeout 30000 http://0.0.0.0:3000
+
+      - name: Generate system types
+        env:
+          FRONTEND_URL: http://0.0.0.0:3000
+        run: |
+          yarn wait-on --timeout 30000 http://0.0.0.0:3000
+          yarn generate-system-types
+
+      - name: Check for changes in system-types directory
+        run: |
+          git diff apps/hash-api/src/graph/knowledge/system-types
+          if ! git diff --exit-code apps/hash-api/src/graph/knowledge/system-types; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in `system-types` directory after running `yarn generate-system-types`.'
+            echo 'Please run `yarn generate-system-types` locally and commit any changes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
+          fi
 
   playwright-tests:
     name: Playwright tests
