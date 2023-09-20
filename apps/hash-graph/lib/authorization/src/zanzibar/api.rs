@@ -2,14 +2,14 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
-    provenance::OwnedById,
+    web::WebId,
 };
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ZanzibarBackend},
     schema::{
         AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
-        OwnerPermission, OwnerRelation,
+        WebPermission, WebRelation,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi, VisibilityScope,
@@ -56,22 +56,22 @@ where
             .deleted_at)
     }
 
-    async fn add_namespace(
+    async fn add_web_owner(
         &mut self,
-        namespace: impl Into<OwnedById> + Send,
         owner: OwnerId,
+        web: impl Into<WebId> + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(namespace.into(), OwnerRelation::DirectOwner, account)])
+                    .create_relations([(web.into(), WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .create_relations([(
-                        namespace.into(),
-                        OwnerRelation::DirectOwner,
+                        web.into(),
+                        WebRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,
                     )])
@@ -82,22 +82,22 @@ where
         .written_at)
     }
 
-    async fn remove_namespace(
+    async fn remove_web_owner(
         &mut self,
-        namespace: impl Into<OwnedById> + Send,
         owner: OwnerId,
+        web: impl Into<WebId> + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(namespace.into(), OwnerRelation::DirectOwner, account)])
+                    .delete_relations([(web.into(), WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .delete_relations([(
-                        namespace.into(),
-                        OwnerRelation::DirectOwner,
+                        web.into(),
+                        WebRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,
                     )])
@@ -219,12 +219,12 @@ where
     async fn can_create_entity(
         &self,
         actor: AccountId,
-        namespace: impl Into<OwnedById> + Send,
+        web: impl Into<WebId> + Send,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(namespace.into(), OwnerPermission::CreateEntity, actor),
+                &(web.into(), WebPermission::CreateEntity, actor),
                 consistency,
             )
             .await

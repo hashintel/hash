@@ -18,7 +18,7 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
-    provenance::OwnedById,
+    web::WebId,
 };
 
 use crate::{
@@ -47,18 +47,18 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
-    async fn add_namespace(
+    async fn add_web_owner(
         &mut self,
-        _namespace: impl Into<OwnedById> + Send,
         _owner: OwnerId,
+        _web: impl Into<WebId> + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
 
-    async fn remove_namespace(
+    async fn remove_web_owner(
         &mut self,
-        _namespace: impl Into<OwnedById> + Send,
         _owner: OwnerId,
+        _web: impl Into<WebId> + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -122,7 +122,7 @@ impl AuthorizationApi for NoAuthorization {
     async fn can_create_entity(
         &self,
         _actor: AccountId,
-        _namespace: impl Into<OwnedById> + Send,
+        _web: impl Into<WebId> + Send,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {

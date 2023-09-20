@@ -4,7 +4,7 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
-    provenance::OwnedById,
+    web::WebId,
 };
 
 use crate::{
@@ -35,16 +35,16 @@ pub trait AuthorizationApi {
         account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
-    fn add_namespace(
+    fn add_web_owner(
         &mut self,
-        namespace: impl Into<OwnedById> + Send,
         owner: OwnerId,
+        web: impl Into<WebId> + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
-    fn remove_namespace(
+    fn remove_web_owner(
         &mut self,
-        namespace: impl Into<OwnedById> + Send,
         owner: OwnerId,
+        web: impl Into<WebId> + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_add_group_members(
@@ -88,7 +88,7 @@ pub trait AuthorizationApi {
     fn can_create_entity(
         &self,
         actor: AccountId,
-        namespace: impl Into<OwnedById> + Send,
+        web: impl Into<WebId> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 

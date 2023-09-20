@@ -2,7 +2,7 @@ use std::fmt;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    provenance::OwnedById,
+    web::WebId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,11 +14,11 @@ pub enum OwnerId {
     AccountGroup(AccountGroupId),
 }
 
-impl Resource for OwnedById {
+impl Resource for WebId {
     type Id = Self;
 
     fn namespace() -> &'static str {
-        "graph/namespace"
+        "graph/web"
     }
 
     fn id(&self) -> &Self::Id {
@@ -28,30 +28,32 @@ impl Resource for OwnedById {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum OwnerRelation {
+pub enum WebRelation {
     DirectOwner,
 }
 
-impl fmt::Display for OwnerRelation {
+impl fmt::Display for WebRelation {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-impl Affiliation<OwnedById> for OwnerRelation {}
-impl Relation<OwnedById> for OwnerRelation {}
+impl Affiliation<WebId> for WebRelation {}
+
+impl Relation<WebId> for WebRelation {}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum OwnerPermission {
+pub enum WebPermission {
     CreateEntity,
 }
 
-impl fmt::Display for OwnerPermission {
+impl fmt::Display for WebPermission {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-impl Affiliation<OwnedById> for OwnerPermission {}
-impl Permission<OwnedById> for OwnerPermission {}
+impl Affiliation<WebId> for WebPermission {}
+
+impl Permission<WebId> for WebPermission {}
