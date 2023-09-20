@@ -254,6 +254,7 @@ export const EntitiesTable: FunctionComponent<{
             )`}
           createGetCellContent={createGetCellContent}
           customRenderers={[renderTextIconCell, renderChipCell]}
+          freezeColumns={1}
         />
       ) : null}
     </Box>

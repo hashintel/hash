@@ -284,6 +284,7 @@ export const TypesTable: FunctionComponent<{
             )
           )`}
         customRenderers={[renderTextIconCell]}
+        freezeColumns={1}
       />
     </Box>
   );
