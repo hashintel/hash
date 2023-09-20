@@ -59,36 +59,43 @@ const ReplaceFile = ({
 }) => {
   const { entitySubgraph, replaceWithLatestDbVersion } = useEntityEditor();
   const { refetch: refetchUser } = useAuthInfo();
+  const [fileBeingUploaded, setFileBeingUploaded] = useState<File | null>(null);
 
   const entity = getRoots(entitySubgraph)[0]!;
 
   const { uploadFile, uploads } = useFileUploads();
   const uploadsProgress = useFileUploadsProgress();
 
-  const upload = uploads.find(
-    (option) =>
-      "fileEntityUpdateInput" in option.fileData &&
-      option.fileData.fileEntityUpdateInput.existingFileEntityId ===
-        entity.metadata.recordId.entityId &&
-      option.status !== "complete",
+  const upload = uploads.find((option) =>
+    "fileEntityUpdateInput" in option.fileData &&
+    option.fileData.fileEntityUpdateInput.existingFileEntityId ===
+      entity.metadata.recordId.entityId &&
+    "file" in option.fileData
+      ? option.fileData.file === fileBeingUploaded
+      : false,
   );
-  const progress = upload && uploadsProgress[upload.requestId];
+  const progress = upload ? uploadsProgress[upload.requestId] : 0;
 
   const onFileProvided = async (file: File) => {
-    await uploadFile({
-      fileData: {
-        file,
-        description,
-        name: displayName,
-        fileEntityUpdateInput: {
-          existingFileEntityId: entity.metadata.recordId.entityId,
+    setFileBeingUploaded(file);
+    try {
+      await uploadFile({
+        fileData: {
+          file,
+          description,
+          name: displayName,
+          fileEntityUpdateInput: {
+            existingFileEntityId: entity.metadata.recordId.entityId,
+          },
         },
-      },
-      ownedById: extractOwnedByIdFromEntityId(
-        entity.metadata.recordId.entityId,
-      ),
-    });
-    await replaceWithLatestDbVersion();
+        ownedById: extractOwnedByIdFromEntityId(
+          entity.metadata.recordId.entityId,
+        ),
+      });
+      await replaceWithLatestDbVersion();
+    } finally {
+      setFileBeingUploaded(null);
+    }
 
     // Refetch the user in case we've replaced a file connected to them (e.g. avatar)
     void refetchUser();
@@ -96,7 +103,7 @@ const ReplaceFile = ({
     close();
   };
 
-  if (typeof progress === "number") {
+  if (fileBeingUploaded) {
     return (
       <Box sx={{ position: "relative" }}>
         <CircularProgress
@@ -120,7 +127,7 @@ const ReplaceFile = ({
           <Typography
             variant="smallTextLabels"
             sx={{ fontWeight: 500, mb: 1 }}
-          >{`${progress.toFixed(0)}%`}</Typography>
+          >{`${(progress ?? 0).toFixed(0)}%`}</Typography>
         </Box>
       </Box>
     );
