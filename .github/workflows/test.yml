@@ -39,17 +39,20 @@ jobs:
           UNIT_PACKAGES=$(turbo run test \
               --filter '!@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
+            | jq '.tasks[]' \
+            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           INTEGRATION_PACKAGES=$(turbo run test \
               --filter '@tests/*...[HEAD^]' \
               --dry-run=json \
-            | jq -c '[.tasks[] | select(.task == "test" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
+            | jq '.tasks[]' \
+            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          LINT_PACKAGES=$(turbo run lint:eslint \
-              --filter '...[HEAD^]' \
-              --dry-run=json \
-            | jq -c '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] | { package: [.[].package], include: [( .[] | {package: .package, directory: .directory })] }')
+          LINT_PACKAGES=$(turbo run lint --dry-run=json \
+            | jq '.tasks[]' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
           REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
@@ -97,25 +100,46 @@ jobs:
     if: always()
     runs-on: ubuntu-22.04
     steps:
+      - name: Find lint steps to run
+        id: lints
+        run: |
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
+
+          ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]])
+
+          set -x
+          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
+          echo "tsc=$TSC" >> $GITHUB_OUTPUT
+          echo "any-changed=$ANY_CHANGED" >> $GITHUB_OUTPUT
+
       - name: Checkout
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Install turbo
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
         run: yarn global add turbo
 
       - name: Prune repository
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
         uses: ./.github/actions/prune-repository
         with:
           scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
+        if: ${{ steps.lints.outputs.any-changed == 'true' }}
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
 
-      - name: Run lints
-        run: |
-          turbo run lint:eslint --filter "${{ matrix.package }}"
+      - name: Run ESLint
+        if: steps.lints.outputs.eslint == 'true'
+        run: turbo run lint:eslint --filter "${{ matrix.package }}"
+
+      - name: Run TSC
+        if: steps.lints.outputs.tsc == 'true'
+        run: turbo run lint:tsc --filter "${{ matrix.package }}"
 
   unit:
     name: Unit
