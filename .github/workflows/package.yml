@@ -114,7 +114,7 @@ jobs:
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
           TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json | jq '.packages != []')
 
-          ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]] && echo 'true' || echo 'false'))
+          ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]] && echo 'true' || echo 'false')
 
           set -x
           echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
