@@ -117,9 +117,7 @@ export const BulkActionsDropdown: FunctionComponent<{
         if (
           ![
             authenticatedUser.accountId,
-            ...authenticatedUser.memberOf.map(
-              ({ accountGroupId }) => accountGroupId,
-            ),
+            ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
           ].includes(itemOwnedById)
         ) {
           return false;
