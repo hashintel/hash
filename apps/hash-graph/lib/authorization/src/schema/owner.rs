@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
 
 #[derive(Debug, Copy, Clone)]
-pub enum Owner {
+pub enum OwnerId {
     Account(AccountId),
     AccountGroup(AccountGroupId),
 }
@@ -28,30 +28,30 @@ impl Resource for OwnedById {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum NamespaceRelation {
+pub enum OwnerRelation {
     DirectOwner,
 }
 
-impl fmt::Display for NamespaceRelation {
+impl fmt::Display for OwnerRelation {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-impl Affiliation<OwnedById> for NamespaceRelation {}
-impl Relation<OwnedById> for NamespaceRelation {}
+impl Affiliation<OwnedById> for OwnerRelation {}
+impl Relation<OwnedById> for OwnerRelation {}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum NamespacePermission {
+pub enum OwnerPermission {
     CreateEntity,
 }
 
-impl fmt::Display for NamespacePermission {
+impl fmt::Display for OwnerPermission {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.serialize(fmt)
     }
 }
 
-impl Affiliation<OwnedById> for NamespacePermission {}
-impl Permission<OwnedById> for NamespacePermission {}
+impl Affiliation<OwnedById> for OwnerPermission {}
+impl Permission<OwnedById> for OwnerPermission {}

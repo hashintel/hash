@@ -21,7 +21,7 @@ impl Resource for AccountGroupId {
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupRelation {
     DirectAdmin,
-    DirectMembership,
+    DirectMember,
 }
 
 impl fmt::Display for AccountGroupRelation {

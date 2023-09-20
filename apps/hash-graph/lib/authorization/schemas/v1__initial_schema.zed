@@ -1,15 +1,15 @@
 definition graph/account {}
 
 definition graph/account_group {
-	relation direct_admin: graph/account | graph/account_group#member
-	relation direct_membership: graph/account | graph/account_group#member | graph/account:*
+	relation direct_admin: graph/account
+	relation direct_member: graph/account
 
 	permission add_admin = direct_admin
 	permission remove_admin = direct_admin
 	permission add_member = direct_admin
 	permission remove_member = direct_admin
 
-	permission member = direct_admin + direct_membership
+	permission member = direct_admin + direct_member
 }
 
 definition graph/entity {
@@ -20,7 +20,7 @@ definition graph/entity {
 	permission view = direct_viewer + update
 }
 
-definition graph/namespace {
+definition graph/owner {
 	relation direct_owner: graph/account | graph/account_group#member
 
 	permission create_entity = direct_owner

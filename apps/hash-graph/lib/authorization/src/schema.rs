@@ -1,10 +1,10 @@
 mod account;
 mod account_group;
 mod entity;
-mod namespace;
+mod owner;
 
 pub use self::{
     account_group::{AccountGroupPermission, AccountGroupRelation},
     entity::{EntityPermission, EntityRelation},
-    namespace::{NamespacePermission, NamespaceRelation, Owner},
+    owner::{OwnerId, OwnerPermission, OwnerRelation},
 };
