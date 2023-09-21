@@ -42,23 +42,30 @@ const ItemLink = styled(Link)<{
 );
 
 const SidebarItem = ({
+  expandedItems,
+  setItemExpanded,
   item,
+  lastChild,
   level,
 }: {
+  expandedItems: SidebarItemData[];
   item: SidebarItemData;
+  lastChild: boolean;
   level: number;
+  setItemExpanded: (item: SidebarItemData, shouldExpand: boolean) => void;
 }) => {
-  const expandable = !!item.children?.length;
+  const expandable = level > 1 && !!item.children?.length;
 
   const router = useRouter();
   const active =
     router.asPath.startsWith(item.href) ||
     (!!item.activeIfHrefStartsWith &&
       router.asPath.startsWith(item.activeIfHrefStartsWith));
+
   const parentActive =
     item.parentHref && router.asPath.startsWith(item.parentHref);
 
-  const [expanded, setExpanded] = useState(active);
+  const expanded = expandedItems.includes(item);
 
   useEffect(() => {
     const handleRouteChange = (path: string) => {
@@ -68,9 +75,9 @@ const SidebarItem = ({
         (item.activeIfHrefStartsWith &&
           path.startsWith(item.activeIfHrefStartsWith))
       ) {
-        setExpanded(true);
+        setItemExpanded(item, true);
       } else {
-        setExpanded(false);
+        setItemExpanded(item, false);
       }
     };
 
@@ -79,7 +86,7 @@ const SidebarItem = ({
     return () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
-  }, [item, router.events]);
+  }, [item, router.events, setItemExpanded]);
 
   const theme = useTheme();
 
@@ -100,13 +107,20 @@ const SidebarItem = ({
       ? "transparent"
       : theme.palette.gray[20];
 
+  const paddingLevels: Record<number, number> = {
+    1: 0.5,
+    2: 0.4,
+    3: 0.2,
+  };
+
   return (
     <>
       <ListItem
         sx={{
           borderLeft: `3px solid ${borderColor}`,
           pl: 2,
-          py: 0.5,
+          py: paddingLevels[level],
+          pb: lastChild ? paddingLevels[Math.max(1, level - 1)] : undefined,
           position: "relative",
         }}
       >
@@ -145,7 +159,7 @@ const SidebarItem = ({
           <IconButton
             onClick={(event) => {
               event.stopPropagation();
-              setExpanded((isExpanded) => !isExpanded);
+              setItemExpanded(item, !expanded);
             }}
             size="small"
             unpadded
@@ -171,8 +185,13 @@ const SidebarItem = ({
       </ListItem>
 
       <Collapse in={expanded}>
-        {item.children?.map((child) => (
-          <SidebarItem key={child.href} item={child} level={level + 1} />
+        {item.children?.map((child, index) => (
+          <SidebarItem
+            key={child.href}
+            item={child}
+            level={level + 1}
+            lastChild={index === item.children!.length - 1}
+          />
         ))}
       </Collapse>
     </>
@@ -184,6 +203,8 @@ export const SettingsSidebar = ({
 }: {
   menuItems: SidebarItemData[];
 }) => {
+  const [expandedItems, setExpandedItems] = useState([]);
+
   return (
     <Box mr={4} width={200}>
       <Typography
@@ -201,8 +222,23 @@ export const SettingsSidebar = ({
       </Typography>
       {menuItems
         .filter((item) => !item.parentHref)
-        .map((item) => (
-          <SidebarItem key={item.href} item={item} level={1} />
+        .map((item, index) => (
+          <SidebarItem
+            expandedItems={expandedItems}
+            setItemExpanded={(item, shouldExpand) => {
+              if (shouldExpand) {
+                setExpandedItems((expandedItems) => [...expandedItems, item]);
+              } else {
+                setExpandedItems((expandedItems) =>
+                  expandedItems.filter((i) => i !== item),
+                );
+              }
+            }}
+            key={item.href}
+            item={item}
+            level={1}
+            lastChild={index === menuItems.length - 1}
+          />
         ))}
     </Box>
   );
