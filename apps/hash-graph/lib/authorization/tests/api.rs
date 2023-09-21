@@ -54,22 +54,22 @@ impl ZanzibarBackend for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relations<'t, T>(
+    async fn create_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + Sync + 't,
+        T: Tuple + Send + Sync,
     {
         self.client.create_relations(tuples).await
     }
 
-    async fn delete_relations<'t, T>(
+    async fn delete_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + Sync + 't,
+        T: Tuple + Send + Sync,
     {
         self.client.delete_relations(tuples).await
     }

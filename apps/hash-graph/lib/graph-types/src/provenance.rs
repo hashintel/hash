@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
-use crate::account::AccountId;
+use crate::account::{AccountGroupId, AccountId};
 
 macro_rules! define_provenance_id {
     ($name:tt) => {
@@ -75,6 +75,18 @@ pub struct ProvenanceMetadata {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
 pub struct OwnedById(Uuid);
+
+impl From<AccountId> for OwnedById {
+    fn from(account_id: AccountId) -> Self {
+        Self(account_id.into_uuid())
+    }
+}
+
+impl From<AccountGroupId> for OwnedById {
+    fn from(account_group_id: AccountGroupId) -> Self {
+        Self(account_group_id.into_uuid())
+    }
+}
 
 impl OwnedById {
     #[must_use]

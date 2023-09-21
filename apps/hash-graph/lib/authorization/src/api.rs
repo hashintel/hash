@@ -4,11 +4,12 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
-    provenance::OwnedById,
+    web::WebId,
 };
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError},
+    schema::OwnerId,
     zanzibar::{Consistency, Zookie},
 };
 
@@ -25,13 +26,25 @@ pub trait AuthorizationApi {
     fn add_account_group_admin(
         &mut self,
         member: AccountId,
-        group: AccountGroupId,
+        account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_account_group_admin(
         &mut self,
         member: AccountId,
-        group: AccountGroupId,
+        account_group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn add_web_owner(
+        &mut self,
+        owner: OwnerId,
+        web: WebId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_web_owner(
+        &mut self,
+        owner: OwnerId,
+        web: WebId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_add_group_members(
@@ -51,31 +64,31 @@ pub trait AuthorizationApi {
     fn add_account_group_member(
         &mut self,
         member: AccountId,
-        group: AccountGroupId,
+        account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_account_group_member(
         &mut self,
         member: AccountId,
-        group: AccountGroupId,
+        account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn add_entity_owner(
         &mut self,
-        actor: AccountId,
         scope: VisibilityScope,
+        entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn remove_entity_owner(
         &mut self,
-        actor: AccountId,
         scope: VisibilityScope,
+        entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_create_entity(
         &self,
         actor: AccountId,
-        web: OwnedById,
+        web: impl Into<WebId> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 

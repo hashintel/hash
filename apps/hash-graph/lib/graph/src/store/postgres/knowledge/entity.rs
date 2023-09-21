@@ -429,13 +429,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .add_entity_owner(actor_id, visibility_scope)
+            .add_entity_owner(visibility_scope, entity_id)
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_owner(actor_id, visibility_scope)
+                .remove_entity_owner(visibility_scope, entity_id)
                 .await
                 .change_context(InsertionError)
             {

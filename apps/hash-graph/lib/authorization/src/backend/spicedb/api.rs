@@ -67,30 +67,25 @@ impl SpiceDbOpenApi {
 
     // TODO: Expose batch-version
     //   see https://linear.app/hash/issue/H-642
-    async fn modify_relations<'t, T>(
+    async fn modify_relations<T>(
         &self,
-        operations: impl IntoIterator<
-            Item = (model::RelationshipUpdateOperation, &'t T),
-            IntoIter: Send,
-        > + Send,
+        operations: impl IntoIterator<Item = (model::RelationshipUpdateOperation, T), IntoIter: Send>
+        + Send,
     ) -> Result<Zookie<'static>, InvocationError>
     where
-        T: Tuple + Sync + 't,
+        T: Tuple + Send + Sync,
     {
         #[derive(Serialize)]
-        #[serde(bound = "")]
-        struct RelationshipUpdate<'t, T: Tuple> {
+        #[serde(bound = "T: Tuple")]
+        struct RelationshipUpdate<T> {
             operation: model::RelationshipUpdateOperation,
-            relationship: model::Relationship<'t, T>,
+            relationship: model::Relationship<T>,
         }
 
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'t, T>
-        where
-            T: Tuple,
-        {
-            updates: Vec<RelationshipUpdate<'t, T>>,
+        #[serde(rename_all = "camelCase", bound = "T: Tuple")]
+        struct RequestBody<T> {
+            updates: Vec<RelationshipUpdate<T>>,
         }
 
         #[derive(Deserialize)]
@@ -172,12 +167,12 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relations<'t, T>(
+    async fn create_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + Sync + 't,
+        T: Tuple + Send + Sync,
     {
         self.modify_relations(repeat(model::RelationshipUpdateOperation::Create).zip(tuples))
             .await
@@ -189,12 +184,12 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relations<'t, T>(
+    async fn delete_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + Sync + 't,
+        T: Tuple + Send + Sync,
     {
         self.modify_relations(repeat(model::RelationshipUpdateOperation::Delete).zip(tuples))
             .await
