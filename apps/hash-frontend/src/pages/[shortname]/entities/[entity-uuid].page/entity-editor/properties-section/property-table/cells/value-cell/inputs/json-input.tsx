@@ -99,7 +99,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<any>) => {
                   <IconButton
                     disabled={!isValid}
                     rounded
-                    sx={{ color: "white" }}
+                    sx={{ color: ({ palette }) => palette.common.white }}
                     onClick={() => {
                       onChange(JSON.parse(innerValue));
                     }}
