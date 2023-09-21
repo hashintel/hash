@@ -287,7 +287,7 @@ export const Grid = <T extends Row & { rowId: string }>({
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
             ? (columnNumber) =>
-                enableCheckboxSelection ? columnNumber === 1 : true
+                enableCheckboxSelection ? columnNumber !== 0 : true
             : (columnNumber) => {
                 const defaultValue =
                   typeof rest.verticalBorder === "function"
@@ -295,7 +295,7 @@ export const Grid = <T extends Row & { rowId: string }>({
                     : rest.verticalBorder!;
 
                 return enableCheckboxSelection
-                  ? columnNumber === 1 || defaultValue
+                  ? columnNumber !== 0 || defaultValue
                   : defaultValue;
               }
         }
