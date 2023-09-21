@@ -225,8 +225,15 @@ export const FilePreviewSection = () => {
               />
             ) : (
               <Stack alignItems="center" spacing={2}>
-                <FileIconRegular sx={{ color: "gray.50", fontSize: 48 }} />
-                <Typography sx={{ color: "gray.70" }}>{fileName}</Typography>
+                <FileIconRegular
+                  sx={{
+                    color: ({ palette }) => palette.gray[50],
+                    fontSize: 48,
+                  }}
+                />
+                <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
+                  {fileName}
+                </Typography>
               </Stack>
             )}
           </>
