@@ -284,6 +284,17 @@ export const Grid = <T extends Row & { rowId: string }>({
         onCellEdited={createOnCellEdited?.(sortedRows)}
         rows={sortedRows.length}
         maxColumnWidth={1000}
+        verticalBorder={
+          typeof rest.verticalBorder === "undefined"
+            ? (columnNumber) =>
+                enableCheckboxSelection ? columnNumber === 1 : true
+            : (columnNumber) =>
+                enableCheckboxSelection
+                  ? columnNumber === 1
+                  : typeof rest.verticalBorder === "function"
+                  ? rest.verticalBorder(columnNumber)
+                  : rest.verticalBorder!
+        }
         {...(enableCheckboxSelection
           ? {
               rowMarkers: "checkbox",
