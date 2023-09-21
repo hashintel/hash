@@ -241,7 +241,7 @@ export const EntitiesTable: FunctionComponent<{
           onSelectedRowsChange={(updatedSelectedRows) =>
             setSelectedRows(updatedSelectedRows)
           }
-          firstColumnLeftPadding={0}
+          firstColumnLeftPadding={11}
           height={`
             min(
               calc(100vh - (${
@@ -254,7 +254,7 @@ export const EntitiesTable: FunctionComponent<{
             )`}
           createGetCellContent={createGetCellContent}
           customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 0 }),
+            createRenderTextIconCell({ firstColumnLeftPadding: 11 }),
             renderChipCell,
           ]}
           freezeColumns={1}
