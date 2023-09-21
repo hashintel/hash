@@ -1,9 +1,9 @@
 import {
   ArrowLeftIcon,
-  DownloadIcon,
-  FileIcon,
+  DownloadIconRegular,
+  FileIconRegular,
   ImageWithCheckedBackground,
-  RotateIcon,
+  RotateIconRegular,
 } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -200,7 +200,7 @@ export const FilePreviewSection = () => {
                     disabled={isDirty}
                     onClick={() => setReplacing(true)}
                   >
-                    <RotateIcon sx={{ width: 13, height: 13 }} />
+                    <RotateIconRegular sx={{ width: 13, height: 13 }} />
                   </GrayToBlueIconButton>
                 </Box>
               </Tooltip>
@@ -212,7 +212,7 @@ export const FilePreviewSection = () => {
                   rel="nofollow noopener noreferrer"
                 >
                   <GrayToBlueIconButton>
-                    <DownloadIcon sx={{ width: 13, height: 13 }} />
+                    <DownloadIconRegular sx={{ width: 13, height: 13 }} />
                   </GrayToBlueIconButton>
                 </Box>
               </Tooltip>
@@ -225,7 +225,7 @@ export const FilePreviewSection = () => {
               />
             ) : (
               <Stack alignItems="center" spacing={2}>
-                <FileIcon sx={{ color: "gray.50", fontSize: 48 }} />
+                <FileIconRegular sx={{ color: "gray.50", fontSize: 48 }} />
                 <Typography sx={{ color: "gray.70" }}>{fileName}</Typography>
               </Stack>
             )}

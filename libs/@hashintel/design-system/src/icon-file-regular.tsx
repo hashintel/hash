@@ -1,7 +1,10 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-export const FileIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => {
+export const FileIconRegular: FunctionComponent<SvgIconProps> = ({
+  sx,
+  ...props
+}) => {
   return (
     <SvgIcon
       width="384"

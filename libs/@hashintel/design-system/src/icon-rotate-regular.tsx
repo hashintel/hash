@@ -1,7 +1,7 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { FunctionComponent } from "react";
 
-export const RotateIcon: FunctionComponent<SvgIconProps> = ({
+export const RotateIconRegular: FunctionComponent<SvgIconProps> = ({
   sx,
   ...props
 }) => {
