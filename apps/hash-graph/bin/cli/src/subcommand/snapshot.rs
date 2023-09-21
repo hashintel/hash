@@ -49,17 +49,9 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut store = SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
-        |report| {
-            tracing::error!(error = ?report, "Failed to acquire database connection");
-            report
-        },
-    )?);
-
     match args.command {
         SnapshotCommand::Dump(_) => {
-            store
-                .dump_snapshot()
+            pool.dump_snapshot()
                 .map_err(|report| {
                     report
                         .change_context(GraphError)
@@ -81,17 +73,22 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
-            store
-                .restore_snapshot(
-                    FramedRead::new(
-                        io::BufReader::new(io::stdin()),
-                        codec::JsonLinesDecoder::default(),
-                    ),
-                    10_000,
-                )
-                .await
-                .change_context(GraphError)
-                .attach_printable("Failed to restore snapshot")?;
+            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+                |report| {
+                    tracing::error!(error = ?report, "Failed to acquire database connection");
+                    report
+                },
+            )?)
+            .restore_snapshot(
+                FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::JsonLinesDecoder::default(),
+                ),
+                10_000,
+            )
+            .await
+            .change_context(GraphError)
+            .attach_printable("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }

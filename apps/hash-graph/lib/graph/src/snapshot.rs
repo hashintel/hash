@@ -17,7 +17,11 @@ use graph_types::{
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{
+    error::SqlState,
+    tls::{MakeTlsConnect, TlsConnect},
+    Socket,
+};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
@@ -28,7 +32,10 @@ pub use self::{
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
-    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
+    store::{
+        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
+        StorePool,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -129,7 +136,14 @@ impl<C> SnapshotStore<C> {
     }
 }
 
-impl<C: AsClient> SnapshotStore<C> {
+impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
+{
     async fn read_accounts(
         &self,
     ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
@@ -137,7 +151,9 @@ impl<C: AsClient> SnapshotStore<C> {
         // TODO: Make accounts a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .0
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
             .as_client()
             .query_raw(
                 "SELECT account_id FROM accounts",
@@ -156,7 +172,9 @@ impl<C: AsClient> SnapshotStore<C> {
         // TODO: Make account groups a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .0
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
             .as_client()
             .query_raw(
                 "SELECT account_group_id FROM account_groups",
@@ -169,16 +187,24 @@ impl<C: AsClient> SnapshotStore<C> {
     }
 
     /// Convenience function to create a stream of snapshot entries.
-    async fn create_dump_stream<T>(
-        &self,
-    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send, SnapshotDumpError>
+    async fn create_dump_stream<'pool, T>(
+        &'pool self,
+    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
-        PostgresStore<C>: Read<T>,
+        <Self as StorePool>::Store<'pool>: Read<T>,
+        T: 'pool,
     {
-        Ok(Read::<T>::read(&self.0, &Filter::All(vec![]), None)
-            .await
-            .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
-            .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+        Ok(Read::<T>::read(
+            &self
+                .acquire()
+                .await
+                .change_context(SnapshotDumpError::Query)?,
+            &Filter::All(vec![]),
+            None,
+        )
+        .await
+        .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
+        .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
     }
 
     /// Reads the snapshot from the store into the given sink.
@@ -239,7 +265,9 @@ impl<C: AsClient> SnapshotStore<C> {
                 .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
         )
     }
+}
 
+impl<C: AsClient> SnapshotStore<C> {
     /// Reads the snapshot from from the stream into the store.
     ///
     /// The data emitted by the stream is read in a separate thread and is sent to different
