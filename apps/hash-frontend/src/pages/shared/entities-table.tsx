@@ -37,7 +37,7 @@ import {
 } from "../../shared/table-header";
 import { renderChipCell } from "./chip-cell";
 import {
-  renderTextIconCell,
+  createRenderTextIconCell,
   TextIconCell,
 } from "./entities-table/text-icon-cell";
 import {
@@ -241,7 +241,7 @@ export const EntitiesTable: FunctionComponent<{
           onSelectedRowsChange={(updatedSelectedRows) =>
             setSelectedRows(updatedSelectedRows)
           }
-          firstColumnLeftPadding={false}
+          firstColumnLeftPadding={0}
           height={`
             min(
               calc(100vh - (${
@@ -253,7 +253,10 @@ export const EntitiesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px)
             )`}
           createGetCellContent={createGetCellContent}
-          customRenderers={[renderTextIconCell, renderChipCell]}
+          customRenderers={[
+            createRenderTextIconCell({ firstColumnLeftPadding: 0 }),
+            renderChipCell,
+          ]}
           freezeColumns={1}
         />
       ) : null}

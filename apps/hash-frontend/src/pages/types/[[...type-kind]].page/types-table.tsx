@@ -39,7 +39,7 @@ import {
   tableHeaderHeight,
 } from "../../../shared/table-header";
 import {
-  renderTextIconCell,
+  createRenderTextIconCell,
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
@@ -269,7 +269,7 @@ export const TypesTable: FunctionComponent<{
           setSelectedRows(updatedSelectedRows)
         }
         sortable
-        firstColumnLeftPadding={false}
+        firstColumnLeftPadding={0}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
         height={`
@@ -283,7 +283,9 @@ export const TypesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-        customRenderers={[renderTextIconCell]}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding: 0 }),
+        ]}
         freezeColumns={1}
       />
     </Box>

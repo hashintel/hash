@@ -18,15 +18,22 @@ export interface TextIconCellProps {
 
 export type TextIconCell = CustomCell<TextIconCellProps>;
 
-export const renderTextIconCell: CustomRenderer<TextIconCell> = {
+export const createRenderTextIconCell = (params?: {
+  firstColumnLeftPadding?: number;
+}): CustomRenderer<TextIconCell> => ({
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is TextIconCell =>
     (cell.data as any).kind === "text-icon-cell",
   draw: (args, cell) => {
+    const { firstColumnLeftPadding } = params ?? {};
     const { theme, rect, ctx } = args;
     const { value, icon } = cell.data;
 
-    const columnPadding = getCellHorizontalPadding();
+    const columnPadding =
+      typeof firstColumnLeftPadding !== "undefined" && args.col === 1
+        ? firstColumnLeftPadding
+        : getCellHorizontalPadding();
+
     const iconLeft = rect.x + columnPadding;
 
     // prepare to fill text
@@ -49,4 +56,4 @@ export const renderTextIconCell: CustomRenderer<TextIconCell> = {
     args.cell.data.onClick?.();
     return undefined;
   },
-};
+});

@@ -48,7 +48,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   resizable?: boolean;
   sortable?: boolean;
   initialColumnSort?: ColumnSort<string>;
-  firstColumnLeftPadding?: boolean;
+  firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
   createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
   createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
@@ -69,7 +69,7 @@ export const Grid = <T extends Row & { rowId: string }>({
   drawHeader,
   columns,
   rows,
-  firstColumnLeftPadding = true,
+  firstColumnLeftPadding,
   enableCheckboxSelection = false,
   resizable = true,
   sortable = true,
