@@ -7,9 +7,14 @@ mod metadata;
 mod ontology;
 mod restore;
 
+use std::future::ready;
+
+use async_scoped::TokioScope;
 use async_trait::async_trait;
 use error_stack::{ensure, Context, Report, Result, ResultExt};
-use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{
+    channel::mpsc, stream, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt,
+};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::Entity,
@@ -218,52 +223,76 @@ where
     /// - If writing a record into the sink fails
     pub fn dump_snapshot(
         &self,
-    ) -> impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + '_ {
-        // TODO: Postgres does not allow to have multiple queries open at the same time. This means
-        //       that each stream needs to be fully processed before the next one can be created.
-        //       We might want to work around this by using a single stream that yields all the
-        //       entries or even use multiple connections to the database.
-        //   see https://app.asana.com/0/0/1204347352251098/f
+        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
+        chunk_size: usize,
+    ) -> Result<(), SnapshotDumpError> {
+        let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(chunk_size);
+        let snapshot_record_tx = snapshot_record_tx
+            .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
 
-        stream::once(async {
-            SnapshotEntry::Snapshot(SnapshotMetadata {
-                block_protocol_module_versions: BlockProtocolModuleVersions {
-                    graph: semver::Version::new(0, 3, 0),
-                },
-                custom: CustomGlobalMetadata,
-            })
-        })
-        .map(Ok)
-        .chain(
-            self.read_accounts()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::Account),
-        )
-        .chain(
-            self.read_account_groups()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::AccountGroup),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::DataType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::PropertyType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::EntityType),
-        )
-        .chain(
-            self.create_dump_stream::<Entity>()
-                .try_flatten_stream()
-                .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
-        )
+        let ((), results) = TokioScope::scope_and_block(|scope| {
+            scope.spawn(snapshot_record_rx.map(Ok).forward(
+                sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
+            ));
+
+            scope.spawn(
+                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                    block_protocol_module_versions: BlockProtocolModuleVersions {
+                        graph: semver::Version::new(0, 3, 0),
+                    },
+                    custom: CustomGlobalMetadata,
+                }))))
+                .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_accounts()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::Account)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_account_groups()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::AccountGroup)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::DataType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::PropertyType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::EntityType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<Entity>()
+                    .try_flatten_stream()
+                    .map_ok(|entity| SnapshotEntry::Entity(entity.into()))
+                    .forward(snapshot_record_tx),
+            );
+        });
+
+        for result in results {
+            result.change_context(SnapshotDumpError::Read)??;
+        }
+
+        Ok(())
     }
 }
 

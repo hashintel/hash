@@ -1,6 +1,5 @@
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use futures::{SinkExt, StreamExt, TryStreamExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
     snapshot::{codec, SnapshotEntry, SnapshotStore},
@@ -51,24 +50,15 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
 
     match args.command {
         SnapshotCommand::Dump(_) => {
-            pool.dump_snapshot()
-                .map_err(|report| {
-                    report
-                        .change_context(GraphError)
-                        .attach_printable("Failed to produce snapshot dump")
-                })
-                .forward(
-                    FramedWrite::new(
-                        io::BufWriter::new(io::stdout()),
-                        codec::JsonLinesEncoder::default(),
-                    )
-                    .sink_map_err(|report| {
-                        report
-                            .change_context(GraphError)
-                            .attach_printable("Failed to write snapshot dump")
-                    }),
-                )
-                .await?;
+            pool.dump_snapshot(
+                FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::JsonLinesEncoder::default(),
+                ),
+                10_000,
+            )
+            .change_context(GraphError)
+            .attach_printable("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
