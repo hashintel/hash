@@ -24,10 +24,6 @@ export const getFileUrlFromFileProperties = (
     | string
     | undefined;
 
-  if (!url) {
-    throw new Error("Entity does not have a defined File URL property");
-  }
-
   const mimeType = properties[extractBaseUrl(mimeTypePropertyTypeUrl)] as
     | string
     | undefined;
