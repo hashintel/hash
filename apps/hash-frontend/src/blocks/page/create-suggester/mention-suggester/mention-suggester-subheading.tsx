@@ -7,11 +7,10 @@ import {
 import { FunctionComponent, PropsWithChildren } from "react";
 
 import { ArrowUpRightRegularIcon } from "../../../../shared/icons/arrow-up-right-regular-icon";
-import { Link } from "../../../../shared/ui";
 
 export const MentionSuggesterSubheading: FunctionComponent<
-  PropsWithChildren & { href?: string }
-> = ({ children, href }) => {
+  PropsWithChildren & { onClick?: () => void }
+> = ({ children, onClick }) => {
   const content = (
     <ListItemText
       sx={{
@@ -24,7 +23,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
       }}
     >
       {children}
-      {href ? (
+      {onClick ? (
         <ArrowUpRightRegularIcon
           sx={{ fontSize: 12, position: "relative", top: 1, marginLeft: 1 }}
         />
@@ -32,21 +31,20 @@ export const MentionSuggesterSubheading: FunctionComponent<
     </ListItemText>
   );
 
-  return href ? (
-    <Link href={href} sx={{ textDecoration: "none" }}>
-      <ListItemButton
-        sx={{
-          paddingBottom: 0,
-          transition: ({ transitions }) => transitions.create("color"),
-          "&:hover": {
-            background: "transparent",
-            color: ({ palette }) => palette.gray[80],
-          },
-        }}
-      >
-        {content}
-      </ListItemButton>
-    </Link>
+  return onClick ? (
+    <ListItemButton
+      onClick={onClick}
+      sx={{
+        paddingBottom: 0,
+        transition: ({ transitions }) => transitions.create("color"),
+        "&:hover": {
+          background: "transparent",
+          color: ({ palette }) => palette.gray[80],
+        },
+      }}
+    >
+      {content}
+    </ListItemButton>
   ) : (
     <ListItem sx={{ paddingBottom: 0 }}>{content}</ListItem>
   );

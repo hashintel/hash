@@ -102,6 +102,7 @@ export const MentionSuggesterEntity = forwardRef<
               <Box
                 component="span"
                 sx={{
+                  opacity: subMenuItems.length > 0 ? 1 : 0,
                   borderRadius: "4px",
                   px: 0.25,
                   background: ({ palette }) =>
