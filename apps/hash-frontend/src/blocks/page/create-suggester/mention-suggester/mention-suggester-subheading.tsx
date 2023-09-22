@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import { FunctionComponent, PropsWithChildren } from "react";
 
-import { ArrowUpRightRegularIcon } from "../../../../shared/icons/arrow-up-right-regular-icon";
+import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
 
 export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & { onClick?: () => void }
@@ -20,12 +20,21 @@ export const MentionSuggesterSubheading: FunctionComponent<
           color: ({ palette }) => palette.gray[60],
           textTransform: "uppercase",
         },
+        "&:hover svg": {
+          marginLeft: 1.5,
+        },
       }}
     >
       {children}
       {onClick ? (
-        <ArrowUpRightRegularIcon
-          sx={{ fontSize: 12, position: "relative", top: 1, marginLeft: 1 }}
+        <ChevronRightRegularIcon
+          sx={{
+            fontSize: 12,
+            position: "relative",
+            top: 1,
+            marginLeft: 1,
+            transition: ({ transitions }) => transitions.create("margin-left"),
+          }}
         />
       ) : null}
     </ListItemText>
