@@ -2,6 +2,7 @@ use std::{error::Error, fmt, io, iter::repeat};
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
+use reqwest::Response;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio_util::{codec::FramedRead, io::StreamReader};
 
@@ -25,26 +26,28 @@ pub struct Empty {}
 #[derive(Debug)]
 enum InvocationError {
     Request,
+    Response,
     Api,
 }
 
 impl fmt::Display for InvocationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Request => fmt.write_str("an error happened while making the request"),
-            Self::Api => fmt.write_str("the authorization service returned an error"),
-        }
+        fmt.write_str(match self {
+            Self::Request => "an error happened while making the request",
+            Self::Response => "the response returned from the server could not be parsed",
+            Self::Api => "the authorization service returned an error",
+        })
     }
 }
 
 impl Error for InvocationError {}
 
 impl SpiceDbOpenApi {
-    async fn call<R: DeserializeOwned>(
+    async fn create_request(
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
-    ) -> Result<R, Report<InvocationError>> {
+    ) -> Result<Response, Report<InvocationError>> {
         let response = self
             .client
             .execute(
@@ -58,19 +61,28 @@ impl SpiceDbOpenApi {
             .change_context(InvocationError::Request)?;
 
         if response.status().is_success() {
-            Ok(response
-                .json()
-                .await
-                .change_context(InvocationError::Request)?)
+            Ok(response)
         } else {
             Err(Report::new(
                 response
                     .json::<RpcError>()
                     .await
-                    .change_context(InvocationError::Request)?,
+                    .change_context(InvocationError::Response)?,
             )
             .change_context(InvocationError::Api))
         }
+    }
+
+    async fn call<R: DeserializeOwned>(
+        &self,
+        path: &'static str,
+        body: &(impl Serialize + Sync),
+    ) -> Result<R, Report<InvocationError>> {
+        self.create_request(path, body)
+            .await?
+            .json()
+            .await
+            .change_context(InvocationError::Response)
     }
 
     #[expect(dead_code)]
@@ -87,44 +99,23 @@ impl SpiceDbOpenApi {
             Error(RpcError),
         }
 
-        let response = self
-            .client
-            .execute(
-                self.client
-                    .post(format!("{}{}", self.base_path, path))
-                    .json(&body)
-                    .build()
-                    .change_context(InvocationError::Request)?,
-            )
-            .await
-            .change_context(InvocationError::Request)?;
-
-        if response.status().is_success() {
-            Ok(FramedRead::new(
-                StreamReader::new(
-                    response
-                        .bytes_stream()
-                        .map_err(|error| io::Error::new(io::ErrorKind::Other, error)),
-                ),
-                codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
-            )
-            .map(
-                |result| match result.change_context(InvocationError::Request)? {
-                    StreamResult::Result(result) => Ok(result),
-                    StreamResult::Error(error) => {
-                        Err(Report::new(error).change_context(InvocationError::Api))
-                    }
-                },
-            ))
-        } else {
-            Err(Report::new(
-                response
-                    .json::<RpcError>()
-                    .await
-                    .change_context(InvocationError::Request)?,
-            )
-            .change_context(InvocationError::Api))
-        }
+        Ok(FramedRead::new(
+            StreamReader::new(
+                self.create_request(path, body)
+                    .await?
+                    .bytes_stream()
+                    .map_err(|error| io::Error::new(io::ErrorKind::Other, error)),
+            ),
+            codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
+        )
+        .map(
+            |result| match result.change_context(InvocationError::Response)? {
+                StreamResult::Result(result) => Ok(result),
+                StreamResult::Error(error) => {
+                    Err(Report::new(error).change_context(InvocationError::Api))
+                }
+            },
+        ))
     }
 
     // TODO: Expose batch-version
