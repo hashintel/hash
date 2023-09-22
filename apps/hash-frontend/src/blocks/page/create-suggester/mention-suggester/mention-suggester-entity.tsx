@@ -1,4 +1,4 @@
-import { AsteriskRegularIcon } from "@hashintel/design-system";
+import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import {
   Entity,
   EntityPropertyValue,
@@ -57,6 +57,7 @@ export const MentionSuggesterEntity = forwardRef<
     displaySubMenu: boolean;
     subMenuIndex: number;
     subMenuItems: SubMenuItem[];
+    setDisplaySubMenu: (displaySubMenu: boolean) => void;
   } & ListItemButtonProps
 >(
   (
@@ -68,6 +69,7 @@ export const MentionSuggesterEntity = forwardRef<
       displaySubMenu,
       subMenuIndex,
       subMenuItems,
+      setDisplaySubMenu,
       ...listItemButtonProps
     },
     ref,
@@ -99,24 +101,29 @@ export const MentionSuggesterEntity = forwardRef<
               </ListItemSecondaryText>
             ) : null}
             <Box>
-              <Box
-                component="span"
+              <IconButton
+                onClick={() => setDisplaySubMenu(true)}
                 sx={{
                   opacity: subMenuItems.length > 0 ? 1 : 0,
                   borderRadius: "4px",
-                  px: 0.25,
+                  p: 0.25,
                   background: ({ palette }) =>
                     displaySubMenu ? palette.gray[50] : undefined,
-                }}
-              >
-                <ChevronRightRegularIcon
-                  sx={{
+                  "&:hover": {
+                    background: ({ palette }) => palette.gray[40],
+                    "> svg": {
+                      color: ({ palette }) => palette.common.white,
+                    },
+                  },
+                  "> svg": {
                     fontSize: 12,
                     color: ({ palette }) =>
                       displaySubMenu ? palette.common.white : palette.gray[50],
-                  }}
-                />
-              </Box>
+                  },
+                }}
+              >
+                <ChevronRightRegularIcon />
+              </IconButton>
             </Box>
           </Box>
         </ListItemButton>

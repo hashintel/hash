@@ -289,6 +289,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   []
                 }
                 displayTypeTitle
+                setDisplaySubMenu={(displaySubMenu) => {
+                  if (displaySubMenu) {
+                    setDisplayEntitySubMenu(true);
+                    setSelectedEntityIndex(index);
+                  } else {
+                    setDisplayEntitySubMenu(false);
+                  }
+                }}
                 entitiesSubgraph={entitiesSubgraph}
                 entity={entity}
               />
@@ -353,6 +361,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                                 entity.metadata.recordId.entityId
                               ] ?? []
                             }
+                            setDisplaySubMenu={(displaySubMenu) => {
+                              if (displaySubMenu) {
+                                setDisplayEntitySubMenu(true);
+                                setSelectedEntityIndex(index);
+                              } else {
+                                setDisplayEntitySubMenu(false);
+                              }
+                            }}
                           />
                         </Fragment>
                       );
