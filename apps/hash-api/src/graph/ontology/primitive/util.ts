@@ -28,13 +28,13 @@ export const getNamespaceOfAccountOwner: ImpureGraphFunction<
       : (
           (await getUserById(ctx, authentication, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as OwnedById,
               params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined)) ??
           (await getOrgById(ctx, authentication, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as OwnedById,
               params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined))

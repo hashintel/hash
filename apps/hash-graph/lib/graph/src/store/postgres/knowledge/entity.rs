@@ -272,12 +272,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
-        authorization_api
-            .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
-            .await
-            .change_context(InsertionError)?
-            .assert_permission()
-            .change_context(InsertionError)?;
+        if Some(owned_by_id.into_uuid()) != entity_uuid.map(EntityUuid::into_uuid) {
+            authorization_api
+                .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
+                .await
+                .change_context(InsertionError)?
+                .assert_permission()
+                .change_context(InsertionError)?;
+        }
 
         let entity_id = EntityId {
             owned_by_id,
