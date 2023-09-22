@@ -26,7 +26,8 @@ export const DefinitionTab = ({
   readonly,
 }: DefinitionTabProps) => {
   const entityTypesContext = useEntityTypesContextRequired();
-  const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
+  const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
+    useLatestPropertyTypes();
 
   const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
     const propertyTypesWithMetadata = {

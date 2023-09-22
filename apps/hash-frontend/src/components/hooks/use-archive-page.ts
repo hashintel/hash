@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { EntityId, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { useCallback } from "react";
+import { useCallback, useContext } from "react";
 
 import {
   UpdatePageMutation,
@@ -9,12 +9,22 @@ import {
 } from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
+import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 
 export const useArchivePage = () => {
+  const entityTypeEntitiesContext = useContext(EntityTypeEntitiesContext);
+
   const [updatePageFn, { loading }] = useMutation<
     UpdatePageMutation,
     UpdatePageMutationVariables
-  >(updatePage, { awaitRefetchQueries: true });
+  >(updatePage, {
+    awaitRefetchQueries: true,
+    onCompleted: async () => {
+      if (entityTypeEntitiesContext) {
+        await entityTypeEntitiesContext.refetch();
+      }
+    },
+  });
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
     const ownedById = extractOwnedByIdFromEntityId(pageEntityId);

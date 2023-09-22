@@ -58,7 +58,12 @@ export const queryPropertyTypesResolver: ResolverFn<
   QueryQueryPropertyTypesArgs
 > = async (
   _,
-  { constrainsValuesOn, constrainsPropertiesOn },
+  {
+    constrainsValuesOn,
+    constrainsPropertiesOn,
+    latestOnly = true,
+    includeArchived = false,
+  },
   { dataSources, authentication },
   __,
 ) => {
@@ -73,15 +78,33 @@ export const queryPropertyTypesResolver: ResolverFn<
   const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
     authentication.actorId,
     {
-      filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
+      filter: latestOnly
+        ? {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          }
+        : { all: [] },
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,
         constrainsPropertiesOn,
       },
-      temporalAxes: currentTimeInstantTemporalAxes,
+      temporalAxes: includeArchived
+        ? {
+            pinned: {
+              axis: "decisionTime",
+              timestamp: null,
+            },
+            variable: {
+              axis: "transactionTime",
+              interval: {
+                start: {
+                  kind: "unbounded",
+                },
+                end: null,
+              },
+            },
+          }
+        : currentTimeInstantTemporalAxes,
     },
   );
 

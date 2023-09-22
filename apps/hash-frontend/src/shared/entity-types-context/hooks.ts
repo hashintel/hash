@@ -3,9 +3,9 @@ import { EntityType } from "@blockprotocol/type-system/slim";
 import { BaseUrl, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
+import { isTypeArchived } from "../is-archived";
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
 import { isSpecialEntityType } from "./shared/is-special-entity-type";
-import { isTypeArchived } from "./util";
 
 export const useEntityTypesLoading = () =>
   useEntityTypesContextRequired().loading;

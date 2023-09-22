@@ -21,7 +21,7 @@ import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
-import { Rows } from "./utils/rows";
+import { Row } from "./utils/rows";
 import {
   ColumnSort,
   createHandleHeaderClicked,
@@ -30,7 +30,7 @@ import {
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
-export type GridProps<T> = Omit<
+export type GridProps<T extends Row & { rowId: string }> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -41,14 +41,18 @@ export type GridProps<T> = Omit<
   | "onCellEdited"
 > & {
   columns: SizedGridColumn[];
-  rows: T;
+  enableCheckboxSelection?: boolean;
+  selectedRows?: T[];
+  onSelectedRowsChange?: (selectedRows: T[]) => void;
+  rows: T[];
   resizable?: boolean;
   sortable?: boolean;
   initialColumnSort?: ColumnSort<string>;
+  firstColumnLeftPadding?: number;
   gridRef?: Ref<DataEditorRef>;
-  createGetCellContent: (rows: T) => (cell: Item) => GridCell;
-  createOnCellEdited?: (rows: T) => DataEditorProps["onCellEdited"];
-  sortRows?: (rows: T, sort: ColumnSort<string>) => T;
+  createGetCellContent: (rows: T[]) => (cell: Item) => GridCell;
+  createOnCellEdited?: (rows: T[]) => DataEditorProps["onCellEdited"];
+  sortRows?: (rows: T[], sort: ColumnSort<string>) => T[];
 };
 
 const gridHeaderHeight = 42;
@@ -59,12 +63,14 @@ export const gridRowHeight = 42;
 
 export const gridHorizontalScrollbarHeight = 17;
 
-export const Grid = <T extends Rows>({
+export const Grid = <T extends Row & { rowId: string }>({
   customRenderers,
   onVisibleRegionChanged,
   drawHeader,
   columns,
   rows,
+  firstColumnLeftPadding,
+  enableCheckboxSelection = false,
   resizable = true,
   sortable = true,
   initialColumnSort,
@@ -72,6 +78,8 @@ export const Grid = <T extends Rows>({
   sortRows,
   gridRef,
   createOnCellEdited,
+  selectedRows,
+  onSelectedRowsChange,
   ...rest
 }: GridProps<T>) => {
   useRenderGridPortal();
@@ -103,13 +111,14 @@ export const Grid = <T extends Rows>({
   const defaultDrawHeader = useDrawHeader(
     sortable ? columnSort : undefined,
     columns,
+    firstColumnLeftPadding,
   );
 
   const handleHeaderClicked = sortable
     ? createHandleHeaderClicked(columns, columnSort, setColumnSort)
     : undefined;
 
-  const sortedRows = useMemo(() => {
+  const sortedRows = useMemo<T[]>(() => {
     if (!sortable) {
       return rows;
     }
@@ -118,6 +127,27 @@ export const Grid = <T extends Rows>({
 
     return sortRowFn(rows, columnSort);
   }, [sortable, rows, columnSort, sortRows]);
+
+  const gridSelection = useMemo(() => {
+    if (selectedRows) {
+      let mergedRowSelection = CompactSelection.empty();
+
+      for (const selectedRow of selectedRows) {
+        const selectedRowIndex = sortedRows.findIndex(
+          (row) => row.rowId === selectedRow.rowId,
+        );
+
+        mergedRowSelection = mergedRowSelection.add(selectedRowIndex);
+      }
+
+      return {
+        ...selection,
+        rows: mergedRowSelection,
+      };
+    }
+
+    return selection;
+  }, [selection, sortedRows, selectedRows]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -232,7 +262,7 @@ export const Grid = <T extends Rows>({
         ref={gridRef}
         theme={gridTheme}
         getRowThemeOverride={getRowThemeOverride}
-        gridSelection={selection}
+        gridSelection={gridSelection}
         width="100%"
         headerHeight={gridHeaderHeight}
         rowHeight={gridRowHeight}
@@ -254,6 +284,39 @@ export const Grid = <T extends Rows>({
         onCellEdited={createOnCellEdited?.(sortedRows)}
         rows={sortedRows.length}
         maxColumnWidth={1000}
+        verticalBorder={
+          typeof rest.verticalBorder === "undefined"
+            ? (columnNumber) =>
+                enableCheckboxSelection ? columnNumber !== 0 : true
+            : (columnNumber) => {
+                const defaultValue =
+                  typeof rest.verticalBorder === "function"
+                    ? rest.verticalBorder(columnNumber)
+                    : rest.verticalBorder!;
+
+                return enableCheckboxSelection
+                  ? columnNumber !== 0 || defaultValue
+                  : defaultValue;
+              }
+        }
+        {...(enableCheckboxSelection
+          ? {
+              rowMarkers: "checkbox",
+              rowSelectionMode: "multi",
+              onGridSelectionChange: onSelectedRowsChange
+                ? (updatedGridSelection) => {
+                    updatedGridSelection.rows.toArray();
+
+                    const updatedSelectedRows = sortedRows.filter(
+                      (_, rowIndex) =>
+                        updatedGridSelection.rows.hasIndex(rowIndex),
+                    );
+
+                    onSelectedRowsChange(updatedSelectedRows);
+                  }
+                : undefined,
+            }
+          : {})}
         {...rest}
         /**
          * icons defined via `headerIcons` are available to be drawn using

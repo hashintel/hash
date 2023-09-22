@@ -45,7 +45,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
   const [queryEditorKey, setQueryEditorKey] = useState(0);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
-  const propertyTypes = useLatestPropertyTypes();
+  const { propertyTypes } = useLatestPropertyTypes();
   const entityTypes = useLatestEntityTypesOptional();
   const entityTypesLoading = useEntityTypesLoading();
 
