@@ -21,7 +21,7 @@ const generateMenuLinks = (
       {
         label: org.name,
         href: `/settings/organizations/${org.shortname}/general`,
-        activeIfHrefStartsWith: `/settings/organizations/${org.shortname}`,
+        activeIfPathStartsWith: `/settings/organizations/${org.shortname}`,
         parentHref: "/settings/organizations",
       },
       {
@@ -51,8 +51,8 @@ const generateMenuLinks = (
     item.children = menuItems.filter(
       (child) =>
         child.parentHref === item.href ||
-        (item.activeIfHrefStartsWith &&
-          child.parentHref === item.activeIfHrefStartsWith),
+        (item.activeIfPathStartsWith &&
+          child.parentHref === item.activeIfPathStartsWith),
     );
   }
 
@@ -89,8 +89,8 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
           // eslint-disable-next-line no-loop-func
           (item) =>
             item.href === href ||
-            (item.activeIfHrefStartsWith &&
-              item.activeIfHrefStartsWith === href),
+            (item.activeIfPathStartsWith &&
+              item.activeIfPathStartsWith === href),
         );
 
         if (!currentPage) {

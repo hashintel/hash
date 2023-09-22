@@ -52,7 +52,7 @@ export const ConvertTypeMenuItem = ({
             convertToLinkType();
             closeContextMenu();
           }}
-          calloutMessage="              A new version of this type will be created as a Link Type, and you
+          calloutMessage="A new version of this type will be created as a Link Type, and you
               won't be able to revert this change."
           close={() => {
             setShowConvertTypeConfirmationModal(false);

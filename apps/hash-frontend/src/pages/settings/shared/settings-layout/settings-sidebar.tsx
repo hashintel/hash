@@ -16,7 +16,7 @@ import { Link } from "../../../../shared/ui/link";
 
 export type SidebarItemData = {
   // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy
-  activeIfHrefStartsWith?: string;
+  activeIfPathStartsWith?: string;
   children?: SidebarItemData[];
   label: string;
   href: string;
@@ -59,8 +59,8 @@ const SidebarItem = ({
   const router = useRouter();
   const active =
     router.asPath.startsWith(item.href) ||
-    (!!item.activeIfHrefStartsWith &&
-      router.asPath.startsWith(item.activeIfHrefStartsWith));
+    (!!item.activeIfPathStartsWith &&
+      router.asPath.startsWith(item.activeIfPathStartsWith));
 
   const parentActive =
     item.parentHref && router.asPath.startsWith(item.parentHref);
@@ -190,13 +190,12 @@ export const SettingsSidebar = ({
 
   const findItemAndParentsHrefs = useCallback(
     (item: SidebarItemData) => {
-      // Set the item and all of its parents as expanded
       const itemAndParents = [item];
       do {
         const parent =
           itemAndParents[0]!.parentHref &&
           menuItems.find((itemOption) =>
-            [itemOption.href, itemOption.activeIfHrefStartsWith].includes(
+            [itemOption.href, itemOption.activeIfPathStartsWith].includes(
               itemAndParents[0]!.parentHref,
             ),
           );
@@ -213,7 +212,8 @@ export const SettingsSidebar = ({
     const activeItem = menuItems.find(
       (item) =>
         router.asPath === item.href ||
-        item.activeIfHrefStartsWith?.startsWith(router.asPath),
+        (item.activeIfPathStartsWith &&
+          router.asPath.startsWith(item.activeIfPathStartsWith)),
     );
 
     return activeItem ? findItemAndParentsHrefs(activeItem) : [];
@@ -236,7 +236,9 @@ export const SettingsSidebar = ({
     (path: string) => {
       const activeItem = menuItems.find(
         (item) =>
-          path === item.href || item.activeIfHrefStartsWith?.startsWith(path),
+          path === item.href ||
+          (item.activeIfPathStartsWith &&
+            path.startsWith(item.activeIfPathStartsWith)),
       );
 
       if (activeItem) {
