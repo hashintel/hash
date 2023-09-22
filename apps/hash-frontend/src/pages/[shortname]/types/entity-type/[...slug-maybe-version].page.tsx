@@ -271,6 +271,7 @@ const Page: NextPageWithLayout = () => {
                           key={entityType.$id}
                           convertToLinkType={convertToLinkType}
                           disabled={isDirty}
+                          typeTitle={entityType.title}
                         />,
                       ]
                     : []),
