@@ -269,7 +269,7 @@ export const TypesTable: FunctionComponent<{
           setSelectedRows(updatedSelectedRows)
         }
         sortable
-        firstColumnLeftPadding={11}
+        firstColumnLeftPadding={16}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
         height={`
@@ -284,7 +284,7 @@ export const TypesTable: FunctionComponent<{
             )
           )`}
         customRenderers={[
-          createRenderTextIconCell({ firstColumnLeftPadding: 11 }),
+          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
         ]}
         freezeColumns={1}
       />
