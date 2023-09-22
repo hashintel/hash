@@ -1,11 +1,14 @@
-use std::{error::Error, fmt, iter::repeat};
+use std::{error::Error, fmt, io, iter::repeat};
 
 use error_stack::{Report, ResultExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
     backend::{
-        spicedb::model, CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
+        spicedb::{model, model::RpcError},
+        CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
         ImportSchemaError, ImportSchemaResponse, SpiceDbOpenApi, ZanzibarBackend,
     },
@@ -21,22 +24,16 @@ pub struct Empty {}
 
 #[derive(Debug)]
 enum InvocationError {
-    Request(reqwest::Error),
-    Rpc(model::RpcStatus),
+    Request,
+    Api,
 }
 
 impl fmt::Display for InvocationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Request(error) => fmt::Display::fmt(error, fmt),
-            Self::Rpc(status) => write!(fmt, "Error {}: {}", status.code, status.message),
+            Self::Request => fmt.write_str("an error happened while making the request"),
+            Self::Api => fmt.write_str("the authorization service returned an error"),
         }
-    }
-}
-
-impl From<reqwest::Error> for InvocationError {
-    fn from(error: reqwest::Error) -> Self {
-        Self::Request(error)
     }
 }
 
@@ -47,21 +44,86 @@ impl SpiceDbOpenApi {
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
-    ) -> Result<R, InvocationError> {
-        let result = self
+    ) -> Result<R, Report<InvocationError>> {
+        let response = self
             .client
             .execute(
                 self.client
                     .post(format!("{}{}", self.base_path, path))
                     .json(&body)
-                    .build()?,
+                    .build()
+                    .change_context(InvocationError::Request)?,
             )
-            .await?;
+            .await
+            .change_context(InvocationError::Request)?;
 
-        if result.status().is_success() {
-            Ok(result.json().await?)
+        if response.status().is_success() {
+            Ok(response
+                .json()
+                .await
+                .change_context(InvocationError::Request)?)
         } else {
-            Err(InvocationError::Rpc(result.json().await?))
+            Err(Report::new(
+                response
+                    .json::<RpcError>()
+                    .await
+                    .change_context(InvocationError::Request)?,
+            )
+            .change_context(InvocationError::Api))
+        }
+    }
+
+    #[expect(dead_code)]
+    async fn stream<R: DeserializeOwned>(
+        &self,
+        path: &'static str,
+        body: &(impl Serialize + Sync),
+    ) -> Result<impl Stream<Item = Result<R, Report<InvocationError>>>, Report<InvocationError>>
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        enum StreamResult<T> {
+            Result(T),
+            Error(RpcError),
+        }
+
+        let response = self
+            .client
+            .execute(
+                self.client
+                    .post(format!("{}{}", self.base_path, path))
+                    .json(&body)
+                    .build()
+                    .change_context(InvocationError::Request)?,
+            )
+            .await
+            .change_context(InvocationError::Request)?;
+
+        if response.status().is_success() {
+            Ok(FramedRead::new(
+                StreamReader::new(
+                    response
+                        .bytes_stream()
+                        .map_err(|error| io::Error::new(io::ErrorKind::Other, error)),
+                ),
+                codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
+            )
+            .map(
+                |result| match result.change_context(InvocationError::Request)? {
+                    StreamResult::Result(result) => Ok(result),
+                    StreamResult::Error(error) => {
+                        Err(Report::new(error).change_context(InvocationError::Api))
+                    }
+                },
+            ))
+        } else {
+            Err(Report::new(
+                response
+                    .json::<RpcError>()
+                    .await
+                    .change_context(InvocationError::Request)?,
+            )
+            .change_context(InvocationError::Api))
         }
     }
 
@@ -71,7 +133,7 @@ impl SpiceDbOpenApi {
         &self,
         operations: impl IntoIterator<Item = (model::RelationshipUpdateOperation, T), IntoIter: Send>
         + Send,
-    ) -> Result<Zookie<'static>, InvocationError>
+    ) -> Result<Zookie<'static>, Report<InvocationError>>
     where
         T: Tuple + Send + Sync,
     {
