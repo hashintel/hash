@@ -1,31 +1,17 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { AsteriskRegularIcon, LoadingSpinner } from "@hashintel/design-system";
+import { LoadingSpinner } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityId,
-  EntityRootType,
   EntityTypeWithMetadata,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import {
-  Box,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemButtonProps,
-  ListItemIcon,
-  ListItemText,
-  listItemTextClasses,
-  Typography,
-} from "@mui/material";
-import {
-  forwardRef,
   Fragment,
   FunctionComponent,
-  PropsWithChildren,
   useEffect,
   useMemo,
   useRef,
@@ -35,10 +21,14 @@ import { useKey } from "rooks";
 
 import { useQueryEntities } from "../../../components/hooks/use-query-entities";
 import { generateEntityLabel } from "../../../lib/entities";
-import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
-import { ChevronRightRegularIcon } from "../../../shared/icons/chevron-right-regular-icon";
-import { Link } from "../../../shared/ui";
+import { useLatestPropertyTypes } from "../../../shared/latest-property-types-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
+import {
+  MentionSuggesterEntity,
+  SubMenuItem,
+} from "./mention-suggester/mention-suggester-entity";
+import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
+import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 
 export type MentionType = "user" | "page" | "entity";
 export interface MentionSuggesterProps {
@@ -47,123 +37,26 @@ export interface MentionSuggesterProps {
   ownedById: OwnedById;
 }
 
-const MentionSuggesterSubheading: FunctionComponent<
-  PropsWithChildren & { href?: string }
-> = ({ children, href }) => {
-  const content = (
-    <ListItemText
-      sx={{
-        [`& .${listItemTextClasses.primary}`]: {
-          fontSize: 12,
-          fontWeight: 600,
-          color: ({ palette }) => palette.gray[60],
-          textTransform: "uppercase",
-        },
-      }}
-    >
-      {children}
-      {href ? (
-        <ArrowUpRightRegularIcon
-          sx={{ fontSize: 12, position: "relative", top: 1, marginLeft: 1 }}
-        />
-      ) : null}
-    </ListItemText>
-  );
-
-  return href ? (
-    <Link href={href} sx={{ textDecoration: "none" }}>
-      <ListItemButton
-        sx={{
-          paddingBottom: 0,
-          transition: ({ transitions }) => transitions.create("color"),
-          "&:hover": {
-            background: "transparent",
-            color: ({ palette }) => palette.gray[80],
-          },
-        }}
-      >
-        {content}
-      </ListItemButton>
-    </Link>
-  ) : (
-    <ListItem sx={{ paddingBottom: 0 }}>{content}</ListItem>
-  );
-};
-
-const MentionSuggesterEntity = forwardRef<
-  HTMLDivElement,
-  {
-    entitiesSubgraph: Subgraph<EntityRootType>;
-    entityType: EntityTypeWithMetadata;
-    entity: Entity;
-    displayTypeTitle?: boolean;
-  } & ListItemButtonProps
->(
-  (
-    {
-      entitiesSubgraph,
-      entity,
-      displayTypeTitle = false,
-      entityType,
-      ...listItemButtonProps
-    },
-    ref,
-  ) => {
-    return (
-      <ListItemButton ref={ref} {...listItemButtonProps}>
-        <ListItemIcon sx={{ minWidth: "unset" }}>
-          <AsteriskRegularIcon />
-        </ListItemIcon>
-        <ListItemText
-          sx={{
-            [`& .${listItemTextClasses.primary}`]: {
-              fontSize: 14,
-              fontWeight: 500,
-              color: ({ palette }) => palette.gray[90],
-              lineHeight: "18px",
-            },
-          }}
-        >
-          {generateEntityLabel(entitiesSubgraph, entity)}
-        </ListItemText>
-        <Box display="flex" alignItems="center" gap={1}>
-          {displayTypeTitle ? (
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: ({ palette }) => palette.gray[50],
-                fontWeight: 500,
-                lineHeight: "18px",
-              }}
-            >
-              {entityType.schema.title}
-            </Typography>
-          ) : null}
-          <ChevronRightRegularIcon
-            sx={{
-              fontSize: 12,
-              color: ({ palette }) => palette.gray[50],
-            }}
-          />
-        </Box>
-      </ListItemButton>
-    );
-  },
-);
-
 export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
   ownedById: _ownedById,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const { propertyTypes } = useLatestPropertyTypes();
 
-  const selectedRef = useRef<HTMLDivElement>(null);
+  const [selectedEntityIndex, setSelectedEntityIndex] = useState(0);
+
+  const selectedEntityRef = useRef<HTMLDivElement>(null);
+
+  const [displayEntitySubMenu, setDisplayEntitySubMenu] = useState(false);
+
+  const [entitySelectedSubMenuIndex, setEntitySelectedSubMenuIndex] =
+    useState(0);
 
   // scroll the selected option into view
   useEffect(
-    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex],
+    () => selectedEntityRef.current?.scrollIntoView({ block: "nearest" }),
+    [selectedEntityIndex],
   );
 
   const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({
@@ -184,8 +77,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   );
 
   // reset selected index if it exceeds the options available
-  if (searchedEntities && selectedIndex >= searchedEntities.length) {
-    setSelectedIndex(searchedEntities.length - 1);
+  if (searchedEntities && selectedEntityIndex >= searchedEntities.length) {
+    setSelectedEntityIndex(searchedEntities.length - 1);
   }
 
   const recentlyUsedEntities = useMemo(
@@ -237,6 +130,31 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     [searchedEntities, entitiesSubgraph],
   );
 
+  const selectedEntity = searchedEntities?.[selectedEntityIndex];
+
+  const selectedEntitySubMenuItems = useMemo<SubMenuItem[] | undefined>(() => {
+    if (selectedEntity && propertyTypes) {
+      return Object.entries(selectedEntity.properties).map(
+        ([propertyTypeBaseUrl, propertyValue]) => {
+          const propertyType = Object.values(propertyTypes).find(
+            ({ metadata }) => metadata.recordId.baseUrl === propertyTypeBaseUrl,
+          );
+
+          if (!propertyType) {
+            throw new Error("Property type not found");
+          }
+
+          return {
+            kind: "property",
+            propertyType,
+            propertyValue,
+          };
+        },
+      );
+    }
+    return undefined;
+  }, [selectedEntity, propertyTypes]);
+
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
 
@@ -244,10 +162,36 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       return;
     }
 
-    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += searchedEntities.length;
-    index %= searchedEntities.length;
-    setSelectedIndex(index);
+    if (displayEntitySubMenu && selectedEntitySubMenuItems) {
+      let index =
+        entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
+      index += selectedEntitySubMenuItems.length;
+      index %= selectedEntitySubMenuItems.length;
+
+      setEntitySelectedSubMenuIndex(index);
+    } else {
+      let index = selectedEntityIndex + (event.key === "ArrowUp" ? -1 : 1);
+      index += searchedEntities.length;
+      index %= searchedEntities.length;
+      setSelectedEntityIndex(index);
+    }
+  });
+
+  useKey(["ArrowRight"], (event) => {
+    event.preventDefault();
+
+    if (!displayEntitySubMenu) {
+      setDisplayEntitySubMenu(true);
+      setEntitySelectedSubMenuIndex(0);
+    }
+  });
+
+  useKey(["ArrowLeft"], (event) => {
+    event.preventDefault();
+
+    if (displayEntitySubMenu) {
+      setDisplayEntitySubMenu(false);
+    }
   });
 
   useKey(["Enter"], (event) => {
@@ -257,7 +201,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       return;
     }
 
-    const entity = searchedEntities[selectedIndex];
+    const entity = searchedEntities[selectedEntityIndex];
 
     if (entity) {
       onChange(entity.metadata.recordId.entityId, "entity");
@@ -265,19 +209,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   return (
-    <Box
-      sx={({ palette }) => ({
-        borderStyle: "solid",
-        borderWidth: 1,
-        borderColor: palette.gray[20],
-        borderRadius: "6px",
-        width: 330,
-        maxHeight: 400,
-        boxShadow:
-          "0px 20px 41px rgba(61, 78, 133, 0.07), 0px 16px 25px rgba(61, 78, 133, 0.0531481), 0px 12px 12px rgba(61, 78, 133, 0.0325), 0px 2px 3.13px rgba(61, 78, 133, 0.02)",
-        overflowY: "scroll",
-      })}
-    >
+    <MentionSuggesterWrapper>
       <List sx={{ "> :first-child": { paddingTop: 0 } }}>
         {loadingEntities ? (
           <ListItem>
@@ -298,8 +230,19 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                     entity.metadata.entityTypeId,
                   )!
                 }
-                ref={index === selectedIndex ? selectedRef : undefined}
-                selected={index === selectedIndex}
+                ref={
+                  index === selectedEntityIndex ? selectedEntityRef : undefined
+                }
+                selected={index === selectedEntityIndex}
+                displaySubMenu={
+                  index === selectedEntityIndex && displayEntitySubMenu
+                }
+                subMenuIndex={entitySelectedSubMenuIndex}
+                subMenuItems={
+                  index === selectedEntityIndex
+                    ? selectedEntitySubMenuItems ?? []
+                    : []
+                }
                 displayTypeTitle
                 entitiesSubgraph={entitiesSubgraph}
                 entity={entity}
@@ -319,6 +262,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                         entityType={entityType}
                         entitiesSubgraph={entitiesSubgraph}
                         entity={entity}
+                        displaySubMenu={false}
+                        subMenuIndex={entitySelectedSubMenuIndex}
+                        subMenuItems={[]}
                       />
                     </Fragment>
                   ))}
@@ -327,6 +273,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             )
           : null}
       </List>
-    </Box>
+    </MentionSuggesterWrapper>
   );
 };
