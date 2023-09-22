@@ -14,7 +14,7 @@ import { drawCellFadeOutGradient } from "../../../../../../../../components/grid
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { generateEntityLabel } from "../../../../../../../../lib/entities";
-import { getImageUrlFromFileProperties } from "../../../shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../shared/get-image-url-from-properties";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
@@ -79,7 +79,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
       const label = generateEntityLabel(sourceSubgraph, rightEntity);
 
-      const imageSrc = getImageUrlFromFileProperties(rightEntity.properties);
+      const imageSrc = getImageUrlFromEntityProperties(rightEntity.properties);
 
       const chipWidth = drawChipWithIcon({
         args,

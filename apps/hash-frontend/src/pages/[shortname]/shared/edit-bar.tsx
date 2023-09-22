@@ -8,9 +8,9 @@ import {
 } from "@mui/material";
 import { ReactNode, useEffect, useRef } from "react";
 
-import { useEditBarContext } from "../../../../../../shared/edit-bar-scroller";
-import { PencilSimpleLine } from "../../../../../../shared/icons/svg";
-import { Button, ButtonProps } from "../../../../../../shared/ui/button";
+import { useEditBarContext } from "../../../shared/edit-bar-scroller";
+import { PencilSimpleLine } from "../../../shared/icons/svg";
+import { Button, ButtonProps } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
   icon,

@@ -13,7 +13,7 @@ import {
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
-} from "./shared/edit-bar";
+} from "../../../shared/edit-bar";
 
 const useFrozenValue = <T extends any>(value: T): T => {
   const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();

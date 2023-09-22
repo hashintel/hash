@@ -46,16 +46,14 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  const relevantUploads = uploads.filter(
-    (upload) => upload.fileData.entityTypeId === entityType.$id,
-  );
-
-  const [showUploadForm, setShowUploadForm] = useState(!relevantUploads.length);
+  const [showUploadForm, setShowUploadForm] = useState(!uploads.length);
 
   const onFileProvided = (file: File) => {
     void uploadFile({
       fileData: {
-        entityTypeId: entityType.$id,
+        fileEntityCreationInput: {
+          entityTypeId: entityType.$id,
+        },
         file,
       },
       ownedById: activeWorkspaceOwnedById!,
@@ -82,7 +80,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
           <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
         </Box>
       )}
-      {relevantUploads.length ? (
+      {uploads.length ? (
         <Table
           sx={({ palette }) => ({
             background: palette.white,
@@ -119,7 +117,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {relevantUploads.map((upload) => {
+            {uploads.map((upload) => {
               const progressPercent = uploadsProgress[upload.requestId] ?? 0;
 
               const progressIndicatorProps = {

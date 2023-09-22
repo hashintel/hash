@@ -226,7 +226,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         updateUpload(upload);
       }
 
-      const { description, entityTypeId, name } = fileData;
+      const { description, name } = fileData;
 
       // if retrying an earlier request, we might already have a file entity
       let fileEntity =
@@ -241,9 +241,15 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             variables: {
               description,
               displayName: name,
-              entityTypeId,
-              ownedById,
               url: fileData.url,
+              ...("fileEntityUpdateInput" in fileData
+                ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
+                : {
+                    fileEntityCreationInput: {
+                      ownedById,
+                      ...fileData.fileEntityCreationInput,
+                    },
+                  }),
             },
           });
 
@@ -285,11 +291,17 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             const { data, errors } = await requestFileUploadFn({
               variables: {
                 description,
-                entityTypeId,
-                ownedById,
                 displayName: name,
                 name: fileData.file.name,
                 size: fileData.file.size,
+                ...("fileEntityUpdateInput" in fileData
+                  ? { fileEntityUpdateInput: fileData.fileEntityUpdateInput }
+                  : {
+                      fileEntityCreationInput: {
+                        ownedById,
+                        ...fileData.fileEntityCreationInput,
+                      },
+                    }),
               },
             });
 

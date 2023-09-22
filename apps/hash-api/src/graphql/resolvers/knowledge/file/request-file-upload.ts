@@ -1,4 +1,4 @@
-import { Entity, OwnedById } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
 
 import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -16,8 +16,15 @@ export const requestFileUpload: ResolverFn<
   MutationRequestFileUploadArgs
 > = async (
   _,
-  { description, entityTypeId, displayName, name, ownedById, size },
-  { dataSources, authentication, user },
+  {
+    description,
+    displayName,
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
+    name,
+    size,
+  },
+  { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
@@ -27,9 +34,9 @@ export const requestFileUpload: ResolverFn<
     {
       description,
       displayName,
-      entityTypeId,
+      fileEntityCreationInput,
+      fileEntityUpdateInput,
       name,
-      ownedById: ownedById ?? (user.accountId as OwnedById),
       size,
     },
   );

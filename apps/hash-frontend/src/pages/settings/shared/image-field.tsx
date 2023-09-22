@@ -1,5 +1,5 @@
 import { PenIcon } from "@hashintel/block-design-system";
-import { ArrowRotateLeftIcon, LoadingSpinner } from "@hashintel/design-system";
+import { ArrowLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
@@ -60,11 +60,10 @@ export const ImageField = ({
                   setImageUrl(imageUrlFromProps);
                 }}
                 sx={{
-                  p: 0.5,
                   zIndex: 2,
                 }}
               >
-                <ArrowRotateLeftIcon sx={{ width: 13, height: 13 }} />
+                <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
               </GrayToBlueIconButton>{" "}
             </Box>
           ) : null}
@@ -76,12 +75,7 @@ export const ImageField = ({
             {newImageUploading ? (
               <LoadingSpinner color="gray.40" />
             ) : (
-              <GrayToBlueIconButton
-                onClick={() => setEditingImage(true)}
-                sx={{
-                  p: 0.5,
-                }}
-              >
+              <GrayToBlueIconButton onClick={() => setEditingImage(true)}>
                 <PenIcon sx={{ width: 13, height: 13 }} />
               </GrayToBlueIconButton>
             )}

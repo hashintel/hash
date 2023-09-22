@@ -11,7 +11,7 @@ import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block
 import { PageErrorState } from "../../../../components/page-error-state";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { WorkspaceContext } from "../../../shared/workspace-context";
-import { EditBar } from "../../types/entity-type/[...slug-maybe-version].page/shared/edit-bar";
+import { EditBar } from "../../shared/edit-bar";
 import { EntityEditorPage } from "./entity-editor-page";
 import { EntityPageLoadingState } from "./entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -132,6 +132,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       entityUuid="draft"
       owner={`@${activeWorkspace?.shortname}`}
       isQueryEntity={isQueryEntity}
+      isDirty
       isDraft
       handleSaveChanges={handleCreateEntity}
       setEntity={(entity) => {
@@ -143,7 +144,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={false}
-      refetch={async () => {}}
+      replaceWithLatestDbVersion={async () => {}}
     />
   );
 };
