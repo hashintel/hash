@@ -173,6 +173,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install poetry
+        if: ${{ steps.lints.outputs.has-python == 'true' }}
         run: pipx install poetry
 
       - name: Set up Python
