@@ -17,13 +17,55 @@ Ulimately HASH lets you eliminate competing sources of truth, and reduce informa
 
 ## Technical Architecture
 
-HASH combines various components into one application that runs in the cloud, and is accessible by users:
+### Overview
 
-- User System: built atop Kratos
-- Extensible Frontend: built atop the Block Protocol
-- Datastore(s): currently Postgres, with planned support for additional specialized backends for selectively storing/offloading specific kinds of data and queries (e.g. timeseries, financial/accounting, etc.)
-- Blobstore(s): currently supportive of S3-compatible APIs (with Cloudflare R2 utilized by default), with planned for support for file-type specific handlers (e.g. Cloudflare Images for images, Cloudflare Stream for video)
-- HASH Graph Layer: sits on top of the datastore(s) and blobstore(s)
-- Notification Service: manages the sending of in-app web and mobile push notifications, emails, SMS/MMS messages
+#### The Type System
 
+HASH is built around the Block Protocol type system, which allows for things to be expressed as 'entities' with 'types'. Types can inherit from one another, and entities can have multiple types.
 
+##### Entities
+
+An entity is "anything".
+
+A **standard entity** might correspond to a physical thing, a concept or idea, an event or action, or really anything else you like _other than_ a relationship between two entities. In this case, a **link entity** is used to denote the relationship between two other entities. For example a `Sibling` link entity might connect two `Person` entities.
+
+Link entities are the only non-standard entities that exist. For brevity, we often call link entities "links", and refer to standard entities simply as "entities".
+
+##### Types
+
+Types provide meaning to entities, describing the possible range of values that can be associated with them.
+
+**Entity types** and **link types** describe the expected attributes of 
+
+**Property types** both entity types and link types may expect
+
+**Data types** 
+
+#### HASH System Types
+
+Both information created by users of HASH, and the HASH application itself, builds around these entities and types. 
+
+- **Instance:** a single running node of HASH, generally available via the world wide web (e.g. at a web address like `hash.ai`), deployed within a private network (e.g. available via a VPN), or running locally for development purposes
+- **Web:** a web is a namespace that contains **entities** and **types**
+- **User:** 
+- **User Group:** a group of users, 
+
+Every user has their own **web**. Users are the sole owners of their own webs, and by default anything created in it is private, but users can choose to share information with their webs (both entities and types) with select other users, or make them public for all.
+
+Users can also create **shared webs** which multiple users may have ownership over, or write access to. By default, anything created in a shared web is visible to its members, but can be locked down more tightly (or as with individual's webs, made entirely public).
+
+### Components
+
+Each instance of HASH comprises of various different subsystems. More information about each of these, as well as the corresponding code, can be found in the `hash-` prefixed subdirectories within [`apps`](https://github.com/hashintel/hash/tree/main/apps) (in our [`@hashintel/hash` public monorepo](https://github.com/hashintel)):
+
+- **Authentication system:** based on Ory Kratos, handles user accounts and sessions
+- **Authorization system** based on SpiceDB, extends a Zanzibar-like way of providing permissionsed access to information
+- **Execution system:** based on Temporal, powers **flows**
+- **Datastore(s):** currently Postgres, with planned support for additional specialized backends for selectively storing/offloading specific kinds of data (e.g. timeseries, financial/accounting) and queries (e.g. full-text/vector search)
+- **Blobstore(s):** currently supportive of S3-compatible APIs (with Cloudflare R2 utilized by default), with planned for support for file-type specific handlers (e.g. Cloudflare Images for images, Cloudflare Stream for video)
+- **Application backend:** written in Rust, with Node.js middleware, coordinates the activity of all other components
+  - **HASH Graph:** a query layer that sits on top of the datastore(s)
+  - **Realtime service:** a view over the datastore(s) that allows services to subscribe to realtime updates on entities.
+  - **Loader service:** loads the change-stream published by the realtime service into other systems
+  - **Notification service:** manages the sending of in-app web and mobile push notifications, emails, SMS/MMS messages
+- **Application frontend:** built atop Next.js, utilizing ProseMirror for text-editing, tldraw for canvas editing, and the Block Protocol for blocks
