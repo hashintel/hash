@@ -35,7 +35,7 @@ jobs:
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           fetch-depth: 2
 
@@ -68,7 +68,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.build) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Build images
         uses: ./.github/actions/build-docker-images
@@ -88,7 +88,7 @@ jobs:
       RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -176,7 +176,7 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -249,7 +249,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -320,7 +320,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
