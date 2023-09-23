@@ -23,8 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
 
-      - uses: ./.github/actions/warm-up-repo
-        if: ${{ success() || failure() }}
+      - name: Prune repository
+        run: |
+          mkdir out
+          cp package.json out/package.json
+          cp yarn.lock out/yarn.lock
+          pushd out
+          yarn install
+          popd
+          mv out/* .
 
       - name: Setup python
         run: yarn poetry:install
