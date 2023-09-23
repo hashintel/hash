@@ -35,7 +35,7 @@ jobs:
       samples: ${{ steps.samples.outputs.samples }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
         with:
           fetch-depth: 2
 
@@ -68,7 +68,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.build) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Build images
         uses: ./.github/actions/build-docker-images
@@ -88,7 +88,7 @@ jobs:
       RUSTFLAGS: "--cfg hash_graph_test_environment"
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -108,7 +108,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@2afb713f1c297f70eecb9cb904b36612eba3c25e # v2.18.14
+        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -176,7 +176,7 @@ jobs:
       PROFILE: ${{ matrix.profile }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -214,7 +214,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@2afb713f1c297f70eecb9cb904b36612eba3c25e # v2.18.14
+        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37
 
@@ -249,7 +249,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Warm-up repository
         uses: ./.github/actions/warm-up-repo
@@ -287,7 +287,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@2afb713f1c297f70eecb9cb904b36612eba3c25e # v2.18.14
+        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -320,7 +320,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4.0.0
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
@@ -330,7 +330,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@2afb713f1c297f70eecb9cb904b36612eba3c25e # v2.18.14
+        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
