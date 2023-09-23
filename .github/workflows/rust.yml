@@ -108,7 +108,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -214,7 +214,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37
 
@@ -287,7 +287,7 @@ jobs:
           cache-all-crates: true
 
       - name: Install tools
-        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
           tool: just@1.13.0,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -330,7 +330,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@05acba8f2d65ac08b82440aacbb65175c2b03a4f # v2.18.15
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
