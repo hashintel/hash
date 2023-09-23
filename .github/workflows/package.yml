@@ -112,27 +112,27 @@ jobs:
         id: lints
         run: |
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
 
           TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
           BLACK=$(turbo run lint:black --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "black=$BLACK" >> $GITHUB_OUTPUT
 
           RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "ruff=$RUFF" >> $GITHUB_OUTPUT
 
           MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "mypy=$MYPY" >> $GITHUB_OUTPUT
 
           POETRY_LOCK_FILES=$(turbo run lint:lock-files --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:lock-files" and .command != "<NONEXISTENT>")] != []')
+            | jq '[.tasks[] | select(.task == "lint:lock-files" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "poetry-lock-files=$POETRY_LOCK_FILES" >> $GITHUB_OUTPUT
 
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
@@ -181,6 +181,11 @@ jobs:
         with:
           python-version: ${{ steps.lints.outputs.python-version }}
           cache: poetry
+
+      - name: Install Python dependencies
+        if: ${{ steps.lints.outputs.has-python == 'true' }}
+        working-directory: ${{ matrix.directory }}
+        run: poetry install --no-root --no-interaction
 
       - name: Run ESLint
         if: steps.lints.outputs.eslint == 'true'
