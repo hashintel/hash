@@ -29,6 +29,48 @@
 //!
 //! # Quick-Start Guide
 //!
+//! ## In a new project
+//!
+//! ```rust
+//! # #![allow(dead_code)]
+//! use error_stack::ResultExt;
+//! // using `thiserror` is not neccessary, but convenient
+//! use thiserror::Error;
+//!
+//! // Errors can enumerate variants users care about
+//! // but notably don't need to chain source/inner error manually.
+//! #[derive(Error, Debug)]
+//! enum AppError {
+//!     #[error("serious app error: {consequences}")]
+//!     Serious { consequences: &'static str },
+//!     #[error("trivial app error")]
+//!     Trivial,
+//! }
+//!
+//! type AppResult<T> = error_stack::Result<T, AppError>;
+//!
+//! // Errors can also be a plain `struct`, somewhat like in `anyhow`.
+//! #[derive(Error, Debug)]
+//! #[error("logic error")]
+//! struct LogicError;
+//!
+//! type LogicResult<T> = error_stack::Result<T, LogicError>;
+//!
+//! fn do_logic() -> LogicResult<()> {
+//!     Ok(())
+//! }
+//!
+//! fn main() -> AppResult<()> {
+//!     // `error-stack` requires developer to properly handle
+//!     // changing error contexts
+//!     do_logic().change_context(AppError::Serious {
+//!         consequences: "math no longer works",
+//!     })?;
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
 //! ## Where to use a Report
 //!
 //! [`Report`] has been designed to be used as the [`Err`] variant of a `Result`. This crate
