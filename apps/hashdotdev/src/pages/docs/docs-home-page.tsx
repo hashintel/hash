@@ -391,7 +391,7 @@ export const DocsHomePage: FunctionComponent = () => {
                     gap: 3,
                   }}
                 >
-                  {["BigQuery", "Snowflake", "PostgreSQL"].map((name) => (
+                  {["BigQuery", "Snowflake", "Postgres"].map((name) => (
                     <LabelWithIcon
                       key={name}
                       label={name}
