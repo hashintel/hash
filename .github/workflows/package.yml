@@ -113,23 +113,27 @@ jobs:
         run: |
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []')
+          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
+
           TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []')
+          echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
           ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]] && echo 'true' || echo 'false')
           ANY_CHANGED=true
-
-          HAS_NODE=$(test -f "${{ matrix.directory }}/package.json" && echo $ANY_CHANGED || echo 'false')
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo $ANY_CHANGED || echo 'false')
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo $ANY_CHANGED || echo 'false')
-
-          set -x
-          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
-          echo "tsc=$TSC" >> $GITHUB_OUTPUT
           echo "any-changed=$ANY_CHANGED" >> $GITHUB_OUTPUT
-          echo "has-node=$HAS_NODE" >> $GITHUB_OUTPUT
+
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo $ANY_CHANGED || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(cat "${{ matrix.directory }}/rust-toolchain.toml" | yq -p toml '.toolchain.channel')" >> $GITHUB_OUTPUT
+          fi
+
+          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo $ANY_CHANGED || echo 'false')
           echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_PYTHON = 'true' ]]; then
+            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prune repository
         if: ${{ steps.lints.outputs.any-changed == 'true' }}
@@ -147,6 +151,7 @@ jobs:
         if: ${{ steps.lints.outputs.has-rust == 'true' }}
         uses: ./.github/actions/install-rust-toolchain
         with:
+          toolchain: ${{ steps.lints.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
       - name: Cache Rust dependencies
@@ -157,11 +162,14 @@ jobs:
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
           cache-all-crates: true
 
+      - name: Install poetry
+        run: pipx install poetry
+
       - name: Set up Python
         if: ${{ steps.lints.outputs.has-python == 'true' }}
         uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
         with:
-          python-version: "^3.11"
+          python-version: ${{ steps.lints.outputs.python-version }}
           cache: poetry
 
       - name: Run ESLint
