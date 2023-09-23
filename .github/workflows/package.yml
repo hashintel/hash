@@ -135,13 +135,13 @@ jobs:
             | jq '[.tasks[] | select(.task == "lint:lock-files" and .command != "<NONEXISTENT>")] != []')
           echo "poetry-lock-files=$POETRY_LOCK_FILES" >> $GITHUB_OUTPUT
 
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo $ANY_CHANGED || echo 'false') 
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
           if [[ $HAS_RUST = 'true' ]]; then
             echo "rust-toolchain=$(cat "${{ matrix.directory }}/rust-toolchain.toml" | yq -p toml '.toolchain.channel')" >> $GITHUB_OUTPUT
           fi
 
-          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo $ANY_CHANGED || echo 'false')
+          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
           echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
           if [[ $HAS_PYTHON = 'true' ]]; then
             echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
