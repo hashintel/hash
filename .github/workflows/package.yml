@@ -187,7 +187,7 @@ jobs:
 
       - name: Install Python dependencies
         if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
-        run: turbo run poetry:install --filter '${{ matrix.package }}...[HEAD^]'
+        run: turbo run poetry:install
 
       - name: Run ESLint
         if: steps.lints.outputs.eslint == 'true'
@@ -197,10 +197,10 @@ jobs:
         if: steps.lints.outputs.tsc == 'true'
         run: turbo run lint:tsc --filter "${{ matrix.package }}"
 
-      - name: Check poetry lock file
+      - name: Check poetry
         if: ${{ steps.lints.outputs.has-python == 'true' }}
         working-directory: ${{ matrix.directory }}
-        run: poetry lock --check
+        run: poetry check
 
       - name: Run black
         if: steps.lints.outputs.black == 'true'
