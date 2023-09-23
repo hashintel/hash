@@ -215,7 +215,7 @@ jobs:
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
   unit:
-    name: Unit
+    name: Unit Test
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.units) }}
@@ -273,7 +273,7 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
   integration:
-    name: Integration
+    name: Integration Test
     needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
