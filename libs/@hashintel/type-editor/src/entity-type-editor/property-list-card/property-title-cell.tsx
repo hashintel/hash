@@ -77,6 +77,7 @@ export const PropertyTitleCell = ({
             expanded !== undefined && depth === 0
               ? "translateX(-20px)"
               : "none",
+          whiteSpace: "nowrap",
         }}
       >
         <Collapse

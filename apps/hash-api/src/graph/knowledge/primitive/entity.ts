@@ -327,7 +327,7 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: Pick<Entity, "metadata">;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
   },

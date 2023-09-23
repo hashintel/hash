@@ -5,7 +5,10 @@ import {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
@@ -34,7 +37,7 @@ import {
 } from "../../shared/table-header";
 import { renderChipCell } from "./chip-cell";
 import {
-  renderTextIconCell,
+  createRenderTextIconCell,
   TextIconCell,
 } from "./entities-table/text-icon-cell";
 import {
@@ -106,6 +109,8 @@ export const EntitiesTable: FunctionComponent<{
       isViewingPages,
     }) ?? {};
 
+  const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
+
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -135,8 +140,14 @@ export const EntitiesTable: FunctionComponent<{
                 onClick: () =>
                   router.push(
                     isViewingPages
-                      ? `/${row.namespace}/${row.entityId}`
-                      : `/${row.namespace}/entities/${row.entityId}`,
+                      ? `/${row.namespace}/${extractEntityUuidFromEntityId(
+                          row.entityId,
+                        )}`
+                      : `/${
+                          row.namespace
+                        }/entities/${extractEntityUuidFromEntityId(
+                          row.entityId,
+                        )}`,
                   ),
               },
             };
@@ -207,9 +218,17 @@ export const EntitiesTable: FunctionComponent<{
     <Box>
       <TableHeader
         items={entities ?? []}
+        selectedItems={
+          entities?.filter((entity) =>
+            selectedRows.some(
+              ({ entityId }) => entity.metadata.recordId.entityId === entityId,
+            ),
+          ) ?? []
+        }
         filterState={filterState}
         setFilterState={setFilterState}
         toggleSearch={() => setShowSearch(true)}
+        onBulkActionCompleted={() => setSelectedRows([])}
       />
       {columns && rows ? (
         <Grid
@@ -217,6 +236,12 @@ export const EntitiesTable: FunctionComponent<{
           onSearchClose={() => setShowSearch(false)}
           columns={columns}
           rows={rows}
+          enableCheckboxSelection
+          selectedRows={selectedRows}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            setSelectedRows(updatedSelectedRows)
+          }
+          firstColumnLeftPadding={16}
           height={`
             min(
               calc(100vh - (${
@@ -228,7 +253,11 @@ export const EntitiesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px)
             )`}
           createGetCellContent={createGetCellContent}
-          customRenderers={[renderTextIconCell, renderChipCell]}
+          customRenderers={[
+            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+            renderChipCell,
+          ]}
+          freezeColumns={1}
         />
       ) : null}
     </Box>

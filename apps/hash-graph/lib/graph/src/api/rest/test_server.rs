@@ -24,7 +24,7 @@ use crate::{
             status::status_to_response,
         },
     },
-    snapshot::{codec, SnapshotStore},
+    snapshot::SnapshotStore,
     store::{PostgresStorePool, StorePool},
 };
 
@@ -78,7 +78,7 @@ async fn restore_snapshot(
                 StreamReader::new(
                     snapshot.map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
                 ),
-                codec::JsonLinesDecoder::default(),
+                codec::bytes::JsonLinesDecoder::default(),
             ),
             10_000,
         )

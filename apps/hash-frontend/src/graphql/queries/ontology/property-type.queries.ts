@@ -23,10 +23,14 @@ export const queryPropertyTypesQuery = gql`
   query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $latestOnly: Boolean = true
+    $includeArchived: Boolean = false
   ) {
     queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      latestOnly: $latestOnly
+      includeArchived: $includeArchived
     ) {
       ...SubgraphFields
     }
@@ -54,5 +58,17 @@ export const updatePropertyTypeMutation = gql`
       propertyTypeId: $propertyTypeId
       updatedPropertyType: $updatedPropertyType
     )
+  }
+`;
+
+export const archivePropertyTypeMutation = gql`
+  mutation archivePropertyType($propertyTypeId: VersionedUrl!) {
+    archivePropertyType(propertyTypeId: $propertyTypeId)
+  }
+`;
+
+export const unarchivePropertyTypeMutation = gql`
+  mutation unarchivePropertyType($propertyTypeId: VersionedUrl!) {
+    unarchivePropertyType(propertyTypeId: $propertyTypeId)
   }
 `;

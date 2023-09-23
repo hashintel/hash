@@ -20,7 +20,7 @@ definition graph/entity {
 	permission view = direct_viewer + update
 }
 
-definition graph/owner {
+definition graph/web {
 	relation direct_owner: graph/account | graph/account_group#member
 
 	permission create_entity = direct_owner

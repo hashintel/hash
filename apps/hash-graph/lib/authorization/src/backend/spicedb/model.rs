@@ -74,17 +74,17 @@ impl<T: Tuple> Serialize for SubjectReference<'_, T> {
 /// Specifies how a resource relates to a subject.
 ///
 /// Relationships form the data for the graph over which all permissions questions are answered.
-pub struct Relationship<'t, T>(pub &'t T);
+pub struct Relationship<T>(pub T);
 
-impl<T: Tuple> Serialize for Relationship<'_, T> {
+impl<T: Tuple> Serialize for Relationship<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut serialize = serializer.serialize_struct("Relationship", 3)?;
-        serialize.serialize_field("resource", &ObjectReference(self.0))?;
+        serialize.serialize_field("resource", &ObjectReference(&self.0))?;
         serialize.serialize_field("relation", self.0.affiliation())?;
-        serialize.serialize_field("subject", &SubjectReference(self.0))?;
+        serialize.serialize_field("subject", &SubjectReference(&self.0))?;
         serialize.end()
     }
 }

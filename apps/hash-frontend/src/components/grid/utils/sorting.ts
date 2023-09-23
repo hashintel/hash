@@ -1,6 +1,6 @@
 import { GridColumn } from "@glideapps/glide-data-grid";
 
-import { Rows } from "./rows";
+import { Row } from "./rows";
 
 export type ColumnSortType = "asc" | "desc";
 
@@ -32,15 +32,15 @@ export const createHandleHeaderClicked = <T extends string>(
   };
 };
 
-export const defaultSortRows = <T extends Rows>(
-  rows: T,
+export const defaultSortRows = <T extends Row>(
+  rows: T[],
   sort: ColumnSort<string>,
 ) => {
   /**
    * cloning the array, we want to return a new array,
    * so React can run effects & update state properly
    */
-  const clone = [...rows] as T;
+  const clone = [...rows] as T[];
   return clone.sort((row1, row2) => {
     // we sort only by alphabetical order for now
     const key1 = String(row1[sort.key]);

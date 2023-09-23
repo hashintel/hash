@@ -1,4 +1,3 @@
-pub mod codec;
 pub mod entity;
 pub mod owner;
 
@@ -7,9 +6,14 @@ mod metadata;
 mod ontology;
 mod restore;
 
+use std::future::ready;
+
+use async_scoped::TokioScope;
 use async_trait::async_trait;
 use error_stack::{ensure, Context, Report, Result, ResultExt};
-use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{
+    channel::mpsc, stream, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt,
+};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::Entity,
@@ -17,7 +21,11 @@ use graph_types::{
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{
+    error::SqlState,
+    tls::{MakeTlsConnect, TlsConnect},
+    Socket,
+};
 use type_system::{DataType, EntityType, PropertyType};
 
 pub use self::{
@@ -28,7 +36,10 @@ pub use self::{
 pub use crate::snapshot::metadata::SnapshotMetadata;
 use crate::{
     snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
-    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
+    store::{
+        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
+        StorePool,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -129,7 +140,14 @@ impl<C> SnapshotStore<C> {
     }
 }
 
-impl<C: AsClient> SnapshotStore<C> {
+impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
+{
     async fn read_accounts(
         &self,
     ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
@@ -137,7 +155,9 @@ impl<C: AsClient> SnapshotStore<C> {
         // TODO: Make accounts a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .0
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
             .as_client()
             .query_raw(
                 "SELECT account_id FROM accounts",
@@ -156,7 +176,9 @@ impl<C: AsClient> SnapshotStore<C> {
         // TODO: Make account groups a first-class `Record` type
         //   see https://linear.app/hash/issue/H-752
         Ok(self
-            .0
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
             .as_client()
             .query_raw(
                 "SELECT account_group_id FROM account_groups",
@@ -169,16 +191,24 @@ impl<C: AsClient> SnapshotStore<C> {
     }
 
     /// Convenience function to create a stream of snapshot entries.
-    async fn create_dump_stream<T>(
-        &self,
-    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send, SnapshotDumpError>
+    async fn create_dump_stream<'pool, T>(
+        &'pool self,
+    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
     where
-        PostgresStore<C>: Read<T>,
+        <Self as StorePool>::Store<'pool>: Read<T>,
+        T: 'pool,
     {
-        Ok(Read::<T>::read(&self.0, &Filter::All(vec![]), None)
-            .await
-            .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
-            .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+        Ok(Read::<T>::read(
+            &self
+                .acquire()
+                .await
+                .change_context(SnapshotDumpError::Query)?,
+            &Filter::All(vec![]),
+            None,
+        )
+        .await
+        .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
+        .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
     }
 
     /// Reads the snapshot from the store into the given sink.
@@ -192,54 +222,80 @@ impl<C: AsClient> SnapshotStore<C> {
     /// - If writing a record into the sink fails
     pub fn dump_snapshot(
         &self,
-    ) -> impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + '_ {
-        // TODO: Postgres does not allow to have multiple queries open at the same time. This means
-        //       that each stream needs to be fully processed before the next one can be created.
-        //       We might want to work around this by using a single stream that yields all the
-        //       entries or even use multiple connections to the database.
-        //   see https://app.asana.com/0/0/1204347352251098/f
+        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
+        chunk_size: usize,
+    ) -> Result<(), SnapshotDumpError> {
+        let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(chunk_size);
+        let snapshot_record_tx = snapshot_record_tx
+            .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
 
-        stream::once(async {
-            SnapshotEntry::Snapshot(SnapshotMetadata {
-                block_protocol_module_versions: BlockProtocolModuleVersions {
-                    graph: semver::Version::new(0, 3, 0),
-                },
-                custom: CustomGlobalMetadata,
-            })
-        })
-        .map(Ok)
-        .chain(
-            self.read_accounts()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::Account),
-        )
-        .chain(
-            self.read_account_groups()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::AccountGroup),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::DataType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::PropertyType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::EntityType),
-        )
-        .chain(
-            self.create_dump_stream::<Entity>()
-                .try_flatten_stream()
-                .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
-        )
+        let ((), results) = TokioScope::scope_and_block(|scope| {
+            scope.spawn(snapshot_record_rx.map(Ok).forward(
+                sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
+            ));
+
+            scope.spawn(
+                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                    block_protocol_module_versions: BlockProtocolModuleVersions {
+                        graph: semver::Version::new(0, 3, 0),
+                    },
+                    custom: CustomGlobalMetadata,
+                }))))
+                .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_accounts()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::Account)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_account_groups()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::AccountGroup)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::DataType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::PropertyType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::EntityType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<Entity>()
+                    .try_flatten_stream()
+                    .map_ok(|entity| SnapshotEntry::Entity(entity.into()))
+                    .forward(snapshot_record_tx),
+            );
+        });
+
+        for result in results {
+            result.change_context(SnapshotDumpError::Read)??;
+        }
+
+        Ok(())
     }
+}
 
+impl<C: AsClient> SnapshotStore<C> {
     /// Reads the snapshot from from the stream into the store.
     ///
     /// The data emitted by the stream is read in a separate thread and is sent to different

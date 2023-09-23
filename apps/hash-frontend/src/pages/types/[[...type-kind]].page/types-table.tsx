@@ -31,7 +31,7 @@ import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
 import { extractOwnedById } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { isTypeArchived } from "../../../shared/entity-types-context/util";
+import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import {
   FilterState,
@@ -39,7 +39,7 @@ import {
   tableHeaderHeight,
 } from "../../../shared/table-header";
 import {
-  renderTextIconCell,
+  createRenderTextIconCell,
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
@@ -79,6 +79,8 @@ export const TypesTable: FunctionComponent<{
   const router = useRouter();
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
+
+  const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
@@ -251,13 +253,23 @@ export const TypesTable: FunctionComponent<{
         items={types}
         filterState={filterState}
         setFilterState={setFilterState}
+        selectedItems={types.filter((type) =>
+          selectedRows.some(({ typeId }) => type.schema.$id === typeId),
+        )}
+        onBulkActionCompleted={() => setSelectedRows([])}
       />
       <Grid
         showSearch={showSearch}
         onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         rows={filteredRows}
+        enableCheckboxSelection
+        selectedRows={selectedRows}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
         sortable
+        firstColumnLeftPadding={16}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
         height={`
@@ -271,7 +283,10 @@ export const TypesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-        customRenderers={[renderTextIconCell]}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+        ]}
+        freezeColumns={1}
       />
     </Box>
   );

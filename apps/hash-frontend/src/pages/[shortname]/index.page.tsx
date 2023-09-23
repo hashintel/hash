@@ -15,7 +15,7 @@ import { constructOrg, constructUser } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserOrOrg } from "../../shared/use-user-or-org";
-import { getImageUrlFromFileProperties } from "./entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "./entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 
 const menuBarHeight = 60;
 
@@ -73,7 +73,7 @@ const Page: NextPageWithLayout = () => {
     profile && "website" in profile && sanitizeHref(profile.website);
 
   const avatarSrc = profile?.hasAvatar
-    ? getImageUrlFromFileProperties(profile.hasAvatar.imageEntity.properties)
+    ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
     : undefined;
 
   return profileNotFound ? (

@@ -1,5 +1,4 @@
 import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
-import { OwnedById } from "@local/hash-subgraph";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
 import {
@@ -16,16 +15,22 @@ export const createFileFromUrl: ResolverFn<
   MutationCreateFileFromUrlArgs
 > = async (
   _,
-  { description, entityTypeId, ownedById, displayName, url },
-  { dataSources, authentication, user },
+  {
+    description,
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
+    displayName,
+    url,
+  },
+  { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const entity = await createFileFromExternalUrl(context, authentication, {
     description,
     displayName,
-    entityTypeId,
-    ownedById: ownedById ?? (user.accountId as OwnedById),
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
     url,
   });
 
