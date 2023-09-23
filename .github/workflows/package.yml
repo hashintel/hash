@@ -119,9 +119,21 @@ jobs:
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
-          ANY_CHANGED=$([[ $ESLINT == 'true' ]] || [[ $TSC == 'true' ]] && echo 'true' || echo 'false')
-          ANY_CHANGED=true
-          echo "any-changed=$ANY_CHANGED" >> $GITHUB_OUTPUT
+          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []')
+          echo "black=$BLACK" >> $GITHUB_OUTPUT
+
+          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []')
+          echo "ruff=$RUFF" >> $GITHUB_OUTPUT
+
+          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []')
+          echo "mypy=$MYPY" >> $GITHUB_OUTPUT
+
+          POETRY_LOCK_FILES=$(turbo run lint:lock-files --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:lock-files" and .command != "<NONEXISTENT>")] != []')
+          echo "poetry-lock-files=$POETRY_LOCK_FILES" >> $GITHUB_OUTPUT
 
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo $ANY_CHANGED || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
@@ -136,13 +148,11 @@ jobs:
           fi
 
       - name: Prune repository
-        if: ${{ steps.lints.outputs.any-changed == 'true' }}
         uses: ./.github/actions/prune-repository
         with:
           scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
-        if: ${{ steps.lints.outputs.has-node == 'true' }}
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
@@ -179,6 +189,22 @@ jobs:
       - name: Run TSC
         if: steps.lints.outputs.tsc == 'true'
         run: turbo run lint:tsc --filter "${{ matrix.package }}"
+
+      - name: Check poetry lock file
+        if: steps.lints.outputs.poetry-lock-files == 'true'
+        run: turbo run lint:lock-files --filter "${{ matrix.package }}"
+
+      - name: Run black
+        if: steps.lints.outputs.black == 'true'
+        run: turbo run lint:black --filter "${{ matrix.package }}"
+
+      - name: Run ruff
+        if: steps.lints.outputs.ruff == 'true'
+        run: turbo run lint:ruff --filter "${{ matrix.package }}"
+
+      - name: Run MyPy
+        if: steps.lints.outputs.mypy == 'true'
+        run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
   unit:
     name: Unit
