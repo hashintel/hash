@@ -25,6 +25,18 @@ const docsTabs: { title: string; href: string }[] = [
     href: "/docs/get-started",
   },
   {
+    title: "Entities",
+    href: "/docs/entities",
+  },
+  {
+    title: "Types",
+    href: "/docs/types",
+  },
+  {
+    title: "Blocks",
+    href: "/docs/blocks",
+  },
+  {
     title: "Apps",
     href: "/docs/apps",
   },
