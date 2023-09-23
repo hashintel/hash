@@ -119,6 +119,10 @@ jobs:
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
+
           BLACK=$(turbo run lint:black --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "black=$BLACK" >> $GITHUB_OUTPUT
@@ -130,10 +134,6 @@ jobs:
           MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "mypy=$MYPY" >> $GITHUB_OUTPUT
-
-          POETRY_LOCK_FILES=$(turbo run lint:lock-files --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:lock-files" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "poetry-lock-files=$POETRY_LOCK_FILES" >> $GITHUB_OUTPUT
 
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
@@ -173,20 +173,17 @@ jobs:
           cache-all-crates: true
 
       - name: Install poetry
-        if: ${{ steps.lints.outputs.has-python == 'true' }}
-        run: pipx install poetry
+        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        run: |
+          pipx install poetry
+          turbo run poetry:install --filter '${{ matrix.package }}...[HEAD^]'
 
-      - name: Set up Python
-        if: ${{ steps.lints.outputs.has-python == 'true' }}
-        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
-        with:
-          python-version: ${{ steps.lints.outputs.python-version }}
-          cache: poetry
-
-      - name: Install Python dependencies
-        if: ${{ steps.lints.outputs.has-python == 'true' }}
-        working-directory: ${{ matrix.directory }}
-        run: poetry install --no-root --no-interaction
+      #      - name: Set up Python
+      #        if: ${{ steps.lints.outputs.has-python == 'true' }}
+      #        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+      #        with:
+      #          python-version: ${{ steps.lints.outputs.python-version }}
+      #          cache: poetry
 
       - name: Run ESLint
         if: steps.lints.outputs.eslint == 'true'
@@ -197,8 +194,9 @@ jobs:
         run: turbo run lint:tsc --filter "${{ matrix.package }}"
 
       - name: Check poetry lock file
-        if: steps.lints.outputs.poetry-lock-files == 'true'
-        run: turbo run lint:lock-files --filter "${{ matrix.package }}"
+        if: ${{ steps.lints.outputs.has-python == 'true' }}
+        working-directory: ${{ matrix.directory }}
+        run: poetry lock --check
 
       - name: Run black
         if: steps.lints.outputs.black == 'true'
