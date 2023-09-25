@@ -36,16 +36,14 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_PACKAGES=$(turbo run test \
-              --filter '!@tests/*' --filter '...[HEAD^]' \
-              --dry-run=json \
+          UNIT_PACKAGES=$(turbo run test --dry-run=json \
+              --filter '!@tests/*' --filter '!@apps/*' --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_PACKAGES=$(turbo run test \
-              --filter '@tests/*...[HEAD^]' \
-              --dry-run=json \
+          INTEGRATION_PACKAGES=$(turbo run test --dry-run=json \
+              --filter '@tests/*...[HEAD^]' --filter '@apps/*...[HEAD^]' \
             | jq '.tasks[]' \
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
@@ -148,7 +146,10 @@ jobs:
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
           if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(cat "${{ matrix.directory }}/rust-toolchain.toml" | yq -p toml '.toolchain.channel')" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -162,14 +163,20 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Rust toolchain
-        if: ${{ steps.lints.outputs.has-rust == 'true' }}
+        if: always() && steps.lints.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.lints.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
+      - name: Install Rust tools
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        with:
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+
       - name: Cache Rust dependencies
-        if: ${{ steps.lints.outputs.has-rust == 'true' }}
+        if: always() && steps.lints.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
@@ -177,43 +184,91 @@ jobs:
           cache-all-crates: true
 
       - name: Install poetry
-        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
         run: pipx install poetry
 
       - name: Set up Python
-        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
         uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
         with:
           python-version: ${{ steps.lints.outputs.python-version }}
           cache: poetry
 
       - name: Install Python dependencies
-        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        if: always() && steps.lints.outputs.has-poetry-deps == 'true'
         run: turbo run poetry:install
 
       - name: Run ESLint
-        if: steps.lints.outputs.eslint == 'true'
+        if: always() && steps.lints.outputs.eslint == 'true'
         run: turbo run lint:eslint --filter "${{ matrix.package }}"
 
       - name: Run TSC
-        if: steps.lints.outputs.tsc == 'true'
+        if: always() && steps.lints.outputs.tsc == 'true'
         run: turbo run lint:tsc --filter "${{ matrix.package }}"
 
+      - name: Run rustfmt
+        if: always() && steps.lints.outputs.has-rustfmt == 'true'
+        working-directory: ${{ matrix.directory }}
+        run: just format --check
+
+      - name: Run clippy
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        working-directory: ${{ matrix.directory }}
+        run: |
+          just clippy --message-format=json \
+            | clippy-sarif \
+            | jq '.runs[].results |= unique' \
+            | tee clippy.sarif \
+            | sarif-fmt
+
+          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Process SARIF file
+        working-directory: ${{ matrix.directory }}
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        run: |
+          tmp=$(mktemp)
+
+          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
+
+          mv "$tmp" clippy.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@6a28655e3dcb49cb0840ea372fd6d17733edd8a4 # v2.21.8
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        with:
+          sarif_file: ${{ matrix.directory }}/clippy.sarif
+          category: ${{ matrix.name }}
+
+      - name: Check public documentation
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        working-directory: ${{ matrix.directory }}
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: just doc
+
+      - name: Check private documentation
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        working-directory: ${{ matrix.directory }}
+        env:
+          RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
+        run: just doc --document-private-items
+
       - name: Check poetry
-        if: ${{ steps.lints.outputs.has-python == 'true' }}
+        if: always() && steps.lints.outputs.has-python == 'true'
         working-directory: ${{ matrix.directory }}
         run: poetry check
 
       - name: Run black
-        if: steps.lints.outputs.black == 'true'
+        if: always() && steps.lints.outputs.black == 'true'
         run: turbo run lint:black --filter "${{ matrix.package }}"
 
       - name: Run ruff
-        if: steps.lints.outputs.ruff == 'true'
+        if: always() && steps.lints.outputs.ruff == 'true'
         run: turbo run lint:ruff --filter "${{ matrix.package }}"
 
       - name: Run MyPy
-        if: steps.lints.outputs.mypy == 'true'
+        if: always() && steps.lints.outputs.mypy == 'true'
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
   unit:
