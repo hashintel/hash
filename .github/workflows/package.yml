@@ -37,7 +37,7 @@ jobs:
         id: packages
         run: |
           UNIT_PACKAGES=$(turbo run test \
-              --filter '!@tests/*...[HEAD^]' \
+              --filter '!@tests/*' --filter '...[HEAD^]' \
               --dry-run=json \
             | jq '.tasks[]' \
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
