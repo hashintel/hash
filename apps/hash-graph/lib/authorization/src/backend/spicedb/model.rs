@@ -1,8 +1,10 @@
 use std::{collections::HashMap, error::Error, fmt};
 
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{
+    de::IntoDeserializer, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
+};
 
-use crate::zanzibar::{self, Tuple};
+use crate::zanzibar::{self, Resource, Tuple};
 
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
@@ -22,23 +24,51 @@ impl fmt::Display for RpcError {
 
 impl Error for RpcError {}
 
-pub struct ObjectReference<'t, T>(pub &'t T);
+pub struct ObjectReference<T>(pub T);
 
-impl<T: Tuple> Serialize for ObjectReference<'_, T> {
+impl<T: Tuple> Serialize for ObjectReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let mut serialize = serializer.serialize_struct("ObjectReference", 2)?;
         serialize.serialize_field("objectType", self.0.object_namespace())?;
-        serialize.serialize_field("objectId", self.0.object_id())?;
+        serialize.serialize_field("objectId", &self.0.object_id())?;
         serialize.end()
     }
 }
 
-pub struct RelationReference<'t, T>(pub &'t T);
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", bound = "O::Id: Deserialize<'de>")]
+struct SerializedObjectReference<O: Resource> {
+    object_type: String,
+    object_id: O::Id,
+}
 
-impl<T: Tuple> Serialize for RelationReference<'_, T> {
+impl<'de, O> Deserialize<'de> for ObjectReference<O>
+where
+    O: Resource + From<O::Id>,
+    O::Id: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let model = SerializedObjectReference::<O>::deserialize(deserializer)?;
+        if model.object_type != O::namespace() {
+            return Err(serde::de::Error::custom(format!(
+                "expected object type `{}`, got `{}`",
+                O::namespace(),
+                model.object_type,
+            )));
+        }
+        Ok(Self(O::from(model.object_id)))
+    }
+}
+
+pub struct RelationReference<T>(pub T);
+
+impl<T: Tuple> Serialize for RelationReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -48,34 +78,76 @@ impl<T: Tuple> Serialize for RelationReference<'_, T> {
 }
 
 #[derive(Debug)]
-pub struct SubjectReference<'t, T>(pub &'t T);
+pub struct SubjectReference<T>(pub T);
 
-impl<T: Tuple> Serialize for SubjectReference<'_, T> {
+impl<T: Tuple> Serialize for SubjectReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         #[derive(Debug)]
-        pub struct ObjectReference<'t, T>(pub &'t T);
+        pub struct ObjectReference<T>(pub T);
 
-        impl<T: Tuple> Serialize for ObjectReference<'_, T> {
+        impl<T: Tuple> Serialize for ObjectReference<T> {
             fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
             where
                 Ser: Serializer,
             {
                 let mut serialize = serializer.serialize_struct("ObjectReference", 2)?;
                 serialize.serialize_field("objectType", self.0.user_namespace())?;
-                serialize.serialize_field("objectId", self.0.user_id())?;
+                serialize.serialize_field("objectId", &self.0.user_id())?;
                 serialize.end()
             }
         }
 
         let mut serialize = serializer.serialize_struct("SubjectReference", 2)?;
-        serialize.serialize_field("object", &ObjectReference(self.0))?;
+        serialize.serialize_field("object", &ObjectReference(&self.0))?;
         if let Some(relation) = self.0.user_set() {
             serialize.serialize_field("optionalRelation", relation)?;
         }
         serialize.end()
+    }
+}
+
+fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    let opt = Option::<String>::deserialize(de)?;
+    match opt.as_deref() {
+        None | Some("") => Ok(None),
+        Some(s) => T::deserialize(s.into_deserializer()).map(Some),
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(bound = "U::Id: Deserialize<'de>, S: Deserialize<'de>")]
+struct SerializedSubjectReference<U: Resource, S> {
+    object: SerializedObjectReference<U>,
+    #[serde(rename = "optionalRelation", deserialize_with = "empty_string_as_none")]
+    relation: Option<S>,
+}
+
+impl<'de, U, S> Deserialize<'de> for SubjectReference<(U, Option<S>)>
+where
+    U: Resource + From<U::Id>,
+    U::Id: Deserialize<'de>,
+    S: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let model = SerializedSubjectReference::<U, S>::deserialize(deserializer)?;
+        if model.object.object_type != U::namespace() {
+            return Err(serde::de::Error::custom(format!(
+                "expected user type `{}`, got `{}`",
+                U::namespace(),
+                model.object.object_type,
+            )));
+        }
+        Ok(Self((U::from(model.object.object_id), model.relation)))
     }
 }
 

@@ -9,21 +9,21 @@ impl Resource for AccountId {
         "graph/account"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 
 pub struct PublicAccess;
 
 impl Resource for PublicAccess {
-    type Id = str;
+    type Id = &'static str;
 
     fn namespace() -> &'static str {
         AccountId::namespace()
     }
 
-    fn id(&self) -> &Self::Id {
+    fn id(&self) -> Self::Id {
         "*"
     }
 }

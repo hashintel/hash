@@ -5,9 +5,9 @@ use authorization::{
     backend::{
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
-        ImportSchemaError, ImportSchemaResponse, SpiceDbOpenApi, ZanzibarBackend,
+        ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Tuple},
+    zanzibar::{Consistency, Relation, Resource, Tuple},
 };
 use error_stack::Report;
 
@@ -83,5 +83,22 @@ impl ZanzibarBackend for TestApi {
         T: Tuple + Sync,
     {
         self.client.check(tuple, consistency).await
+    }
+
+    async fn read_relations<O, R, U, S>(
+        &self,
+        _object: Option<O>,
+        _relation: Option<R>,
+        _user: Option<U>,
+        _user_set: Option<S>,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
+    where
+        O: Resource + Send + Sync,
+        R: Relation<O> + Send,
+        U: Resource + Send,
+        S: Send,
+    {
+        Ok(Vec::new())
     }
 }

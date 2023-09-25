@@ -4,9 +4,10 @@ use core::fmt;
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
+use serde::{de::DeserializeOwned, Serialize};
 
 pub use self::spicedb::SpiceDbOpenApi;
-use crate::zanzibar::{Consistency, Tuple, UntypedTuple, Zookie};
+use crate::zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait ZanzibarBackend {
@@ -74,6 +75,27 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
         T: Tuple + Sync;
+
+    /// Returns the list of all relations matching the filter.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the reading could not be performed.
+    fn read_relations<O, R, U, S>(
+        &self,
+        object: Option<O>,
+        relation: Option<R>,
+        user: Option<U>,
+        user_set: Option<S>,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>> + Send
+    where
+        O: Resource + From<O::Id> + Send + Sync,
+        O::Id: DeserializeOwned,
+        R: Relation<O> + Send + Sync + DeserializeOwned,
+        U: Resource + From<U::Id> + Send + Sync,
+        U::Id: DeserializeOwned,
+        S: Serialize + Send + Sync + DeserializeOwned;
 }
 
 /// Return value for [`ZanzibarBackend::import_schema`].
@@ -197,6 +219,18 @@ impl fmt::Display for CheckError {
 }
 
 impl Error for CheckError {}
+
+/// Error returned from [`ZanzibarBackend::check`].
+#[derive(Debug)]
+pub struct ReadError;
+
+impl fmt::Display for ReadError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("failed to read relationships")
+    }
+}
+
+impl Error for ReadError {}
 
 #[derive(Debug)]
 pub struct ModifyRelationError;
