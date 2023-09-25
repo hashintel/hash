@@ -25,6 +25,7 @@ import {
 } from "react";
 import { useKey } from "rooks";
 
+import { useScrollLock } from "../../../components/grid/utils/override-custom-renderers/use-scroll-lock";
 import { useQueryEntities } from "../../../components/hooks/use-query-entities";
 import { generateEntityLabel } from "../../../lib/entities";
 import { useLatestPropertyTypes } from "../../../shared/latest-property-types-context";
@@ -80,6 +81,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   onChange,
   ownedById: _ownedById,
 }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   const { propertyTypes } = useLatestPropertyTypes();
 
   const [selectedEntityIndex, setSelectedEntityIndex] = useState(0);
@@ -91,6 +94,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const selectedEntityRef = useRef<HTMLDivElement>(null);
 
   const [displayEntitySubMenu, setDisplayEntitySubMenu] = useState(false);
+
+  useScrollLock(displayEntitySubMenu, wrapperRef.current ?? undefined);
 
   const [entitySelectedSubMenuIndex, setEntitySelectedSubMenuIndex] =
     useState(0);
@@ -386,7 +391,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   return (
-    <MentionSuggesterWrapper>
+    <MentionSuggesterWrapper ref={wrapperRef}>
       <List sx={{ "> :first-child": { paddingTop: 0 } }}>
         {loadingEntities && !entitiesSubgraph ? (
           <ListItem>
