@@ -13,3 +13,17 @@ impl Resource for AccountId {
         self
     }
 }
+
+pub struct PublicAccess;
+
+impl Resource for PublicAccess {
+    type Id = str;
+
+    fn namespace() -> &'static str {
+        AccountId::namespace()
+    }
+
+    fn id(&self) -> &Self::Id {
+        "*"
+    }
+}

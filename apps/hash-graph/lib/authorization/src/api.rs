@@ -85,6 +85,18 @@ pub trait AuthorizationApi {
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
+    fn add_entity_viewer(
+        &mut self,
+        scope: VisibilityScope,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_entity_viewer(
+        &mut self,
+        scope: VisibilityScope,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     fn can_create_entity(
         &self,
         actor: AccountId,

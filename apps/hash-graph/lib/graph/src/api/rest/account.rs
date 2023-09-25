@@ -47,8 +47,8 @@ impl RoutedResource for AccountResource {
                     .route("/", post(create_account_group::<S, A>))
                     .route(
                         "/:account_group_id/members/:account_id",
-                        post(add_account_group_member::<S, A>)
-                            .delete(remove_account_group_member::<S, A>),
+                        post(add_account_group_member::<A>)
+                            .delete(remove_account_group_member::<A>),
                     ),
             )
     }
@@ -165,13 +165,12 @@ where
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn add_account_group_member<S, A>(
+async fn add_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
-    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
@@ -223,13 +222,12 @@ where
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn remove_account_group_member<S, A>(
+async fn remove_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
-    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {

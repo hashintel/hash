@@ -652,3 +652,17 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     },
   });
 };
+
+export const makeEntityPublic: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.makeEntityPublic(actorId, params.entityId);
+};
+
+export const makeEntityPrivate: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.makeEntityPrivate(actorId, params.entityId);
+};
