@@ -29,7 +29,7 @@
   },
   "globalDependencies": [
     "**/turbo.json",
-    ".github/workflows/*.yml",
+    ".github/workflows/package.yml",
     ".github/actions/**",
     ".env*",
     ".justfile",
