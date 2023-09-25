@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, error::Error, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
@@ -7,12 +7,20 @@ use crate::zanzibar::{self, Tuple};
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcStatus {
+pub struct RpcError {
     pub code: i32,
     pub message: String,
     #[serde(default)]
     pub details: Vec<serde_json::Value>,
 }
+
+impl fmt::Display for RpcError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "Error {}: {}", self.code, self.message)
+    }
+}
+
+impl Error for RpcError {}
 
 pub struct ObjectReference<'t, T>(pub &'t T);
 

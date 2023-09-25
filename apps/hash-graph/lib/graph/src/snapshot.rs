@@ -1,4 +1,3 @@
-pub mod codec;
 pub mod entity;
 pub mod owner;
 

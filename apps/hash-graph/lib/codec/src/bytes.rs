@@ -3,29 +3,17 @@ use std::{
     marker::PhantomData,
 };
 
-use bytes::{BufMut, BytesMut};
-use derivative::Derivative;
+use derive_where::derive_where;
 use error_stack::{Report, ResultExt};
 use serde::{de::DeserializeOwned, Serialize};
-use tokio_util::codec::{Decoder, Encoder, LinesCodec};
+use tokio_util::{
+    bytes::{BufMut, BytesMut},
+    codec::{Decoder, Encoder, LinesCodec},
+};
 
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = ""),
-    Default(bound = ""),
-    Copy(bound = ""),
-    Eq(bound = ""),
-    PartialEq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesEncoder<T> {
     _marker: PhantomData<fn() -> T>,
-}
-
-impl<T> Clone for JsonLinesEncoder<T> {
-    fn clone(&self) -> Self {
-        *self
-    }
 }
 
 impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
@@ -41,15 +29,7 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
     }
 }
 
-#[derive(Derivative)]
-#[derivative(
-    Debug(bound = ""),
-    Default(bound = ""),
-    Clone(bound = ""),
-    Eq(bound = ""),
-    PartialEq(bound = ""),
-    Hash(bound = "")
-)]
+#[derive_where(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesDecoder<T> {
     lines: LinesCodec,
     current_line: usize,
@@ -73,6 +53,11 @@ impl<T> JsonLinesDecoder<T> {
             current_line: 0,
             _marker: PhantomData,
         }
+    }
+
+    #[must_use]
+    pub fn max_length(&self) -> usize {
+        self.lines.max_length()
     }
 }
 
