@@ -68,10 +68,10 @@ export interface MentionSuggesterProps {
   ownedById: OwnedById;
 }
 
-type EntitiesByType = Record<
-  VersionedUrl,
-  { entityType: EntityTypeWithMetadata; entities: Entity[] }
->;
+type EntitiesByType = {
+  entityType: EntityTypeWithMetadata;
+  entities: Entity[];
+}[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
 
@@ -137,39 +137,57 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const entitiesByType = useMemo(
     () =>
       entitiesSubgraph
-        ? searchedEntities?.reduce((prev, currentEntity) => {
-            const entityType =
-              prev[currentEntity.metadata.entityTypeId]?.entityType ??
-              getEntityTypeById(
-                entitiesSubgraph,
-                currentEntity.metadata.entityTypeId,
+        ? searchedEntities
+            ?.reduce((prev, currentEntity) => {
+              const existingIndex = prev.findIndex(
+                ({ entityType }) =>
+                  entityType.schema.$id === currentEntity.metadata.entityTypeId,
               );
 
-            if (!entityType) {
-              throw new Error("Entity type could not be found in subgraph");
-            }
+              const entityType =
+                prev[existingIndex]?.entityType ??
+                getEntityTypeById(
+                  entitiesSubgraph,
+                  currentEntity.metadata.entityTypeId,
+                );
 
-            const isEntityTypeExpanded = expandedEntityTypes.includes(
-              entityType.schema.$id,
-            );
+              if (!entityType) {
+                throw new Error("Entity type could not be found in subgraph");
+              }
 
-            return {
-              ...prev,
-              [currentEntity.metadata.entityTypeId]: {
-                entityType,
-                entities:
-                  isEntityTypeExpanded ||
-                  (prev[currentEntity.metadata.entityTypeId]?.entities ?? [])
-                    .length < numberOfEntitiesDisplayedPerSection
-                    ? [
-                        ...(prev[currentEntity.metadata.entityTypeId]
-                          ?.entities ?? []),
-                        currentEntity,
-                      ]
-                    : prev[currentEntity.metadata.entityTypeId]?.entities,
-              },
-            };
-          }, {} as EntitiesByType)
+              const isEntityTypeExpanded = expandedEntityTypes.includes(
+                entityType.schema.$id,
+              );
+
+              const previousEntities = prev[existingIndex]?.entities ?? [];
+
+              return existingIndex >= 0
+                ? [
+                    ...prev.slice(0, existingIndex),
+                    {
+                      ...prev[existingIndex]!,
+                      entities:
+                        isEntityTypeExpanded ||
+                        previousEntities.length <
+                          numberOfEntitiesDisplayedPerSection
+                          ? [...previousEntities, currentEntity]
+                          : previousEntities,
+                    },
+                    ...prev.slice(existingIndex + 1),
+                  ]
+                : [...prev, { entityType, entities: [currentEntity] }];
+            }, [] as EntitiesByType)
+            .sort((a, b) => {
+              const customOrder = {
+                [types.entityType.page.entityTypeId]: 0,
+                [types.entityType.user.entityTypeId]: 1,
+              };
+
+              return (
+                (customOrder[a.entityType.schema.$id] ?? 2) -
+                (customOrder[b.entityType.schema.$id] ?? 2)
+              );
+            })
         : undefined,
     [searchedEntities, entitiesSubgraph, expandedEntityTypes],
   );
@@ -178,9 +196,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     () =>
       [
         ...(recentlyUsedEntities ?? []),
-        ...Object.entries(entitiesByType ?? {}).map(
-          ([_, { entities }]) => entities,
-        ),
+        ...(entitiesByType?.map(({ entities }) => entities) ?? []),
       ].flat()[selectedEntityIndex],
     [recentlyUsedEntities, entitiesByType, selectedEntityIndex],
   );
@@ -421,12 +437,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             ))
           : null}
         {entitiesSubgraph
-          ? Object.entries(entitiesByType ?? {}).map(
-              (
-                [_, { entityType, entities }],
-                typeSectionIndex,
-                allTypeSections,
-              ) => {
+          ? entitiesByType?.map(
+              ({ entityType, entities }, typeSectionIndex, allTypeSections) => {
                 const entityTypeId = entityType.schema.$id;
                 const isExpanded = expandedEntityTypes.includes(entityTypeId);
 
@@ -449,10 +461,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                         allTypeSections
                           .slice(0, typeSectionIndex)
                           .reduce(
-                            (
-                              prev,
-                              [__, { entities: previousTypeSectionEntities }],
-                            ) => prev + previousTypeSectionEntities.length,
+                            (prev, { entities: previousTypeSectionEntities }) =>
+                              prev + previousTypeSectionEntities.length,
                             0,
                           ) +
                         entityIndex;
