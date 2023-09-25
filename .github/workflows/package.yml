@@ -50,7 +50,7 @@ jobs:
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          LINT_PACKAGES=$(turbo run lint --dry-run=json \
+          LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
