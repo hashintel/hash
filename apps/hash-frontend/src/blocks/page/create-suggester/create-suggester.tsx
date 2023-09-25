@@ -299,6 +299,8 @@ export const createSuggester = (
                 mention.kind === "property-value"
                   ? mention.propertyBaseUrl
                   : undefined,
+              linkEntityId:
+                mention.kind === "outgoing-link" ? mention.linkEntityId : "",
             });
 
             tr.replaceWith(from, to, mentionNode);

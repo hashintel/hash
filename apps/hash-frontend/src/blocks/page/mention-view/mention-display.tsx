@@ -1,6 +1,9 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
@@ -148,6 +151,36 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         return {
           title: propertyValue?.toString(),
           href: entityHref,
+        };
+      }
+      case "outgoing-link": {
+        if (!entitySubgraph || entityLoading || workspaceShortnameLoading) {
+          /** @todo consider showing a loading state instead of saying "entity", same for the pages & users above */
+          return {
+            title: "Link",
+            href: "",
+          };
+        }
+
+        const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
+          entitySubgraph,
+          entityId,
+        ).find(
+          ({ linkEntity: linkEntityRevisions }) =>
+            linkEntityRevisions[0]?.metadata.recordId.entityId ===
+            mention.linkEntityId,
+        );
+
+        const targetEntityLabel = generateEntityLabel(
+          entitySubgraph,
+          outgoingLinkAndTargetEntities?.rightEntity[0],
+        );
+
+        return {
+          title: targetEntityLabel,
+          href: `/@${workspaceShortname}/entities/${extractEntityUuidFromEntityId(
+            mention.linkEntityId,
+          )}`,
         };
       }
       default:

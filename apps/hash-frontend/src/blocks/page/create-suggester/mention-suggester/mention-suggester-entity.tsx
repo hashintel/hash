@@ -22,6 +22,7 @@ import { forwardRef, useEffect, useRef } from "react";
 
 import { generateEntityLabel } from "../../../../lib/entities";
 import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
+import { LinkRegularIcon } from "../../../../shared/icons/link-regular-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
 
@@ -41,11 +42,19 @@ const ListItemSecondaryText = styled(Typography)(({ theme }) => ({
   lineHeight: "18px",
 }));
 
-export type SubMenuItem = {
-  kind: "property";
-  propertyType: PropertyTypeWithMetadata;
-  propertyValue: EntityPropertyValue;
-};
+export type SubMenuItem =
+  | {
+      kind: "property";
+      propertyType: PropertyTypeWithMetadata;
+      propertyValue: EntityPropertyValue;
+    }
+  | {
+      kind: "outgoing-link";
+      linkEntity: Entity;
+      linkEntityType: EntityTypeWithMetadata;
+      targetEntity: Entity;
+      targetEntityLabel: string;
+    };
 
 export const MentionSuggesterEntity = forwardRef<
   HTMLDivElement,
@@ -58,6 +67,7 @@ export const MentionSuggesterEntity = forwardRef<
     subMenuIndex: number;
     subMenuItems: SubMenuItem[];
     setDisplaySubMenu: (displaySubMenu: boolean) => void;
+    onSubMenuClick: (subMenuIndex: number) => void;
   } & ListItemButtonProps
 >(
   (
@@ -70,6 +80,7 @@ export const MentionSuggesterEntity = forwardRef<
       subMenuIndex,
       subMenuItems,
       setDisplaySubMenu,
+      onSubMenuClick,
       ...listItemButtonProps
     },
     ref,
@@ -147,20 +158,31 @@ export const MentionSuggesterEntity = forwardRef<
         >
           <MentionSuggesterWrapper>
             <MentionSuggesterSubheading>Values</MentionSuggesterSubheading>
-            {subMenuItems.map(({ propertyType, propertyValue }, index) => (
+            {subMenuItems.map((item, index) => (
               <ListItemButton
-                key={propertyType.metadata.recordId.baseUrl}
+                key={
+                  item.kind === "outgoing-link"
+                    ? item.linkEntity.metadata.recordId.entityId
+                    : item.propertyType.metadata.recordId.baseUrl
+                }
+                onClick={() => onSubMenuClick(index)}
                 selected={index === subMenuIndex}
               >
                 <ListItemIcon sx={{ minWidth: "unset" }}>
-                  <AsteriskRegularIcon />
+                  {item.kind === "outgoing-link" ? (
+                    <LinkRegularIcon />
+                  ) : (
+                    <AsteriskRegularIcon />
+                  )}
                 </ListItemIcon>
                 <ListItemPrimaryText
                   sx={{
                     flexShrink: 0,
                   }}
                 >
-                  {propertyType.schema.title}
+                  {item.kind === "outgoing-link"
+                    ? item.linkEntityType.schema.title
+                    : item.propertyType.schema.title}
                 </ListItemPrimaryText>
                 <ListItemSecondaryText
                   sx={{
@@ -170,7 +192,9 @@ export const MentionSuggesterEntity = forwardRef<
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {propertyValue?.toString()}
+                  {item.kind === "outgoing-link"
+                    ? item.targetEntityLabel
+                    : item.propertyValue?.toString()}
                 </ListItemSecondaryText>
               </ListItemButton>
             ))}

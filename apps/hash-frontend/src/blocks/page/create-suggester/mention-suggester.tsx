@@ -8,11 +8,16 @@ import {
   EntityTypeWithMetadata,
   OwnedById,
 } from "@local/hash-subgraph";
-import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import {
   Fragment,
   FunctionComponent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -48,6 +53,11 @@ export type Mention =
       kind: "property-value";
       entityId: EntityId;
       propertyBaseUrl: BaseUrl;
+    }
+  | {
+      kind: "outgoing-link";
+      entityId: EntityId;
+      linkEntityId: EntityId;
     };
 
 export type MentionKind = Mention["kind"];
@@ -91,7 +101,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     [selectedEntityIndex],
   );
 
-  const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({});
+  const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({
+    graphResolveDepths: {
+      hasLeftEntity: { outgoing: 1, incoming: 1 },
+      hasRightEntity: { outgoing: 1, incoming: 1 },
+    },
+  });
 
   const searchedEntities = useMemo(
     () =>
@@ -173,13 +188,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const entitiesSubMenuItems = useMemo<
     Record<EntityId, SubMenuItem[]> | undefined
   >(() => {
-    if (propertyTypes && searchedEntities) {
-      return searchedEntities.reduce(
-        (prev, entity) => ({
-          ...prev,
-          [entity.metadata.recordId.entityId]: Object.entries(
-            entity.properties,
-          ).map(([propertyTypeBaseUrl, propertyValue]) => {
+    if (propertyTypes && searchedEntities && entitiesSubgraph) {
+      return searchedEntities.reduce((prev, entity) => {
+        const properties = Object.entries(entity.properties).map(
+          ([propertyTypeBaseUrl, propertyValue]) => {
             const propertyType = Object.values(propertyTypes).find(
               ({ metadata }) =>
                 metadata.recordId.baseUrl === propertyTypeBaseUrl,
@@ -194,14 +206,56 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               propertyType,
               propertyValue,
             };
-          }),
-        }),
-        {},
-      );
+          },
+        );
+
+        const outgoingLinks = getOutgoingLinkAndTargetEntities(
+          entitiesSubgraph,
+          entity.metadata.recordId.entityId,
+        ).map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
+          ({
+            linkEntity: linkEntityRevisions,
+            rightEntity: rightEntityRevisions,
+          }) => {
+            const [linkEntity] = linkEntityRevisions;
+            const [rightEntity] = rightEntityRevisions;
+
+            if (!linkEntity) {
+              throw new Error("Link entity not found");
+            } else if (!rightEntity) {
+              throw new Error("Right entity not found");
+            }
+
+            const linkEntityType = getEntityTypeById(
+              entitiesSubgraph,
+              linkEntity.metadata.entityTypeId,
+            )!;
+
+            return {
+              kind: "outgoing-link",
+              linkEntity,
+              linkEntityType,
+              targetEntity: rightEntity,
+              targetEntityLabel: generateEntityLabel(
+                entitiesSubgraph,
+                rightEntity,
+              ),
+            };
+          },
+        );
+
+        return {
+          ...prev,
+          [entity.metadata.recordId.entityId]: [
+            ...properties,
+            ...outgoingLinks,
+          ],
+        };
+      }, {});
     }
 
     return undefined;
-  }, [propertyTypes, searchedEntities]);
+  }, [propertyTypes, searchedEntities, entitiesSubgraph]);
 
   const selectedEntitySubMenuItems = useMemo<SubMenuItem[] | undefined>(() => {
     if (selectedEntity && entitiesSubMenuItems) {
@@ -256,39 +310,63 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     }
   });
 
+  const handleSubmit = useCallback(
+    (params?: { subMenuIndex?: number }) => {
+      const { subMenuIndex } = params ?? {};
+      if (!searchedEntities) {
+        return;
+      }
+
+      if (selectedEntity) {
+        const {
+          entityTypeId,
+          recordId: { entityId },
+        } = selectedEntity.metadata;
+
+        const selectedSubMenuItem = displayEntitySubMenu
+          ? selectedEntitySubMenuItems?.[
+              subMenuIndex ?? entitySelectedSubMenuIndex
+            ]
+          : undefined;
+        if (selectedSubMenuItem) {
+          if (selectedSubMenuItem.kind === "outgoing-link") {
+            onChange({
+              kind: "outgoing-link",
+              entityId,
+              linkEntityId:
+                selectedSubMenuItem.linkEntity.metadata.recordId.entityId,
+            });
+          } else {
+            onChange({
+              kind: "property-value",
+              entityId,
+              propertyBaseUrl:
+                selectedSubMenuItem.propertyType.metadata.recordId.baseUrl,
+            });
+          }
+        } else if (entityTypeId === types.entityType.page.entityTypeId) {
+          onChange({ kind: "page", entityId });
+        } else if (entityTypeId === types.entityType.user.entityTypeId) {
+          onChange({ kind: "user", entityId });
+        } else {
+          onChange({ kind: "entity", entityId });
+        }
+      }
+    },
+    [
+      displayEntitySubMenu,
+      entitySelectedSubMenuIndex,
+      onChange,
+      searchedEntities,
+      selectedEntity,
+      selectedEntitySubMenuItems,
+    ],
+  );
+
   useKey(["Enter"], (event) => {
     event.preventDefault();
 
-    if (!searchedEntities) {
-      return;
-    }
-
-    const entity = searchedEntities[selectedEntityIndex];
-
-    if (entity) {
-      const {
-        entityTypeId,
-        recordId: { entityId },
-      } = entity.metadata;
-
-      const selectedSubMenuItem = displayEntitySubMenu
-        ? selectedEntitySubMenuItems?.[entitySelectedSubMenuIndex]
-        : undefined;
-      if (selectedSubMenuItem) {
-        onChange({
-          kind: "property-value",
-          entityId,
-          propertyBaseUrl:
-            selectedSubMenuItem.propertyType.metadata.recordId.baseUrl,
-        });
-      } else if (entityTypeId === types.entityType.page.entityTypeId) {
-        onChange({ kind: "page", entityId });
-      } else if (entityTypeId === types.entityType.user.entityTypeId) {
-        onChange({ kind: "user", entityId });
-      } else {
-        onChange({ kind: "entity", entityId });
-      }
-    }
+    handleSubmit();
   });
 
   return (
@@ -336,6 +414,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 }}
                 entitiesSubgraph={entitiesSubgraph}
                 entity={entity}
+                onSubMenuClick={(subMenuIndex) =>
+                  handleSubmit({ subMenuIndex })
+                }
               />
             ))
           : null}
@@ -406,6 +487,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                                 setDisplayEntitySubMenu(false);
                               }
                             }}
+                            onSubMenuClick={(subMenuIndex) =>
+                              handleSubmit({ subMenuIndex })
+                            }
                           />
                         </Fragment>
                       );

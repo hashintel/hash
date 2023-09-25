@@ -34,6 +34,7 @@ export class MentionView implements NodeView {
           kind: node.attrs.mentionType,
           entityId: node.attrs.entityId,
           propertyBaseUrl: node.attrs.propertyBaseUrl,
+          linkEntityId: node.attrs.linkEntityId,
         }}
         ownedById={this.ownedById}
       />,
