@@ -24,9 +24,16 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp -r .* out/
-        cp yarn.lock out/yarn.lock
-        cp -r patches out/patches
+        cp -r \
+          *.toml \
+          *.json \
+          *ignore \
+          .env* \
+          .github \
+          *.lock \
+          .justfile \
+          patches \
+        out/
 
     - name: Allow patch files to fail
       shell: bash
