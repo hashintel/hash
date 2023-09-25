@@ -37,7 +37,7 @@ jobs:
         id: packages
         run: |
           UNIT_PACKAGES=$(turbo run test \
-              --filter '!@tests/*...[HEAD^]' \
+              --filter '!@tests/*' --filter '...[HEAD^]' \
               --dry-run=json \
             | jq '.tasks[]' \
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
@@ -50,7 +50,7 @@ jobs:
             | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          LINT_PACKAGES=$(turbo run lint --dry-run=json \
+          LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
@@ -97,7 +97,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.lints) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.lints != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -111,35 +111,36 @@ jobs:
       - name: Find lint steps to run
         id: lints
         run: |
-          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          set -x
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
 
-          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
           HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
           echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ -f "${{ matrix.directory }}/pyproject.toml" ]]; then
+          if [[ $HAS_PYTHON = 'true' ]]; then
             echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
           else
             echo "python-version=^3.11" >> $GITHUB_OUTPUT
           fi
 
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
             | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
 
-          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "black=$BLACK" >> $GITHUB_OUTPUT
 
-          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "ruff=$RUFF" >> $GITHUB_OUTPUT
 
-          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "mypy=$MYPY" >> $GITHUB_OUTPUT
 
@@ -220,7 +221,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.units) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.units != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -259,6 +260,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
+    if: needs.setup.outputs.dockers != '{"include":[]}'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -278,7 +280,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.integrations != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -364,7 +366,7 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check lint results
         run: |
-          [[ ${{ needs.lint.result }} = success ]]
+          [[ ${{ needs.lint.result }} =~ success|skipped ]]
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit.result }} =~ success|skipped ]]
