@@ -9,7 +9,7 @@ import {
 } from "@local/hash-subgraph";
 import {
   Box,
-  ListItemButton,
+  ListItemButton as MuiListItemButton,
   listItemButtonClasses,
   ListItemButtonProps,
   ListItemIcon,
@@ -27,12 +27,25 @@ import { LinkRegularIcon } from "../../../../shared/icons/link-regular-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
 
+const ListItemButton = styled(MuiListItemButton)(({ theme }) => ({
+  [`&.${listItemButtonClasses.disabled}`]: {
+    opacity: 0.6,
+  },
+  borderRadius: "8px",
+  [`&.${listItemButtonClasses.selected}`]: {
+    background: theme.palette.gray[20],
+  },
+}));
+
 const ListItemPrimaryText = styled(MuiListItemText)(({ theme }) => ({
   [`& .${listItemTextClasses.primary}`]: {
     fontSize: 14,
     fontWeight: 500,
     color: theme.palette.gray[90],
     lineHeight: "18px",
+    textOverflow: "ellipsis",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
   },
 }));
 
@@ -42,6 +55,9 @@ const ListItemSecondaryText = styled(Typography)(({ theme }) => ({
   fontWeight: 500,
   lineHeight: "18px",
   textAlign: "right",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
 }));
 
 export type SubMenuItem =
@@ -100,15 +116,7 @@ export const MentionSuggesterEntity = forwardRef<
 
     return (
       <>
-        <ListItemButton
-          ref={buttonRef}
-          {...listItemButtonProps}
-          sx={{
-            [`&.${listItemButtonClasses.disabled}`]: {
-              opacity: 0.6,
-            },
-          }}
-        >
+        <ListItemButton ref={buttonRef} {...listItemButtonProps}>
           <ListItemIcon sx={{ minWidth: "unset" }}>
             <AsteriskRegularIcon />
           </ListItemIcon>
@@ -117,7 +125,7 @@ export const MentionSuggesterEntity = forwardRef<
           </ListItemPrimaryText>
           <Box display="flex" alignItems="center" gap={1}>
             {displayTypeTitle ? (
-              <ListItemSecondaryText>
+              <ListItemSecondaryText sx={{ marginLeft: 2 }}>
                 {entityType.schema.title}
               </ListItemSecondaryText>
             ) : null}
@@ -197,9 +205,6 @@ export const MentionSuggesterEntity = forwardRef<
                 <ListItemSecondaryText
                   sx={{
                     marginLeft: 4,
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
                   }}
                 >
                   {item.kind === "outgoing-link"
