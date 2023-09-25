@@ -1,0 +1,375 @@
+name: Package
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  merge_group:
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: hashintel
+  TURBO_REMOTE_ONLY: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      units: ${{ steps.packages.outputs.units }}
+      integrations: ${{ steps.packages.outputs.integrations }}
+      dockers: ${{ steps.packages.outputs.dockers }}
+      lints: ${{ steps.packages.outputs.lints }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          UNIT_PACKAGES=$(turbo run test \
+              --filter '!@tests/*' --filter '...[HEAD^]' \
+              --dry-run=json \
+            | jq '.tasks[]' \
+            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          INTEGRATION_PACKAGES=$(turbo run test \
+              --filter '@tests/*...[HEAD^]' \
+              --dry-run=json \
+            | jq '.tasks[]' \
+            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
+            | jq '.tasks[]' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
+          REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
+          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
+              REQUIRES_GRAPH=true
+          fi
+          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-playwright'; then
+            REQUIRES_GRAPH=true
+            REQUIRES_AI_WORKER_TS=true
+            REQUIRES_AI_WORKER_PY=true
+            REQUIRES_INTEGRATION_WORKER=true
+          fi
+
+          DOCKER_PACKAGES=[]
+
+          if [[ $REQUIRES_GRAPH == 'true' ]]; then
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
+          fi
+          if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
+          fi
+          if [[ $REQUIRES_AI_WORKER_PY == 'true' ]]; then
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-py"]')
+          fi
+          if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
+            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
+          fi
+
+          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
+
+          set -x
+          echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
+          echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
+          echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
+          echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
+
+  lint:
+    name: Lint
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.lints) }}
+      fail-fast: false
+    if: needs.setup.outputs.lints != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+        with:
+          fetch-depth: 2
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Find lint steps to run
+        id: lints
+        run: |
+          set -x
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
+
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "tsc=$TSC" >> $GITHUB_OUTPUT
+
+          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
+          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
+          if [[ $HAS_PYTHON = 'true' ]]; then
+            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
+          else
+            echo "python-version=^3.11" >> $GITHUB_OUTPUT
+          fi
+
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
+
+          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "black=$BLACK" >> $GITHUB_OUTPUT
+
+          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "ruff=$RUFF" >> $GITHUB_OUTPUT
+
+          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "mypy=$MYPY" >> $GITHUB_OUTPUT
+
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT         
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(cat "${{ matrix.directory }}/rust-toolchain.toml" | yq -p toml '.toolchain.channel')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
+
+      - name: Install yarn dependencies
+        env:
+          HUSKY: 0
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install Rust toolchain
+        if: ${{ steps.lints.outputs.has-rust == 'true' }}
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.lints.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Cache Rust dependencies
+        if: ${{ steps.lints.outputs.has-rust == 'true' }}
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
+
+      - name: Install poetry
+        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        run: pipx install poetry
+
+      - name: Set up Python
+        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+        with:
+          python-version: ${{ steps.lints.outputs.python-version }}
+          cache: poetry
+
+      - name: Install Python dependencies
+        if: ${{ steps.lints.outputs.has-poetry-deps == 'true' }}
+        run: turbo run poetry:install
+
+      - name: Run ESLint
+        if: steps.lints.outputs.eslint == 'true'
+        run: turbo run lint:eslint --filter "${{ matrix.package }}"
+
+      - name: Run TSC
+        if: steps.lints.outputs.tsc == 'true'
+        run: turbo run lint:tsc --filter "${{ matrix.package }}"
+
+      - name: Check poetry
+        if: ${{ steps.lints.outputs.has-python == 'true' }}
+        working-directory: ${{ matrix.directory }}
+        run: poetry check
+
+      - name: Run black
+        if: steps.lints.outputs.black == 'true'
+        run: turbo run lint:black --filter "${{ matrix.package }}"
+
+      - name: Run ruff
+        if: steps.lints.outputs.ruff == 'true'
+        run: turbo run lint:ruff --filter "${{ matrix.package }}"
+
+      - name: Run MyPy
+        if: steps.lints.outputs.mypy == 'true'
+        run: turbo run lint:mypy --filter "${{ matrix.package }}"
+
+  unit:
+    name: Unit Test
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.units) }}
+      fail-fast: false
+    if: needs.setup.outputs.units != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Install turbo
+        run: yarn global add turbo
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.package }}
+
+      - name: Install yarn dependencies
+        env:
+          HUSKY: 0
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Run tests
+        env:
+          TEST_COVERAGE: true
+        run: |
+          turbo run test --filter "${{ matrix.package }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    needs: [setup]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
+      fail-fast: false
+    if: needs.setup.outputs.dockers != '{"include":[]}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Build image
+        uses: ./.github/actions/build-docker-images
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          hash-graph: ${{ matrix.package == '@apps/hash-graph' }}
+          hash-ai-worker-ts: ${{ matrix.package == '@apps/hash-ai-worker-ts' }}
+          hash-ai-worker-py: ${{ matrix.package == '@apps/hash-ai-worker-py' }}
+          hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
+
+  integration:
+    name: Integration Test
+    needs: [setup, build]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
+      fail-fast: false
+    if: needs.setup.outputs.integrations != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
+
+      - name: Install yarn dependencies
+        env:
+          HUSKY: 0
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install playwright
+        if: matrix.package == '@tests/hash-playwright'
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: npx playwright install --with-deps chromium
+
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+          hash-ai-worker-ts: ${{ matrix.package == '@tests/hash-playwright' }}
+          hash-ai-worker-py: ${{ matrix.package == '@tests/hash-playwright' }}
+          hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
+
+      - name: Launch external services
+        run: |
+          turbo codegen --filter '@apps/hash-external-services'
+          if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
+            yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
+          else 
+            yarn workspace @apps/hash-external-services deploy up --detach
+          fi
+
+      - name: Launch HASH-API
+        if: matrix.package == '@tests/hash-playwright'
+        run: |
+          turbo run dev --filter "@apps/hash-api" &
+          yarn wait-on --timeout 120000 http://0.0.0.0:5001
+
+      - name: Launch frontend
+        if: matrix.package == '@tests/hash-playwright'
+        run: |
+          turbo run build --filter "@apps/hash-frontend"
+          yarn workspace @apps/hash-frontend start &
+          yarn wait-on --timeout 30000 http://0.0.0.0:3000
+
+      - name: Run tests
+        env:
+          TEST_COVERAGE: ${{ matrix.package != '@tests/hash-playwright' }}
+        continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
+        run: |
+          turbo run test --filter "${{ matrix.package }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+
+  passed:
+    name: Workflow passed
+    needs: [setup, lint, unit, integration]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check lint results
+        run: |
+          [[ ${{ needs.lint.result }} =~ success|skipped ]]
+      - name: Check unit tests
+        run: |
+          [[ ${{ needs.unit.result }} =~ success|skipped ]]
+      - name: Check integration tests
+        run: |
+          [[ ${{ needs.integration.result }} =~ success|skipped ]]
