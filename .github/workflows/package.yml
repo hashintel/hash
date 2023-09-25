@@ -128,7 +128,7 @@ jobs:
             echo "python-version=^3.11" >> $GITHUB_OUTPUT
           fi
 
-          HAS_POETRY_DEPS=$(turbo run poetry:install --dry-run=json \
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
             | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
 
