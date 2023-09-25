@@ -28,7 +28,7 @@ runs:
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob
-        cp -R .[!.!(.git)]* .git?* ..?* out/
+        cp -R .[!.!(.git)]* .git?* out/
 
     - name: Allow patch files to fail
       shell: bash
