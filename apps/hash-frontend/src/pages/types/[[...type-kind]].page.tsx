@@ -80,7 +80,9 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
 
   const { queryDataTypes } = useBlockProtocolQueryDataTypes();
 
-  const latestPropertyTypesObject = useLatestPropertyTypes();
+  const { propertyTypes: latestPropertyTypesObject } = useLatestPropertyTypes({
+    includeArchived: true,
+  });
 
   const latestPropertyTypes = useMemo(
     () =>

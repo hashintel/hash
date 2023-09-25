@@ -7,7 +7,7 @@ import {
   Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
-import { systemUserAccountId } from "../graph/system-user";
+import { AuthenticationContext } from "../graphql/context";
 
 export type PageDefinition = {
   title: string;
@@ -15,6 +15,7 @@ export type PageDefinition = {
 };
 
 export const seedPages = async (
+  authentication: AuthenticationContext,
   pageDefinitions: PageDefinition[],
   ownedById: OwnedById,
   sharedParams: {
@@ -24,7 +25,6 @@ export const seedPages = async (
   parentPage?: Page,
 ) => {
   const { context } = sharedParams;
-  const authentication = { actorId: systemUserAccountId };
 
   let prevIndex: string | undefined;
 
@@ -48,6 +48,7 @@ export const seedPages = async (
 
     if (pageDefinition.nestedPages) {
       await seedPages(
+        authentication,
         pageDefinition.nestedPages,
         ownedById,
         sharedParams,

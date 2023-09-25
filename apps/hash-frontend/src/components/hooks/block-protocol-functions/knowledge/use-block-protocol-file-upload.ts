@@ -46,14 +46,20 @@ export const useBlockProtocolFileUpload = (
         };
       }
       if ("url" in fileUploadData && fileUploadData.url.trim()) {
-        const { description, entityTypeId, name, url } = fileUploadData;
+        const { description, name, url } = fileUploadData;
         const result = await createFileFromUrlFn({
           variables: {
             description,
-            entityTypeId,
-            ownedById,
             displayName: name,
             url,
+            ...("fileEntityUpdateInput" in fileUploadData
+              ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+              : {
+                  fileEntityCreationInput: {
+                    ownedById,
+                    ...fileUploadData.fileEntityCreationInput,
+                  },
+                }),
           },
         });
 
@@ -85,16 +91,22 @@ export const useBlockProtocolFileUpload = (
         };
       }
 
-      const { description, entityTypeId, name, file } = fileUploadData;
+      const { description, name, file } = fileUploadData;
 
       const { data } = await requestFileUploadFn({
         variables: {
           description,
-          entityTypeId,
-          ownedById,
           displayName: name,
           name: file.name,
           size: file.size,
+          ...("fileEntityUpdateInput" in fileUploadData
+            ? { fileEntityUpdateInput: fileUploadData.fileEntityUpdateInput }
+            : {
+                fileEntityCreationInput: {
+                  ownedById,
+                  ...fileUploadData.fileEntityCreationInput,
+                },
+              }),
         },
       });
 

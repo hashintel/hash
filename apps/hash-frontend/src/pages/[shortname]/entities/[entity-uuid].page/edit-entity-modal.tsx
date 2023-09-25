@@ -116,12 +116,13 @@ export const EditEntityModal = ({
 
       <EntityEditor
         readonly={false}
-        refetch={async () => {}}
+        replaceWithLatestDbVersion={async () => {}}
         entitySubgraph={draftEntitySubgraph}
         setEntity={(entity) => {
           setIsDirty(true);
           updateEntitySubgraphStateByEntity(entity, setDraftEntitySubgraph);
         }}
+        isDirty={isDirty}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}
         draftLinksToArchive={draftLinksToArchive}

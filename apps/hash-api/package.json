@@ -97,6 +97,7 @@
     "@types/jest": "29.5.5",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.14.188",
+    "@types/mime-types": "2.1.1",
     "@types/multer": "1.4.7",
     "@types/node-fetch": "^2.6.2",
     "@types/nodemailer": "6.4.6",

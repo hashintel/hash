@@ -10,7 +10,7 @@ import {
   getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { EntityTypeEntitiesContextValue } from "../entity-type-entities-context";
@@ -25,10 +25,10 @@ export const useEntityTypeEntitiesContextValue = (params: {
   const [subgraph, setSubgraph] = useState<Subgraph<EntityRootType>>();
   const { queryEntities } = useBlockProtocolQueryEntities();
 
-  useEffect(() => {
+  const fetch = useCallback(async () => {
     setLoading(true);
 
-    void queryEntities({
+    const { data } = await queryEntities({
       data: {
         operation: {
           multiFilter: {
@@ -60,14 +60,16 @@ export const useEntityTypeEntitiesContextValue = (params: {
           isOfType: { outgoing: 1 },
         },
       },
-    })
-      .then((res) => {
-        if (res.data) {
-          setSubgraph(res.data);
-        }
-      })
-      .finally(() => setLoading(false));
+    }).finally(() => setLoading(false));
+
+    if (data) {
+      setSubgraph(data);
+    }
   }, [queryEntities, entityTypeBaseUrl, entityTypeId]);
+
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {
@@ -115,6 +117,7 @@ export const useEntityTypeEntitiesContextValue = (params: {
     entityTypes,
     loading,
     propertyTypes,
+    refetch: fetch,
     subgraph,
   };
 };

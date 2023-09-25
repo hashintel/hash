@@ -5,14 +5,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
 import { LatestPropertyTypesContextValues } from "../latest-property-types-context";
 
-export const useLatestPropertyTypesContextValue = () => {
+export const useLatestPropertyTypesContextValue = (params?: {
+  includeArchived?: boolean;
+}) => {
+  const { includeArchived = false } = params ?? {};
+
   const [propertyTypes, setPropertyTypes] = useState<
     LatestPropertyTypesContextValues["propertyTypes"] | null
   >(null);
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
 
   const fetch = useCallback(async () => {
-    await queryPropertyTypes({ data: {} }).then(
+    await queryPropertyTypes({ data: { includeArchived } }).then(
       ({ data: propertyTypesSubgraph }) => {
         if (propertyTypesSubgraph) {
           setPropertyTypes((existingPropertyTypes) => ({
@@ -28,7 +32,7 @@ export const useLatestPropertyTypesContextValue = () => {
         }
       },
     );
-  }, [queryPropertyTypes]);
+  }, [queryPropertyTypes, includeArchived]);
 
   useEffect(() => {
     void fetch();

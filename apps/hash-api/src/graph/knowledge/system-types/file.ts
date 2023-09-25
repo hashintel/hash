@@ -4,16 +4,22 @@ import {
   File,
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/file";
+import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
 import {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
+import { AuthenticationContext } from "../../../graphql/context";
 import { PresignedPostUpload } from "../../../storage";
 import { genId } from "../../../util";
-import { ImpureGraphFunction } from "../..";
-import { createEntity, CreateEntityParams } from "../primitive/entity";
+import { ImpureGraphContext, ImpureGraphFunction } from "../..";
+import {
+  createEntity,
+  getLatestEntityById,
+  updateEntity,
+} from "../primitive/entity";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
@@ -22,22 +28,67 @@ export const formatUrl = (key: string) => {
   return `${apiOrigin}/file/${key}`;
 };
 
+const generateCommonParameters = async (
+  ctx: ImpureGraphContext,
+  authentication: AuthenticationContext,
+  entityInput: Pick<
+    MutationRequestFileUploadArgs | MutationCreateFileFromUrlArgs,
+    "fileEntityCreationInput" | "fileEntityUpdateInput"
+  >,
+  filename: string,
+) => {
+  const mimeType = mime.lookup(filename) || "application/octet-stream";
+
+  const { fileEntityCreationInput, fileEntityUpdateInput } = entityInput;
+  if (fileEntityUpdateInput && fileEntityCreationInput) {
+    throw new Error(
+      "You must provide exactly one of fileEntityCreationInput or fileEntityUpdateInput, not both",
+    );
+  }
+
+  if (fileEntityUpdateInput) {
+    const existingEntity = await getLatestEntityById(ctx, authentication, {
+      entityId: fileEntityUpdateInput.existingFileEntityId,
+    });
+
+    return {
+      existingEntity,
+      entityTypeId:
+        fileEntityUpdateInput.entityTypeId ??
+        existingEntity.metadata.entityTypeId,
+      mimeType,
+      ownedById: extractOwnedByIdFromEntityId(
+        existingEntity.metadata.recordId.entityId,
+      ),
+    };
+  } else if (fileEntityCreationInput) {
+    return {
+      existingEntity: null,
+      entityTypeId:
+        fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
+          ? types.entityType.imageFile.entityTypeId
+          : types.entityType.file.entityTypeId,
+      mimeType,
+      ownedById: fileEntityCreationInput.ownedById,
+    };
+  }
+
+  throw new Error(
+    "One of fileEntityCreationInput or fileEntityUpdateInput must be provided",
+  );
+};
+
 export const createFileFromUploadRequest: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> &
-    MutationRequestFileUploadArgs,
+  MutationRequestFileUploadArgs,
   Promise<{ presignedPost: PresignedPostUpload; entity: File }>
 > = async (ctx, authentication, params) => {
   // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
 
   const { uploadProvider } = ctx;
-  const { ownedById, description, displayName, name, entityTypeId } = params;
+  const { description, displayName, name } = params;
 
-  const fileEntityTypeId =
-    // @todo validate that entityTypeId, if provided, ultimately inherits from File
-    //    (or checks that it has at least the same properties)
-    entityTypeId || types.entityType.file.entityTypeId;
-
-  const mimeType = mime.lookup(name) || "application/octet-stream";
+  const { entityTypeId, existingEntity, mimeType, ownedById } =
+    await generateCommonParameters(ctx, authentication, params, name);
 
   const editionIdentifier = genId();
 
@@ -48,7 +99,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   try {
-    const properties: Partial<FileProperties> = {
+    const properties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
@@ -65,17 +116,23 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         "Upload",
     };
 
-    const entity = (await createEntity(ctx, authentication, {
-      ownedById,
-      properties,
-      entityTypeId: fileEntityTypeId,
-    })) as unknown as File;
-
     const presignedPost = await uploadProvider.presignUpload({
       key,
       fields: {},
       expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
     });
+
+    const entity = existingEntity
+      ? ((await updateEntity(ctx, authentication, {
+          entity: existingEntity,
+          entityTypeId,
+          properties,
+        })) as unknown as File)
+      : ((await createEntity(ctx, authentication, {
+          ownedById,
+          properties,
+          entityTypeId,
+        })) as unknown as File);
 
     return {
       presignedPost,
@@ -87,19 +144,15 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 };
 
 export const createFileFromExternalUrl: ImpureGraphFunction<
-  Omit<CreateEntityParams, "properties" | "entityTypeId"> &
-    MutationCreateFileFromUrlArgs,
+  MutationCreateFileFromUrlArgs,
   Promise<File>
 > = async (ctx, authentication, params) => {
-  const { ownedById, description, entityTypeId, url } = params;
+  const { description, displayName, url } = params;
 
   const filename = url.split("/").pop()!;
-  const mimeType = mime.lookup(filename) || "application/octet-stream";
 
-  const fileEntityTypeId =
-    // @todo validate that entityTypeId, if provided, ultimately inherits from File
-    //    (or checks that it has at least the same properties)
-    entityTypeId || types.entityType.file.entityTypeId;
+  const { entityTypeId, existingEntity, mimeType, ownedById } =
+    await generateCommonParameters(ctx, authentication, params, filename);
 
   try {
     const properties: FileProperties = {
@@ -107,6 +160,8 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         description ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
         filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+        displayName ?? undefined,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         url,
       "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
@@ -119,13 +174,17 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
         url,
     };
 
-    const entity = (await createEntity(ctx, authentication, {
-      ownedById,
-      properties,
-      entityTypeId: fileEntityTypeId,
-    })) as unknown as File;
-
-    return entity;
+    return existingEntity
+      ? ((await updateEntity(ctx, authentication, {
+          entity: existingEntity,
+          entityTypeId,
+          properties,
+        })) as unknown as File)
+      : ((await createEntity(ctx, authentication, {
+          ownedById,
+          properties,
+          entityTypeId,
+        })) as unknown as File);
   } catch (error) {
     throw new Error(
       `There was an error creating the file entity from a link: ${error}`,

@@ -912,8 +912,7 @@ export const ensureSystemTypesExist = async (params: {
       >,
     ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
-      const type = await typeInitializer(context);
-      initializedSystemTypes[typeKind][key] = type;
+      initializedSystemTypes[typeKind][key] = await typeInitializer(context);
     }
   }
 

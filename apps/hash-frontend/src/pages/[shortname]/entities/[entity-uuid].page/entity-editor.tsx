@@ -9,9 +9,10 @@ import { TypesSection } from "./entity-editor/types-section";
 import { DraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EntityEditorProps extends DraftLinkState {
+  isDirty: boolean;
   entitySubgraph: Subgraph<EntityRootType>;
   setEntity: (entity: Entity) => void;
-  refetch: () => Promise<void>;
+  replaceWithLatestDbVersion: () => Promise<void>;
   readonly: boolean;
 }
 

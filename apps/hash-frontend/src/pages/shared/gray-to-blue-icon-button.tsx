@@ -12,6 +12,11 @@ export const GrayToBlueIconButton = ({ sx, ...props }: IconButtonProps) => {
           transition: ({ transitions }) => [
             transitions.create(["background", "border", "color"]),
           ],
+          p: 0.7,
+          "&.Mui-disabled": {
+            background: palette.gray[30],
+            border: `1px solid ${palette.gray[40]}`,
+          },
           "&:hover": {
             background: "blue.10",
             border: `1px solid ${palette.blue[25]}`,

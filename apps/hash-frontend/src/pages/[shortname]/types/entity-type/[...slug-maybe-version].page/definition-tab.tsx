@@ -26,7 +26,8 @@ export const DefinitionTab = ({
   readonly,
 }: DefinitionTabProps) => {
   const entityTypesContext = useEntityTypesContextRequired();
-  const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
+  const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
+    useLatestPropertyTypes();
 
   const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
     const propertyTypesWithMetadata = {
@@ -80,6 +81,7 @@ export const DefinitionTab = ({
       customization={{ onNavigateToType }}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
+      key={entityTypeAndPropertyTypes.entityType.$id} // Reset state when switching entity types, helps avoid state mismatch issues
       ontologyFunctions={ontologyFunctions}
       propertyTypeOptions={propertyTypeOptions}
       readonly={readonly}

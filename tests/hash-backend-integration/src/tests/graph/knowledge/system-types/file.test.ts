@@ -70,7 +70,7 @@ describe("File", () => {
       authentication,
       {
         name: "test-file",
-        ownedById: testUser.accountId as OwnedById,
+        fileEntityCreationInput: { ownedById: testUser.accountId as OwnedById },
         size: 100,
       },
     );
@@ -96,7 +96,7 @@ describe("File", () => {
     const authentication = { actorId: testUser.accountId };
 
     const file = await createFileFromExternalUrl(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      fileEntityCreationInput: { ownedById: testUser.accountId as OwnedById },
       url: externalUrl,
     });
 

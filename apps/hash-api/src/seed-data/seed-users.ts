@@ -111,15 +111,23 @@ export const ensureUsersAreSeeded = async ({
         isInstanceAdmin,
       });
 
-      user = await updateUserShortname(context, authentication, {
-        user,
-        updatedShortname: shortname,
-      });
+      user = await updateUserShortname(
+        context,
+        { actorId: user.accountId },
+        {
+          user,
+          updatedShortname: shortname,
+        },
+      );
 
-      user = await updateUserPreferredName(context, authentication, {
-        user,
-        updatedPreferredName: preferredName,
-      });
+      user = await updateUserPreferredName(
+        context,
+        { actorId: user.accountId },
+        {
+          user,
+          updatedPreferredName: preferredName,
+        },
+      );
 
       createdUsers.push(user);
     }

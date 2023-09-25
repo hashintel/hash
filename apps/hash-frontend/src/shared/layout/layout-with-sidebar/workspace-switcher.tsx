@@ -18,7 +18,7 @@ import {
 import { FunctionComponent, useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
-import { getImageUrlFromFileProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";
@@ -54,7 +54,7 @@ export const WorkspaceSwitcher: FunctionComponent<
         return {
           name: activeOrg.name,
           avatarSrc: activeOrg.hasAvatar
-            ? getImageUrlFromFileProperties(
+            ? getImageUrlFromEntityProperties(
                 activeOrg.hasAvatar.imageEntity.properties,
               )
             : undefined,
@@ -81,7 +81,7 @@ export const WorkspaceSwitcher: FunctionComponent<
           subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
           avatarSrc: hasAvatar
-            ? getImageUrlFromFileProperties(hasAvatar.imageEntity.properties)
+            ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
             : undefined,
         }),
       ),

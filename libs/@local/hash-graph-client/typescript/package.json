@@ -6,7 +6,6 @@
   "license": "AGPL-3.0",
   "main": "index.ts",
   "scripts": {
-    "build": "echo 'no build needed, this is here to orchestrate turborepo'",
     "codegen": "redocly bundle --format=json -o openapi.bundle.json ../../../../apps/hash-graph/openapi/openapi.json && openapi-generator-cli generate && rm openapi.bundle.json"
   },
   "dependencies": {

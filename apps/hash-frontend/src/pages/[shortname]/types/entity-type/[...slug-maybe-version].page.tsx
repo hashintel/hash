@@ -26,7 +26,7 @@ import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
 import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
-import { isTypeArchived } from "../../../../shared/entity-types-context/util";
+import { isTypeArchived } from "../../../../shared/is-archived";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,

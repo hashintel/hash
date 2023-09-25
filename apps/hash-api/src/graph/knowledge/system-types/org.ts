@@ -21,7 +21,6 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
 import {
   createEntity,
   CreateEntityParams,
@@ -150,7 +149,7 @@ export const createOrg: ImpureGraphFunction<
   };
 
   const entity = await createEntity(ctx, authentication, {
-    ownedById: systemUserAccountId as OwnedById,
+    ownedById: orgAccountGroupId as OwnedById,
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountGroupId as string as EntityUuid,
@@ -252,14 +251,12 @@ export const updateOrgShortname: ImpureGraphFunction<
     );
   }
 
-  const updatedOrg = await updateEntityProperty(ctx, authentication, {
+  return updateEntityProperty(ctx, authentication, {
     entity: org.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
     value: updatedShortname,
   }).then((updatedEntity) => getOrgFromEntity({ entity: updatedEntity }));
-
-  return updatedOrg;
 };
 
 /**
