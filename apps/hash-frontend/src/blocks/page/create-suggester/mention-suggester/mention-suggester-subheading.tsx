@@ -1,6 +1,7 @@
 import {
   ListItem,
   ListItemButton,
+  listItemButtonClasses,
   ListItemText,
   listItemTextClasses,
 } from "@mui/material";
@@ -13,26 +14,29 @@ export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & {
     onClick?: () => void;
     chevronDirection?: "right" | "left";
+    disabled?: boolean;
   }
-> = ({ children, onClick, chevronDirection = "right" }) => {
+> = ({ children, onClick, chevronDirection = "right", disabled }) => {
   const content = (
     <ListItemText
-      sx={{
-        [`& .${listItemTextClasses.primary}`]: {
-          fontSize: 12,
-          fontWeight: 600,
-          color: ({ palette }) => palette.gray[60],
-          textTransform: "uppercase",
-        },
-        "&:hover svg": {
-          "&.chevron-left": {
-            right: 4,
+      sx={[
+        {
+          [`& .${listItemTextClasses.primary}`]: {
+            fontSize: 12,
+            fontWeight: 600,
+            color: ({ palette }) => palette.gray[60],
+            textTransform: "uppercase",
           },
-          "&.chevron-right": {
-            left: 4,
+          "&:hover svg": {
+            "&.chevron-left": {
+              right: 4,
+            },
+            "&.chevron-right": {
+              left: 4,
+            },
           },
         },
-      }}
+      ]}
     >
       {onClick && chevronDirection === "left" ? (
         <ChevronLeftRegularIcon
@@ -66,6 +70,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
 
   return onClick ? (
     <ListItemButton
+      disabled={disabled}
       onClick={onClick}
       sx={{
         paddingBottom: 0,
@@ -74,11 +79,16 @@ export const MentionSuggesterSubheading: FunctionComponent<
           background: "transparent",
           color: ({ palette }) => palette.gray[80],
         },
+        [`${listItemButtonClasses.disabled}`]: {
+          opacity: disabled ? 0.6 : 1,
+        },
       }}
     >
       {content}
     </ListItemButton>
   ) : (
-    <ListItem sx={{ paddingBottom: 0 }}>{content}</ListItem>
+    <ListItem sx={{ paddingBottom: 0, opacity: disabled ? 0.6 : 1 }}>
+      {content}
+    </ListItem>
   );
 };

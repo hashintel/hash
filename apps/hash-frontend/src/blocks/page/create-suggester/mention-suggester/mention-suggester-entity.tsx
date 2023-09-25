@@ -10,6 +10,7 @@ import {
 import {
   Box,
   ListItemButton,
+  listItemButtonClasses,
   ListItemButtonProps,
   ListItemIcon,
   ListItemText as MuiListItemText,
@@ -40,6 +41,7 @@ const ListItemSecondaryText = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[50],
   fontWeight: 500,
   lineHeight: "18px",
+  textAlign: "right",
 }));
 
 export type SubMenuItem =
@@ -98,7 +100,15 @@ export const MentionSuggesterEntity = forwardRef<
 
     return (
       <>
-        <ListItemButton ref={buttonRef} {...listItemButtonProps}>
+        <ListItemButton
+          ref={buttonRef}
+          {...listItemButtonProps}
+          sx={{
+            [`&.${listItemButtonClasses.disabled}`]: {
+              opacity: 0.6,
+            },
+          }}
+        >
           <ListItemIcon sx={{ minWidth: "unset" }}>
             <AsteriskRegularIcon />
           </ListItemIcon>

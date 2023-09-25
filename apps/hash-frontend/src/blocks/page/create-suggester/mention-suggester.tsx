@@ -391,7 +391,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   return (
-    <MentionSuggesterWrapper ref={wrapperRef}>
+    <MentionSuggesterWrapper sx={{}} ref={wrapperRef}>
       <List sx={{ "> :first-child": { paddingTop: 0 } }}>
         {loadingEntities && !entitiesSubgraph ? (
           <ListItem>
@@ -401,45 +401,47 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             <ListItemText>Loading</ListItemText>
           </ListItem>
         ) : null}
-        <MentionSuggesterSubheading>Recently Used</MentionSuggesterSubheading>
+        <MentionSuggesterSubheading disabled={displayEntitySubMenu}>
+          Recently Used
+        </MentionSuggesterSubheading>
         {entitiesSubgraph
-          ? recentlyUsedEntities?.map((entity, index) => (
-              <MentionSuggesterEntity
-                key={entity.metadata.recordId.entityId}
-                entityType={
-                  getEntityTypeById(
-                    entitiesSubgraph,
-                    entity.metadata.entityTypeId,
-                  )!
-                }
-                ref={
-                  index === selectedEntityIndex ? selectedEntityRef : undefined
-                }
-                selected={index === selectedEntityIndex}
-                displaySubMenu={
-                  index === selectedEntityIndex && displayEntitySubMenu
-                }
-                subMenuIndex={entitySelectedSubMenuIndex}
-                subMenuItems={
-                  entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ??
-                  []
-                }
-                displayTypeTitle
-                setDisplaySubMenu={(displaySubMenu) => {
-                  if (displaySubMenu) {
-                    setDisplayEntitySubMenu(true);
-                    setSelectedEntityIndex(index);
-                  } else {
-                    setDisplayEntitySubMenu(false);
+          ? recentlyUsedEntities?.map((entity, index) => {
+              const selected = index === selectedEntityIndex;
+              return (
+                <MentionSuggesterEntity
+                  key={entity.metadata.recordId.entityId}
+                  entityType={
+                    getEntityTypeById(
+                      entitiesSubgraph,
+                      entity.metadata.entityTypeId,
+                    )!
                   }
-                }}
-                entitiesSubgraph={entitiesSubgraph}
-                entity={entity}
-                onSubMenuClick={(subMenuIndex) =>
-                  handleSubmit({ subMenuIndex })
-                }
-              />
-            ))
+                  ref={selected ? selectedEntityRef : undefined}
+                  selected={selected}
+                  displaySubMenu={selected && displayEntitySubMenu}
+                  disabled={!selected && displayEntitySubMenu}
+                  subMenuIndex={entitySelectedSubMenuIndex}
+                  subMenuItems={
+                    entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ??
+                    []
+                  }
+                  displayTypeTitle
+                  setDisplaySubMenu={(displaySubMenu) => {
+                    if (displaySubMenu) {
+                      setDisplayEntitySubMenu(true);
+                      setSelectedEntityIndex(index);
+                    } else {
+                      setDisplayEntitySubMenu(false);
+                    }
+                  }}
+                  entitiesSubgraph={entitiesSubgraph}
+                  entity={entity}
+                  onSubMenuClick={(subMenuIndex) =>
+                    handleSubmit({ subMenuIndex })
+                  }
+                />
+              );
+            })
           : null}
         {entitiesSubgraph
           ? entitiesByType?.map(
@@ -450,6 +452,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 return (
                   <Fragment key={entityTypeId}>
                     <MentionSuggesterSubheading
+                      disabled={displayEntitySubMenu}
                       onClick={() =>
                         setExpandedEntityTypes((prev) =>
                           isExpanded
@@ -472,22 +475,18 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                           ) +
                         entityIndex;
 
+                      const selected = index === selectedEntityIndex;
+
                       return (
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <MentionSuggesterEntity
                             entityType={entityType}
                             entitiesSubgraph={entitiesSubgraph}
                             entity={entity}
-                            ref={
-                              index === selectedEntityIndex
-                                ? selectedEntityRef
-                                : undefined
-                            }
-                            selected={index === selectedEntityIndex}
-                            displaySubMenu={
-                              index === selectedEntityIndex &&
-                              displayEntitySubMenu
-                            }
+                            ref={selected ? selectedEntityRef : undefined}
+                            selected={selected}
+                            displaySubMenu={selected && displayEntitySubMenu}
+                            disabled={!selected && displayEntitySubMenu}
                             subMenuIndex={entitySelectedSubMenuIndex}
                             subMenuItems={
                               entitiesSubMenuItems?.[
