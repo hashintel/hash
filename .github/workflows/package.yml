@@ -97,7 +97,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.lints) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.lint != '{}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -221,7 +221,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.units) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.units != '{}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -260,6 +260,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
+    if: needs.setup.outputs.dockers != '{}'
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
@@ -279,7 +280,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
       fail-fast: false
-    if: always()
+    if: needs.setup.outputs.integrations != '{}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -365,7 +366,7 @@ jobs:
           [[ ${{ needs.setup.result }} = success ]]
       - name: Check lint results
         run: |
-          [[ ${{ needs.lint.result }} = success ]]
+          [[ ${{ needs.lint.result }} =~ success|skipped ]]
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit.result }} =~ success|skipped ]]
