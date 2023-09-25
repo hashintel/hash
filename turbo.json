@@ -5,9 +5,16 @@
     "build": {
       "dependsOn": ["^build", "codegen"]
     },
-    "test": {
+    "test:unit": {
       "dependsOn": ["build"],
       "env": ["TEST_COVERAGE"]
+    },
+    "test:integration": {
+      "dependsOn": ["build"],
+      "env": ["TEST_COVERAGE"]
+    },
+    "test:functional": {
+      "dependsOn": ["build"]
     },
     "dev": {
       "persistent": true,
