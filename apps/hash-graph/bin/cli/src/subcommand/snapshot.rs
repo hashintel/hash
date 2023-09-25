@@ -2,7 +2,7 @@ use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
-    snapshot::{codec, SnapshotEntry, SnapshotStore},
+    snapshot::{SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
 use tokio::io;
@@ -53,7 +53,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             pool.dump_snapshot(
                 FramedWrite::new(
                     io::BufWriter::new(io::stdout()),
-                    codec::JsonLinesEncoder::default(),
+                    codec::bytes::JsonLinesEncoder::default(),
                 ),
                 10_000,
             )
@@ -72,7 +72,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             .restore_snapshot(
                 FramedRead::new(
                     io::BufReader::new(io::stdin()),
-                    codec::JsonLinesDecoder::default(),
+                    codec::bytes::JsonLinesDecoder::default(),
                 ),
                 10_000,
             )

@@ -158,6 +158,10 @@ export const FilePreviewSection = () => {
 
   const { isImage, url } = getFileUrlFromFileProperties(entity.properties);
 
+  if (!url) {
+    return null;
+  }
+
   const { description, displayName, fileName } = simplifyProperties(
     entity.properties as FileProperties,
   );
@@ -189,6 +193,7 @@ export const FilePreviewSection = () => {
           <>
             <ActionButtonsContainer>
               <Tooltip
+                placement="top"
                 title={
                   isDirty
                     ? "Save or discard your changes to replace the file"
@@ -204,7 +209,7 @@ export const FilePreviewSection = () => {
                   </GrayToBlueIconButton>
                 </Box>
               </Tooltip>
-              <Tooltip title="Download">
+              <Tooltip placement="top" title="Download">
                 <Box
                   component="a"
                   href={url}
