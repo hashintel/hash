@@ -20,9 +20,12 @@ import {
   chipClasses,
   FormControlLabel,
   formControlLabelClasses,
+  styled,
   SxProps,
   Theme,
   Tooltip,
+  tooltipClasses,
+  TooltipProps,
 } from "@mui/material";
 import {
   Dispatch,
@@ -83,6 +86,14 @@ const CheckboxFilter: FunctionComponent<{
     }
   />
 );
+
+const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))({
+  [`& .${tooltipClasses.tooltip}`]: {
+    maxWidth: "none",
+  },
+});
 
 export type FilterState = {
   includeArchived?: boolean;
@@ -178,7 +189,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           />
         ) : (
           <>
-            <Tooltip
+            <NoMaxWidthTooltip
               title="Visible to you inside your personal web and organizations you belong to"
               placement="top"
             >
@@ -199,8 +210,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                   },
                 }}
               />
-            </Tooltip>
-            <Tooltip
+            </NoMaxWidthTooltip>
+            <NoMaxWidthTooltip
               title={`${
                 filterState.includeGlobal ? "Hide" : "Show"
               } public ${itemLabelPlural} from outside of your webs`}
@@ -248,7 +259,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                   },
                 })}
               />
-            </Tooltip>
+            </NoMaxWidthTooltip>
           </>
         )}
 
