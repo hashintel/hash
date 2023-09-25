@@ -1,4 +1,10 @@
-import { Chip, EyeIconRegular, IconButton } from "@hashintel/design-system";
+import { CheckIcon } from "@hashintel/block-design-system";
+import {
+  Chip,
+  EyeIconRegular,
+  EyeSlashIconRegular,
+  IconButton,
+} from "@hashintel/design-system";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -84,6 +90,7 @@ export type FilterState = {
 };
 
 type TableHeaderProps = {
+  itemLabelPlural: "entities" | "pages" | "types";
   items: (
     | Entity
     | EntityTypeWithMetadata
@@ -109,6 +116,7 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  itemLabelPlural,
   items,
   selectedItems,
   filterState,
@@ -119,6 +127,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
+  const [publicFilterHovered, setPublicFilterHovered] =
+    useState<boolean>(false);
 
   const userWebIds = useMemo(() => {
     return [
@@ -160,7 +170,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         gap: 1.5,
       }}
     >
-      <Box display="flex" gap={1.5}>
+      <Box display="flex" gap={1.5} alignItems="center">
         {selectedItems.length ? (
           <BulkActionsDropdown
             selectedItems={selectedItems}
@@ -191,10 +201,14 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
               />
             </Tooltip>
             <Tooltip
-              title="Show public types from outside of your webs"
+              title={`${
+                filterState.includeGlobal ? "Hide" : "Show"
+              } public ${itemLabelPlural} from outside of your webs`}
               placement="top"
             >
               <Chip
+                onMouseEnter={() => setPublicFilterHovered(true)}
+                onMouseLeave={() => setPublicFilterHovered(false)}
                 onClick={() => {
                   setDisplayFilters(true);
                   setFilterState((prev) => ({
@@ -204,6 +218,16 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                 }}
                 icon={
                   filterState.includeGlobal ? (
+                    publicFilterHovered ? (
+                      <EyeSlashIconRegular
+                        sx={{ fill: ({ palette }) => palette.primary.main }}
+                      />
+                    ) : (
+                      <CheckIcon
+                        sx={{ fill: ({ palette }) => palette.primary.main }}
+                      />
+                    )
+                  ) : publicFilterHovered ? (
                     <EyeIconRegular
                       sx={{ fill: ({ palette }) => palette.primary.main }}
                     />
