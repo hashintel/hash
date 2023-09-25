@@ -1,7 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Popper } from "@mui/material";
 import {
   EditorState,
@@ -15,7 +15,7 @@ import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
 import { BlockSuggester } from "./block-suggester";
-import { MentionSuggester, MentionType } from "./mention-suggester";
+import { Mention, MentionSuggester } from "./mention-suggester";
 
 interface Trigger {
   char: "@" | "/";
@@ -287,15 +287,18 @@ export const createSuggester = (
               });
           };
 
-          const onMentionChange = (
-            entityId: EntityId,
-            mentionType: MentionType,
-          ) => {
+          const onMentionChange = (mention: Mention) => {
             const { tr } = view.state;
 
+            const { entityId } = mention;
+
             const mentionNode = view.state.schema.nodes.mention!.create({
-              mentionType,
+              mentionType: mention.kind,
               entityId,
+              propertyBaseUrl:
+                mention.kind === "property-value"
+                  ? mention.propertyBaseUrl
+                  : undefined,
             });
 
             tr.replaceWith(from, to, mentionNode);

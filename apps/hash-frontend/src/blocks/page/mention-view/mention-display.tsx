@@ -1,9 +1,6 @@
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
-import {
-  EntityId,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId, OwnedById } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { FunctionComponent, useMemo } from "react";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
@@ -14,19 +11,18 @@ import { PageIcon } from "../../../components/page-icon";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import { Link } from "../../../shared/ui";
-import { MentionType } from "../create-suggester/mention-suggester";
+import { Mention } from "../create-suggester/mention-suggester";
 
 interface MentionDisplayProps {
-  entityId: EntityId;
-  mentionType: MentionType;
+  mention: Mention;
   ownedById: OwnedById;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
-  entityId,
-  mentionType,
+  mention,
   ownedById,
 }) => {
+  const { entityId } = mention;
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
   const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
@@ -35,7 +31,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     useUserOrOrgShortnameByOwnedById({ ownedById });
 
   const { title, href, icon } = useMemo(() => {
-    switch (mentionType) {
+    switch (mention.kind) {
       case "user": {
         // User entities are stored on the system account
         const userHref = `/@${systemUserShortname}/entities/${extractEntityUuidFromEntityId(
@@ -131,12 +127,35 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           icon: "@",
         };
       }
+      case "property-value": {
+        if (!entitySubgraph || entityLoading || workspaceShortnameLoading) {
+          /** @todo consider showing a loading state instead of saying "entity", same for the pages & users above */
+          return {
+            title: "Property",
+            href: "",
+            icon: "@",
+          };
+        }
+
+        const entityHref = `/@${workspaceShortname}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`;
+
+        const entity = getRoots(entitySubgraph)[0];
+
+        const propertyValue = entity?.properties[mention.propertyBaseUrl];
+
+        return {
+          title: propertyValue?.toString(),
+          href: entityHref,
+        };
+      }
       default:
         return { title: "", href: "", icon: "@" };
     }
   }, [
     entityId,
-    mentionType,
+    mention,
     users,
     pages,
     pagesLoading,

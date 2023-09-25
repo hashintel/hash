@@ -1,6 +1,8 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   EntityTypeWithMetadata,
@@ -29,11 +31,30 @@ import {
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 
-export type MentionType = "user" | "page" | "entity";
+export type Mention =
+  | {
+      kind: "entity";
+      entityId: EntityId;
+    }
+  | {
+      kind: "user";
+      entityId: EntityId;
+    }
+  | {
+      kind: "page";
+      entityId: EntityId;
+    }
+  | {
+      kind: "property-value";
+      entityId: EntityId;
+      propertyBaseUrl: BaseUrl;
+    };
+
+export type MentionKind = Mention["kind"];
 
 export interface MentionSuggesterProps {
   search?: string;
-  onChange(entityId: EntityId, mentionType: MentionType): void;
+  onChange(mention: Mention): void;
   ownedById: OwnedById;
 }
 
@@ -245,7 +266,28 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     const entity = searchedEntities[selectedEntityIndex];
 
     if (entity) {
-      onChange(entity.metadata.recordId.entityId, "entity");
+      const {
+        entityTypeId,
+        recordId: { entityId },
+      } = entity.metadata;
+
+      const selectedSubMenuItem = displayEntitySubMenu
+        ? selectedEntitySubMenuItems?.[entitySelectedSubMenuIndex]
+        : undefined;
+      if (selectedSubMenuItem) {
+        onChange({
+          kind: "property-value",
+          entityId,
+          propertyBaseUrl:
+            selectedSubMenuItem.propertyType.metadata.recordId.baseUrl,
+        });
+      } else if (entityTypeId === types.entityType.page.entityTypeId) {
+        onChange({ kind: "page", entityId });
+      } else if (entityTypeId === types.entityType.user.entityTypeId) {
+        onChange({ kind: "user", entityId });
+      } else {
+        onChange({ kind: "entity", entityId });
+      }
     }
   });
 
