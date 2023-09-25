@@ -9,7 +9,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test": "jest --runInBand"
+    "test:integration": "jest --runInBand"
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",

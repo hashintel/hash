@@ -22,6 +22,7 @@ jobs:
     outputs:
       units: ${{ steps.packages.outputs.units }}
       integrations: ${{ steps.packages.outputs.integrations }}
+      functional: ${{ steps.packages.outputs.functional }}
       dockers: ${{ steps.packages.outputs.dockers }}
       lints: ${{ steps.packages.outputs.lints }}
     steps:
@@ -36,16 +37,19 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_PACKAGES=$(turbo run test --dry-run=json \
-              --filter '!@tests/*' --filter '!@apps/*' --filter '...[HEAD^]' \
+          UNIT_PACKAGES=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
-            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_PACKAGES=$(turbo run test --dry-run=json \
-              --filter '@tests/*...[HEAD^]' --filter '@apps/*...[HEAD^]' \
+          INTEGRATION_PACKAGES=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
-            | jq 'select(.task == "test" and .command != "<NONEXISTENT>")' \
+            | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          FUNCTIONAL_PACKAGES=$(turbo run test:functional --dry-run=json --filter '...[HEAD^]' \
+            | jq '.tasks[]' \
+            | jq 'select(.task == "test:functional" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
@@ -87,6 +91,7 @@ jobs:
           set -x
           echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
           echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
+          echo "functional=$FUNCTIONAL_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
           echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
 
@@ -302,7 +307,7 @@ jobs:
         env:
           TEST_COVERAGE: true
         run: |
-          turbo run test --filter "${{ matrix.package }}"
+          turbo run test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -356,6 +361,55 @@ jobs:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
 
+      - name: Load Docker images
+        uses: ./.github/actions/load-docker-images
+        with:
+          hash-graph: true
+
+      - name: Launch external services
+        run: |
+          turbo codegen --filter '@apps/hash-external-services'
+          yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
+
+      - name: Run tests
+        run: |
+          turbo run test:integration --filter "${{ matrix.package }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+
+  functional:
+    name: Functional Test
+    needs: [setup, build]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.functional) }}
+      fail-fast: false
+    if: needs.setup.outputs.functional != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
+
+      - name: Install yarn dependencies
+        env:
+          HUSKY: 0
+        run: yarn install --frozen-lockfile --prefer-offline
+
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
         uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
@@ -369,45 +423,30 @@ jobs:
         uses: ./.github/actions/load-docker-images
         with:
           hash-graph: true
-          hash-ai-worker-ts: ${{ matrix.package == '@tests/hash-playwright' }}
-          hash-ai-worker-py: ${{ matrix.package == '@tests/hash-playwright' }}
-          hash-integration-worker: ${{ matrix.package == '@tests/hash-playwright' }}
+          hash-ai-worker-ts: true
+          hash-ai-worker-py: true
+          hash-integration-worker: true
 
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          if [[ ${{ matrix.package }} != '@tests/hash-playwright' ]]; then
-            yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
-          else 
-            yarn workspace @apps/hash-external-services deploy up --detach
-          fi
+          yarn workspace @apps/hash-external-services deploy up --detach
 
       - name: Launch HASH-API
-        if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run dev --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
-        if: matrix.package == '@tests/hash-playwright'
         run: |
           turbo run build --filter "@apps/hash-frontend"
           yarn workspace @apps/hash-frontend start &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        env:
-          TEST_COVERAGE: ${{ matrix.package != '@tests/hash-playwright' }}
         continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
         run: |
-          turbo run test --filter "${{ matrix.package }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
-
-      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
-        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
-        with:
-          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
-          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+          turbo run test:functional --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
@@ -415,7 +454,7 @@ jobs:
 
   passed:
     name: Workflow passed
-    needs: [setup, lint, unit, integration]
+    needs: [setup, lint, unit, integration, functional]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -431,3 +470,6 @@ jobs:
       - name: Check integration tests
         run: |
           [[ ${{ needs.integration.result }} =~ success|skipped ]]
+      - name: Check functional tests
+        run: |
+          [[ ${{ needs.functional.result }} =~ success|skipped ]]
