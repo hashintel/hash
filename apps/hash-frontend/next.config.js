@@ -100,7 +100,7 @@ module.exports = withSentryConfig(
         redirects() {
           return [
             {
-              source: "/settings/organizations/:shortname",
+              source: "/settings/organizations/:shortname(^(?!new)$)",
               destination: "/settings/organizations/:shortname/general",
               permanent: true,
             },

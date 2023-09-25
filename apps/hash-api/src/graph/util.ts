@@ -72,6 +72,7 @@ export const RESTRICTED_SHORTNAMES = [
   "jwt",
   "local",
   "login",
+  "new",
   "oauth",
   "org",
   "profile",
