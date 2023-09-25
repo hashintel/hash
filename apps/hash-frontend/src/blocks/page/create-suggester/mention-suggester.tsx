@@ -1,6 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityId,
@@ -31,6 +30,7 @@ import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggeste
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 
 export type MentionType = "user" | "page" | "entity";
+
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: EntityId, mentionType: MentionType): void;
@@ -70,12 +70,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     [selectedEntityIndex],
   );
 
-  const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({
-    excludeEntityTypeIds: [
-      types.entityType.user.entityTypeId,
-      types.entityType.page.entityTypeId,
-    ],
-  });
+  const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({});
 
   const searchedEntities = useMemo(
     () =>
