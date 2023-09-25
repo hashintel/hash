@@ -111,35 +111,36 @@ jobs:
       - name: Find lint steps to run
         id: lints
         run: |
-          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          set -x
+          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
 
-          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
           HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
           echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
-          if [[ -f "${{ matrix.directory }}/pyproject.toml" ]]; then
+          if [[ $HAS_PYTHON = 'true' ]]; then
             echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
           else
             echo "python-version=^3.11" >> $GITHUB_OUTPUT
           fi
 
-          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          HAS_POETRY_DEPS=$(turbo run poetry:install --dry-run=json \
             | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
 
-          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          BLACK=$(turbo run lint:black --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:black" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "black=$BLACK" >> $GITHUB_OUTPUT
 
-          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          RUFF=$(turbo run lint:ruff --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "ruff=$RUFF" >> $GITHUB_OUTPUT
 
-          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}...[HEAD^]' --dry-run=json \
+          MYPY=$(turbo run lint:mypy --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:mypy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "mypy=$MYPY" >> $GITHUB_OUTPUT
 
