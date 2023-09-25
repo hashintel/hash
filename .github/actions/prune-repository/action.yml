@@ -24,11 +24,9 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp -r \
-          .[!.]* \
-          yarn.lock \
-          patches \
-        out/
+        # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
+        cp -R .[!.!(.git)]* .git?* ..?* out/
+        cp -R yarn.lock patches out/
 
     - name: Allow patch files to fail
       shell: bash
