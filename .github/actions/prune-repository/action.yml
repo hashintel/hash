@@ -24,12 +24,9 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp .env* out/
-        cp -r .github out/.github
+        cp -r .* out/
         cp yarn.lock out/yarn.lock
         cp -r patches out/patches
-        cp .prettierignore out/.prettierignore
-        cp .justfile out/.justfile
 
     - name: Allow patch files to fail
       shell: bash

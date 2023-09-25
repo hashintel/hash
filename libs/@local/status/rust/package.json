@@ -1,0 +1,9 @@
+{
+  "name": "@local/status-rust",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "(MIT OR Apache-2.0)",
+  "dependencies": {
+    "@local/status": "0.0.0-private"
+  }
+}
