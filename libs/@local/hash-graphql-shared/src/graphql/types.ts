@@ -3,7 +3,7 @@ import {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-subgraph";
+import { BaseUrl, EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {
@@ -17,7 +17,18 @@ export type TextToken =
       link?: string;
     }
   | { tokenType: "hardBreak" }
-  | { tokenType: "mention"; mentionType: "user" | "page"; entityId: EntityId };
+  | {
+      tokenType: "mention";
+      mentionType:
+        | "user"
+        | "page"
+        | "entity"
+        | "property-value"
+        | "outgoing-link";
+      entityId: EntityId;
+      propertyBaseUrl?: BaseUrl;
+      linkEntityId?: EntityId;
+    };
 
 const fakeXPropertyBaseUrl =
   "https://blockprotocol.org/@hash/types/property-type/x-position/";
