@@ -25,13 +25,8 @@ runs:
       shell: bash
       run: |
         cp -r \
-          *.toml \
-          *.json \
-          *ignore \
-          .env* \
-          .github \
-          *.lock \
-          .justfile \
+          .+ \
+          yarn.lock \
           patches \
         out/
 
