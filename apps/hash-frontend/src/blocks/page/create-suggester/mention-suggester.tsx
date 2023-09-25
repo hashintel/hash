@@ -388,7 +388,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   return (
     <MentionSuggesterWrapper>
       <List sx={{ "> :first-child": { paddingTop: 0 } }}>
-        {loadingEntities ? (
+        {loadingEntities && !entitiesSubgraph ? (
           <ListItem>
             <ListItemIcon sx={{ minWidth: "unset" }}>
               <LoadingSpinner />
