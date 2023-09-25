@@ -22,10 +22,10 @@ runs:
         done <<< "${{ inputs.scope }}"
 
     - name: Copy required files
-      shell: bash
+      shell: zsh
       run: |
         cp -r \
-          .+ \
+          .* \
           yarn.lock \
           patches \
         out/
