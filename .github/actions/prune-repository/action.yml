@@ -29,6 +29,7 @@ runs:
         cp yarn.lock out/yarn.lock
         cp -r patches out/patches
         cp .prettierignore out/.prettierignore
+        cp .justfile out/.justfile
 
     - name: Allow patch files to fail
       shell: bash
