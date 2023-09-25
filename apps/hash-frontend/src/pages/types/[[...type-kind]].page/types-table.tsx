@@ -250,6 +250,7 @@ export const TypesTable: FunctionComponent<{
   return (
     <Box>
       <TableHeader
+        itemLabelPlural="types"
         items={types}
         filterState={filterState}
         setFilterState={setFilterState}
