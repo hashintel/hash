@@ -6,11 +6,15 @@ import {
 } from "@mui/material";
 import { FunctionComponent, PropsWithChildren } from "react";
 
+import { ChevronLeftRegularIcon } from "../../../../shared/icons/chevron-left-regular-icon";
 import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
 
 export const MentionSuggesterSubheading: FunctionComponent<
-  PropsWithChildren & { onClick?: () => void }
-> = ({ children, onClick }) => {
+  PropsWithChildren & {
+    onClick?: () => void;
+    chevronDirection?: "right" | "left";
+  }
+> = ({ children, onClick, chevronDirection = "right" }) => {
   const content = (
     <ListItemText
       sx={{
@@ -21,19 +25,39 @@ export const MentionSuggesterSubheading: FunctionComponent<
           textTransform: "uppercase",
         },
         "&:hover svg": {
-          marginLeft: 1.5,
+          "&.chevron-left": {
+            right: 4,
+          },
+          "&.chevron-right": {
+            left: 4,
+          },
         },
       }}
     >
+      {onClick && chevronDirection === "left" ? (
+        <ChevronLeftRegularIcon
+          className="chevron-left"
+          sx={{
+            fontSize: 12,
+            position: "relative",
+            right: 0,
+            top: 1,
+            marginRight: 1,
+            transition: ({ transitions }) => transitions.create("right"),
+          }}
+        />
+      ) : null}
       {children}
-      {onClick ? (
+      {onClick && chevronDirection === "right" ? (
         <ChevronRightRegularIcon
+          className="chevron-right"
           sx={{
             fontSize: 12,
             position: "relative",
             top: 1,
+            left: 0,
             marginLeft: 1,
-            transition: ({ transitions }) => transitions.create("margin-left"),
+            transition: ({ transitions }) => transitions.create("left"),
           }}
         />
       ) : null}

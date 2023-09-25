@@ -174,6 +174,12 @@ export const MentionSuggesterEntity = forwardRef<
                 </ListItemSecondaryText>
               </ListItemButton>
             ))}
+            <MentionSuggesterSubheading
+              onClick={() => setDisplaySubMenu(false)}
+              chevronDirection="left"
+            >
+              Back to Results
+            </MentionSuggesterSubheading>
           </MentionSuggesterWrapper>
         </Popper>
       </>
