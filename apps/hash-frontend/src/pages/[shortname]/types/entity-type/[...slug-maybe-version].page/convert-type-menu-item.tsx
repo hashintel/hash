@@ -1,30 +1,27 @@
-import { LinkIcon } from "@hashintel/design-system";
+import { AlertModal, LinkIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
-import { usePopupState } from "material-ui-popup-state/hooks";
+import { useState } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useContextBarActionsContext } from "../../../../shared/top-context-bar";
-import { ConvertTypeConfirmationModal } from "./convert-type-button/convert-type-confirmation-modal";
 
 interface ConvertTypeMenuItemProps {
   convertToLinkType: () => void;
   disabled?: boolean;
+  typeTitle: string;
 }
 
 export const ConvertTypeMenuItem = ({
   convertToLinkType,
   disabled,
+  typeTitle,
 }: ConvertTypeMenuItemProps) => {
   const { closeContextMenu } = useContextBarActionsContext();
 
-  const popupState = usePopupState({
-    variant: "popover",
-    popupId: `convert-type-modal`,
-  });
-
-  const openConvertTypeModel = () => {
-    popupState.open();
-  };
+  const [
+    showConvertTypeConfirmationModal,
+    setShowConvertTypeConfirmationModal,
+  ] = useState(false);
 
   return (
     <>
@@ -38,7 +35,7 @@ export const ConvertTypeMenuItem = ({
         {/* Tooltips don't work placed directly on MenuItems, a wrapping div is required */}
         <div>
           <MenuItem
-            onClick={openConvertTypeModel}
+            onClick={() => setShowConvertTypeConfirmationModal(true)}
             disabled={disabled}
             title="Test"
           >
@@ -49,18 +46,26 @@ export const ConvertTypeMenuItem = ({
           </MenuItem>
         </div>
       </Tooltip>
-
-      <ConvertTypeConfirmationModal
-        onClose={() => {
-          popupState.close();
-          closeContextMenu();
-        }}
-        onSubmit={() => {
-          convertToLinkType();
-          closeContextMenu();
-        }}
-        popupState={popupState}
-      />
+      {showConvertTypeConfirmationModal && (
+        <AlertModal
+          callback={() => {
+            convertToLinkType();
+            closeContextMenu();
+          }}
+          calloutMessage="A new version of this type will be created as a Link Type, and you
+              won't be able to revert this change."
+          close={() => {
+            setShowConvertTypeConfirmationModal(false);
+            closeContextMenu();
+          }}
+          header={
+            <>
+              Convert <strong>{typeTitle}</strong> to link type
+            </>
+          }
+          type="info"
+        />
+      )}
     </>
   );
 };
