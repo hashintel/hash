@@ -69,7 +69,8 @@
         "prettier$",
         "rimraf",
         "turbo",
-        "yarn-deduplicate"
+        "yarn-deduplicate",
+        "@redocly/cli"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
