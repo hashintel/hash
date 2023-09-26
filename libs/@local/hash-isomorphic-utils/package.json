@@ -20,7 +20,7 @@
     "generate-system-types": "tsx ./src/generate-system-types.ts; yarn fix:eslint; yarn prettier --write ./src/system-types/{*.ts,**/*.ts}",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test": "jest"
+    "test:unit": "jest"
   },
   "dependencies": {
     "@apollo/client": "3.6.9",

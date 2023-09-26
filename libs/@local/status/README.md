@@ -85,7 +85,7 @@ This process works through code-generation using the [`quicktype`](https://githu
 This package is structured into two main areas:
 
 - [`pkg`](./pkg) contains the TypeScript package that exports the `Status`, `StatusCode` types, and helper functions.
-- [`crate`](./crate) contains the Rust crate that defines the `Status` and `StatusCode` types.
+- [`rust`](./rust) contains the Rust crate that defines the `Status` and `StatusCode` types.
 - [`type-defs`](./type-defs) contains the plain type definitions for `Status`, `StatusCode`, and associated status payloads. These types are defined in TypeScript at the moment but could easily be represented in another schema format.
 
 Note: despite the `type-defs` being in TypeScript, we define them separately to keep a better separation of concerns, and to avoid `quicktype` breaking when it encounters non-type code (e.g. `const` definitions).

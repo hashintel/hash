@@ -24,11 +24,11 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp .env* out/
-        cp -r .github out/.github
-        cp yarn.lock out/yarn.lock
-        cp -r patches out/patches
-        cp .prettierignore out/.prettierignore
+        cp -R yarn.lock patches out/
+
+        # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
+        shopt -s extglob
+        cp -R .[!.!(.git)]* .git?* out/
 
     - name: Allow patch files to fail
       shell: bash
