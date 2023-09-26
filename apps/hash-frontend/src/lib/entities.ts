@@ -16,9 +16,8 @@ const getLabelPropertyValue = (
   entityToLabel: Entity,
   entityType: EntityTypeWithMetadata,
 ) => {
-  if (entityType.metadata.custom.labelProperty) {
-    const label =
-      entityToLabel.properties[entityType.metadata.custom.labelProperty];
+  if (entityType.metadata.labelProperty) {
+    const label = entityToLabel.properties[entityType.metadata.labelProperty];
 
     if (label) {
       return label.toString();

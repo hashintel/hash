@@ -855,31 +855,6 @@ class RightBoundedTemporalInterval(BaseModel):
     start: TemporalBound
 
 
-class CustomOwnedEntityTypeMetadata(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    label_property: BaseURL | None = Field(None, alias="labelProperty")
-    owned_by_id: OwnedById = Field(..., alias="ownedById")
-    provenance: ProvenanceMetadata
-    temporal_versioning: OntologyTemporalMetadata = Field(
-        ..., alias="temporalVersioning"
-    )
-
-
-class CustomExternalEntityTypeMetadata(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    fetched_at: str = Field(..., alias="fetchedAt")
-    label_property: BaseURL | None = Field(None, alias="labelProperty")
-    provenance: ProvenanceMetadata
-    temporal_versioning: OntologyTemporalMetadata = Field(
-        ..., alias="temporalVersioning"
-    )
-
-
-class CustomEntityTypeMetadata(RootModel):
-    model_config = ConfigDict(populate_by_name=True)
-    root: CustomOwnedEntityTypeMetadata | CustomExternalEntityTypeMetadata
-
-
 class CustomOwnedOntologyElementMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     owned_by_id: OwnedById = Field(..., alias="ownedById")
@@ -917,7 +892,8 @@ class EntityTemporalMetadata(BaseModel):
 
 class EntityTypeMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    custom: CustomEntityTypeMetadata
+    custom: CustomOntologyMetadata
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
     record_id: OntologyTypeRecordId = Field(..., alias="recordId")
 
 

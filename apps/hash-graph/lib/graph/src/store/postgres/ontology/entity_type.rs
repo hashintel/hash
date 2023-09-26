@@ -8,7 +8,7 @@ use graph_types::{
     account::AccountId,
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
@@ -231,7 +231,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
-                    &metadata.custom.common,
+                    &metadata.custom,
                     on_conflict,
                 )
                 .await?
@@ -240,7 +240,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     .insert_entity_type_with_id(
                         ontology_id,
                         schema.clone(),
-                        metadata.custom.label_property.as_ref(),
+                        metadata.label_property.as_ref(),
                     )
                     .await?;
 
@@ -384,10 +384,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         let metadata = PartialEntityTypeMetadata {
             record_id,
-            custom: PartialCustomEntityTypeMetadata {
-                common: PartialCustomOntologyMetadata::Owned { owned_by_id },
-                label_property,
-            },
+            label_property,
+            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         };
 
         transaction

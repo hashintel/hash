@@ -1542,56 +1542,6 @@
           }
         }
       },
-      "CustomEntityTypeMetadata": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "CustomOwnedEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "ownedById"
-            ],
-            "properties": {
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "CustomExternalEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "fetchedAt"
-            ],
-            "properties": {
-              "fetchedAt": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          }
-        ]
-      },
       "CustomOntologyMetadata": {
         "oneOf": [
           {
@@ -1917,7 +1867,15 @@
         ],
         "properties": {
           "custom": {
-            "$ref": "#/components/schemas/CustomEntityTypeMetadata"
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "recordId": {
             "$ref": "#/components/schemas/OntologyTypeRecordId"

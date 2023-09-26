@@ -84,7 +84,7 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                 ontology_id,
                 OntologyElementMetadata {
                     record_id: entity_type.metadata.record_id,
-                    custom: entity_type.metadata.custom.common,
+                    custom: entity_type.metadata.custom,
                 },
             ))
             .attach_printable("could not send metadata")?;
@@ -174,7 +174,6 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                 schema: Json(schema.into()),
                 label_property: entity_type
                     .metadata
-                    .custom
                     .label_property
                     .map(|label_property| label_property.to_string()),
             })

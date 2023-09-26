@@ -12,8 +12,8 @@ use graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         OntologyTemporalMetadata, OntologyType, OntologyTypeReference, OntologyTypeVersion,
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::OwnedById,
 };
@@ -374,10 +374,8 @@ where
                             entity_type,
                             PartialEntityTypeMetadata {
                                 record_id: metadata.record_id,
-                                custom: PartialCustomEntityTypeMetadata {
-                                    common: metadata.custom,
-                                    label_property: None,
-                                },
+                                label_property: None,
+                                custom: metadata.custom,
                             },
                         ));
                     }
