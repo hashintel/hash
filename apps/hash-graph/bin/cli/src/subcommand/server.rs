@@ -304,6 +304,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     let link_entity_type_metadata = PartialEntityTypeMetadata {
         record_id: link_entity_type.id().clone().into(),
         label_property: None,
+        icon: None,
         custom: PartialCustomOntologyMetadata::External {
             fetched_at: OffsetDateTime::now_utc(),
         },

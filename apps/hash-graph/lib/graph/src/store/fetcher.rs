@@ -375,6 +375,7 @@ where
                             PartialEntityTypeMetadata {
                                 record_id: metadata.record_id,
                                 label_property: None,
+                                icon: None,
                                 custom: metadata.custom,
                             },
                         ));
@@ -805,13 +806,20 @@ where
         authorization_api: &mut Au,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
+        icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.insert_external_types(actor_id, authorization_api, [&entity_type])
             .await
             .change_context(UpdateError)?;
 
         self.store
-            .update_entity_type(actor_id, authorization_api, entity_type, label_property)
+            .update_entity_type(
+                actor_id,
+                authorization_api,
+                entity_type,
+                label_property,
+                icon,
+            )
             .await
     }
 

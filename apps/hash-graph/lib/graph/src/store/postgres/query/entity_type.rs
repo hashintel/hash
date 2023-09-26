@@ -31,6 +31,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::Examples
             | Self::Required
             | Self::LabelProperty
+            | Self::Icon
             | Self::Schema(_) => vec![Relation::EntityTypeIds],
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
@@ -139,6 +140,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("required"))))
             }
             Self::LabelProperty => Column::EntityTypes(EntityTypes::LabelProperty),
+            Self::Icon => Column::EntityTypes(EntityTypes::Icon),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge { path, .. } => path.terminating_column(),

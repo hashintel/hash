@@ -113,6 +113,7 @@ class EntityTypeQueryToken(Enum):
     properties = "properties"
     required = "required"
     label_property = "labelProperty"
+    icon = "icon"
     links = "links"
     inherits_from = "inheritsFrom"
     children = "children"
@@ -553,6 +554,7 @@ class CreateDataTypeRequest(BaseModel):
 
 class CreateEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
     label_property: BaseURL | None = Field(None, alias="labelProperty")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: EntityType | list[EntityType] = Field(..., alias="schema")
@@ -735,6 +737,7 @@ class UpdateEntityRequest(EntityLinkOrder):
 
 class UpdateEntityTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
     label_property: BaseURL | None = Field(None, alias="labelProperty")
     schema_: UpdateEntityType = Field(..., alias="schema")
     type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
@@ -893,6 +896,7 @@ class EntityTemporalMetadata(BaseModel):
 class EntityTypeMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     custom: CustomOntologyMetadata
+    icon: str | None = None
     label_property: BaseURL | None = Field(None, alias="labelProperty")
     record_id: OntologyTypeRecordId = Field(..., alias="recordId")
 

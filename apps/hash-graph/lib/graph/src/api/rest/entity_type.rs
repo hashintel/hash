@@ -110,6 +110,8 @@ struct CreateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<String>,
 }
 
 #[utoipa::path(
@@ -172,6 +174,7 @@ where
         schema,
         owned_by_id,
         label_property,
+        icon,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -224,6 +227,7 @@ where
         partial_metadata.push(PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
             label_property: label_property.clone(),
+            icon: icon.clone(),
             custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         });
 
@@ -486,6 +490,8 @@ struct UpdateEntityTypeRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = SHARED_BaseUrl)]
     label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    icon: Option<String>,
 }
 
 #[utoipa::path(
@@ -519,6 +525,7 @@ where
         schema,
         mut type_to_update,
         label_property,
+        icon,
     }) = body;
 
     type_to_update.version += 1;
@@ -547,6 +554,7 @@ where
             &mut authorization_api,
             entity_type,
             label_property,
+            icon,
         )
         .await
         .map_err(|report| {

@@ -196,6 +196,7 @@ impl Drop for StoreWrapper {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
@@ -289,6 +290,7 @@ pub async fn seed<D, P, E, C>(
                 PartialEntityTypeMetadata {
                     record_id: entity_type.id().clone().into(),
                     label_property: None,
+                    icon: None,
                     custom: PartialCustomOntologyMetadata::Owned {
                         owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
@@ -300,7 +302,13 @@ pub async fn seed<D, P, E, C>(
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(account_id, &mut NoAuthorization, entity_type, None)
+                        .update_entity_type(
+                            account_id,
+                            &mut NoAuthorization,
+                            entity_type,
+                            None,
+                            None,
+                        )
                         .await
                         .expect("failed to update entity type");
                 } else {
