@@ -1,4 +1,4 @@
-use std::{collections::HashMap, future::Future};
+use std::{collections::HashMap, fmt, future::Future};
 
 use error_stack::Result;
 use graph_types::{
@@ -6,20 +6,59 @@ use graph_types::{
     knowledge::entity::EntityId,
     web::WebId,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError},
-    schema::OwnerId,
-    zanzibar::{Consistency, Zookie},
+    schema::{OwnerId, PublicAccess},
+    zanzibar::{Consistency, Resource, Zookie},
 };
 
 // TODO: Replace with something permission specific which can directly be reused once permissions
 //       are implemented.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum VisibilityScope {
     Public,
     Account(AccountId),
     AccountGroup(AccountGroupId),
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum AccountOrPublic {
+    Public(PublicAccess),
+    Account(AccountId),
+}
+
+impl From<AccountOrPublic> for VisibilityScope {
+    fn from(account_or_public: AccountOrPublic) -> Self {
+        match account_or_public {
+            AccountOrPublic::Public(_) => Self::Public,
+            AccountOrPublic::Account(account_id) => Self::Account(account_id),
+        }
+    }
+}
+
+impl fmt::Display for AccountOrPublic {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Public(access) => fmt::Display::fmt(access.id(), fmt),
+            Self::Account(account_id) => fmt::Display::fmt(account_id, fmt),
+        }
+    }
+}
+
+impl Resource for AccountOrPublic {
+    type Id = Self;
+
+    fn namespace() -> &'static str {
+        AccountId::namespace()
+    }
+
+    fn id(&self) -> Self::Id {
+        *self
+    }
 }
 
 pub trait AuthorizationApi {

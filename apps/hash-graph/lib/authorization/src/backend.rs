@@ -7,7 +7,10 @@ use error_stack::Report;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub use self::spicedb::SpiceDbOpenApi;
-use crate::zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie};
+use crate::{
+    zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie},
+    NoAuthorization,
+};
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait ZanzibarBackend {
@@ -96,6 +99,86 @@ pub trait ZanzibarBackend {
         U: Resource + From<U::Id> + Send + Sync,
         U::Id: DeserializeOwned,
         S: Serialize + Send + Sync + DeserializeOwned;
+}
+
+impl ZanzibarBackend for NoAuthorization {
+    async fn import_schema(
+        &mut self,
+        _schema: &str,
+    ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>> {
+        unimplemented!()
+    }
+
+    async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>> {
+        unimplemented!()
+    }
+
+    async fn create_relations<T>(
+        &mut self,
+        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Sync,
+    {
+        Ok(CreateRelationResponse {
+            written_at: Zookie::empty(),
+        })
+    }
+
+    async fn touch_relations<T>(
+        &mut self,
+        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Sync,
+    {
+        Ok(CreateRelationResponse {
+            written_at: Zookie::empty(),
+        })
+    }
+
+    async fn delete_relations<T>(
+        &mut self,
+        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
+    where
+        T: Sync,
+    {
+        Ok(DeleteRelationResponse {
+            deleted_at: Zookie::empty(),
+        })
+    }
+
+    async fn check<T>(
+        &self,
+        _tuple: &T,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, Report<CheckError>>
+    where
+        T: Sync,
+    {
+        Ok(CheckResponse {
+            checked_at: Zookie::empty(),
+            has_permission: true,
+        })
+    }
+
+    async fn read_relations<O, R, U, S>(
+        &self,
+        _object: Option<O>,
+        _relation: Option<R>,
+        _user: Option<U>,
+        _user_set: Option<S>,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
+    where
+        O: Send,
+        R: Send,
+        U: Send,
+        S: Send,
+    {
+        Ok(Vec::new())
+    }
 }
 
 /// Return value for [`ZanzibarBackend::import_schema`].

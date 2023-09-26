@@ -10,7 +10,7 @@ pub mod backend;
 pub mod schema;
 pub mod zanzibar;
 
-pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, VisibilityScope};
 
 mod api;
 

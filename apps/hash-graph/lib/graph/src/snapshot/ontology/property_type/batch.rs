@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use authorization::backend::ZanzibarBackend;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -50,7 +51,11 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
         Ok(())
     }
 
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        _authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Schema(property_types) => {

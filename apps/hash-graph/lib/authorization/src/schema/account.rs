@@ -1,4 +1,5 @@
 use graph_types::account::AccountId;
+use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::Resource;
 
@@ -14,7 +15,11 @@ impl Resource for AccountId {
     }
 }
 
-pub struct PublicAccess;
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum PublicAccess {
+    #[serde(rename = "*")]
+    Public,
+}
 
 impl Resource for PublicAccess {
     type Id = &'static str;
