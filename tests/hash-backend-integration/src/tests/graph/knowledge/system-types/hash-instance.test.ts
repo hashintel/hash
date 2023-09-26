@@ -72,6 +72,18 @@ describe("Hash Instance", () => {
       logger,
     );
 
+    expect(
+      await isUserHashInstanceAdmin(
+        graphContext,
+        { actorId: systemUserAccountId },
+        {
+          user: testHashInstanceAdmin,
+        },
+      ),
+    ).toBeFalsy();
+  });
+
+  it("can add a hash instance admin", async () => {
     await addHashInstanceAdmin(
       graphContext,
       { actorId: systemUserAccountId },
