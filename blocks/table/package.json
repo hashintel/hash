@@ -33,7 +33,7 @@
     "@blockprotocol/graph": "0.3.1-canary-20230803163819",
     "@glideapps/glide-data-grid": "5.2.1",
     "@hashintel/block-design-system": "0.0.1",
-    "@mui/material": "5.11.9",
+    "@mui/material": "5.14.11",
     "clsx": "1.2.1",
     "immer": "9.0.6",
     "lodash.debounce": "4.0.8",
@@ -54,8 +54,8 @@
     "block-scripts": "0.3.0",
     "eslint": "8.33.0",
     "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "peerDependencies": {
     "react": "^18.0.0",
