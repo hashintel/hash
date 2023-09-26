@@ -94,7 +94,7 @@ export type OntologyElementMetadata = Subtype<
 >;
 
 export type EntityTypeMetadata = OntologyElementMetadata & {
-  custom: { labelProperty?: BaseUrl };
+  labelProperty?: BaseUrl;
 };
 
 export type DataTypeWithMetadata = Subtype<

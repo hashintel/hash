@@ -33,9 +33,8 @@ use error_stack::{Report, ResultExt};
 use graph_types::{
     account::AccountId,
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, OntologyTypeVersion,
+        CustomOntologyMetadata, EntityTypeMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
@@ -280,7 +279,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyTemporalMetadata,
             CustomOntologyMetadata,
             EntityTypeMetadata,
-            CustomEntityTypeMetadata,
             MaybeListOfOntologyElementMetadata,
             MaybeListOfEntityTypeMetadata,
             EntityVertexId,
