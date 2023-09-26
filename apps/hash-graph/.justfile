@@ -39,7 +39,7 @@ test-integration *arguments:
   @just install-cargo-nextest
 
   @RUSTFLAGS="{{ test-env-flags }}" cargo nextest run --workspace --all-features --test '*' --cargo-profile {{profile}} {{arguments}}
-  @RUSTFLAGS="{{ test-env-flags }}" cargo nextest run --workspace --all-features --bench '*' --cargo-profile {{profile}} {{arguments}}
+  @RUSTFLAGS="{{ test-env-flags }}" cargo test --workspace --all-features --bench '*' --cargo-profile {{profile}} {{arguments}}
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
 
@@ -54,13 +54,15 @@ coverage-unit *arguments:
   @just install-llvm-cov
 
   RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov nextest --workspace --all-features --lib --bins --cargo-profile {{profile}} {{arguments}}
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
 
 [private]
 coverage-integration *arguments:
   @just install-cargo-nextest
   @just install-llvm-cov
 
-  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov nextest --workspace --all-features --test '*' --bench '*' {{arguments}}
+  @RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov nextest --workspace --all-features --test '*' {{arguments}}
+  @RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --bench '*' --profile {{profile}} {{arguments}}
 
 [private]
 test-or-coverage:
@@ -73,7 +75,6 @@ test-or-coverage-unit:
   set -eo pipefail
   if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
     just coverage-unit --lcov --output-path lcov.info
-    cargo test --profile {{profile}} --workspace --all-features --doc
     @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
   else
     just test-unit --no-fail-fast

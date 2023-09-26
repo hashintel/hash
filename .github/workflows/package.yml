@@ -20,9 +20,9 @@ jobs:
   setup:
     runs-on: ubuntu-22.04
     outputs:
-      units: ${{ steps.packages.outputs.units }}
-      integrations: ${{ steps.packages.outputs.integrations }}
-      functional: ${{ steps.packages.outputs.functional }}
+      unit-tests: ${{ steps.packages.outputs.unit-tests }}
+      integration-tests: ${{ steps.packages.outputs.integration-tests }}
+      system-tests: ${{ steps.packages.outputs.system-tests }}
       dockers: ${{ steps.packages.outputs.dockers }}
       lints: ${{ steps.packages.outputs.lints }}
     steps:
@@ -37,19 +37,19 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_PACKAGES=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' \
+          UNIT_TEST_PACKAGES=$(turbo run test:unit --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_PACKAGES=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' \
+          INTEGRATION_TEST_PACKAGES=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          FUNCTIONAL_PACKAGES=$(turbo run test:functional --dry-run=json --filter '...[HEAD^]' \
+          SYSTEM_TEST_PACKAGES=$(turbo run test:system --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
-            | jq 'select(.task == "test:functional" and .command != "<NONEXISTENT>")' \
+            | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
@@ -89,9 +89,9 @@ jobs:
           DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
           set -x
-          echo "units=$UNIT_PACKAGES" >> $GITHUB_OUTPUT
-          echo "integrations=$INTEGRATION_PACKAGES" >> $GITHUB_OUTPUT
-          echo "functional=$FUNCTIONAL_PACKAGES" >> $GITHUB_OUTPUT
+          echo "unit-tests=$UNIT_TEST_PACKAGES" >> $GITHUB_OUTPUT
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" >> $GITHUB_OUTPUT
+          echo "system-tests=$SYSTEM_TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
           echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
 
@@ -277,13 +277,13 @@ jobs:
         if: always() && steps.lints.outputs.mypy == 'true'
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
-  unit:
-    name: Unit Test
+  unit-tests:
+    name: Unit Tests
     needs: [setup]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.units) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.units != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.unit-tests != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -338,7 +338,7 @@ jobs:
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
-          turbo run test:unit --filter "${{ matrix.package }}"
+          turbo run --log-order stream test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -373,13 +373,13 @@ jobs:
           hash-ai-worker-py: ${{ matrix.package == '@apps/hash-ai-worker-py' }}
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
-  integration:
-    name: Integration Test
+  integration-tests:
+    name: Integration Tests
     needs: [setup, build]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.integrations) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.integrations != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.integration-tests != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -444,7 +444,7 @@ jobs:
 
       - name: Run tests
         run: |
-          turbo run test:integration --filter "${{ matrix.package }}"
+          turbo run --log-order stream test:integration --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -457,13 +457,13 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
-  functional:
-    name: Functional Test
+  system-tests:
+    name: System Tests
     needs: [setup, build]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.functional) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.system-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.functional != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.system-tests != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -552,7 +552,7 @@ jobs:
       - name: Run tests
         continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
         run: |
-          turbo run test:functional --filter "${{ matrix.package }}"
+          turbo run --log-order stream test:system --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
@@ -560,7 +560,7 @@ jobs:
 
   passed:
     name: Workflow passed
-    needs: [setup, lint, unit, integration, functional]
+    needs: [setup, lint, unit-tests, integration-tests, system-tests]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -572,10 +572,10 @@ jobs:
           [[ ${{ needs.lint.result }} =~ success|skipped ]]
       - name: Check unit tests
         run: |
-          [[ ${{ needs.unit.result }} =~ success|skipped ]]
+          [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
       - name: Check integration tests
         run: |
-          [[ ${{ needs.integration.result }} =~ success|skipped ]]
+          [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check functional tests
         run: |
-          [[ ${{ needs.functional.result }} =~ success|skipped ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]

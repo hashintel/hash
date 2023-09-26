@@ -13,7 +13,7 @@
       "dependsOn": ["build"],
       "env": ["TEST_COVERAGE"]
     },
-    "test:functional": {
+    "test:system": {
       "dependsOn": ["build"]
     },
     "test:miri": {},

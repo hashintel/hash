@@ -6,7 +6,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:functional": "npx playwright test --project chromium"
+    "test:system": "npx playwright test --project chromium"
   },
   "dependencies": {
     "@local/eslint-config": "0.0.0-private",
