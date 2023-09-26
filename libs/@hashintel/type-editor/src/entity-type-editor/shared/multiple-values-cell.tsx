@@ -81,7 +81,7 @@ export const MultipleValuesControlContainer = ({
         transition: transitions.create("border-color"),
         border: 1,
         borderColor: `${
-          menuOpen ? palette.gray[40] : "transparent"
+          menuOpen ? palette.gray[70] : "transparent"
         } !important`,
       })}
       {...props}
@@ -399,7 +399,9 @@ export const MultipleValuesCell = ({
                       Maximum
                       <Box
                         display="flex"
-                        color={({ palette }) => palette.gray[70]}
+                        sx={({ palette }) => ({
+                          color: palette.gray[70],
+                        })}
                       >
                         ∞
                         <div ref={setInfinityCheckboxNode} />
