@@ -89,13 +89,13 @@ impl RoutedResource for EntityResource {
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
                 .nest(
-                    "/:entity_id/permissions",
+                    "/:entity_id",
                     Router::new()
                         .route(
                             "/public",
                             post(make_entity_public::<A>).delete(make_entity_private::<A>),
                         )
-                        .route("/update", get(can_update_entity::<A>)),
+                        .route("/permissions/update", get(can_update_entity::<A>)),
                 )
                 .route("/query", post(get_entities_by_query::<S, A>)),
         )
