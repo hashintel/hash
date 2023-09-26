@@ -14256,10 +14256,10 @@ glob@7.1.6:
     once "^1.3.0"
     path-is-absolute "^1.0.0"
 
-glob@^10.2.5, glob@~10.3.4:
-  version "10.3.4"
-  resolved "https://registry.yarnpkg.com/glob/-/glob-10.3.4.tgz#c85c9c7ab98669102b6defda76d35c5b1ef9766f"
-  integrity sha512-6LFElP3A+i/Q8XQKEvZjkEWEOTgAIALR9AO2rwT8bgPhDd1anmqDJDZ6lLddI4ehxxxR1S5RIqKe1uapMQfYaQ==
+glob@^10.3.7, glob@~10.3.4:
+  version "10.3.7"
+  resolved "https://registry.yarnpkg.com/glob/-/glob-10.3.7.tgz#d5bd30a529c8c9b262fb4b217941f64ad90e25ac"
+  integrity sha512-wCMbE1m9Nx5yD9LYtgsVWq5VhHlk5WzJirw594qZR6AIvQYuHrdDtIktUVjQItalD53y7dqoedu9xP0u0WaxIQ==
   dependencies:
     foreground-child "^3.1.0"
     jackspeak "^2.0.3"
@@ -17304,10 +17304,10 @@ markdown-to-jsx@^7.1.8:
   resolved "https://registry.yarnpkg.com/markdown-to-jsx/-/markdown-to-jsx-7.2.0.tgz#e7b46b65955f6a04d48a753acd55874a14bdda4b"
   integrity sha512-3l4/Bigjm4bEqjCR6Xr+d4DtM1X6vvtGsMGSjJYyep8RjjIvcWtrXBS8Wbfe1/P+atKNMccpsraESIaWVplzVg==
 
-markdownlint-cli@0.36.0:
-  version "0.36.0"
-  resolved "https://registry.yarnpkg.com/markdownlint-cli/-/markdownlint-cli-0.36.0.tgz#1f5da0e4445386080c3ad5a6edd451bb76b7dd76"
-  integrity sha512-h4WdqOam3+QOVOcJSOQuG8KvvN8dlS0OiJhbPwYWBk7VMZR40UtSSMIOpSP5B4EHPHg3W3ILSQUvqg1HNpTCxA==
+markdownlint-cli@0.37.0:
+  version "0.37.0"
+  resolved "https://registry.yarnpkg.com/markdownlint-cli/-/markdownlint-cli-0.37.0.tgz#6b1331d0e9822627268774f6ec72e8138fcbfb1a"
+  integrity sha512-hNKAc0bWBBuVhJbSWbUhRzavstiB4o1jh3JeSpwC4/dt6eJ54lRfYHRxVdzVp4qGWBKbeE6Pg490PFEfrKjqSg==
   dependencies:
     commander "~11.0.0"
     get-stdin "~9.0.0"
@@ -17315,7 +17315,7 @@ markdownlint-cli@0.36.0:
     ignore "~5.2.4"
     js-yaml "^4.1.0"
     jsonc-parser "~3.2.0"
-    markdownlint "~0.30.0"
+    markdownlint "~0.31.1"
     minimatch "~9.0.3"
     run-con "~1.3.2"
 
@@ -17324,10 +17324,10 @@ markdownlint-micromark@0.1.7:
   resolved "https://registry.yarnpkg.com/markdownlint-micromark/-/markdownlint-micromark-0.1.7.tgz#c465091b30d61a56027ccbfb981c80c96448c165"
   integrity sha512-BbRPTC72fl5vlSKv37v/xIENSRDYL/7X/XoFzZ740FGEbs9vZerLrIkFRY0rv7slQKxDczToYuMmqQFN61fi4Q==
 
-markdownlint@~0.30.0:
-  version "0.30.0"
-  resolved "https://registry.yarnpkg.com/markdownlint/-/markdownlint-0.30.0.tgz#e5b43f794c6810299cd4be86f8d54108e9169860"
-  integrity sha512-nInuFvI/rEzanAOArW5490Ez4EYpB5ODqVM0mcDYCPx9DKJWCQqCgejjiCvbSeE7sjbDscVtZmwr665qpF5xGA==
+markdownlint@~0.31.1:
+  version "0.31.1"
+  resolved "https://registry.yarnpkg.com/markdownlint/-/markdownlint-0.31.1.tgz#f014ed2d3614c5dbc351b7f65641ccc0a5facdb7"
+  integrity sha512-CKMR2hgcIBrYlIUccDCOvi966PZ0kJExDrUi1R+oF9PvqQmCrTqjOsgIvf2403OmJ+CWomuzDoylr6KbuMyvHA==
   dependencies:
     markdown-it "13.0.1"
     markdownlint-micromark "0.1.7"
@@ -21147,12 +21147,12 @@ rimraf@^3.0.2:
   dependencies:
     glob "^7.1.3"
 
-rimraf@^5.0.1:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.1.tgz#0881323ab94ad45fec7c0221f27ea1a142f3f0d0"
-  integrity sha512-OfFZdwtd3lZ+XZzYP/6gTACubwFcHdLRqS9UX3UwpU2dnGQYkPFISRwvM3w9IiB2w7bW5qGo/uAwE4SmXXSKvg==
+rimraf@^5.0.4:
+  version "5.0.4"
+  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-5.0.4.tgz#2a9b79e2fa5218c1d286095b4e0405cfc5f1064e"
+  integrity sha512-rizQI/o/YAMM1us0Zyax0uRfIK39XR52EAjjOi0fzMolpGp0onj6CWzBAXuOx6+6Xi9Rgi0d9tUZojhJerLUmQ==
   dependencies:
-    glob "^10.2.5"
+    glob "^10.3.7"
 
 roarr@^7.0.3, roarr@^7.0.4:
   version "7.5.0"
