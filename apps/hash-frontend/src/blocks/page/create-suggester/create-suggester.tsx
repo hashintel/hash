@@ -159,6 +159,17 @@ export const createSuggester = (
         let trigger = findTrigger(nextEditorState);
 
         if (trigger && trigger.char === "@") {
+          const atSymbolDecoration = Decoration.inline(
+            trigger.from,
+            trigger.from + 1,
+            {
+              class: "suggester-at-symbol",
+            },
+            {
+              inclusiveEnd: false,
+            },
+          );
+
           const suggesterWrapperDecoration = Decoration.inline(
             trigger.from,
             trigger.to,
@@ -181,6 +192,7 @@ export const createSuggester = (
             [
               suggesterWrapperDecoration,
               trigger.search === "" ? placeholderDecoration : [],
+              atSymbolDecoration,
             ].flat(),
           );
         } else {

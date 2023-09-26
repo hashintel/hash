@@ -176,7 +176,22 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
             content: "attr(placeholder)",
             color: ({ palette }) => palette.gray[60],
           },
+          ".suggester-at-symbol": {
+            color: ({ palette }) => palette.gray[40],
+          },
           ".suggester": {
+            "&:not(.suggester-placeholder-text):first-of-type": {
+              borderRightWidth: 0,
+              paddingRight: 0,
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+            },
+            "&:not(.suggester-placeholder-text):last-of-type": {
+              borderLeftWidth: 0,
+              paddingLeft: 0,
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+            },
             background: ({ palette }) => palette.gray[10],
             borderStyle: "solid",
             borderWidth: 1,
