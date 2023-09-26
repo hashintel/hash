@@ -255,7 +255,7 @@ where
                     .create_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectOwner,
-                        PublicAccess,
+                        PublicAccess::Public,
                     )])
                     .await
             }
@@ -290,7 +290,7 @@ where
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectOwner,
-                        PublicAccess,
+                        PublicAccess::Public,
                     )])
                     .await
             }
@@ -325,7 +325,7 @@ where
                     .create_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectViewer,
-                        PublicAccess,
+                        PublicAccess::Public,
                     )])
                     .await
             }
@@ -360,7 +360,7 @@ where
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectViewer,
-                        PublicAccess,
+                        PublicAccess::Public,
                     )])
                     .await
             }

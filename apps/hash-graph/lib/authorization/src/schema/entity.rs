@@ -17,7 +17,7 @@ impl Resource for EntityUuid {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityRelation {
     DirectOwner,
@@ -33,7 +33,7 @@ impl fmt::Display for EntityRelation {
 impl Affiliation<EntityUuid> for EntityRelation {}
 impl Relation<EntityUuid> for EntityRelation {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityPermission {
     Update,

@@ -1,6 +1,7 @@
+use authorization::VisibilityScope;
 use graph_types::{
     knowledge::{
-        entity::{Entity, EntityProperties, EntityRecordId, EntityTemporalMetadata},
+        entity::{EntityProperties, EntityRecordId, EntityTemporalMetadata},
         link::LinkData,
     },
     provenance::ProvenanceMetadata,
@@ -32,22 +33,8 @@ pub struct EntitySnapshotRecord {
     pub metadata: EntityMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_data: Option<LinkData>,
-}
-
-impl From<Entity> for EntitySnapshotRecord {
-    fn from(entity: Entity) -> Self {
-        Self {
-            properties: entity.properties,
-            metadata: EntityMetadata {
-                record_id: entity.metadata.record_id(),
-                entity_type_id: entity.metadata.entity_type_id().clone(),
-                temporal_versioning: Some(entity.metadata.temporal_versioning().clone()),
-                custom: CustomEntityMetadata {
-                    provenance: entity.metadata.provenance(),
-                    archived: entity.metadata.archived(),
-                },
-            },
-            link_data: entity.link_data,
-        }
-    }
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub owners: Vec<VisibilityScope>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub viewers: Vec<VisibilityScope>,
 }

@@ -1,5 +1,13 @@
 use async_trait::async_trait;
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{AccountGroupPermission, EntityRelation, PublicAccess},
+};
 use error_stack::{Result, ResultExt};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityUuid,
+};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -15,6 +23,16 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
+    AccountRelations(Vec<(EntityUuid, EntityRelation, AccountId)>),
+    PublicAccountRelations(Vec<(EntityUuid, EntityRelation)>),
+    AccountGroupRelations(
+        Vec<(
+            EntityUuid,
+            EntityRelation,
+            AccountGroupId,
+            AccountGroupPermission,
+        )>,
+    ),
 }
 
 #[async_trait]
@@ -63,7 +81,11 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
         Ok(())
     }
 
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ids) => {
@@ -131,6 +153,29 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity links", rows.len());
                 }
+            }
+            Self::AccountRelations(accounts) => {
+                authorization_api
+                    .touch_relations(accounts.iter().copied())
+                    .await
+                    .change_context(InsertionError)?;
+            }
+            Self::PublicAccountRelations(accounts) => {
+                authorization_api
+                    .touch_relations(
+                        accounts
+                            .iter()
+                            .copied()
+                            .map(|(account, relation)| (account, relation, PublicAccess::Public)),
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+            }
+            Self::AccountGroupRelations(account_groups) => {
+                authorization_api
+                    .touch_relations(account_groups.iter().copied())
+                    .await
+                    .change_context(InsertionError)?;
             }
         }
         Ok(())

@@ -18,7 +18,6 @@ import {
   getPropertyTypes,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   DataTypeStructuralQuery,
@@ -32,6 +31,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   BaseUrl,
   Entity,
   EntityTypeWithMetadata,
@@ -143,7 +143,9 @@ let aliceEntities: Entity[];
 let bobEntities: Entity[];
 let linkEntities: Entity[];
 
-const authentication = { actorId: publicUserAccountId };
+const authentication = {
+  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+};
 
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "friendship.jsonl"));

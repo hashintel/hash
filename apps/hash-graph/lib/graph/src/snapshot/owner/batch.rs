@@ -1,5 +1,7 @@
 use async_trait::async_trait;
+use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelation};
 use error_stack::{Result, ResultExt};
+use graph_types::account::{AccountGroupId, AccountId};
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -13,6 +15,7 @@ use crate::{
 pub enum AccountRowBatch {
     Accounts(Vec<AccountRow>),
     AccountGroups(Vec<AccountGroupRow>),
+    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelation, AccountId)>),
 }
 
 #[async_trait]
@@ -37,7 +40,11 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
         Ok(())
     }
 
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Accounts(accounts) => {
@@ -73,6 +80,12 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                 if !rows.is_empty() {
                     tracing::info!("Read {} account groups", rows.len());
                 }
+            }
+            Self::AccountGroupAccountRelations(relations) => {
+                authorization_api
+                    .touch_relations(relations.iter().copied())
+                    .await
+                    .change_context(InsertionError)?;
             }
         }
         Ok(())
