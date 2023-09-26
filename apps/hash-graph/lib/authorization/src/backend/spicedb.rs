@@ -28,17 +28,19 @@ impl SpiceDbOpenApi {
     /// # Errors
     ///
     /// - Errors if the client could not be built
-    pub fn new(base_path: impl Into<String>, key: &str) -> Result<Self, reqwest::Error> {
+    pub fn new(base_path: impl Into<String>, key: Option<&str>) -> Result<Self, reqwest::Error> {
         Ok(Self {
             base_path: base_path.into(),
             client: reqwest::Client::builder()
                 .default_headers({
                     let mut headers = reqwest::header::HeaderMap::new();
-                    headers.insert(
-                        reqwest::header::AUTHORIZATION,
-                        reqwest::header::HeaderValue::from_str(&format!("Bearer {key}"))
-                            .expect("failed to create header value"),
-                    );
+                    if let Some(key) = key {
+                        headers.insert(
+                            reqwest::header::AUTHORIZATION,
+                            reqwest::header::HeaderValue::from_str(&format!("Bearer {key}"))
+                                .expect("failed to create header value"),
+                        );
+                    }
                     headers
                 })
                 .build()?,
