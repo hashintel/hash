@@ -81,7 +81,7 @@ export const MultipleValuesControlContainer = ({
         transition: transitions.create("border-color"),
         border: 1,
         borderColor: `${
-          menuOpen ? palette.gray[70] : "transparent"
+          menuOpen ? palette.gray[40] : "transparent"
         } !important`,
       })}
       {...props}
