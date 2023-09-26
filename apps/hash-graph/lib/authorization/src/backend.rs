@@ -44,6 +44,18 @@ pub trait ZanzibarBackend {
     where
         T: Tuple + Send + Sync;
 
+    /// Creates a new relation specified by the [`Tuple`] but does not error if it already exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relation could not be created.
+    fn touch_relations<T>(
+        &mut self,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
+    where
+        T: Tuple + Send + Sync;
+
     /// Deletes the relation specified by the [`Tuple`].
     ///
     /// # Errors

@@ -64,6 +64,16 @@ impl ZanzibarBackend for TestApi {
         self.client.create_relations(tuples).await
     }
 
+    async fn touch_relations<T>(
+        &mut self,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync,
+    {
+        self.client.touch_relations(tuples).await
+    }
+
     async fn delete_relations<T>(
         &mut self,
         tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
