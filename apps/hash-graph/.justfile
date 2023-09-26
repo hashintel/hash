@@ -28,13 +28,17 @@ test *arguments:
 
 [private]
 test-unit *arguments:
+  @just install-cargo-nextest
+
   cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
   cargo test --profile {{profile}} --workspace --all-features --doc
   @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
 
 [private]
 test-integration *arguments:
-  @RUSTFLAGS="{{ test-env-flags }}" cargo hack --workspace --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} --test '*' --bench '*' {{arguments}}
+  @just install-cargo-nextest
+
+  @RUSTFLAGS="{{ test-env-flags }}" cargo nextest run --workspace --all-features --test '*' --bench '*' --cargo-profile {{profile}} {{arguments}}
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
 
@@ -45,12 +49,18 @@ coverage *arguments:
 
 [private]
 coverage-unit *arguments:
-  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --lib --bins {{arguments}}
+  @just install-cargo-nextest
+  @just install-llvm-cov
+
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov nextest --workspace --all-features --lib --bins --cargo-profile {{profile}} {{arguments}}
   RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
 
 [private]
 coverage-integration *arguments:
-  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --test '*' --bench '*' {{arguments}}
+  @just install-cargo-nextest
+  @just install-llvm-cov
+
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov nextest --workspace --all-features --test '*' --bench '*' {{arguments}}
 
 [private]
 test-or-coverage:

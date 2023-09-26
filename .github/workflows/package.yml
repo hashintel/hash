@@ -111,6 +111,9 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Install turbo
+        run: yarn global add turbo
+
       - name: Find lint steps to run
         id: lints
         run: |
@@ -286,6 +289,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Install turbo
+        run: yarn global add turbo
+
       - name: Find test steps to run
         id: tests
         run: |
@@ -318,7 +324,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -379,6 +385,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Install turbo
+        run: yarn global add turbo
+
       - name: Find test steps to run
         id: tests
         run: |
@@ -413,7 +422,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -460,6 +469,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Install turbo
+        run: yarn global add turbo
+
       - name: Find test steps to run
         id: tests
         run: |
@@ -494,7 +506,7 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
-          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+          tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
       - name: Cache Rust dependencies
         if: always() && steps.tests.outputs.has-rust == 'true'
