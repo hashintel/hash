@@ -31,6 +31,7 @@ import { useLatestPropertyTypes } from "../../../shared/latest-property-types-co
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import {
   MentionSuggesterEntity,
+  SortOrder,
   SubMenuItem,
 } from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
@@ -93,6 +94,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const selectedEntityRef = useRef<HTMLDivElement>(null);
 
   const [displayEntitySubMenu, setDisplayEntitySubMenu] = useState(false);
+
+  const [entitySubMenuSortOrder, setEntitySubMenuSortOrder] =
+    useState<SortOrder>("asc");
 
   useScrollLock(displayEntitySubMenu, wrapperRef.current ?? undefined);
 
@@ -225,7 +229,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               kind: "property",
               propertyType,
               propertyValue,
-            };
+            } as const;
           },
         );
 
@@ -269,13 +273,34 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           [entity.metadata.recordId.entityId]: [
             ...properties,
             ...outgoingLinks,
-          ],
+          ].sort((a, b) => {
+            const aItemLabel =
+              a.kind === "outgoing-link"
+                ? a.linkEntityType.schema.title
+                : a.propertyType.schema.title;
+
+            const bItemLabel =
+              b.kind === "outgoing-link"
+                ? b.linkEntityType.schema.title
+                : b.propertyType.schema.title;
+
+            return entitySubMenuSortOrder === "asc"
+              ? aItemLabel.toLowerCase().localeCompare(bItemLabel.toLowerCase())
+              : bItemLabel
+                  .toLowerCase()
+                  .localeCompare(aItemLabel.toLowerCase());
+          }),
         };
       }, {});
     }
 
     return undefined;
-  }, [propertyTypes, searchedEntities, entitiesSubgraph]);
+  }, [
+    propertyTypes,
+    searchedEntities,
+    entitiesSubgraph,
+    entitySubMenuSortOrder,
+  ]);
 
   const selectedEntitySubMenuItems = useMemo<SubMenuItem[] | undefined>(() => {
     if (selectedEntity && entitiesSubMenuItems) {
@@ -437,6 +462,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   onSubMenuClick={(subMenuIndex) =>
                     handleSubmit({ subMenuIndex })
                   }
+                  sortOrder={entitySubMenuSortOrder}
+                  setSortOrder={setEntitySubMenuSortOrder}
                 />
               );
             })
@@ -502,6 +529,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                             onSubMenuClick={(subMenuIndex) =>
                               handleSubmit({ subMenuIndex })
                             }
+                            sortOrder={entitySubMenuSortOrder}
+                            setSortOrder={setEntitySubMenuSortOrder}
                           />
                         </Fragment>
                       );

@@ -22,10 +22,14 @@ import {
 import { forwardRef, useEffect, useRef } from "react";
 
 import { generateEntityLabel } from "../../../../lib/entities";
+import { ArrowDownArrowUpRegularIcon } from "../../../../shared/icons/arrow-down-arrow-up-regular-icon";
 import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
 import { LinkRegularIcon } from "../../../../shared/icons/link-regular-icon";
+import { Button } from "../../../../shared/ui";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
+
+export type SortOrder = "asc" | "desc";
 
 const ListItemButton = styled(MuiListItemButton)(({ theme }) => ({
   [`&.${listItemButtonClasses.disabled}`]: {
@@ -77,6 +81,8 @@ export type SubMenuItem =
 export const MentionSuggesterEntity = forwardRef<
   HTMLDivElement,
   {
+    sortOrder: SortOrder;
+    setSortOrder: (sortOrder: SortOrder) => void;
     entitiesSubgraph: Subgraph<EntityRootType>;
     entityType: EntityTypeWithMetadata;
     entity: Entity;
@@ -90,6 +96,8 @@ export const MentionSuggesterEntity = forwardRef<
 >(
   (
     {
+      sortOrder,
+      setSortOrder,
       entitiesSubgraph,
       entity,
       displayTypeTitle = false,
@@ -175,7 +183,38 @@ export const MentionSuggesterEntity = forwardRef<
           }}
         >
           <MentionSuggesterWrapper>
-            <MentionSuggesterSubheading>Values</MentionSuggesterSubheading>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                my: 0.5,
+              }}
+            >
+              <MentionSuggesterSubheading>Values</MentionSuggesterSubheading>
+              <Button
+                variant="tertiary"
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                sx={{
+                  flexShrink: 0,
+                  color: ({ palette }) => palette.gray[50],
+                  background: ({ palette }) => palette.gray[10],
+                  fontSize: 13,
+                  px: 1,
+                  py: 0,
+                  minHeight: "unset",
+                  height: "fit-content",
+                  borderWidth: 0,
+                }}
+                endIcon={<ArrowDownArrowUpRegularIcon />}
+              >
+                {sortOrder === "asc"
+                  ? "Alphabetical (A-Z)"
+                  : "Reverse Alphabetical (Z-A)"}
+              </Button>
+            </Box>
             {subMenuItems.map((item, index) => (
               <ListItemButton
                 key={
