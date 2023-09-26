@@ -305,7 +305,7 @@ jobs:
 
       - name: Run tests
         env:
-          TEST_COVERAGE: true
+          TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
           turbo run test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
