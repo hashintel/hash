@@ -56,19 +56,17 @@ jobs:
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
-
-          REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
-          REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
-          REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
-          REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
-          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-backend-integration'; then
-              REQUIRES_GRAPH=true
-          fi
-          if echo "$INTEGRATION_PACKAGES" | grep -q '@tests/hash-playwright'; then
+           
+          if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.packages != []'); then
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
             REQUIRES_AI_WORKER_PY=true
             REQUIRES_INTEGRATION_WORKER=true
+          else
+            REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
+            REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
+            REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
+            REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
           fi
 
           DOCKER_PACKAGES=[]
