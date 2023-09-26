@@ -23,20 +23,61 @@ generate-openapi-specs:
 
 [private]
 test *arguments:
-  @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile test {{arguments}}
-  RUSTFLAGS="{{ test-env-flags }}" cargo test -p graph-benches --benches --profile {{profile}} {{arguments}}
-  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
-  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+  just test-unit {{arguments}}
+  just test-integration {{arguments}}
+
+[private]
+test-unit *arguments:
+  cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
+  cargo test --profile {{profile}} --workspace --all-features --doc
   @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
 
 [private]
+test-integration *arguments:
+  @RUSTFLAGS="{{ test-env-flags }}" cargo hack --workspace --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} --test '*' --bench '*' {{arguments}}
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+
+[private]
 coverage *arguments:
-  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --all-targets {{arguments}}
+  just coverage-unit {{arguments}}
+  just coverage-integration {{arguments}}
+
+[private]
+coverage-unit *arguments:
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --lib --bins {{arguments}}
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
+
+[private]
+coverage-integration *arguments:
+  RUSTFLAGS="{{ test-env-flags }}" cargo llvm-cov --workspace --all-features --test '*' --bench '*' {{arguments}}
+
+[private]
+test-or-coverage:
+  just test-or-coverage-unit
+  just test-or-coverage-integration
+
+[private]
+test-or-coverage-unit:
+  #!/usr/bin/env bash
+  set -eo pipefail
+  if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
+    just coverage-unit --lcov --output-path lcov.info
+    @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
+  else
+    just test-unit --no-fail-fast
+  fi
+
+[private]
+test-or-coverage-integration:
+  #!/usr/bin/env bash
+  set -eo pipefail
+  if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
+    just coverage-integration --lcov --output-path lcov.info
+  else
+    just test-integration --no-fail-fast
+  fi
 
 [private]
 bench *arguments:
   @RUSTFLAGS="{{ test-env-flags }}" just --justfile {{repo}}/.justfile bench {{arguments}}
-
-[private]
-miri *arguments:
-  @echo 'miri is disabled for `hash-graph`'

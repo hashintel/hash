@@ -111,9 +111,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install turbo
-        run: yarn global add turbo
-
       - name: Find lint steps to run
         id: lints
         run: |
@@ -156,7 +153,6 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
             echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
             echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -247,11 +243,6 @@ jobs:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
           category: ${{ matrix.name }}
 
-      - name: Run miri
-        if: always() && steps.lints.outputs.has-miri == 'true'
-        run: |
-          turbo run miri --filter "${{ matrix.package }}"
-
       - name: Check public documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.directory }}
@@ -295,8 +286,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
-      - name: Install turbo
-        run: yarn global add turbo
+      - name: Find test steps to run
+        id: tests
+        run: |
+          set -x
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -308,14 +307,21 @@ jobs:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
 
+      - name: Install Rust toolchain
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
       - name: Install Rust tools
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: always() && steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
       - name: Cache Rust dependencies
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: always() && steps.tests.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
         with:
           workspaces: ${{ matrix.directory }}
@@ -334,6 +340,11 @@ jobs:
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Run miri
+        if: always() && steps.tests.outputs.has-miri == 'true'
+        run: |
+          turbo run miri --filter "${{ matrix.package }}"
 
   build:
     name: Build
@@ -368,6 +379,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Find test steps to run
+        id: tests
+        run: |
+          set -x
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -379,6 +401,27 @@ jobs:
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install Rust toolchain
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install Rust tools
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
+        with:
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+
+      - name: Cache Rust dependencies
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
@@ -417,6 +460,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
+      - name: Find test steps to run
+        id: tests
+        run: |
+          set -x
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -428,6 +482,27 @@ jobs:
         env:
           HUSKY: 0
         run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Install Rust toolchain
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install Rust tools
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@5b205dd5b807eef56fdbfeedeedcee63c5d44090 # v2.18.16
+        with:
+          tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
+
+      - name: Cache Rust dependencies
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+          cache-all-crates: true
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
