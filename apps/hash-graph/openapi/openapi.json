@@ -1732,6 +1732,10 @@
           "ownedById"
         ],
         "properties": {
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },
@@ -2105,6 +2109,10 @@
           "custom": {
             "$ref": "#/components/schemas/CustomOntologyMetadata"
           },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
           "labelProperty": {
             "allOf": [
               {
@@ -2134,6 +2142,7 @@
           "properties",
           "required",
           "labelProperty",
+          "icon",
           "links",
           "inheritsFrom",
           "children"
@@ -3464,6 +3473,10 @@
           "typeToUpdate"
         ],
         "properties": {
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
           },

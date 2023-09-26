@@ -363,6 +363,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         _authorization_api: &mut A,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
+        icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -385,6 +386,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let metadata = PartialEntityTypeMetadata {
             record_id,
             label_property,
+            icon,
             custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         };
 

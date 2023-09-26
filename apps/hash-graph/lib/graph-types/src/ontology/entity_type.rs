@@ -27,6 +27,7 @@ use crate::{
 pub struct PartialEntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     pub label_property: Option<BaseUrl>,
+    pub icon: Option<String>,
     pub custom: PartialCustomOntologyMetadata,
 }
 
@@ -37,6 +38,8 @@ pub struct EntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label_property: Option<BaseUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
     pub custom: CustomOntologyMetadata,
 }
 
@@ -50,6 +53,7 @@ impl EntityTypeMetadata {
         Self {
             record_id: partial.record_id,
             label_property: partial.label_property,
+            icon: partial.icon,
             custom: match partial.custom {
                 PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                     CustomOntologyMetadata::Owned {

@@ -185,6 +185,7 @@ impl DatabaseTestWrapper {
             let metadata = PartialEntityTypeMetadata {
                 record_id: entity_type.id().clone().into(),
                 label_property: None,
+                icon: None,
                 custom: PartialCustomOntologyMetadata::Owned {
                     owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
@@ -354,6 +355,7 @@ impl DatabaseApi<'_> {
         let metadata = PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
             label_property: None,
+            icon: None,
             custom: PartialCustomOntologyMetadata::Owned {
                 owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
@@ -397,7 +399,13 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<EntityTypeMetadata, UpdateError> {
         self.store
-            .update_entity_type(self.account_id, &mut NoAuthorization, entity_type, None)
+            .update_entity_type(
+                self.account_id,
+                &mut NoAuthorization,
+                entity_type,
+                None,
+                None,
+            )
             .await
     }
 

@@ -75,6 +75,7 @@ pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<repr::EntityType>,
     pub label_property: Option<String>,
+    pub icon: Option<String>,
 }
 
 #[derive(Debug, ToSql)]

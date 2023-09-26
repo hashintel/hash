@@ -176,6 +176,7 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                     .metadata
                     .label_property
                     .map(|label_property| label_property.to_string()),
+                icon: entity_type.metadata.icon,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

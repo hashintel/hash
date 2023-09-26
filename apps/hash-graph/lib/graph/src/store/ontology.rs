@@ -285,6 +285,7 @@ pub trait EntityTypeStore: crud::Read<EntityTypeWithMetadata> {
         authorization_api: &mut A,
         entity_type: EntityType,
         label_property: Option<BaseUrl>,
+        icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError>;
 
     /// Archives the definition of an existing [`EntityType`].
