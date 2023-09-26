@@ -164,9 +164,14 @@ jobs:
           scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
         env:
           HUSKY: 0
-        run: yarn install --frozen-lockfile --prefer-offline
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Rust toolchain
         if: always() && steps.lints.outputs.has-rust == 'true'
@@ -309,9 +314,14 @@ jobs:
           scope: ${{ matrix.package }}
 
       - name: Install yarn dependencies
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
         env:
           HUSKY: 0
-        run: yarn install --frozen-lockfile --prefer-offline
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -407,9 +417,14 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
         env:
           HUSKY: 0
-        run: yarn install --frozen-lockfile --prefer-offline
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -491,9 +506,14 @@ jobs:
             @apps/hash-external-services
 
       - name: Install yarn dependencies
+        uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
         env:
           HUSKY: 0
-        run: yarn install --frozen-lockfile --prefer-offline
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: yarn install --frozen-lockfile --prefer-offline
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
