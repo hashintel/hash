@@ -11,7 +11,11 @@ import {
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
@@ -29,7 +33,6 @@ import {
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
-  extractOwnedByIdFromEntityId,
   linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
@@ -38,7 +41,11 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -52,6 +59,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 const { graphApi } = graphContext;
 
 describe("Entity CRU", () => {
+  let testOrg: Org;
   let testUser: User;
   let testUser2: User;
   let entityType: EntityTypeWithMetadata;
@@ -68,6 +76,17 @@ describe("Entity CRU", () => {
     testUser2 = await createTestUser(graphContext, "entitytest", logger);
 
     const authentication = { actorId: testUser.accountId };
+
+    testOrg = await createTestOrg(
+      graphContext,
+      authentication,
+      "entitytestorg",
+      logger,
+    );
+    await joinOrg(graphContext, authentication, {
+      userEntityId: testUser2.entity.metadata.recordId.entityId,
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
+    });
 
     textDataType = await createDataType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
@@ -167,18 +186,15 @@ describe("Entity CRU", () => {
 
   let createdEntity: Entity;
   it("can create an entity", async () => {
-    createdEntity = await createEntity(
-      graphContext,
-      { actorId: testUser.accountId },
-      {
-        ownedById: testUser.accountId as OwnedById,
-        properties: {
-          [namePropertyType.metadata.recordId.baseUrl]: "Bob",
-          [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
-        },
-        entityTypeId: entityType.schema.$id,
+    const authentication = { actorId: testUser.accountId };
+    createdEntity = await createEntity(graphContext, authentication, {
+      ownedById: testOrg.accountGroupId as OwnedById,
+      properties: {
+        [namePropertyType.metadata.recordId.baseUrl]: "Bob",
+        [favoriteBookPropertyType.metadata.recordId.baseUrl]: "some text",
       },
-    );
+      entityTypeId: entityType.schema.$id,
+    });
   });
 
   it("can read an entity", async () => {
@@ -222,22 +238,31 @@ describe("Entity CRU", () => {
     );
   });
 
-  it("can read all latest entities", async () => {
+  it("can read all latest person entities", async () => {
     const allEntities = await graphApi
       .getEntitiesByQuery(testUser.accountId, {
         filter: {
-          all: [],
+          all: [
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: testOrg.accountGroupId },
+              ],
+            },
+            {
+              endsWith: [
+                { path: ["type(inheritanceDepth=0)", "baseUrl"] },
+                {
+                  parameter: `/types/entity-type/person/`,
+                },
+              ],
+            },
+          ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       })
-      .then(({ data }) =>
-        getRoots(data as Subgraph<EntityRootType>).filter(
-          (entity) =>
-            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId) ===
-            testUser.accountId,
-        ),
-      );
+      .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
 
     const newlyUpdated = allEntities.find(
       (ent) =>
@@ -245,11 +270,8 @@ describe("Entity CRU", () => {
         updatedEntity.metadata.recordId.entityId,
     );
 
-    // Even though we've inserted two entities, they're the different versions
-    // of the same entity. This should only retrieve a single entity.
-    // Other tests pollute the database, though, so we can't rely on this test's
-    // results in isolation.
-    expect(allEntities.length).toBeGreaterThanOrEqual(1);
+    // Even though we've inserted two entities, they're the different versions of the same entity.
+    expect(allEntities.length).toBe(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(

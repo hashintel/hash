@@ -50,7 +50,12 @@ describe("Org", () => {
   let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(graphContext, "orgTest", logger);
+    createdOrg = await createTestOrg(
+      graphContext,
+      { actorId: systemUserAccountId },
+      "orgTest",
+      logger,
+    );
 
     shortname = createdOrg.shortname;
   });

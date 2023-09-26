@@ -25,6 +25,7 @@ import {
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
+  makeEntityPublic,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 import { isUserHashInstanceAdmin, User } from "./user";
@@ -135,6 +136,9 @@ export const createHashInstance: ImpureGraphFunction<
         .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+  });
+  await makeEntityPublic(ctx, authentication, {
+    entityId: entity.metadata.recordId.entityId,
   });
 
   return getHashInstanceFromEntity({ entity });

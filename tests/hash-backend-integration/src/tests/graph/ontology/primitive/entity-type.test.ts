@@ -13,6 +13,7 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -241,7 +242,11 @@ describe("Entity type CRU", () => {
       "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
 
     await expect(
-      getEntityTypeById(graphContext, authentication, { entityTypeId }),
+      getEntityTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { entityTypeId },
+      ),
     ).rejects.toThrow("Could not find entity type with ID");
 
     await expect(
