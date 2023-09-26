@@ -11,10 +11,8 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -39,14 +37,21 @@ describe("OrgMembership", () => {
   let testUser: User;
 
   let testOrg: Org;
+  let authentication: AuthenticationContext;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
+    authentication = { actorId: testUser.accountId };
 
-    testOrg = await createTestOrg(graphContext, "orgMembershipTest", logger);
+    testOrg = await createTestOrg(
+      graphContext,
+      { actorId: testUser.accountId },
+      "orgMembershipTest",
+      logger,
+    );
   });
 
   afterAll(async () => {
@@ -63,8 +68,6 @@ describe("OrgMembership", () => {
   let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
-    const authentication = { actorId: testUser.accountId };
-
     testOrgMembership = await createOrgMembership(
       graphContext,
       authentication,
@@ -76,8 +79,6 @@ describe("OrgMembership", () => {
   });
 
   it("can get the org of an org membership", async () => {
-    const authentication = { actorId: systemUserAccountId };
-
     const fetchedOrg = await getOrgMembershipOrg(graphContext, authentication, {
       orgMembership: testOrgMembership,
     });
@@ -86,8 +87,6 @@ describe("OrgMembership", () => {
   });
 
   it("can get the user of an org membership", async () => {
-    const authentication = { actorId: systemUserAccountId };
-
     const fetchedUser = await getOrgMembershipUser(
       graphContext,
       authentication,
