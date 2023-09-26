@@ -21,7 +21,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mention,
 }) => {
   const { entityId } = mention;
-  const { entitySubgraph } = useEntityById(entityId);
+  const { entitySubgraph, loading } = useEntityById(entityId);
 
   const title = useMemo(() => {
     if (!entitySubgraph) {
@@ -99,7 +99,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         fontWeight: 500,
       }}
     >
-      {title}
+      {loading ? "Loading..." : title}
     </Box>
   );
 
