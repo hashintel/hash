@@ -166,11 +166,8 @@ build *arguments:
 # Run the test suite
 [no-cd]
 test *arguments: install-cargo-nextest install-cargo-hack
-  @# We only run a subset of tests in PRs to save CI time. The merge queue will test the full suite below.
-  @just in-pr cargo nextest run --cargo-profile {{profile}} --workspace --all-features {{arguments}}
-  @just not-in-pr cargo hack --workspace --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
-
-  @just in-dev cargo test --profile {{profile}} --workspace --all-features --doc
+  cargo hack --workspace --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
+  cargo test --profile {{profile}} --workspace --all-features --doc
 
 # Run the test suite with `miri`
 [no-cd]
@@ -185,7 +182,8 @@ bench *arguments:
 # Run the test suite and generate a coverage report
 [no-cd]
 coverage *arguments: install-llvm-cov
-  cargo llvm-cov nextest --workspace --all-features --all-targets {{arguments}}
+  cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
 
 # Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
 [no-cd]

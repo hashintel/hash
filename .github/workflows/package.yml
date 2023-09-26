@@ -350,7 +350,7 @@ jobs:
       - name: Run miri
         if: always() && steps.tests.outputs.has-miri == 'true'
         run: |
-          turbo run miri --filter "${{ matrix.package }}"
+          turbo run test:miri --filter "${{ matrix.package }}"
 
   build:
     name: Build

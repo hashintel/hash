@@ -16,6 +16,7 @@
     "test:functional": {
       "dependsOn": ["build"]
     },
+    "test:miri": {},
     "dev": {
       "persistent": true,
       "dependsOn": ["build"]
