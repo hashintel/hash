@@ -33,8 +33,8 @@ impl Resource for WebId {
         "graph/web"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 

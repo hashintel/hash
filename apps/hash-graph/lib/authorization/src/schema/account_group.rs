@@ -12,8 +12,8 @@ impl Resource for AccountGroupId {
         "graph/account_group"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 

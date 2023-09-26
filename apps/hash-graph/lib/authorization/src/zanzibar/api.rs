@@ -252,18 +252,22 @@ where
         Ok(match scope {
             VisibilityScope::Public => {
                 self.backend
-                    .create_relations([(entity, EntityRelation::DirectOwner, PublicAccess)])
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectOwner,
+                        PublicAccess,
+                    )])
                     .await
             }
             VisibilityScope::Account(account) => {
                 self.backend
-                    .create_relations([(entity, EntityRelation::DirectOwner, account)])
+                    .create_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
             VisibilityScope::AccountGroup(account_group) => {
                 self.backend
                     .create_relations([(
-                        entity,
+                        entity.entity_uuid,
                         EntityRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,
@@ -283,18 +287,22 @@ where
         Ok(match scope {
             VisibilityScope::Public => {
                 self.backend
-                    .delete_relations([(entity, EntityRelation::DirectOwner, PublicAccess)])
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectOwner,
+                        PublicAccess,
+                    )])
                     .await
             }
             VisibilityScope::Account(account) => {
                 self.backend
-                    .delete_relations([(entity, EntityRelation::DirectOwner, account)])
+                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
             VisibilityScope::AccountGroup(account_group) => {
                 self.backend
                     .delete_relations([(
-                        entity,
+                        entity.entity_uuid,
                         EntityRelation::DirectOwner,
                         account_group,
                         AccountGroupPermission::Member,
@@ -314,18 +322,22 @@ where
         Ok(match scope {
             VisibilityScope::Public => {
                 self.backend
-                    .create_relations([(entity, EntityRelation::DirectViewer, PublicAccess)])
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectViewer,
+                        PublicAccess,
+                    )])
                     .await
             }
             VisibilityScope::Account(account) => {
                 self.backend
-                    .create_relations([(entity, EntityRelation::DirectViewer, account)])
+                    .create_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
             VisibilityScope::AccountGroup(account_group) => {
                 self.backend
                     .create_relations([(
-                        entity,
+                        entity.entity_uuid,
                         EntityRelation::DirectViewer,
                         account_group,
                         AccountGroupPermission::Member,
@@ -345,18 +357,22 @@ where
         Ok(match scope {
             VisibilityScope::Public => {
                 self.backend
-                    .delete_relations([(entity, EntityRelation::DirectViewer, PublicAccess)])
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectViewer,
+                        PublicAccess,
+                    )])
                     .await
             }
             VisibilityScope::Account(account) => {
                 self.backend
-                    .delete_relations([(entity, EntityRelation::DirectViewer, account)])
+                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
             VisibilityScope::AccountGroup(account_group) => {
                 self.backend
                     .delete_relations([(
-                        entity,
+                        entity.entity_uuid,
                         EntityRelation::DirectViewer,
                         account_group,
                         AccountGroupPermission::Member,
@@ -389,7 +405,10 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&(entity, EntityPermission::Update, actor), consistency)
+            .check(
+                &(entity.entity_uuid, EntityPermission::Update, actor),
+                consistency,
+            )
             .await
     }
 
@@ -400,7 +419,10 @@ where
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(&(entity, EntityPermission::View, actor), consistency)
+            .check(
+                &(entity.entity_uuid, EntityPermission::View, actor),
+                consistency,
+            )
             .await
     }
 }

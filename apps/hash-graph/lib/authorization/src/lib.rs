@@ -13,6 +13,7 @@ pub mod zanzibar;
 pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
 
 mod api;
+
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
