@@ -4,7 +4,7 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { BaseUrl, EntityId } from "@local/hash-subgraph";
+import { EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {
