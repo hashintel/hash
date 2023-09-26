@@ -5,7 +5,12 @@ use std::sync::Arc;
 use authorization::{
     zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool, VisibilityScope,
 };
-use axum::{extract::Path, http::StatusCode, routing::post, Extension, Router};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    routing::{get, post},
+    Extension, Router,
+};
 use graph_types::{
     knowledge::{
         entity::{
@@ -23,7 +28,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
-        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader,
+        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, PermissionResponse,
     },
     knowledge::EntityQueryToken,
     store::{
@@ -38,9 +43,11 @@ use crate::{
     paths(
         create_entity,
         get_entities_by_query,
+        can_update_entity,
         update_entity,
         make_entity_public,
         make_entity_private,
+
     ),
     components(
         schemas(
@@ -81,9 +88,14 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
-                .route(
-                    "/:entity_id/public",
-                    post(make_entity_public::<A>).delete(make_entity_private::<A>),
+                .nest(
+                    "/:entity_id",
+                    Router::new()
+                        .route(
+                            "/public",
+                            post(make_entity_public::<A>).delete(make_entity_private::<A>),
+                        )
+                        .route("/permissions/update", get(can_update_entity::<A>)),
                 )
                 .route("/query", post(get_entities_by_query::<S, A>)),
         )
@@ -225,6 +237,50 @@ where
         })?;
 
     Ok(Json(subgraph.into()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/entities/{entity_id}/permissions/update",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor can update"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor can update the entity"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn can_update_entity<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_id): Path<EntityId>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(|error| {
+                tracing::error!(?error, "Could not acquire access to the authorization API");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .await
+            .map_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if account group member can be removed"
+                );
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .has_permission,
+    }))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
