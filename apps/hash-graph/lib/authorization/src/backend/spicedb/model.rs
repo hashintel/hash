@@ -153,7 +153,6 @@ pub enum RelationshipUpdateOperation {
     Create,
     /// Upsert the relationship, and will not error if it already exists.
     #[serde(rename = "OPERATION_TOUCH")]
-    #[expect(dead_code, reason = "Not yet exposed")]
     Touch,
     /// Delete the relationship. If the relationship does not exist, this operation will no-op.
     #[serde(rename = "OPERATION_DELETE")]

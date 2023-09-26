@@ -237,6 +237,23 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
+    async fn touch_relations<T>(
+        &mut self,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync,
+    {
+        self.modify_relations(repeat(model::RelationshipUpdateOperation::Touch).zip(tuples))
+            .await
+            .map(|written_at| CreateRelationResponse { written_at })
+            .change_context(CreateRelationError)
+    }
+
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
     async fn delete_relations<T>(
         &mut self,
         tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
