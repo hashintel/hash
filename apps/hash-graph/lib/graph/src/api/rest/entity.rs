@@ -89,7 +89,7 @@ impl RoutedResource for EntityResource {
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
                 .nest(
-                    "/:entity_id",
+                    "/:entity_id/permissions",
                     Router::new()
                         .route(
                             "/public",
@@ -241,7 +241,7 @@ where
 
 #[utoipa::path(
     get,
-    path = "/entities/{entity_id}/update",
+    path = "/entities/{entity_id}/permissions/update",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
