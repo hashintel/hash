@@ -1,24 +1,4 @@
 const { config } = require("dotenv-flow");
-const withTM = require("next-transpile-modules")([
-  "@blockprotocol/core",
-  "@blockprotocol/graph",
-  "@blockprotocol/hook",
-  "@blockprotocol/type-system",
-  "@hashintel/design-system",
-  "@hashintel/block-design-system",
-  "@hashintel/type-editor",
-  "@hashintel/query-editor",
-  "@local/advanced-types",
-  "@local/hash-graph-client",
-  "@local/hash-graphql-shared",
-  "@local/hash-isomorphic-utils",
-  "@local/hash-subgraph",
-  "react-syntax-highlighter",
-  "@tldraw/polyfills",
-  "@tldraw/tldraw",
-  "@tldraw/tlschema",
-  "@tldraw/ui",
-]); // pass the modules you would like to see transpiled
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -86,118 +66,133 @@ const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-ty
  */
 module.exports = withSentryConfig(
   withBundleAnalyzer(
-    withTM(
-      /** @type {import('next').NextConfig} */
-      {
-        async rewrites() {
-          return [
-            {
-              source: "/pages",
-              destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
-            },
-          ];
-        },
-        redirects() {
-          return [
-            {
-              source: "/settings/organizations/:shortname(^(?!new)$)",
-              destination: "/settings/organizations/:shortname/general",
-              permanent: true,
-            },
-          ];
-        },
-        async headers() {
-          return [
-            {
-              /**
-               * allow fetching types as JSON from anywhere
-               * @see ./src/middleware.page.ts for middleware which serves the JSON
-               */
-              source: "/:shortname/types/:path*",
-              has: [
-                {
-                  type: "header",
-                  key: "accept",
-                  value: "(.*application/json.*)",
-                },
-              ],
-              headers: [
-                {
-                  key: "access-control-allow-origin",
-                  value: "*",
-                },
-              ],
-            },
-          ];
-        },
-        pageExtensions: [
-          "page.tsx",
-          "page.ts",
-          "page.jsx",
-          "page.jsx",
-          "api.ts",
-        ],
+    /** @type {import('next').NextConfig} */
+    {
+      async rewrites() {
+        return [
+          {
+            source: "/pages",
+            destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
+          },
+        ];
+      },
+      redirects() {
+        return [
+          {
+            source: "/settings/organizations/:shortname(^(?!new)$)",
+            destination: "/settings/organizations/:shortname/general",
+            permanent: true,
+          },
+        ];
+      },
+      async headers() {
+        return [
+          {
+            /**
+             * allow fetching types as JSON from anywhere
+             * @see ./src/middleware.page.ts for middleware which serves the JSON
+             */
+            source: "/:shortname/types/:path*",
+            has: [
+              {
+                type: "header",
+                key: "accept",
+                value: "(.*application/json.*)",
+              },
+            ],
+            headers: [
+              {
+                key: "access-control-allow-origin",
+                value: "*",
+              },
+            ],
+          },
+        ];
+      },
+      pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
 
-        // We call linters in GitHub Actions for all pull requests. By not linting
-        // again during `next build`, we save CI minutes and unlock more feedback.
-        // Thus, we can get Playwright test results and Preview releases for WIP PRs.
-        eslint: { ignoreDuringBuilds: true },
-        typescript: { ignoreBuildErrors: true },
+      // We call linters in GitHub Actions for all pull requests. By not linting
+      // again during `next build`, we save CI minutes and unlock more feedback.
+      // Thus, we can get Playwright test results and Preview releases for WIP PRs.
+      eslint: { ignoreDuringBuilds: true },
+      typescript: { ignoreBuildErrors: true },
 
-        sentry: {
-          autoInstrumentServerFunctions: false,
-          hideSourceMaps: false,
-        },
+      sentry: {
+        autoInstrumentServerFunctions: false,
+        hideSourceMaps: false,
+      },
 
-        experimental: {
-          allowMiddlewareResponseBody: true,
-          // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
-          // frontend dependency tree, they are not shaken and are included in the generated lambdas
-          // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
-          outputFileTracingIgnores: [
+      transpilePackages: [
+        "@blockprotocol/core",
+        "@blockprotocol/graph",
+        "@blockprotocol/hook",
+        "@blockprotocol/type-system",
+        "@emotion/server",
+        "@hashintel/design-system",
+        "@hashintel/block-design-system",
+        "@hashintel/type-editor",
+        "@hashintel/query-editor",
+        "@local/advanced-types",
+        "@local/hash-graph-client",
+        "@local/hash-graphql-shared",
+        "@local/hash-isomorphic-utils",
+        "@local/hash-subgraph",
+        "react-syntax-highlighter",
+        "@tldraw/polyfills",
+        "@tldraw/tldraw",
+        "@tldraw/tlschema",
+        "@tldraw/ui",
+      ],
+
+      experimental: {
+        // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
+        // frontend dependency tree, they are not shaken and are included in the generated lambdas
+        // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
+        outputFileTracingExcludes: {
+          "*": [
             "node_modules/@swc/core-linux-x64-gnu",
             "node_modules/@swc/core-linux-x64-musl",
             "node_modules/@esbuild/linux-x64",
           ],
         },
-
-        webpack: (webpackConfig, { isServer }) => {
-          webpackConfig.module.rules.push({
-            test: /\.svg$/,
-            use: [require.resolve("@svgr/webpack")],
-          });
-
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.experiments.asyncWebAssembly = true;
-          if (!isServer) {
-            // eslint-disable-next-line no-param-reassign
-            webpackConfig.output.publicPath = `/_next/`;
-          } else {
-            // eslint-disable-next-line no-param-reassign
-            webpackConfig.output.publicPath = `./`;
-          }
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.output.assetModuleFilename = `static/[hash][ext]`;
-          webpackConfig.module.rules.push({
-            test: /\.(wasm)$/,
-            type: "asset/resource",
-          });
-
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
-            "@blockprotocol/type-system/slim";
-
-          webpackConfig.plugins.push(
-            new DefinePlugin({
-              __SENTRY_DEBUG__: false,
-              __SENTRY_TRACING__: false,
-            }),
-          );
-
-          return webpackConfig;
-        },
       },
-    ),
+
+      webpack: (webpackConfig, { isServer }) => {
+        webpackConfig.module.rules.push({
+          test: /\.svg$/,
+          use: [require.resolve("@svgr/webpack")],
+        });
+
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.experiments.asyncWebAssembly = true;
+        if (!isServer) {
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.output.publicPath = `/_next/`;
+        } else {
+          // eslint-disable-next-line no-param-reassign
+          webpackConfig.output.publicPath = `./`;
+        }
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.output.assetModuleFilename = `static/[hash][ext]`;
+        webpackConfig.module.rules.push({
+          test: /\.(wasm)$/,
+          type: "asset/resource",
+        });
+
+        // eslint-disable-next-line no-param-reassign
+        webpackConfig.resolve.alias["@blockprotocol/type-system$"] =
+          "@blockprotocol/type-system/slim";
+
+        webpackConfig.plugins.push(
+          new DefinePlugin({
+            __SENTRY_DEBUG__: false,
+            __SENTRY_TRACING__: false,
+          }),
+        );
+
+        return webpackConfig;
+      },
+    },
   ),
   sentryWebpackPluginOptions,
 );
