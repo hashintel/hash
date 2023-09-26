@@ -44,6 +44,102 @@
         }
       }
     },
+    "/account_groups/{account_group_id}/admins/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "add_account_group_admin",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the admin to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The account group admin was added"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "remove_account_group_admin",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the admin from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account group admin was removed"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/account_groups/{account_group_id}/members/{account_id}": {
       "post": {
         "tags": [
@@ -130,6 +226,102 @@
         "responses": {
           "204": {
             "description": "The account group member was removed"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/owners/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "add_account_group_owner",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the owner to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The account group owner was added"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "remove_account_group_owner",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the owner from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account group owner was removed"
           },
           "403": {
             "description": "Permission denied"
@@ -1542,56 +1734,6 @@
           }
         }
       },
-      "CustomEntityTypeMetadata": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "CustomOwnedEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "ownedById"
-            ],
-            "properties": {
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "CustomExternalEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "fetchedAt"
-            ],
-            "properties": {
-              "fetchedAt": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          }
-        ]
-      },
       "CustomOntologyMetadata": {
         "oneOf": [
           {
@@ -1917,7 +2059,15 @@
         ],
         "properties": {
           "custom": {
-            "$ref": "#/components/schemas/CustomEntityTypeMetadata"
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "recordId": {
             "$ref": "#/components/schemas/OntologyTypeRecordId"

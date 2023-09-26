@@ -1322,7 +1322,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .attach_printable(account_group_id)?;
 
         authorization_api
-            .add_account_group_admin(actor_id, account_group_id)
+            .add_account_group_owner(actor_id, account_group_id)
             .await
             .change_context(InsertionError)?;
 
@@ -1336,7 +1336,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_account_group_admin(actor_id, account_group_id)
+                .remove_account_group_owner(actor_id, account_group_id)
                 .await
                 .change_context(InsertionError)
             {

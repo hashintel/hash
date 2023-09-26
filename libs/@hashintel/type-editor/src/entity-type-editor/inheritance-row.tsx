@@ -117,10 +117,12 @@ export const InheritanceRow = ({
         childLinksIds: links.map((link) => link.$id),
         childPropertiesIds: properties.map((property) => property.$id),
         directParentIds: proposedParentIds,
+        newParentTitle: parent.title,
       });
     } catch (error) {
       setModalData({
         calloutMessage: (error as Error).message,
+        confirmButtonText: "Add anyway",
         header: (
           <>
             Cannot set <strong>{parent.title}</strong> as a parent of{" "}

@@ -47,8 +47,8 @@ use graph_types::{
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTypeVersion, PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata,
-        PartialEntityTypeMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        OntologyTypeVersion, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::OwnedById,
 };
@@ -184,11 +184,9 @@ impl DatabaseTestWrapper {
 
             let metadata = PartialEntityTypeMetadata {
                 record_id: entity_type.id().clone().into(),
-                custom: PartialCustomEntityTypeMetadata {
-                    common: PartialCustomOntologyMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
-                    },
-                    label_property: None,
+                label_property: None,
+                custom: PartialCustomOntologyMetadata::Owned {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
             };
 
@@ -355,11 +353,9 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityTypeMetadata, InsertionError> {
         let metadata = PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
-            custom: PartialCustomEntityTypeMetadata {
-                common: PartialCustomOntologyMetadata::Owned {
-                    owned_by_id: OwnedById::new(self.account_id.into_uuid()),
-                },
-                label_property: None,
+            label_property: None,
+            custom: PartialCustomOntologyMetadata::Owned {
+                owned_by_id: OwnedById::new(self.account_id.into_uuid()),
             },
         };
 

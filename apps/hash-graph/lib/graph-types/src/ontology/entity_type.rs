@@ -13,8 +13,6 @@ use utoipa::{
     ToSchema,
 };
 
-#[cfg(feature = "utoipa")]
-use crate::provenance::OwnedById;
 use crate::{
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata, OntologyType,
@@ -24,82 +22,12 @@ use crate::{
     provenance::ProvenanceMetadata,
 };
 
-/// A [`CustomEntityTypeMetadata`] that has not yet been fully resolved.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PartialCustomEntityTypeMetadata {
-    pub label_property: Option<BaseUrl>,
-    pub common: PartialCustomOntologyMetadata,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomEntityTypeMetadata {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub label_property: Option<BaseUrl>,
-    #[serde(flatten)]
-    pub common: CustomOntologyMetadata,
-}
-
-// Utoipa does not know how to generate a schema for flattend enumerations
-#[cfg(feature = "utoipa")]
-impl ToSchema<'static> for CustomEntityTypeMetadata {
-    fn schema() -> (&'static str, RefOr<Schema>) {
-        (
-            "CustomEntityTypeMetadata",
-            Schema::OneOf(
-                schema::OneOfBuilder::new()
-                    .item(
-                        schema::ObjectBuilder::new()
-                            .title(Some("CustomOwnedEntityTypeMetadata"))
-                            .property("labelProperty", Ref::from_schema_name("SHARED_BaseUrl"))
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
-                            )
-                            .required("provenance")
-                            .property(
-                                "temporalVersioning",
-                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
-                            )
-                            .required("temporalVersioning")
-                            .property("ownedById", Ref::from_schema_name(OwnedById::schema().0))
-                            .required("ownedById")
-                            .build(),
-                    )
-                    .item(
-                        schema::ObjectBuilder::new()
-                            .title(Some("CustomExternalEntityTypeMetadata"))
-                            .property("labelProperty", Ref::from_schema_name("SHARED_BaseUrl"))
-                            .property(
-                                "provenance",
-                                Ref::from_schema_name(ProvenanceMetadata::schema().0),
-                            )
-                            .required("provenance")
-                            .property(
-                                "temporalVersioning",
-                                Ref::from_schema_name(OntologyTemporalMetadata::schema().0),
-                            )
-                            .required("temporalVersioning")
-                            .property(
-                                "fetchedAt",
-                                schema::ObjectBuilder::new()
-                                    .schema_type(schema::SchemaType::String),
-                            )
-                            .required("fetchedAt")
-                            .build(),
-                    )
-                    .build(),
-            )
-            .into(),
-        )
-    }
-}
-
 /// An [`EntityTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialEntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
-    pub custom: PartialCustomEntityTypeMetadata,
+    pub label_property: Option<BaseUrl>,
+    pub custom: PartialCustomOntologyMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,7 +35,9 @@ pub struct PartialEntityTypeMetadata {
 #[serde(rename_all = "camelCase")]
 pub struct EntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
-    pub custom: CustomEntityTypeMetadata,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label_property: Option<BaseUrl>,
+    pub custom: CustomOntologyMetadata,
 }
 
 impl EntityTypeMetadata {
@@ -119,29 +49,22 @@ impl EntityTypeMetadata {
     ) -> Self {
         Self {
             record_id: partial.record_id,
+            label_property: partial.label_property,
             custom: match partial.custom {
-                PartialCustomEntityTypeMetadata {
-                    label_property,
-                    common: PartialCustomOntologyMetadata::Owned { owned_by_id },
-                } => CustomEntityTypeMetadata {
-                    label_property,
-                    common: CustomOntologyMetadata::Owned {
+                PartialCustomOntologyMetadata::Owned { owned_by_id } => {
+                    CustomOntologyMetadata::Owned {
                         provenance,
                         temporal_versioning: OntologyTemporalMetadata { transaction_time },
                         owned_by_id,
-                    },
-                },
-                PartialCustomEntityTypeMetadata {
-                    label_property,
-                    common: PartialCustomOntologyMetadata::External { fetched_at },
-                } => CustomEntityTypeMetadata {
-                    label_property,
-                    common: CustomOntologyMetadata::External {
+                    }
+                }
+                PartialCustomOntologyMetadata::External { fetched_at } => {
+                    CustomOntologyMetadata::External {
                         provenance,
                         temporal_versioning: OntologyTemporalMetadata { transaction_time },
                         fetched_at,
-                    },
-                },
+                    }
+                }
             },
         }
     }
@@ -151,7 +74,7 @@ impl From<EntityTypeMetadata> for OntologyElementMetadata {
     fn from(value: EntityTypeMetadata) -> Self {
         Self {
             record_id: value.record_id,
-            custom: value.custom.common,
+            custom: value.custom,
         }
     }
 }

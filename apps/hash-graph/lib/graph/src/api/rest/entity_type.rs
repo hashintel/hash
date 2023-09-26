@@ -12,8 +12,8 @@ use axum::{
 use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomEntityTypeMetadata,
-        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
+        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
+        PartialEntityTypeMetadata,
     },
     provenance::OwnedById,
 };
@@ -223,10 +223,8 @@ where
 
         partial_metadata.push(PartialEntityTypeMetadata {
             record_id: entity_type.id().clone().into(),
-            custom: PartialCustomEntityTypeMetadata {
-                common: PartialCustomOntologyMetadata::Owned { owned_by_id },
-                label_property: label_property.clone(),
-            },
+            label_property: label_property.clone(),
+            custom: PartialCustomOntologyMetadata::Owned { owned_by_id },
         });
 
         entity_types.push(entity_type);

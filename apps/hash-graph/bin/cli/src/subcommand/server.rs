@@ -26,8 +26,7 @@ use graph::{
 use graph_types::{
     account::AccountId,
     ontology::{
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
     },
 };
 use regex::Regex;
@@ -304,11 +303,9 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
     let link_entity_type_metadata = PartialEntityTypeMetadata {
         record_id: link_entity_type.id().clone().into(),
-        custom: PartialCustomEntityTypeMetadata {
-            common: PartialCustomOntologyMetadata::External {
-                fetched_at: OffsetDateTime::now_utc(),
-            },
-            label_property: None,
+        label_property: None,
+        custom: PartialCustomOntologyMetadata::External {
+            fetched_at: OffsetDateTime::now_utc(),
         },
     };
 
