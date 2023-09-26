@@ -216,12 +216,14 @@ jobs:
       - name: Run codegen
         if: always() && steps.lints.outputs.codegen == 'true'
         run: |
+          set -o pipefail
           turbo run codegen --filter "${{ matrix.package }}"
           while IFS= read -r line; do
             if [[ -n "$line" ]]; then
+              echo "Checking diff of ${{ matrix.directory }}/$line"
               git --no-pager diff --exit-code --color -- "${{ matrix.directory }}/$line"
             fi
-          done <<< "$(jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end' ${{ matrix.directory }}/turbo.json)"
+          done <<< "$(cat ${{ matrix.directory }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Run ESLint
         if: always() && steps.lints.outputs.eslint == 'true'
