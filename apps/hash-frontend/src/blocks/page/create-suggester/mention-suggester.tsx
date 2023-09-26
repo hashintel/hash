@@ -356,17 +356,19 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const handleSubmit = useCallback(
-    (params?: { subMenuIndex?: number }) => {
+    (params?: { entity?: Entity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
       if (!searchedEntities) {
         return;
       }
 
-      if (selectedEntity) {
+      const entity = params?.entity ?? selectedEntity;
+
+      if (entity) {
         const {
           entityTypeId,
           recordId: { entityId },
-        } = selectedEntity.metadata;
+        } = entity.metadata;
 
         const selectedSubMenuItem = displayEntitySubMenu
           ? selectedEntitySubMenuItems?.[
@@ -464,6 +466,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   }
                   sortOrder={entitySubMenuSortOrder}
                   setSortOrder={setEntitySubMenuSortOrder}
+                  onClick={() => handleSubmit({ entity })}
                 />
               );
             })
@@ -531,6 +534,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                             }
                             sortOrder={entitySubMenuSortOrder}
                             setSortOrder={setEntitySubMenuSortOrder}
+                            onClick={() => handleSubmit({ entity })}
                           />
                         </Fragment>
                       );
