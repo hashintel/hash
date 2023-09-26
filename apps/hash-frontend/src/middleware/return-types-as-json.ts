@@ -121,7 +121,5 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  console.log({ type });
-
   return generateJsonResponse(type.inner.schema);
 };
