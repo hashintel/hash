@@ -188,7 +188,7 @@ coverage *arguments: install-llvm-cov
   cargo llvm-cov nextest --workspace --all-features --all-targets {{arguments}}
 
 # Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
-[private]
+[no-cd]
 test-or-coverage:
   #!/usr/bin/env bash
   set -eo pipefail
