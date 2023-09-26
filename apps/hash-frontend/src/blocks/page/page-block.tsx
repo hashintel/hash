@@ -4,7 +4,6 @@ import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
-import { SxProps } from "@mui/system";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
@@ -161,20 +160,33 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       <Box
         id="root"
         ref={root}
-        sx={
-          {
-            /**
-             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-             * so it automatically handles focusing on closest node on margin-clicking
-             */
-            ".ProseMirror": [
-              getPageSectionContainerStyles(pageComments, isReadonlyMode),
-              { paddingTop: 0, paddingBottom: "320px" },
-            ],
-            // prevents blue outline on selected nodes
-            ".ProseMirror-selectednode": { outline: "none" },
-          } as SxProps
-        }
+        sx={{
+          /**
+           * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+           * so it automatically handles focusing on closest node on margin-clicking
+           */
+          ".ProseMirror": {
+            ...getPageSectionContainerStyles(pageComments, isReadonlyMode),
+            paddingTop: 0,
+            paddingBottom: "320px",
+          },
+          // prevents blue outline on selected nodes
+          ".ProseMirror-selectednode": { outline: "none" },
+          ".suggester-placeholder-text::after": {
+            content: "attr(placeholder)",
+            color: ({ palette }) => palette.gray[60],
+          },
+          ".suggester": {
+            background: ({ palette }) => palette.gray[10],
+            borderStyle: "solid",
+            borderWidth: 1,
+            borderColor: ({ palette }) => palette.gray[20],
+            borderTopLeftRadius: "8px",
+            borderTopRightRadius: "8px",
+            px: 1,
+            py: 0.5,
+          },
+        }}
       />
       {portals}
       {/**

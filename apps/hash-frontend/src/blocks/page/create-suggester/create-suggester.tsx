@@ -10,6 +10,7 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
 import { ReactElement } from "react";
 
 import { ensureMounted } from "../../../lib/dom";
@@ -97,6 +98,8 @@ interface SuggesterState {
   isOpen(): boolean;
 
   suggestedBlockPosition: number | null;
+
+  decorations: DecorationSet;
 }
 
 /**
@@ -143,12 +146,46 @@ export const createSuggester = (
           isOpen() {
             return this.trigger !== null && !this.disabled;
           },
+          decorations: DecorationSet.empty,
         };
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState, nextEditorState) {
         const action: SuggesterAction | undefined =
           tr.getMeta(suggesterPluginKey);
+
+        let decorations = state.decorations;
+
+        let trigger = findTrigger(nextEditorState);
+
+        if (trigger && trigger.char === "@") {
+          const suggesterWrapperDecoration = Decoration.inline(
+            trigger.from,
+            trigger.to,
+            { class: "suggester" },
+            { inclusiveEnd: false },
+          );
+
+          const placeholderDecoration = Decoration.inline(
+            trigger.from,
+            trigger.to,
+            {
+              class: "suggester-placeholder-text",
+              placeholder: "Type to search...",
+            },
+            { inclusiveEnd: false },
+          );
+
+          decorations = DecorationSet.create(
+            nextEditorState.doc,
+            [
+              suggesterWrapperDecoration,
+              trigger.search === "" ? placeholderDecoration : [],
+            ].flat(),
+          );
+        } else {
+          decorations = DecorationSet.empty;
+        }
 
         switch (action?.type) {
           case "escape":
@@ -209,7 +246,6 @@ export const createSuggester = (
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
 
-        let trigger = findTrigger(nextEditorState);
         if (trigger === null && state.trigger?.triggeredBy === "event") {
           trigger = state.trigger;
         }
@@ -218,6 +254,7 @@ export const createSuggester = (
 
         return {
           ...state,
+          decorations,
           trigger,
           disabled,
           suggestedBlockPosition,
@@ -225,6 +262,9 @@ export const createSuggester = (
       },
     },
     props: {
+      decorations(state) {
+        return suggesterPluginKey.getState(state)?.decorations;
+      },
       /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
       handleDOMEvents: {
         keydown(view, event) {
@@ -333,6 +373,7 @@ export const createSuggester = (
 
           if (anchorNode && jsx) {
             const anchorNodeRect = anchorNode.getBoundingClientRect();
+
             ensureMounted(mountNode, documentRoot);
             renderPortal(
               <Popper
@@ -345,8 +386,8 @@ export const createSuggester = (
                     name: "offset",
                     options: {
                       offset: () => [
-                        coords.left - anchorNodeRect.x,
-                        coords.bottom - anchorNodeRect.bottom,
+                        coords.left - anchorNodeRect.x - 10,
+                        coords.bottom - anchorNodeRect.bottom + 4,
                       ],
                     },
                   },
