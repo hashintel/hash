@@ -18,9 +18,9 @@
     "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "exe": "ts-node",
-    "test": "just test-or-coverage",
-    "test:integration": "just test-or-coverage-integration",
-    "test:unit": "just test-or-coverage-unit"
+    "test": "just test",
+    "test:integration": "just test-integration",
+    "test:unit": "just test-unit"
   },
   "dependencies": {
     "@local/status-rust": "0.0.0-private",
