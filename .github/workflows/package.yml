@@ -126,6 +126,10 @@ jobs:
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "tsc=$TSC" >> $GITHUB_OUTPUT
 
+          CODEGEN=$(turbo run codegen --filter '${{ matrix.package }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
+
           HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
           echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
           if [[ $HAS_PYTHON = 'true' ]]; then
@@ -208,6 +212,16 @@ jobs:
       - name: Install Python dependencies
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
         run: turbo run poetry:install
+
+      - name: Run codegen
+        if: always() && steps.lints.outputs.codegen == 'true'
+        run: |
+          turbo run codegen --filter "${{ matrix.package }}"
+          while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+              git --no-pager diff --exit-code --color -- "${{ matrix.directory }}/$line"
+            fi
+          done <<< "$(jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end' ${{ matrix.directory }}/turbo.json)"
 
       - name: Run ESLint
         if: always() && steps.lints.outputs.eslint == 'true'
