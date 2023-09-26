@@ -22,10 +22,16 @@ test *arguments:
   @just install-cargo-nextest
   @just install-cargo-hack
 
-  @just in-pr cargo nextest run --cargo-profile {{profile}} --workspace --all-features {{arguments}}
-  @just not-in-pr cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
+  cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
+  cargo test --profile {{profile}} --workspace --all-features --doc {{arguments}}
 
-  @just in-dev cargo test --profile {{profile}} --workspace --all-features --doc {{arguments}}
+[private]
+coverage *arguments:
+  @just install-cargo-nextest
+  @just install-llvm-cov
+
+  RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
 
 # Snapshot Tests
 # ==============

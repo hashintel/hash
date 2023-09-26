@@ -16,7 +16,6 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
   const { sx = [], bgcolor, ...otherProps } = props;
   return (
     <Box
-      bgcolor={bgcolor ?? src ? undefined : ({ palette }) => palette.blue[70]}
       sx={[
         {
           width: size,
@@ -26,6 +25,8 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             alignItems: "center",
             justifyContent: "center",
           }),
+          background:
+            bgcolor ?? src ? undefined : ({ palette }) => palette.blue[70],
           borderRadius: "50%",
           border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },

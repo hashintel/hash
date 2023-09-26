@@ -25,7 +25,7 @@ authorization = { path = "lib/authorization" }
 codec = { path = "lib/codec" }
 
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
-hash-status = { path = "../../libs/@local/status/crate" }
+hash-status = { path = "../../libs/@local/status/rust" }
 error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", features = ["spantrace"] }
 
 tokio-util = { version = "0.7.9", default-features = false }

@@ -40,6 +40,7 @@ use graph_types::{
 };
 use include_dir::{include_dir, Dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
+use serde::Serialize;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -105,6 +106,11 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
             ))
         }
     }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PermissionResponse {
+    has_permission: bool,
 }
 
 #[async_trait]
@@ -270,6 +276,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     ),
     components(
         schemas(
+            PermissionResponse,
+
             OwnedById,
             RecordCreatedById,
             RecordArchivedById,

@@ -178,6 +178,11 @@ class OwnedById(RootModel):
     root: UUID
 
 
+class PermissionResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    has_permission: bool
+
+
 class PropertyTypeQueryToken(Enum):
     """
     A single token in a [`DataTypeQueryPath`].
