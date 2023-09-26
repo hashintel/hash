@@ -217,6 +217,7 @@ export const EntitiesTable: FunctionComponent<{
   return (
     <Box>
       <TableHeader
+        itemLabelPlural={isViewingPages ? "pages" : "entities"}
         items={entities ?? []}
         selectedItems={
           entities?.filter((entity) =>

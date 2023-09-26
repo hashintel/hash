@@ -12,8 +12,7 @@ use graph::{
 use graph_types::{
     account::AccountId,
     ontology::{
-        PartialCustomEntityTypeMetadata, PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
-        PartialOntologyElementMetadata,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata, PartialOntologyElementMetadata,
     },
     provenance::OwnedById,
 };
@@ -289,11 +288,9 @@ pub async fn seed<D, P, E, C>(
                 entity_type.clone(),
                 PartialEntityTypeMetadata {
                     record_id: entity_type.id().clone().into(),
-                    custom: PartialCustomEntityTypeMetadata {
-                        common: PartialCustomOntologyMetadata::Owned {
-                            owned_by_id: OwnedById::new(account_id.into_uuid()),
-                        },
-                        label_property: None,
+                    label_property: None,
+                    custom: PartialCustomOntologyMetadata::Owned {
+                        owned_by_id: OwnedById::new(account_id.into_uuid()),
                     },
                 },
             )

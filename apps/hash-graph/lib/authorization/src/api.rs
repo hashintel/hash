@@ -23,18 +23,84 @@ pub enum VisibilityScope {
 }
 
 pub trait AuthorizationApi {
+    ////////////////////////////////////////////////////////////////////////////
+    // Account group authorization
+    ////////////////////////////////////////////////////////////////////////////
+    fn can_add_group_owner(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    fn add_account_group_owner(
+        &mut self,
+        member: AccountId,
+        account_group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn can_remove_group_owner(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    fn remove_account_group_owner(
+        &mut self,
+        member: AccountId,
+        account_group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn can_add_group_admin(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
     fn add_account_group_admin(
         &mut self,
         member: AccountId,
         account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
+    fn can_remove_group_admin(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
     fn remove_account_group_admin(
         &mut self,
         member: AccountId,
         account_group: AccountGroupId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
+    fn can_add_group_member(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    fn add_account_group_member(
+        &mut self,
+        member: AccountId,
+        account_group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn can_remove_group_member(
+        &self,
+        actor: AccountId,
+        account_group: AccountGroupId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    fn remove_account_group_member(
+        &mut self,
+        member: AccountId,
+        account_group: AccountGroupId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Web authorization
+    ////////////////////////////////////////////////////////////////////////////
     fn add_web_owner(
         &mut self,
         owner: OwnerId,
@@ -47,50 +113,38 @@ pub trait AuthorizationApi {
         web: WebId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
-    fn can_add_group_members(
+    fn can_create_entity(
         &self,
         actor: AccountId,
-        account_group: AccountGroupId,
+        namespace: impl Into<WebId> + Send,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn can_remove_group_members(
-        &self,
-        actor: AccountId,
-        account_group: AccountGroupId,
-        consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
-
-    fn add_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
+    ////////////////////////////////////////////////////////////////////////////
+    // Entity authorization
+    ////////////////////////////////////////////////////////////////////////////
     fn add_entity_owner(
         &mut self,
         scope: VisibilityScope,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
     fn remove_entity_owner(
         &mut self,
         scope: VisibilityScope,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
-    fn can_create_entity(
-        &self,
-        actor: AccountId,
-        web: impl Into<WebId> + Send,
-        consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+    fn add_entity_viewer(
+        &mut self,
+        scope: VisibilityScope,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_entity_viewer(
+        &mut self,
+        scope: VisibilityScope,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn can_update_entity(
         &self,

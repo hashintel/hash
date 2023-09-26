@@ -21,10 +21,7 @@ use type_system::{
 
 pub use self::{
     data_type::DataTypeWithMetadata,
-    entity_type::{
-        CustomEntityTypeMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        PartialCustomEntityTypeMetadata, PartialEntityTypeMetadata,
-    },
+    entity_type::{EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata},
     property_type::PropertyTypeWithMetadata,
 };
 use crate::provenance::{OwnedById, ProvenanceMetadata};

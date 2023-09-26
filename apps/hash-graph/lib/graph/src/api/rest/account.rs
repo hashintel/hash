@@ -19,6 +19,10 @@ use crate::{
     paths(
         create_account,
         create_account_group,
+        add_account_group_owner,
+        remove_account_group_owner,
+        add_account_group_admin,
+        remove_account_group_admin,
         add_account_group_member,
         remove_account_group_member,
     ),
@@ -46,9 +50,17 @@ impl RoutedResource for AccountResource {
                 Router::new()
                     .route("/", post(create_account_group::<S, A>))
                     .route(
+                        "/:account_group_id/owners/:account_id",
+                        post(add_account_group_owner::<A>).delete(remove_account_group_owner::<A>),
+                    )
+                    .route(
+                        "/:account_group_id/admins/:account_id",
+                        post(add_account_group_admin::<A>).delete(remove_account_group_admin::<A>),
+                    )
+                    .route(
                         "/:account_group_id/members/:account_id",
-                        post(add_account_group_member::<S, A>)
-                            .delete(remove_account_group_member::<S, A>),
+                        post(add_account_group_member::<A>)
+                            .delete(remove_account_group_member::<A>),
                     ),
             )
     }
@@ -150,6 +162,234 @@ where
 
 #[utoipa::path(
     post,
+    path = "/account_groups/{account_group_id}/owners/{account_id}",
+    tag = "Account Group",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to add the owner to"),
+        ("account_id" = AccountId, Path, description = "The ID of the account to add to the group"),
+    ),
+    responses(
+        (status = 201, description = "The account group owner was added"),
+
+        (status = 403, description = "Permission denied"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn add_account_group_owner<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_add_group_owner(actor_id, account_group_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if account group owner can be added"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .add_account_group_owner(account_id, account_group_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add account group owner");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::CREATED)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/account_groups/{account_group_id}/owners/{account_id}",
+    tag = "Account Group",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to remove the owner from"),
+        ("account_id" = AccountId, Path, description = "The ID of the account to remove from the group")
+    ),
+    responses(
+        (status = 204, description = "The account group owner was removed"),
+
+        (status = 403, description = "Permission denied"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn remove_account_group_owner<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_remove_group_owner(actor_id, account_group_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if account group owner can be removed"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .remove_account_group_owner(account_id, account_group_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not remove account group owner");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    post,
+    path = "/account_groups/{account_group_id}/admins/{account_id}",
+    tag = "Account Group",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to add the admin to"),
+        ("account_id" = AccountId, Path, description = "The ID of the account to add to the group"),
+    ),
+    responses(
+        (status = 201, description = "The account group admin was added"),
+
+        (status = 403, description = "Permission denied"),
+        (status = 500, description = "Store error occurred"),
+)
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn add_account_group_admin<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_add_group_admin(actor_id, account_group_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if account group admin can be added"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .add_account_group_admin(account_id, account_group_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add account group admin");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::CREATED)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/account_groups/{account_group_id}/admins/{account_id}",
+    tag = "Account Group",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to remove the admin from"),
+        ("account_id" = AccountId, Path, description = "The ID of the account to remove from the group")
+    ),
+    responses(
+        (status = 204, description = "The account group admin was removed"),
+
+        (status = 403, description = "Permission denied"),
+        (status = 500, description = "Store error occurred"),
+)
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn remove_account_group_admin<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_remove_group_admin(actor_id, account_group_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if account group admin can be removed"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    authorization_api
+        .remove_account_group_admin(account_id, account_group_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not remove account group admin");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    post,
     path = "/account_groups/{account_group_id}/members/{account_id}",
     tag = "Account Group",
     params(
@@ -165,13 +405,12 @@ where
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn add_account_group_member<S, A>(
+async fn add_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
-    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
@@ -180,7 +419,7 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_add_group_members(actor_id, account_group_id, Consistency::FullyConsistent)
+        .can_add_group_member(actor_id, account_group_id, Consistency::FullyConsistent)
         .await
         .map_err(|error| {
             tracing::error!(
@@ -223,13 +462,12 @@ where
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn remove_account_group_member<S, A>(
+async fn remove_account_group_member<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path((account_group_id, account_id)): Path<(AccountGroupId, AccountId)>,
     authorization_api_pool: Extension<Arc<A>>,
 ) -> Result<StatusCode, StatusCode>
 where
-    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
     let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
@@ -238,7 +476,7 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_remove_group_members(actor_id, account_group_id, Consistency::FullyConsistent)
+        .can_remove_group_member(actor_id, account_group_id, Consistency::FullyConsistent)
         .await
         .map_err(|error| {
             tracing::error!(

@@ -1,3 +1,4 @@
+export * from "./alert-modal";
 export * from "./autocomplete";
 export * from "./autocomplete-dropdown";
 export * from "./avatar";
@@ -17,6 +18,8 @@ export * from "./icon-button";
 export * from "./icon-circle-plus";
 export * from "./icon-close";
 export * from "./icon-download-regular";
+export * from "./icon-eye-regular";
+export * from "./icon-eye-slash-regular";
 export * from "./icon-file-regular";
 export * from "./icon-graph";
 export * from "./icon-image-regular";

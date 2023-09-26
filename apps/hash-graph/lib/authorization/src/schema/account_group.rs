@@ -20,6 +20,7 @@ impl Resource for AccountGroupId {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupRelation {
+    DirectOwner,
     DirectAdmin,
     DirectMember,
 }
@@ -36,6 +37,8 @@ impl Relation<AccountGroupId> for AccountGroupRelation {}
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
+    AddOwner,
+    RemoveOwner,
     AddAdmin,
     RemoveAdmin,
     AddMember,

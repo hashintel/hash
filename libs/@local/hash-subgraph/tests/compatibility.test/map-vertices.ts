@@ -152,6 +152,7 @@ const mapEntityTypeMetadata = (
 ): EntityTypeMetadata => {
   return {
     recordId: mapOntologyTypeRecordId(metadata.recordId),
+    labelProperty: metadata.labelProperty as BaseUrl,
     custom: {
       provenance: mapProvenanceMetadata(metadata.custom.provenance),
       ...("fetchedAt" in metadata.custom
@@ -181,7 +182,6 @@ const mapEntityTypeMetadata = (
                 },
         },
       },
-      labelProperty: metadata.custom.labelProperty as BaseUrl,
     },
   };
 };

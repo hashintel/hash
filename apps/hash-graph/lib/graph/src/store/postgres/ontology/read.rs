@@ -6,10 +6,9 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use graph_types::{
     account::AccountId,
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata,
-        EntityTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeRecordId, OntologyTypeVersion, OntologyTypeWithMetadata,
-        PropertyTypeWithMetadata,
+        CustomOntologyMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeVersion, OntologyTypeWithMetadata, PropertyTypeWithMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
@@ -371,10 +370,8 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                                 .change_context(QueryError)?,
                             version: row.get(version_index),
                         },
-                        custom: CustomEntityTypeMetadata {
-                            common: custom_metadata,
-                            label_property,
-                        },
+                        label_property,
+                        custom: custom_metadata,
                     },
                 })
             });
