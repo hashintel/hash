@@ -186,3 +186,14 @@ bench *arguments:
 [no-cd]
 coverage *arguments: install-llvm-cov
   cargo llvm-cov nextest --workspace --all-features --all-targets {{arguments}}
+
+# Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
+[private]
+test-or-coverage:
+  #!/usr/bin/env bash
+  set -eo pipefail
+  if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
+    just coverage --lcov --output-path lcov.info
+  else
+    just test --no-fail-fast
+  fi
