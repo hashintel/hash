@@ -347,9 +347,9 @@ export const createSuggester = (
             const mentionNode = view.state.schema.nodes.mention!.create({
               mentionType: mention.kind,
               entityId,
-              propertyBaseUrl:
+              propertyTypeId:
                 mention.kind === "property-value"
-                  ? mention.propertyBaseUrl
+                  ? mention.propertyTypeId
                   : undefined,
               linkEntityId:
                 mention.kind === "outgoing-link" ? mention.linkEntityId : "",

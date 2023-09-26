@@ -1,17 +1,28 @@
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
+  getEntityRevision,
+  getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
+  getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { Box } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { Box, Popover, styled, Typography } from "@mui/material";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
+import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../../shared/ui";
 import { Mention } from "../create-suggester/mention-suggester";
+
+const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+  fontSize: 16,
+  color: theme.palette.blue[70],
+}));
 
 interface MentionDisplayProps {
   mention: Mention;
@@ -22,6 +33,37 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 }) => {
   const { entityId } = mention;
   const { entitySubgraph, loading } = useEntityById(entityId);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const entity = useMemo(
+    () => (entitySubgraph ? getRoots(entitySubgraph)[0] : undefined),
+    [entitySubgraph],
+  );
+
+  const entityLabel = useMemo(
+    () => (entitySubgraph ? generateEntityLabel(entitySubgraph) : undefined),
+    [entitySubgraph],
+  );
+
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const entityOwnerShortname = useMemo(() => {
+    if (entity) {
+      const { shortname } = getOwnerForEntity(entity);
+
+      return shortname;
+    }
+  }, [entity, getOwnerForEntity]);
+
+  const entityHref = useMemo(() => {
+    if (entity) {
+      return `/@${entityOwnerShortname}/entities/${extractEntityUuidFromEntityId(
+        entity.metadata.recordId.entityId,
+      )}`;
+    }
+  }, [entity, entityOwnerShortname]);
 
   const title = useMemo(() => {
     if (!entitySubgraph) {
@@ -33,7 +75,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       mention.kind === "page" ||
       mention.kind === "user"
     ) {
-      return generateEntityLabel(entitySubgraph);
+      return entityLabel;
     } else if (mention.kind === "outgoing-link") {
       const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
         entitySubgraph,
@@ -53,54 +95,163 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       return targetEntityLabel;
     } else {
-      const entity = getRoots(entitySubgraph)[0];
+      const propertyTypeBaseUrl = extractBaseUrl(mention.propertyTypeId);
 
-      const propertyValue = entity?.properties[mention.propertyBaseUrl];
+      const propertyValue = entity?.properties[propertyTypeBaseUrl];
 
       return propertyValue?.toString();
     }
-  }, [mention, entityId, entitySubgraph]);
-
-  const getOwnerForEntity = useGetOwnerForEntity();
+  }, [mention, entityId, entitySubgraph, entity, entityLabel]);
 
   const href = useMemo(() => {
-    const entity = entitySubgraph ? getRoots(entitySubgraph)[0] : undefined;
-
     if (entity) {
-      const { shortname } = getOwnerForEntity(entity);
-
       if (mention.kind === "user" || mention.kind === "entity") {
-        return `/@${shortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`;
-      } else if (mention.kind === "page") {
+        return entityHref;
+      } else if (mention.kind === "page" && entityOwnerShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return constructPageRelativeUrl({
-          workspaceShortname: shortname,
+          workspaceShortname: entityOwnerShortname,
           pageEntityUuid,
         });
       }
     }
-  }, [entityId, mention.kind, entitySubgraph, getOwnerForEntity]);
+  }, [entity, entityId, mention.kind, entityOwnerShortname, entityHref]);
+
+  const entityType = useMemo(
+    () =>
+      entitySubgraph && entity
+        ? getEntityTypeById(entitySubgraph, entity.metadata.entityTypeId)
+        : undefined,
+    [entitySubgraph, entity],
+  );
+
+  const propertyType = useMemo(
+    () =>
+      mention.kind === "property-value" && entitySubgraph
+        ? getPropertyTypeById(entitySubgraph, mention.propertyTypeId)
+        : undefined,
+    [entitySubgraph, mention],
+  );
+
+  const outgoingLinkType = useMemo(() => {
+    if (mention.kind === "outgoing-link" && entitySubgraph) {
+      const linkEntity = getEntityRevision(
+        entitySubgraph,
+        mention.linkEntityId,
+      );
+
+      const linkEntityTypeId = linkEntity?.metadata.entityTypeId;
+
+      const linkEntityType = linkEntityTypeId
+        ? getEntityTypeById(entitySubgraph, linkEntityTypeId)
+        : undefined;
+
+      return linkEntityType;
+    }
+  }, [entitySubgraph, mention]);
+
+  const hasPopover =
+    mention.kind === "property-value" || mention.kind === "outgoing-link";
 
   const content = (
-    <Box
-      component="span"
-      sx={{
-        borderRadius: "8px",
-        background: ({ palette }) => palette.common.white,
-        borderColor: ({ palette }) => palette.gray[30],
-        borderStyle: "solid",
-        borderWidth: 1,
-        py: 0.25,
-        px: 1,
-        color: ({ palette }) => palette.gray[80],
-        fontWeight: 500,
-      }}
-    >
-      {loading ? "Loading..." : title}
-    </Box>
+    <>
+      <Box
+        ref={contentRef}
+        component="span"
+        onClick={hasPopover ? () => setPopoverOpen(true) : undefined}
+        sx={{
+          borderRadius: "8px",
+          background: ({ palette }) =>
+            hasPopover && popoverOpen ? palette.blue[15] : palette.common.white,
+          borderColor: ({ palette }) => palette.gray[30],
+          borderStyle: "solid",
+          borderWidth: 1,
+          py: 0.25,
+          px: 1,
+          color: ({ palette }) => palette.gray[80],
+          fontWeight: 500,
+          ...(hasPopover
+            ? {
+                cursor: "pointer",
+                "&:hover": {
+                  background: ({ palette }) => palette.gray[10],
+                },
+              }
+            : {}),
+        }}
+      >
+        {loading ? "Loading..." : title}
+      </Box>
+      {hasPopover ? (
+        <Popover
+          anchorEl={contentRef.current}
+          open={popoverOpen}
+          onClose={() => setPopoverOpen(false)}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "left",
+          }}
+          PaperProps={{
+            sx: {
+              marginTop: 1,
+              padding: 1,
+              borderRadius: "4px",
+              borderColor: ({ palette }) => palette.gray[15],
+              borderStyle: "solid",
+              borderWidth: 1,
+            },
+          }}
+        >
+          <Link
+            href={entityType?.schema.$id ?? "#"}
+            sx={{
+              textDecoration: "none",
+              "&:hover > p": {
+                color: ({ palette }) => palette.blue[70],
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 500,
+                fontSize: 18,
+              }}
+            >
+              {mention.kind === "property-value"
+                ? propertyType?.schema.title
+                : outgoingLinkType?.schema.title}
+              <LinkIcon />
+            </Typography>
+          </Link>
+          <Link
+            href={entityHref ?? "#"}
+            sx={{
+              textDecoration: "none",
+              "&:hover > p": {
+                color: ({ palette }) => palette.blue[70],
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                fontWeight: 500,
+                fontSize: 16,
+              }}
+            >
+              {entityLabel}
+              <LinkIcon />
+            </Typography>
+          </Link>
+        </Popover>
+      ) : null}
+    </>
   );
 
   return href ? (

@@ -2,7 +2,6 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  BaseUrl,
   Entity,
   EntityId,
   EntityTypeWithMetadata,
@@ -53,7 +52,7 @@ export type Mention =
   | {
       kind: "property-value";
       entityId: EntityId;
-      propertyBaseUrl: BaseUrl;
+      propertyTypeId: VersionedUrl;
     }
   | {
       kind: "outgoing-link";
@@ -361,8 +360,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             onChange({
               kind: "property-value",
               entityId,
-              propertyBaseUrl:
-                selectedSubMenuItem.propertyType.metadata.recordId.baseUrl,
+              propertyTypeId: selectedSubMenuItem.propertyType.schema.$id,
             });
           }
         } else if (entityTypeId === types.entityType.page.entityTypeId) {
