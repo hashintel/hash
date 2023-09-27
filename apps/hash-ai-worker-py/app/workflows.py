@@ -55,7 +55,7 @@ class GraphApiWorkflow:
                         "authentication": {"actorId": actor_id},
                     },
                 )
-            )
+            ),
         )
 
         if status.code != StatusCode.OK:
@@ -86,7 +86,7 @@ class GraphApiWorkflow:
                         "authentication": {"actorId": actor_id},
                     },
                 )
-            )
+            ),
         )
 
         if status.code != StatusCode.OK:
@@ -117,7 +117,7 @@ class GraphApiWorkflow:
                         "authentication": {"actorId": actor_id},
                     },
                 )
-            )
+            ),
         )
 
         if status.code != StatusCode.OK:
