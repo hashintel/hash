@@ -1,3 +1,4 @@
+import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -16,8 +17,21 @@ import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-fo
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
+import { FileRegularIcon } from "../../../shared/icons/file-regular-icon";
+import { UserIcon } from "../../../shared/icons/user-icon";
+import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Link } from "../../../shared/ui";
 import { Mention } from "../create-suggester/mention-suggester";
+
+const entityIcons = {
+  [types.entityType.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
+  [types.entityType.org.entityTypeId]: (
+    <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
+  ),
+  [types.entityType.page.entityTypeId]: (
+    <FileRegularIcon sx={{ fontSize: 12 }} />
+  ),
+} as const;
 
 const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
   marginLeft: theme.spacing(1),
@@ -137,6 +151,33 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     [entitySubgraph, entity],
   );
 
+  const entityIcon = useMemo(() => {
+    if (
+      entity &&
+      entityType &&
+      ["user", "page", "entity"].includes(mention.kind)
+    ) {
+      if (entityType.schema.$id === types.entityType.page.entityTypeId) {
+        const customPageIcon =
+          entity.properties[
+            extractBaseUrl(types.propertyType.icon.propertyTypeId)
+          ];
+        if (typeof customPageIcon === "string") {
+          return customPageIcon;
+        }
+      }
+      /**
+       * @todo: use the entity type icon
+       * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
+       */
+      return (
+        entityIcons[entityType.schema.$id] ?? (
+          <AsteriskRegularIcon sx={{ fontSize: 12 }} />
+        )
+      );
+    }
+  }, [mention, entityType, entity]);
+
   const propertyType = useMemo(
     () =>
       mention.kind === "property-value" && entitySubgraph
@@ -192,7 +233,18 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
             : {}),
         }}
       >
-        {loading ? "Loading..." : title}
+        {loading ? (
+          "Loading..."
+        ) : (
+          <>
+            {entityIcon ? (
+              <Box component="span" marginRight={0.5}>
+                {entityIcon}
+              </Box>
+            ) : null}
+            {title}
+          </>
+        )}
       </Box>
       {hasPopover ? (
         <Popover
