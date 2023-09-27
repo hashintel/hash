@@ -8,7 +8,6 @@ from pydantic import (
     BaseModel,
     Extra,
     Field,
-    ValidationError,
 )
 from temporalio import workflow
 
@@ -16,13 +15,20 @@ from ._status import Status, StatusCode
 
 with workflow.unsafe.imports_passed_through():
     from graph_types import (
-        DataTypeReference,
         DataTypeSchema,
         EntityTypeReference,
         EntityTypeSchema,
-        PropertyTypeReference,
         PropertyTypeSchema,
     )
+
+
+class StatusError(RuntimeError):
+    """Error raised when a status code is not OK."""
+
+    def __init__(self, status: Status[Any]) -> None:
+        """Initializes the status error."""
+        self.status = status
+        super().__init__(status.message)
 
 
 class GraphApiWorkflow:
@@ -39,17 +45,24 @@ class GraphApiWorkflow:
         If the data type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return DataTypeSchema(
+        status = Status(
             **(
                 await workflow.execute_child_workflow(
                     task_queue="ai",
                     workflow="getDataType",
                     arg={
                         "dataTypeId": data_type_id,
-                        "actorId": actor_id,
+                        "authentication": {"actorId": actor_id},
                     },
                 )
-            )["schema"],
+            )
+        )
+
+        if status.code != StatusCode.OK:
+            raise StatusError(status)
+
+        return DataTypeSchema(
+            **(status.contents[0]["schema"]),
         )
 
     async def get_property_type(
@@ -63,17 +76,24 @@ class GraphApiWorkflow:
         If the property type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return PropertyTypeSchema(
+        status = Status(
             **(
                 await workflow.execute_child_workflow(
                     task_queue="ai",
                     workflow="getPropertyType",
                     arg={
                         "propertyTypeId": property_type_id,
-                        "actorId": actor_id,
+                        "authentication": {"actorId": actor_id},
                     },
                 )
-            )["schema"],
+            )
+        )
+
+        if status.code != StatusCode.OK:
+            raise StatusError(status)
+
+        return PropertyTypeSchema(
+            **(status.contents[0]["schema"]),
         )
 
     async def get_entity_type(
@@ -87,120 +107,25 @@ class GraphApiWorkflow:
         If the entity type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return EntityTypeSchema(
+        status = Status(
             **(
                 await workflow.execute_child_workflow(
                     task_queue="ai",
                     workflow="getEntityType",
                     arg={
                         "entityTypeId": entity_type_id,
-                        "actorId": actor_id,
+                        "authentication": {"actorId": actor_id},
                     },
                 )
-            )["schema"],
+            )
         )
 
+        if status.code != StatusCode.OK:
+            raise StatusError(status)
 
-class DataTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
-    """Parameters for ontology type workflows."""
-
-    data_type_id: str = Field(..., alias="dataTypeId")
-    actor_id: UUID = Field(..., alias="actorId")
-    data_type: Any = Field(..., alias="dataType")
-
-
-def print_schema(model: type[BaseModel], data: Any) -> None:  # noqa: ANN401
-    """Simple function to print the schema and the value of a BaseModel.
-
-    This is meant for debugging purposes only and will be removed in the future.
-    """
-    print("schema:", json.dumps(model.model_json_schema(), indent=2))  # noqa: T201
-    try:
-        parsed_data = model.model_validate(data)
-    except ValidationError as err:
-        print(err)  # noqa: T201
-    else:
-        print(  # noqa: T201
-            "value:",
-            parsed_data.model_dump_json(by_alias=True, exclude_none=True, indent=2),
+        return EntityTypeSchema(
+            **(status.contents[0]["schema"]),
         )
-        print(  # noqa: T201
-            "value type:",
-            type(parsed_data.model_dump()),
-        )
-
-
-@workflow.defn(name="getDataType")
-class DataTypeWorkflow:
-    """A workflow that reads a data type from the provided URL."""
-
-    @workflow.run
-    async def get_data_type(
-        self,
-        params: DataTypeWorkflowParameters,
-    ) -> dict[str, Any]:
-        """Calls the Graph API to get a data type schema."""
-        data_type_model = await DataTypeReference(
-            **{"$ref": params.data_type_id},
-        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
-
-        print_schema(data_type_model, params.data_type)
-
-        return data_type_model.model_json_schema()
-
-
-class PropertyTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
-    """Parameters for ontology type workflows."""
-
-    proeprty_type_id: str = Field(..., alias="propertyTypeId")
-    actor_id: UUID = Field(..., alias="actorId")
-    property_type: Any = Field(..., alias="propertyType")
-
-
-@workflow.defn(name="getPropertyType")
-class PropertyTypeWorkflow:
-    """A workflow that reads a property type from the provided URL."""
-
-    @workflow.run
-    async def get_property_type(
-        self,
-        params: PropertyTypeWorkflowParameters,
-    ) -> dict[str, Any]:
-        """Calls the Graph API to get a data type schema."""
-        property_type_model = await PropertyTypeReference(
-            **{"$ref": params.proeprty_type_id},
-        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
-
-        print_schema(property_type_model, params.property_type)
-
-        return property_type_model.model_json_schema()
-
-
-class EntityTypeWorkflowParameters(BaseModel, extra=Extra.forbid):
-    """Parameters for ontology type workflows."""
-
-    entity_type_id: str = Field(..., alias="entityTypeId")
-    actor_id: UUID = Field(..., alias="actorId")
-    entity_type: Any = Field(..., alias="entityType")
-
-
-@workflow.defn(name="getEntityType")
-class EntityTypeWorkflow:
-    """A workflow that reads an entity type from the provided URL."""
-
-    @workflow.run
-    async def get_entity_type(
-        self,
-        params: EntityTypeWorkflowParameters,
-    ) -> dict[str, Any]:
-        """Calls the Graph API to get a data type schema."""
-        entity_type_model = await EntityTypeReference(
-            **{"$ref": params.entity_type_id},
-        ).create_model(actor_id=params.actor_id, graph=GraphApiWorkflow())
-
-        print_schema(entity_type_model, params.entity_type)
-
-        return entity_type_model.model_json_schema()
 
 
 class ProposedEntity(BaseModel, extra=Extra.forbid):
@@ -210,12 +135,18 @@ class ProposedEntity(BaseModel, extra=Extra.forbid):
     properties: Any
 
 
+class AuthenticationContext(BaseModel, extra=Extra.forbid):
+    """Context to hold information to authenticate a user."""
+
+    actor_id: UUID = Field(..., alias="actorId")
+
+
 class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
     """Parameters for entity inference workflow."""
 
+    authentication: AuthenticationContext
     text_input: str = Field(..., alias="textInput")
     entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
-    actor_id: UUID = Field(..., alias="actorId")
 
 
 class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
@@ -234,6 +165,24 @@ class InferEntitiesWorkflow:
         params: InferEntitiesWorkflowParameter,
     ) -> Status[InferEntitiesWorkflowResult]:
         """Infer entities from the provided text input."""
+        for entity_type_id in params.entity_type_ids:
+            try:
+                entity_type_model = await EntityTypeReference(
+                    **{"$ref": entity_type_id},
+                ).create_model(
+                    actor_id=params.authentication.actor_id,
+                    graph=GraphApiWorkflow(),
+                )
+            except StatusError as error:
+                return error.status
+
+            print(  # noqa: T201
+                json.dumps(
+                    entity_type_model.model_json_schema(by_alias=True),
+                    indent=2,
+                ),
+            )
+
         if len(params.entity_type_ids) > 0:
             return Status(
                 code=StatusCode.UNIMPLEMENTED,
