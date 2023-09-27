@@ -26,6 +26,7 @@ import { ArrowDownArrowUpRegularIcon } from "../../../../shared/icons/arrow-down
 import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
 import { LinkRegularIcon } from "../../../../shared/icons/link-regular-icon";
 import { Button } from "../../../../shared/ui";
+import { useEntityIcon } from "../../../../shared/use-entity-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
 
@@ -122,12 +123,12 @@ export const MentionSuggesterEntity = forwardRef<
       }
     }, [ref]);
 
+    const entityIcon = useEntityIcon({ entity });
+
     return (
       <>
         <ListItemButton ref={buttonRef} {...listItemButtonProps}>
-          <ListItemIcon sx={{ minWidth: "unset" }}>
-            <AsteriskRegularIcon />
-          </ListItemIcon>
+          <ListItemIcon sx={{ minWidth: "unset" }}>{entityIcon}</ListItemIcon>
           <ListItemPrimaryText>
             {generateEntityLabel(entitiesSubgraph, entity)}
           </ListItemPrimaryText>
