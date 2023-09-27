@@ -19,7 +19,7 @@ import { useBlockProtocolGetPropertyType } from "../../../../../../components/ho
 import { useBlockProtocolUpdateEntityType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-entity-type";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
-import { useFetchLatestPropertyTypes } from "../../../../../../shared/latest-property-types-context";
+import { useRefetchPropertyTypes } from "../../../../../../shared/property-types-context";
 import { canUserEditResource } from "../../../../../../shared/readonly-mode";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
@@ -42,7 +42,7 @@ export const useEditorOntologyFunctions = (
   const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
 
   const refetchEntityTypes = useFetchEntityTypes();
-  const refetchPropertyTypes = useFetchLatestPropertyTypes();
+  const refetchPropertyTypes = useRefetchPropertyTypes();
 
   const wrappedCreateEntityType = useCallback<
     EditorOntologyFunctions["createEntityType"]

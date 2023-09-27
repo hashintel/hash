@@ -173,7 +173,7 @@ const LinkTypeRow = ({
               href={link.$id}
               style={{
                 color: "inherit",
-                fontWeight: 600,
+                fontWeight: 500,
                 whiteSpace: "nowrap",
               }}
             >

@@ -3,35 +3,35 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-property-types";
-import { LatestPropertyTypesContextValues } from "../latest-property-types-context";
+import { PropertyTypesContextValues } from "../property-types-context";
 
-export const useLatestPropertyTypesContextValue = (params?: {
+export const usePropertyTypesContextValue = (params?: {
   includeArchived?: boolean;
 }) => {
   const { includeArchived = false } = params ?? {};
 
   const [propertyTypes, setPropertyTypes] = useState<
-    LatestPropertyTypesContextValues["propertyTypes"] | null
+    PropertyTypesContextValues["propertyTypes"] | null
   >(null);
   const { queryPropertyTypes } = useBlockProtocolQueryPropertyTypes();
 
   const fetch = useCallback(async () => {
-    await queryPropertyTypes({ data: { includeArchived } }).then(
-      ({ data: propertyTypesSubgraph }) => {
-        if (propertyTypesSubgraph) {
-          setPropertyTypes((existingPropertyTypes) => ({
-            ...(existingPropertyTypes ?? {}),
-            ...Object.fromEntries(
-              getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map(
-                (propertyType) => {
-                  return [propertyType.schema.$id, propertyType];
-                },
-              ),
+    await queryPropertyTypes({
+      data: { includeArchived, latestOnly: false },
+    }).then(({ data: propertyTypesSubgraph }) => {
+      if (propertyTypesSubgraph) {
+        setPropertyTypes((existingPropertyTypes) => ({
+          ...(existingPropertyTypes ?? {}),
+          ...Object.fromEntries(
+            getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map(
+              (propertyType) => {
+                return [propertyType.schema.$id, propertyType];
+              },
             ),
-          }));
-        }
-      },
-    );
+          ),
+        }));
+      }
+    });
   }, [queryPropertyTypes, includeArchived]);
 
   useEffect(() => {

@@ -52,7 +52,7 @@ import {
   isTypeEntityType,
   isTypePropertyType,
 } from "../is-of-type";
-import { useFetchLatestPropertyTypes } from "../latest-property-types-context";
+import { useRefetchPropertyTypes } from "../property-types-context";
 import { MenuItem } from "../ui";
 
 export const BulkActionsDropdown: FunctionComponent<{
@@ -84,7 +84,7 @@ export const BulkActionsDropdown: FunctionComponent<{
     onCompleted: refetchEntityTypes,
   });
 
-  const refetchPropertyTypes = useFetchLatestPropertyTypes();
+  const refetchPropertyTypes = useRefetchPropertyTypes();
 
   const [archivePropertyType] = useMutation<
     ArchivePropertyTypeMutation,
