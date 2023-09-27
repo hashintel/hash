@@ -8,7 +8,7 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Popover, styled, Typography } from "@mui/material";
+import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
@@ -168,46 +168,79 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const hasPopover =
     mention.kind === "property-value" || mention.kind === "outgoing-link";
 
+  const hasTooltip =
+    mention.kind === "property-value" || mention.kind === "outgoing-link";
+
+  const chip = (
+    <Box
+      ref={contentRef}
+      component="span"
+      onClick={hasPopover ? () => setPopoverOpen(true) : undefined}
+      sx={{
+        borderRadius: "8px",
+        background: ({ palette }) =>
+          hasPopover && popoverOpen ? palette.blue[15] : palette.common.white,
+        borderColor: ({ palette }) => palette.gray[30],
+        borderStyle: "solid",
+        borderWidth: 1,
+        py: 0.25,
+        px: 1,
+        color: ({ palette }) => palette.gray[80],
+        fontWeight: 500,
+        ...(hasPopover
+          ? {
+              cursor: "pointer",
+              "&:hover": {
+                background: ({ palette }) => palette.gray[10],
+              },
+            }
+          : {}),
+      }}
+    >
+      {loading ? (
+        "Loading..."
+      ) : (
+        <>
+          {["user", "page", "entity"].includes(mention.kind) ? (
+            <Box component="span" marginRight={0.5}>
+              {entityIcon}
+            </Box>
+          ) : null}
+          {title}
+        </>
+      )}
+    </Box>
+  );
+
   const content = (
     <>
-      <Box
-        ref={contentRef}
-        component="span"
-        onClick={hasPopover ? () => setPopoverOpen(true) : undefined}
-        sx={{
-          borderRadius: "8px",
-          background: ({ palette }) =>
-            hasPopover && popoverOpen ? palette.blue[15] : palette.common.white,
-          borderColor: ({ palette }) => palette.gray[30],
-          borderStyle: "solid",
-          borderWidth: 1,
-          py: 0.25,
-          px: 1,
-          color: ({ palette }) => palette.gray[80],
-          fontWeight: 500,
-          ...(hasPopover
-            ? {
-                cursor: "pointer",
-                "&:hover": {
-                  background: ({ palette }) => palette.gray[10],
+      {hasTooltip ? (
+        <Tooltip
+          PopperProps={{
+            modifiers: [
+              {
+                name: "offset",
+                options: {
+                  offset: [0, -5],
                 },
-              }
-            : {}),
-        }}
-      >
-        {loading ? (
-          "Loading..."
-        ) : (
-          <>
-            {["user", "page", "entity"].includes(mention.kind) ? (
-              <Box component="span" marginRight={0.5}>
-                {entityIcon}
-              </Box>
-            ) : null}
-            {title}
-          </>
-        )}
-      </Box>
+              },
+            ],
+          }}
+          title={
+            <>
+              {mention.kind === "property-value"
+                ? propertyType?.schema.title
+                : outgoingLinkType?.schema.title}{" "}
+              of {entityLabel}
+            </>
+          }
+          placement="bottom-start"
+        >
+          {chip}
+        </Tooltip>
+      ) : (
+        chip
+      )}
       {hasPopover ? (
         <Popover
           anchorEl={contentRef.current}
