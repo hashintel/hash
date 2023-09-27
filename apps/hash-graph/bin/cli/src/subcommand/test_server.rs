@@ -50,7 +50,7 @@ pub struct TestServerArgs {
     /// The secret key used to authenticate with the Spice DB server.
     #[cfg(feature = "authorization")]
     #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
-    pub spicedb_grpc_preshared_key: String,
+    pub spicedb_grpc_preshared_key: Option<String>,
 }
 
 pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
@@ -75,7 +75,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
     let authorization_api = {
         let mut spicedb_client = SpiceDbOpenApi::new(
             format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-            &args.spicedb_grpc_preshared_key,
+            args.spicedb_grpc_preshared_key.as_deref(),
         )
         .change_context(GraphError)?;
         spicedb_client

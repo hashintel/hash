@@ -456,24 +456,12 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 export const isUserHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<boolean>
-> = async (ctx, authentication, { user }) => {
+> = async (ctx, authentication, params) => {
   const hashInstance = await getHashInstance(ctx, authentication, {});
-
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: hashInstance.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-      rightEntityId: user.entity.metadata.recordId.entityId,
-    },
-  );
-
-  if (outgoingAdminLinkEntities.length > 1) {
-    throw new Error(
-      "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
-    );
-  }
-
-  return outgoingAdminLinkEntities.length === 1;
+  return ctx.graphApi
+    .canUpdateEntity(
+      params.user.accountId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then(({ data: { has_permission } }) => has_permission);
 };

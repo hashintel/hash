@@ -26,7 +26,6 @@ impl TestApi {
     ///
     /// After disconnecting every created relation will be deleted again.
     #[must_use]
-    #[allow(clippy::missing_panics_doc, clippy::print_stderr)] // Only the cleanup thread may panic
     pub fn connect() -> Self {
         let host =
             std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
@@ -36,7 +35,7 @@ impl TestApi {
             .unwrap_or_else(|_| "secret".to_owned());
 
         Self {
-            client: SpiceDbOpenApi::new(format!("{host}:{http_port}"), &key)
+            client: SpiceDbOpenApi::new(format!("{host}:{http_port}"), Some(&key))
                 .expect("failed to connect to SpiceDB"),
         }
     }

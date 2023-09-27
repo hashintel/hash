@@ -135,7 +135,7 @@ pub struct ServerArgs {
     /// The secret key used to authenticate with the Spice DB server.
     #[cfg(feature = "authorization")]
     #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
-    pub spicedb_grpc_preshared_key: String,
+    pub spicedb_grpc_preshared_key: Option<String>,
 }
 
 // TODO: Consider making this a refinery migration
@@ -400,7 +400,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     let authorization_api = {
         let mut spicedb_client = SpiceDbOpenApi::new(
             format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-            &args.spicedb_grpc_preshared_key,
+            args.spicedb_grpc_preshared_key.as_deref(),
         )
         .change_context(GraphError)?;
         spicedb_client
