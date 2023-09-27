@@ -1,3 +1,4 @@
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityRevision,
@@ -106,6 +107,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const href = useMemo(() => {
     if (entity) {
       if (mention.kind === "user" || mention.kind === "entity") {
+        if (
+          entity.metadata.entityTypeId === types.entityType.user.entityTypeId ||
+          entity.metadata.entityTypeId === types.entityType.org.entityTypeId
+        ) {
+          const shortname =
+            entity.properties[
+              extractBaseUrl(types.propertyType.shortname.propertyTypeId)
+            ];
+          return `/@${shortname}`;
+        }
         return entityHref;
       } else if (mention.kind === "page" && entityOwnerShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
