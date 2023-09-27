@@ -1,4 +1,3 @@
-import { Avatar } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import {
@@ -6,7 +5,7 @@ import {
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity } from "@local/hash-subgraph";
-import { Box, Container, Grid, Skeleton, Typography } from "@mui/material";
+import { Container, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -15,9 +14,7 @@ import { constructOrg, constructUser } from "../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { useUserOrOrg } from "../shared/use-user-or-org";
-import { getImageUrlFromEntityProperties } from "./[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
-
-const menuBarHeight = 60;
+import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
 
 export const parseProfilePageUrlQueryParams = (
   queryParams: NextParsedUrlQuery | undefined,
@@ -33,7 +30,9 @@ export const parseProfilePageUrlQueryParams = (
   return { profileShortname };
 };
 
-const Page: NextPageWithLayout = () => {
+export const leftColumnWidth = 150;
+
+const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
 
   const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
@@ -72,84 +71,27 @@ const Page: NextPageWithLayout = () => {
   const websiteUrl =
     profile && "website" in profile && sanitizeHref(profile.website);
 
-  const avatarSrc = profile?.hasAvatar
-    ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
-    : undefined;
-
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
       <Typography variant="h2">Profile not found</Typography>
     </Container>
   ) : (
     <>
-      <Box height={menuBarHeight}>{/* @todo: implement the menu-bar */}</Box>
-      <Box
-        bgcolor={({ palette }) => palette.gray[10]}
-        height={`calc(100% - ${menuBarHeight}px)`}
-      >
-        <Container>
-          <Grid container columnSpacing={5} sx={{ marginTop: 0 }}>
-            <Grid item md={3}>
-              <Box sx={{ position: "relative", top: -15 }}>
-                <Avatar
-                  bgcolor={
-                    profile ? undefined : ({ palette }) => palette.gray[20]
-                  }
-                  src={avatarSrc}
-                  title={
-                    profile
-                      ? profile.kind === "user"
-                        ? profile.preferredName
-                        : profile.name
-                      : undefined
-                  }
-                  size={225}
-                />
-              </Box>
-              <Box marginBottom={1}>
-                {profile ? (
-                  <Typography
-                    variant="h1"
-                    sx={{ fontSize: 30, fontWeight: 800 }}
-                  >
-                    {profile.kind === "user"
-                      ? profile.preferredName
-                      : profile.name}
-                  </Typography>
-                ) : (
-                  <Skeleton height={50} width={200} />
-                )}
-              </Box>
-              {profile ? (
-                <Typography
-                  sx={({ palette }) => ({
-                    color: palette.blue[70],
-                    fontSize: 20,
-                    fontWeight: 600,
-                  })}
-                >
-                  @{profile.shortname}
-                </Typography>
-              ) : (
-                <Skeleton height={30} width={150} />
-              )}
-              {websiteUrl && (
-                <Link href={websiteUrl} sx={{ mt: 1 }}>
-                  {websiteUrl.replace(/^http(s?):\/\//, "").replace(/\/$/, "")}
-                </Link>
-              )}
-            </Grid>
-            <Grid item>{/* @todo: implement the profile page bio */}</Grid>
-          </Grid>
-        </Container>
-      </Box>
+      <ProfilePageHeader profile={profile} />
+      <Container>
+        {websiteUrl && (
+          <Link href={websiteUrl} sx={{ mt: 1 }}>
+            {websiteUrl.replace(/^http(s?):\/\//, "").replace(/\/$/, "")}
+          </Link>
+        )}
+      </Container>
     </>
   );
 };
 
-Page.getLayout = (page) =>
+ProfilePage.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default Page;
+export default ProfilePage;
