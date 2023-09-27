@@ -3,8 +3,6 @@ import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
-import { getEntityOutgoingLinks } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import {
   addHashInstanceAdmin,
   getHashInstance,
@@ -15,12 +13,14 @@ import {
   isUserHashInstanceAdmin,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import {
   systemUser,
   systemUserAccountId,
 } from "@apps/hash-api/src/graph/system-user";
-import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
+import {
+  AuthenticationContext,
+  publicUserAccountId,
+} from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -64,22 +64,20 @@ describe("Hash Instance", () => {
   });
 
   let testHashInstanceAdmin: User;
+  let authentication: AuthenticationContext;
 
-  it("can add a hash instance admin", async () => {
+  it("can determine if user is hash admin", async () => {
     testHashInstanceAdmin = await createTestUser(
       graphContext,
       "hashInstTest",
       logger,
     );
+    authentication = { actorId: testHashInstanceAdmin.accountId };
 
     expect(
-      await isUserHashInstanceAdmin(
-        graphContext,
-        { actorId: systemUserAccountId },
-        {
-          user: testHashInstanceAdmin,
-        },
-      ),
+      await isUserHashInstanceAdmin(graphContext, authentication, {
+        user: testHashInstanceAdmin,
+      }),
     ).toBeFalsy();
   });
 
@@ -92,58 +90,26 @@ describe("Hash Instance", () => {
       },
     );
 
-    const authentication = { actorId: testHashInstanceAdmin.accountId };
-    const hashOutgoingAdminLinks = await getEntityOutgoingLinks(
-      graphContext,
-      authentication,
-      {
-        entityId: hashInstance.entity.metadata.recordId.entityId,
-        linkEntityTypeVersionedUrl:
-          SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-      },
-    );
-
-    expect(hashOutgoingAdminLinks).toHaveLength(1);
-
-    const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
-
     expect(
-      await getLinkEntityRightEntity(graphContext, authentication, {
-        linkEntity: hashOutgoingAdminLink!,
+      await isUserHashInstanceAdmin(graphContext, authentication, {
+        user: testHashInstanceAdmin,
       }),
-    ).toEqual(testHashInstanceAdmin.entity);
+    ).toBeTruthy();
   });
 
-  it("can determine if user is hash admin", async () => {
-    const authentication = { actorId: testHashInstanceAdmin.accountId };
-    const hasHashInstanceAdmin = await isUserHashInstanceAdmin(
+  it("can remove a hash instance admin", async () => {
+    await removeHashInstanceAdmin(
       graphContext,
-      authentication,
+      { actorId: systemUserAccountId },
       {
         user: testHashInstanceAdmin,
       },
     );
 
-    expect(hasHashInstanceAdmin).toBeTruthy();
-  });
-
-  it("can remove a hash instance admin", async () => {
-    const authentication = { actorId: systemUserAccountId };
-
-    await removeHashInstanceAdmin(graphContext, authentication, {
-      user: testHashInstanceAdmin,
-    });
-
-    const hashInstanceOutgoingAdminLinks = await getEntityOutgoingLinks(
-      graphContext,
-      authentication,
-      {
-        entityId: hashInstance.entity.metadata.recordId.entityId,
-        linkEntityTypeVersionedUrl:
-          SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-      },
-    );
-
-    expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);
+    expect(
+      await isUserHashInstanceAdmin(graphContext, authentication, {
+        user: testHashInstanceAdmin,
+      }),
+    ).toBeFalsy();
   });
 });
