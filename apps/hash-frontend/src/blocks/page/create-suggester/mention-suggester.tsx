@@ -409,7 +409,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     ],
   );
 
-  useKey(["Enter"], (event) => {
+  useKey(["Enter", "Tab"], (event) => {
     event.preventDefault();
 
     handleSubmit();
