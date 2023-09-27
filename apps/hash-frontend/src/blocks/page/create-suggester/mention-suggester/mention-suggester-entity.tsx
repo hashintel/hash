@@ -140,7 +140,10 @@ export const MentionSuggesterEntity = forwardRef<
             ) : null}
             <Box>
               <IconButton
-                onClick={() => setDisplaySubMenu(true)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDisplaySubMenu(true);
+                }}
                 sx={{
                   opacity: subMenuItems.length > 0 ? 1 : 0,
                   borderRadius: "4px",
