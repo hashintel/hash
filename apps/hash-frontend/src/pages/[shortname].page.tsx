@@ -11,11 +11,11 @@ import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import { constructOrg, constructUser } from "../../lib/user-and-org";
-import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { Link } from "../../shared/ui/link";
-import { useUserOrOrg } from "../../shared/use-user-or-org";
-import { getImageUrlFromEntityProperties } from "./entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { constructOrg, constructUser } from "../lib/user-and-org";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import { Link } from "../shared/ui/link";
+import { useUserOrOrg } from "../shared/use-user-or-org";
+import { getImageUrlFromEntityProperties } from "./[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 
 const menuBarHeight = 60;
 
