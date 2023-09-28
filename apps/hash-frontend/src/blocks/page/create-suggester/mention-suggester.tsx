@@ -70,7 +70,7 @@ export type Mention =
   | {
       kind: "property-value";
       entityId: EntityId;
-      propertyTypeId: VersionedUrl;
+      propertyTypeBaseUrl: BaseUrl;
     }
   | {
       kind: "outgoing-link";
@@ -459,10 +459,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               linkEntityTypeBaseUrl,
             });
           } else {
+            const propertyTypeBaseUrl = extractBaseUrl(
+              selectedSubMenuItem.propertyType.schema.$id,
+            );
+
             onChange({
               kind: "property-value",
               entityId,
-              propertyTypeId: selectedSubMenuItem.propertyType.schema.$id,
+              propertyTypeBaseUrl,
             });
           }
         } else if (entityTypeId === types.entityType.page.entityTypeId) {

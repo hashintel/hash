@@ -2,7 +2,6 @@ import {
   DataType,
   EntityType,
   PropertyType,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { BaseUrl, EntityId } from "@local/hash-subgraph";
 
@@ -27,7 +26,7 @@ export type TextToken =
         | "property-value"
         | "outgoing-link";
       entityId: EntityId;
-      propertyTypeId?: VersionedUrl;
+      propertyTypeBaseUrl?: BaseUrl;
       linkEntityTypeBaseUrl?: BaseUrl;
     };
 

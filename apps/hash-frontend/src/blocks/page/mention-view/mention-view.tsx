@@ -33,7 +33,7 @@ export class MentionView implements NodeView {
         mention={{
           kind: node.attrs.mentionType,
           entityId: node.attrs.entityId,
-          propertyTypeId: node.attrs.propertyTypeId,
+          propertyTypeBaseUrl: node.attrs.propertyTypeBaseUrl,
           linkEntityTypeBaseUrl: node.attrs.linkEntityTypeBaseUrl,
         }}
       />,

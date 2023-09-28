@@ -98,7 +98,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       return targetEntityLabel;
     } else {
-      const propertyTypeBaseUrl = extractBaseUrl(mention.propertyTypeId);
+      const propertyTypeBaseUrl = mention.propertyTypeBaseUrl;
 
       const propertyValue = entity?.properties[propertyTypeBaseUrl];
 
@@ -141,13 +141,28 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
   const entityIcon = useEntityIcon({ entity });
 
-  const propertyType = useMemo(
-    () =>
-      mention.kind === "property-value" && entitySubgraph
-        ? getPropertyTypeById(entitySubgraph, mention.propertyTypeId)
-        : undefined,
-    [entitySubgraph, mention],
-  );
+  const propertyType = useMemo(() => {
+    if (mention.kind === "property-value" && entityType && entitySubgraph) {
+      const { propertyTypeBaseUrl } = mention;
+
+      const entityTypePropertySchemaValue = Object.entries(
+        entityType.schema.properties,
+      ).find(([key]) => key === propertyTypeBaseUrl)?.[1];
+
+      if (!entityTypePropertySchemaValue) {
+        throw new Error(
+          `Could not find property with base URL link entity with base url ${propertyTypeBaseUrl} on entity type with ID ${entityType.schema.$id}`,
+        );
+      }
+
+      const propertyTypeId =
+        "items" in entityTypePropertySchemaValue
+          ? entityTypePropertySchemaValue.items.$ref
+          : entityTypePropertySchemaValue.$ref;
+
+      return getPropertyTypeById(entitySubgraph, propertyTypeId);
+    }
+  }, [entitySubgraph, mention, entityType]);
 
   const outgoingLinkType = useMemo(() => {
     if (mention.kind === "outgoing-link" && entityType && entitySubgraph) {
@@ -161,7 +176,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       if (!linkEntityTypeId) {
         throw new Error(
-          `Could not find outgoing link entity with base url ${linkEntityTypeBaseUrl}`,
+          `Could not find outgoing link entity with base URL ${linkEntityTypeBaseUrl}`,
         );
       }
 

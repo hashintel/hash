@@ -46,19 +46,23 @@ export const mentionNode: NodeSpec = {
   attrs: {
     mentionType: { default: null },
     entityId: { default: null },
-    propertyTypeId: { default: null },
+    propertyTypeBaseUrl: { default: null },
     linkEntityTypeBaseUrl: { default: null },
   },
   toDOM: (node) => {
-    const { mentionType, entityId, propertyTypeId, linkEntityTypeBaseUrl } =
-      node.attrs;
+    const {
+      mentionType,
+      entityId,
+      propertyTypeBaseUrl,
+      linkEntityTypeBaseUrl,
+    } = node.attrs;
     return [
       "span",
       {
         "data-hash-type": "mention",
         "data-mention-type": mentionType,
         "data-entity-id": entityId,
-        "data-property-type-id": propertyTypeId,
+        "data-property-type-base-url": propertyTypeBaseUrl,
         "data-link-entity-type-base-url": linkEntityTypeBaseUrl,
       },
     ];
@@ -70,8 +74,8 @@ export const mentionNode: NodeSpec = {
         return {
           mentionType: (dom as Element).getAttribute("data-mention-type"),
           entityId: (dom as Element).getAttribute("data-entity-id"),
-          propertyTypeId: (dom as Element).getAttribute(
-            "data-property-type-id",
+          propertyTypeBaseUrl: (dom as Element).getAttribute(
+            "data-property-type-base-url",
           ),
           linkEntityTypeBaseUrl: (dom as Element).getAttribute(
             "data-link-entity-type-base-url",
