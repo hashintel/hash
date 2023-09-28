@@ -8,6 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  BaseUrl,
   Entity,
   EntityId,
   EntityRootType,
@@ -20,6 +21,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import {
   Fragment,
@@ -73,7 +75,7 @@ export type Mention =
   | {
       kind: "outgoing-link";
       entityId: EntityId;
-      linkEntityId: EntityId;
+      linkEntityTypeBaseUrl: BaseUrl;
     };
 
 export type MentionKind = Mention["kind"];
@@ -447,11 +449,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           : undefined;
         if (selectedSubMenuItem) {
           if (selectedSubMenuItem.kind === "outgoing-link") {
+            const linkEntityTypeBaseUrl = extractBaseUrl(
+              selectedSubMenuItem.linkEntity.metadata.entityTypeId,
+            );
+
             onChange({
               kind: "outgoing-link",
               entityId,
-              linkEntityId:
-                selectedSubMenuItem.linkEntity.metadata.recordId.entityId,
+              linkEntityTypeBaseUrl,
             });
           } else {
             onChange({

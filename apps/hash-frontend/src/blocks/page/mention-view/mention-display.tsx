@@ -1,7 +1,7 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
-  getEntityRevision,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeById,
@@ -84,8 +84,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         entityId,
       ).find(
         ({ linkEntity: linkEntityRevisions }) =>
-          linkEntityRevisions[0]?.metadata.recordId.entityId ===
-          mention.linkEntityId,
+          linkEntityRevisions[0] &&
+          extractBaseUrl(linkEntityRevisions[0].metadata.entityTypeId) ===
+            mention.linkEntityTypeBaseUrl,
       );
 
       const targetEntity = outgoingLinkAndTargetEntities?.rightEntity[0];
@@ -149,21 +150,24 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   );
 
   const outgoingLinkType = useMemo(() => {
-    if (mention.kind === "outgoing-link" && entitySubgraph) {
-      const linkEntity = getEntityRevision(
-        entitySubgraph,
-        mention.linkEntityId,
+    if (mention.kind === "outgoing-link" && entityType && entitySubgraph) {
+      const { linkEntityTypeBaseUrl } = mention;
+      const linkEntityTypeId = (
+        Object.keys(entityType.schema.links ?? {}) as VersionedUrl[]
+      ).find(
+        (outgoingLinkEntityTypeId) =>
+          extractBaseUrl(outgoingLinkEntityTypeId) === linkEntityTypeBaseUrl,
       );
 
-      const linkEntityTypeId = linkEntity?.metadata.entityTypeId;
+      if (!linkEntityTypeId) {
+        throw new Error(
+          `Could not find outgoing link entity with base url ${linkEntityTypeBaseUrl}`,
+        );
+      }
 
-      const linkEntityType = linkEntityTypeId
-        ? getEntityTypeById(entitySubgraph, linkEntityTypeId)
-        : undefined;
-
-      return linkEntityType;
+      return getEntityTypeById(entitySubgraph, linkEntityTypeId);
     }
-  }, [entitySubgraph, mention]);
+  }, [entitySubgraph, mention, entityType]);
 
   const hasPopover =
     mention.kind === "property-value" || mention.kind === "outgoing-link";

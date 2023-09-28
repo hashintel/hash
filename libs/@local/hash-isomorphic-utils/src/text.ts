@@ -19,7 +19,7 @@ export const textBlockNodesFromTokens = (
           mentionType: token.mentionType,
           entityId: token.entityId,
           propertyTypeId: token.propertyTypeId,
-          linkEntityId: token.linkEntityId,
+          linkEntityTypeBaseUrl: token.linkEntityTypeBaseUrl,
         });
       case "text": {
         return schema.text(
@@ -71,7 +71,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           mentionType: child.attrs.mentionType,
           entityId: child.attrs.entityId,
           propertyTypeId: child.attrs.propertyTypeId,
-          linkEntityId: child.attrs.linkEntityId,
+          linkEntityTypeBaseUrl: child.attrs.linkEntityTypeId,
         });
         break;
       }

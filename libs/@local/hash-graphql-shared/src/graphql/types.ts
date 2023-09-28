@@ -4,7 +4,7 @@ import {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
-import { EntityId } from "@local/hash-subgraph";
+import { BaseUrl, EntityId } from "@local/hash-subgraph";
 
 export type TextToken =
   | {
@@ -28,7 +28,7 @@ export type TextToken =
         | "outgoing-link";
       entityId: EntityId;
       propertyTypeId?: VersionedUrl;
-      linkEntityId?: EntityId;
+      linkEntityTypeBaseUrl?: BaseUrl;
     };
 
 const fakeXPropertyBaseUrl =
