@@ -3,8 +3,12 @@
 from typing import Any
 
 from pydantic import BaseModel, Extra, Field
+from temporalio import workflow
 
 from app import AuthenticationContext
+
+with workflow.unsafe.imports_passed_through():
+    from graph_types.base import EntityType
 
 
 class ProposedEntity(BaseModel, extra=Extra.forbid):
@@ -12,6 +16,10 @@ class ProposedEntity(BaseModel, extra=Extra.forbid):
 
     entity_type_id: str = Field(..., alias="entityTypeId")
     properties: Any
+
+    def validate_entity_type(self, entity_type: type[EntityType]) -> None:
+        """Validates the proposed entity against the given entity type."""
+        entity_type(**self.properties)
 
 
 class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):

@@ -1,6 +1,7 @@
 # WARNING: this module has to be passed through
 #   `workflow.unsafe.imports_passed_through()`, otherwise error handling will not work!
 
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any, Generic, TypeVar
 
@@ -50,9 +51,9 @@ class Status(Generic[D], BaseModel, extra=Extra.forbid):
 
     Where possible, this should provide guiding advice for debugging and/or handling the
     error."""
-    contents: list[D] = Field(default_factory=list)
+    contents: Sequence[D] = Field(default_factory=list)
 
-    def into_contents(self) -> list[D]:
+    def into_contents(self) -> Sequence[D]:
         """Converts this status into the contents if the status is OK."""
         if self.code != StatusCode.OK:
             raise StatusError(self)
