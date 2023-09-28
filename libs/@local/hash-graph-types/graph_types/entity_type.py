@@ -3,6 +3,7 @@
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Literal,
     Never,
     cast,
@@ -17,6 +18,7 @@ from pydantic import (
 )
 from slugify import slugify
 
+from ._cache import Cache
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
 from .base import EntityType, EntityTypeInfo
 from .property_type import PropertyTypeReference
@@ -27,10 +29,21 @@ if TYPE_CHECKING:
 __all__ = ["EntityTypeSchema", "EntityTypeReference"]
 
 
+async def fetch_model(
+    ref: str,
+    *,
+    actor_id: UUID,
+    graph: "GraphAPIProtocol",
+) -> type[EntityType]:
+    schema = await graph.get_entity_type(ref, actor_id=actor_id)
+    return await schema.create_model(actor_id=actor_id, graph=graph)
+
+
 class EntityTypeReference(Schema):
     """A reference to an entity type schema."""
 
     ref: str = Field(..., alias="$ref")
+    cache: ClassVar[Cache[type[EntityType]]] = Cache()
 
     async def create_model(
         self,
@@ -39,8 +52,10 @@ class EntityTypeReference(Schema):
         graph: "GraphAPIProtocol",
     ) -> type[EntityType]:
         """Creates a model from the referenced entity type schema."""
-        schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
+        return await self.cache.get(
+            self.ref,
+            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
+        )
 
 
 class EmptyDict(Schema):
