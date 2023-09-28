@@ -40,6 +40,7 @@ ignore = [
     "FIX002", # TODOs should be fixed, not removed
     "TD002", # We don't add authors to TODO strings
     "PLC0414", # Conflicts with `no_implicit_reexport = true`
+    "ERA001", # Commented out code is not necessarily an error
 ]
 
 target-version = "py311"

@@ -1,4 +1,4 @@
-"""Temporal activities available to workflows."""
+"""Activity for inferring entities from a prompt."""
 
 from temporalio import activity
 
@@ -9,14 +9,19 @@ from . import (
     ProposedEntity,
 )
 
+__all__ = [
+    "infer_entities",
+]
+
 
 @activity.defn(name="inferEntities")
 async def infer_entities(
-    params: InferEntitiesActivityParameter,
+    _params: InferEntitiesActivityParameter,
 ) -> Status[ProposedEntity]:
     """Completes a prompt using the OpenAI API."""
-    print(params.model_dump_json(by_alias=True, indent=2))
-    return Status(
+    status: Status[ProposedEntity] = Status(
         code=StatusCode.UNIMPLEMENTED,
         message="Entity inference is not yet implemented.",
+        contents=[],
     )
+    return status

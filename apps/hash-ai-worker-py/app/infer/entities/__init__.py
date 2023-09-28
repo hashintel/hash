@@ -1,17 +1,10 @@
+"""Entity inference based on text."""
+
 from typing import Any
-from uuid import UUID
 
 from pydantic import BaseModel, Extra, Field
-from temporalio import workflow
 
-with workflow.unsafe.imports_passed_through():
-    pass
-
-
-class AuthenticationContext(BaseModel, extra=Extra.forbid):
-    """Context to hold information to authenticate a user."""
-
-    actor_id: UUID = Field(..., alias="actorId")
+from app import AuthenticationContext
 
 
 class ProposedEntity(BaseModel, extra=Extra.forbid):

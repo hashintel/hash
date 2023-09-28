@@ -1,146 +1,45 @@
-"""Temporal workflow definitions."""
+"""Workflow for inferring entities from the provided text input."""
+
 import asyncio
 from datetime import timedelta
 from typing import Any
-from uuid import UUID
 
 from temporalio import workflow
 
-from app._status import Status, StatusCode
+from app import AuthenticationContext
+from app.ontology import GetClosedEntityTypeWorkflowParameter
 
 from . import (
-    AuthenticationContext,
     InferEntitiesActivityParameter,
     InferEntitiesWorkflowParameter,
     ProposedEntity,
 )
 
 with workflow.unsafe.imports_passed_through():
-    from graph_types import (
-        DataTypeSchema,
-        EntityTypeReference,
-        EntityTypeSchema,
-        PropertyTypeSchema,
-    )
+    from app._status import Status, StatusCode, StatusError
 
-
-class StatusError(RuntimeError):
-    """Error raised when a status code is not OK."""
-
-    def __init__(self, status: Status[Any]) -> None:
-        """Initializes the status error."""
-        self.status = status
-        super().__init__(status.message)
-
-
-class GraphApiWorkflow:
-    """Defines the interface for a graph API."""
-
-    async def get_data_type(
-        self,
-        data_type_id: str,
-        *,
-        actor_id: UUID,
-    ) -> DataTypeSchema:
-        """Returns the data type schema for the given data type ID.
-
-        If the data type is not found it will attempt to fetch it and use
-        the actor ID to authenticate the request.
-        """
-        status = Status(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getDataType",
-                    arg={
-                        "dataTypeId": data_type_id,
-                        "authentication": {"actorId": actor_id},
-                    },
-                )
-            ),
-        )
-
-        if status.code != StatusCode.OK:
-            raise StatusError(status)
-
-        return DataTypeSchema(
-            **(status.contents[0]["schema"]),
-        )
-
-    async def get_property_type(
-        self,
-        property_type_id: str,
-        *,
-        actor_id: UUID,
-    ) -> PropertyTypeSchema:
-        """Returns the property type schema for the given property type ID.
-
-        If the property type is not found it will attempt to fetch it and use
-        the actor ID to authenticate the request.
-        """
-        status = Status(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getPropertyType",
-                    arg={
-                        "propertyTypeId": property_type_id,
-                        "authentication": {"actorId": actor_id},
-                    },
-                )
-            ),
-        )
-
-        if status.code != StatusCode.OK:
-            raise StatusError(status)
-
-        return PropertyTypeSchema(
-            **(status.contents[0]["schema"]),
-        )
-
-    async def get_entity_type(
-        self,
-        entity_type_id: str,
-        *,
-        actor_id: UUID,
-    ) -> EntityTypeSchema:
-        """Returns the entity type schema for the given entity type ID.
-
-        If the entity type is not found it will attempt to fetch it and use
-        the actor ID to authenticate the request.
-        """
-        status = Status(
-            **(
-                await workflow.execute_child_workflow(
-                    task_queue="ai",
-                    workflow="getEntityType",
-                    arg={
-                        "entityTypeId": entity_type_id,
-                        "authentication": {"actorId": actor_id},
-                    },
-                )
-            ),
-        )
-
-        if status.code != StatusCode.OK:
-            raise StatusError(status)
-
-        return EntityTypeSchema(
-            **(status.contents[0]["schema"]),
-        )
+__all__ = [
+    "InferEntitiesWorkflow",
+]
 
 
 async def get_closed_entity_type(
     authentication: AuthenticationContext,
     entity_type_id: str,
 ) -> dict[str, Any]:
-    model = await EntityTypeReference(
-        **{"$ref": entity_type_id},
-    ).create_model(
-        actor_id=authentication.actor_id,
-        graph=GraphApiWorkflow(),
+    # TODO: Figure out how to pass the workflow function to gain type safety.
+    #   https://linear.app/hash/issue/H-875
+    # from app.ontology.workflow import GetClosedEntityTypeWorkflow
+    status: Status[dict[str, Any]] = Status(
+        **await workflow.execute_child_workflow(
+            "getClosedEntityType",
+            GetClosedEntityTypeWorkflowParameter(
+                authentication=authentication,
+                entityTypeId=entity_type_id,
+            ),
+        ),
     )
-    return model.model_json_schema(by_alias=True)
+    return status.into_content()
 
 
 @workflow.defn(name="inferEntities")
@@ -169,7 +68,10 @@ class InferEntitiesWorkflow:
         except StatusError as error:
             return error.status
 
-        return await workflow.execute_activity(
+        # TODO: Figure out how to pass `infer_entities` as function to gain type safety.
+        #   https://linear.app/hash/issue/H-875
+        # from app.infer.entities.activity import infer_entities
+        status: Status[ProposedEntity] = await workflow.execute_activity(
             "inferEntities",
             InferEntitiesActivityParameter(
                 textInput=params.text_input,
@@ -177,3 +79,4 @@ class InferEntitiesWorkflow:
             ),
             start_to_close_timeout=timedelta(minutes=1),
         )
+        return status
