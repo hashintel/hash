@@ -14,7 +14,7 @@ aiohttp = "^3.8"
 python = "^3.11"
 python-dotenv = "^1.0"
 openai = "^0.27.8"
-temporalio = "^1.2"
+temporalio = "^1.3.0"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.2.2"
