@@ -27,7 +27,7 @@ import { useKey } from "rooks";
 import { useScrollLock } from "../../../components/grid/utils/override-custom-renderers/use-scroll-lock";
 import { useQueryEntities } from "../../../components/hooks/use-query-entities";
 import { generateEntityLabel } from "../../../lib/entities";
-import { useLatestPropertyTypes } from "../../../shared/latest-property-types-context";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import {
   MentionSuggesterEntity,
@@ -83,7 +83,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { propertyTypes } = useLatestPropertyTypes();
+  const { propertyTypes } = usePropertyTypes();
 
   const [selectedEntityIndex, setSelectedEntityIndex] = useState(0);
 
@@ -488,6 +488,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                             : [...prev, entityTypeId],
                         )
                       }
+                      open={isExpanded}
                     >
                       {entityType.schema.title}
                     </MentionSuggesterSubheading>

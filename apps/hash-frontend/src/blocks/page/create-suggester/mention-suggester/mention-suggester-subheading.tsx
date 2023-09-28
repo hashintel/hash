@@ -15,8 +15,9 @@ export const MentionSuggesterSubheading: FunctionComponent<
     onClick?: () => void;
     chevronDirection?: "right" | "left";
     disabled?: boolean;
+    open?: boolean;
   }
-> = ({ children, onClick, chevronDirection = "right", disabled }) => {
+> = ({ children, onClick, chevronDirection = "right", disabled, open }) => {
   const content = (
     <ListItemText
       sx={[
@@ -27,12 +28,12 @@ export const MentionSuggesterSubheading: FunctionComponent<
             color: ({ palette }) => palette.gray[60],
             textTransform: "uppercase",
           },
-          "&:hover svg": {
-            "&.chevron-left": {
-              right: 4,
+          "&:hover": {
+            [`& .${listItemTextClasses.primary}`]: {
+              color: ({ palette }) => palette.gray[80],
             },
-            "&.chevron-right": {
-              left: 4,
+            svg: {
+              color: ({ palette }) => palette.gray[80],
             },
           },
         },
@@ -61,7 +62,8 @@ export const MentionSuggesterSubheading: FunctionComponent<
             top: 1,
             left: 0,
             marginLeft: 1,
-            transition: ({ transitions }) => transitions.create("left"),
+            transition: ({ transitions }) => transitions.create("transform"),
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
           }}
         />
       ) : null}
