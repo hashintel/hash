@@ -78,7 +78,7 @@ jobs:
 
       - name: Install tools
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
-        uses: taiki-e/install-action@0087e57cc32309b88e642e6fd964bafa2c563504 # v2.18.17
+        uses: taiki-e/install-action@e07b619ce2f1b995233833f3582c6e72d0a50127 # v2.19.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,rust-script@0.23.0,cargo-semver-checks
 
