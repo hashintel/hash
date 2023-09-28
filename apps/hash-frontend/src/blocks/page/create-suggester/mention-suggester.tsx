@@ -3,6 +3,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -132,13 +133,21 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     variables: {
       query: {
         filter: {
-          all: [
+          any: [
             {
               equal: [
                 { path: ["ownedById"] },
                 { parameter: authenticatedUser.accountId },
               ],
             },
+            generateVersionedUrlMatchingFilter(
+              types.entityType.user.entityTypeId,
+              { ignoreParents: true },
+            ),
+            generateVersionedUrlMatchingFilter(
+              types.entityType.org.entityTypeId,
+              { ignoreParents: true },
+            ),
           ],
         },
         graphResolveDepths: {
