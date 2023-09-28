@@ -18,6 +18,18 @@ export const isTypeArchived = (
   type.metadata.custom.temporalVersioning.transactionTime.end.kind ===
   "exclusive";
 
+export const isPageArchived = (pageEntity: Entity) => {
+  if (!isEntityPageEntity(pageEntity)) {
+    throw new Error("Not a page entity");
+  }
+
+  return (
+    (pageEntity.properties[
+      extractBaseUrl(types.propertyType.archived.propertyTypeId)
+    ] as boolean | undefined) ?? false
+  );
+};
+
 export const isItemArchived = (
   item:
     | Entity
@@ -28,9 +40,7 @@ export const isItemArchived = (
   if (isType(item)) {
     return isTypeArchived(item);
   } else if (isEntityPageEntity(item)) {
-    return item.properties[
-      extractBaseUrl(types.propertyType.archived.propertyTypeId)
-    ] as boolean;
+    return isPageArchived(item);
   }
   return false;
 };

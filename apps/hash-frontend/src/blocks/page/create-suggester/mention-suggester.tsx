@@ -1,11 +1,18 @@
+import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityId,
+  EntityRootType,
   EntityTypeWithMetadata,
   OwnedById,
+  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
@@ -25,8 +32,15 @@ import {
 import { useKey } from "rooks";
 
 import { useScrollLock } from "../../../components/grid/utils/override-custom-renderers/use-scroll-lock";
-import { useQueryEntities } from "../../../components/hooks/use-query-entities";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { generateEntityLabel } from "../../../lib/entities";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
+import { isPageArchived } from "../../../shared/is-archived";
+import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import {
@@ -82,6 +96,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   onChange,
   ownedById: _ownedById,
 }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { propertyTypes } = usePropertyTypes();
@@ -110,12 +125,38 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     [selectedEntityIndex],
   );
 
-  const { entitiesSubgraph, loading: loadingEntities } = useQueryEntities({
-    graphResolveDepths: {
-      hasLeftEntity: { outgoing: 1, incoming: 1 },
-      hasRightEntity: { outgoing: 1, incoming: 1 },
+  const { data, loading: loadingEntities } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: authenticatedUser.accountId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
     },
+    fetchPolicy: "cache-and-network",
   });
+
+  const entitiesSubgraph = data?.structuralQueryEntities as
+    | Subgraph<EntityRootType>
+    | undefined;
 
   const searchedEntities = useMemo(
     () =>
@@ -148,6 +189,13 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       entitiesSubgraph
         ? searchedEntities
             ?.reduce((prev, currentEntity) => {
+              if (
+                isEntityPageEntity(currentEntity) &&
+                isPageArchived(currentEntity)
+              ) {
+                return prev;
+              }
+
               const existingIndex = prev.findIndex(
                 ({ entityType }) =>
                   entityType.schema.$id === currentEntity.metadata.entityTypeId,
