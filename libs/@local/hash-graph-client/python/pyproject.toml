@@ -15,7 +15,7 @@ httpx = "^0.24.1"
 yarl = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
-setuptools = "^68.0.0"
+setuptools = "^68.2.2"
 datamodel-code-generator = "^0.22.0"
 
 [tool.poetry.group.lint-tools.dependencies]

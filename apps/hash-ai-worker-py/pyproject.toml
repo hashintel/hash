@@ -17,7 +17,7 @@ openai = "^0.27.8"
 temporalio = "^1.2"
 
 [tool.poetry.group.dev.dependencies]
-setuptools = "^68.0.0"
+setuptools = "^68.2.2"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"
