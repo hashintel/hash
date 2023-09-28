@@ -11,7 +11,7 @@ packages = [{ include = "graph_client" }]
 python = "^3.11"
 
 pydantic = "^2.4.2"
-httpx = "^0.24.1"
+httpx = "^0.25.0"
 yarl = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
