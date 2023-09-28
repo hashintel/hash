@@ -240,13 +240,13 @@ files = [
 
 [[package]]
 name = "datamodel-code-generator"
-version = "0.21.3"
+version = "0.22.0"
 description = "Datamodel Code Generator"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "datamodel_code_generator-0.21.3-py3-none-any.whl", hash = "sha256:42b4fbf167a2352d5b7e5ee83dd57f0999683a0ebcac3b97f26c3ac135198957"},
-    {file = "datamodel_code_generator-0.21.3.tar.gz", hash = "sha256:a8f05509b7632d18f3f4bfa8a313769cbe0754dac3715d25d26c71d2c0d2e0d4"},
+    {file = "datamodel_code_generator-0.22.0-py3-none-any.whl", hash = "sha256:5cf8fc4fb6fe7aa750595a558cd4fcd43e36e862f40b0fa4cc123b4548b16a1e"},
+    {file = "datamodel_code_generator-0.22.0.tar.gz", hash = "sha256:73ebcefa498e39d0f210923856cb4a498bacc3b7bdea140cca7324e25f5c581b"},
 ]
 
 [package.dependencies]
@@ -256,7 +256,7 @@ genson = ">=1.2.1,<2.0"
 inflect = ">=4.1.0,<6.0"
 isort = ">=4.3.21,<6.0"
 jinja2 = ">=2.10.1,<4.0"
-openapi-spec-validator = ">=0.2.8,<=0.5.2"
+openapi-spec-validator = ">=0.2.8,<=0.5.7"
 packaging = "*"
 prance = ">=0.18.2"
 pydantic = {version = ">=1.10.0,<3.0", extras = ["email"], markers = "python_version >= \"3.11\" and python_version < \"4.0\""}
@@ -1360,4 +1360,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "886c774fa6dfe01cc9210196829f28c0cdd87128e376c62514fe1bc258846269"
+content-hash = "a224455923137ea4a5637e554e3944301320f48e5e4c901aa0df11be4c10839d"
