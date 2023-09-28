@@ -1,5 +1,5 @@
-# WARNING: this module has to be passed through `workflow.unsafe.imports_passed_through()`,
-#          otherwise error handling will not work!
+# WARNING: this module has to be passed through
+#   `workflow.unsafe.imports_passed_through()`, otherwise error handling will not work!
 
 from enum import Enum
 from typing import Any, Generic, TypeVar
