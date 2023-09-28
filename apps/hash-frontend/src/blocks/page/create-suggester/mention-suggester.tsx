@@ -479,6 +479,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   return (
     <MentionSuggesterWrapper sx={{}} ref={wrapperRef}>
       <List sx={{ "> :first-child": { paddingTop: 0 } }}>
+        <MentionSuggesterSubheading disabled={displayEntitySubMenu}>
+          Recently Used
+        </MentionSuggesterSubheading>
         {loadingEntities && !entitiesSubgraph ? (
           <ListItem>
             <ListItemIcon sx={{ minWidth: "unset" }}>
@@ -487,9 +490,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             <ListItemText>Loading</ListItemText>
           </ListItem>
         ) : null}
-        <MentionSuggesterSubheading disabled={displayEntitySubMenu}>
-          Recently Used
-        </MentionSuggesterSubheading>
         {entitiesSubgraph
           ? recentlyUsedEntities?.map((entity, index) => {
               const selected = index === selectedEntityIndex;
