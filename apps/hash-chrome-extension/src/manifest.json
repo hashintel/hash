@@ -4,8 +4,7 @@
   "description": "A Chrome extension for gathering info from the web into your HASH account.",
   "options_page": "options.html",
   "background": { "service_worker": "background.bundle.js" },
-  "host_permissions": ["*://*.hash.ai/", "*://hash.ai/"],
-  "permissions": ["activeTab", "cookies", "scripting", "tabs"],
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_icon": "icon-256.png",
     "default_popup": "popup.html",

@@ -1,0 +1,32 @@
+body {
+  background-color: #0e1114;
+  color: white;
+  font-family: "Helvetica", "Arial", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: #199bef;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+
+  &:hover {
+    color: #7acafa;
+  }
+}
+
+button {
+  padding: 10px 20px;
+  background: #199bef;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease-in-out;
+
+  &:hover {
+    background: #7acafa;
+  }
+}

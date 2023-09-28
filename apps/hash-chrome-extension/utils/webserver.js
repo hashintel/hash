@@ -3,44 +3,47 @@ process.env.BABEL_ENV = "development";
 process.env.NODE_ENV = "development";
 process.env.ASSET_PATH = "/";
 
-var WebpackDevServer = require("webpack-dev-server"),
-  webpack = require("webpack"),
-  config = require("../webpack.config"),
-  env = require("./env"),
-  path = require("path");
+const WebpackDevServer = require("webpack-dev-server");
+const webpack = require("webpack");
+const path = require("node:path");
+const config = require("../webpack.config");
+const env = require("./env");
 
-var options = config.chromeExtensionBoilerplate || {};
-var excludeEntriesToHotReload = options.notHotReload || [];
+const options = config.chromeExtensionBoilerplate || {};
+const excludeEntriesToHotReload = options.notHotReload || [];
 
-for (var entryName in config.entry) {
+// Set hot entry points manually
+for (const entryName in config.entry) {
   if (excludeEntriesToHotReload.indexOf(entryName) === -1) {
+    // Enable HMR for all entries except those in the "notHMR" list
+    // See "Manual entry points" in https://webpack.js.org/guides/hot-module-replacement/#enabling-hmr
     config.entry[entryName] = [
-      "webpack/hot/dev-server",
-      `webpack-dev-server/client?hot=true&hostname=localhost&port=${env.PORT}`,
+      "webpack/hot/dev-server.js",
+      `webpack-dev-server/client/index.js?hot=true&hostname=localhost&port=${env.PORT}`,
     ].concat(config.entry[entryName]);
   }
 }
 
+// Add HotModuleReplacementPlugin to plugin list
+config.plugins = [new webpack.HotModuleReplacementPlugin({})].concat(
+  config.plugins || [],
+);
+
 delete config.chromeExtensionBoilerplate;
 
-var compiler = webpack(config);
+const compiler = webpack(config);
 
-var server = new WebpackDevServer(
+const server = new WebpackDevServer(
   {
     https: false,
-    hot: true,
+    hot: false,
     liveReload: false,
-    client: {
-      webSocketTransport: "sockjs",
-    },
-    webSocketServer: "sockjs",
-    host: "localhost",
+    client: false,
     port: env.PORT,
     static: {
       directory: path.join(__dirname, "../build"),
     },
     devMiddleware: {
-      publicPath: `http://localhost:${env.PORT}/`,
       writeToDisk: true,
     },
     headers: {
