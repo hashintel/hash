@@ -6,8 +6,8 @@ import { HashWordmark } from "../shared/hash-wordmark";
 /**
  * This can be used for onboarding instructions, and for user preferences.
  *
- * Preferences should be persisted using chrome.storage.sync
- * @see https://developer.chrome.com/docs/extensions/reference/storage/
+ * Preferences should be persisted using browser.storage.sync
+ * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
 export const Options = () => {
   return (

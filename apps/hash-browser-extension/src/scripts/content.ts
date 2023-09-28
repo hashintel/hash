@@ -1,19 +1,19 @@
 /**
  * Content scripts operate in the context of the webpage itself, for reading and manipulating context.
  *
- * They have access to a limited set of Chrome extension APIs
- * @see https://developer.chrome.com/docs/extensions/mv3/content_scripts/
+ * They have access to a limited set of browser APIs
+ * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts
  *
  * The relevant window is the web page itself, e.g. any logs will appear in the web page's console.
  *
- * You must click 'Update' in chrome://extensions if you modify this file.
+ * You must update the extension if you amend this file.
  */
 
 import { Message } from "../shared/messages";
 
 console.log("Content script loaded");
 
-chrome.runtime.onMessage.addListener(
+browser.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
     if (message.type === "get-site-content") {
       const docContent =

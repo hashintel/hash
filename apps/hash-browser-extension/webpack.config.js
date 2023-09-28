@@ -84,7 +84,20 @@ const options = {
       },
       {
         test: /\.html$/,
-        loader: "html-loader",
+        use: {
+          loader: "html-loader",
+          options: {
+            sources: {
+              urlFilter: (attribute, value) => {
+                if (/browser-polyfill.js$/.test(value)) {
+                  return false;
+                }
+
+                return true;
+              },
+            },
+          },
+        },
         exclude: /node_modules/,
       },
       {
@@ -135,6 +148,13 @@ const options = {
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     new webpack.EnvironmentPlugin(["NODE_ENV"]),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "../../node_modules/webextension-polyfill/dist/browser-polyfill.js",
+        },
+      ],
+    }),
     new CopyWebpackPlugin({
       patterns: [
         {

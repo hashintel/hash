@@ -9,6 +9,7 @@ import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useEffect, useState } from "react";
+import browser, { Tabs } from "webextension-polyfill";
 
 import { Message } from "../../shared/messages";
 
@@ -57,8 +58,8 @@ const getMe = () => {
 const getCurrentTab = async () => {
   const queryOptions = { active: true, lastFocusedWindow: true };
   // `tab` will either be a `tabs.Tab` instance or `undefined`
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const [tab] = (await chrome.tabs?.query(queryOptions)) ?? [];
+
+  const [tab] = await browser.tabs.query(queryOptions);
   return tab;
 };
 
@@ -70,7 +71,7 @@ const getCurrentTab = async () => {
 export const Popup = () => {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<Simplified<User> | null>(null);
-  const [activeTab, setActiveTab] = useState<chrome.tabs.Tab | null>(null);
+  const [activeTab, setActiveTab] = useState<Tabs.Tab | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -91,7 +92,7 @@ export const Popup = () => {
 
   const isHash = ["app.hash.ai", "hash.ai"].includes(tabHost as string);
 
-  const requestSiteContent = () => {
+  const requestSiteContent = async () => {
     if (!activeTab?.id) {
       throw new Error("No active tab");
     }
@@ -100,12 +101,15 @@ export const Popup = () => {
       type: "get-site-content",
     };
 
-    chrome.tabs.sendMessage(activeTab.id, message, (siteContent) =>
-      console.log("Site content:\n", siteContent),
-    );
+    const response = (await browser.tabs.sendMessage(
+      activeTab.id,
+      message,
+    )) as Promise<string>;
+
+    console.log({ response });
   };
 
-  const optionsUrl = chrome.runtime.getURL("options.html");
+  const optionsUrl = browser.runtime.getURL("options.html");
 
   return (
     <div className="popup">
