@@ -1,3 +1,6 @@
+# WARNING: this module has to be passed through `workflow.unsafe.imports_passed_through()`,
+#          otherwise error handling will not work!
+
 from enum import Enum
 from typing import Any, Generic, TypeVar
 
@@ -60,6 +63,8 @@ class Status(Generic[D], BaseModel, extra=Extra.forbid):
         return self.into_contents()[0]
 
 
+# WARNING: this has to be passed through `workflow.unsafe.imports_passed_through()`,
+#          otherwise error handling will not work!
 class StatusError(RuntimeError):
     """Error raised when a status code is not OK."""
 

@@ -16,6 +16,8 @@ from . import (
 )
 
 with workflow.unsafe.imports_passed_through():
+    # WARNING: this has to be passed through `workflow.unsafe.imports_passed_through()`,
+    #          otherwise error handling will not work!
     from app._status import Status, StatusCode, StatusError
 
 __all__ = [
