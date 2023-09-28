@@ -93,7 +93,9 @@ export const MentionSuggesterSubheading: FunctionComponent<
       {content}
     </ListItemButton>
   ) : (
-    <ListItem sx={{ paddingBottom: 0, opacity: disabled ? 0.6 : 1 }}>
+    <ListItem
+      sx={{ paddingBottom: 0, opacity: disabled ? 0.6 : 1, paddingLeft: 1.5 }}
+    >
       {content}
     </ListItem>
   );
