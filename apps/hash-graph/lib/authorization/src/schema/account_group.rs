@@ -12,12 +12,12 @@ impl Resource for AccountGroupId {
         "graph/account_group"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupRelation {
     DirectOwner,
@@ -34,7 +34,7 @@ impl fmt::Display for AccountGroupRelation {
 impl Affiliation<AccountGroupId> for AccountGroupRelation {}
 impl Relation<AccountGroupId> for AccountGroupRelation {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
     AddOwner,

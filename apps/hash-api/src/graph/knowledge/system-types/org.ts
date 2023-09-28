@@ -25,6 +25,7 @@ import {
   createEntity,
   CreateEntityParams,
   getLatestEntityById,
+  makeEntityPublic,
   updateEntityProperty,
 } from "../primitive/entity";
 import {
@@ -153,6 +154,9 @@ export const createOrg: ImpureGraphFunction<
     properties,
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountGroupId as string as EntityUuid,
+  });
+  await makeEntityPublic(ctx, authentication, {
+    entityId: entity.metadata.recordId.entityId,
   });
 
   return getOrgFromEntity({ entity });

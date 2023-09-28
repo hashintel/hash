@@ -79,6 +79,7 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
+                    .attach_printable_lazy(|| line.clone())
             })
             .transpose()
     }
@@ -96,6 +97,7 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
                     .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
+                    .attach_printable_lazy(|| line.clone())
             })
             .transpose()
     }

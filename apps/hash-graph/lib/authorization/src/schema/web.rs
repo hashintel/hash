@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum OwnerId {
     Account(AccountId),
     AccountGroup(AccountGroupId),
@@ -33,12 +34,12 @@ impl Resource for WebId {
         "graph/web"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebRelation {
     DirectOwner,
@@ -54,7 +55,7 @@ impl Affiliation<WebId> for WebRelation {}
 
 impl Relation<WebId> for WebRelation {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebPermission {
     CreateEntity,

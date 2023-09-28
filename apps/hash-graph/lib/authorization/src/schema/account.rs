@@ -1,4 +1,5 @@
 use graph_types::account::AccountId;
+use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::Resource;
 
@@ -9,21 +10,25 @@ impl Resource for AccountId {
         "graph/account"
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 
-pub struct PublicAccess;
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum PublicAccess {
+    #[serde(rename = "*")]
+    Public,
+}
 
 impl Resource for PublicAccess {
-    type Id = str;
+    type Id = &'static str;
 
     fn namespace() -> &'static str {
         AccountId::namespace()
     }
 
-    fn id(&self) -> &Self::Id {
+    fn id(&self) -> Self::Id {
         "*"
     }
 }

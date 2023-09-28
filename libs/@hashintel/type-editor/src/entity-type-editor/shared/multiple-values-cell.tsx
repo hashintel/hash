@@ -399,7 +399,9 @@ export const MultipleValuesCell = ({
                       Maximum
                       <Box
                         display="flex"
-                        color={({ palette }) => palette.gray[70]}
+                        sx={({ palette }) => ({
+                          color: palette.gray[70],
+                        })}
                       >
                         ∞
                         <div ref={setInfinityCheckboxNode} />

@@ -15,8 +15,10 @@ use crate::snapshot::{
     entity::{self, EntitySender},
     ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
     owner,
-    owner::{OwnerId, OwnerSender},
+    owner::{Owner, OwnerSender},
     restore::batch::SnapshotRecordBatch,
+    web,
+    web::WebSender,
     SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
 };
 
@@ -24,6 +26,7 @@ use crate::snapshot::{
 pub struct SnapshotRecordSender {
     metadata: UnboundedSender<SnapshotMetadata>,
     owner: OwnerSender,
+    webs: WebSender,
     data_type: DataTypeSender,
     property_type: PropertyTypeSender,
     entity_type: EntityTypeSender,
@@ -41,6 +44,9 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll metadata sender")?;
         ready!(self.owner.poll_ready_unpin(cx)).attach_printable("could not poll owner sender")?;
+        ready!(self.webs.poll_ready_unpin(cx))
+            .attach_printable("could not poll web sender")
+            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
         ready!(self.property_type.poll_ready_unpin(cx))
@@ -62,11 +68,16 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .attach_printable("could not send snapshot metadata"),
             SnapshotEntry::Account(account) => self
                 .owner
-                .start_send_unpin(OwnerId::Account(account.id))
+                .start_send_unpin(Owner::Account(account))
                 .attach_printable("could not send account"),
+            SnapshotEntry::Web(web) => self
+                .webs
+                .start_send_unpin(web)
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send web"),
             SnapshotEntry::AccountGroup(account_group) => self
                 .owner
-                .start_send_unpin(OwnerId::AccountGroup(account_group.id))
+                .start_send_unpin(Owner::AccountGroup(account_group))
                 .attach_printable("could not send account group"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
@@ -95,6 +106,9 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush metadata sender")?;
         ready!(self.owner.poll_flush_unpin(cx)).attach_printable("could not flush owner sender")?;
+        ready!(self.webs.poll_flush_unpin(cx))
+            .attach_printable("could not flush web sender")
+            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_flush_unpin(cx))
             .attach_printable("could not flush data type sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
@@ -115,6 +129,9 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close metadata sender")?;
         ready!(self.owner.poll_close_unpin(cx)).attach_printable("could not close owner sender")?;
+        ready!(self.webs.poll_close_unpin(cx))
+            .attach_printable("could not close web sender")
+            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
@@ -149,6 +166,7 @@ pub fn channel(
 ) {
     let (metadata_tx, metadata_rx) = mpsc::unbounded();
     let (owner_tx, owner_rx) = owner::channel(chunk_size);
+    let (web_tx, web_rx) = web::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size);
     let (data_type_tx, data_type_rx) =
@@ -163,6 +181,7 @@ pub fn channel(
         SnapshotRecordSender {
             owner: owner_tx,
             metadata: metadata_tx,
+            webs: web_tx,
             data_type: data_type_tx,
             property_type: property_type_tx,
             entity_type: entity_type_tx,
@@ -171,6 +190,7 @@ pub fn channel(
         SnapshotRecordReceiver {
             stream: select_all(vec![
                 owner_rx.map(SnapshotRecordBatch::Accounts).boxed(),
+                web_rx.map(SnapshotRecordBatch::Webs).boxed(),
                 ontology_metadata_rx
                     .map(SnapshotRecordBatch::OntologyTypes)
                     .boxed(),

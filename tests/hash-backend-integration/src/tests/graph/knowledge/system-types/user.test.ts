@@ -13,8 +13,6 @@ import {
   getUserByShortname,
   isUserMemberOfOrg,
   joinOrg,
-  updateUserPreferredName,
-  updateUserShortname,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
@@ -76,6 +74,8 @@ describe("User model class", () => {
     createdUser = await createUser(graphContext, authentication, {
       emails: ["alice@example.com"],
       kratosIdentityId,
+      shortname,
+      preferredName: "Alice",
     });
   });
 
@@ -88,24 +88,6 @@ describe("User model class", () => {
         kratosIdentityId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
-  });
-
-  it("can update the shortname of a user", async () => {
-    const authentication = { actorId: createdUser.accountId };
-
-    createdUser = await updateUserShortname(graphContext, authentication, {
-      user: createdUser,
-      updatedShortname: shortname,
-    });
-  });
-
-  it("can update the preferred name of a user", async () => {
-    const authentication = { actorId: createdUser.accountId };
-
-    createdUser = await updateUserPreferredName(graphContext, authentication, {
-      user: createdUser,
-      updatedPreferredName: "Alice",
-    });
   });
 
   it("can get a user by its shortname", async () => {
@@ -138,7 +120,12 @@ describe("User model class", () => {
 
   it("can join an org", async () => {
     const authentication = { actorId: systemUserAccountId };
-    const testOrg = await createTestOrg(graphContext, "userModelTest", logger);
+    const testOrg = await createTestOrg(
+      graphContext,
+      authentication,
+      "userModelTest",
+      logger,
+    );
 
     const orgEntityUuid = extractEntityUuidFromEntityId(
       testOrg.entity.metadata.recordId.entityId,

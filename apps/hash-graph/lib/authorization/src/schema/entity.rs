@@ -1,23 +1,23 @@
 use std::fmt;
 
-use graph_types::knowledge::entity::{EntityId, EntityUuid};
+use graph_types::knowledge::entity::EntityUuid;
 use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
 
-impl Resource for EntityId {
-    type Id = EntityUuid;
+impl Resource for EntityUuid {
+    type Id = Self;
 
     fn namespace() -> &'static str {
         "graph/entity"
     }
 
-    fn id(&self) -> &Self::Id {
-        &self.entity_uuid
+    fn id(&self) -> Self::Id {
+        *self
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityRelation {
     DirectOwner,
@@ -30,10 +30,10 @@ impl fmt::Display for EntityRelation {
     }
 }
 
-impl Affiliation<EntityId> for EntityRelation {}
-impl Relation<EntityId> for EntityRelation {}
+impl Affiliation<EntityUuid> for EntityRelation {}
+impl Relation<EntityUuid> for EntityRelation {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityPermission {
     Update,
@@ -46,5 +46,5 @@ impl fmt::Display for EntityPermission {
     }
 }
 
-impl Affiliation<EntityId> for EntityPermission {}
-impl Permission<EntityId> for EntityPermission {}
+impl Affiliation<EntityUuid> for EntityPermission {}
+impl Permission<EntityUuid> for EntityPermission {}

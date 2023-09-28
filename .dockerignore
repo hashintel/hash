@@ -57,6 +57,7 @@ bower_components
 # Tests
 **/playwright-report/
 **/test-results/
+**/lcov.info
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 **/build/Release

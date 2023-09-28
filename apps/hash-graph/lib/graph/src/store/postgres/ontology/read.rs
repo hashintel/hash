@@ -311,6 +311,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
         let additional_metadata_index =
             compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
         let label_property_index = compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty);
+        let icon_index = compiler.add_selection_path(&EntityTypeQueryPath::Icon);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -371,6 +372,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                             version: row.get(version_index),
                         },
                         label_property,
+                        icon: row.get(icon_index),
                         custom: custom_metadata,
                     },
                 })

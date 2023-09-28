@@ -5,9 +5,9 @@ use authorization::{
     backend::{
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
-        ImportSchemaError, ImportSchemaResponse, SpiceDbOpenApi, ZanzibarBackend,
+        ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Tuple},
+    zanzibar::{Consistency, Relation, Resource, Tuple},
 };
 use error_stack::Report;
 
@@ -26,7 +26,6 @@ impl TestApi {
     ///
     /// After disconnecting every created relation will be deleted again.
     #[must_use]
-    #[allow(clippy::missing_panics_doc, clippy::print_stderr)] // Only the cleanup thread may panic
     pub fn connect() -> Self {
         let host =
             std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
@@ -36,7 +35,7 @@ impl TestApi {
             .unwrap_or_else(|_| "secret".to_owned());
 
         Self {
-            client: SpiceDbOpenApi::new(format!("{host}:{http_port}"), &key)
+            client: SpiceDbOpenApi::new(format!("{host}:{http_port}"), Some(&key))
                 .expect("failed to connect to SpiceDB"),
         }
     }
@@ -64,6 +63,16 @@ impl ZanzibarBackend for TestApi {
         self.client.create_relations(tuples).await
     }
 
+    async fn touch_relations<T>(
+        &mut self,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync,
+    {
+        self.client.touch_relations(tuples).await
+    }
+
     async fn delete_relations<T>(
         &mut self,
         tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
@@ -83,5 +92,22 @@ impl ZanzibarBackend for TestApi {
         T: Tuple + Sync,
     {
         self.client.check(tuple, consistency).await
+    }
+
+    async fn read_relations<O, R, U, S>(
+        &self,
+        _object: Option<O>,
+        _relation: Option<R>,
+        _user: Option<U>,
+        _user_set: Option<S>,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
+    where
+        O: Resource + Send + Sync,
+        R: Relation<O> + Send,
+        U: Resource + Send,
+        S: Send,
+    {
+        Ok(Vec::new())
     }
 }

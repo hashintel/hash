@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use authorization::backend::ZanzibarBackend;
 use error_stack::Result;
 
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
             PropertyTypeRowBatch,
         },
         owner::AccountRowBatch,
+        web::WebBatch,
         WriteBatch,
     },
     store::{AsClient, InsertionError, PostgresStore},
@@ -16,6 +18,7 @@ use crate::{
 
 pub enum SnapshotRecordBatch {
     Accounts(AccountRowBatch),
+    Webs(WebBatch),
     OntologyTypes(OntologyTypeMetadataRowBatch),
     DataTypes(DataTypeRowBatch),
     PropertyTypes(PropertyTypeRowBatch),
@@ -27,6 +30,7 @@ pub enum SnapshotRecordBatch {
 impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
     async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
         AccountRowBatch::begin(postgres_client).await?;
+        WebBatch::begin(postgres_client).await?;
         OntologyTypeMetadataRowBatch::begin(postgres_client).await?;
         DataTypeRowBatch::begin(postgres_client).await?;
         PropertyTypeRowBatch::begin(postgres_client).await?;
@@ -35,19 +39,31 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
         Ok(())
     }
 
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError> {
         match self {
-            Self::Accounts(account) => account.write(postgres_client).await,
-            Self::OntologyTypes(ontology) => ontology.write(postgres_client).await,
-            Self::DataTypes(data_type) => data_type.write(postgres_client).await,
-            Self::PropertyTypes(property) => property.write(postgres_client).await,
-            Self::EntityTypes(entity_type) => entity_type.write(postgres_client).await,
-            Self::Entities(entity) => entity.write(postgres_client).await,
+            Self::Accounts(account) => account.write(postgres_client, authorization_api).await,
+            Self::Webs(web) => web.write(postgres_client, authorization_api).await,
+            Self::OntologyTypes(ontology) => {
+                ontology.write(postgres_client, authorization_api).await
+            }
+            Self::DataTypes(data_type) => data_type.write(postgres_client, authorization_api).await,
+            Self::PropertyTypes(property) => {
+                property.write(postgres_client, authorization_api).await
+            }
+            Self::EntityTypes(entity_type) => {
+                entity_type.write(postgres_client, authorization_api).await
+            }
+            Self::Entities(entity) => entity.write(postgres_client, authorization_api).await,
         }
     }
 
     async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
         AccountRowBatch::commit(postgres_client).await?;
+        WebBatch::commit(postgres_client).await?;
         OntologyTypeMetadataRowBatch::commit(postgres_client).await?;
         DataTypeRowBatch::commit(postgres_client).await?;
         PropertyTypeRowBatch::commit(postgres_client).await?;

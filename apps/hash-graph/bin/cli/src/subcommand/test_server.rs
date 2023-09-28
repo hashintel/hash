@@ -1,5 +1,9 @@
 use std::{net::SocketAddr, time::Duration};
 
+#[cfg(feature = "authorization")]
+use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
+#[cfg(not(feature = "authorization"))]
+use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Result, ResultExt};
 use graph::{
@@ -32,6 +36,21 @@ pub struct TestServerArgs {
     /// Runs the healthcheck for the test server.
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
+
+    /// The host the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HOST")]
+    pub spicedb_host: String,
+
+    /// The port the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
+    pub spicedb_http_port: u16,
+
+    /// The secret key used to authenticate with the Spice DB server.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
+    pub spicedb_grpc_preshared_key: Option<String>,
 }
 
 pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
@@ -52,11 +71,29 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let router = graph::api::rest::test_server::routes(pool);
+    #[cfg(feature = "authorization")]
+    let authorization_api = {
+        let mut spicedb_client = SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            args.spicedb_grpc_preshared_key.as_deref(),
+        )
+        .change_context(GraphError)?;
+        spicedb_client
+            .import_schema(include_str!(
+                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+            ))
+            .await
+            .change_context(GraphError)?;
+        spicedb_client
+    };
+    #[cfg(not(feature = "authorization"))]
+    let authorization_api = NoAuthorization;
+
+    let router = graph::api::rest::test_server::routes(pool, authorization_api);
 
     tracing::info!("Listening on {}", args.api_address);
     axum::Server::bind(&SocketAddr::try_from(args.api_address).change_context(GraphError)?)
-        .serve(router.into_make_service_with_connect_info::<std::net::SocketAddr>())
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .expect("failed to start server");
 

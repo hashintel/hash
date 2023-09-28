@@ -31,8 +31,8 @@
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.1",
     "@hashintel/design-system": "0.0.7",
-    "@mui/icons-material": "5.11.9",
-    "@mui/material": "5.11.9",
+    "@mui/icons-material": "5.14.11",
+    "@mui/material": "5.14.11",
     "immer": "9.0.6",
     "lodash.isequal": "4.5.0",
     "uuid": "9.0.0"
@@ -45,8 +45,8 @@
     "block-scripts": "0.3.0",
     "eslint": "8.33.0",
     "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "typescript": "5.1.6"
   },
   "peerDependencies": {

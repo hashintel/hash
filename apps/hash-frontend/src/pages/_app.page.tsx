@@ -33,9 +33,9 @@ import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
-import { LatestPropertyTypesContextProvider } from "../shared/latest-property-types-context";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
+import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
@@ -136,13 +136,13 @@ const App: FunctionComponent<AppProps> = ({
               <WorkspaceContextProvider>
                 <SnackbarProvider maxSnack={3}>
                   <EntityTypesContextProvider>
-                    <LatestPropertyTypesContextProvider includeArchived>
+                    <PropertyTypesContextProvider includeArchived>
                       <FileUploadsProvider>
                         <SidebarContextProvider>
                           {getLayout(<Component {...pageProps} />)}
                         </SidebarContextProvider>
                       </FileUploadsProvider>
-                    </LatestPropertyTypesContextProvider>
+                    </PropertyTypesContextProvider>
                   </EntityTypesContextProvider>
                 </SnackbarProvider>
               </WorkspaceContextProvider>

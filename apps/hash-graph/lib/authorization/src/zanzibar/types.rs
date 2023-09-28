@@ -16,11 +16,37 @@ pub trait Relation<R: Resource + ?Sized>: Affiliation<R> {}
 
 pub trait Tuple {
     fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized);
-    fn object_id(&self) -> &(impl Serialize + Display + ?Sized);
+    fn object_id(&self) -> impl Serialize + Display;
     fn affiliation(&self) -> &(impl Serialize + Display + ?Sized);
     fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized);
-    fn user_id(&self) -> &(impl Serialize + Display + ?Sized);
+    fn user_id(&self) -> impl Serialize + Display;
     fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)>;
+}
+
+impl<T: Tuple> Tuple for &T {
+    fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        (*self).object_namespace()
+    }
+
+    fn object_id(&self) -> impl Serialize + Display {
+        (*self).object_id()
+    }
+
+    fn affiliation(&self) -> &(impl Serialize + Display + ?Sized) {
+        (*self).affiliation()
+    }
+
+    fn user_namespace(&self) -> &(impl Serialize + Display + ?Sized) {
+        (*self).user_namespace()
+    }
+
+    fn user_id(&self) -> impl Serialize + Display {
+        (*self).user_id()
+    }
+
+    fn user_set(&self) -> Option<&(impl Serialize + Display + ?Sized)> {
+        (*self).user_set()
+    }
 }
 
 impl<O, A, U> Tuple for (O, A, U)
@@ -33,7 +59,7 @@ where
         O::namespace()
     }
 
-    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn object_id(&self) -> impl Serialize + Display {
         self.0.id()
     }
 
@@ -45,7 +71,7 @@ where
         U::namespace()
     }
 
-    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn user_id(&self) -> impl Serialize + Display {
         self.2.id()
     }
 
@@ -73,7 +99,7 @@ where
         O::namespace()
     }
 
-    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn object_id(&self) -> impl Serialize + Display {
         self.0.id()
     }
 
@@ -85,7 +111,7 @@ where
         U::namespace()
     }
 
-    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn user_id(&self) -> impl Serialize + Display {
         self.2.id()
     }
 
@@ -100,13 +126,13 @@ where
 /// two values separated by a colon.
 pub trait Resource {
     /// The unique identifier for this `Resource`.
-    type Id: Serialize + Display + ?Sized;
+    type Id: Serialize + Display;
 
     /// Returns the namespace for this `Resource`.
     fn namespace() -> &'static str;
 
     /// Returns the unique identifier for this `Resource`.
-    fn id(&self) -> &Self::Id;
+    fn id(&self) -> Self::Id;
 }
 
 /// An untyped [`Tuple`] that only holds it's string representation.
@@ -128,7 +154,7 @@ impl Tuple for UntypedTuple<'_> {
         &self.object_namespace
     }
 
-    fn object_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn object_id(&self) -> impl Serialize + Display {
         &self.object_id
     }
 
@@ -140,7 +166,7 @@ impl Tuple for UntypedTuple<'_> {
         &self.user_namespace
     }
 
-    fn user_id(&self) -> &(impl Serialize + Display + ?Sized) {
+    fn user_id(&self) -> impl Serialize + Display {
         &self.user_id
     }
 

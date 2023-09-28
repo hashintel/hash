@@ -10,9 +10,10 @@ pub mod backend;
 pub mod schema;
 pub mod zanzibar;
 
-pub use self::api::{AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, VisibilityScope};
 
 mod api;
+
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},

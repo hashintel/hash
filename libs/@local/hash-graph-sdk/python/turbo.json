@@ -15,9 +15,6 @@
       ],
       "outputs": ["./graph_sdk/filter/path.py"]
     },
-    "codegen": {
-      "dependsOn": ["codegen:blocking", "codegen:filter"]
-    },
     "build": {
       "dependsOn": ["^build", "codegen"],
       "inputs": ["./**/*.py", "pyproject.toml", "poetry.lock", "LICENSE*"],

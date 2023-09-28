@@ -11,6 +11,7 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -120,7 +121,11 @@ describe("Data type CRU", () => {
       "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
 
     await expect(
-      getDataTypeById(graphContext, authentication, { dataTypeId }),
+      getDataTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { dataTypeId },
+      ),
     ).rejects.toThrow("Could not find data type with ID");
 
     await expect(

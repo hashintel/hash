@@ -163,6 +163,10 @@ class EntityTypeQueryPath(AbstractQueryPath):
         """Return the path to the label_property attribute of an entity type."""
         return self.path.push(EntityTypeQueryToken.label_property)
 
+    def icon(self) -> Path:
+        """Return the path to the icon attribute of an entity type."""
+        return self.path.push(EntityTypeQueryToken.icon)
+
     def links(self) -> SelectorQueryPath[Self]:
         """Return the path to the links attribute of an entity type."""
         return (

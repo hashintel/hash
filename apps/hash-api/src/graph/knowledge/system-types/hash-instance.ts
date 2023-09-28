@@ -9,8 +9,10 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import {
+  AccountGroupId,
   Entity,
   EntityRootType,
+  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -19,15 +21,12 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
 import {
-  archiveEntity,
   createEntity,
   CreateEntityParams,
-  getEntityOutgoingLinks,
+  makeEntityPublic,
 } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
-import { isUserHashInstanceAdmin, User } from "./user";
+import { User } from "./user";
 
 export type HashInstance = {
   entity: Entity;
@@ -122,8 +121,12 @@ export const createHashInstance: ImpureGraphFunction<
     throw new Error("Hash instance entity already exists.");
   }
 
+  const hashInstanceAdmins = await ctx.graphApi
+    .createAccountGroup(authentication.actorId)
+    .then(({ data }) => data as AccountGroupId);
+
   const entity = await createEntity(ctx, authentication, {
-    ownedById: systemUserAccountId as OwnedById,
+    ownedById: hashInstanceAdmins as OwnedById,
     properties: {
       [SYSTEM_TYPES.propertyType.pagesAreEnabled.metadata.recordId.baseUrl]:
         params.pagesAreEnabled ?? true,
@@ -135,6 +138,9 @@ export const createHashInstance: ImpureGraphFunction<
         .baseUrl]: params.orgSelfRegistrationIsEnabled ?? true,
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+  });
+  await makeEntityPublic(ctx, authentication, {
+    entityId: entity.metadata.recordId.entityId,
   });
 
   return getHashInstanceFromEntity({ entity });
@@ -151,30 +157,15 @@ export const addHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params) => {
-  const { user } = params;
-
-  const isAlreadyHashInstanceAdmin = await isUserHashInstanceAdmin(
-    ctx,
-    authentication,
-    {
-      user,
-    },
-  );
-
-  if (isAlreadyHashInstanceAdmin) {
-    throw new Error(
-      `User with entityId "${user.entity.metadata.recordId.entityId}" is already a hash instance admin.`,
-    );
-  }
-
   const hashInstance = await getHashInstance(ctx, authentication, {});
 
-  await createLinkEntity(ctx, authentication, {
-    ownedById: systemUserAccountId as OwnedById,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.admin,
-    leftEntityId: hashInstance.entity.metadata.recordId.entityId,
-    rightEntityId: user.entity.metadata.recordId.entityId,
-  });
+  await ctx.graphApi.addAccountGroupMember(
+    authentication.actorId,
+    extractOwnedByIdFromEntityId(
+      hashInstance.entity.metadata.recordId.entityId,
+    ),
+    params.user.accountId,
+  );
 };
 
 /**
@@ -186,35 +177,13 @@ export const removeHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<void>
 > = async (ctx, authentication, params): Promise<void> => {
-  const { user } = params;
-
   const hashInstance = await getHashInstance(ctx, authentication, {});
 
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: hashInstance.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-      rightEntityId: user.entity.metadata.recordId.entityId,
-    },
+  await ctx.graphApi.removeAccountGroupMember(
+    authentication.actorId,
+    extractOwnedByIdFromEntityId(
+      hashInstance.entity.metadata.recordId.entityId,
+    ),
+    params.user.accountId,
   );
-
-  if (outgoingAdminLinkEntities.length > 1) {
-    throw new Error(
-      "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
-    );
-  }
-
-  const [outgoingAdminLinkEntity] = outgoingAdminLinkEntities;
-
-  if (!outgoingAdminLinkEntity) {
-    throw new Error(
-      `The user with entity ID ${user.entity.metadata.recordId.entityId} is not a HASH instance admin.`,
-    );
-  }
-
-  await archiveEntity(ctx, authentication, {
-    entity: outgoingAdminLinkEntity,
-  });
 };

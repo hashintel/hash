@@ -6,7 +6,7 @@
     feature(doc_auto_cfg),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
 )]
-#![cfg_attr(coverage_nightly, feature(no_coverage))]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 extern crate alloc;
 #[cfg(test)]

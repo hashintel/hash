@@ -1,16 +1,16 @@
-mod batch;
-mod channel;
-mod table;
-
-use graph_types::account::{AccountGroupId, AccountId};
-
 pub use self::{
     batch::AccountRowBatch,
     channel::{channel, OwnerReceiver, OwnerSender},
     table::{AccountGroupRow, AccountRow},
 };
 
-pub enum OwnerId {
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
+mod batch;
+mod channel;
+mod table;
+
+use crate::snapshot::{Account, AccountGroup};
+
+pub enum Owner {
+    Account(Account),
+    AccountGroup(AccountGroup),
 }

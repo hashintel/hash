@@ -3,12 +3,7 @@ import { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { ImpureGraphContext } from "../graph";
-import {
-  createUser,
-  updateUserPreferredName,
-  updateUserShortname,
-  User,
-} from "../graph/knowledge/system-types/user";
+import { createUser, User } from "../graph/knowledge/system-types/user";
 import { systemUserAccountId } from "../graph/system-user";
 import { isDevEnv } from "../lib/env-config";
 
@@ -105,29 +100,13 @@ export const ensureUsersAreSeeded = async ({
       const { traits, id: kratosIdentityId } = maybeNewIdentity;
       const { emails } = traits;
 
-      let user = await createUser(context, authentication, {
+      const user = await createUser(context, authentication, {
         emails,
         kratosIdentityId,
         isInstanceAdmin,
+        shortname,
+        preferredName,
       });
-
-      user = await updateUserShortname(
-        context,
-        { actorId: user.accountId },
-        {
-          user,
-          updatedShortname: shortname,
-        },
-      );
-
-      user = await updateUserPreferredName(
-        context,
-        { actorId: user.accountId },
-        {
-          user,
-          updatedPreferredName: preferredName,
-        },
-      );
 
       createdUsers.push(user);
     }

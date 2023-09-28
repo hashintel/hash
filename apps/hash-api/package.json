@@ -11,7 +11,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
-    "test": "jest"
+    "test:unit": "jest"
   },
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",

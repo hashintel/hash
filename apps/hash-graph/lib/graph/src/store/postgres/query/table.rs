@@ -570,12 +570,13 @@ pub enum EntityTypes<'p> {
     OntologyId,
     Schema(Option<JsonField<'p>>),
     LabelProperty,
+    Icon,
 }
 impl<'p> EntityTypes<'p> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::OntologyId => false,
-            Self::Schema(_) | Self::LabelProperty => true,
+            Self::Schema(_) | Self::LabelProperty | Self::Icon => true,
         }
     }
 
@@ -591,6 +592,7 @@ impl<'p> EntityTypes<'p> {
                 (EntityTypes::Schema(Some(path)), parameter)
             }
             Self::LabelProperty => (EntityTypes::LabelProperty, None),
+            Self::Icon => (EntityTypes::Icon, None),
         }
     }
 }
@@ -603,6 +605,7 @@ impl EntityTypes<'static> {
                 return transpile_json_field(path, "schema", table, fmt);
             }
             Self::LabelProperty => "label_property",
+            Self::Icon => "icon",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -611,7 +614,7 @@ impl EntityTypes<'static> {
     pub const fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Schema(Some(JsonField::StaticText(_))) => ParameterType::Text,
+            Self::Schema(Some(JsonField::StaticText(_))) | Self::Icon => ParameterType::Text,
             Self::Schema(_) => ParameterType::Any,
             Self::LabelProperty => ParameterType::BaseUrl,
         }
