@@ -1,17 +1,19 @@
 """Temporal workflow definitions."""
-
-import json
+import asyncio
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    Extra,
-    Field,
-)
 from temporalio import workflow
 
-from ._status import Status, StatusCode
+from app._status import Status, StatusCode
+
+from . import (
+    AuthenticationContext,
+    InferEntitiesActivityParameter,
+    InferEntitiesWorkflowParameter,
+    ProposedEntity,
+)
 
 with workflow.unsafe.imports_passed_through():
     from graph_types import (
@@ -128,31 +130,17 @@ class GraphApiWorkflow:
         )
 
 
-class ProposedEntity(BaseModel, extra=Extra.forbid):
-    """An entity proposed by AI."""
-
-    entity_type_id: str = Field(..., alias="entityTypeId")
-    properties: Any
-
-
-class AuthenticationContext(BaseModel, extra=Extra.forbid):
-    """Context to hold information to authenticate a user."""
-
-    actor_id: UUID = Field(..., alias="actorId")
-
-
-class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
-    """Parameters for entity inference workflow."""
-
-    authentication: AuthenticationContext
-    text_input: str = Field(..., alias="textInput")
-    entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
-
-
-class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
-    """Result of entity inference workflow."""
-
-    entities: list[ProposedEntity]
+async def get_closed_entity_type(
+    authentication: AuthenticationContext,
+    entity_type_id: str,
+) -> dict[str, Any]:
+    model = await EntityTypeReference(
+        **{"$ref": entity_type_id},
+    ).create_model(
+        actor_id=authentication.actor_id,
+        graph=GraphApiWorkflow(),
+    )
+    return model.model_json_schema(by_alias=True)
 
 
 @workflow.defn(name="inferEntities")
@@ -163,33 +151,29 @@ class InferEntitiesWorkflow:
     async def infer_entities(
         self,
         params: InferEntitiesWorkflowParameter,
-    ) -> Status[InferEntitiesWorkflowResult]:
+    ) -> Status[ProposedEntity]:
         """Infer entities from the provided text input."""
-        for entity_type_id in params.entity_type_ids:
-            try:
-                entity_type_model = await EntityTypeReference(
-                    **{"$ref": entity_type_id},
-                ).create_model(
-                    actor_id=params.authentication.actor_id,
-                    graph=GraphApiWorkflow(),
-                )
-            except StatusError as error:
-                return error.status
-
-            print(  # noqa: T201
-                json.dumps(
-                    entity_type_model.model_json_schema(by_alias=True),
-                    indent=2,
-                ),
-            )
-
-        if len(params.entity_type_ids) > 0:
+        if len(params.entity_type_ids) == 0:
             return Status(
-                code=StatusCode.UNIMPLEMENTED,
-                message="Entity inference is not yet implemented.",
+                code=StatusCode.INVALID_ARGUMENT,
+                message="At least one entity type ID must be provided.",
             )
 
-        return Status(
-            code=StatusCode.INVALID_ARGUMENT,
-            message="At least one entity type ID must be provided.",
+        try:
+            entity_types = await asyncio.gather(
+                *[
+                    get_closed_entity_type(params.authentication, entity_type_id)
+                    for entity_type_id in params.entity_type_ids
+                ],
+            )
+        except StatusError as error:
+            return error.status
+
+        return await workflow.execute_activity(
+            "inferEntities",
+            InferEntitiesActivityParameter(
+                textInput=params.text_input,
+                entityTypes=entity_types,
+            ),
+            start_to_close_timeout=timedelta(minutes=1),
         )
