@@ -71,7 +71,8 @@ export interface MentionSuggesterProps {
 
 type EntitiesByType = {
   entityType: EntityTypeWithMetadata;
-  entities: Entity[];
+  displayedEntities: Entity[];
+  allEntities: Entity[];
 }[];
 
 const numberOfEntitiesDisplayedPerSection = 4;
@@ -167,23 +168,34 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 entityType.schema.$id,
               );
 
-              const previousEntities = prev[existingIndex]?.entities ?? [];
+              const previousDisplayedEntities =
+                prev[existingIndex]?.displayedEntities ?? [];
+
+              const previousEntities = prev[existingIndex]?.allEntities ?? [];
 
               return existingIndex >= 0
                 ? [
                     ...prev.slice(0, existingIndex),
                     {
                       ...prev[existingIndex]!,
-                      entities:
+                      displayedEntities:
                         isEntityTypeExpanded ||
-                        previousEntities.length <
+                        previousDisplayedEntities.length <
                           numberOfEntitiesDisplayedPerSection
-                          ? [...previousEntities, currentEntity]
-                          : previousEntities,
+                          ? [...previousDisplayedEntities, currentEntity]
+                          : previousDisplayedEntities,
+                      allEntities: [...previousEntities, currentEntity],
                     },
                     ...prev.slice(existingIndex + 1),
                   ]
-                : [...prev, { entityType, entities: [currentEntity] }];
+                : [
+                    ...prev,
+                    {
+                      entityType,
+                      displayedEntities: [currentEntity],
+                      allEntities: [currentEntity],
+                    },
+                  ];
             }, [] as EntitiesByType)
             .sort((a, b) => {
               const customOrder = {
@@ -204,7 +216,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     () =>
       [
         ...(recentlyUsedEntities ?? []),
-        ...(entitiesByType?.map(({ entities }) => entities) ?? []),
+        ...(entitiesByType?.map(({ displayedEntities }) => displayedEntities) ??
+          []),
       ].flat()[selectedEntityIndex],
     [recentlyUsedEntities, entitiesByType, selectedEntityIndex],
   );
@@ -473,7 +486,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           : null}
         {entitiesSubgraph
           ? entitiesByType?.map(
-              ({ entityType, entities }, typeSectionIndex, allTypeSections) => {
+              (
+                { entityType, displayedEntities, allEntities },
+                typeSectionIndex,
+                allTypeSections,
+              ) => {
                 const entityTypeId = entityType.schema.$id;
                 const isExpanded = expandedEntityTypes.includes(entityTypeId);
 
@@ -481,25 +498,32 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   <Fragment key={entityTypeId}>
                     <MentionSuggesterSubheading
                       disabled={displayEntitySubMenu}
-                      onClick={() =>
-                        setExpandedEntityTypes((prev) =>
-                          isExpanded
-                            ? prev.filter((id) => id !== entityTypeId)
-                            : [...prev, entityTypeId],
-                        )
+                      onClick={
+                        allEntities.length > numberOfEntitiesDisplayedPerSection
+                          ? () =>
+                              setExpandedEntityTypes((prev) =>
+                                isExpanded
+                                  ? prev.filter((id) => id !== entityTypeId)
+                                  : [...prev, entityTypeId],
+                              )
+                          : undefined
                       }
                       open={isExpanded}
                     >
                       {entityType.schema.title}
                     </MentionSuggesterSubheading>
-                    {entities.map((entity, entityIndex) => {
+                    {displayedEntities.map((entity, entityIndex) => {
                       const index =
                         (recentlyUsedEntities?.length ?? 0) +
                         allTypeSections
                           .slice(0, typeSectionIndex)
                           .reduce(
-                            (prev, { entities: previousTypeSectionEntities }) =>
-                              prev + previousTypeSectionEntities.length,
+                            (
+                              prev,
+                              {
+                                displayedEntities: previousTypeSectionEntities,
+                              },
+                            ) => prev + previousTypeSectionEntities.length,
                             0,
                           ) +
                         entityIndex;

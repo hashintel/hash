@@ -28,14 +28,18 @@ export const MentionSuggesterSubheading: FunctionComponent<
             color: ({ palette }) => palette.gray[60],
             textTransform: "uppercase",
           },
-          "&:hover": {
-            [`& .${listItemTextClasses.primary}`]: {
-              color: ({ palette }) => palette.gray[80],
-            },
-            svg: {
-              color: ({ palette }) => palette.gray[80],
-            },
-          },
+          ...(onClick
+            ? {
+                "&:hover": {
+                  [`& .${listItemTextClasses.primary}`]: {
+                    color: ({ palette }) => palette.gray[80],
+                  },
+                  svg: {
+                    color: ({ palette }) => palette.gray[80],
+                  },
+                },
+              }
+            : {}),
         },
       ]}
     >
