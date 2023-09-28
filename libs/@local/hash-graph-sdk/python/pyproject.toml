@@ -14,7 +14,7 @@ pydantic = "^2.1.1"
 yarl = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
-setuptools = "^68.0.0"
+setuptools = "^68.2.2"
 devtools = "^0.12.2"
 
 [tool.poetry.group.lint-tools.dependencies]
