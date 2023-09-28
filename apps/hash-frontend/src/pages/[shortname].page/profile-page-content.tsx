@@ -1,13 +1,22 @@
 // import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 // import { FontAwesomeIcon } from "@hashintel/design-system";
+import { IconButton } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import { Box, Container, Skeleton, styled, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Fade,
+  Skeleton,
+  styled,
+  Typography,
+} from "@mui/material";
 import { format } from "date-fns";
 import { FunctionComponent } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
+import { PenRegularIcon } from "../../shared/icons/pen-regular-icon";
 import { Link } from "../../shared/ui/link";
 import { leftColumnWidth } from "../[shortname].page";
 
@@ -20,7 +29,9 @@ const SectionHeading = styled(Typography)(({ theme }) => ({
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;
-}> = ({ profile }) => {
+  isEditable: boolean;
+  setDisplayEditUserProfileInfoModal: (display: boolean) => void;
+}> = ({ profile, isEditable, setDisplayEditUserProfileInfoModal }) => {
   const websiteUrl =
     profile && "website" in profile && sanitizeHref(profile.website);
 
@@ -32,10 +43,34 @@ export const ProfilePageContent: FunctionComponent<{
     : undefined;
 
   return (
-    <Container>
+    <Container sx={{ paddingTop: 4 }}>
       <Box display="flex" columnGap={4}>
         <Box sx={{ width: leftColumnWidth }}>
-          <SectionHeading sx={{ marginBottom: 1.5 }}>Info</SectionHeading>
+          <Box display="flex" marginBottom={1.5}>
+            <SectionHeading>Info</SectionHeading>
+            <Fade in={isEditable && profile?.kind === "user"}>
+              <IconButton
+                onClick={() => setDisplayEditUserProfileInfoModal(true)}
+                sx={{
+                  marginLeft: 0.5,
+                  padding: 0,
+                  minHeight: "unset",
+                  svg: {
+                    color: ({ palette }) => palette.blue[70],
+                    fontSize: 12,
+                  },
+                  "&:hover": {
+                    background: "transparent",
+                    svg: {
+                      color: ({ palette }) => palette.blue[50],
+                    },
+                  },
+                }}
+              >
+                <PenRegularIcon />
+              </IconButton>
+            </Fade>
+          </Box>
           {/* {location ? (
             <Box display="flex" alignItems="center" columnGap={0.5}>
               <FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 12 }} />
@@ -87,7 +122,6 @@ export const ProfilePageContent: FunctionComponent<{
             )}
           </Box>
         </Box>
-        <Box />
       </Box>
     </Container>
   );

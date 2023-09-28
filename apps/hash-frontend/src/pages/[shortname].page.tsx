@@ -7,13 +7,15 @@ import { Entity } from "@local/hash-subgraph";
 import { Container, Typography } from "@mui/material";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { constructOrg, constructUser } from "../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
+import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
 import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
+import { useAuthenticatedUser } from "./shared/auth-info-context";
 
 export const parseProfilePageUrlQueryParams = (
   queryParams: NextParsedUrlQuery | undefined,
@@ -33,10 +35,14 @@ export const leftColumnWidth = 150;
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
 
-  const { userOrOrg, userOrOrgSubgraph, loading } = useUserOrOrg({
+  const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] =
+    useState(false);
+
+  const { userOrOrg, userOrOrgSubgraph, loading, refetch } = useUserOrOrg({
     shortname: profileShortname,
     graphResolveDepths: {
       // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
@@ -76,6 +82,18 @@ const ProfilePage: NextPageWithLayout = () => {
     });
   }, [userOrOrgSubgraph, userOrOrg]);
 
+  const isEditable = useMemo(
+    () =>
+      profile
+        ? profile.kind === "user"
+          ? profile.accountId === authenticatedUser.accountId
+          : profile.memberships.some(
+              ({ user }) => user.accountId === authenticatedUser.accountId,
+            )
+        : false,
+    [profile, authenticatedUser],
+  );
+
   const profileNotFound = !profile && !loading;
 
   return profileNotFound ? (
@@ -84,8 +102,26 @@ const ProfilePage: NextPageWithLayout = () => {
     </Container>
   ) : (
     <>
-      <ProfilePageHeader profile={profile} />
-      <ProfilePageContent profile={profile} />
+      <ProfilePageHeader
+        profile={profile}
+        isEditable={isEditable}
+        setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
+      />
+      <ProfilePageContent
+        profile={profile}
+        isEditable={isEditable}
+        setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
+      />
+      {profile && profile.kind === "user" ? (
+        <EditUserProfileInfoModal
+          open={displayEditUserProfileInfoModal}
+          onClose={() => setDisplayEditUserProfileInfoModal(false)}
+          userProfile={profile}
+          refetchUserProfile={async () => {
+            await refetch();
+          }}
+        />
+      ) : undefined}
     </>
   );
 };

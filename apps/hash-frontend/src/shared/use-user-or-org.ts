@@ -37,7 +37,7 @@ export const useUserOrOrg = (
     | { accountOrAccountGroupId: AccountId | AccountGroupId }
   ),
 ) => {
-  const { data, loading } = useQuery<
+  const { data, loading, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -88,15 +88,33 @@ export const useUserOrOrg = (
           : currentTimeInstantTemporalAxes,
       },
     },
-    fetchPolicy: "cache-and-network",
+    fetchPolicy: "network-only",
   });
 
   return useMemo(() => {
     const rootEntity = data
-      ? (getRoots(data.structuralQueryEntities)[0] as
-          | Entity<OrgProperties>
-          | Entity<UserProperties>
-          | undefined)
+      ? getRoots(
+          data.structuralQueryEntities as Subgraph<EntityRootType>,
+        ).reduce<Entity<OrgProperties> | Entity<UserProperties> | undefined>(
+          (prev, current) => {
+            const currentUserOrOrgEntity = current as
+              | Entity<OrgProperties>
+              | Entity<UserProperties>;
+
+            if (!prev) {
+              return currentUserOrOrgEntity;
+            }
+
+            if (
+              prev.metadata.temporalVersioning.decisionTime.start.limit <
+              current.metadata.temporalVersioning.decisionTime.start.limit
+            ) {
+              return currentUserOrOrgEntity;
+            }
+            return prev;
+          },
+          undefined,
+        )
       : undefined;
 
     return {
@@ -105,6 +123,7 @@ export const useUserOrOrg = (
         | undefined,
       userOrOrg: rootEntity,
       loading,
+      refetch,
     };
-  }, [data, loading]);
+  }, [data, loading, refetch]);
 };
