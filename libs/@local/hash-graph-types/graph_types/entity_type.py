@@ -18,30 +18,13 @@ from pydantic import (
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import EntityType, EntityTypeInfo
+from .base import EntityType, EntityTypeInfo, EntityTypeReference
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
 
-__all__ = ["EntityTypeSchema", "EntityTypeReference"]
-
-
-class EntityTypeReference(Schema):
-    """A reference to an entity type schema."""
-
-    ref: str = Field(..., alias="$ref")
-
-    async def create_model(
-        self,
-        *,
-        actor_id: UUID,
-        graph: "GraphAPIProtocol",
-    ) -> type[EntityType]:
-        """Creates a model from the referenced entity type schema."""
-        schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
-
+__all__ = ["EntityTypeSchema"]
 
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
@@ -100,3 +83,4 @@ class EntityTypeSchema(
         )
 
         return cast(type[EntityType], model)
+

@@ -2,15 +2,11 @@
 
 import asyncio
 from datetime import timedelta
-from typing import TYPE_CHECKING
 
 from temporalio import workflow
 
-if TYPE_CHECKING:
-    from graph_types.base import EntityType
-
 with workflow.unsafe.imports_passed_through():
-    from graph_types import EntityTypeReference
+    from graph_types.base import EntityType, EntityTypeReference
     from pydantic import ValidationError
     from pydantic_core import ErrorDetails
 
@@ -44,9 +40,8 @@ class InferEntitiesWorkflow:
                 entity_type.info.identifier: entity_type
                 for entity_type in await asyncio.gather(
                     *[
-                        EntityTypeReference(
-                            **{"$ref": entity_type_id},
-                        ).create_model(
+                        EntityType.from_reference(
+                            EntityTypeReference(**{"$ref": entity_type_id}),
                             actor_id=params.authentication.actor_id,
                             graph=GraphApiActivities(
                                 start_to_close_timeout=timedelta(seconds=15),
@@ -61,6 +56,25 @@ class InferEntitiesWorkflow:
         except StatusError as error:
             return error.status
 
+        link_types: dict[str, type[EntityType]] = {}
+        for entity_type_id, entity_type in entity_types.items():
+            if len(entity_type.info.all_of) == 0:
+                continue
+
+            if (
+                entity_type.info.all_of[0].ref
+                == "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+            ):
+                entity_type.info.all_of = []
+                link_types[entity_type_id] = entity_type
+            else:
+                return Status(
+                    code=StatusCode.UNIMPLEMENTED,
+                    message="Entity type inheritance is not supported",
+                )
+        for link_type_id in link_types:
+            del entity_types[link_type_id]
+
         # TODO: Figure out how to pass `infer_entities` as function to gain type safety.
         #   https://linear.app/hash/issue/H-875
         # from app.infer.entities.activity import infer_entities
@@ -70,13 +84,18 @@ class InferEntitiesWorkflow:
                 InferEntitiesActivityParameter(
                     textInput=params.text_input,
                     entityTypes=[
-                        entity_types[entity_type_id].model_json_schema(by_alias=True)
-                        for entity_type_id in entity_types
+                        entity_type.model_json_schema(by_alias=True)
+                        for entity_type in entity_types.values()
+                    ],
+                    linkTypes=[
+                        link_type.model_json_schema(by_alias=True)
+                        for link_type in link_types.values()
                     ],
                     model=params.model,
                     maxTokens=params.max_tokens,
                     allowEmptyResults=params.allow_empty_results,
                     validation=params.validation,
+                    temperature=params.temperature,
                 ),
                 start_to_close_timeout=timedelta(minutes=1),
             ),
@@ -96,7 +115,8 @@ class InferEntitiesWorkflow:
             try:
                 if params.validation != EntityValidation.none:
                     proposed_entity.validate_entity_type(
-                        entity_types[proposed_entity.entity_type_id],
+                        entity_types.get(proposed_entity.entity_type_id)
+                        or link_types[proposed_entity.entity_type_id],
                     )
             except ValidationError as error:
                 return Status(

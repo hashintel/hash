@@ -1,6 +1,8 @@
 """Activity for inferring entities from a prompt."""
+import enum
 import json
 import os
+from copy import deepcopy
 from typing import Any, Literal
 
 import openai
@@ -13,6 +15,7 @@ from app._util import delete_key, flatten_all_of, traverse_dict
 
 from . import (
     InferEntitiesActivityParameter,
+    LinkData,
     ProposedEntity,
 )
 
@@ -33,7 +36,11 @@ class Function(BaseModel, extra=Extra.forbid):
     parameters: FunctionParameters
 
 
-def create_openai_function(entity_type: dict[str, Any]) -> Function:
+def create_openai_function(
+    entity_type: dict[str, Any],
+    *,
+    is_link_type: bool,
+) -> Function:
     import jsonref  # type: ignore  # noqa: PGH003
 
     entity_type = jsonref.replace_refs(entity_type, proxies=False)
@@ -48,6 +55,20 @@ def create_openai_function(entity_type: dict[str, Any]) -> Function:
         lambda key, value: key == "allOf" and len(value) == 1,
         flatten_all_of,
     )
+
+    if is_link_type:
+        entity_type["properties"]["sourceEntityId"] = {
+            "type": "integer",
+            "description": "The id of the source entity",
+        }
+        entity_type["properties"]["targetEntityId"] = {
+            "type": "integer",
+            "description": "The id of the target entity",
+        }
+        entity_type["required"] = (
+            *[*entity_type.get("required", []), "sourceEntityId", "targetEntityId"],
+        )
+
     return Function(
         name=slugify(entity_type["title"]),
         description=entity_type.get("description"),
@@ -58,7 +79,7 @@ def create_openai_function(entity_type: dict[str, Any]) -> Function:
                     "items": {
                         "type": "object",
                         "properties": entity_type.get("properties", {}),
-                        "required": entity_type.get("required"),
+                        "required": entity_type.get("required", []),
                     },
                 },
             },
@@ -79,37 +100,52 @@ async def infer_entities(  # noqa: PLR0911
             message="At least one entity type must be provided.",
         )
 
-    if len(params.entity_types[0].get("allOf", [])) > 1:
-        return Status(
-            code=StatusCode.UNIMPLEMENTED,
-            message=(
-                "Entity type inheritance is not supported, yet. This also includes link"
-                " types"
-            ),
-        )
-
     system_prompt = """
     The user provides a text input. This text input is used to infer entities.
     You create the entities by calling the provided function.
-    Extract as many entities from the user-provided text as possible.
+    The provided user text is your only source of information, so make sure to extract as much information as possible.
     Empty properties should be left out.
     """
 
-    messages: list[dict[str, Any]] = []
+    class InferenceState(str, enum.Enum):
+        entities = "entities"
+        last_entity = "last_entity"
+        links = "links"
+        last_link = "last_link"
+        done = "done"
+
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": system_prompt.strip()},
+        {"role": "user", "content": params.text_input.strip()},
+    ]
     entities: list[ProposedEntity] = []
     try:
-        for entity_type in params.entity_types:
+        for i, entity_type in enumerate([*params.entity_types, *params.link_types]):
+            if i < len(params.entity_types) - 1:
+                current_state = InferenceState.entities
+            elif i == len(params.entity_types) - 1:
+                current_state = InferenceState.last_entity
+            elif i < len(params.entity_types) + len(params.link_types) - 1:
+                current_state = InferenceState.links
+            elif i == len(params.entity_types) + len(params.link_types) - 1:
+                current_state = InferenceState.last_link
+            else:
+                current_state = InferenceState.done
+
             completion = await openai.ChatCompletion.acreate(
                 model=params.model,
-                temperature=0.1,
+                temperature=params.temperature,
                 max_tokens=params.max_tokens,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": params.text_input},
-                    *messages,
-                ],
+                messages=messages,
                 functions=[
-                    create_openai_function(entity_type).model_dump(
+                    create_openai_function(
+                        entity_type,
+                        is_link_type=current_state
+                        in [
+                            InferenceState.links,
+                            InferenceState.last_link,
+                        ],
+                    ).model_dump(
                         by_alias=True,
                         exclude_none=True,
                     ),
@@ -169,32 +205,114 @@ async def infer_entities(  # noqa: PLR0911
                             ),
                         )
 
-            inferred_entities = json.loads(
-                completion["choices"][0]["message"]["function_call"]["arguments"],
-            )
-            entities += [
-                ProposedEntity(entityTypeId=entity_type["$id"], properties=properties)
-                for properties in inferred_entities["entities"]
-            ]
-
             messages.append(
                 {
                     "role": "assistant",
                     "content": None,
-                    "function_call": {
-                        "name": completion["choices"][0]["message"]["function_call"][
-                            "name"
+                    "function_call": completion["choices"][0]["message"][
+                        "function_call"
+                    ],
+                },
+            )
+
+            match current_state:
+                case InferenceState.entities:
+                    # The current entity type is not the last one. Create more entities.
+                    messages.append(
+                        {
+                            "role": "system",
+                            "content": (
+                                "Great! Let's create more entities of a different type."
+                            ),
+                        },
+                    )
+                case InferenceState.last_entity:
+                    # To avoid confusing the AI we don't store the IDs of the entities until all
+                    # entities have been inferred. To create links the AI needs to know the IDs
+                    # of the entities. We therefore update the entities.
+                    for message in messages:
+                        if (
+                            message["role"] == "assistant"
+                            and "function_call" in message
+                        ):
+                            arguments = json.loads(
+                                message["function_call"]["arguments"],
+                            )
+
+                            for entity in arguments["entities"]:
+                                entity_id = len(entities)
+                                entities.append(
+                                    ProposedEntity(
+                                        entityTypeId=entity_type["$id"],
+                                        entityId=entity_id,
+                                        properties=deepcopy(entity),
+                                    ),
+                                )
+                                entity["entityId"] = entity_id
+
+                            message["function_call"]["arguments"] = json.dumps(
+                                arguments,
+                            )
+
+                    messages.append(
+                        {
+                            "role": "system",
+                            "content": (
+                                "Great! You have created all entities. You can now"
+                                " create links between entities."
+                            ),
+                        },
+                    )
+                case InferenceState.links | InferenceState.last_link:
+                    # We need to extract the source/target IDs as they are not part of the entity properties.
+                    arguments = json.loads(
+                        completion["choices"][0]["message"]["function_call"][
+                            "arguments"
                         ],
-                        "arguments": json.dumps(inferred_entities),
-                    },
-                },
-            )
-            messages.append(
-                {
-                    "role": "system",
-                    "content": "Great! Let's create more entities of a different type.",
-                },
-            )
+                    )
+                    for properties in arguments["entities"]:
+                        if "sourceEntityId" in properties:
+                            source_entity_id = properties["sourceEntityId"]
+                            del properties["sourceEntityId"]
+                        else:
+                            source_entity_id = None
+
+                        if "targetEntityId" in properties:
+                            target_entity_id = properties["targetEntityId"]
+                            del properties["targetEntityId"]
+                        else:
+                            target_entity_id = None
+
+                        if (
+                            source_entity_id is not None
+                            and target_entity_id is not None
+                        ):
+                            link_data = LinkData(
+                                leftEntityId=source_entity_id,
+                                rightEntityId=target_entity_id,
+                            )
+                        else:
+                            link_data = None
+
+                        entities.append(
+                            ProposedEntity(
+                                entityTypeId=entity_type["$id"],
+                                entityId=len(entities),
+                                properties=properties,
+                                linkData=link_data,
+                            ),
+                        )
+
+                    if current_state != InferenceState.last_link:
+                        messages.append(
+                            {
+                                "role": "system",
+                                "content": (
+                                    "Great! Let's create more links of a different"
+                                    " type."
+                                ),
+                            },
+                        )
 
     except Exception as error:  # noqa: BLE001
         return Status(
