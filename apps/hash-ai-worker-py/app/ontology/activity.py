@@ -1,6 +1,6 @@
 """Basic activities to interact with the graph API."""
-
 from datetime import timedelta
+from typing import Any
 from uuid import UUID
 
 from graph_types import (
@@ -11,6 +11,7 @@ from graph_types import (
 from temporalio import workflow
 
 from app._status import Status
+from app._util import delete_key, traverse_dict
 
 
 class GraphApiActivities:
@@ -20,9 +21,11 @@ class GraphApiActivities:
         self,
         *,
         start_to_close_timeout: timedelta,
+        validate_required: bool = True,
     ) -> None:
         """Initializes the graph API activities."""
         self.start_to_close_timeout = start_to_close_timeout
+        self.validate_required = validate_required
 
     async def get_data_type(
         self,
@@ -35,21 +38,24 @@ class GraphApiActivities:
         If the data type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return DataTypeSchema(
-            **(
-                Status(
-                    **await workflow.execute_activity(
-                        task_queue="ai",
-                        activity="getDataTypeActivity",
-                        arg={
-                            "dataTypeId": data_type_id,
-                            "authentication": {"actorId": actor_id},
-                        },
-                        start_to_close_timeout=self.start_to_close_timeout,
-                    ),
-                ).into_content()["schema"]
+        schema: dict[str, Any] = Status(
+            **await workflow.execute_activity(
+                task_queue="ai",
+                activity="getDataTypeActivity",
+                arg={
+                    "dataTypeId": data_type_id,
+                    "authentication": {"actorId": actor_id},
+                },
+                start_to_close_timeout=self.start_to_close_timeout,
             ),
-        )
+        ).into_content()["schema"]
+        if not self.validate_required:
+            traverse_dict(
+                schema,
+                lambda key, _: key == "required",
+                delete_key,
+            )
+        return DataTypeSchema(**schema)
 
     async def get_property_type(
         self,
@@ -62,21 +68,24 @@ class GraphApiActivities:
         If the property type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return PropertyTypeSchema(
-            **(
-                Status(
-                    **await workflow.execute_activity(
-                        task_queue="ai",
-                        activity="getPropertyTypeActivity",
-                        arg={
-                            "propertyTypeId": property_type_id,
-                            "authentication": {"actorId": actor_id},
-                        },
-                        start_to_close_timeout=self.start_to_close_timeout,
-                    ),
-                ).into_content()["schema"]
+        schema: dict[str, Any] = Status(
+            **await workflow.execute_activity(
+                task_queue="ai",
+                activity="getPropertyTypeActivity",
+                arg={
+                    "propertyTypeId": property_type_id,
+                    "authentication": {"actorId": actor_id},
+                },
+                start_to_close_timeout=self.start_to_close_timeout,
             ),
-        )
+        ).into_content()["schema"]
+        if not self.validate_required:
+            traverse_dict(
+                schema,
+                lambda key, _: key == "required",
+                delete_key,
+            )
+        return PropertyTypeSchema(**schema)
 
     async def get_entity_type(
         self,
@@ -89,18 +98,21 @@ class GraphApiActivities:
         If the entity type is not found it will attempt to fetch it and use
         the actor ID to authenticate the request.
         """
-        return EntityTypeSchema(
-            **(
-                Status(
-                    **await workflow.execute_activity(
-                        task_queue="ai",
-                        activity="getEntityTypeActivity",
-                        arg={
-                            "entityTypeId": entity_type_id,
-                            "authentication": {"actorId": actor_id},
-                        },
-                        start_to_close_timeout=self.start_to_close_timeout,
-                    ),
-                ).into_content()["schema"]
+        schema: dict[str, Any] = Status(
+            **await workflow.execute_activity(
+                task_queue="ai",
+                activity="getEntityTypeActivity",
+                arg={
+                    "entityTypeId": entity_type_id,
+                    "authentication": {"actorId": actor_id},
+                },
+                start_to_close_timeout=self.start_to_close_timeout,
             ),
-        )
+        ).into_content()["schema"]
+        if not self.validate_required:
+            traverse_dict(
+                schema,
+                lambda key, _: key == "required",
+                delete_key,
+            )
+        return EntityTypeSchema(**schema)

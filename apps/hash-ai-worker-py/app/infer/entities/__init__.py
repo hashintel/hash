@@ -1,5 +1,5 @@
 """Entity inference based on text."""
-
+import enum
 from typing import Any
 
 from pydantic import BaseModel, Extra, Field
@@ -9,6 +9,17 @@ from app import AuthenticationContext
 
 with workflow.unsafe.imports_passed_through():
     from graph_types.base import EntityType
+
+
+class EntityValidation(str, enum.Enum):
+    """The validation status of an entity."""
+
+    full = "full"
+    """The inferred entities are fully validated."""
+    partial = "partial"
+    """Full validation except the `required` field."""
+    none = "none"
+    """No validation performed."""
 
 
 class ProposedEntity(BaseModel, extra=Extra.forbid):
@@ -31,6 +42,7 @@ class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
     model: str = "gpt-4-0613"
     max_tokens: int = Field(8192, alias="maxTokens")
     allow_empty_results: bool = Field(True, alias="allowEmptyResults")  # noqa: FBT003
+    validation: EntityValidation = Field(EntityValidation.full)
 
 
 class InferEntitiesActivityParameter(BaseModel, extra=Extra.forbid):
@@ -41,3 +53,4 @@ class InferEntitiesActivityParameter(BaseModel, extra=Extra.forbid):
     model: str
     max_tokens: int = Field(..., alias="maxTokens")
     allow_empty_results: bool = Field(..., alias="allowEmptyResults")
+    validation: EntityValidation
