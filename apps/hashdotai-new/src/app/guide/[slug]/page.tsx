@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 
-const DocsPage = ({ params }: { params: { slug: string } }) => {
+const GuidePage = ({ params }: { params: { slug: string } }) => {
   const { slug } = params;
 
   return (
@@ -10,4 +10,4 @@ const DocsPage = ({ params }: { params: { slug: string } }) => {
   );
 };
 
-export default DocsPage;
+export default GuidePage;
