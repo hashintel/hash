@@ -7,12 +7,12 @@ from uuid import UUID
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, RootModel
 
 
-class AccountGroupId(RootModel):
+class AccountGroupId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
 
-class AccountId(RootModel):
+class AccountId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
@@ -33,7 +33,7 @@ class DataTypeQueryToken(Enum):
     type = "type"
 
 
-class DecisionTime(RootModel):
+class DecisionTime(RootModel[Literal["decisionTime"]]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal["decisionTime"] = Field(
         ...,
@@ -50,12 +50,12 @@ class EdgeResolveDepths(BaseModel):
     outgoing: int = Field(..., ge=0)
 
 
-class EntityEditionId(RootModel):
+class EntityEditionId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
 
-class EntityId(RootModel):
+class EntityId(RootModel[str]):
     model_config = ConfigDict(populate_by_name=True)
     root: str
 
@@ -119,7 +119,7 @@ class EntityTypeQueryToken(Enum):
     children = "children"
 
 
-class EntityUuid(RootModel):
+class EntityUuid(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
@@ -134,12 +134,12 @@ class KnowledgeGraphEdgeKind(Enum):
     has_right_entity = "HAS_RIGHT_ENTITY"
 
 
-class LinkOrder(RootModel):
+class LinkOrder(RootModel[int]):
     model_config = ConfigDict(populate_by_name=True)
     root: int
 
 
-class NullableTimestamp(RootModel):
+class NullableTimestamp(RootModel[datetime | None]):
     model_config = ConfigDict(populate_by_name=True)
     root: datetime | None = None
 
@@ -158,7 +158,7 @@ class OntologyTypeRecordId(BaseModel):
     version: int = Field(..., ge=0)
 
 
-class OntologyTypeVersion(RootModel):
+class OntologyTypeVersion(RootModel[int]):
     model_config = ConfigDict(populate_by_name=True)
     root: int = Field(..., ge=0)
 
@@ -173,7 +173,7 @@ class OutgoingEdgeResolveDepth(BaseModel):
     outgoing: int = Field(..., ge=0)
 
 
-class OwnedById(RootModel):
+class OwnedById(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
@@ -212,32 +212,32 @@ class UnresolvedPinnedDecisionAxis(BaseModel):
     timestamp: NullableTimestamp
 
 
-class RecordArchivedById(RootModel):
+class RecordArchivedById(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
 
-class RecordCreatedById(RootModel):
+class RecordCreatedById(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
 
-class Selector(RootModel):
+class Selector(RootModel[Literal["*"]]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal["*"]
 
 
-class SharedEdgeKind(RootModel):
+class SharedEdgeKind(RootModel[Literal["IS_OF_TYPE"]]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal["IS_OF_TYPE"]
 
 
-class Timestamp(RootModel):
+class Timestamp(RootModel[datetime]):
     model_config = ConfigDict(populate_by_name=True)
     root: datetime
 
 
-class TransactionTime(RootModel):
+class TransactionTime(RootModel[Literal["transactionTime"]]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal["transactionTime"] = Field(
         ...,
@@ -263,7 +263,7 @@ class UpdateDataType(BaseModel):
     type: str
 
 
-class VersionedURL(RootModel):
+class VersionedURL(RootModel[AnyUrl]):
     model_config = ConfigDict(populate_by_name=True)
     root: AnyUrl = Field(
         ...,
@@ -292,7 +292,7 @@ class DataType(OntologyTypeSchema):
     type: str
 
 
-class BaseURL(RootModel):
+class BaseURL(RootModel[AnyUrl]):
     model_config = ConfigDict(populate_by_name=True)
     root: AnyUrl = Field(
         ...,
@@ -546,7 +546,7 @@ class InclusiveBound(BaseModel):
     limit: Timestamp
 
 
-class ClosedTemporalBound(RootModel):
+class ClosedTemporalBound(RootModel[InclusiveBound]):
     model_config = ConfigDict(populate_by_name=True)
     root: InclusiveBound = Field(..., discriminator="kind")
 
@@ -602,7 +602,7 @@ class PathExpression(BaseModel):
     ]
 
 
-class FilterExpression(RootModel):
+class FilterExpression(RootModel[PathExpression | ParameterExpression]):
     model_config = ConfigDict(populate_by_name=True)
     root: PathExpression | ParameterExpression
 
@@ -637,7 +637,7 @@ class ExclusiveBound(BaseModel):
     limit: Timestamp
 
 
-class LimitedTemporalBound(RootModel):
+class LimitedTemporalBound(RootModel[InclusiveBound | ExclusiveBound]):
     model_config = ConfigDict(populate_by_name=True)
     root: InclusiveBound | ExclusiveBound = Field(..., discriminator="kind")
 
@@ -667,7 +667,7 @@ class LoadExternalPropertyTypeRequest(BaseModel):
     property_type_id: VersionedURL = Field(..., alias="propertyTypeId")
 
 
-class OpenTemporalBound(RootModel):
+class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
     model_config = ConfigDict(populate_by_name=True)
     root: ExclusiveBound | UnboundedBound = Field(..., discriminator="kind")
 
@@ -698,7 +698,7 @@ class UnresolvedPinnedTransactionAxis(BaseModel):
     timestamp: NullableTimestamp
 
 
-class TemporalBound(RootModel):
+class TemporalBound(RootModel[UnboundedBound | InclusiveBound | ExclusiveBound]):
     model_config = ConfigDict(populate_by_name=True)
     root: UnboundedBound | InclusiveBound | ExclusiveBound = Field(
         ..., discriminator="kind"
@@ -790,7 +790,11 @@ class ContainsSegmentFilter(BaseModel):
     )
 
 
-class GraphElementVertexId(RootModel):
+class GraphElementVertexId(
+    RootModel[
+        DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId | EntityVertexId
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId | EntityVertexId
 
@@ -806,7 +810,9 @@ class OntologyTemporalMetadata(BaseModel):
     transaction_time: LeftClosedTemporalInterval = Field(..., alias="transactionTime")
 
 
-class OntologyTypeVertexId(RootModel):
+class OntologyTypeVertexId(
+    RootModel[DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: DataTypeVertexId | PropertyTypeVertexId | EntityTypeVertexId
 
@@ -843,7 +849,12 @@ class QueryTemporalAxesUnresolvedTransactionTime(BaseModel):
     )
 
 
-class QueryTemporalAxesUnresolved(RootModel):
+class QueryTemporalAxesUnresolved(
+    RootModel[
+        QueryTemporalAxesUnresolvedDecisionTime
+        | QueryTemporalAxesUnresolvedTransactionTime
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: QueryTemporalAxesUnresolvedDecisionTime | QueryTemporalAxesUnresolvedTransactionTime = Field(
         ...,
@@ -881,7 +892,11 @@ class CustomExternalOntologyElementMetadata(BaseModel):
     )
 
 
-class CustomOntologyMetadata(RootModel):
+class CustomOntologyMetadata(
+    RootModel[
+        CustomOwnedOntologyElementMetadata | CustomExternalOntologyElementMetadata
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: CustomOwnedOntologyElementMetadata | CustomExternalOntologyElementMetadata
 
@@ -926,12 +941,18 @@ class KnowledgeGraphToOntologyOutwardEdge(BaseModel):
     right_endpoint: OntologyTypeVertexId = Field(..., alias="rightEndpoint")
 
 
-class KnowledgeGraphOutwardEdge(RootModel):
+class KnowledgeGraphOutwardEdge(
+    RootModel[
+        KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
 
 
-class MaybeListOfEntityTypeMetadata(RootModel):
+class MaybeListOfEntityTypeMetadata(
+    RootModel[EntityTypeMetadata | list[EntityTypeMetadata]]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: EntityTypeMetadata | list[EntityTypeMetadata]
 
@@ -956,7 +977,9 @@ class OntologyToKnowledgeGraphOutwardEdge(BaseModel):
     right_endpoint: EntityIdWithInterval = Field(..., alias="rightEndpoint")
 
 
-class OntologyOutwardEdge(RootModel):
+class OntologyOutwardEdge(
+    RootModel[OntologyToOntologyOutwardEdge | OntologyToKnowledgeGraphOutwardEdge]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: OntologyToOntologyOutwardEdge | OntologyToKnowledgeGraphOutwardEdge
 
@@ -991,7 +1014,9 @@ class QueryTemporalAxesTransactionTime(BaseModel):
     variable: VariableTransactionAxis = Field(..., title="VariableTransactionAxis")
 
 
-class QueryTemporalAxes(RootModel):
+class QueryTemporalAxes(
+    RootModel[QueryTemporalAxesDecisionTime | QueryTemporalAxesTransactionTime]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: QueryTemporalAxesDecisionTime | QueryTemporalAxesTransactionTime = Field(
         ...,
@@ -1028,7 +1053,12 @@ class DataTypeWithMetadata(BaseModel):
     schema_: DataType = Field(..., alias="schema")
 
 
-class Edges(RootModel):
+class Edges(
+    RootModel[
+        dict[str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]]
+        | None
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: dict[
         str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]
@@ -1048,7 +1078,9 @@ class EntityMetadata(BaseModel):
     temporal_versioning: EntityTemporalMetadata = Field(..., alias="temporalVersioning")
 
 
-class MaybeListOfOntologyElementMetadata(RootModel):
+class MaybeListOfOntologyElementMetadata(
+    RootModel[OntologyElementMetadata | list[OntologyElementMetadata]]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: OntologyElementMetadata | list[OntologyElementMetadata]
 
@@ -1077,12 +1109,14 @@ class EntityVertex(BaseModel):
     kind: Literal["entity"]
 
 
-class KnowledgeGraphVertex(RootModel):
+class KnowledgeGraphVertex(RootModel[EntityVertex]):
     model_config = ConfigDict(populate_by_name=True)
     root: EntityVertex = Field(..., discriminator="kind")
 
 
-class KnowledgeGraphVertices(RootModel):
+class KnowledgeGraphVertices(
+    RootModel[dict[str, dict[str, KnowledgeGraphVertex]] | None]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: dict[str, dict[str, KnowledgeGraphVertex]] | None = None
 
@@ -1129,7 +1163,18 @@ class NotFilter(BaseModel):
     not_: Filter = Field(..., alias="not")
 
 
-class Filter(RootModel):
+class Filter(
+    RootModel[
+        AllFilter
+        | AnyFilter
+        | NotFilter
+        | EqualFilter
+        | NotEqualFilter
+        | StartsWithFilter
+        | EndsWithFilter
+        | ContainsSegmentFilter
+    ]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
 
@@ -1140,14 +1185,14 @@ class PropertyTypeVertex(BaseModel):
     kind: Literal["propertyType"]
 
 
-class OntologyVertex(RootModel):
+class OntologyVertex(RootModel[DataTypeVertex | PropertyTypeVertex | EntityTypeVertex]):
     model_config = ConfigDict(populate_by_name=True)
     root: DataTypeVertex | PropertyTypeVertex | EntityTypeVertex = Field(
         ..., discriminator="kind"
     )
 
 
-class OntologyVertices(RootModel):
+class OntologyVertices(RootModel[dict[str, dict[str, OntologyVertex]] | None]):
     model_config = ConfigDict(populate_by_name=True)
     root: dict[str, dict[str, OntologyVertex]] | None = None
 
@@ -1180,12 +1225,14 @@ class UpdatePropertyTypeRequest(BaseModel):
     type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
-class Vertex(RootModel):
+class Vertex(RootModel[OntologyVertex | KnowledgeGraphVertex]):
     model_config = ConfigDict(populate_by_name=True)
     root: OntologyVertex | KnowledgeGraphVertex
 
 
-class Vertices(RootModel):
+class Vertices(
+    RootModel[dict[str, dict[str, KnowledgeGraphVertex | OntologyVertex]] | None]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: dict[str, dict[str, KnowledgeGraphVertex | OntologyVertex]] | None = None
 
@@ -1203,7 +1250,9 @@ class PropertyArrayValue(BaseModel):
     max_items: int | None = Field(None, alias="maxItems", ge=0)
 
 
-class PropertyValues(RootModel):
+class PropertyValues(
+    RootModel[DataTypeReference | PropertyObjectValue | PropertyArrayValue]
+):
     model_config = ConfigDict(populate_by_name=True)
     root: DataTypeReference | PropertyObjectValue | PropertyArrayValue = Field(
         ...,
