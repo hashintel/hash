@@ -18,6 +18,7 @@ with workflow.unsafe.imports_passed_through():
     from app.ontology.activity import GraphApiActivities
 
     from . import (
+        EntityValidation,
         InferEntitiesActivityParameter,
         InferEntitiesWorkflowParameter,
         ProposedEntity,
@@ -49,6 +50,8 @@ class InferEntitiesWorkflow:
                             actor_id=params.authentication.actor_id,
                             graph=GraphApiActivities(
                                 start_to_close_timeout=timedelta(seconds=15),
+                                validate_required=params.validation
+                                == EntityValidation.full,
                             ),
                         )
                         for entity_type_id in params.entity_type_ids
@@ -73,6 +76,7 @@ class InferEntitiesWorkflow:
                     model=params.model,
                     maxTokens=params.max_tokens,
                     allowEmptyResults=params.allow_empty_results,
+                    validation=params.validation,
                 ),
                 start_to_close_timeout=timedelta(minutes=1),
             ),
@@ -90,9 +94,10 @@ class InferEntitiesWorkflow:
         #   https://linear.app/hash/issue/H-878
         for proposed_entity in proposed_entities:
             try:
-                proposed_entity.validate_entity_type(
-                    entity_types[proposed_entity.entity_type_id],
-                )
+                if params.validation != EntityValidation.none:
+                    proposed_entity.validate_entity_type(
+                        entity_types[proposed_entity.entity_type_id],
+                    )
             except ValidationError as error:
                 return Status(
                     code=StatusCode.INVALID_ARGUMENT,
