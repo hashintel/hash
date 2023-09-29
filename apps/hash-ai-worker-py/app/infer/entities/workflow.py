@@ -38,12 +38,6 @@ class InferEntitiesWorkflow:
         params: InferEntitiesWorkflowParameter,
     ) -> Status[ProposedEntity | ErrorDetails]:
         """Infer entities from the provided text input."""
-        if len(params.entity_type_ids) == 0:
-            return Status(
-                code=StatusCode.INVALID_ARGUMENT,
-                message="At least one entity type ID must be provided.",
-            )
-
         try:
             entity_types: dict[str, type[EntityType]] = {
                 entity_type.info.identifier: entity_type
@@ -76,6 +70,9 @@ class InferEntitiesWorkflow:
                         entity_types[entity_type_id].model_json_schema(by_alias=True)
                         for entity_type_id in entity_types
                     ],
+                    model=params.model,
+                    maxTokens=params.max_tokens,
+                    allowEmptyResults=params.allow_empty_results,
                 ),
                 start_to_close_timeout=timedelta(minutes=1),
             ),
