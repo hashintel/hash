@@ -7,9 +7,10 @@ from dotenv import find_dotenv, load_dotenv
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from app.activities import complete
-from app.encoding import pydantic_data_converter
-from app.workflows import InferEntitiesWorkflow
+from .encoding import pydantic_data_converter
+from .infer.entities.activity import infer_entities
+from .infer.entities.workflow import InferEntitiesWorkflow
+from .ontology.workflow import GetClosedEntityTypeWorkflow
 
 load_dotenv()
 load_dotenv(dotenv_path=find_dotenv(filename=".env.local"))
@@ -31,10 +32,10 @@ async def run_worker(stop_event: asyncio.Event) -> None:
         client,
         task_queue="aipy",
         # Register workflows
-        workflows=[InferEntitiesWorkflow],
+        workflows=[InferEntitiesWorkflow, GetClosedEntityTypeWorkflow],
         # Register activities
         activities=[
-            complete,
+            infer_entities,
         ],
     )
 

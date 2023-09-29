@@ -1,9 +1,12 @@
+# WARNING: this module has to be passed through
+#   `workflow.unsafe.imports_passed_through()`, otherwise error handling will not work!
+
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Extra, Field
 
-__all__ = ["StatusCode", "Status"]
+__all__ = ["StatusCode", "Status", "StatusError"]
 
 
 class StatusCode(str, Enum):
@@ -48,3 +51,24 @@ class Status(Generic[D], BaseModel, extra=Extra.forbid):
     Where possible, this should provide guiding advice for debugging and/or handling the
     error."""
     contents: list[D] = Field(default_factory=list)
+
+    def into_contents(self) -> list[D]:
+        """Converts this status into the contents if the status is OK."""
+        if self.code != StatusCode.OK:
+            raise StatusError(self)
+        return self.contents
+
+    def into_content(self) -> D:
+        """Converts this status into the content if the status is OK."""
+        return self.into_contents()[0]
+
+
+# WARNING: this has to be passed through `workflow.unsafe.imports_passed_through()`,
+#          otherwise error handling will not work!
+class StatusError(RuntimeError):
+    """Error raised when a status code is not OK."""
+
+    def __init__(self, status: Status[Any]) -> None:
+        """Initializes the status error."""
+        self.status = status
+        super().__init__(status.message)
