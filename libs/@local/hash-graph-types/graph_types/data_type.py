@@ -39,14 +39,13 @@ async def fetch_model(
     graph: "GraphAPIProtocol",
 ) -> type[DataTypeBase]:
     schema = await graph.get_data_type(ref, actor_id=actor_id)
-    return await schema.create_data_type(actor_id=actor_id, graph=graph)
+    return await schema.create_model(actor_id=actor_id, graph=graph)
 
 
 class DataTypeReference(Schema):
     """A reference to a data type schema."""
 
     ref: str = Field(..., alias="$ref")
-
     _cache: ClassVar[Cache[type[DataTypeBase]]] = Cache()
 
     async def create_model(
@@ -91,7 +90,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
             case _ as unreachable:
                 assert_never(unreachable)
 
-    async def create_data_type(
+    async def create_model(
         self,
         *,
         actor_id: UUID,

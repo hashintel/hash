@@ -36,7 +36,7 @@ async def fetch_model(
     graph: "GraphAPIProtocol",
 ) -> type[EntityType]:
     schema = await graph.get_entity_type(ref, actor_id=actor_id)
-    return await schema.create_entity_type(actor_id=actor_id, graph=graph)
+    return await schema.create_model(actor_id=actor_id, graph=graph)
 
 
 class EntityTypeReference(Schema):
@@ -87,7 +87,7 @@ class EntityTypeSchema(
             (original.model_dump() | {"all_of": self.all_of or []}),
         )
 
-    async def create_entity_type(
+    async def create_model(
         self,
         *,
         actor_id: UUID,

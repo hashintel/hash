@@ -35,7 +35,7 @@ async def fetch_model(
     graph: "GraphAPIProtocol",
 ) -> type[PropertyType]:
     schema = await graph.get_property_type(ref, actor_id=actor_id)
-    return await schema.create_property_type(actor_id=actor_id, graph=graph)
+    return await schema.create_model(actor_id=actor_id, graph=graph)
 
 
 class PropertyTypeReference(Schema):
@@ -79,14 +79,14 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
 
     kind: Literal["propertyType"]
 
-    async def create_property_type(
+    async def create_model(
         self,
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
     ) -> type[PropertyType]:
         """Create an annotated type from this schema."""
-        inner = await self.create_model(actor_id=actor_id, graph=graph)
+        inner = await OneOf.create_model(self, actor_id=actor_id, graph=graph)
 
         class_name = slugify(
             self.identifier,
