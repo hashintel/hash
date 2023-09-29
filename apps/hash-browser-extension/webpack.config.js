@@ -40,8 +40,8 @@ const options = {
   entry: {
     background: path.join(__dirname, "src", "scripts", "background.ts"),
     content: path.join(__dirname, "src", "scripts", "content.ts"),
-    options: path.join(__dirname, "src", "pages", "options", "index.tsx"),
-    popup: path.join(__dirname, "src", "pages", "popup", "index.tsx"),
+    options: path.join(__dirname, "src", "pages", "options.tsx"),
+    popup: path.join(__dirname, "src", "pages", "popup.tsx"),
   },
   chromeExtensionBoilerplate: {
     notHotReload: ["background", "content"],
@@ -197,13 +197,13 @@ const options = {
       ],
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, "src", "pages", "options", "index.html"),
+      template: path.join(__dirname, "src", "pages", "options.html"),
       filename: "options.html",
       chunks: ["options"],
       cache: false,
     }),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, "src", "pages", "popup", "index.html"),
+      template: path.join(__dirname, "src", "pages", "popup.html"),
       filename: "popup.html",
       chunks: ["popup"],
       cache: false,

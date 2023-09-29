@@ -9,7 +9,7 @@ import { HashWordmark } from "../shared/hash-wordmark";
  * Preferences should be persisted using browser.storage.sync
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
-export const Options = () => {
+export const OptionsContents = () => {
   return (
     <div className="options">
       <h1>

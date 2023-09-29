@@ -14,6 +14,8 @@
     "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },
   "dependencies": {
+    "@hashintel/design-system": "0.0.7",
+    "@mui/material": "5.14.11",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "webextension-polyfill": "0.10.0"
@@ -53,4 +55,3 @@
     "zip-webpack-plugin": "4.0.1"
   }
 }
-

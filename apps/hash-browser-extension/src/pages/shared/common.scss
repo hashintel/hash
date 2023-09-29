@@ -12,16 +12,6 @@ body {
   }
 }
 
-a {
-  color: #199bef;
-  text-decoration: none;
-  transition: color 0.2s ease-in-out;
-
-  &:hover {
-    color: #7acafa;
-  }
-}
-
 button {
   padding: 12px 16px;
   background: #0775e3;

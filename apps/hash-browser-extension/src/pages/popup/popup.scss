@@ -1,19 +1,5 @@
 body {
-  width: 480px;
   margin: 0;
-  line-height: 100%;
-}
-
-.popup {
-  height: 100%;
-  font-size: 15px;
-  color: #0e1114;
-  border: 1px solid #ebf2f7;
-
-  @media (prefers-color-scheme: dark) {
-    border: 1px solid #1f2022;
-    color: white;
-  }
 }
 
 .section {

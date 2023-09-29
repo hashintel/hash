@@ -1,6 +1,7 @@
 import "./popup.scss";
 import "../shared/common.scss";
 
+import { theme } from "@hashintel/design-system/theme";
 import {
   Simplified,
   simplifyProperties,
@@ -8,10 +9,12 @@ import {
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { Box, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { Message } from "../../shared/messages";
+import { SignIn } from "./popup-contents/sign-in";
 
 const queryApi = (query: string, variables?: Record<string, unknown>) =>
   fetch("https://app-api.hash.ai/graphql", {
@@ -89,7 +92,7 @@ const getCurrentTab = async () => {
  * You must inspect the popup window itself to see any logs, network events etc.
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
-export const Popup = () => {
+export const PopupContents = () => {
   const [loading, setLoading] = useState(true);
   const [me, setMe] = useState<Simplified<User> | null>(null);
   const [activeTab, setActiveTab] = useState<Tabs.Tab | null>(null);
@@ -140,60 +143,70 @@ export const Popup = () => {
   const optionsUrl = browser.runtime.getURL("options.html");
 
   return (
-    <div className="popup">
-      <header className="header section">
-        <div />
-        {!loading &&
-          (me ? (
-            <div className="avatar">
-              {me.properties.preferredName?.[0] ?? "?"}
-            </div>
-          ) : (
-            <a
-              href="https://app.hash.ai/login"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Log in
-            </a>
-          ))}
-      </header>
+    <ThemeProvider theme={theme}>
+      <Box
+        sx={({ palette }) => ({
+          height: "100%",
+          fontSize: "15px",
+          color: palette.common.black,
+          border: `1px solid ${palette.gray[20]}`,
 
-      {me ? (
-        <div className="actions">
-          <div className="action section">
-            <div className="action-title">
-              <h3>Quick note</h3>
-              <a
-                href="https://app.hash.ai/@ciaran/types/entity-type/quick-note?tab=entities"
-                target="_blank"
-                rel="noreferrer"
-              >
-                View notes
-              </a>
-            </div>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void saveQuickNote();
-              }}
-            >
-              <textarea
-                placeholder="Start typing here..."
-                rows={1}
-                value={draftQuickNote}
-                onChange={(event) => setDraftQuickNote(event.target.value)}
-              />
-              <button type="submit">Create new entity</button>
-            </form>
-          </div>
-          <div className="action section options-link">
-            <a href={optionsUrl} target="_blank" rel="noreferrer">
-              Settings
-            </a>
-          </div>
-        </div>
-      ) : null}
-    </div>
+          "@media (prefers-color-scheme: dark)": {
+            border: `1px solid ${palette.gray[10]}`,
+            color: palette.common.white,
+          },
+        })}
+      >
+        {!loading &&
+          (!me ? (
+            <SignIn />
+          ) : (
+            <>
+              <header className="header section">
+                <div />
+                <div className="avatar">
+                  {me.properties.preferredName?.[0] ?? "?"}
+                </div>
+              </header>
+
+              <div className="actions">
+                <div className="action section">
+                  <div className="action-title">
+                    <h3>Quick note</h3>
+                    <a
+                      href="https://app.hash.ai/@ciaran/types/entity-type/quick-note?tab=entities"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View notes
+                    </a>
+                  </div>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void saveQuickNote();
+                    }}
+                  >
+                    <textarea
+                      placeholder="Start typing here..."
+                      rows={1}
+                      value={draftQuickNote}
+                      onChange={(event) =>
+                        setDraftQuickNote(event.target.value)
+                      }
+                    />
+                    <button type="submit">Create new entity</button>
+                  </form>
+                </div>
+                <div className="action section options-link">
+                  <a href={optionsUrl} target="_blank" rel="noreferrer">
+                    Settings
+                  </a>
+                </div>
+              </div>
+            </>
+          ))}
+      </Box>
+    </ThemeProvider>
   );
 };
