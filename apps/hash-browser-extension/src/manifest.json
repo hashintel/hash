@@ -4,7 +4,7 @@
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "options_page": "options.html",
   "background": {
-    "scripts": ["browser-polyfill.js", "background.bundle.js"]
+    "service_worker": "background.bundle.js"
   },
   "permissions": ["activeTab", "storage"],
   "action": {
@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "<all_urls>"],
-      "js": ["browser-polyfill.js", "content.bundle.js"],
+      "js": ["content.bundle.js"],
       "css": ["content.styles.css"]
     }
   ],

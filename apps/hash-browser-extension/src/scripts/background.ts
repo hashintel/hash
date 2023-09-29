@@ -1,4 +1,4 @@
-import "webextension-polyfill";
+import browser from "webextension-polyfill";
 
 /**
  * This is the service worker for the extension. You must click 'Update' on the extension if you modify it.

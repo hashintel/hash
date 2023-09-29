@@ -15,6 +15,6 @@
     "noEmit": false,
     "jsx": "react-jsx"
   },
-  "include": ["src", "webextension-polyfill.d.ts"],
+  "include": ["src"],
   "exclude": ["build", "node_modules"]
 }

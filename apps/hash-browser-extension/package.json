@@ -9,7 +9,9 @@
   "license": "AGPL-3.0",
   "scripts": {
     "build": "node utils/build.js",
-    "dev": "node utils/webserver.js"
+    "build:firefox": "BROWSER=firefox node utils/build.js",
+    "dev": "node utils/webserver.js",
+    "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },
   "dependencies": {
     "react": "18.2.0",

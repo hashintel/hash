@@ -151,24 +151,28 @@ const options = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: "../../node_modules/webextension-polyfill/dist/browser-polyfill.js",
-        },
-      ],
-    }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
           from: "src/manifest.json",
           to: path.join(__dirname, "build"),
           force: true,
           transform(content) {
+            const json = JSON.parse(content.toString());
+
+            if (env.BROWSER === "firefox") {
+              // @see https://bugzilla.mozilla.org/show_bug.cgi?id=1573659
+              json.background.scripts = [json.background.service_worker];
+              delete json.background.service_worker;
+            }
+
             // generates the manifest file using the package.json informations
             return Buffer.from(
-              JSON.stringify({
-                description: process.env.npm_package_description,
-                version: process.env.npm_package_version,
-                ...JSON.parse(content.toString()),
-              }),
+              JSON.stringify(
+                {
+                  version: process.env.npm_package_version,
+                  ...json,
+                },
+                undefined,
+                2,
+              ),
             );
           },
         },

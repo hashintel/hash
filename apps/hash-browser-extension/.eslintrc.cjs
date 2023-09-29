@@ -21,7 +21,7 @@ module.exports = {
   ),
   overrides: [
     {
-      files: ["webserver.js"],
+      files: ["utils/*.js"],
       rules: {
         "import/no-extraneous-dependencies": [
           "error",

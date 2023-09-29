@@ -1,3 +1,5 @@
+import browser from "webextension-polyfill";
+
 /**
  * Content scripts operate in the context of the webpage itself, for reading and manipulating context.
  *
@@ -8,7 +10,6 @@
  *
  * You must update the extension if you amend this file.
  */
-
 import { Message } from "../shared/messages";
 
 console.log("Content script loaded");

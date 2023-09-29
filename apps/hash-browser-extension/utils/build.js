@@ -3,17 +3,17 @@ process.env.BABEL_ENV = "production";
 process.env.NODE_ENV = "production";
 process.env.ASSET_PATH = "/";
 
-var webpack = require("webpack"),
-  path = require("path"),
-  fs = require("fs"),
-  config = require("../webpack.config"),
-  ZipPlugin = require("zip-webpack-plugin");
+const webpack = require("webpack");
+const path = require("node:path");
+const fs = require("node:fs");
+const ZipPlugin = require("zip-webpack-plugin");
+const config = require("../webpack.config");
 
 delete config.custom;
 
 config.mode = "production";
 
-var packageInfo = JSON.parse(fs.readFileSync("package.json", "utf-8"));
+const packageInfo = JSON.parse(fs.readFileSync("package.json", "utf-8"));
 
 config.plugins = (config.plugins || []).concat(
   new ZipPlugin({
@@ -22,6 +22,8 @@ config.plugins = (config.plugins || []).concat(
   }),
 );
 
-webpack(config, function (err) {
-  if (err) throw err;
+webpack(config, (err) => {
+  if (err) {
+    throw err;
+  }
 });
