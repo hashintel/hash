@@ -1,16 +1,16 @@
 .options {
   width: 100%;
-  height: 50vh;
+  margin: 40px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   align-content: center;
-  text-align: center;
 
   h1 {
     font-size: 3rem;
     width: 100%;
+    text-align: center;
   }
 
   p {
@@ -19,5 +19,22 @@
     font-size: 1.5rem;
     line-height: 1.5;
     margin: 0 auto;
+  }
+}
+
+.usage-instructions {
+  text-align: left;
+  margin-top: 40px;
+
+  h4 {
+    margin-bottom: 10px;
+  }
+
+  ul {
+    margin-top: 10px;
+
+    li {
+      margin-bottom: 10px;
+    }
   }
 }

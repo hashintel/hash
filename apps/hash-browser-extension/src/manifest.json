@@ -6,6 +6,7 @@
   "background": {
     "service_worker": "background.bundle.js"
   },
+  "host_permissions": ["*://*.hash.ai/*"],
   "permissions": ["activeTab", "storage"],
   "action": {
     "default_icon": "icon-256.png",

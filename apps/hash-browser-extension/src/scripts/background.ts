@@ -1,11 +1,13 @@
 import browser from "webextension-polyfill";
 
 /**
- * This is the service worker for the extension. You must click 'Update' on the extension if you modify it.
+ * This is the service worker for the extension.
  *
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts
  *
- * You must click 'inspect views' in chrome://extensions to see console logs etc from this file.
+ * You must click 'inspect' in chrome://extensions or about:debugging#/runtime/this-firefox to see console logs etc from this file.
+ *
+ * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
 
 console.log("Background script run");

@@ -67,6 +67,7 @@ const getCurrentTab = async () => {
  * The popup that appears when a user clicks on the extension's icon.
  *
  * You must inspect the popup window itself to see any logs, network events etc.
+ * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
 export const Popup = () => {
   const [loading, setLoading] = useState(true);

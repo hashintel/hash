@@ -8,7 +8,7 @@ import browser from "webextension-polyfill";
  *
  * The relevant window is the web page itself, e.g. any logs will appear in the web page's console.
  *
- * You must update the extension if you amend this file.
+ * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
 import { Message } from "../shared/messages";
 
