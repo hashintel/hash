@@ -40,7 +40,7 @@ class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
     text_input: str = Field(..., alias="textInput")
     entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
     model: str = "gpt-4-0613"
-    max_tokens: int = Field(4096, alias="maxTokens")
+    max_tokens: int | None = Field(None, alias="maxTokens")
     allow_empty_results: bool = Field(True, alias="allowEmptyResults")  # noqa: FBT003
     validation: EntityValidation = Field(EntityValidation.full)
 
@@ -51,6 +51,6 @@ class InferEntitiesActivityParameter(BaseModel, extra=Extra.forbid):
     text_input: str = Field(..., alias="textInput")
     entity_types: list[dict[str, Any]] = Field(..., alias="entityTypes")
     model: str
-    max_tokens: int = Field(..., alias="maxTokens")
+    max_tokens: int | None = Field(..., alias="maxTokens")
     allow_empty_results: bool = Field(..., alias="allowEmptyResults")
     validation: EntityValidation
