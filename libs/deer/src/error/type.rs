@@ -173,14 +173,14 @@ mod tests {
                 &Report::new(TypeError.into_error())
                     .attach(ReceivedType::new(StringSchema::document()))
             ),
-            r#"received value of unexpected type string"#
+            "received value of unexpected type string"
         );
 
         assert_eq!(
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error()).attach(ExpectedType::new(u8::reflection()))
             ),
-            r#"expected value of type integer"#
+            "expected value of type integer"
         );
 
         assert_eq!(
