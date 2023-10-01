@@ -636,7 +636,7 @@ jobs:
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
       - name: Find publish jobs to run
-        id: tests
+        id: publish
         run: |
           set -x
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
@@ -653,7 +653,7 @@ jobs:
           working-directory: ${{ matrix.directory }}
 
       - name: Install tools
-        if: always() && steps.tests.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
         uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
         with:
           tool: cargo-semver-checks
