@@ -250,6 +250,8 @@ jobs:
 
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
 
+          cat -n src/hook.rs
+
       - name: Process SARIF file
         working-directory: ${{ matrix.directory }}
         if: always() && steps.lints.outputs.has-clippy == 'true'
