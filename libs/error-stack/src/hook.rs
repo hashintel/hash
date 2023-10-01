@@ -157,7 +157,8 @@ impl Report<()> {
         #[cfg(feature = "std")]
         let Ok(mut lock) = FMT_HOOK.write() else {
             panic!(
-                "Hook is poisoned. This is considered a bug and should be reported to https://github.com/hashintel/hash/issues/new/choose"
+                "Hook is poisoned. This is considered a bug and should be \
+                reported to https://github.com/hashintel/hash/issues/new/choose"
             );
         };
 

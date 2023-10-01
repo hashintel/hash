@@ -194,7 +194,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Install poetry
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
@@ -356,7 +355,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Run tests
         env:
@@ -459,7 +457,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
@@ -548,7 +545,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
