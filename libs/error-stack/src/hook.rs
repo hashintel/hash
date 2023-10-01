@@ -155,7 +155,11 @@ impl Report<()> {
         install_builtin_hooks();
 
         #[cfg(feature = "std")]
-        let mut lock = FMT_HOOK.write().expect("should not be poisoned");
+        let Ok(mut lock) = FMT_HOOK.write() else {
+            panic!(
+                "Hook is poisoned. This is considered a bug and should be reported to https://github.com/hashintel/hash/issues/new/choose"
+            );
+        };
 
         // The spin RwLock cannot panic
         #[cfg(all(not(feature = "std"), feature = "hooks"))]
