@@ -188,12 +188,12 @@ jobs:
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
-      #      - name: Cache Rust dependencies
-      #        if: always() && steps.lints.outputs.has-rust == 'true'
-      #        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
-      #        with:
-      #          workspaces: ${{ matrix.directory }}
-      #          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
+      - name: Cache Rust dependencies
+        if: always() && steps.lints.outputs.has-rust == 'true'
+        uses: Swatinem/rust-cache@a95ba195448af2da9b00fb742d14ffaaf3c21f43 # v2.7.0
+        with:
+          workspaces: ${{ matrix.directory }}
+          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Install poetry
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
@@ -239,19 +239,13 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
-          cargo clippy --version
-          pwd
-          ls -lah
-          cargo hack clippy --profile dev --workspace --all-features --all-targets --no-deps -- -Wclippy::pedantic
-          just clippy --message-format=json \
+          just clippy --config .cargo/config.toml --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \
             | sarif-fmt
 
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
-
-          cat -n .cargo/config.toml
 
       - name: Process SARIF file
         working-directory: ${{ matrix.directory }}
