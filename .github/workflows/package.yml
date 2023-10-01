@@ -62,12 +62,12 @@ jobs:
           PUBLISH_INCLUDES=[]          
           while IFS= read -r file; do
             if [[ -n "$file" ]]; then
-              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE_NAME" == "null" ]]; then
                 continue
               fi
-              
-              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
-              if [[ "$PACKAGE" == "null" ]]; then
+
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
                 continue
               fi
               
