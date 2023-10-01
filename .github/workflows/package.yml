@@ -25,6 +25,7 @@ jobs:
       system-tests: ${{ steps.packages.outputs.system-tests }}
       dockers: ${{ steps.packages.outputs.dockers }}
       lints: ${{ steps.packages.outputs.lints }}
+      publish: ${{ steps.packages.outputs.publish }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
@@ -56,6 +57,36 @@ jobs:
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          PUBLISH_PACKAGES=[]
+          PUBLISH_INCLUDES=[]          
+          while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+                continue
+              fi
+              
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE" == "null" ]]; then
+                continue
+              fi
+              
+              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              if [[ "$OLD_VERSION" == "null" ]]; then
+                continue
+              fi
+              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
+              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
+                continue
+              fi
+              
+              DIR=$(dirname "$file")
+              
+              PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
+              PUBLISH_INCLUDES=$(echo "$PUBLISH_INCLUDES" | jq -c --arg package "$PACKAGE_NAME" --arg directory "$DIR" '. += [{package: $package, directory: $directory}]')
+            fi
+          done <<< "$(rg --files -g 'Cargo.toml')"
+          PUBLISH_PACKAGES=$(jq -c -n --argjson packages "$PUBLISH_PACKAGES" --argjson includes "$PUBLISH_INCLUDES" '{packages: $packages, include: $includes}')
            
           if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.package != []'); then
             REQUIRES_GRAPH=true
@@ -92,6 +123,7 @@ jobs:
           echo "system-tests=$SYSTEM_TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
           echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
+          echo "publish=$PUBLISH_PACKAGES" >> $GITHUB_OUTPUT
 
   lint:
     name: Lint
@@ -591,9 +623,69 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
+  publish:
+    name: Publish
+    needs: setup
+    if: needs.setup.outputs.publish != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Find publish jobs to run
+        id: tests
+        run: |
+          set -x
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Rust toolchain
+        if: always() && steps.publish.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.publish.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install tools
+        if: always() && steps.tests.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        with:
+          tool: cargo-semver-checks
+
+      - name: Login
+        run: |
+          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
+          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+      - name: SemVer check
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        working-directory: ${{ matrix.directory }}
+        run: |
+          # Only run semver checks if this is not the initial release
+          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
+
+          # Temporarily disabled as `error-stack@0.3.1` does not compile on the current nightly toolchain
+          cargo semver-checks check-release
+
+      - name: Publish (dry run)
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish --all-features --dry-run
+
+      - name: Publish
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish --all-features --dry-run
+
   passed:
     name: Workflow passed
-    needs: [setup, lint, unit-tests, integration-tests, system-tests]
+    needs: [setup, lint, unit-tests, integration-tests, system-tests, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -612,3 +704,6 @@ jobs:
       - name: Check functional tests
         run: |
           [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
+      - name: Check publish results
+        run: |
+          [[ ${{ needs.publish.result }} =~ success|skipped ]]
