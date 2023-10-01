@@ -239,9 +239,11 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
+          cargo clippy --version
           pwd
           ls -lah
           cargo hack clippy --profile dev --workspace --all-features --all-targets --no-deps
+          cargo hack clippy --profile dev --workspace --all-features --all-targets
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -250,7 +252,7 @@ jobs:
 
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
 
-          cat -n src/hook.rs
+          cat -n .cargo/config.toml
 
       - name: Process SARIF file
         working-directory: ${{ matrix.directory }}
