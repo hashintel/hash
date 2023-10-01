@@ -670,7 +670,6 @@ jobs:
           # Only run semver checks if this is not the initial release
           grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
 
-          # Temporarily disabled as `error-stack@0.3.1` does not compile on the current nightly toolchain
           cargo semver-checks check-release
 
       - name: Publish (dry run)
@@ -681,7 +680,7 @@ jobs:
       - name: Publish
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features --dry-run
+        run: cargo publish --all-features
 
   passed:
     name: Workflow passed
