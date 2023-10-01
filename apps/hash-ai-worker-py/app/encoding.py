@@ -36,7 +36,7 @@ class PydanticJSONPayloadConverter(JSONPlainPayloadConverter):
 
         def encoder(obj: Any) -> Any:  # noqa: ANN401
             if isinstance(obj, BaseModel):
-                return obj.model_dump(by_alias=True, exclude_none=True)
+                return obj.model_dump(by_alias=True)
 
             return pydantic_encoder(obj)
 
