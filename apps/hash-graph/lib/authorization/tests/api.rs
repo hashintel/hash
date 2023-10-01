@@ -25,6 +25,9 @@ impl TestApi {
     ///   to `secret`.
     ///
     /// After disconnecting every created relation will be deleted again.
+    /// # Panics
+    ///
+    /// Panics if the connection to `SpiceDB` fails.
     #[must_use]
     pub fn connect() -> Self {
         let host =

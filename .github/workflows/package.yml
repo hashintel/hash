@@ -242,7 +242,7 @@ jobs:
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
           export RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
-          just clippy --config .cargo/config.toml --message-format=json \
+          just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \
