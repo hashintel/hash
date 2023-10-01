@@ -239,7 +239,12 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
-          just clippy
+          cargo clippy --version
+          cargo clippy --profile dev --workspace --all-features --all-targets
+          cargo clippy --profile dev --workspace --all-features --no-deps
+          cargo clippy --profile dev --all-features --all-targets --no-deps
+          cargo clippy --workspace --all-features --all-targets --no-deps
+          cargo clippy --profile dev --workspace --all-features --all-targets --no-deps
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
