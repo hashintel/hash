@@ -666,11 +666,7 @@ jobs:
       - name: SemVer check
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
         working-directory: ${{ matrix.directory }}
-        run: |
-          # Only run semver checks if this is not the initial release
-          grep '^version' Cargo.toml | grep -q -v 0.0.0-reserved || exit 0
-
-          cargo semver-checks check-release
+        run: cargo semver-checks check-release
 
       - name: Publish (dry run)
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
