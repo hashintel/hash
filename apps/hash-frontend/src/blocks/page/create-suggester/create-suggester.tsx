@@ -16,7 +16,7 @@ import { ReactElement } from "react";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
 import { BlockSuggester } from "./block-suggester";
-import { Mention, MentionSuggester } from "./mention-suggester";
+import { Mention, MentionSuggester } from "../shared/mention-suggester";
 
 interface Trigger {
   char: "@" | "/";

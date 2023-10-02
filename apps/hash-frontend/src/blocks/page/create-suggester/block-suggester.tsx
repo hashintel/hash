@@ -5,8 +5,8 @@ import { FunctionComponent, useMemo } from "react";
 
 import { WarnIcon } from "../../../shared/icons";
 import { useUserBlocks } from "../../user-blocks";
+import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 import { Suggester } from "./suggester";
-import { useFilteredBlocks } from "./use-filtered-blocks";
 
 export interface BlockSuggesterProps {
   search?: string;

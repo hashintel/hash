@@ -18,7 +18,7 @@ import { constructPageRelativeUrl } from "../../../lib/routes";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../../shared/ui";
 import { useEntityIcon } from "../../../shared/use-entity-icon";
-import { Mention } from "../create-suggester/mention-suggester";
+import { Mention } from "../shared/mention-suggester";
 
 const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
   marginLeft: theme.spacing(1),
