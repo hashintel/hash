@@ -16,6 +16,13 @@
 **Pages** will reload (the `popup` and `options` screens).
 **Scripts** (`background`, `content`) require clicking 'Update' in [chrome://extensions](chrome://extensions).
 
+### Permissions
+
+In Firefox, the following permissions via Tools-Addons must be set before the extension will work:
+
+1. "Access your data for sites in the hash.ai domain" so that cookies will be sent to the HASH API
+1. "Access your data for all web sites" so that content can be read from any other websites
+
 ### Debugging
 
 The components of the extension run in different browser contexts.

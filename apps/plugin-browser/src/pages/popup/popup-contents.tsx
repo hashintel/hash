@@ -1,47 +1,15 @@
 import "../shared/common.scss";
 
 import { theme } from "@hashintel/design-system/theme";
-import {
-  Simplified,
-  simplifyProperties,
-} from "@local/hash-isomorphic-utils/simplify-properties";
+import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, ThemeProvider } from "@mui/material";
+import { Box, Skeleton, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
+import { getUser } from "../shared/get-user";
 import { ActionCenter } from "./popup-contents/action-center";
-import { queryApi } from "./popup-contents/query-api";
 import { SignIn } from "./popup-contents/sign-in";
-
-const meQuery = /* GraphQL */ `
-  {
-    me {
-      roots
-      vertices
-    }
-  }
-`;
-
-const getMe = () => {
-  return queryApi(meQuery)
-    .then(
-      ({
-        data: { me: subgraph },
-      }: {
-        data: { me: Subgraph<EntityRootType> };
-      }) => {
-        const user = getRoots(subgraph)[0] as unknown as User;
-        return {
-          ...user,
-          properties: simplifyProperties(user.properties),
-        };
-      },
-    )
-    .catch(() => null);
-};
 
 const getCurrentTab = async () => {
   const queryOptions = { active: true, lastFocusedWindow: true };
@@ -65,7 +33,7 @@ export const PopupContents = () => {
   useEffect(() => {
     const init = async () => {
       await Promise.all([
-        getMe().then((maybeMe) => setMe(maybeMe)),
+        getUser().then((maybeMe) => setMe(maybeMe)),
         getCurrentTab().then(setActiveTab),
       ]);
 
@@ -92,8 +60,24 @@ export const PopupContents = () => {
           },
         })}
       >
-        {!loading &&
-          (!me ? <SignIn /> : <ActionCenter activeTab={activeTab} user={me} />)}
+        {loading ? (
+          <Box sx={{ width: 450, paddingX: 2.5, pt: 1, pb: 2 }}>
+            <Skeleton
+              height={32}
+              sx={{ borderRadius: 1, mb: 2 }}
+              variant="rectangular"
+            />
+            <Skeleton
+              height={150}
+              sx={{ borderRadius: 1 }}
+              variant="rectangular"
+            />
+          </Box>
+        ) : me ? (
+          <ActionCenter activeTab={activeTab} user={me} />
+        ) : (
+          <SignIn />
+        )}
       </Box>
     </ThemeProvider>
   );

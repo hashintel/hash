@@ -7,8 +7,8 @@ import { PropsWithChildren, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { Message } from "../../../shared/messages";
+import { queryApi } from "../../shared/query-api";
 import { TextFieldWithDarkMode } from "./action-center/text-field-with-dark-mode";
-import { queryApi } from "./query-api";
 
 const createEntityQuery = /* GraphQL */ `
   mutation createEntity(

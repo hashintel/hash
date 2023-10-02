@@ -1,7 +1,14 @@
-import "./options.scss";
 import "../shared/common.scss";
 
-import { HashWordmark } from "../shared/hash-wordmark";
+import { Button } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
+import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
+import { User } from "@local/hash-isomorphic-utils/system-types/shared";
+import { Box, Skeleton, Stack, ThemeProvider, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+
+import { getUser } from "../shared/get-user";
+import { HashLockup } from "../shared/hash-lockup";
 
 /**
  * This can be used for onboarding instructions, and for user preferences.
@@ -10,32 +17,140 @@ import { HashWordmark } from "../shared/hash-wordmark";
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
 export const OptionsContents = () => {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<Simplified<User> | null>(null);
+
+  useEffect(() => {
+    void getUser()
+      .then((simplifiedUser) => setUser(simplifiedUser))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
-    <div className="options">
-      <h1>
-        <HashWordmark />
-      </h1>
-      <p>
-        This is the settings page for the extension. People will see this when
-        the extension is first installed, or when they select "settings" from
-        the extensions page.
-      </p>
-      <p className="usage-instructions">
-        <h4>Usage in Firefox</h4>
-        To use the extension in Firefox, visit about:addons in your browser or
-        click "Tools {">"} Addons" in the menu bar. Then click on HASH
-        Assistant, select "Permissions", and:
-        <ul>
-          <li>
-            Enable "Access your data for sites in the hash.ai domain" to use the
-            extension
-          </li>
-          <li>
-            Enable "Access your data for all web sites" if you want to read data
-            from webpages you are visiting
-          </li>
-        </ul>
-      </p>
-    </div>
+    <ThemeProvider theme={theme}>
+      <Box
+        className="options"
+        sx={({ palette }) => ({
+          color: palette.common.black,
+          background: palette.gray[10],
+          height: "100vh",
+          px: 4,
+        })}
+      >
+        <Box sx={{ mx: "auto", maxWidth: 700, pt: "25vh" }}>
+          <Box sx={{ mb: 1.5, width: "100%" }}>
+            <HashLockup />
+          </Box>
+          <Typography
+            sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}
+          >
+            Get started with the{" "}
+            <Typography
+              component="span"
+              sx={{ color: ({ palette }) => palette.common.black }}
+            >
+              HASH Browser Plugin
+            </Typography>
+          </Typography>
+          <Stack direction="row" alignItems="center" mt={6}>
+            <Box
+              sx={({ palette }) => ({
+                background: palette.common.white,
+                borderRadius: 2,
+                border: `1px solid ${palette.gray[30]}`,
+                display: "inline-block",
+                px: 6.5,
+                py: 5,
+                width: 230,
+              })}
+            >
+              {loading ? (
+                <Skeleton
+                  sx={{ borderRadius: 1, height: 100 }}
+                  variant="rectangular"
+                />
+              ) : user ? (
+                <>
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.gray[90],
+                      fontSize: 20,
+                    }}
+                  >
+                    Welcome,{" "}
+                    {user.properties.preferredName ?? user.properties.email}!
+                  </Typography>
+                  <Typography
+                    sx={{
+                      color: ({ palette }) => palette.gray[70],
+                      fontSize: 17,
+                      mt: 2,
+                    }}
+                  >
+                    Click on the extension icon to get started.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="smallCaps" sx={{ fontSize: 12 }}>
+                    Connect to HASH
+                  </Typography>
+                  <Box sx={{ mt: 1 }}>
+                    <Box sx={{ mb: 1.5 }}>
+                      <Button
+                        href="https://app.hash.ai/signup"
+                        target="_blank"
+                        sx={{ fontSize: 14 }}
+                        variant="primary"
+                      >
+                        Create a free account
+                      </Button>
+                    </Box>
+                    <Button
+                      href="https://app.hash.ai/login"
+                      size="small"
+                      target="_blank"
+                      sx={({ palette }) => ({
+                        background: palette.gray[90],
+                        color: palette.common.white,
+                        fontSize: 14,
+
+                        "&:hover": {
+                          background: palette.gray[80],
+                          color: palette.common.white,
+                        },
+                      })}
+                      variant="tertiary"
+                    >
+                      Sign in to an existing account
+                    </Button>
+                  </Box>
+                </>
+              )}
+            </Box>
+            <Box ml={6}>
+              <Typography
+                variant="smallCaps"
+                sx={({ palette }) => ({
+                  color: palette.gray[50],
+                  display: "block",
+                  fontSize: 12,
+                })}
+              >
+                Get help
+              </Typography>
+              <Button
+                href="https://github.com/hashintel/hash/issues/new/choose"
+                variant="tertiary"
+                sx={{ fontSize: 14, mt: 1 }}
+                target="_blank"
+              >
+                Report an issue
+              </Button>
+            </Box>
+          </Stack>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 };
