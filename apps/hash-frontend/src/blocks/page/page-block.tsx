@@ -199,7 +199,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
             borderTopLeftRadius: "8px",
             borderTopRightRadius: "8px",
             px: 1,
-            py: 0.5,
+            paddingTop: 0.5,
+            paddingBottom: 1,
           },
         }}
       />

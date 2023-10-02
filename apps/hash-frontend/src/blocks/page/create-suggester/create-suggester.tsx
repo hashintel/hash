@@ -15,8 +15,8 @@ import { ReactElement } from "react";
 
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
-import { BlockSuggester } from "./block-suggester";
 import { Mention, MentionSuggester } from "../shared/mention-suggester";
+import { BlockSuggester } from "./block-suggester";
 
 interface Trigger {
   char: "@" | "/";
@@ -400,7 +400,7 @@ export const createSuggester = (
                     name: "offset",
                     options: {
                       offset: () => [
-                        coords.left - anchorNodeRect.x - 10,
+                        coords.left - anchorNodeRect.x - 9,
                         coords.bottom - anchorNodeRect.bottom + 4,
                       ],
                     },
