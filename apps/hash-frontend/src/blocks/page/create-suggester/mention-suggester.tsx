@@ -35,7 +35,6 @@ import {
 } from "react";
 import { useKey } from "rooks";
 
-import { useScrollLock } from "../../../components/grid/utils/override-custom-renderers/use-scroll-lock";
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
@@ -46,6 +45,7 @@ import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { isPageArchived } from "../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../shared/property-types-context";
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import {
   MentionSuggesterEntity,
