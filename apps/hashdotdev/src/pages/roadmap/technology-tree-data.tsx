@@ -969,7 +969,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     variant: "infrastructure",
   },
   {
-    id: "97",
+    id: "98",
     heading: "Encrypted Properties",
     body: "Support for selectively encrypting individual properties on entity types",
     parentIds: ["82"],
