@@ -28,6 +28,11 @@ export const MentionSuggesterSubheading: FunctionComponent<
             color: ({ palette }) => palette.gray[60],
             textTransform: "uppercase",
           },
+          svg: {
+            fontSize: 10,
+            position: "relative",
+            top: 0,
+          },
           ...(onClick
             ? {
                 "&:hover": {
@@ -47,11 +52,8 @@ export const MentionSuggesterSubheading: FunctionComponent<
         <ChevronLeftRegularIcon
           className="chevron-left"
           sx={{
-            fontSize: 12,
-            position: "relative",
             right: 0,
-            top: 1,
-            marginRight: 1,
+            marginRight: 0.75,
             transition: ({ transitions }) => transitions.create("right"),
           }}
         />
@@ -61,11 +63,8 @@ export const MentionSuggesterSubheading: FunctionComponent<
         <ChevronRightRegularIcon
           className="chevron-right"
           sx={{
-            fontSize: 12,
-            position: "relative",
-            top: 1,
             left: 0,
-            marginLeft: 1,
+            marginLeft: 0.75,
             transition: ({ transitions }) => transitions.create("transform"),
             transform: open ? "rotate(90deg)" : "rotate(0deg)",
           }}
