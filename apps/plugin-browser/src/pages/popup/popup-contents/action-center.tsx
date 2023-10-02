@@ -170,7 +170,7 @@ export const ActionCenter = ({
               sx={{ mb: 1.5, mt: 1, width: "100%" }}
             />
             <Button size="small" type="submit">
-              Create new entity
+              Save quick note
             </Button>
           </Box>
         </Action>
