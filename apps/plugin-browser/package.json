@@ -1,5 +1,5 @@
 {
-  "name": "@apps/hash-browser-extension",
+  "name": "@apps/plugin-browser",
   "version": "0.0.1",
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {

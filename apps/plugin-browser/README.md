@@ -1,4 +1,4 @@
-# HASH Browser Extension
+# HASH Browser Plugin
 
 ## Development
 

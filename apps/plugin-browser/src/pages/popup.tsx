@@ -1,4 +1,3 @@
-// eslint-disable-next-line canonical/filename-no-index
 import { createRoot } from "react-dom/client";
 
 import { PopupContents } from "./popup/popup-contents";
