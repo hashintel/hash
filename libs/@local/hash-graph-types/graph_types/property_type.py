@@ -52,7 +52,7 @@ class PropertyValue(RootModel, Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[RootModel] | Annotated[Any, ...]:
+    ) -> type[RootModel] | Annotated[Any, ...]:  # noqa: ANN401
         return await self.root.create_model(actor_id=actor_id, graph=graph)
 
 
@@ -72,6 +72,7 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
     ) -> type["PropertyType"]:
         """Create an annotated type from this schema."""
         from .base import PropertyType
+
         inner = await OneOf.create_model(self, actor_id=actor_id, graph=graph)
 
         class_name = slugify(

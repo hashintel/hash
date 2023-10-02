@@ -83,6 +83,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
     ) -> type["DataTypeBase"]:
         """Create an annotated type from this schema."""
         from .base import DataType as DataTypeBase
+
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
         _graph = graph

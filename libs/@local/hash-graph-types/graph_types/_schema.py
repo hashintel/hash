@@ -30,7 +30,7 @@ class Schema(BaseModel, ABC):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[BaseModel] | Annotated[Any, ...]:
+    ) -> type[BaseModel] | Annotated[Any, ...]:  # noqa: ANN401
         ...
 
 
@@ -45,6 +45,7 @@ class OntologyTypeSchema(Schema, ABC):
 
     def type_info(self) -> "OntologyTypeInfo":
         from .base import OntologyTypeInfo
+
         return OntologyTypeInfo(
             identifier=self.identifier,
             title=self.title,

@@ -67,6 +67,7 @@ class EntityTypeSchema(
     def type_info(self) -> "EntityTypeInfo":
         """Return the type information for this schema."""
         from .base import EntityTypeInfo
+
         original = super().type_info()
 
         return EntityTypeInfo.model_validate(
@@ -81,6 +82,7 @@ class EntityTypeSchema(
     ) -> type["EntityType"]:
         """Create an annotated type from this schema."""
         from .base import EntityType
+
         # Take the fields from Object and create a new model, with a new baseclass.
         proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
 
