@@ -13,6 +13,7 @@ import {
   EntityId,
   EntityRootType,
   EntityTypeWithMetadata,
+  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -142,6 +143,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 { parameter: authenticatedUser.accountId },
               ],
             },
+            ...authenticatedUser.memberOf.map(
+              ({ org: { accountGroupId } }) => ({
+                equal: [{ path: ["ownedById"] }, { parameter: accountGroupId }],
+              }),
+            ),
             generateVersionedUrlMatchingFilter(
               types.entityType.user.entityTypeId,
               { ignoreParents: true },
@@ -199,63 +205,87 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     () =>
       entitiesSubgraph
         ? searchedEntities
-            ?.reduce((prev, currentEntity) => {
-              if (
-                isEntityPageEntity(currentEntity) &&
-                isPageArchived(currentEntity)
-              ) {
-                return prev;
-              }
+            ?.reduce(
+              (prev, currentEntity) => {
+                if (
+                  isEntityPageEntity(currentEntity) &&
+                  isPageArchived(currentEntity)
+                ) {
+                  return prev;
+                }
 
-              const existingIndex = prev.findIndex(
-                ({ entityType }) =>
-                  entityType.schema.$id === currentEntity.metadata.entityTypeId,
-              );
-
-              const entityType =
-                prev[existingIndex]?.entityType ??
-                getEntityTypeById(
-                  entitiesSubgraph,
-                  currentEntity.metadata.entityTypeId,
+                const existingIndex = prev.findIndex(
+                  ({ entityType }) =>
+                    entityType.schema.$id ===
+                    currentEntity.metadata.entityTypeId,
                 );
 
-              if (!entityType) {
-                throw new Error("Entity type could not be found in subgraph");
-              }
+                const entityType =
+                  prev[existingIndex]?.entityType ??
+                  getEntityTypeById(
+                    entitiesSubgraph,
+                    currentEntity.metadata.entityTypeId,
+                  );
+
+                if (!entityType) {
+                  throw new Error("Entity type could not be found in subgraph");
+                }
+
+                const previousEntities = prev[existingIndex]?.allEntities ?? [];
+
+                return existingIndex >= 0
+                  ? [
+                      ...prev.slice(0, existingIndex),
+                      {
+                        ...prev[existingIndex]!,
+                        allEntities: [...previousEntities, currentEntity],
+                      },
+                      ...prev.slice(existingIndex + 1),
+                    ]
+                  : [
+                      ...prev,
+                      {
+                        entityType,
+                        displayedEntities: [currentEntity],
+                        allEntities: [currentEntity],
+                      },
+                    ];
+              },
+              [] as Omit<EntitiesByType[number], "displayedEntities">[],
+            )
+            .map<EntitiesByType[number]>(({ allEntities, entityType }) => {
+              // Sort the entities to ensure the user's entities are displayed first
+              const sortedEntities = allEntities.sort((a, b) => {
+                const isAInUserAccount =
+                  extractOwnedByIdFromEntityId(a.metadata.recordId.entityId) ===
+                  authenticatedUser.accountId;
+                const isBInUserAccount =
+                  extractOwnedByIdFromEntityId(b.metadata.recordId.entityId) ===
+                  authenticatedUser.accountId;
+
+                if (isAInUserAccount && !isBInUserAccount) {
+                  return -1;
+                } else if (isBInUserAccount && !isAInUserAccount) {
+                  return 1;
+                }
+                return 0;
+              });
 
               const isEntityTypeExpanded = expandedEntityTypes.includes(
                 entityType.schema.$id,
               );
 
-              const previousDisplayedEntities =
-                prev[existingIndex]?.displayedEntities ?? [];
+              const displayedEntities = isEntityTypeExpanded
+                ? sortedEntities.slice(0, numberOfEntitiesDisplayedPerSection)
+                : sortedEntities;
 
-              const previousEntities = prev[existingIndex]?.allEntities ?? [];
-
-              return existingIndex >= 0
-                ? [
-                    ...prev.slice(0, existingIndex),
-                    {
-                      ...prev[existingIndex]!,
-                      displayedEntities:
-                        isEntityTypeExpanded ||
-                        previousDisplayedEntities.length <
-                          numberOfEntitiesDisplayedPerSection
-                          ? [...previousDisplayedEntities, currentEntity]
-                          : previousDisplayedEntities,
-                      allEntities: [...previousEntities, currentEntity],
-                    },
-                    ...prev.slice(existingIndex + 1),
-                  ]
-                : [
-                    ...prev,
-                    {
-                      entityType,
-                      displayedEntities: [currentEntity],
-                      allEntities: [currentEntity],
-                    },
-                  ];
-            }, [] as EntitiesByType)
+              return {
+                entityType,
+                displayedEntities,
+                allEntities: sortedEntities,
+              };
+            })
+            // Sort the sections to ensure page entities and user entities are displayed first
             .sort((a, b) => {
               const customOrder = {
                 [types.entityType.page.entityTypeId]: 0,
@@ -268,7 +298,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               );
             })
         : undefined,
-    [searchedEntities, entitiesSubgraph, expandedEntityTypes],
+    [
+      searchedEntities,
+      entitiesSubgraph,
+      expandedEntityTypes,
+      authenticatedUser,
+    ],
   );
 
   const selectedEntity = useMemo(
