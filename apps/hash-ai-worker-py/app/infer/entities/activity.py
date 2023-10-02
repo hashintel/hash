@@ -2,6 +2,7 @@
 import enum
 import json
 import os
+import traceback
 from copy import deepcopy
 from typing import Any, Literal
 
@@ -14,6 +15,7 @@ from app._status import Status, StatusCode
 from app._util import delete_key, flatten_all_of, traverse_dict
 
 from . import (
+    EntityValidation,
     InferEntitiesActivityParameter,
     LinkData,
     ProposedEntity,
@@ -66,6 +68,20 @@ class Function(BaseModel, extra=Extra.forbid):
         import jsonref  # type: ignore  # noqa: PGH003
 
         entity_type = jsonref.replace_refs(entity_type, proxies=False)
+
+        def generate_description(key: str, obj: dict[str, Any]) -> None:
+            if key == "description" and "kind" in obj:
+                match obj["kind"]:
+                    case "propertyType":
+                        obj["description"] = f"The {obj['title']} of the entity"
+                    case "entityType":
+                        obj["description"] = f"A {obj['title']}"
+
+        traverse_dict(
+            entity_type,
+            lambda key, value: key == "description" and value is None,
+            generate_description,
+        )
 
         traverse_dict(
             entity_type,
@@ -149,7 +165,7 @@ def add_system_prompt(messages: list[dict[str, Any]], state: InferenceState) -> 
 
 
 @activity.defn(name="inferEntities")
-async def infer_entities(  # noqa: PLR0911, PLR0912, C901
+async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
     params: InferEntitiesActivityParameter,
 ) -> Status[ProposedEntity]:
     """Completes a prompt using the OpenAI API."""
@@ -185,6 +201,18 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, C901
                 current_state = InferenceState.last_link
             else:
                 current_state = InferenceState.done
+
+            Function.openai(
+                entity_type,
+                is_link_type=current_state
+                in [
+                    InferenceState.links,
+                    InferenceState.last_link,
+                ],
+            ).model_dump(
+                by_alias=True,
+                exclude_none=True,
+            )
 
             completion = await openai.ChatCompletion.acreate(
                 model=params.model,
@@ -261,6 +289,7 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, C901
                     # until all entities have been inferred. To create links the AI
                     # needs to know the IDs of the entities. We therefore update the
                     # entities.
+                    entity_type_index = 0
                     for message in messages:
                         if (
                             message["role"] == "assistant"
@@ -271,15 +300,30 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, C901
                             )
 
                             for entity in arguments["entities"]:
+                                if not isinstance(entity, dict):
+                                    if params.validation != EntityValidation.none:
+                                        return Status(
+                                            code=StatusCode.UNKNOWN,
+                                            message=(
+                                                "The inferred entity is not a"
+                                                " dictionary."
+                                            ),
+                                        )
+                                    continue
+
                                 entity_id = len(entities)
                                 entities.append(
                                     ProposedEntity(
-                                        entityTypeId=entity_type["$id"],
+                                        entityTypeId=params.entity_types[
+                                            entity_type_index
+                                        ]["$id"],
                                         entityId=entity_id,
                                         properties=deepcopy(entity),
                                     ),
                                 )
                                 entity["entityId"] = entity_id
+
+                            entity_type_index += 1
 
                             message["function_call"]["arguments"] = json.dumps(
                                 arguments,
@@ -328,9 +372,10 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, C901
             add_system_prompt(messages, current_state)
 
     except Exception as error:  # noqa: BLE001
+        traceback.print_exc()
         return Status(
             code=StatusCode.UNKNOWN,
-            message=f"Unable to infer entities: {error}",
+            message=f"Unable to infer entities: {error} ({type(error).__name__})",
         )
 
     return Status(

@@ -4,11 +4,12 @@ These classes are primarily used as markers
 """
 from abc import ABC
 from typing import ClassVar
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
+
+from . import EntityTypeReference
 
 
 class OntologyTypeInfo(BaseModel):
@@ -40,12 +41,6 @@ class OntologyType(BaseModel, ABC):
         return json_schema
 
 
-class EntityTypeReference(BaseModel):
-    """A reference to an entity type schema."""
-
-    ref: str = Field(..., alias="$ref")
-
-
 class EntityTypeInfo(OntologyTypeInfo):
     """Information about an entity type."""
 
@@ -56,17 +51,6 @@ class EntityType(OntologyType, ABC):
     """Base class for all entity types."""
 
     info: ClassVar[EntityTypeInfo]
-
-    @staticmethod
-    async def from_reference(
-        ref: EntityTypeReference,
-        *,
-        actor_id: UUID,
-        graph: "GraphAPIProtocol",
-    ) -> type["EntityType"]:
-        """Creates a model from the referenced entity type schema."""
-        schema = await graph.get_entity_type(ref.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
 
 
 class PropertyType(OntologyType, ABC):

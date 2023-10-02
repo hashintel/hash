@@ -2,11 +2,16 @@
 
 import asyncio
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from temporalio import workflow
 
+if TYPE_CHECKING:
+    from graph_types.base import EntityType
+
+
 with workflow.unsafe.imports_passed_through():
-    from graph_types.base import EntityType, EntityTypeReference
+    from graph_types import EntityTypeReference
     from pydantic import ValidationError
     from pydantic_core import ErrorDetails
 
@@ -40,8 +45,7 @@ class InferEntitiesWorkflow:
                 entity_type.info.identifier: entity_type
                 for entity_type in await asyncio.gather(
                     *[
-                        EntityType.from_reference(
-                            EntityTypeReference(**{"$ref": entity_type_id}),
+                        EntityTypeReference(**{"$ref": entity_type_id}).create_model(
                             actor_id=params.authentication.actor_id,
                             graph=GraphApiActivities(
                                 start_to_close_timeout=timedelta(seconds=15),
