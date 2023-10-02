@@ -17,10 +17,10 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
 from ._annotations import not_required
-from .base import OntologyTypeInfo
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
+    from .base import OntologyTypeInfo
 
 
 class Schema(BaseModel, ABC):
@@ -43,7 +43,9 @@ class OntologyTypeSchema(Schema, ABC):
     kind: Literal["dataType", "propertyType", "entityType"]
     schema_url: str = Field(..., alias="$schema")
 
-    def type_info(self) -> OntologyTypeInfo:
+    def type_info(self) -> "OntologyTypeInfo":
+        from .base import OntologyTypeInfo
+
         return OntologyTypeInfo(
             identifier=self.identifier,
             title=self.title,

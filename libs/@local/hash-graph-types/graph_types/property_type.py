@@ -17,11 +17,11 @@ from pydantic import (
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import PropertyType
 from .data_type import DataTypeReference
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
+    from .base import PropertyType
 
 __all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
@@ -36,7 +36,7 @@ class PropertyTypeReference(Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[PropertyType]:
+    ) -> type["PropertyType"]:
         """Creates a model from the referenced property type schema."""
         schema = await graph.get_property_type(self.ref, actor_id=actor_id)
         return await schema.create_model(actor_id=actor_id, graph=graph)
@@ -69,8 +69,10 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[PropertyType]:
+    ) -> type["PropertyType"]:
         """Create an annotated type from this schema."""
+        from .base import PropertyType
+
         inner = await OneOf.create_model(self, actor_id=actor_id, graph=graph)
 
         class_name = slugify(

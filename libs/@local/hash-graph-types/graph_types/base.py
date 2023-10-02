@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from . import EntityTypeReference
+
 
 class OntologyTypeInfo(BaseModel):
     """Information about a type."""
@@ -42,7 +44,7 @@ class OntologyType(BaseModel, ABC):
 class EntityTypeInfo(OntologyTypeInfo):
     """Information about an entity type."""
 
-    all_of: list[str] | None = Field(..., alias="allOf")
+    all_of: list[EntityTypeReference] | None = Field(..., alias="allOf")
 
 
 class EntityType(OntologyType, ABC):
