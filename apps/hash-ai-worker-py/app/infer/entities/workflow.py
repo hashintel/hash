@@ -30,7 +30,7 @@ class InferEntitiesWorkflow:
     """Infers entities of the specified type(s) from the provided text input."""
 
     @workflow.run
-    async def infer_entities(
+    async def infer_entities(  # noqa: PLR0912, C901
         self,
         params: InferEntitiesWorkflowParameter,
     ) -> Status[ProposedEntity | ErrorDetails]:
@@ -58,11 +58,12 @@ class InferEntitiesWorkflow:
 
         link_types: dict[str, type[EntityType]] = {}
         for entity_type_id, entity_type in entity_types.items():
-            if len(entity_type.info.all_of) == 0:
+            all_of = entity_type.info.all_of or []
+            if len(all_of) == 0:
                 continue
 
             if (
-                entity_type.info.all_of[0].ref
+                all_of[0].ref
                 == "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
             ):
                 entity_type.info.all_of = []
