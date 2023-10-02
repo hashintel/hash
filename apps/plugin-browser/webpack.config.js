@@ -19,7 +19,6 @@ const ASSET_PATH = process.env.ASSET_PATH || "/";
 
 const alias = {};
 
-// load the secrets
 const secretsPath = path.join(__dirname, `secrets.${env.NODE_ENV}.js`);
 
 const fileExtensions = [
