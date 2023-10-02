@@ -3,6 +3,7 @@
 ## Development
 
 1. Install dependencies: `yarn`
+1. Either have the API running locally, or add an `.env.local` to set the API_ORIGIN to the desired API
 1. Run and load extension:
    - in Chrome:
    - 1. `yarn dev`
@@ -15,7 +16,7 @@
      1. Click 'Load Temporary Add-on...' and select the `manifest.json` file in the `build` folder
 
 **Pages** will reload (the `popup` and `options` screens).
-**Scripts** (`background`, `content`) require clicking 'Update' in [chrome://extensions](chrome://extensions).
+**Scripts** (`background`, `content`) require clicking 'Update' in [Chrome](chrome://extensions) or 'Reload' in [Firefox](about:debugging#/runtime/this-firefox)
 
 ### Permissions
 

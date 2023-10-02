@@ -105,7 +105,7 @@ export const OptionsContents = () => {
                   <Box sx={{ mt: 1 }}>
                     <Box sx={{ mb: 1.5 }}>
                       <Button
-                        href="https://app.hash.ai/signup"
+                        href={`${FRONTEND_ORIGIN}/signup`}
                         target="_blank"
                         sx={{ fontSize: 14 }}
                         variant="primary"
@@ -114,7 +114,7 @@ export const OptionsContents = () => {
                       </Button>
                     </Box>
                     <Button
-                      href="https://app.hash.ai/login"
+                      href={`${FRONTEND_ORIGIN}/login`}
                       size="small"
                       target="_blank"
                       sx={({ palette }) => ({

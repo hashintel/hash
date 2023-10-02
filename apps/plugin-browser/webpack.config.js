@@ -12,6 +12,7 @@ const ReactRefreshTypeScript = require("react-refresh-typescript");
 const env = {
   API_ORIGIN: process.env.API_ORIGIN || "https://app-api.hash.ai",
   BROWSER: process.env.BROWSER || "chrome",
+  FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "https://app.hash.ai",
   NODE_ENV: process.env.NODE_ENV || "development",
 };
 
@@ -155,6 +156,7 @@ const options = {
     new webpack.EnvironmentPlugin(["NODE_ENV"]),
     new webpack.DefinePlugin({
       API_ORIGIN: `"${env.API_ORIGIN}"`,
+      FRONTEND_ORIGIN: `"${env.FRONTEND_ORIGIN}"`,
     }),
     new CopyWebpackPlugin({
       patterns: [

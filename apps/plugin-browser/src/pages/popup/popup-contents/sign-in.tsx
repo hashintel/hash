@@ -33,7 +33,7 @@ export const SignIn = () => {
           sx={{ minWidth: "max-content", mt: 1.5 }}
         >
           <Button
-            href="https://app.hash.ai/signup"
+            href={`${FRONTEND_ORIGIN}/signup`}
             size="small"
             target="_blank"
             variant="primary"
@@ -42,7 +42,7 @@ export const SignIn = () => {
             Create a free account
           </Button>
           <Button
-            href="https://app.hash.ai/login"
+            href={`${FRONTEND_ORIGIN}/login`}
             size="small"
             target="_blank"
             variant="tertiary"
