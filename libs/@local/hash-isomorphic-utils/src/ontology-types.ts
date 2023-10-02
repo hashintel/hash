@@ -324,7 +324,7 @@ const systemLinkEntityTypes = {
   },
   hasAvatar: {
     title: "Has Avatar",
-    description: "The avatar something has",
+    description: "The avatar something has.",
   },
   hasText: {
     title: "Has Text",
@@ -359,27 +359,27 @@ export type SystemLinkEntityTypeTitle =
 const primitiveDataTypes = {
   text: {
     title: "Text",
-    description: "An ordered sequence of characters",
+    description: "An ordered sequence of characters.",
   },
   number: {
     title: "Number",
-    description: "An arithmetical value (in the Real number system)",
+    description: "An arithmetical value (in the Real number system).",
   },
   boolean: {
     title: "Boolean",
-    description: "A True or False value",
+    description: "A True or False value.",
   },
   emptyList: {
     title: "Empty List",
-    description: "An Empty List",
+    description: "An Empty List.",
   },
   object: {
     title: "Object",
-    description: "A plain JSON object with no pre-defined structure",
+    description: "A plain JSON object with no pre-defined structure.",
   },
   null: {
     title: "Null",
-    description: "A placeholder value representing 'nothing'",
+    description: "A placeholder value representing 'nothing'.",
   },
 } as const;
 
@@ -517,7 +517,7 @@ const linearPropertyTypes = {
   /** Organization */
   allowedAuthService: {
     title: "Allowed Auth Service",
-    description: "Allowed authentication provider",
+    description: "Allowed authentication provider.",
   },
   deletionRequestedAt: {
     title: "Deletion Requested At",

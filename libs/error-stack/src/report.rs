@@ -621,7 +621,7 @@ impl<C> Report<C> {
             // is a valid context, it's guaranteed that the context is available.
             unreachable!(
                 "Report does not contain a context. This is considered a bug and should be \
-                reported to https://github.com/hashintel/hash/issues/new"
+                reported to https://github.com/hashintel/hash/issues/new/choose"
             );
         })
     }

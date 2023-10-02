@@ -968,4 +968,13 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     useCases: ["general"],
     variant: "infrastructure",
   },
+  {
+    id: "97",
+    heading: "Browser Extension",
+    body: "Find, use and create entities as you browse",
+    parentIds: ["30"],
+    status: "in-progress",
+    useCases: ["general", "knowledge-management", "data-management"],
+    variant: "feature",
+  },
 ];
