@@ -25,6 +25,7 @@ jobs:
       system-tests: ${{ steps.packages.outputs.system-tests }}
       dockers: ${{ steps.packages.outputs.dockers }}
       lints: ${{ steps.packages.outputs.lints }}
+      publish: ${{ steps.packages.outputs.publish }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
@@ -56,8 +57,38 @@ jobs:
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          PUBLISH_PACKAGES=[]
+          PUBLISH_INCLUDES=[]          
+          while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE_NAME" == "null" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+                continue
+              fi
+              
+              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              if [[ "$OLD_VERSION" == "null" ]]; then
+                continue
+              fi
+              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
+              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
+                continue
+              fi
+              
+              DIR=$(dirname "$file")
+              
+              PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
+              PUBLISH_INCLUDES=$(echo "$PUBLISH_INCLUDES" | jq -c --arg package "$PACKAGE_NAME" --arg directory "$DIR" '. += [{package: $package, directory: $directory}]')
+            fi
+          done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
+          PUBLISH_PACKAGES=$(jq -c -n --argjson packages "$PUBLISH_PACKAGES" --argjson includes "$PUBLISH_INCLUDES" '{package: $packages, include: $includes}')
            
-          if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.packages != []'); then
+          if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.package != []'); then
             REQUIRES_GRAPH=true
             REQUIRES_AI_WORKER_TS=true
             REQUIRES_AI_WORKER_PY=true
@@ -92,6 +123,7 @@ jobs:
           echo "system-tests=$SYSTEM_TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
           echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
+          echo "publish=$PUBLISH_PACKAGES" >> $GITHUB_OUTPUT
 
   lint:
     name: Lint
@@ -184,7 +216,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@0087e57cc32309b88e642e6fd964bafa2c563504 # v2.18.17
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -194,7 +226,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Install poetry
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
@@ -240,6 +271,9 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
+          # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
+          # but a workaround to make sure that the flags are used.
+          export RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -259,7 +293,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@6a28655e3dcb49cb0840ea372fd6d17733edd8a4 # v2.21.8
+        uses: github/codeql-action/upload-sarif@ddccb873888234080b77e9bc2d4764d5ccaaccf9 # v2.21.9
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -346,7 +380,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@0087e57cc32309b88e642e6fd964bafa2c563504 # v2.18.17
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -356,7 +390,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Run tests
         env:
@@ -449,7 +482,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@0087e57cc32309b88e642e6fd964bafa2c563504 # v2.18.17
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -459,7 +492,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
@@ -538,7 +570,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@0087e57cc32309b88e642e6fd964bafa2c563504 # v2.18.17
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -548,7 +580,6 @@ jobs:
         with:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-          cache-all-crates: true
 
       - name: Install playwright
         if: matrix.package == '@tests/hash-playwright'
@@ -592,9 +623,64 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
+  publish:
+    name: Publish
+    needs: [setup]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
+    if: needs.setup.outputs.publish != '{"package":[],"include":[]}'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Find publish jobs to run
+        id: publish
+        run: |
+          set -x
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Rust toolchain
+        if: always() && steps.publish.outputs.has-rust == 'true'
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ steps.publish.outputs.rust-toolchain }}
+          working-directory: ${{ matrix.directory }}
+
+      - name: Install tools
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        with:
+          tool: cargo-semver-checks
+
+      - name: Login
+        run: |
+          [[ -n "${{ secrets.CARGO_REGISTRY_TOKEN }}" ]]
+          cargo login "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+
+      - name: SemVer check
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        working-directory: ${{ matrix.directory }}
+        run: cargo semver-checks check-release
+
+      - name: Publish (dry run)
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish --all-features --dry-run
+
+      - name: Publish
+        if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ matrix.directory }}
+        run: cargo publish --all-features
+
   passed:
     name: Workflow passed
-    needs: [setup, lint, unit-tests, integration-tests, system-tests]
+    needs: [setup, lint, unit-tests, integration-tests, system-tests, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -613,3 +699,6 @@ jobs:
       - name: Check functional tests
         run: |
           [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
+      - name: Check publish results
+        run: |
+          [[ ${{ needs.publish.result }} =~ success|skipped ]]

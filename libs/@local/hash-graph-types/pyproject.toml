@@ -10,13 +10,13 @@ packages = [{ include = "graph_types" }]
 [tool.poetry.dependencies]
 python = "^3.11"
 
-pydantic = "^2.1"
-pydantic_core = "^2.0"
-python-slugify = "^8.0"
+pydantic = "^2.4.2"
+pydantic_core = "^2.10.1"
+python-slugify = "^8.0.1"
 types-python-slugify = "^8.0"
 
 [tool.poetry.group.dev.dependencies]
-setuptools = "^68.0.0"
+setuptools = "^68.2.2"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"

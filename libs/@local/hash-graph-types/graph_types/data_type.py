@@ -2,7 +2,6 @@
 from typing import (
     TYPE_CHECKING,
     Any,
-    ClassVar,
     Literal,
     TypeAlias,
     assert_never,
@@ -20,7 +19,6 @@ from pydantic import (
 from slugify import slugify
 
 from ._annotations import constant
-from ._cache import Cache
 from ._schema import OntologyTypeSchema, Schema
 from .base import DataType as DataTypeBase
 
@@ -32,22 +30,10 @@ __all__ = ["DataTypeSchema", "DataTypeReference"]
 DataType: TypeAlias = str | float | bool | None | list[Any] | dict[str, Any]
 
 
-async def fetch_model(
-    ref: str,
-    *,
-    actor_id: UUID,
-    graph: "GraphAPIProtocol",
-) -> type[DataTypeBase]:
-    schema = await graph.get_data_type(ref, actor_id=actor_id)
-    return await schema.create_data_type(actor_id=actor_id, graph=graph)
-
-
 class DataTypeReference(Schema):
     """A reference to a data type schema."""
 
     ref: str = Field(..., alias="$ref")
-
-    _cache: ClassVar[Cache[type[DataTypeBase]]] = Cache()
 
     async def create_model(
         self,
@@ -56,10 +42,8 @@ class DataTypeReference(Schema):
         graph: "GraphAPIProtocol",
     ) -> type[DataTypeBase]:
         """Creates a model from the referenced data type schema."""
-        return await self._cache.get(
-            self.ref,
-            on_miss=lambda: fetch_model(self.ref, actor_id=actor_id, graph=graph),
-        )
+        schema = await graph.get_data_type(self.ref, actor_id=actor_id)
+        return await schema.create_model(actor_id=actor_id, graph=graph)
 
 
 class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
@@ -91,7 +75,7 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
             case _ as unreachable:
                 assert_never(unreachable)
 
-    async def create_data_type(
+    async def create_model(
         self,
         *,
         actor_id: UUID,

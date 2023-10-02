@@ -34,7 +34,7 @@ class Schema(BaseModel, ABC):
         ...
 
 
-class OntologyTypeSchema(BaseModel, ABC):
+class OntologyTypeSchema(Schema, ABC):
     """Common base class for all ontology types."""
 
     identifier: str = Field(..., alias="$id")

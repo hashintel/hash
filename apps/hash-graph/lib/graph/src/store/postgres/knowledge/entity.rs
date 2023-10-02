@@ -291,7 +291,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let is_account_group: bool = transaction
             .as_client()
             .query_one(
-                r#"
+                r"
                     WITH inserted_owners AS (
                         INSERT INTO entity_ids (owned_by_id, entity_uuid)
                         VALUES ($1, $2)
@@ -302,7 +302,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         FROM account_groups
                         JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
                     );
-                "#,
+                ",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
@@ -320,14 +320,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query(
-                    r#"
+                    r"
                         INSERT INTO entity_has_left_entity (
                             owned_by_id,
                             entity_uuid,
                             left_owned_by_id,
                             left_entity_uuid
                         ) VALUES ($1, $2, $3, $4);
-                    "#,
+                    ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
@@ -341,14 +341,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query(
-                    r#"
+                    r"
                         INSERT INTO entity_has_right_entity (
                             owned_by_id,
                             entity_uuid,
                             right_owned_by_id,
                             right_entity_uuid
                         ) VALUES ($1, $2, $3, $4);
-                    "#,
+                    ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
@@ -381,7 +381,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_one(
-                    r#"
+                    r"
                     INSERT INTO entity_temporal_metadata (
                         owned_by_id,
                         entity_uuid,
@@ -395,7 +395,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         tstzrange($4, NULL, '[)'),
                         tstzrange(now(), NULL, '[)')
                     ) RETURNING decision_time, transaction_time;
-                "#,
+                ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
@@ -409,7 +409,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_one(
-                    r#"
+                    r"
                     INSERT INTO entity_temporal_metadata (
                         owned_by_id,
                         entity_uuid,
@@ -423,7 +423,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         tstzrange(now(), NULL, '[)'),
                         tstzrange(now(), NULL, '[)')
                     ) RETURNING decision_time, transaction_time;
-                "#,
+                ",
                     &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
                 )
                 .await
@@ -701,10 +701,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if transaction
             .as_client()
             .query_opt(
-                r#"
+                r"
                  SELECT EXISTS (
                     SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2
-                 );"#,
+                 );",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
@@ -733,7 +733,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_opt(
-                    r#"
+                    r"
                         UPDATE entity_temporal_metadata
                         SET decision_time = tstzrange($4, upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
@@ -743,7 +743,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                           AND decision_time @> $4::TIMESTAMPTZ
                           AND transaction_time @> now()
                         RETURNING decision_time, transaction_time;
-                    "#,
+                    ",
                     &[
                         &entity_id.owned_by_id,
                         &entity_id.entity_uuid,
@@ -756,7 +756,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_opt(
-                    r#"
+                    r"
                         UPDATE entity_temporal_metadata
                         SET decision_time = tstzrange(now(), upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
@@ -766,7 +766,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                           AND decision_time @> now()
                           AND transaction_time @> now()
                         RETURNING decision_time, transaction_time;
-                    "#,
+                    ",
                     &[&entity_id.owned_by_id, &entity_id.entity_uuid, &edition_id],
                 )
                 .await
@@ -811,7 +811,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
-                r#"
+                r"
                     INSERT INTO entity_editions (
                         entity_edition_id,
                         record_created_by_id,
@@ -821,7 +821,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         right_to_left_order
                     ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
                     RETURNING entity_edition_id;
-                "#,
+                ",
                 &[
                     &record_created_by_id,
                     &archived,
@@ -841,12 +841,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
         self.as_client()
             .query(
-                r#"
+                r"
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
                         entity_type_ontology_id
                     ) VALUES ($1, $2);
-                "#,
+                ",
                 &[&edition_id, &entity_type_ontology_id],
             )
             .await
