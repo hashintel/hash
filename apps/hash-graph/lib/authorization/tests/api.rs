@@ -24,7 +24,9 @@ impl TestApi {
     /// - `HASH_SPICEDB_GRPC_PRESHARED_KEY`: The preshared key to use for authentication. Defaults
     ///   to `secret`.
     ///
-    /// After disconnecting every created relation will be deleted again.
+    /// # Panics
+    ///
+    /// Panics if the connection to `SpiceDB` fails.
     #[must_use]
     pub fn connect() -> Self {
         let host =

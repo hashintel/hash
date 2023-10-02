@@ -91,11 +91,11 @@ impl StoreWrapper {
 
             let exists: bool = client
                 .query_one(
-                    r#"
+                    r"
                     SELECT EXISTS(
                         SELECT 1 FROM pg_catalog.pg_database WHERE datname = $1
                     );
-                    "#,
+                    ",
                     &[&bench_db_name],
                 )
                 .await
@@ -110,11 +110,11 @@ impl StoreWrapper {
             if !(exists) {
                 client
                     .execute(
-                        r#"
+                        r"
                         /* KILL ALL EXISTING CONNECTION FROM ORIGINAL DB*/
                         SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity
                         WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-                        "#,
+                        ",
                         &[&source_db_connection_info.database()],
                     )
                     .await
