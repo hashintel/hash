@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { getUser } from "../shared/get-user";
+import { retrieveUser, storeUser } from "../shared/storage";
 import { ActionCenter } from "./popup-contents/action-center";
 import { SignIn } from "./popup-contents/sign-in";
 
@@ -26,14 +27,19 @@ const getCurrentTab = async () => {
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
 export const PopupContents = () => {
-  const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<Simplified<User> | null>(null);
+  const userInStorage = retrieveUser();
+
+  const [loading, setLoading] = useState(!userInStorage);
+  const [me, setMe] = useState<Simplified<User> | null>(userInStorage);
   const [activeTab, setActiveTab] = useState<Tabs.Tab | null>(null);
 
   useEffect(() => {
     const init = async () => {
       await Promise.all([
-        getUser().then((maybeMe) => setMe(maybeMe)),
+        getUser().then((maybeMe) => {
+          setMe(maybeMe);
+          storeUser(maybeMe);
+        }),
         getCurrentTab().then(setActiveTab),
       ]);
 

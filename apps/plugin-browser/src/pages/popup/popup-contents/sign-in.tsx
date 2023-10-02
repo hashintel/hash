@@ -5,7 +5,14 @@ import { HashRainbowLockup } from "./sign-in/hash-rainbow-lockup";
 
 export const SignIn = () => {
   return (
-    <Box sx={{ background: ({ palette }) => palette.gray[10], px: 6, py: 5.5 }}>
+    <Box
+      sx={{
+        background: ({ palette }) => palette.gray[10],
+        px: 6,
+        py: 5.5,
+        width: 440,
+      }}
+    >
       <Box mb={2}>
         <HashRainbowLockup sx={{ width: 120 }} />
       </Box>

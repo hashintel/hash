@@ -15,6 +15,6 @@
     "noEmit": false,
     "jsx": "react-jsx"
   },
-  "include": ["src", "theme-override.d.ts"],
+  "include": ["src", "theme-override.d.ts", "webpack-injected-env.d.ts"],
   "exclude": ["build", "node_modules"]
 }

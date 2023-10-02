@@ -1,5 +1,5 @@
 export const queryApi = (query: string, variables?: Record<string, unknown>) =>
-  fetch("https://app-api.hash.ai/graphql", {
+  fetch(`${API_ORIGIN}/graphql`, {
     method: "POST",
     body: JSON.stringify({
       query,

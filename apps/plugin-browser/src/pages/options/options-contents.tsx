@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 
 import { getUser } from "../shared/get-user";
 import { HashLockup } from "../shared/hash-lockup";
+import { retrieveUser, storeUser } from "../shared/storage";
+import { browserName } from "../shared/which-browser";
 
 /**
  * This can be used for onboarding instructions, and for user preferences.
@@ -17,12 +19,17 @@ import { HashLockup } from "../shared/hash-lockup";
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
 export const OptionsContents = () => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<Simplified<User> | null>(null);
+  const userInStorage = retrieveUser();
+
+  const [loading, setLoading] = useState(!userInStorage);
+  const [user, setUser] = useState<Simplified<User> | null>(userInStorage);
 
   useEffect(() => {
     void getUser()
-      .then((simplifiedUser) => setUser(simplifiedUser))
+      .then((simplifiedUser) => {
+        setUser(simplifiedUser);
+        storeUser(simplifiedUser);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -44,12 +51,12 @@ export const OptionsContents = () => {
           <Typography
             sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}
           >
-            Get started with the{" "}
+            Get started with{" "}
             <Typography
               component="span"
               sx={{ color: ({ palette }) => palette.common.black }}
             >
-              HASH Browser Plugin
+              HASH for {browserName}
             </Typography>
           </Typography>
           <Stack direction="row" alignItems="center" mt={6}>

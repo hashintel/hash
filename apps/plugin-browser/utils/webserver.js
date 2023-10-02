@@ -7,10 +7,11 @@ const WebpackDevServer = require("webpack-dev-server");
 const webpack = require("webpack");
 const path = require("node:path");
 const config = require("../webpack.config");
-const env = require("./env");
 
 const options = config.chromeExtensionBoilerplate || {};
 const excludeEntriesToHotReload = options.notHotReload || [];
+
+const port = 8080;
 
 // Set hot entry points manually
 for (const entryName in config.entry) {
@@ -19,7 +20,7 @@ for (const entryName in config.entry) {
     // See "Manual entry points" in https://webpack.js.org/guides/hot-module-replacement/#enabling-hmr
     config.entry[entryName] = [
       "webpack/hot/dev-server.js",
-      `webpack-dev-server/client/index.js?hot=true&hostname=localhost&port=${env.PORT}`,
+      `webpack-dev-server/client/index.js?hot=true&hostname=localhost&port=${port}`,
     ].concat(config.entry[entryName]);
   }
 }
@@ -39,7 +40,7 @@ const server = new WebpackDevServer(
     hot: false,
     liveReload: false,
     client: false,
-    port: env.PORT,
+    port,
     static: {
       directory: path.join(__dirname, "../build"),
     },

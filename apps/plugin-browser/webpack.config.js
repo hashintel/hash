@@ -1,3 +1,4 @@
+require("dotenv-flow").config();
 const webpack = require("webpack");
 const path = require("node:path");
 const fileSystem = require("fs-extra");
@@ -7,7 +8,12 @@ const TerserPlugin = require("terser-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const ReactRefreshTypeScript = require("react-refresh-typescript");
-const env = require("./utils/env");
+
+const env = {
+  API_ORIGIN: process.env.API_ORIGIN || "https://app-api.hash.ai",
+  BROWSER: process.env.BROWSER || "chrome",
+  NODE_ENV: process.env.NODE_ENV || "development",
+};
 
 const ASSET_PATH = process.env.ASSET_PATH || "/";
 
@@ -148,6 +154,9 @@ const options = {
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     new webpack.EnvironmentPlugin(["NODE_ENV"]),
+    new webpack.DefinePlugin({
+      API_ORIGIN: `"${env.API_ORIGIN}"`,
+    }),
     new CopyWebpackPlugin({
       patterns: [
         {
