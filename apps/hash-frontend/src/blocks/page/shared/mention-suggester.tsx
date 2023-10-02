@@ -276,8 +276,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               );
 
               const displayedEntities = isEntityTypeExpanded
-                ? sortedEntities.slice(0, numberOfEntitiesDisplayedPerSection)
-                : sortedEntities;
+                ? sortedEntities
+                : sortedEntities.slice(0, numberOfEntitiesDisplayedPerSection);
 
               return {
                 entityType,
