@@ -22,7 +22,7 @@ type AutocompleteProps<
   T,
   Multiple extends boolean | undefined = undefined,
 > = Omit<MUIAutocompleteProps<T, Multiple, true, false>, "renderInput"> & {
-  height?: number;
+  height?: number | string;
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
   inputProps: InputProps;
@@ -88,6 +88,7 @@ export const Autocomplete = <
 
   return (
     <MUIAutocomplete
+      noOptionsText="No options found..."
       open={open}
       options={options}
       sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
