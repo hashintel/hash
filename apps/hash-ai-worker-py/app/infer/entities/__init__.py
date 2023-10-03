@@ -14,14 +14,15 @@ with workflow.unsafe.imports_passed_through():
 class EntityValidation(str, enum.Enum):
     """The validation status of an entity."""
 
-    full = "full"
+    full = "FULL"
     """The inferred entities are fully validated."""
-    partial = "partial"
+    partial = "PARTIAL"
     """Full validation except the `required` field."""
-    none = "none"
+    none = "NONE"
     """No validation performed."""
 
 
+# Keep this in sync with the ProposedLinkData type in the GraphQL definition
 class LinkData(BaseModel, extra=Extra.forbid):
     """Link data for an entity."""
 
@@ -29,6 +30,7 @@ class LinkData(BaseModel, extra=Extra.forbid):
     right_entity_id: int = Field(..., alias="rightEntityId")
 
 
+# Keep this in sync with the ProposedEntity type in the GraphQL definition
 class ProposedEntity(BaseModel, extra=Extra.forbid):
     """An entity proposed by AI."""
 
@@ -42,17 +44,25 @@ class ProposedEntity(BaseModel, extra=Extra.forbid):
         entity_type(**self.properties)
 
 
+# Keep this in sync with the inferEntities mutation in the GraphQL definition
 class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
     """Parameters for entity inference workflow."""
 
     authentication: AuthenticationContext
     text_input: str = Field(..., alias="textInput")
     entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
-    model: str = "gpt-4-0613"
-    max_tokens: int | None = Field(None, alias="maxTokens")
-    allow_empty_results: bool = Field(True, alias="allowEmptyResults")  # noqa: FBT003
-    validation: EntityValidation = Field(EntityValidation.full)
-    temperature: float = 0.0
+    model: str
+    max_tokens: int | None = Field(..., alias="maxTokens")
+    allow_empty_results: bool = Field(..., alias="allowEmptyResults")
+    validation: EntityValidation
+    temperature: float
+
+
+# Keep this in sync with the InferEntitiesResult type in the GraphQL definition
+class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
+    """Result of entity inference workflow."""
+
+    entities: list[ProposedEntity]
 
 
 class InferEntitiesActivityParameter(BaseModel, extra=Extra.forbid):
