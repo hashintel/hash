@@ -78,6 +78,9 @@ export let SYSTEM_TYPES: {
 
     // Sync With Linear related
     linearTeamId: PropertyTypeWithMetadata;
+
+    // Service Account related
+    profileUrl: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -91,6 +94,13 @@ export let SYSTEM_TYPES: {
     text: EntityTypeWithMetadata;
     userSecret: EntityTypeWithMetadata;
     linearIntegration: EntityTypeWithMetadata;
+    serviceAccount: EntityTypeWithMetadata;
+    linkedInAccount: EntityTypeWithMetadata;
+    twitterAccount: EntityTypeWithMetadata;
+    tikTokAccount: EntityTypeWithMetadata;
+    facebookAccount: EntityTypeWithMetadata;
+    instagramAccount: EntityTypeWithMetadata;
+    gitHubAccount: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -98,6 +108,7 @@ export let SYSTEM_TYPES: {
 
     // User-related
     orgMembership: EntityTypeWithMetadata;
+    hasServiceAccount: EntityTypeWithMetadata;
 
     // Account-related
     hasAvatar: EntityTypeWithMetadata;
@@ -370,11 +381,17 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(context);
 
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
   const orgMembershipLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(context);
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
+
+  const hasServiceAccountLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasServiceAccount(context);
 
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
@@ -420,7 +437,137 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
         minItems: 0,
       },
+      {
+        linkEntityType: hasServiceAccountLinkEntityType,
+        destinationEntityTypes: [serviceAccountEntityType],
+      },
     ],
+  })(context);
+};
+
+const profileUrlPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.profileUrl,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const serviceAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const profileUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.profileUrl(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.serviceAccount,
+    properties: [
+      {
+        propertyType: profileUrlPropertyType,
+        /**
+         * @todo: we may want to make this optional in the future, when
+         * we allow child types to set inherited properties to required
+         */
+        required: true,
+      },
+    ],
+  })(context);
+};
+
+const linkedInAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.linkedInAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
+  })(context);
+};
+
+const twitterAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.twitterAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
+  })(context);
+};
+
+const tikTokAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.tikTokAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
+  })(context);
+};
+
+const facebookAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.facebookAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
+  })(context);
+};
+
+const instagramAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.instagramAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
+  })(context);
+};
+
+const gitHubAccountEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const serviceAccountEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.gitHubAccount,
+    allOf: [serviceAccountEntityType.schema.$id],
   })(context);
 };
 
@@ -698,6 +845,10 @@ const usesUserSecretLinkEntityTypeInitializer = entityTypeInitializer({
   ...types.linkEntityType.usesUserSecret,
 });
 
+const hasServiceAccountSecretLinkEntityTypeInitializer = entityTypeInitializer({
+  ...types.linkEntityType.hasServiceAccount,
+});
+
 const userSecretEntityTypeInitializer = entityTypeInitializer({
   ...types.entityType.userSecret,
   properties: [
@@ -873,6 +1024,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       orgSelfRegistrationIsEnabledPropertyTypeInitializer,
     userRegistrationByInviteIsEnabled:
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
+
+    profileUrl: profileUrlPropertyTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
@@ -885,6 +1038,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     author: authorLinkEntityTypeInitializer,
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
+    hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
@@ -898,6 +1052,13 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     text: textEntityTypeInitializer,
     userSecret: userSecretEntityTypeInitializer,
     linearIntegration: linearIntegrationEntityTypeInitializer,
+    serviceAccount: serviceAccountEntityTypeInitializer,
+    linkedInAccount: linkedInAccountEntityTypeInitializer,
+    twitterAccount: twitterAccountEntityTypeInitializer,
+    tikTokAccount: tikTokAccountEntityTypeInitializer,
+    facebookAccount: facebookAccountEntityTypeInitializer,
+    instagramAccount: instagramAccountEntityTypeInitializer,
+    gitHubAccount: gitHubAccountEntityTypeInitializer,
   },
 };
 

@@ -164,6 +164,34 @@ const systemEntityTypes = {
     title: "Linear Integration",
     description: "An instance of an integration with Linear.",
   },
+  serviceAccount: {
+    title: "Service Account",
+    description: "A service account.",
+  },
+  linkedInAccount: {
+    title: "LinkedIn Account",
+    description: "A LinkedIn account.",
+  },
+  twitterAccount: {
+    title: "Twitter Account",
+    description: "A Twitter account.",
+  },
+  tikTokAccount: {
+    title: "TikTok Account",
+    description: "A TikTok account.",
+  },
+  facebookAccount: {
+    title: "Facebook Account",
+    description: "A Facebook account.",
+  },
+  instagramAccount: {
+    title: "Instagram Account",
+    description: "An Instagram account.",
+  },
+  gitHubAccount: {
+    title: "GitHub Account",
+    description: "A GitHub account.",
+  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
@@ -197,6 +225,10 @@ const systemPropertyTypes = {
   email: {
     title: "Email",
     description: undefined,
+  },
+  profileUrl: {
+    title: "Profile URL",
+    description: "A URL to a profile",
   },
   pagesAreEnabled: {
     title: "Pages Are Enabled",
@@ -349,6 +381,10 @@ const systemLinkEntityTypes = {
   usesUserSecret: {
     title: "Uses User Secret",
     description: "Something that uses a user secret.",
+  },
+  hasServiceAccount: {
+    title: "Has Service Account",
+    description: "Something that has a service account.",
   },
 } as const;
 

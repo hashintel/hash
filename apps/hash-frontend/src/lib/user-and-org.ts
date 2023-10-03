@@ -4,6 +4,7 @@ import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
   OrgMembershipProperties,
   OrgProperties,
+  ServiceAccountProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -205,6 +206,21 @@ export const constructOrg = (params: {
   return { ...minimalOrg, createdAt, hasAvatar, memberships };
 };
 
+export type ServiceAccountKind =
+  | "linkedInAccount"
+  | "twitterAccount"
+  | "tikTokAccount"
+  | "facebookAccount"
+  | "instagramAccount"
+  | "gitHubAccount";
+
+export type UserServiceAccount = {
+  linkEntity: LinkEntity;
+  serviceAccountEntity: Entity;
+  kind: ServiceAccountKind;
+  profileUrl: string;
+};
+
 export type User = MinimalUser & {
   joinedAt: Date;
   emails: { address: string; primary: boolean; verified: boolean }[];
@@ -212,6 +228,7 @@ export type User = MinimalUser & {
     linkEntity: LinkEntity;
     imageEntity: Image;
   };
+  hasServiceAccounts: UserServiceAccount[];
   isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<OrgMembershipProperties>;
@@ -332,6 +349,37 @@ export const constructUser = (params: {
       }
     : undefined;
 
+  const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  )
+    .filter(
+      ({ linkEntity }) =>
+        linkEntity[0]?.metadata.entityTypeId ===
+        types.linkEntityType.hasServiceAccount.linkEntityTypeId,
+    )
+    .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
+      const serviceAccountEntity =
+        rightEntity[0] as unknown as Entity<ServiceAccountProperties>;
+
+      const { profileUrl } = simplifyProperties(
+        serviceAccountEntity.properties,
+      );
+
+      const kind = Object.entries(types.entityType).find(
+        ([_, type]) =>
+          type.entityTypeId === serviceAccountEntity.metadata.entityTypeId,
+      )?.[0] as ServiceAccountKind;
+
+      return {
+        linkEntity: linkEntity[0] as LinkEntity,
+        serviceAccountEntity,
+        kind,
+        profileUrl,
+      };
+    });
+
   /**
    * @todo: determine whether a user is an instance admin from the subgraph
    */
@@ -345,6 +393,7 @@ export const constructUser = (params: {
   return {
     ...minimalUser,
     hasAvatar,
+    hasServiceAccounts,
     joinedAt,
     memberOf,
     isInstanceAdmin,

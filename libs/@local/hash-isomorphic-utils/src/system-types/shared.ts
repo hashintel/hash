@@ -238,6 +238,24 @@ export type PreferredNamePropertyValue = TextDataType;
 export type PreferredPronounsPropertyValue = TextDataType;
 
 /**
+ * A URL to a profile
+ */
+export type ProfileURLPropertyValue = TextDataType;
+
+export type ServiceAccount = Entity<ServiceAccountProperties>;
+
+export type ServiceAccountOutgoingLinkAndTarget = never;
+
+export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A service account.
+ */
+export type ServiceAccountProperties = {
+  "http://localhost:3000/@system-user/types/property-type/profile-url/": ProfileURLPropertyValue;
+};
+
+/**
  * A unique identifier for something, in the form of a slug
  */
 export type ShortnamePropertyValue = TextDataType;
