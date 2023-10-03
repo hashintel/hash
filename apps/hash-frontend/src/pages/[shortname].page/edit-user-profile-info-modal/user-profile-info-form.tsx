@@ -1,7 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import { RHFSelect } from "@hashintel/query-editor/src/entity-query-editor/query-form/filter-row/rhf-select";
 import { Box } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { useUpdateAuthenticatedUser } from "../../../components/hooks/use-update-authenticated-user";
@@ -19,11 +19,12 @@ export type UserFormData = {
 export const UserProfileInfoForm: FunctionComponent<{
   userProfile: User;
   refetchUserProfile: () => Promise<void>;
-}> = ({ userProfile, refetchUserProfile }) => {
+  closeModal: () => void;
+}> = ({ userProfile, refetchUserProfile, closeModal }) => {
   const [loading, setLoading] = useState(false);
   const [updateUser] = useUpdateAuthenticatedUser();
 
-  const { control, register, handleSubmit } = useForm<UserFormData>({
+  const { control, register, handleSubmit, reset } = useForm<UserFormData>({
     mode: "all",
     defaultValues: {
       preferredName: userProfile.preferredName,
@@ -44,6 +45,11 @@ export const UserProfileInfoForm: FunctionComponent<{
 
     void refetchUserProfile();
   });
+
+  const handleDiscard = useCallback(() => {
+    reset();
+    closeModal();
+  }, [reset, closeModal]);
 
   return (
     <Box
@@ -107,7 +113,9 @@ export const UserProfileInfoForm: FunctionComponent<{
         <Button type="submit" loading={loading}>
           Save changes
         </Button>
-        <Button variant="tertiary">Discard</Button>
+        <Button variant="tertiary" onClick={handleDiscard}>
+          Discard
+        </Button>
       </Box>
     </Box>
   );

@@ -34,6 +34,7 @@ export const EditUserProfileInfoModal: FunctionComponent<
           <UserProfileInfoForm
             userProfile={userProfile}
             refetchUserProfile={refetchUserProfile}
+            closeModal={onClose}
           />
         </Box>
       </Box>
