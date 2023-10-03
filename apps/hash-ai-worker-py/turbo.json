@@ -38,7 +38,7 @@
       "inputs": ["./**/*.py", "pyproject.toml"]
     },
     "test:integration": {
-      "dependsOn": ["@apps/hash-ai-worker-ts#build"]
+      "dependsOn": ["build", "@apps/hash-ai-worker-ts#build"]
     }
   }
 }

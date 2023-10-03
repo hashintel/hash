@@ -5,7 +5,7 @@
       "cache": false
     },
     "test:integration": {
-      "dependsOn": ["@apps/hash-graph#build"]
+      "dependsOn": ["build", "@apps/hash-graph#build"]
     }
   }
 }
