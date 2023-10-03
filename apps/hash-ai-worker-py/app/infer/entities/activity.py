@@ -313,11 +313,10 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                                     continue
 
                                 entity_id = len(entities)
+                                function_name: str = function_call["name"]
                                 entities.append(
                                     ProposedEntity(
-                                        entityTypeId=entity_type_map[
-                                            function_call["name"],
-                                        ],
+                                        entityTypeId=entity_type_map[function_name],
                                         entityId=entity_id,
                                         properties=deepcopy(entity),
                                     ),
