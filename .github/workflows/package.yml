@@ -584,7 +584,7 @@ jobs:
           fi
 
           echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test $SERVICES --wait
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
 
       - name: Run tests
         run: |
