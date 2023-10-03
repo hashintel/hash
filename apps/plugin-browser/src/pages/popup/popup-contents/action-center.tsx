@@ -30,6 +30,9 @@ export const ActionCenter = ({
       >
         <Box />
         <Box
+          component="a"
+          // @todo handle users who haven't completed signup
+          href={`${FRONTEND_ORIGIN}/@${user.properties.shortname!}`}
           sx={({ palette }) => ({
             background: palette.blue[70],
             borderRadius: "50%",
@@ -40,7 +43,13 @@ export const ActionCenter = ({
             fontWeight: 500,
             lineHeight: "32px",
             textAlign: "center",
+            textDecoration: "none",
+            transition: ({ transitions }) => transitions.create("opacity"),
+            "&:hover": {
+              opacity: 0.9,
+            },
           })}
+          target="_blank"
         >
           {user.properties.preferredName?.[0] ?? "?"}
         </Box>

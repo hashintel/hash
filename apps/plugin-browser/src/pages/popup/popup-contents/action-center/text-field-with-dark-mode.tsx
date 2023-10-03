@@ -14,11 +14,13 @@ export const TextFieldWithDarkMode = (props: TextFieldProps) => {
               border: `1px solid ${palette.gray[90]}`,
             },
 
-            // @todo figure out where these styles should be (not taking effect here)
-            "::placeholder": {
-              color: palette.gray[70],
+            [`.${outlinedInputClasses.input}`]: {
+              color: palette.gray[30],
+
+              "&::placeholder": {
+                color: `${palette.gray[60]} !important`,
+              },
             },
-            color: palette.common.white,
           },
         }),
       }}
