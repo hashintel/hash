@@ -57,7 +57,8 @@ class StatusCode(str, Enum):
     HTTP Mapping: 404 Not Found"""
 
     ALREADY_EXISTS = "ALREADY_EXISTS"
-    """The entity that a client attempted to create (e.g., file or directory) already exists.
+    """The entity that a client attempted to create (e.g., file or directory) already
+    exists.
 
     HTTP Mapping: 409 Conflict"""
 
@@ -101,8 +102,8 @@ class StatusCode(str, Enum):
     HTTP Mapping: 400 Bad Request"""
 
     ABORTED = "ABORTED"
-    """The operation was aborted, typically due to a concurrency issue such as a sequencer
-    check failure or transaction abort.
+    """The operation was aborted, typically due to a concurrency issue such as a
+    sequencer check failure or transaction abort.
     See the guidelines above for deciding between `FAILED_PRECONDITION`, `ABORTED`,
     and `UNAVAILABLE`.
 
@@ -128,8 +129,8 @@ class StatusCode(str, Enum):
     HTTP Mapping: 501 Not Implemented"""
 
     INTERNAL = "INTERNAL"
-    """Internal errors. This means that some invariants expected by the underlying system
-    have been broken. This error code is reserved for serious errors.
+    """Internal errors. This means that some invariants expected by the underlying
+    system have been broken. This error code is reserved for serious errors.
 
     HTTP Mapping: 500 Internal Server Error"""
 
