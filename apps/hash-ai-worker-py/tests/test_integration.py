@@ -1,11 +1,8 @@
 """Test integration."""
-
 #  ruff: noqa: S101
 
 
-def inc(x: int) -> int:
-    """Increment a number by one."""
-    return x + 1
+from worker.tests.test_unit import inc
 
 
 def test_integration() -> None:

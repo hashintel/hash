@@ -20,6 +20,7 @@ jsonref = "^1.1"
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.2.2"
 pytest = "^7.4.2"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"
