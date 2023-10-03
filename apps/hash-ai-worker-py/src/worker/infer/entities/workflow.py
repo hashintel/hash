@@ -22,6 +22,7 @@ with workflow.unsafe.imports_passed_through():
         EntityValidation,
         InferEntitiesActivityParameter,
         InferEntitiesWorkflowParameter,
+        InferEntitiesWorkflowResult,
         ProposedEntity,
     )
 
@@ -38,7 +39,7 @@ class InferEntitiesWorkflow:
     async def infer_entities(  # noqa: PLR0912, C901
         self,
         params: InferEntitiesWorkflowParameter,
-    ) -> Status[ProposedEntity | ErrorDetails]:
+    ) -> Status[InferEntitiesWorkflowResult | ErrorDetails]:
         """Infer entities from the provided text input."""
         try:
             entity_types: dict[str, type[EntityType]] = {
@@ -52,6 +53,8 @@ class InferEntitiesWorkflow:
                                 validate_required=params.validation
                                 == EntityValidation.full,
                             ),
+                            additional_properties=params.validation
+                            == EntityValidation.partial,
                         )
                         for entity_type_id in params.entity_type_ids
                     ],
@@ -140,4 +143,8 @@ class InferEntitiesWorkflow:
                         f" `{proposed_entity.entity_type_id}`"
                     ),
                 )
-        return status
+        return Status(
+            code=StatusCode.OK,
+            message="success",
+            contents=[InferEntitiesWorkflowResult(entities=proposed_entities)],
+        )
