@@ -420,7 +420,7 @@ jobs:
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
-          turbo run --log-order stream test:unit --filter "${{ matrix.package }}"
+          turbo run test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -588,7 +588,7 @@ jobs:
 
       - name: Run tests
         run: |
-          turbo run --log-order stream test:integration --filter "${{ matrix.package }}"
+          turbo run test:integration --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -700,7 +700,7 @@ jobs:
       - name: Run tests
         continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
         run: |
-          turbo run --log-order stream test:system --filter "${{ matrix.package }}"
+          turbo run test:system --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
