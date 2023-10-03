@@ -230,28 +230,25 @@ export const entityTypedef = gql`
       """
       entityTypeIds: [VersionedUrl!]!
       """
-      The model to use for inference. Defaults to "gpt-4-0613".
+      The model to use for inference.
       """
-      model: String
+      model: String!
       """
-      The maximum amount of tokens to generate. If not specified, no limit is applied.
+      The maximum amount of tokens to generate. '0' means that the model's limit will be used.
       """
-      maxTokens: Int
+      maxTokens: Int!
       """
-      Whether to allow empty results. Defaults to true.
+      Whether to allow empty results.
       """
-      allowEmptyResults: Boolean
+      allowEmptyResults: Boolean!
       """
-      The validation to apply to the inferred entities. Defaults to full. Possible values are:
-      - full: All entities must be valid.
-      - partial: Entity properties has to be valid but the "required" condition is omitted
-      - none: No validation is applied.
+      The validation to apply to the inferred entities.
       """
-      validation: EntityValidation
+      validation: EntityValidation!
       """
-      The temperature to use for inference. Defaults to 0.0.
+      The temperature to use for inference.
       """
-      temperature: Float
+      temperature: Float!
     ): InferEntitiesResult!
   }
 `;

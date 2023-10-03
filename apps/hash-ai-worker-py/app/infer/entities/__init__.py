@@ -51,11 +51,11 @@ class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
     authentication: AuthenticationContext
     text_input: str = Field(..., alias="textInput")
     entity_type_ids: list[str] = Field(..., alias="entityTypeIds")
-    model: str = "gpt-4-0613"
-    max_tokens: int | None = Field(None, alias="maxTokens")
-    allow_empty_results: bool = Field(True, alias="allowEmptyResults")  # noqa: FBT003
-    validation: EntityValidation = Field(EntityValidation.full)
-    temperature: float = 0.0
+    model: str
+    max_tokens: int | None = Field(..., alias="maxTokens")
+    allow_empty_results: bool = Field(..., alias="allowEmptyResults")
+    validation: EntityValidation
+    temperature: float
 
 
 # Keep this in sync with the InferEntitiesResult type in the GraphQL definition

@@ -339,7 +339,13 @@ export const inferEntitiesResolver: ResolverFn<
 
   const status = await temporal.workflow.execute("inferEntities", {
     taskQueue: "aipy",
-    args: [{ authentication, ...args }],
+    args: [
+      {
+        authentication,
+        ...args,
+        maxTokens: args.maxTokens === 0 ? null : args.maxTokens,
+      },
+    ],
     workflowId: `inferEntities-${genId()}`,
   });
 
