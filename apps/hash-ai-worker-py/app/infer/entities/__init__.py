@@ -14,11 +14,11 @@ with workflow.unsafe.imports_passed_through():
 class EntityValidation(str, enum.Enum):
     """The validation status of an entity."""
 
-    full = "full"
+    full = "FULL"
     """The inferred entities are fully validated."""
-    partial = "partial"
+    partial = "PARTIAL"
     """Full validation except the `required` field."""
-    none = "none"
+    none = "NONE"
     """No validation performed."""
 
 

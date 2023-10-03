@@ -78,9 +78,34 @@ export const entityTypedef = gql`
     linkData: ProposedLinkData
   }
 
+  """
+  The result of an entity inference.
+  """
   type InferEntitiesResult {
     # Keep this in sync with the InferEntitiesWorkflowResult type in apps/hash-ai-worker-py
+    """
+    The proposed entities.
+    """
     entities: [ProposedEntity!]!
+  }
+
+  """
+  The level of validation to apply to the inferred entities.
+  """
+  enum EntityValidation {
+    # Keep this in sync with the EntityValidation type in apps/hash-ai-worker-py
+    """
+    The inferred entities are fully validated.
+    """
+    FULL
+    """
+    Full validation except the \`required\` field.
+    """
+    PARTIAL
+    """
+    No validation performed.
+    """
+    NONE
   }
 
   extend type Query {
@@ -222,7 +247,7 @@ export const entityTypedef = gql`
       - partial: Entity properties has to be valid but the "required" condition is omitted
       - none: No validation is applied.
       """
-      validation: String
+      validation: EntityValidation
       """
       The temperature to use for inference. Defaults to 0.0.
       """
