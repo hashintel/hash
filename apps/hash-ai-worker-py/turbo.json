@@ -36,6 +36,9 @@
     "lint:mypy": {
       "dependsOn": ["build"],
       "inputs": ["./**/*.py", "pyproject.toml"]
+    },
+    "test:integration": {
+      "dependsOn": ["@apps/hash-ai-worker-ts#build"]
     }
   }
 }

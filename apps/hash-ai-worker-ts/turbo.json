@@ -3,6 +3,9 @@
   "pipeline": {
     "build:docker": {
       "cache": false
+    },
+    "test:integration": {
+      "dependsOn": ["@apps/hash-graph#build"]
     }
   }
 }

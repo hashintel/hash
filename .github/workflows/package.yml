@@ -567,7 +567,24 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
+
+          SERVICES="kratos mailslurper redis temporal temporal-setup vault"
+
+          if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
+            SERVICES="$SERVICES graph"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-ts"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-ai-worker-py }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-py"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-integration"
+          fi
+
+          echo "Running services: $SERVICES"
+          yarn workspace @apps/hash-external-services deploy:test $SERVICES --wait
 
       - name: Run tests
         run: |
