@@ -61,7 +61,7 @@ export const QuickNoteAction = () => {
           onChange={(event) => setDraftQuickNote(event.target.value)}
           sx={{ mb: 1.5, width: "100%" }}
         />
-        <Button size="small" type="submit">
+        <Button disabled={!draftQuickNote} size="small" type="submit">
           Save quick note
         </Button>
       </Box>
