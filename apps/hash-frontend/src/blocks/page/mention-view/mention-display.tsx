@@ -151,7 +151,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
       if (!entityTypePropertySchemaValue) {
         throw new Error(
-          `Could not find property with base URL link entity with base url ${propertyTypeBaseUrl} on entity type with ID ${entityType.schema.$id}`,
+          `Could not find property with base URL ${propertyTypeBaseUrl} on entity type with ID ${entityType.schema.$id}`,
         );
       }
 
