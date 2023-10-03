@@ -36,6 +36,7 @@ export let SYSTEM_TYPES: {
     email: PropertyTypeWithMetadata;
     kratosIdentityId: PropertyTypeWithMetadata;
     preferredName: PropertyTypeWithMetadata;
+    preferredPronouns: PropertyTypeWithMetadata;
 
     // Org-related
     orgName: PropertyTypeWithMetadata;
@@ -333,6 +334,11 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+const preferredPronounsPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.preferredPronouns,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -353,6 +359,15 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const preferredNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(context);
 
+  const preferredPronounsPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredPronouns(context);
+
+  const locationPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
+
+  const websitePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+
   const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(context);
 
   const orgMembershipLinkEntityType =
@@ -363,6 +378,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -382,6 +398,15 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: preferredNamePropertyType,
+      },
+      {
+        propertyType: preferredPronounsPropertyType,
+      },
+      {
+        propertyType: locationPropertyType,
+      },
+      {
+        propertyType: websitePropertyType,
       },
     ],
     outgoingLinks: [
@@ -816,6 +841,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     email: emailPropertyTypeInitializer,
     kratosIdentityId: kratosIdentityIdPropertyTypeInitializer,
     preferredName: preferredNamePropertyTypeInitializer,
+    preferredPronouns: preferredPronounsPropertyTypeInitializer,
 
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,

@@ -19,6 +19,9 @@ import { useAuthInfo } from "../../pages/shared/auth-info-context";
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
   preferredName?: string;
+  location?: string;
+  website?: string;
+  preferredPronouns?: string;
 };
 
 export const useUpdateAuthenticatedUser = () => {
@@ -48,7 +51,7 @@ export const useUpdateAuthenticatedUser = () => {
 
       try {
         setLoading(true);
-        if (!params.shortname && !params.preferredName) {
+        if (Object.keys(params).length === 0) {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
@@ -87,6 +90,26 @@ export const useUpdateAuthenticatedUser = () => {
                     [extractBaseUrl(
                       types.propertyType.preferredName.propertyTypeId,
                     )]: params.preferredName,
+                  }
+                : {}),
+              ...(typeof params.location !== "undefined"
+                ? {
+                    [extractBaseUrl(
+                      types.propertyType.location.propertyTypeId,
+                    )]: params.location,
+                  }
+                : {}),
+              ...(typeof params.website !== "undefined"
+                ? {
+                    [extractBaseUrl(types.propertyType.website.propertyTypeId)]:
+                      params.website,
+                  }
+                : {}),
+              ...(typeof params.preferredPronouns !== "undefined"
+                ? {
+                    [extractBaseUrl(
+                      types.propertyType.preferredPronouns.propertyTypeId,
+                    )]: params.preferredPronouns,
                   }
                 : {}),
             },

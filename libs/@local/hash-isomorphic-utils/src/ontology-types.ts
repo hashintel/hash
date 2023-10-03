@@ -225,6 +225,10 @@ const systemPropertyTypes = {
     title: "Preferred Name",
     description: undefined,
   },
+  preferredPronouns: {
+    title: "Preferred Pronouns",
+    description: undefined,
+  },
   orgName: {
     title: "Organization Name",
     description: undefined,

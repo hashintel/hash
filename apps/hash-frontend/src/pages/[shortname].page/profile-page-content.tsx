@@ -1,6 +1,5 @@
-// import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
-// import { FontAwesomeIcon } from "@hashintel/design-system";
-import { IconButton } from "@hashintel/design-system";
+import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import {
   Box,
@@ -32,8 +31,9 @@ export const ProfilePageContent: FunctionComponent<{
   isEditable: boolean;
   setDisplayEditUserProfileInfoModal: (display: boolean) => void;
 }> = ({ profile, isEditable, setDisplayEditUserProfileInfoModal }) => {
-  const websiteUrl =
-    profile && "website" in profile && sanitizeHref(profile.website);
+  const websiteUrl = profile?.website
+    ? sanitizeHref(profile.website)
+    : undefined;
 
   const createdAtTimestamp = profile
     ? format(
@@ -41,6 +41,8 @@ export const ProfilePageContent: FunctionComponent<{
         "MMM yyyy",
       )
     : undefined;
+
+  const { location } = profile ?? {};
 
   return (
     <Container sx={{ paddingTop: 4 }}>
@@ -71,12 +73,12 @@ export const ProfilePageContent: FunctionComponent<{
               </IconButton>
             </Fade>
           </Box>
-          {/* {location ? (
+          {location ? (
             <Box display="flex" alignItems="center" columnGap={0.5}>
               <FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 12 }} />
               <Typography variant="microText">{location}</Typography>
             </Box>
-          ) : null} */}
+          ) : null}
           {websiteUrl ? (
             <Link
               noLinkStyle

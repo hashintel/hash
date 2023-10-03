@@ -31,7 +31,10 @@ export const EditUserProfileInfoModal: FunctionComponent<
           refetchUserProfile={refetchUserProfile}
         />
         <Box sx={{ padding: 3 }}>
-          <UserProfileInfoForm />
+          <UserProfileInfoForm
+            userProfile={userProfile}
+            refetchUserProfile={refetchUserProfile}
+          />
         </Box>
       </Box>
     </Modal>

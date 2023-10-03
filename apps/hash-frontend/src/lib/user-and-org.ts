@@ -58,6 +58,9 @@ export type MinimalUser = {
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
+  preferredPronouns?: string;
+  location?: string;
+  website?: string;
 };
 
 export const constructMinimalUser = (params: {
@@ -65,9 +68,9 @@ export const constructMinimalUser = (params: {
 }): MinimalUser => {
   const { userEntity } = params;
 
-  const { shortname, preferredName } = simplifyProperties(
-    userEntity.properties,
-  );
+  const simpleProperties = simplifyProperties(userEntity.properties);
+
+  const { shortname, preferredName } = simpleProperties;
 
   const accountSignupComplete = !!shortname && !!preferredName;
 
@@ -78,9 +81,8 @@ export const constructMinimalUser = (params: {
     accountId: extractAccountId(
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
-    shortname,
-    preferredName,
     accountSignupComplete,
+    ...simpleProperties,
   };
 };
 
