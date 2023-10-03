@@ -154,8 +154,14 @@ impl Report<()> {
     ) {
         install_builtin_hooks();
 
+        // TODO: Use `let ... else` when MSRV is 1.65
         #[cfg(feature = "std")]
-        let mut lock = FMT_HOOK.write().expect("should not be poisoned");
+        let mut lock = FMT_HOOK.write().unwrap_or_else(|_| {
+            unreachable!(
+                "Hook is poisoned. This is considered a bug and should be reported to \
+                https://github.com/hashintel/hash/issues/new/choose"
+            )
+        });
 
         // The spin RwLock cannot panic
         #[cfg(all(not(feature = "std"), feature = "hooks"))]
@@ -171,8 +177,14 @@ impl Report<()> {
     pub(crate) fn invoke_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         install_builtin_hooks();
 
+        // TODO: Use `let ... else` when MSRV is 1.65
         #[cfg(feature = "std")]
-        let hook = FMT_HOOK.read().expect("should not be poisoned");
+        let hook = FMT_HOOK.read().unwrap_or_else(|_| {
+            unreachable!(
+                "Hook is poisoned. This is considered a bug and should be reported to \
+                https://github.com/hashintel/hash/issues/new/choose"
+            )
+        });
 
         // The spin RwLock cannot panic
         #[cfg(all(not(feature = "std"), feature = "hooks"))]
