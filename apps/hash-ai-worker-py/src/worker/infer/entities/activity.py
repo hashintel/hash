@@ -11,8 +11,8 @@ from pydantic import BaseModel, Extra, Field
 from slugify import slugify
 from temporalio import activity
 
-from app._status import Status, StatusCode
-from app._util import delete_key, flatten_all_of, traverse_dict
+from worker._status import Status, StatusCode
+from worker._util import delete_key, flatten_all_of, traverse_dict
 
 from . import (
     EntityValidation,

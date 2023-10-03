@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel, Extra, Field
 from temporalio import workflow
 
-from app import AuthenticationContext
+from worker import AuthenticationContext
 
 with workflow.unsafe.imports_passed_through():
     from graph_types.base import EntityType

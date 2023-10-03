@@ -5,18 +5,18 @@
   "description": "A Python 'AI' worker for HASH",
   "scripts": {
     "build:docker": "docker buildx build --tag hash-ai-worker-py --file docker/Dockerfile ../../",
-    "dev": "poetry run python -m app",
-    "fix:black": "poetry run black app",
+    "dev": "poetry run python -m worker",
+    "fix:black": "poetry run black .",
     "fix:lock-files": "poetry lock --no-update",
-    "fix:ruff": "poetry run ruff app --fix",
-    "lint:black": "poetry run black --check --diff --color app",
+    "fix:ruff": "poetry run ruff . --fix",
+    "lint:black": "poetry run black --check --diff --color .",
     "lint:lock-files": "poetry lock --check",
     "lint:mypy": "poetry run mypy .",
-    "lint:ruff": "poetry run ruff app",
+    "lint:ruff": "poetry run ruff .",
     "poetry:install": "poetry install --no-root --no-interaction",
     "poetry:install-production": "poetry install --no-root --no-interaction --only main",
-    "test:integration": "poetry run python -m unittest discover --start-directory tests/integration -v",
-    "test:unit": "poetry run python -m unittest discover --start-directory tests/unit -v"
+    "test:integration": "poetry run pytest tests/",
+    "test:unit": "poetry run pytest --pyargs worker"
   },
   "dependencies": {
     "@local/hash-graph-types": "0.0.0-private"

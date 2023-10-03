@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Extra, Field
 
-from app import AuthenticationContext
+from worker import AuthenticationContext
 
 
 class GetClosedEntityTypeWorkflowParameter(BaseModel, extra=Extra.forbid):
