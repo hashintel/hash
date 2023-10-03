@@ -1,13 +1,16 @@
 diff --git a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
-index b911b36..75dbae2 100644
+index b911b36..bb1b719 100644
 --- a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
 +++ b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
-@@ -1660,7 +1660,7 @@ const getOutgoingLinksForEntity$1 = (subgraph, entityId, interval) => {
-     const entities = [];
-     for (const [edgeTimestamp, outwardEdges] of typedEntries(entityEdges)) {
-         // Only look at outgoing edges that were created before or within the search interval
--        if (!intervalIsStrictlyAfterInterval$1(intervalForTimestamp$1(edgeTimestamp), searchInterval)) {
-+        if (intervalIntersectionWithInterval$1(searchInterval, intervalForTimestamp(edgeTimestamp))) {
-             for (const outwardEdge of outwardEdges) {
-                 if (isTemporalSubgraph(subgraph)) {
-                     const outwardEdgeTemporal = outwardEdge;
+@@ -1669,10 +1669,7 @@ const getOutgoingLinksForEntity$1 = (subgraph, entityId, interval) => {
+                         // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
+                         const intersection = intervalIntersectionWithInterval$1(searchInterval, edgeInterval);
+                         if (intersection === null) {
+-                            throw new Error(`No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+-                                `EntityId: ${linkEntityId}\n` +
+-                                `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+-                                `Edge Valid Interval: ${JSON.stringify(edgeInterval)}`);
++                            continue;
+                         }
+                         for (const entity of getEntityRevisionsByEntityId$1(subgraph, linkEntityId, intersection)) {
+                             if (uniqueEntitiesFilter(entity)) {
