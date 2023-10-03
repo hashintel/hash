@@ -315,7 +315,9 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                                 entity_id = len(entities)
                                 entities.append(
                                     ProposedEntity(
-                                        entityTypeId=entity_type_map[function_call["name"]],
+                                        entityTypeId=entity_type_map[
+                                            function_call["name"],
+                                        ],
                                         entityId=entity_id,
                                         properties=deepcopy(entity),
                                     ),
