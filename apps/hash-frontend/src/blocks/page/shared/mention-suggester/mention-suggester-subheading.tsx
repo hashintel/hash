@@ -1,4 +1,9 @@
 import {
+  faChevronLeft,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import {
   ListItem,
   ListItemButton,
   listItemButtonClasses,
@@ -6,9 +11,6 @@ import {
   listItemTextClasses,
 } from "@mui/material";
 import { FunctionComponent, PropsWithChildren } from "react";
-
-import { ChevronLeftRegularIcon } from "../../../../shared/icons/chevron-left-regular-icon";
-import { ChevronRightRegularIcon } from "../../../../shared/icons/chevron-right-regular-icon";
 
 export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & {
@@ -49,7 +51,8 @@ export const MentionSuggesterSubheading: FunctionComponent<
       ]}
     >
       {onClick && chevronDirection === "left" ? (
-        <ChevronLeftRegularIcon
+        <FontAwesomeIcon
+          icon={faChevronLeft}
           className="chevron-left"
           sx={{
             right: 0,
@@ -60,7 +63,8 @@ export const MentionSuggesterSubheading: FunctionComponent<
       ) : null}
       {children}
       {onClick && chevronDirection === "right" ? (
-        <ChevronRightRegularIcon
+        <FontAwesomeIcon
+          icon={faChevronRight}
           className="chevron-right"
           sx={{
             left: 0,
