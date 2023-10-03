@@ -20,5 +20,8 @@
   },
   "dependencies": {
     "@local/hash-graph-types": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@apps/hash-ai-worker-ts": "0.0.0-private"
   }
 }
