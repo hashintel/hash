@@ -43,8 +43,8 @@ jobs:
             | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_TEST_PACKAGES=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' \
-            | jq '.tasks[]' \
+          INTEGRATION_TEST_TASKS=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' | jq -c '.tasks[]')
+          INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_TASKS" \
             | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
@@ -94,14 +94,13 @@ jobs:
             REQUIRES_AI_WORKER_PY=true
             REQUIRES_INTEGRATION_WORKER=true
           else
-            REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
+            REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
+            REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
+            REQUIRES_AI_WORKER_PY=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
+            REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
           fi
 
           DOCKER_PACKAGES=[]
-
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
           fi
@@ -465,18 +464,26 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false')
+
+          TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
+          REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
+          REQUIRES_AI_WORKER_PY=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
+          REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
+
           set -x
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
+
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
 
-          echo "external-service-graph=$(yarn list --pattern '@apps/hash-graph' --json | jq -e 'select(.type == "tree") | .data.trees != []')" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-ts=$(yarn list --pattern '@apps/hash-ai-worker-ts' --json | jq -e 'select(.type == "tree") | .data.trees != []')" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-py=$(yarn list --pattern '@apps/hash-ai-worker-py' --json | jq -e 'select(.type == "tree") | .data.trees != []')" >> $GITHUB_OUTPUT
-          echo "external-service-worker-integration=$(yarn list --pattern '@apps/hash-worker-integration' --json | jq -e 'select(.type == "tree") | .data.trees != []')" >> $GITHUB_OUTPUT
+          echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
+          echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
+          echo "external-service-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
+          echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
