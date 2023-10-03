@@ -82,6 +82,6 @@ USER pyworker:hash
 
 RUN . .venv/bin/activate
 ENTRYPOINT [ ".venv/bin/python" ]
-CMD ["-m", "app"]
+CMD ["-m", "worker"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4200/health || exit 1

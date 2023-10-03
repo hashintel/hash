@@ -10,8 +10,8 @@ from graph_types import (
 )
 from temporalio import workflow
 
-from app._status import Status
-from app._util import delete_key, traverse_dict
+from worker._status import Status
+from worker._util import delete_key, traverse_dict
 
 
 class GraphApiActivities:

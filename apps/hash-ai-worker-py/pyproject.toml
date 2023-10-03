@@ -5,7 +5,7 @@ description = ""
 license = "AGPL-3.0-only"
 authors = ["HASH"]
 readme = "README.md"
-packages = [{ include = "app" }]
+packages = [{ include = "worker", from = "src" }]
 
 [tool.poetry.dependencies]
 hash-graph-types = { path = "../../libs/@local/hash-graph-types", develop = true }
@@ -19,11 +19,20 @@ jsonref = "^1.1"
 
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.2.2"
+pytest = "^7.4.2"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"
 ruff = "^0.0.292"
 mypy = "^1.5.1"
+
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = [
+    "--import-mode=importlib",
+]
 
 
 [tool.black]

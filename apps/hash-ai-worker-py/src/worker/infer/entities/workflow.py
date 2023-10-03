@@ -15,8 +15,8 @@ with workflow.unsafe.imports_passed_through():
     from pydantic import ValidationError
     from pydantic_core import ErrorDetails
 
-    from app._status import Status, StatusCode, StatusError
-    from app.ontology.activity import GraphApiActivities
+    from worker._status import Status, StatusCode, StatusError
+    from worker.ontology.activity import GraphApiActivities
 
     from . import (
         EntityValidation,
@@ -85,7 +85,7 @@ class InferEntitiesWorkflow:
 
         # TODO: Figure out how to pass `infer_entities` as function to gain type safety.
         #   https://linear.app/hash/issue/H-875
-        # from app.infer.entities.activity import infer_entities
+        # from worker.infer.entities.activity import infer_entities
         status = Status(
             **await workflow.execute_activity(
                 "inferEntities",
