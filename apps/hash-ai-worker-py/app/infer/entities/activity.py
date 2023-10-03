@@ -189,6 +189,7 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
         {"role": "user", "content": params.text_input.strip()},
     ]
     entities: list[ProposedEntity] = []
+    entity_type_map: dict[str, str] = {}
     try:
         for i, entity_type in enumerate([*params.entity_types, *params.link_types]):
             if i < len(params.entity_types) - 1:
@@ -214,20 +215,22 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                 exclude_none=True,
             )
 
+            function = Function.openai(
+                entity_type,
+                is_link_type=current_state
+                in [
+                    InferenceState.links,
+                    InferenceState.last_link,
+                ],
+            )
+            entity_type_map[function.name] = entity_type["$id"]
             completion = await openai.ChatCompletion.acreate(
                 model=params.model,
                 temperature=params.temperature,
                 max_tokens=params.max_tokens,
                 messages=messages,
                 functions=[
-                    Function.openai(
-                        entity_type,
-                        is_link_type=current_state
-                        in [
-                            InferenceState.links,
-                            InferenceState.last_link,
-                        ],
-                    ).model_dump(
+                    function.model_dump(
                         by_alias=True,
                         exclude_none=True,
                     ),
@@ -289,15 +292,13 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                     # until all entities have been inferred. To create links the AI
                     # needs to know the IDs of the entities. We therefore update the
                     # entities.
-                    entity_type_index = 0
                     for message in messages:
                         if (
                             message["role"] == "assistant"
                             and "function_call" in message
                         ):
-                            arguments = json.loads(
-                                message["function_call"]["arguments"],
-                            )
+                            function_call = message["function_call"]
+                            arguments = json.loads(function_call["arguments"])
 
                             for entity in arguments["entities"]:
                                 if not isinstance(entity, dict):
@@ -312,18 +313,15 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                                     continue
 
                                 entity_id = len(entities)
+                                function_name: str = function_call["name"]
                                 entities.append(
                                     ProposedEntity(
-                                        entityTypeId=params.entity_types[
-                                            entity_type_index
-                                        ]["$id"],
+                                        entityTypeId=entity_type_map[function_name],
                                         entityId=entity_id,
                                         properties=deepcopy(entity),
                                     ),
                                 )
                                 entity["entityId"] = entity_id
-
-                            entity_type_index += 1
 
                             message["function_call"]["arguments"] = json.dumps(
                                 arguments,
