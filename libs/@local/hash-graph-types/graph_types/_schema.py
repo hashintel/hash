@@ -30,6 +30,7 @@ class Schema(BaseModel, ABC):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type[BaseModel] | Annotated[Any, ...]:  # noqa: ANN401
         ...
 
@@ -66,10 +67,15 @@ class OneOf(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> object:
         types = await asyncio.gather(
             *[
-                value.create_model(actor_id=actor_id, graph=graph)
+                value.create_model(
+                    actor_id=actor_id,
+                    graph=graph,
+                    additional_properties=additional_properties,
+                )
                 for value in self.one_of
             ],
         )
@@ -108,8 +114,13 @@ class Array(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type[list[BaseModel]]:
-        type_items = await self.items.create_model(actor_id=actor_id, graph=graph)
+        type_items = await self.items.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
         type_ = conlist(
             type_items,
@@ -133,6 +144,7 @@ class Object(Schema, Generic[T]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type[BaseModel]:
         async def async_value(
             key: str,
@@ -146,7 +158,7 @@ class Object(Schema, Generic[T]):
 
             return type_
 
-        def field_extra(extra: dict[str, Any]) -> None:
+        def schema_extra(extra: dict[str, Any]) -> None:
             any_of = extra.pop("anyOf", None)
 
             extra.clear()
@@ -156,14 +168,21 @@ class Object(Schema, Generic[T]):
             # cast is necessary here because `Field`
             # return `FieldInfo`, even though it doesn't.
             if self.required is None or key not in self.required:
-                return cast(FieldInfo, Field(None, json_schema_extra=field_extra))
+                return cast(FieldInfo, Field(None, json_schema_extra=schema_extra))
 
             return cast(FieldInfo, Field(...))
 
         types = dict(
             await asyncio.gather(
                 *(
-                    async_value(key, value.create_model(actor_id=actor_id, graph=graph))
+                    async_value(
+                        key,
+                        value.create_model(
+                            actor_id=actor_id,
+                            graph=graph,
+                            additional_properties=additional_properties,
+                        ),
+                    )
                     for key, value in self.properties.items()
                 ),
             ),
@@ -174,8 +193,13 @@ class Object(Schema, Generic[T]):
             for key, value in types.items()
         }
 
+        if additional_properties:
+            config = ConfigDict(extra="allow")
+        else:
+            config = ConfigDict(extra="forbid")
+
         return create_model(
             "DictSchema",
-            __config__=ConfigDict(extra="forbid"),
+            __config__=config,
             **types,
         )

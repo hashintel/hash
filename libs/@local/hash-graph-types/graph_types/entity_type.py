@@ -37,16 +37,27 @@ class EntityTypeReference(Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type["EntityType"]:
         """Creates a model from the referenced entity type schema."""
         schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
+        return await schema.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
 
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID, graph: "GraphAPIProtocol") -> Never:
+    async def create_model(
+        self,
+        *,
+        actor_id: UUID,
+        graph: "GraphAPIProtocol",
+        additional_properties: bool,
+    ) -> Never:
         raise NotImplementedError
 
 
@@ -79,12 +90,18 @@ class EntityTypeSchema(
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type["EntityType"]:
         """Create an annotated type from this schema."""
         from .base import EntityType
 
         # Take the fields from Object and create a new model, with a new baseclass.
-        proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
+        proxy = await Object.create_model(
+            self,
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
         class_name = slugify(
             self.identifier,

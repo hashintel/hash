@@ -99,7 +99,7 @@ export const entityTypedef = gql`
     """
     FULL
     """
-    Full validation except the \`required\` field.
+    Full validation but does not error if a required field is missing or additional properties are specified.
     """
     PARTIAL
     """
