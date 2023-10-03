@@ -1,16 +1,31 @@
-import { Box, BoxProps } from "@mui/material";
+import { Box, BoxProps, styled } from "@mui/material";
 import { FunctionComponent } from "react";
+
+import { IconButton } from "./icon-button";
+import { PenRegularIcon } from "./pen-regular-icon";
+
+const EditIconButton = styled(IconButton)(({ theme }) => ({
+  background: theme.palette.common.white,
+  padding: theme.spacing(0.5),
+  borderColor: theme.palette.gray[30],
+  borderWidth: 1,
+  borderStyle: "solid",
+}));
 
 interface AvatarProps extends BoxProps {
   title?: string;
   size?: number;
   src?: string;
+  onEditIconButtonDisabled?: boolean;
+  onEditIconButtonClick?: () => void;
 }
 
 export const Avatar: FunctionComponent<AvatarProps> = ({
   title,
   size = 20,
   src,
+  onEditIconButtonDisabled,
+  onEditIconButtonClick,
   ...props
 }) => {
   const { sx = [], bgcolor, ...otherProps } = props;
@@ -18,6 +33,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
     <Box
       sx={[
         {
+          position: "relative",
           width: size,
           height: size,
           display: "flex",
@@ -58,6 +74,19 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
           {title ? title.charAt(0).toUpperCase() : undefined}
         </Box>
       )}
+      {onEditIconButtonClick ? (
+        <EditIconButton
+          sx={{
+            position: "absolute",
+            top: ({ spacing }) => spacing(1),
+            right: ({ spacing }) => spacing(1),
+          }}
+          disabled={onEditIconButtonDisabled}
+          onClick={onEditIconButtonClick}
+        >
+          <PenRegularIcon sx={{ fontSize: 13 }} />
+        </EditIconButton>
+      ) : null}
     </Box>
   );
 };

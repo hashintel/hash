@@ -1,5 +1,9 @@
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  PenRegularIcon,
+} from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import {
   Box,
@@ -15,7 +19,6 @@ import { FunctionComponent } from "react";
 import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
-import { PenRegularIcon } from "../../shared/icons/pen-regular-icon";
 import { Link } from "../../shared/ui/link";
 import { leftColumnWidth } from "../[shortname].page";
 

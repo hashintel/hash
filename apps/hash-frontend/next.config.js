@@ -52,6 +52,10 @@ const frontendUrl =
     ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
     : process.env.FRONTEND_URL ?? "http://localhost:3000");
 
+const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";
+
+const apiDomain = new URL(apiUrl).hostname;
+
 const systemUserShortname =
   process.env.SYSTEM_USER_SHORTNAME ??
   // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
@@ -75,6 +79,9 @@ module.exports = withSentryConfig(
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
           },
         ];
+      },
+      images: {
+        domains: [apiDomain],
       },
       redirects() {
         return [

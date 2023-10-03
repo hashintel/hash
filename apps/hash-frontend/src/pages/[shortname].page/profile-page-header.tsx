@@ -1,19 +1,10 @@
-import { Avatar, IconButton } from "@hashintel/design-system";
-import { Box, Container, Skeleton, styled, Typography } from "@mui/material";
+import { Avatar } from "@hashintel/design-system";
+import { Box, Container, Skeleton, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
-import { PenRegularIcon } from "../../shared/icons/pen-regular-icon";
 import { leftColumnWidth } from "../[shortname].page";
 import { getImageUrlFromEntityProperties } from "../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
-
-const EditIconButton = styled(IconButton)(({ theme }) => ({
-  background: theme.palette.common.white,
-  padding: theme.spacing(0.5),
-  borderColor: theme.palette.gray[30],
-  borderWidth: 1,
-  borderStyle: "solid",
-}));
 
 const avatarTopOffset = 25;
 
@@ -57,20 +48,12 @@ export const ProfilePageHeader: FunctionComponent<{
                   position: "relative",
                   top: avatarTopOffset,
                 }}
+                onEditIconButtonClick={
+                  isEditable
+                    ? () => setDisplayEditUserProfileInfoModal(true)
+                    : undefined
+                }
               />
-              {isEditable ? (
-                <EditIconButton
-                  sx={{
-                    position: "absolute",
-                    top: ({ spacing }) =>
-                      `calc(${avatarTopOffset}px + ${spacing(1)})`,
-                    right: ({ spacing }) => spacing(1),
-                  }}
-                  onClick={() => setDisplayEditUserProfileInfoModal(true)}
-                >
-                  <PenRegularIcon sx={{ fontSize: 13 }} />
-                </EditIconButton>
-              ) : null}
             </Box>
           ) : (
             <Skeleton

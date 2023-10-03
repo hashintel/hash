@@ -362,6 +362,10 @@ const systemLinkEntityTypes = {
     title: "Has Avatar",
     description: "The avatar something has.",
   },
+  hasCoverImage: {
+    title: "Has Cover Image",
+    description: "The cover image something has.",
+  },
   hasText: {
     title: "Has Text",
     description: "The text something has.",

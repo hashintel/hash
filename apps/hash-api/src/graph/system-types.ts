@@ -112,6 +112,7 @@ export let SYSTEM_TYPES: {
 
     // Account-related
     hasAvatar: EntityTypeWithMetadata;
+    hasCoverImage: EntityTypeWithMetadata;
 
     // Block-related
     blockData: EntityTypeWithMetadata;
@@ -262,6 +263,9 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
 
+  const hasCoverImageLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasCoverImage(context);
+
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
   /* eslint-enable @typescript-eslint/no-use-before-define */
@@ -297,6 +301,12 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
     outgoingLinks: [
       {
         linkEntityType: hasAvatarLinkEntityType,
+        destinationEntityTypes: [imageFileEntityType],
+        maxItems: 1,
+        minItems: 0,
+      },
+      {
+        linkEntityType: hasCoverImageLinkEntityType,
         destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
@@ -901,6 +911,10 @@ const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.hasAvatar,
 );
 
+const hasCoverImageLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.hasCoverImage,
+);
+
 const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.hasText,
 );
@@ -1034,6 +1048,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     contains: containsLinkEntityTypeInitializer,
     parent: parentLinkEntityTypeInitializer,
     hasAvatar: hasAvatarLinkEntityTypeInitializer,
+    hasCoverImage: hasCoverImageLinkEntityTypeInitializer,
     hasText: hasTextLinkEntityTypeInitializer,
     author: authorLinkEntityTypeInitializer,
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,

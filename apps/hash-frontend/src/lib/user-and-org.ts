@@ -228,6 +228,10 @@ export type User = MinimalUser & {
     linkEntity: LinkEntity;
     imageEntity: Image;
   };
+  hasCoverImage?: {
+    linkEntity: LinkEntity;
+    imageEntity: Image;
+  };
   hasServiceAccounts: UserServiceAccount[];
   isInstanceAdmin: boolean;
   memberOf: {
@@ -349,6 +353,25 @@ export const constructUser = (params: {
       }
     : undefined;
 
+  const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasCoverImage.linkEntityTypeId,
+  );
+
+  const hasCoverImage = coverImageLinkAndEntities[0]
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: coverImageLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        imageEntity: coverImageLinkAndEntities[0]
+          .rightEntity[0] as unknown as Image,
+      }
+    : undefined;
+
   const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
@@ -393,6 +416,7 @@ export const constructUser = (params: {
   return {
     ...minimalUser,
     hasAvatar,
+    hasCoverImage,
     hasServiceAccounts,
     joinedAt,
     memberOf,

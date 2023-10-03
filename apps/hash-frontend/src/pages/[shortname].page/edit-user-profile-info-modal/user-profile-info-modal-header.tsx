@@ -1,5 +1,7 @@
+import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
+  FontAwesomeIcon,
   IconButton,
   RotateIconRegular,
 } from "@hashintel/design-system";
@@ -25,7 +27,6 @@ import { Button, ButtonProps } from "../../../shared/ui";
 import { leftColumnWidth } from "../../[shortname].page";
 import { getImageUrlFromEntityProperties } from "../../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { useAuthInfo } from "../../shared/auth-info-context";
-import headerBackgroundImage from "./header-background.png";
 
 const AvatarButton = styled((props: ButtonProps) => (
   <Button variant="tertiary" {...props} />
@@ -75,11 +76,15 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   onClose: () => void;
   refetchUserProfile: () => Promise<void>;
 }> = ({ userProfile, onClose, refetchUserProfile }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const avatarImageInputRef = useRef<HTMLInputElement>(null);
 
-  const [newImageUploading, setNewImageUploading] = useState(false);
+  const [newAvatarImageUploading, setNewAvatarImageUploading] = useState(false);
+  const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
 
-  const existingImageEntity = userProfile.hasAvatar?.imageEntity;
+  const existingAvatarImageEntity = userProfile.hasAvatar?.imageEntity;
+
+  const existingCoverImageEntity = userProfile.hasCoverImage?.imageEntity;
 
   const { createEntity } = useBlockProtocolCreateEntity(
     (userProfile.accountId as OwnedById | undefined) ?? null,
@@ -91,18 +96,31 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
 
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
+  const coverImageSrc = userProfile.hasCoverImage
+    ? getImageUrlFromEntityProperties(
+        userProfile.hasCoverImage.imageEntity.properties,
+      )
+    : undefined;
+
   const avatarSrc = userProfile.hasAvatar
     ? getImageUrlFromEntityProperties(
         userProfile.hasAvatar.imageEntity.properties,
       )
     : undefined;
 
-  const handleChangeCoverImage = useCallback(
-    () => fileInputRef.current?.click(),
+  const handleChangeAvatarImage = useCallback(
+    () => avatarImageInputRef.current?.click(),
     [],
   );
 
-  const handleFileUpload = useCallback<ChangeEventHandler<HTMLInputElement>>(
+  const handleChangeCoverImage = useCallback(
+    () => coverImageInputRef.current?.click(),
+    [],
+  );
+
+  const handleAvatarImageFileUpload = useCallback<
+    ChangeEventHandler<HTMLInputElement>
+  >(
     async (event) => {
       const file = event.target.files?.[0];
 
@@ -110,20 +128,20 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         throw new Error("No file provided");
       }
 
-      setNewImageUploading(true);
+      setNewAvatarImageUploading(true);
 
       // Upload the file and get a file entity which describes it
       const { data: fileUploadData, errors: fileUploadErrors } =
         await uploadFile({
           data: {
-            description: `The avatar for the ${userProfile.preferredName} organization in HASH`,
-            name: `${userProfile.preferredName}'s avatar`,
+            description: `The avatar for the ${userProfile.preferredName} user in HASH`,
+            name: `${userProfile.preferredName}'s avatar image`,
             file,
-            ...(existingImageEntity
+            ...(existingAvatarImageEntity
               ? {
                   fileEntityUpdateInput: {
-                    existingFileEntityId: existingImageEntity.metadata.recordId
-                      .entityId as EntityId,
+                    existingFileEntityId: existingAvatarImageEntity.metadata
+                      .recordId.entityId as EntityId,
                   },
                 }
               : {
@@ -168,12 +186,93 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       void refetchUserProfile();
       void refetchUserAndOrgs();
 
-      setNewImageUploading(false);
+      setNewAvatarImageUploading(false);
     },
     [
       archiveEntity,
       createEntity,
-      existingImageEntity,
+      existingAvatarImageEntity,
+      refetchUserAndOrgs,
+      uploadFile,
+      userProfile,
+      refetchUserProfile,
+    ],
+  );
+
+  const handleCoverImageFileUpload = useCallback<
+    ChangeEventHandler<HTMLInputElement>
+  >(
+    async (event) => {
+      const file = event.target.files?.[0];
+
+      if (!file) {
+        throw new Error("No file provided");
+      }
+
+      setNewCoverImageUploading(true);
+
+      // Upload the file and get a file entity which describes it
+      const { data: fileUploadData, errors: fileUploadErrors } =
+        await uploadFile({
+          data: {
+            description: `The cover image for the ${userProfile.preferredName} user in HASH`,
+            name: `${userProfile.preferredName}'s cover image`,
+            file,
+            ...(existingCoverImageEntity
+              ? {
+                  fileEntityUpdateInput: {
+                    existingFileEntityId: existingCoverImageEntity.metadata
+                      .recordId.entityId as EntityId,
+                  },
+                }
+              : {
+                  fileEntityCreationInput: {
+                    entityTypeId: types.entityType.imageFile.entityTypeId,
+                  },
+                }),
+          },
+        });
+
+      if (fileUploadErrors || !fileUploadData) {
+        throw new Error(
+          fileUploadErrors?.[0]?.message ?? "Unknown error uploading file",
+        );
+      }
+
+      if (userProfile.hasCoverImage) {
+        // Delete the existing hasCoverImage link, if any
+        await archiveEntity({
+          data: {
+            entityId:
+              userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
+          },
+        });
+      }
+
+      // Create a new hasCoverImage link from the org to the new file entity
+      await createEntity({
+        data: {
+          entityTypeId: types.linkEntityType.hasCoverImage.linkEntityTypeId,
+          linkData: {
+            leftEntityId: userProfile.entityRecordId.entityId,
+            rightEntityId: fileUploadData.metadata.recordId
+              .entityId as EntityId,
+          },
+          properties: {},
+        },
+      });
+
+      /** @todo: error handling */
+
+      void refetchUserProfile();
+      void refetchUserAndOrgs();
+
+      setNewCoverImageUploading(false);
+    },
+    [
+      archiveEntity,
+      createEntity,
+      existingCoverImageEntity,
       refetchUserAndOrgs,
       uploadFile,
       userProfile,
@@ -182,11 +281,12 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   );
 
   const handleRemoveCoverImage = useCallback(async () => {
-    if (userProfile.hasAvatar) {
-      // Delete the existing hasAvatar link, if any
+    if (userProfile.hasCoverImage) {
+      // Delete the existing hasCoverImage link, if any
       await archiveEntity({
         data: {
-          entityId: userProfile.hasAvatar.linkEntity.metadata.recordId.entityId,
+          entityId:
+            userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
         },
       });
 
@@ -205,15 +305,25 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         justifyContent: "space-between",
         columnGap: 5,
         position: "relative",
+        background: ({ palette }) => palette.gray[90],
       }}
     >
-      <Image
-        src={headerBackgroundImage.src}
-        alt="header-background-image"
-        layout="fill"
-        objectFit="cover"
-        objectPosition="center"
-        style={{ zIndex: -1 }}
+      {coverImageSrc ? (
+        <Image
+          src={coverImageSrc}
+          alt="user-cover-image"
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center"
+        />
+      ) : null}
+      <Box
+        component="input"
+        type="file"
+        ref={avatarImageInputRef}
+        onChange={handleAvatarImageFileUpload}
+        sx={{ display: "none" }}
+        accept="image/*"
       />
       <Avatar
         src={avatarSrc}
@@ -225,6 +335,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           marginBottom: ({ spacing }) =>
             `calc(-1 * (${avatarTopOffset}px + ${spacing(3)}))`,
         }}
+        onEditIconButtonDisabled={newAvatarImageUploading}
+        onEditIconButtonClick={handleChangeAvatarImage}
       />
       <Box
         display="flex"
@@ -235,26 +347,39 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         <Box
           component="input"
           type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
+          ref={coverImageInputRef}
+          onChange={handleCoverImageFileUpload}
           sx={{ display: "none" }}
           accept="image/*"
         />
-        <AvatarButton
-          disabled={newImageUploading}
-          startIcon={<RotateIconRegular />}
-          sx={{ marginBottom: 1 }}
-          onClick={handleChangeCoverImage}
-        >
-          Change cover image
-        </AvatarButton>
-        <AvatarButton
-          disabled={!userProfile.hasAvatar}
-          startIcon={<TrashRegularIcon />}
-          onClick={handleRemoveCoverImage}
-        >
-          Remove cover image
-        </AvatarButton>
+        {userProfile.hasCoverImage ? (
+          <>
+            <AvatarButton
+              disabled={newCoverImageUploading}
+              startIcon={<RotateIconRegular />}
+              sx={{ marginBottom: 1 }}
+              onClick={handleChangeCoverImage}
+            >
+              Change cover image
+            </AvatarButton>
+            <AvatarButton
+              disabled={newCoverImageUploading}
+              startIcon={<TrashRegularIcon />}
+              onClick={handleRemoveCoverImage}
+            >
+              Remove cover image
+            </AvatarButton>
+          </>
+        ) : (
+          <AvatarButton
+            disabled={newCoverImageUploading}
+            startIcon={<FontAwesomeIcon icon={faImage} />}
+            sx={{ marginBottom: 1 }}
+            onClick={handleChangeCoverImage}
+          >
+            Add cover image
+          </AvatarButton>
+        )}
       </Box>
       <Box>
         <CloseIconButton
