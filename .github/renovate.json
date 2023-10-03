@@ -153,7 +153,7 @@
     },
     {
       "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "matchPackagePatterns": ["mypy", "ruff", "black", "pytest"],
       "dependencyDashboardApproval": false
     },
     {
