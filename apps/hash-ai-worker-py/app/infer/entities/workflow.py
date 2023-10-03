@@ -53,6 +53,8 @@ class InferEntitiesWorkflow:
                                 validate_required=params.validation
                                 == EntityValidation.full,
                             ),
+                            additional_properties=params.validation
+                            == EntityValidation.partial,
                         )
                         for entity_type_id in params.entity_type_ids
                     ],
