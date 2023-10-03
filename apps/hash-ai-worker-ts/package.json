@@ -45,6 +45,7 @@
     "typescript": "5.1.6"
   },
   "devDependencies": {
+    "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",

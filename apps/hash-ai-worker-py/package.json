@@ -14,10 +14,14 @@
     "lint:mypy": "poetry run mypy .",
     "lint:ruff": "poetry run ruff app",
     "poetry:install": "poetry install --no-root --no-interaction",
-    "poetry:install-production": "poetry install --no-root --no-interaction --only main"
+    "poetry:install-production": "poetry install --no-root --no-interaction --only main",
+    "test:integration": "poetry run python -m unittest discover --start-directory tests/integration -v",
+    "test:unit": "poetry run python -m unittest discover --start-directory tests/unit -v"
   },
   "dependencies": {
     "@local/hash-graph-types": "0.0.0-private"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@apps/hash-ai-worker-ts": "0.0.0-private"
+  }
 }
