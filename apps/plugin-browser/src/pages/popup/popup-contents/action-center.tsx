@@ -57,7 +57,7 @@ export const ActionCenter = ({
 
       <Box>
         <QuickNoteAction />
-        <InferEntitiesAction activeTab={activeTab} />
+        <InferEntitiesAction activeTab={activeTab} user={user} />
       </Box>
     </Box>
   );

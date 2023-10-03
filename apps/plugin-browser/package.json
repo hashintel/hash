@@ -17,8 +17,10 @@
     "@hashintel/design-system": "0.0.7",
     "@mui/material": "5.14.11",
     "bowser": "2.11.0",
+    "pluralize": "8.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "uuid": "9.0.1",
     "webextension-polyfill": "0.10.0"
   },
   "devDependencies": {
@@ -57,3 +59,4 @@
     "zip-webpack-plugin": "4.0.1"
   }
 }
+
