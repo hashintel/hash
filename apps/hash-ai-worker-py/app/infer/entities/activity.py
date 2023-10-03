@@ -249,7 +249,7 @@ async def infer_entities(  # noqa: PLR0911, PLR0912, PLR0915, C901
                     )
                 case "length":
                     return Status(
-                        code=StatusCode.INVALID_ARGUMENT,
+                        code=StatusCode.RESOURCE_EXHAUSTED,
                         message="The maximum amount of tokens was reached.",
                     )
                 case "content_filter":
