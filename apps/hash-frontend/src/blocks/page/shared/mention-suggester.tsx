@@ -610,6 +610,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                           : undefined
                       }
                       open={isExpanded}
+                      sx={{ marginTop: 0.5 }}
                     >
                       {entityType.schema.title}
                     </MentionSuggesterSubheading>

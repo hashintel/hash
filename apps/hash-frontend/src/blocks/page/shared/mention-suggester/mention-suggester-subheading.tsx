@@ -4,6 +4,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
+  BoxProps,
   ListItem,
   ListItemButton,
   listItemButtonClasses,
@@ -18,8 +19,9 @@ export const MentionSuggesterSubheading: FunctionComponent<
     chevronDirection?: "right" | "left";
     disabled?: boolean;
     open?: boolean;
+    sx?: BoxProps["sx"];
   }
-> = ({ children, onClick, chevronDirection = "right", disabled, open }) => {
+> = ({ children, onClick, chevronDirection = "right", disabled, open, sx }) => {
   const content = (
     <ListItemText
       sx={[
@@ -81,23 +83,29 @@ export const MentionSuggesterSubheading: FunctionComponent<
     <ListItemButton
       disabled={disabled}
       onClick={onClick}
-      sx={{
-        paddingBottom: 0,
-        transition: ({ transitions }) => transitions.create("color"),
-        "&:hover": {
-          background: "transparent",
-          color: ({ palette }) => palette.gray[80],
+      sx={[
+        {
+          paddingBottom: 0,
+          transition: ({ transitions }) => transitions.create("color"),
+          "&:hover": {
+            background: "transparent",
+            color: ({ palette }) => palette.gray[80],
+          },
+          [`${listItemButtonClasses.disabled}`]: {
+            opacity: disabled ? 0.6 : 1,
+          },
         },
-        [`${listItemButtonClasses.disabled}`]: {
-          opacity: disabled ? 0.6 : 1,
-        },
-      }}
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       {content}
     </ListItemButton>
   ) : (
     <ListItem
-      sx={{ paddingBottom: 0, opacity: disabled ? 0.6 : 1, paddingLeft: 1.5 }}
+      sx={[
+        { paddingBottom: 0, opacity: disabled ? 0.6 : 1, paddingLeft: 1.5 },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       {content}
     </ListItem>
