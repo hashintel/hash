@@ -332,14 +332,14 @@ export const inferEntitiesResolver: ResolverFn<
   null,
   LoggedInGraphQLContext,
   MutationInferEntitiesArgs
-> = async (_, { textInput, entityTypeIds }, { authentication, temporal }) => {
+> = async (_, args, { authentication, temporal }) => {
   if (!temporal) {
     throw new Error("Temporal client not available");
   }
 
   const status = await temporal.workflow.execute("inferEntities", {
     taskQueue: "aipy",
-    args: [{ authentication, textInput, entityTypeIds }],
+    args: [{ authentication, ...args }],
     workflowId: `inferEntities-${genId()}`,
   });
 
