@@ -2,7 +2,7 @@
 #  ruff: noqa: S101
 
 
-from worker.tests.test_unit import inc
+from worker.tests import inc
 
 
 def test_integration() -> None:

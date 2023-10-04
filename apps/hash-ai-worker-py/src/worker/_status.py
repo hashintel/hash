@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from enum import Enum
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 
 __all__ = ["StatusCode", "Status", "StatusError"]
 
@@ -152,7 +152,7 @@ class StatusCode(str, Enum):
 D = TypeVar("D")
 
 
-class Status(Generic[D], BaseModel, extra=Extra.forbid):
+class Status(Generic[D], BaseModel, extra="forbid"):
     """The canonical shape of a response object describing the status of a request."""
 
     code: StatusCode
