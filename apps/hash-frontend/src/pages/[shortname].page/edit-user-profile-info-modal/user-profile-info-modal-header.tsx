@@ -24,9 +24,9 @@ import { User } from "../../../lib/user-and-org";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, ButtonProps } from "../../../shared/ui";
-import { leftColumnWidth } from "../../[shortname].page";
 import { getImageUrlFromEntityProperties } from "../../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { useAuthInfo } from "../../shared/auth-info-context";
+import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (
   <Button variant="tertiary" {...props} />

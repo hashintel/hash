@@ -1,43 +1,52 @@
+import { useQuery } from "@apollo/client";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   OrgProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  Entity,
+  EntityRootType,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
-import { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
 import { constructOrg, constructUser } from "../lib/user-and-org";
+import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
 import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
+import {
+  parseProfilePageUrlQueryParams,
+  ProfilePageTab,
+} from "./[shortname].page/util";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
-
-export const parseProfilePageUrlQueryParams = (
-  queryParams: NextParsedUrlQuery | undefined,
-) => {
-  const paramsShortname = queryParams?.shortname;
-
-  if (!paramsShortname || typeof paramsShortname !== "string") {
-    throw new Error("Could not parse `shortname` from query params.");
-  }
-
-  const profileShortname = paramsShortname.slice(1);
-
-  return { profileShortname };
-};
-
-export const leftColumnWidth = 150;
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
+  const { entityTypes } = useEntityTypesContextRequired();
 
-  const { profileShortname } = parseProfilePageUrlQueryParams(router.query);
+  const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
+    router.query,
+  );
 
   const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] =
     useState(false);
@@ -96,6 +105,116 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
+  const tabs = useMemo<ProfilePageTab[]>(
+    () => [
+      {
+        kind: "profile",
+        title: "Profile",
+      },
+      {
+        kind: "pinned-entity-type",
+        title: "Page",
+        entityTypeBaseUrl:
+          "http://localhost:3000/@system-user/types/entity-type/page/" as BaseUrl,
+      },
+      {
+        kind: "pinned-entity-type",
+        title: "Text",
+        entityTypeBaseUrl:
+          "http://localhost:3000/@system-user/types/entity-type/text/" as BaseUrl,
+      },
+    ],
+    [],
+  );
+
+  const includeEntityTypeIds = useMemo(
+    () =>
+      entityTypes
+        ?.filter(({ metadata }) =>
+          tabs.some(
+            (tab) =>
+              tab.kind === "pinned-entity-type" &&
+              tab.entityTypeBaseUrl === metadata.recordId.baseUrl,
+          ),
+        )
+        .map(({ schema }) => schema.$id),
+    [entityTypes, tabs],
+  );
+
+  const { data } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          all: [
+            {
+              any:
+                includeEntityTypeIds?.map((entityTypeId) =>
+                  generateVersionedUrlMatchingFilter(entityTypeId, {
+                    ignoreParents: true,
+                  }),
+                ) ?? [],
+            },
+            ...(profile
+              ? [
+                  {
+                    equal: [
+                      { path: ["ownedById"] },
+                      {
+                        parameter:
+                          profile.kind === "org"
+                            ? profile.accountGroupId
+                            : profile.accountId,
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !profile || !includeEntityTypeIds,
+  });
+
+  const entitiesSubgraph = data?.structuralQueryEntities as
+    | Subgraph<EntityRootType>
+    | undefined;
+
+  const allPinnedEntities = useMemo(
+    () => (entitiesSubgraph ? getRoots(entitiesSubgraph) : undefined),
+    [entitiesSubgraph],
+  );
+
+  const tabsWithEntities = useMemo(
+    () =>
+      tabs.map((tab) =>
+        tab.kind === "pinned-entity-type"
+          ? {
+              ...tab,
+              entities: allPinnedEntities?.filter(
+                ({ metadata }) =>
+                  extractBaseUrl(metadata.entityTypeId) ===
+                  tab.entityTypeBaseUrl,
+              ),
+              entitiesSubgraph,
+            }
+          : tab,
+      ),
+    [tabs, allPinnedEntities, entitiesSubgraph],
+  );
+
+  const currentTab =
+    tabsWithEntities.find(({ title }) => title === currentTabTitle) ?? tabs[0]!;
+
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
       <Typography variant="h2">Profile not found</Typography>
@@ -106,11 +225,14 @@ const ProfilePage: NextPageWithLayout = () => {
         profile={profile}
         isEditable={isEditable}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
+        tabs={tabsWithEntities}
+        currentTab={currentTab}
       />
       <ProfilePageContent
         profile={profile}
         isEditable={isEditable}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
+        currentTab={currentTab}
       />
       {profile && profile.kind === "user" ? (
         <EditUserProfileInfoModal

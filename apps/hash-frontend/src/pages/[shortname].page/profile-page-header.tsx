@@ -3,8 +3,9 @@ import { Box, Container, Skeleton, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
-import { leftColumnWidth } from "../[shortname].page";
 import { getImageUrlFromEntityProperties } from "../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { ProfilePageTabs } from "./profile-page-tabs";
+import { leftColumnWidth, ProfilePageTab } from "./util";
 
 const avatarTopOffset = 25;
 
@@ -12,7 +13,15 @@ export const ProfilePageHeader: FunctionComponent<{
   profile?: User | Org;
   isEditable: boolean;
   setDisplayEditUserProfileInfoModal: (display: boolean) => void;
-}> = ({ profile, isEditable, setDisplayEditUserProfileInfoModal }) => {
+  tabs: ProfilePageTab[];
+  currentTab: ProfilePageTab;
+}> = ({
+  profile,
+  isEditable,
+  setDisplayEditUserProfileInfoModal,
+  tabs,
+  currentTab,
+}) => {
   const avatarSrc = profile?.hasAvatar
     ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
     : undefined;
@@ -70,42 +79,56 @@ export const ProfilePageHeader: FunctionComponent<{
               }}
             />
           )}
-          <Box paddingTop={`${avatarTopOffset}px`}>
-            {profile ? (
-              <Typography
-                variant="h1"
-                sx={{
-                  fontSize: 32,
-                  fontWeight: 700,
-                  color: ({ palette }) => palette.gray[90],
-                }}
-              >
-                {profile.kind === "user" ? profile.preferredName : profile.name}
-              </Typography>
-            ) : (
-              <Skeleton
-                height={50}
-                width={200}
-                sx={{ background: ({ palette }) => palette.gray[20] }}
-              />
-            )}
-            {profile ? (
-              <Typography
-                sx={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: ({ palette }) => palette.gray[70],
-                }}
-              >
-                @{profile.shortname}
-              </Typography>
-            ) : (
-              <Skeleton
-                height={30}
-                width={150}
-                sx={{ background: ({ palette }) => palette.gray[20] }}
-              />
-            )}
+          <Box
+            paddingTop={`${avatarTopOffset}px`}
+            display="flex"
+            flexDirection="column"
+            justifyContent="space-between"
+          >
+            <Box>
+              {profile ? (
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontSize: 32,
+                    fontWeight: 700,
+                    color: ({ palette }) => palette.gray[90],
+                  }}
+                >
+                  {profile.kind === "user"
+                    ? profile.preferredName
+                    : profile.name}
+                </Typography>
+              ) : (
+                <Skeleton
+                  height={50}
+                  width={200}
+                  sx={{ background: ({ palette }) => palette.gray[20] }}
+                />
+              )}
+              {profile ? (
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: ({ palette }) => palette.gray[70],
+                  }}
+                >
+                  @{profile.shortname}
+                </Typography>
+              ) : (
+                <Skeleton
+                  height={30}
+                  width={150}
+                  sx={{ background: ({ palette }) => palette.gray[20] }}
+                />
+              )}
+            </Box>
+            <ProfilePageTabs
+              profile={profile}
+              tabs={tabs}
+              currentTab={currentTab}
+            />
           </Box>
         </Box>
       </Container>
