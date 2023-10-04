@@ -8,9 +8,9 @@ import httpx
 import pytest
 from pytest_mock import MockerFixture
 
-__all__ = ["mock_activities"]
-
 from worker.infer.entities.activity import infer_entities
+
+__all__ = ["mock_activities"]
 
 
 async def delegate_ai_queue(

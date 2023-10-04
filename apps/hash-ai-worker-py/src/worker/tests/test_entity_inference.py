@@ -21,6 +21,7 @@ from worker.infer.entities import (
 from worker.infer.entities.workflow import InferEntitiesWorkflow
 
 from .mocks.activity import mock_activities  # noqa: F401
+from .mocks.openai import set_openai_key  # noqa: F401
 
 __all__: list[str] = []
 
@@ -62,7 +63,7 @@ async def infer_entities(
     )
 
 
-@pytest.mark.usefixtures("mock_activities")
+@pytest.mark.usefixtures("mock_activities", "set_openai_key")
 @pytest.mark.vcr(
     match_on=["method", "scheme", "host", "port", "path", "body", "query"],
 )
