@@ -1,10 +1,8 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
-  getPropertyTypeById,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -15,7 +13,9 @@ import { useEntityById } from "../../../components/hooks/use-entity-by-id";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { Link } from "../../../shared/ui";
 import { useEntityIcon } from "../../../shared/use-entity-icon";
 import { Mention } from "../shared/mention-suggester";
@@ -36,6 +36,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const { entityId } = mention;
   const { entitySubgraph, loading } = useEntityById(entityId);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { propertyTypes } = usePropertyTypes({ latestOnly: true });
+  const { entityTypes } = useEntityTypesContextRequired();
 
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -142,47 +144,34 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const entityIcon = useEntityIcon({ entity });
 
   const propertyType = useMemo(() => {
-    if (mention.kind === "property-value" && entityType && entitySubgraph) {
+    if (mention.kind === "property-value" && propertyTypes) {
       const { propertyTypeBaseUrl } = mention;
 
-      const entityTypePropertySchemaValue = Object.entries(
-        entityType.schema.properties,
-      ).find(([key]) => key === propertyTypeBaseUrl)?.[1];
+      /**
+       * @todo: use the version of the property type that's
+       * referenced in the source entity type schema instead
+       */
 
-      if (!entityTypePropertySchemaValue) {
-        throw new Error(
-          `Could not find property with base URL ${propertyTypeBaseUrl} on entity type with ID ${entityType.schema.$id}`,
-        );
-      }
-
-      const propertyTypeId =
-        "items" in entityTypePropertySchemaValue
-          ? entityTypePropertySchemaValue.items.$ref
-          : entityTypePropertySchemaValue.$ref;
-
-      return getPropertyTypeById(entitySubgraph, propertyTypeId);
+      return Object.values(propertyTypes).find(
+        ({ metadata }) => metadata.recordId.baseUrl === propertyTypeBaseUrl,
+      );
     }
-  }, [entitySubgraph, mention, entityType]);
+  }, [mention, propertyTypes]);
 
   const outgoingLinkType = useMemo(() => {
-    if (mention.kind === "outgoing-link" && entityType && entitySubgraph) {
+    if (mention.kind === "outgoing-link" && entityTypes) {
       const { linkEntityTypeBaseUrl } = mention;
-      const linkEntityTypeId = (
-        Object.keys(entityType.schema.links ?? {}) as VersionedUrl[]
-      ).find(
-        (outgoingLinkEntityTypeId) =>
-          extractBaseUrl(outgoingLinkEntityTypeId) === linkEntityTypeBaseUrl,
+
+      /**
+       * @todo: use the version of the link entity type that's referenced
+       * in the source entity type schema instead
+       */
+
+      return entityTypes.find(
+        ({ metadata }) => metadata.recordId.baseUrl === linkEntityTypeBaseUrl,
       );
-
-      if (!linkEntityTypeId) {
-        throw new Error(
-          `Could not find outgoing link entity with base URL ${linkEntityTypeBaseUrl}`,
-        );
-      }
-
-      return getEntityTypeById(entitySubgraph, linkEntityTypeId);
     }
-  }, [entitySubgraph, mention, entityType]);
+  }, [mention, entityTypes]);
 
   const hasPopover =
     mention.kind === "property-value" || mention.kind === "outgoing-link";
