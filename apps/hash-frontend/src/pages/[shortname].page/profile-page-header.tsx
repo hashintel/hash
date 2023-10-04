@@ -49,7 +49,10 @@ export const ProfilePageHeader: FunctionComponent<{
                   top: avatarTopOffset,
                 }}
                 onEditIconButtonClick={
-                  isEditable
+                  /**
+                   * @todo: allow for editing org avatars
+                   */
+                  isEditable && profile.kind === "user"
                     ? () => setDisplayEditUserProfileInfoModal(true)
                     : undefined
                 }

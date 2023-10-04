@@ -46,8 +46,8 @@ const ProfilePage: NextPageWithLayout = () => {
     shortname: profileShortname,
     graphResolveDepths: {
       // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
-      hasLeftEntity: { incoming: 1, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 1 },
+      hasLeftEntity: { incoming: 1, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /**
      * We need to obtain all revisions of the user or org entity
