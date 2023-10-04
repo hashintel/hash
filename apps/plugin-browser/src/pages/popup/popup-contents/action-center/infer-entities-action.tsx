@@ -7,10 +7,7 @@ import { Tabs } from "webextension-polyfill";
 
 import { Action } from "./action";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
-import {
-  CreateInferredEntities,
-  ProposedEntityWithUuid,
-} from "./infer-entities-action/create-inferred-entities";
+import { CreateInferredEntities } from "./infer-entities-action/create-inferred-entities";
 import { SelectTypesAndInfer } from "./infer-entities-action/select-types-and-infer";
 
 export const InferEntitiesAction = ({
@@ -20,9 +17,9 @@ export const InferEntitiesAction = ({
   activeTab?: Tabs.Tab | null;
   user: Simplified<User>;
 }) => {
-  const [inferredEntities, setInferredEntities] = useState<
-    ProposedEntityWithUuid[]
-  >([]);
+  const [inferredEntities, setInferredEntities] = useState<ProposedEntity[]>(
+    [],
+  );
   const [targetEntityTypes, setTargetEntityTypes] = useState<EntityType[]>([]);
 
   return (

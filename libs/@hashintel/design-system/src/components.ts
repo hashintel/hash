@@ -16,6 +16,7 @@ export * from "./icon-arrow-up-right";
 export * from "./icon-asterisk-regular";
 export * from "./icon-barcode";
 export * from "./icon-button";
+export * from "./icon-caret-down-solid";
 export * from "./icon-circle-plus";
 export * from "./icon-close";
 export * from "./icon-download-regular";
