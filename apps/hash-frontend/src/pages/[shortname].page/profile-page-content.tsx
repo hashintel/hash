@@ -14,11 +14,11 @@ import {
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import { FunctionComponent } from "react";
+import { FunctionComponent, ReactNode } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
-import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
+import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
 import { leftColumnWidth } from "../[shortname].page";
 
@@ -28,6 +28,54 @@ const SectionHeading = styled(Typography)(({ theme }) => ({
   fontWeight: 600,
   textTransform: "uppercase",
 }));
+
+const InfoItem: FunctionComponent<{
+  icon: ReactNode;
+  title?: ReactNode;
+  href?: string;
+}> = ({ icon, title, href }) => {
+  const content = (
+    <Box display="flex" alignItems="center" columnGap={0.75}>
+      <Box sx={{ width: 15, display: "flex", alignItems: "center" }}>
+        {icon}
+      </Box>
+      {title ? (
+        <Typography
+          variant="microText"
+          sx={{
+            color: ({ palette }) => (href ? palette.blue[70] : undefined),
+            fontWeight: href ? 700 : undefined,
+          }}
+        >
+          {title}
+        </Typography>
+      ) : (
+        <Skeleton variant="text" sx={{ flexGrow: 0.75, height: 20 }} />
+      )}
+    </Box>
+  );
+
+  return href ? (
+    <Link
+      noLinkStyle
+      href={href}
+      sx={{
+        svg: {
+          transition: ({ transitions }) => transitions.create("color"),
+        },
+        "&:hover": {
+          svg: {
+            color: ({ palette }) => palette.blue[70],
+          },
+        },
+      }}
+    >
+      {content}
+    </Link>
+  ) : (
+    content
+  );
+};
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;
@@ -50,16 +98,23 @@ export const ProfilePageContent: FunctionComponent<{
   return (
     <Container sx={{ paddingTop: 4 }}>
       <Box display="flex" columnGap={4}>
-        <Box sx={{ width: leftColumnWidth }}>
-          <Box display="flex" marginBottom={1.5}>
+        <Box
+          sx={{ width: leftColumnWidth }}
+          display="flex"
+          flexDirection="column"
+          rowGap={0.5}
+        >
+          <Box display="flex" marginBottom={1}>
             <SectionHeading>Info</SectionHeading>
             <Fade in={isEditable && profile?.kind === "user"}>
               <IconButton
                 onClick={() => setDisplayEditUserProfileInfoModal(true)}
                 sx={{
-                  marginLeft: 0.5,
+                  marginLeft: 0.75,
                   padding: 0,
                   minHeight: "unset",
+                  position: "relative",
+                  top: -1,
                   svg: {
                     color: ({ palette }) => palette.blue[70],
                     fontSize: 12,
@@ -77,55 +132,33 @@ export const ProfilePageContent: FunctionComponent<{
             </Fade>
           </Box>
           {location ? (
-            <Box display="flex" alignItems="center" columnGap={0.5}>
-              <FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 12 }} />
-              <Typography variant="microText">{location}</Typography>
-            </Box>
+            <InfoItem
+              icon={
+                <FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 14 }} />
+              }
+              title={location}
+            />
           ) : null}
           {websiteUrl ? (
-            <Link
-              noLinkStyle
+            <InfoItem
+              icon={<CustomLinkIcon sx={{ fontSize: 24, marginLeft: -0.5 }} />}
+              title={websiteUrl
+                .replace(/^http(s?):\/\//, "")
+                .replace(/\/$/, "")}
               href={websiteUrl}
-              sx={{
-                mt: 1,
-                "&:hover": {
-                  svg: {
-                    color: ({ palette }) => palette.blue[70],
-                  },
-                },
-              }}
-            >
-              <Box display="flex" alignItems="center" columnGap={0.5}>
-                <LinkRegularIcon
-                  sx={{
-                    fontSize: 14,
-                    transition: ({ transitions }) =>
-                      transitions.create("color"),
-                  }}
-                />
-                <Typography
-                  variant="microText"
-                  sx={{
-                    color: ({ palette }) => palette.blue[70],
-                    fontWeight: 700,
-                  }}
-                >
-                  {websiteUrl.replace(/^http(s?):\/\//, "").replace(/\/$/, "")}
-                </Typography>
-              </Box>
-            </Link>
+            />
           ) : null}
-          <Box display="flex" alignItems="center" columnGap={0.5}>
-            <CalendarDayRegularIcon sx={{ fontSize: 12 }} />
-            {profile && createdAtTimestamp ? (
-              <Typography variant="microText">
-                {profile.kind === "org" ? "Created" : "Joined"}{" "}
-                <strong>{createdAtTimestamp}</strong>
-              </Typography>
-            ) : (
-              <Skeleton />
-            )}
-          </Box>
+          <InfoItem
+            icon={<CalendarDayRegularIcon sx={{ fontSize: 14 }} />}
+            title={
+              profile && createdAtTimestamp ? (
+                <>
+                  {profile.kind === "org" ? "Created" : "Joined"}{" "}
+                  <strong>{createdAtTimestamp}</strong>
+                </>
+              ) : undefined
+            }
+          />
         </Box>
       </Box>
     </Container>
