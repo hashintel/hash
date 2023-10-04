@@ -42,6 +42,11 @@ export const WorkspaceSwitcher: FunctionComponent<
       return {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
         name: authenticatedUser.preferredName || authenticatedUser.shortname!,
+        avatarSrc: authenticatedUser.hasAvatar
+          ? getImageUrlFromEntityProperties(
+              authenticatedUser.hasAvatar.imageEntity.properties,
+            )
+          : undefined,
       };
     } else {
       const { org: activeOrg } =
@@ -72,7 +77,11 @@ export const WorkspaceSwitcher: FunctionComponent<
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
-        avatarSrc: undefined,
+        avatarSrc: authenticatedUser.hasAvatar
+          ? getImageUrlFromEntityProperties(
+              authenticatedUser.hasAvatar.imageEntity.properties,
+            )
+          : undefined,
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({

@@ -4,6 +4,7 @@ import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
   OrgMembershipProperties,
   OrgProperties,
+  ServiceAccountProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -12,6 +13,7 @@ import {
   AccountGroupId,
   AccountId,
   Entity,
+  EntityId,
   EntityRecordId,
   EntityRootType,
   extractAccountGroupId,
@@ -21,6 +23,7 @@ import {
   Timestamp,
 } from "@local/hash-subgraph";
 import {
+  getEntityRevisionsByEntityId,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -56,6 +59,9 @@ export type MinimalUser = {
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
+  preferredPronouns?: string;
+  location?: string;
+  website?: string;
 };
 
 export const constructMinimalUser = (params: {
@@ -63,9 +69,9 @@ export const constructMinimalUser = (params: {
 }): MinimalUser => {
   const { userEntity } = params;
 
-  const { shortname, preferredName } = simplifyProperties(
-    userEntity.properties,
-  );
+  const simpleProperties = simplifyProperties(userEntity.properties);
+
+  const { shortname, preferredName } = simpleProperties;
 
   const accountSignupComplete = !!shortname && !!preferredName;
 
@@ -76,13 +82,27 @@ export const constructMinimalUser = (params: {
     accountId: extractAccountId(
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
-    shortname,
-    preferredName,
     accountSignupComplete,
+    ...simpleProperties,
   };
 };
 
+const getFirstRevisionCreatedAt = (subgraph: Subgraph, entityId: EntityId) =>
+  getEntityRevisionsByEntityId(subgraph, entityId).reduce<Date>(
+    (earliestCreatedAt, current) => {
+      const currentCreatedAt = new Date(
+        current.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      return earliestCreatedAt < currentCreatedAt
+        ? earliestCreatedAt
+        : currentCreatedAt;
+    },
+    new Date(),
+  );
+
 export type Org = MinimalOrg & {
+  createdAt: Date;
   hasAvatar?: {
     linkEntity: LinkEntity;
     imageEntity: Image;
@@ -110,9 +130,9 @@ export const constructOrg = (params: {
 }): Org => {
   const { subgraph, orgEntity } = params;
 
-  const org = constructMinimalOrg({
+  const minimalOrg = constructMinimalOrg({
     orgEntity,
-  }) as Org;
+  });
 
   const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
@@ -124,13 +144,12 @@ export const constructOrg = (params: {
       types.linkEntityType.hasAvatar.linkEntityTypeId,
   );
 
-  const hasAvatar = avatarLinkAndEntities[0];
-
-  org.hasAvatar = hasAvatar
+  const hasAvatar = avatarLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
-        imageEntity: hasAvatar.rightEntity[0] as unknown as Image,
+        linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        imageEntity: avatarLinkAndEntities[0]
+          .rightEntity[0] as unknown as Image,
       }
     : undefined;
 
@@ -144,7 +163,7 @@ export const constructOrg = (params: {
       types.linkEntityType.orgMembership.linkEntityTypeId,
   ) as Entity<OrgMembershipProperties>[];
 
-  org.memberships = orgMemberships.map((linkEntity) => {
+  const memberships = orgMemberships.map((linkEntity) => {
     const { linkData, metadata } = linkEntity;
 
     if (!linkData?.leftEntityId) {
@@ -179,15 +198,41 @@ export const constructOrg = (params: {
     };
   });
 
-  return org;
+  const createdAt = getFirstRevisionCreatedAt(
+    subgraph,
+    orgEntity.metadata.recordId.entityId,
+  );
+
+  return { ...minimalOrg, createdAt, hasAvatar, memberships };
+};
+
+export type ServiceAccountKind =
+  | "linkedInAccount"
+  | "twitterAccount"
+  | "tikTokAccount"
+  | "facebookAccount"
+  | "instagramAccount"
+  | "gitHubAccount";
+
+export type UserServiceAccount = {
+  linkEntity: LinkEntity;
+  serviceAccountEntity: Entity;
+  kind: ServiceAccountKind;
+  profileUrl: string;
 };
 
 export type User = MinimalUser & {
+  joinedAt: Date;
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
     imageEntity: Image;
   };
+  hasCoverImage?: {
+    linkEntity: LinkEntity;
+    imageEntity: Image;
+  };
+  hasServiceAccounts: UserServiceAccount[];
   isInstanceAdmin: boolean;
   memberOf: {
     linkEntity: Entity<OrgMembershipProperties>;
@@ -228,7 +273,7 @@ export const constructUser = (params: {
   //     ({ value }) => value === primaryEmailAddress,
   //   )?.verified === true;
 
-  const user = constructMinimalUser({ userEntity }) as User;
+  const minimalUser = constructMinimalUser({ userEntity });
 
   const orgMemberships =
     orgMembershipLinks ??
@@ -242,7 +287,7 @@ export const constructUser = (params: {
         types.linkEntityType.orgMembership.linkEntityTypeId,
     );
 
-  user.memberOf = orgMemberships.map((linkEntity) => {
+  const memberOf = orgMemberships.map((linkEntity) => {
     const { linkData, metadata } = linkEntity;
 
     if (!linkData?.rightEntityId) {
@@ -299,23 +344,82 @@ export const constructUser = (params: {
       types.linkEntityType.hasAvatar.linkEntityTypeId,
   );
 
-  const hasAvatar = avatarLinkAndEntities[0];
-
-  user.hasAvatar = hasAvatar
+  const hasAvatar = avatarLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasAvatar.linkEntity[0] as LinkEntity,
-        imageEntity: hasAvatar.rightEntity[0] as unknown as Image,
+        linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        imageEntity: avatarLinkAndEntities[0]
+          .rightEntity[0] as unknown as Image,
       }
     : undefined;
+
+  const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasCoverImage.linkEntityTypeId,
+  );
+
+  const hasCoverImage = coverImageLinkAndEntities[0]
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: coverImageLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        imageEntity: coverImageLinkAndEntities[0]
+          .rightEntity[0] as unknown as Image,
+      }
+    : undefined;
+
+  const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  )
+    .filter(
+      ({ linkEntity }) =>
+        linkEntity[0]?.metadata.entityTypeId ===
+        types.linkEntityType.hasServiceAccount.linkEntityTypeId,
+    )
+    .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
+      const serviceAccountEntity =
+        rightEntity[0] as unknown as Entity<ServiceAccountProperties>;
+
+      const { profileUrl } = simplifyProperties(
+        serviceAccountEntity.properties,
+      );
+
+      const kind = Object.entries(types.entityType).find(
+        ([_, type]) =>
+          type.entityTypeId === serviceAccountEntity.metadata.entityTypeId,
+      )?.[0] as ServiceAccountKind;
+
+      return {
+        linkEntity: linkEntity[0] as LinkEntity,
+        serviceAccountEntity,
+        kind,
+        profileUrl,
+      };
+    });
 
   /**
    * @todo: determine whether a user is an instance admin from the subgraph
    */
   const isInstanceAdmin = false;
 
+  const joinedAt = getFirstRevisionCreatedAt(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+  );
+
   return {
-    ...user,
+    ...minimalUser,
+    hasAvatar,
+    hasCoverImage,
+    hasServiceAccounts,
+    joinedAt,
+    memberOf,
     isInstanceAdmin,
     emails: [
       {

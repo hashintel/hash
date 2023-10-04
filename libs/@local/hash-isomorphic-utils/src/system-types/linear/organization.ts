@@ -97,7 +97,7 @@ export type {
 };
 
 /**
- * Allowed authentication provider
+ * Allowed authentication provider.
  */
 export type AllowedAuthServicePropertyValue = TextDataType;
 

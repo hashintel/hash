@@ -1,0 +1,16 @@
+diff --git a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
+index b911b36..bb1b719 100644
+--- a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
++++ b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
+@@ -1669,10 +1669,7 @@ const getOutgoingLinksForEntity$1 = (subgraph, entityId, interval) => {
+                         // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
+                         const intersection = intervalIntersectionWithInterval$1(searchInterval, edgeInterval);
+                         if (intersection === null) {
+-                            throw new Error(`No entity revision was found which overlapped the given edge, subgraph was likely malformed.\n` +
+-                                `EntityId: ${linkEntityId}\n` +
+-                                `Search Interval: ${JSON.stringify(searchInterval)}\n` +
+-                                `Edge Valid Interval: ${JSON.stringify(edgeInterval)}`);
++                            continue;
+                         }
+                         for (const entity of getEntityRevisionsByEntityId$1(subgraph, linkEntityId, intersection)) {
+                             if (uniqueEntitiesFilter(entity)) {

@@ -50,7 +50,7 @@ export type ConnectionSourceNamePropertyValue = TextDataType;
 export type DescriptionPropertyValue = TextDataType;
 
 /**
- * A human-friendly display namae for something
+ * A human-friendly display name for something
  */
 export type DisplayNamePropertyValue = TextDataType;
 
@@ -110,12 +110,46 @@ export type HasAvatarOutgoingLinkAndTarget = never;
 export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * The avatar something has
+ * The avatar something has.
  */
 export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
 export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
+
+export type HasCoverImage = Entity<HasCoverImageProperties> & {
+  linkData: LinkData;
+};
+
+export type HasCoverImageOutgoingLinkAndTarget = never;
+
+export type HasCoverImageOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The cover image something has.
+ */
+export type HasCoverImageProperties = HasCoverImageProperties1 &
+  HasCoverImageProperties2;
+export type HasCoverImageProperties1 = LinkProperties;
+
+export type HasCoverImageProperties2 = {};
+
+export type HasServiceAccount = Entity<HasServiceAccountProperties> & {
+  linkData: LinkData;
+};
+
+export type HasServiceAccountOutgoingLinkAndTarget = never;
+
+export type HasServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that has a service account.
+ */
+export type HasServiceAccountProperties = HasServiceAccountProperties1 &
+  HasServiceAccountProperties2;
+export type HasServiceAccountProperties1 = LinkProperties;
+
+export type HasServiceAccountProperties2 = {};
 
 export type Image = Entity<ImageProperties>;
 
@@ -167,6 +201,11 @@ export type Org = Entity<OrgProperties>;
 
 export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type OrgHasCoverImageLink = {
+  linkEntity: HasCoverImage;
+  rightEntity: Image;
+};
+
 export type OrgMembership = Entity<OrgMembershipProperties> & {
   linkData: LinkData;
 };
@@ -181,10 +220,11 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink;
+export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink | OrgHasCoverImageLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
 };
 
 export type OrgProperties = {
@@ -235,6 +275,26 @@ export type ParentProperties2 = {};
 
 export type PreferredNamePropertyValue = TextDataType;
 
+export type PreferredPronounsPropertyValue = TextDataType;
+
+/**
+ * A URL to a profile
+ */
+export type ProfileURLPropertyValue = TextDataType;
+
+export type ServiceAccount = Entity<ServiceAccountProperties>;
+
+export type ServiceAccountOutgoingLinkAndTarget = never;
+
+export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A service account.
+ */
+export type ServiceAccountProperties = {
+  "http://localhost:3000/@system-user/types/property-type/profile-url/": ProfileURLPropertyValue;
+};
+
 /**
  * A unique identifier for something, in the form of a slug
  */
@@ -261,6 +321,11 @@ export type User = Entity<UserProperties>;
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type UserHasServiceAccountLink = {
+  linkEntity: HasServiceAccount;
+  rightEntity: ServiceAccount;
+};
+
 export type UserOrgMembershipLink = {
   linkEntity: OrgMembership;
   rightEntity: Org;
@@ -268,10 +333,12 @@ export type UserOrgMembershipLink = {
 
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
+  | UserHasServiceAccountLink
   | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };
 
@@ -284,8 +351,11 @@ export type UserProperties = {
     ...EmailPropertyValue[],
   ];
   "http://localhost:3000/@system-user/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/"?: ShortnamePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
 };
 
 export type UserSecret = Entity<UserSecretProperties>;
