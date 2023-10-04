@@ -27,18 +27,23 @@ const getCurrentTab = async () => {
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
 export const PopupContents = () => {
-  const userInStorage = retrieveUser();
-
-  const [loading, setLoading] = useState(!userInStorage);
-  const [me, setMe] = useState<Simplified<User> | null>(userInStorage);
+  const [loading, setLoading] = useState(true);
+  const [me, setMe] = useState<Simplified<User> | null>(null);
   const [activeTab, setActiveTab] = useState<Tabs.Tab | null>(null);
 
   useEffect(() => {
+    void retrieveUser().then((storedUser) => {
+      setMe(storedUser);
+      if (storedUser) {
+        setLoading(false);
+      }
+    });
+
     const init = async () => {
       await Promise.all([
         getUser().then((maybeMe) => {
           setMe(maybeMe);
-          storeUser(maybeMe);
+          void storeUser(maybeMe);
         }),
         getCurrentTab().then(setActiveTab),
       ]);

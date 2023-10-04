@@ -19,16 +19,21 @@ import { browserName } from "../shared/which-browser";
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
 export const OptionsContents = () => {
-  const userInStorage = retrieveUser();
-
-  const [loading, setLoading] = useState(!userInStorage);
-  const [user, setUser] = useState<Simplified<User> | null>(userInStorage);
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<Simplified<User> | null>(null);
 
   useEffect(() => {
+    void retrieveUser().then((storedUser) => {
+      setUser(storedUser);
+      if (storedUser) {
+        setLoading(false);
+      }
+    });
+
     void getUser()
       .then((simplifiedUser) => {
         setUser(simplifiedUser);
-        storeUser(simplifiedUser);
+        void storeUser(simplifiedUser);
       })
       .finally(() => setLoading(false));
   }, []);
