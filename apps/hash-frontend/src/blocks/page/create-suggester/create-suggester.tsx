@@ -1,7 +1,7 @@
 import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+import { OwnedById } from "@local/hash-subgraph";
 import { Popper } from "@mui/material";
 import {
   EditorState,
@@ -10,12 +10,13 @@ import {
   TextSelection,
   Transaction,
 } from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
 import { ReactElement } from "react";
 
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../block-portals";
+import { Mention, MentionSuggester } from "../shared/mention-suggester";
 import { BlockSuggester } from "./block-suggester";
-import { MentionSuggester, MentionType } from "./mention-suggester";
 
 interface Trigger {
   char: "@" | "/";
@@ -97,6 +98,8 @@ interface SuggesterState {
   isOpen(): boolean;
 
   suggestedBlockPosition: number | null;
+
+  decorations: DecorationSet;
 }
 
 /**
@@ -143,12 +146,58 @@ export const createSuggester = (
           isOpen() {
             return this.trigger !== null && !this.disabled;
           },
+          decorations: DecorationSet.empty,
         };
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState, nextEditorState) {
         const action: SuggesterAction | undefined =
           tr.getMeta(suggesterPluginKey);
+
+        let decorations = state.decorations;
+
+        let trigger = findTrigger(nextEditorState);
+
+        if (trigger && trigger.char === "@") {
+          const atSymbolDecoration = Decoration.inline(
+            trigger.from,
+            trigger.from + 1,
+            {
+              class: "suggester-at-symbol",
+            },
+            {
+              inclusiveEnd: false,
+            },
+          );
+
+          const suggesterWrapperDecoration = Decoration.inline(
+            trigger.from,
+            trigger.to,
+            { class: "suggester" },
+            { inclusiveEnd: false },
+          );
+
+          const placeholderDecoration = Decoration.inline(
+            trigger.from,
+            trigger.to,
+            {
+              class: "suggester-placeholder-text",
+              placeholder: "Type to search...",
+            },
+            { inclusiveEnd: false },
+          );
+
+          decorations = DecorationSet.create(
+            nextEditorState.doc,
+            [
+              suggesterWrapperDecoration,
+              trigger.search === "" ? placeholderDecoration : [],
+              atSymbolDecoration,
+            ].flat(),
+          );
+        } else {
+          decorations = DecorationSet.empty;
+        }
 
         switch (action?.type) {
           case "escape":
@@ -209,7 +258,6 @@ export const createSuggester = (
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
 
-        let trigger = findTrigger(nextEditorState);
         if (trigger === null && state.trigger?.triggeredBy === "event") {
           trigger = state.trigger;
         }
@@ -218,6 +266,7 @@ export const createSuggester = (
 
         return {
           ...state,
+          decorations,
           trigger,
           disabled,
           suggestedBlockPosition,
@@ -225,6 +274,9 @@ export const createSuggester = (
       },
     },
     props: {
+      decorations(state) {
+        return suggesterPluginKey.getState(state)?.decorations;
+      },
       /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
       handleDOMEvents: {
         keydown(view, event) {
@@ -287,15 +339,22 @@ export const createSuggester = (
               });
           };
 
-          const onMentionChange = (
-            entityId: EntityId,
-            mentionType: MentionType,
-          ) => {
+          const onMentionChange = (mention: Mention) => {
             const { tr } = view.state;
 
+            const { entityId } = mention;
+
             const mentionNode = view.state.schema.nodes.mention!.create({
-              mentionType,
+              mentionType: mention.kind,
               entityId,
+              propertyTypeBaseUrl:
+                mention.kind === "property-value"
+                  ? mention.propertyTypeBaseUrl
+                  : undefined,
+              linkEntityTypeBaseUrl:
+                mention.kind === "outgoing-link"
+                  ? mention.linkEntityTypeBaseUrl
+                  : "",
             });
 
             tr.replaceWith(from, to, mentionNode);
@@ -328,6 +387,7 @@ export const createSuggester = (
 
           if (anchorNode && jsx) {
             const anchorNodeRect = anchorNode.getBoundingClientRect();
+
             ensureMounted(mountNode, documentRoot);
             renderPortal(
               <Popper
@@ -340,8 +400,8 @@ export const createSuggester = (
                     name: "offset",
                     options: {
                       offset: () => [
-                        coords.left - anchorNodeRect.x,
-                        coords.bottom - anchorNodeRect.bottom,
+                        coords.left - anchorNodeRect.x - 9,
+                        coords.bottom - anchorNodeRect.bottom + 4,
                       ],
                     },
                   },

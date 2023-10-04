@@ -45,6 +45,7 @@ export const customColors = {
   blue: {
     5: "#FAFFFF",
     10: "#F7FDFF",
+    15: "#EBF8FF",
     20: "#E0F4FF",
     25: "#CCEDFF",
     30: "#B4E2FD",

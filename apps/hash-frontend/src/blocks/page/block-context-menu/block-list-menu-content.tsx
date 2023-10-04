@@ -14,7 +14,7 @@ import { FunctionComponent, useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";
 import { useBlockView } from "../block-view";
-import { useFilteredBlocks } from "../create-suggester/use-filtered-blocks";
+import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;

@@ -1,156 +1,336 @@
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
-  EntityId,
-  extractEntityUuidFromEntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
-import { FunctionComponent, useMemo } from "react";
+  getEntityTypeById,
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 
-import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useEntityById } from "../../../components/hooks/use-entity-by-id";
-import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import { useUsers } from "../../../components/hooks/use-users";
-import { PageIcon } from "../../../components/page-icon";
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../lib/routes";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { Link } from "../../../shared/ui";
-import { MentionType } from "../create-suggester/mention-suggester";
+import { useEntityIcon } from "../../../shared/use-entity-icon";
+import { Mention } from "../shared/mention-suggester";
+
+const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+  fontSize: 16,
+  color: theme.palette.blue[70],
+}));
 
 interface MentionDisplayProps {
-  entityId: EntityId;
-  mentionType: MentionType;
-  ownedById: OwnedById;
+  mention: Mention;
 }
 
 export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
-  entityId,
-  mentionType,
-  ownedById,
+  mention,
 }) => {
-  const { users, loading: usersLoading } = useUsers();
-  const { data: pages, loading: pagesLoading } = useAccountPages(ownedById);
-  const { loading: entityLoading, entitySubgraph } = useEntityById(entityId);
+  const { entityId } = mention;
+  const { entitySubgraph, loading } = useEntityById(entityId);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { propertyTypes } = usePropertyTypes({ latestOnly: true });
+  const { entityTypes } = useEntityTypesContextRequired();
 
-  const { shortname: workspaceShortname, loading: workspaceShortnameLoading } =
-    useUserOrOrgShortnameByOwnedById({ ownedById });
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const { title, href, icon } = useMemo(() => {
-    switch (mentionType) {
-      case "user": {
-        // User entities are stored on the system account
-        const userHref = `/@${systemUserShortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`;
+  const entity = useMemo(
+    () => (entitySubgraph ? getRoots(entitySubgraph)[0] : undefined),
+    [entitySubgraph],
+  );
 
-        // Only set the title to "User" if the query hasn't returned yet
-        if (!users || (usersLoading && !users.length)) {
-          /** @todo - What should the href be here? */
-          return {
-            title: "User",
-            href: userHref,
-            icon: "@",
-          };
+  const entityLabel = useMemo(
+    () => (entitySubgraph ? generateEntityLabel(entitySubgraph) : undefined),
+    [entitySubgraph],
+  );
+
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const entityOwnerShortname = useMemo(() => {
+    if (entity) {
+      const { shortname } = getOwnerForEntity(entity);
+
+      return shortname;
+    }
+  }, [entity, getOwnerForEntity]);
+
+  const entityHref = useMemo(() => {
+    if (entity) {
+      return `/@${entityOwnerShortname}/entities/${extractEntityUuidFromEntityId(
+        entity.metadata.recordId.entityId,
+      )}`;
+    }
+  }, [entity, entityOwnerShortname]);
+
+  const title = useMemo(() => {
+    if (!entitySubgraph) {
+      return undefined;
+    }
+
+    if (
+      mention.kind === "entity" ||
+      mention.kind === "page" ||
+      mention.kind === "user"
+    ) {
+      return entityLabel;
+    } else if (mention.kind === "outgoing-link") {
+      const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
+        entitySubgraph,
+        entityId,
+      ).find(
+        ({ linkEntity: linkEntityRevisions }) =>
+          linkEntityRevisions[0] &&
+          extractBaseUrl(linkEntityRevisions[0].metadata.entityTypeId) ===
+            mention.linkEntityTypeBaseUrl,
+      );
+
+      const targetEntity = outgoingLinkAndTargetEntities?.rightEntity[0];
+
+      const targetEntityLabel = generateEntityLabel(
+        entitySubgraph,
+        targetEntity,
+      );
+
+      return targetEntityLabel;
+    } else {
+      const propertyTypeBaseUrl = mention.propertyTypeBaseUrl;
+
+      const propertyValue = entity?.properties[propertyTypeBaseUrl];
+
+      return propertyValue?.toString();
+    }
+  }, [mention, entityId, entitySubgraph, entity, entityLabel]);
+
+  const href = useMemo(() => {
+    if (entity) {
+      if (mention.kind === "user" || mention.kind === "entity") {
+        if (
+          entity.metadata.entityTypeId === types.entityType.user.entityTypeId ||
+          entity.metadata.entityTypeId === types.entityType.org.entityTypeId
+        ) {
+          const shortname =
+            entity.properties[
+              extractBaseUrl(types.propertyType.shortname.propertyTypeId)
+            ];
+          return `/@${shortname}`;
         }
-
-        // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
-        const matchingUser = users.find(
-          (user) => user.entityRecordId.entityId === entityId,
-        );
-
-        if (matchingUser) {
-          return {
-            title: matchingUser.preferredName,
-            href: userHref,
-            icon: "@",
-          };
-        }
-
-        /** @todo - What should the href be here? */
-        return {
-          title: "Unknown User",
-          href: `#`,
-          icon: "@",
-        };
-      }
-
-      case "page": {
-        const page = pages.find(
-          (potentialPage) =>
-            potentialPage.metadata.recordId.entityId === entityId,
-        );
-
-        let pageTitle = "";
-
-        // Only set the title to "Page" if the query hasn't returned yet
-        if (pagesLoading && !pages.length) {
-          pageTitle = "Page";
-        } else {
-          // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
-          pageTitle = page?.title ?? "Unknown Page";
-        }
-
+        return entityHref;
+      } else if (mention.kind === "page" && entityOwnerShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
-        return {
-          title: pageTitle || "Untitled",
-          href:
-            page && workspaceShortname
-              ? constructPageRelativeUrl({
-                  workspaceShortname,
-                  pageEntityUuid,
-                })
-              : "",
-          icon: (
-            <PageIcon
-              icon={page?.icon}
-              size="small"
-              sx={{ display: "inline-flex", mr: 0.25 }}
-            />
-          ),
-        };
+        return constructPageRelativeUrl({
+          workspaceShortname: entityOwnerShortname,
+          pageEntityUuid,
+        });
       }
-      case "entity": {
-        if (!entitySubgraph || entityLoading || workspaceShortnameLoading) {
-          /** @todo consider showing a loading state instead of saying "entity", same for the pages & users above */
-          return {
-            title: "Entity",
-            href: "",
-            icon: "@",
-          };
-        }
-
-        const entityHref = `/@${workspaceShortname}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`;
-
-        const entityLabel = generateEntityLabel(entitySubgraph);
-
-        return {
-          title: entityLabel,
-          href: entityHref,
-          icon: "@",
-        };
-      }
-      default:
-        return { title: "", href: "", icon: "@" };
     }
-  }, [
-    entityId,
-    mentionType,
-    users,
-    pages,
-    pagesLoading,
-    usersLoading,
-    entitySubgraph,
-    entityLoading,
-    workspaceShortname,
-    workspaceShortnameLoading,
-  ]);
+  }, [entity, entityId, mention.kind, entityOwnerShortname, entityHref]);
 
-  return (
-    <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>
-      {icon}
-      {title}
+  const entityType = useMemo(
+    () =>
+      entitySubgraph && entity
+        ? getEntityTypeById(entitySubgraph, entity.metadata.entityTypeId)
+        : undefined,
+    [entitySubgraph, entity],
+  );
+
+  const entityIcon = useEntityIcon({ entity });
+
+  const propertyType = useMemo(() => {
+    if (mention.kind === "property-value" && propertyTypes) {
+      const { propertyTypeBaseUrl } = mention;
+
+      /**
+       * @todo: use the version of the property type that's
+       * referenced in the source entity type schema instead
+       */
+
+      return Object.values(propertyTypes).find(
+        ({ metadata }) => metadata.recordId.baseUrl === propertyTypeBaseUrl,
+      );
+    }
+  }, [mention, propertyTypes]);
+
+  const outgoingLinkType = useMemo(() => {
+    if (mention.kind === "outgoing-link" && entityTypes) {
+      const { linkEntityTypeBaseUrl } = mention;
+
+      /**
+       * @todo: use the version of the link entity type that's referenced
+       * in the source entity type schema instead
+       */
+
+      return entityTypes.find(
+        ({ metadata }) => metadata.recordId.baseUrl === linkEntityTypeBaseUrl,
+      );
+    }
+  }, [mention, entityTypes]);
+
+  const hasPopover =
+    mention.kind === "property-value" || mention.kind === "outgoing-link";
+
+  const hasTooltip =
+    mention.kind === "property-value" || mention.kind === "outgoing-link";
+
+  const chip = (
+    <Box
+      ref={contentRef}
+      component="span"
+      onClick={hasPopover ? () => setPopoverOpen(true) : undefined}
+      sx={{
+        borderRadius: "8px",
+        background: ({ palette }) =>
+          hasPopover && popoverOpen ? palette.blue[15] : palette.common.white,
+        borderColor: ({ palette }) => palette.gray[30],
+        borderStyle: "solid",
+        borderWidth: 1,
+        py: 0.25,
+        px: 1,
+        color: ({ palette }) => palette.gray[80],
+        fontWeight: 500,
+        ...(hasPopover
+          ? {
+              cursor: "pointer",
+              "&:hover": {
+                background: ({ palette }) => palette.gray[10],
+              },
+            }
+          : {}),
+      }}
+    >
+      {loading ? (
+        "Loading..."
+      ) : (
+        <>
+          {["user", "page", "entity"].includes(mention.kind) ? (
+            <Box component="span" marginRight={0.5}>
+              {entityIcon}
+            </Box>
+          ) : null}
+          {title}
+        </>
+      )}
+    </Box>
+  );
+
+  const content = (
+    <>
+      {hasTooltip ? (
+        <Tooltip
+          PopperProps={{
+            modifiers: [
+              {
+                name: "offset",
+                options: {
+                  offset: [0, -5],
+                },
+              },
+            ],
+          }}
+          title={
+            <>
+              {mention.kind === "property-value"
+                ? propertyType?.schema.title
+                : outgoingLinkType?.schema.title}{" "}
+              of {entityLabel}
+            </>
+          }
+          placement="bottom-start"
+        >
+          {chip}
+        </Tooltip>
+      ) : (
+        chip
+      )}
+      {hasPopover ? (
+        <Popover
+          anchorEl={contentRef.current}
+          open={popoverOpen}
+          onClose={() => setPopoverOpen(false)}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "left",
+          }}
+          PaperProps={{
+            sx: {
+              marginTop: 1,
+              padding: 1,
+              borderRadius: "4px",
+              borderColor: ({ palette }) => palette.gray[15],
+              borderStyle: "solid",
+              borderWidth: 1,
+            },
+          }}
+        >
+          <Link
+            href={entityType?.schema.$id ?? "#"}
+            sx={{
+              textDecoration: "none",
+              "&:hover > p": {
+                color: ({ palette }) => palette.blue[70],
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontWeight: 500,
+                fontSize: 18,
+              }}
+            >
+              {mention.kind === "property-value"
+                ? propertyType?.schema.title
+                : outgoingLinkType?.schema.title}
+              <LinkIcon />
+            </Typography>
+          </Link>
+          <Link
+            href={entityHref ?? "#"}
+            sx={{
+              textDecoration: "none",
+              "&:hover > p": {
+                color: ({ palette }) => palette.blue[70],
+              },
+            }}
+          >
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                fontWeight: 500,
+                fontSize: 16,
+              }}
+            >
+              {entityLabel}
+              <LinkIcon />
+            </Typography>
+          </Link>
+        </Popover>
+      ) : null}
+    </>
+  );
+
+  return href ? (
+    <Link
+      noLinkStyle
+      href={href}
+      sx={{
+        "&:hover > span": { background: ({ palette }) => palette.gray[10] },
+      }}
+    >
+      {content}
     </Link>
+  ) : (
+    content
   );
 };
