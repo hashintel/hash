@@ -88,7 +88,7 @@ async def test_data_types(
 
 
 @pytest.mark.usefixtures("mock_graph_workflow")
-@pytest.mark.vcr(vcr_cassette_name="test_graph.test_property_types")
+@pytest.mark.vcr()
 @pytest.mark.parametrize(
     ("property_type_id", "expected_title", "expected_data_types"),
     [
