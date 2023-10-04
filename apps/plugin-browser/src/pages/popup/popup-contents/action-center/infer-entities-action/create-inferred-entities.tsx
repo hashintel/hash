@@ -15,6 +15,10 @@ import { Box, Checkbox, CircularProgress, Typography } from "@mui/material";
 import pluralize from "pluralize";
 import { useMemo, useState } from "react";
 
+import {
+  darkModeBorderColor,
+  darkModeInputColor,
+} from "../../../../shared/dark-mode-values";
 import { queryApi } from "../../../../shared/query-api";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
@@ -186,12 +190,14 @@ export const CreateInferredEntities = ({
           <Box
             key={typeId}
             sx={({ palette, boxShadows }) => ({
-              backgroundColor: palette.common.white,
               borderRadius: 2,
               border: `1px solid ${palette.gray[20]}`,
               boxShadow: boxShadows.xs,
               mb: 2,
               p: 2,
+              "@media (prefers-color-scheme: dark)": {
+                borderColor: palette.gray[90],
+              },
             })}
           >
             <Box mb={1}>
@@ -232,6 +238,12 @@ export const CreateInferredEntities = ({
                       pb: 0.7,
                     },
                     textDecoration: "none",
+                    "@media (prefers-color-scheme: dark)": {
+                      color: darkModeInputColor,
+                      "&:not(:last-child)": {
+                        borderBottom: `1px solid ${darkModeBorderColor}`,
+                      },
+                    },
                   }}
                   target={successfullyCreated ? "_blank" : undefined}
                 >
@@ -250,6 +262,12 @@ export const CreateInferredEntities = ({
                       fontStyle: status === "skipped" ? "italic" : undefined,
                       textDecoration:
                         status === "skipped" ? "line-through" : undefined,
+                      "@media (prefers-color-scheme: dark)": {
+                        color: ({ palette }) =>
+                          status === "skipped"
+                            ? palette.gray[60]
+                            : palette.gray[20],
+                      },
                     }}
                   >
                     {generateEntityLabel(entity, entityType, index)}

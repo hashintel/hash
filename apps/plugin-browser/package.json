@@ -8,8 +8,8 @@
   },
   "license": "AGPL-3.0",
   "scripts": {
-    "build": "node utils/build.js",
-    "build:firefox": "BROWSER=firefox node utils/build.js",
+    "build": "NODE_ENV=production node utils/build.js",
+    "build:firefox": "NODE_ENV=production BROWSER=firefox node utils/build.js",
     "dev": "node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },

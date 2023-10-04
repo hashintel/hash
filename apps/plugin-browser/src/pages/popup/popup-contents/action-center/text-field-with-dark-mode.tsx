@@ -1,24 +1,31 @@
 import { TextField, TextFieldProps } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
 
+import {
+  darkModeBorderColor,
+  darkModeInputBackgroundColor,
+  darkModeInputColor,
+  darkModePlaceholderColor,
+} from "../../../shared/dark-mode-values";
+
 export const TextFieldWithDarkMode = (props: TextFieldProps) => {
   return (
     <TextField
       {...props}
       InputProps={{
-        sx: ({ palette }) => ({
+        sx: () => ({
           "@media (prefers-color-scheme: dark)": {
-            background: "#161616",
+            background: darkModeInputBackgroundColor,
 
             [`.${outlinedInputClasses.notchedOutline}`]: {
-              border: `1px solid ${palette.gray[90]}`,
+              border: `1px solid ${darkModeBorderColor}`,
             },
 
             [`.${outlinedInputClasses.input}`]: {
-              color: palette.gray[30],
+              color: darkModeInputColor,
 
               "&::placeholder": {
-                color: `${palette.gray[60]} !important`,
+                color: `${darkModePlaceholderColor} !important`,
               },
             },
           },

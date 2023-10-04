@@ -2,6 +2,8 @@ import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 import { FunctionComponent, PropsWithChildren } from "react";
 
+import { darkModeBorderColor } from "../../../shared/dark-mode-values";
+
 export const Action = ({
   children,
   headerText,
@@ -28,7 +30,7 @@ export const Action = ({
           color: palette.common.white,
 
           "&:not(:last-child)": {
-            borderBottom: `1px solid ${palette.gray[80]}`,
+            borderBottom: `1px solid ${darkModeBorderColor}`,
           },
         },
       })}

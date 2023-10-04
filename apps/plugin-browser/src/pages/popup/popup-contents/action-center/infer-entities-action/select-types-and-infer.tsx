@@ -3,11 +3,23 @@ import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
 import { ProposedEntity } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box, outlinedInputClasses, Skeleton, Typography } from "@mui/material";
+import {
+  autocompleteClasses,
+  Box,
+  outlinedInputClasses,
+  Skeleton,
+  Typography,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { Message } from "../../../../../shared/messages";
+import {
+  darkModeBorderColor,
+  darkModeInputBackgroundColor,
+  darkModeInputColor,
+  darkModePlaceholderColor,
+} from "../../../../shared/dark-mode-values";
 import { queryApi } from "../../../../shared/query-api";
 
 const getEntityTypesQuery = /* GraphQL */ `
@@ -177,6 +189,10 @@ export const SelectTypesAndInfer = ({
             paper: {
               sx: {
                 p: 0,
+                "@media (prefers-color-scheme: dark)": {
+                  background: darkModeInputBackgroundColor,
+                  borderColor: darkModeBorderColor,
+                },
               },
             },
             popper: { placement: "top" },
@@ -186,25 +202,26 @@ export const SelectTypesAndInfer = ({
           inputProps={{
             endAdornment: <div />,
             placeholder: "Search for types...",
-            sx: ({ palette }) => ({
+            sx: () => ({
               height: "auto",
               "@media (prefers-color-scheme: dark)": {
-                background: "#161616",
+                background: darkModeInputBackgroundColor,
 
                 [`.${outlinedInputClasses.notchedOutline}`]: {
-                  border: `1px solid ${palette.gray[90]} !important`,
+                  border: `1px solid ${darkModeBorderColor} !important`,
                 },
 
                 [`.${outlinedInputClasses.input}`]: {
-                  color: palette.gray[30],
+                  color: darkModeInputColor,
 
                   "&::placeholder": {
-                    color: `${palette.gray[60]} !important`,
+                    color: `${darkModePlaceholderColor} !important`,
                   },
                 },
               },
             }),
           }}
+          isOptionEqualToValue={(option, value) => option.$id === value.$id}
           ListboxProps={{
             sx: {
               maxHeight: 240,
@@ -230,12 +247,46 @@ export const SelectTypesAndInfer = ({
               {...props}
               key={type.$id}
               value={type.$id}
-              sx={{
+              sx={({ palette }) => ({
                 minHeight: 0,
-                borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              }}
+                borderBottom: `1px solid ${palette.gray[20]}`,
+                "@media (prefers-color-scheme: dark)": {
+                  borderBottom: `1px solid ${darkModeBorderColor}`,
+
+                  "&:hover": {
+                    background: darkModeInputBackgroundColor,
+                  },
+
+                  [`&.${autocompleteClasses.option}`]: {
+                    borderRadius: 0,
+                    my: 0.25,
+
+                    [`&[aria-selected="true"]`]: {
+                      backgroundColor: `${palette.primary.main} !important`,
+                      color: palette.common.white,
+                    },
+
+                    "&.Mui-focused": {
+                      backgroundColor: `${palette.common.black} !important`,
+
+                      [`&[aria-selected="true"]`]: {
+                        backgroundColor: `${palette.primary.main} !important`,
+                      },
+                    },
+                  },
+                },
+              })}
             >
-              <Typography sx={{ fontSize: 14 }}>{type.title}</Typography>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  "@media (prefers-color-scheme: dark)": {
+                    color: darkModeInputColor,
+                  },
+                }}
+              >
+                {type.title}
+              </Typography>
               <Chip
                 color="blue"
                 label={getChipLabelFromId(type.$id)}
