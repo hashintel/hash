@@ -69,6 +69,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY --from=installer /usr/local/src/hash/ /usr/local/src/hash
 
 WORKDIR "/usr/local/src/hash/apps/hash-ai-worker-py"
+ENV PYTHONPATH="src"
 
 
 RUN apt-get update && \
