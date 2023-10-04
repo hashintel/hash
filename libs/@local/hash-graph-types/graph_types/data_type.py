@@ -11,7 +11,6 @@ from uuid import UUID
 
 from pydantic import (
     BaseModel,
-    Extra,
     Field,
     RootModel,
     create_model,
@@ -51,7 +50,7 @@ class DataTypeReference(Schema):
         )
 
 
-class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
+class DataTypeSchema(OntologyTypeSchema, extra="allow"):
     """A data type schema as defined by the Block Protocol.
 
     see https://blockprotocol.org/types/modules/graph/0.3/schema/data-type
