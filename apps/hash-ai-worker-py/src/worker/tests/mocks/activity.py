@@ -8,18 +8,17 @@ import httpx
 import pytest
 from pytest_mock import MockerFixture
 
-__all__ = ["mock_graph_workflow"]
+__all__ = ["mock_activities"]
+
+from worker.infer.entities.activity import infer_entities
 
 
-async def graph_workflow(
-    task_queue: str,
+async def delegate_ai_queue(
     activity: str,
     arg: Any,  # noqa: ANN401
+    *,
     start_to_close_timeout: timedelta,
 ) -> Any:  # noqa: ANN401
-    if task_queue != "ai":
-        msg = f"Unexpected task queue: {task_queue}"
-        raise ValueError(msg)
     if not isinstance(arg, dict):
         msg = f"Unexpected arg type: {type(arg).__name__}"
         raise TypeError(msg)
@@ -69,7 +68,46 @@ async def graph_workflow(
     }
 
 
+async def delegate_aipy_queue(
+    activity: str,
+    arg: Any,  # noqa: ANN401
+    *,
+    start_to_close_timeout: timedelta,  # noqa: ARG001
+) -> Any:  # noqa: ANN401
+    match activity:
+        case "inferEntities":
+            return (await infer_entities(arg)).model_dump(by_alias=True)
+        case _:
+            msg = f"Unknown activity: `{activity}`"
+            raise ValueError(msg)
+
+
+async def graph_workflow(
+    activity: str,
+    arg: Any,  # noqa: ANN401
+    *,
+    task_queue: str = "aipy",
+    start_to_close_timeout: timedelta,
+) -> Any:  # noqa: ANN401
+    match task_queue:
+        case "ai":
+            return await delegate_ai_queue(
+                activity,
+                arg,
+                start_to_close_timeout=start_to_close_timeout,
+            )
+        case "aipy":
+            return await delegate_aipy_queue(
+                activity,
+                arg,
+                start_to_close_timeout=start_to_close_timeout,
+            )
+        case _:
+            msg = f"Unknown task queue: `{task_queue}`"
+            raise ValueError(msg)
+
+
 @pytest.fixture()
-def mock_graph_workflow(mocker: MockerFixture) -> None:  # noqa: PT004
-    """Fixture to mock the graph workflow activity."""
+def mock_activities(mocker: MockerFixture) -> None:  # noqa: PT004
+    """Fixture to mock the activities."""
     mocker.patch("temporalio.workflow.execute_activity", wraps=graph_workflow)

@@ -7,7 +7,7 @@ from copy import deepcopy
 from typing import Any, Literal
 
 import openai
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 from slugify import slugify
 from temporalio import activity
 
@@ -26,13 +26,13 @@ __all__ = [
 ]
 
 
-class FunctionParameters(BaseModel, extra=Extra.forbid):
+class FunctionParameters(BaseModel, extra="forbid"):
     ty: Literal["object"] = Field("object", alias="type")
     properties: dict[str, Any]
     required: list[str] | None = None
 
 
-class Function(BaseModel, extra=Extra.forbid):
+class Function(BaseModel, extra="forbid"):
     name: str
     description: str | None = None
     parameters: FunctionParameters

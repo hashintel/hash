@@ -15,7 +15,7 @@ from graph_types.property_type import PropertyValue
 
 from worker.ontology.activity import GraphApiActivities
 
-from .mocks.workflow import mock_graph_workflow  # noqa: F401
+from .mocks.activity import mock_activities  # noqa: F401
 
 __all__: list[str] = []
 
@@ -55,7 +55,7 @@ async def get_entity_type(
     )
 
 
-@pytest.mark.usefixtures("mock_graph_workflow")
+@pytest.mark.usefixtures("mock_activities")
 @pytest.mark.vcr()
 @pytest.mark.parametrize(
     ("data_type_id", "expected_title", "expected_type"),
@@ -87,7 +87,7 @@ async def test_data_types(
         assert data_type.ty == expected_type
 
 
-@pytest.mark.usefixtures("mock_graph_workflow")
+@pytest.mark.usefixtures("mock_activities")
 @pytest.mark.vcr()
 @pytest.mark.parametrize(
     ("property_type_id", "expected_title", "expected_data_types"),
@@ -124,7 +124,7 @@ async def test_property_types(
         assert len(property_type.one_of) == len(expected_data_types)
 
 
-@pytest.mark.usefixtures("mock_graph_workflow")
+@pytest.mark.usefixtures("mock_activities")
 @pytest.mark.vcr()
 @pytest.mark.parametrize(
     (
