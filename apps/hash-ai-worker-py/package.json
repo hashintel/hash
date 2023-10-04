@@ -15,9 +15,13 @@
     "lint:ruff": "poetry run ruff .",
     "poetry:install": "poetry install --no-root --no-interaction",
     "poetry:install-production": "poetry install --no-root --no-interaction --only main",
+    "test:integration": "poetry run pytest tests/ --cov=worker --cov-report=lcov --cov-branch $([ -z ${CI} ] || echo '--vcr-record=none')",
     "test:unit": "poetry run pytest --pyargs worker --cov=worker --cov-report=lcov --cov-branch $([ -z ${CI} ] || echo '--vcr-record=none')"
   },
   "dependencies": {
     "@local/hash-graph-types": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@apps/hash-ai-worker-ts": "0.0.0-private"
   }
 }
