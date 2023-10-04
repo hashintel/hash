@@ -78,7 +78,7 @@ export const UserProfileInfoForm: FunctionComponent<{
     register,
     handleSubmit,
     reset,
-    formState: { errors, dirtyFields },
+    formState: { errors, dirtyFields, touchedFields },
   } = formMethods;
 
   const removeServiceAccount = useCallback(
@@ -295,7 +295,7 @@ export const UserProfileInfoForm: FunctionComponent<{
           label="Preferred name"
           placeholder="Enter your preferred name"
           required
-          error={!!errors.preferredName}
+          error={touchedFields.preferredName && !!errors.preferredName}
           {...register("preferredName", { required: true })}
         />
         <TextField
@@ -308,6 +308,7 @@ export const UserProfileInfoForm: FunctionComponent<{
           fullWidth
           label="Website URL"
           placeholder="Enter a website, e.g. https://example.com/"
+          error={touchedFields.website && !!errors.website}
           {...register("website", {
             pattern: {
               value: urlRegex,
