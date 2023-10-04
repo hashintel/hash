@@ -46,6 +46,8 @@ hash_api_env_vars = [
   { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
   { name = "LOG_LEVEL", secret = false, value = "debug" },
 
+  { name = "FILE_UPLOAD_PROVIDER", secret = false, value = "AWS_S3"},
+
   { name = "HASH_OPENSEARCH_ENABLED", secret = false, value = "false" },
 
   { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
