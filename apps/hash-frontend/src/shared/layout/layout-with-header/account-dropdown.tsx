@@ -6,6 +6,7 @@ import {
   Menu,
   Tooltip,
   Typography,
+  typographyClasses,
 } from "@mui/material";
 import {
   bindMenu,
@@ -16,7 +17,7 @@ import { FunctionComponent, useMemo } from "react";
 
 import { User } from "../../../lib/user-and-org";
 import { getImageUrlFromEntityProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
-import { MenuItem } from "../../ui";
+import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
@@ -114,25 +115,36 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           }),
         }}
       >
-        <Box px={1.5} pt={1} pb={0.25} display="flex" flexDirection="column">
-          <Typography
-            variant="smallTextLabels"
-            sx={({ palette }) => ({
-              color: palette.gray[80],
-              fontWeight: 500,
-            })}
-          >
-            {authenticatedUser.preferredName}
-          </Typography>
-          {userPrimaryEmail && (
+        <Link
+          href={`/@${authenticatedUser.shortname}`}
+          noLinkStyle
+          sx={{
+            [`&:hover .${typographyClasses.root}`]: {
+              color: ({ palette }) => palette.blue[70],
+            },
+          }}
+          onClick={() => popupState.close()}
+        >
+          <Box px={1.5} pt={1} pb={0.25} display="flex" flexDirection="column">
             <Typography
-              variant="microText"
-              sx={({ palette }) => ({ color: palette.gray[70] })}
+              variant="smallTextLabels"
+              sx={({ palette }) => ({
+                color: palette.gray[80],
+                fontWeight: 500,
+              })}
             >
-              {userPrimaryEmail}
+              {authenticatedUser.preferredName}
             </Typography>
-          )}
-        </Box>
+            {userPrimaryEmail && (
+              <Typography
+                variant="microText"
+                sx={({ palette }) => ({ color: palette.gray[70] })}
+              >
+                {userPrimaryEmail}
+              </Typography>
+            )}
+          </Box>
+        </Link>
         <Divider />
         <MenuItem href="/settings" onClick={() => popupState.close()}>
           <ListItemText primary="Settings" />
