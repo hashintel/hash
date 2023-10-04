@@ -21,6 +21,7 @@ import {
 } from "../../../lib/user-and-org";
 import { Button, MenuItem } from "../../../shared/ui";
 import { ServiceAccountsInput } from "./service-accounts-input";
+import { urlRegex } from "./util";
 
 export type UserProfileFormServiceAccount = {
   existingLinkEntity?: LinkEntity;
@@ -307,7 +308,12 @@ export const UserProfileInfoForm: FunctionComponent<{
           fullWidth
           label="Website URL"
           placeholder="Enter a website, e.g. https://example.com/"
-          {...register("website")}
+          {...register("website", {
+            pattern: {
+              value: urlRegex,
+              message: "Please enter a valid URL",
+            },
+          })}
         />
         <RHFSelect
           control={control}

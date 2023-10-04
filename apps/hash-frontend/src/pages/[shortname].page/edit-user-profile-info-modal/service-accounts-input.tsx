@@ -13,6 +13,7 @@ import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
 import { UserProfileFormData } from "./user-profile-info-form";
+import { urlRegex } from "./util";
 
 const serviceAccountKindOptions: Record<ServiceAccountKind, string> = {
   linkedInAccount: "LinkedIn",
@@ -22,8 +23,6 @@ const serviceAccountKindOptions: Record<ServiceAccountKind, string> = {
   instagramAccount: "Instagram",
   gitHubAccount: "GitHub",
 };
-
-const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)*\/?$/;
 
 export const ServiceAccountsInput: FunctionComponent = () => {
   const {
