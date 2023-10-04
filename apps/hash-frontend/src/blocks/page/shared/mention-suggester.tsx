@@ -105,6 +105,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
   const { propertyTypes } = usePropertyTypes();
 
+  console.log({ propertyTypes });
+
   const [selectedEntityIndex, setSelectedEntityIndex] = useState(0);
 
   const [expandedEntityTypes, setExpandedEntityTypes] = useState<
@@ -329,7 +331,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             );
 
             if (!propertyType) {
-              throw new Error("Property type not found");
+              throw new Error(
+                `Property type with base URL ${propertyTypeBaseUrl} not found`,
+              );
             }
 
             return {
