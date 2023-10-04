@@ -15,17 +15,16 @@ import {
 import { FunctionComponent, useMemo } from "react";
 
 import { User } from "../../../lib/user-and-org";
+import { getImageUrlFromEntityProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
-  avatar?: string;
   logout: () => void;
   authenticatedUser: User;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
-  avatar,
   logout,
   authenticatedUser,
 }) => {
@@ -80,16 +79,17 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           }}
           data-testid="user-avatar"
         >
-          {avatar ? (
-            <Box
-              component="img"
-              alt="avatar"
-              src={avatar}
-              sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
-            />
-          ) : (
-            <Avatar size={32} title={authenticatedUser.preferredName ?? "U"} />
-          )}
+          <Avatar
+            size={32}
+            title={authenticatedUser.preferredName ?? "U"}
+            src={
+              authenticatedUser.hasAvatar
+                ? getImageUrlFromEntityProperties(
+                    authenticatedUser.hasAvatar.imageEntity.properties,
+                  )
+                : undefined
+            }
+          />
         </HeaderIconButton>
       </Tooltip>
 
