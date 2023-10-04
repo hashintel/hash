@@ -17,11 +17,11 @@ from pydantic import (
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import PropertyType
 from .data_type import DataTypeReference
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
+    from .base import PropertyType
 
 __all__ = ["PropertyTypeSchema", "PropertyTypeReference"]
 
@@ -36,10 +36,15 @@ class PropertyTypeReference(Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[PropertyType]:
+        additional_properties: bool,
+    ) -> type["PropertyType"]:
         """Creates a model from the referenced property type schema."""
         schema = await graph.get_property_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
+        return await schema.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
 
 class PropertyValue(RootModel, Schema):
@@ -52,8 +57,13 @@ class PropertyValue(RootModel, Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
+        additional_properties: bool,
     ) -> type[RootModel] | Annotated[Any, ...]:  # noqa: ANN401
-        return await self.root.create_model(actor_id=actor_id, graph=graph)
+        return await self.root.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
 
 class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
@@ -69,9 +79,17 @@ class PropertyTypeSchema(OntologyTypeSchema, OneOf[PropertyValue]):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[PropertyType]:
+        additional_properties: bool,
+    ) -> type["PropertyType"]:
         """Create an annotated type from this schema."""
-        inner = await OneOf.create_model(self, actor_id=actor_id, graph=graph)
+        from .base import PropertyType
+
+        inner = await OneOf.create_model(
+            self,
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
         class_name = slugify(
             self.identifier,

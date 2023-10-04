@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+const parseIntFromPixelWidth = (pixelWidth: string) =>
+  parseInt(pixelWidth.replace("px", ""), 10);
+
 /**
  * @see https://github.com/mui/material-ui/blob/master/packages/mui-utils/src/getScrollbarSize.ts
  */
@@ -14,9 +17,15 @@ const useLastScrollbarSize = (element: HTMLElement) => {
 
   useEffect(() => {
     observerRef.current = new ResizeObserver(() => {
+      const computedStyles = getComputedStyle(element);
+
+      const horizontalBorderWidth =
+        parseIntFromPixelWidth(computedStyles.borderLeftWidth) +
+        parseIntFromPixelWidth(computedStyles.borderRightWidth);
+
       const scrollbarSize =
         element !== document.body
-          ? element.offsetWidth - element.clientWidth
+          ? element.offsetWidth - element.clientWidth - horizontalBorderWidth
           : getScrollbarSizeOfDocument();
 
       if (scrollbarSize > 0) {

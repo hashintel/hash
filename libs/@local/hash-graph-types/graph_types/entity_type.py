@@ -18,11 +18,11 @@ from pydantic import (
 from slugify import slugify
 
 from ._schema import Array, Object, OneOf, OntologyTypeSchema, Schema
-from .base import EntityType, EntityTypeInfo
 from .property_type import PropertyTypeReference
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
+    from .base import EntityType, EntityTypeInfo
 
 __all__ = ["EntityTypeSchema", "EntityTypeReference"]
 
@@ -37,16 +37,27 @@ class EntityTypeReference(Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[EntityType]:
+        additional_properties: bool,
+    ) -> type["EntityType"]:
         """Creates a model from the referenced entity type schema."""
         schema = await graph.get_entity_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
+        return await schema.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
 
 class EmptyDict(Schema):
     model_config = ConfigDict(title=None, extra="forbid")
 
-    async def create_model(self, *, actor_id: UUID, graph: "GraphAPIProtocol") -> Never:
+    async def create_model(
+        self,
+        *,
+        actor_id: UUID,
+        graph: "GraphAPIProtocol",
+        additional_properties: bool,
+    ) -> Never:
         raise NotImplementedError
 
 
@@ -64,8 +75,10 @@ class EntityTypeSchema(
     links: dict[str, Array[OneOf[EntityTypeReference] | EmptyDict]] | None = None
     all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")
 
-    def type_info(self) -> EntityTypeInfo:
+    def type_info(self) -> "EntityTypeInfo":
         """Return the type information for this schema."""
+        from .base import EntityTypeInfo
+
         original = super().type_info()
 
         return EntityTypeInfo.model_validate(
@@ -77,10 +90,18 @@ class EntityTypeSchema(
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[EntityType]:
+        additional_properties: bool,
+    ) -> type["EntityType"]:
         """Create an annotated type from this schema."""
+        from .base import EntityType
+
         # Take the fields from Object and create a new model, with a new baseclass.
-        proxy = await Object.create_model(self, actor_id=actor_id, graph=graph)
+        proxy = await Object.create_model(
+            self,
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
         class_name = slugify(
             self.identifier,

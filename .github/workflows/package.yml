@@ -43,8 +43,8 @@ jobs:
             | jq 'select(.task == "test:unit" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          INTEGRATION_TEST_PACKAGES=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' \
-            | jq '.tasks[]' \
+          INTEGRATION_TEST_TASKS=$(turbo run test:integration --dry-run=json --filter '...[HEAD^]' | jq -c '.tasks[]')
+          INTEGRATION_TEST_PACKAGES=$(echo "$INTEGRATION_TEST_TASKS" \
             | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
@@ -94,14 +94,13 @@ jobs:
             REQUIRES_AI_WORKER_PY=true
             REQUIRES_INTEGRATION_WORKER=true
           else
-            REQUIRES_GRAPH=$(turbo run build --filter '@apps/hash-graph...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_AI_WORKER_TS=$(turbo run build --filter '@apps/hash-ai-worker-ts...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_AI_WORKER_PY=$(turbo run build --filter '@apps/hash-ai-worker-py...[HEAD^]' --dry-run=json | jq '.packages != []')
-            REQUIRES_INTEGRATION_WORKER=$(turbo run build --filter '@apps/hash-integration-worker...[HEAD^]' --dry-run=json | jq '.packages != []')
+            REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
+            REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
+            REQUIRES_AI_WORKER_PY=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
+            REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
           fi
 
           DOCKER_PACKAGES=[]
-
           if [[ $REQUIRES_GRAPH == 'true' ]]; then
             DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
           fi
@@ -216,7 +215,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        uses: taiki-e/install-action@dd5387d253cdfbe87ccdc59f3354dc55efaed4bc # v2.19.3
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -233,7 +232,7 @@ jobs:
 
       - name: Set up Python
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
-        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         with:
           python-version: ${{ steps.lints.outputs.python-version }}
           cache: poetry
@@ -348,13 +347,24 @@ jobs:
       - name: Find test steps to run
         id: tests
         run: |
-          set -x
           HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
           fi
+
+          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
+          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
+          if [[ $HAS_PYTHON = 'true' ]]; then
+            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
+          else
+            echo "python-version=^3.11" >> $GITHUB_OUTPUT
+          fi
+
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -380,7 +390,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        uses: taiki-e/install-action@dd5387d253cdfbe87ccdc59f3354dc55efaed4bc # v2.19.3
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -391,11 +401,26 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
+      - name: Install poetry
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        run: pipx install poetry
+
+      - name: Set up Python
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        with:
+          python-version: ${{ steps.tests.outputs.python-version }}
+          cache: poetry
+
+      - name: Install Python dependencies
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        run: turbo run poetry:install
+
       - name: Run tests
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
-          turbo run --log-order stream test:unit --filter "${{ matrix.package }}"
+          turbo run test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -445,17 +470,6 @@ jobs:
       - name: Install turbo
         run: yarn global add turbo
 
-      - name: Find test steps to run
-        id: tests
-        run: |
-          set -x
-          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false') 
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
-          fi
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -473,6 +487,40 @@ jobs:
           shell: bash
           command: yarn install --frozen-lockfile --prefer-offline
 
+      - name: Find test steps to run
+        id: tests
+        run: |
+          HAS_RUST=$(test -f "${{ matrix.directory }}/rust-toolchain.toml" && echo 'true' || echo 'false')
+
+          TEST_TASKS=$(turbo run test:integration --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
+          REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
+          REQUIRES_AI_WORKER_PY=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-py" and .task == "build")] != []')
+          REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
+
+          HAS_PYTHON=$(test -f "${{ matrix.directory }}/pyproject.toml" && echo 'true' || echo 'false')
+          echo "has-python=$HAS_PYTHON" >> $GITHUB_OUTPUT
+          if [[ $HAS_PYTHON = 'true' ]]; then
+            echo "python-version=$(cat "${{ matrix.directory }}/pyproject.toml" | yq -p toml '.tool.poetry.dependencies.python')" >> $GITHUB_OUTPUT
+          else
+            echo "python-version=^3.11" >> $GITHUB_OUTPUT
+          fi
+
+          HAS_POETRY_DEPS=$(turbo run poetry:install --filter '${{ matrix.package }}...' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "poetry:install" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "has-poetry-deps=$HAS_POETRY_DEPS" >> $GITHUB_OUTPUT
+
+          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "rust-toolchain=$(yq '.toolchain.channel' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' ${{ matrix.directory }}/rust-toolchain.toml)" >> $GITHUB_OUTPUT
+          fi
+
+          echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
+          echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
+          echo "external-service-ai-worker-py=$REQUIRES_AI_WORKER_PY" >> $GITHUB_OUTPUT
+          echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
+
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
@@ -482,7 +530,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        uses: taiki-e/install-action@dd5387d253cdfbe87ccdc59f3354dc55efaed4bc # v2.19.3
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -493,19 +541,54 @@ jobs:
           workspaces: ${{ matrix.directory }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
+      - name: Install poetry
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        run: pipx install poetry
+
+      - name: Set up Python
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
+        with:
+          python-version: ${{ steps.tests.outputs.python-version }}
+          cache: poetry
+
+      - name: Install Python dependencies
+        if: always() && steps.tests.outputs.has-poetry-deps == 'true'
+        run: turbo run poetry:install
+
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
-          hash-graph: true
+          hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
+          hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
+          hash-ai-worker-py: ${{ steps.tests.outputs.external-service-ai-worker-py == 'true' }}
+          hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
 
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
-          yarn workspace @apps/hash-external-services deploy:test up graph kratos --wait
+
+          SERVICES="kratos mailslurper redis temporal temporal-setup"
+
+          if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
+            SERVICES="$SERVICES graph"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-ts"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-ai-worker-py }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-py"
+          fi
+          if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
+              SERVICES="$SERVICES hash-temporal-worker-integration"
+          fi
+
+          echo "Running services: $SERVICES"
+          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
 
       - name: Run tests
         run: |
-          turbo run --log-order stream test:integration --filter "${{ matrix.package }}"
+          turbo run test:integration --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
@@ -570,7 +653,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        uses: taiki-e/install-action@dd5387d253cdfbe87ccdc59f3354dc55efaed4bc # v2.19.3
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -617,7 +700,7 @@ jobs:
       - name: Run tests
         continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
         run: |
-          turbo run --log-order stream test:system --filter "${{ matrix.package }}"
+          turbo run test:system --filter "${{ matrix.package }}"
 
       - name: Show container logs
         if: ${{ success() || failure() }}
@@ -654,7 +737,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@57aaba576a0253b74662df51e62715622f02127b # v2.19.2
+        uses: taiki-e/install-action@dd5387d253cdfbe87ccdc59f3354dc55efaed4bc # v2.19.3
         with:
           tool: cargo-semver-checks
 

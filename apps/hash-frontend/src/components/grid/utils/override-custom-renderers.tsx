@@ -6,8 +6,8 @@ import {
 import { MutableRefObject, PropsWithChildren } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
+import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
-import { useScrollLock } from "./override-custom-renderers/use-scroll-lock";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
   /**

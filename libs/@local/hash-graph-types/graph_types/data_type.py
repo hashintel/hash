@@ -20,10 +20,10 @@ from slugify import slugify
 
 from ._annotations import constant
 from ._schema import OntologyTypeSchema, Schema
-from .base import DataType as DataTypeBase
 
 if TYPE_CHECKING:
     from . import GraphAPIProtocol
+    from .base import DataType as DataTypeBase
 
 __all__ = ["DataTypeSchema", "DataTypeReference"]
 
@@ -40,10 +40,15 @@ class DataTypeReference(Schema):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[DataTypeBase]:
+        additional_properties: bool,
+    ) -> type["DataTypeBase"]:
         """Creates a model from the referenced data type schema."""
         schema = await graph.get_data_type(self.ref, actor_id=actor_id)
-        return await schema.create_model(actor_id=actor_id, graph=graph)
+        return await schema.create_model(
+            actor_id=actor_id,
+            graph=graph,
+            additional_properties=additional_properties,
+        )
 
 
 class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
@@ -80,8 +85,11 @@ class DataTypeSchema(OntologyTypeSchema, extra=Extra.allow):
         *,
         actor_id: UUID,
         graph: "GraphAPIProtocol",
-    ) -> type[DataTypeBase]:
+        additional_properties: bool,  # noqa: ARG002
+    ) -> type["DataTypeBase"]:
         """Create an annotated type from this schema."""
+        from .base import DataType as DataTypeBase
+
         # Custom data types will require an actor ID and the graph to be passed in
         _actor_id = actor_id
         _graph = graph

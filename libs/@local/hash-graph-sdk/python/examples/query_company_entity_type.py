@@ -16,6 +16,7 @@ entity_type = async_to_sync(
     reference.create_model(
         actor_id=UUID(int=0),  # replace with your actor ID
         graph=graph,
+        additional_properties=False,
     ),
 )
 

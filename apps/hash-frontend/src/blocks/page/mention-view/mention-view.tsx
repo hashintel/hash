@@ -30,9 +30,12 @@ export class MentionView implements NodeView {
 
     this.renderPortal(
       <MentionDisplay
-        entityId={node.attrs.entityId}
-        mentionType={node.attrs.mentionType}
-        ownedById={this.ownedById}
+        mention={{
+          kind: node.attrs.mentionType,
+          entityId: node.attrs.entityId,
+          propertyTypeBaseUrl: node.attrs.propertyTypeBaseUrl,
+          linkEntityTypeBaseUrl: node.attrs.linkEntityTypeBaseUrl,
+        }}
       />,
       this.dom,
     );
