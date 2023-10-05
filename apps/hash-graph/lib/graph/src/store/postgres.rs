@@ -45,8 +45,8 @@ use crate::store::error::DeletionError;
 use crate::store::{
     error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     postgres::ontology::{OntologyDatabaseType, OntologyId},
-    AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
-    UpdateError,
+    AccountOrAccountGroup, AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError,
+    QueryError, StoreError, UpdateError,
 };
 
 /// A Postgres-backed store
@@ -1360,6 +1360,46 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             Err(error)
         } else {
             Ok(())
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<AccountOrAccountGroup, QueryError> {
+        let row = self
+            .as_client()
+            .query_one(
+                r"
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM accounts
+                        WHERE account_id = $1
+                    ), EXISTS (
+                        SELECT 1
+                        FROM account_groups
+                        WHERE account_group_id = $1
+                    );
+                ",
+                &[&owned_by_id],
+            )
+            .await
+            .change_context(QueryError)?;
+
+        match (row.get(0), row.get(1)) {
+            (false, false) => Err(Report::new(QueryError)
+                .attach_printable("Record does not exist")
+                .attach_printable(owned_by_id)),
+            (true, false) => Ok(AccountOrAccountGroup::Account(AccountId::new(
+                owned_by_id.into_uuid(),
+            ))),
+            (false, true) => Ok(AccountOrAccountGroup::AccountGroup(AccountGroupId::new(
+                owned_by_id.into_uuid(),
+            ))),
+            (true, true) => Err(Report::new(QueryError)
+                .attach_printable("Record exists in both accounts and account_groups")
+                .attach_printable(owned_by_id)),
         }
     }
 }

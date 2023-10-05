@@ -32,8 +32,9 @@ use crate::{
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
-        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
-        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
+        AccountOrAccountGroup, AccountStore, ConflictBehavior, DataTypeStore, EntityStore,
+        EntityTypeStore, InsertionError, PropertyTypeStore, QueryError, Record, StoreError,
+        StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -577,7 +578,7 @@ where
 #[async_trait]
 impl<S, A> AccountStore for FetchingStore<S, A>
 where
-    S: AccountStore + Send,
+    S: AccountStore + Send + Sync,
     A: Send + Sync,
 {
     async fn insert_account_id<Au: AuthorizationApi + Send + Sync>(
@@ -600,6 +601,13 @@ where
         self.store
             .insert_account_group_id(actor_id, authorization_api, account_group_id)
             .await
+    }
+
+    async fn identify_owned_by_id(
+        &self,
+        owned_by_id: OwnedById,
+    ) -> Result<AccountOrAccountGroup, QueryError> {
+        self.store.identify_owned_by_id(owned_by_id).await
     }
 }
 
