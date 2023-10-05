@@ -20,7 +20,8 @@ import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
-import { leftColumnWidth } from "../[shortname].page";
+import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
+import { leftColumnWidth, ProfilePageTab } from "./util";
 
 const SectionHeading = styled(Typography)(({ theme }) => ({
   color: theme.palette.gray[70],
@@ -81,7 +82,13 @@ export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;
   isEditable: boolean;
   setDisplayEditUserProfileInfoModal: (display: boolean) => void;
-}> = ({ profile, isEditable, setDisplayEditUserProfileInfoModal }) => {
+  currentTab: ProfilePageTab;
+}> = ({
+  profile,
+  isEditable,
+  setDisplayEditUserProfileInfoModal,
+  currentTab,
+}) => {
   const websiteUrl = profile?.website
     ? sanitizeHref(profile.website)
     : undefined;
@@ -159,6 +166,15 @@ export const ProfilePageContent: FunctionComponent<{
               ) : undefined
             }
           />
+        </Box>
+        <Box flexGrow={1}>
+          {profile ? (
+            currentTab.kind === "profile" ? (
+              <Box>Profile</Box>
+            ) : (
+              <PinnedEntityTypeTabContents profile={profile} {...currentTab} />
+            )
+          ) : null}
         </Box>
       </Box>
     </Container>
