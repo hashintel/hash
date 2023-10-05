@@ -657,31 +657,31 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
 };
 
 export const addEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  { entityId: EntityId; owner: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityOwner(actorId, params.entityId, params.viewer);
+  await graphApi.addEntityOwner(actorId, params.entityId, params.owner);
 };
 
 export const removeEntityOwner: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  { entityId: EntityId; owner: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityOwner(actorId, params.entityId, params.viewer);
+  await graphApi.removeEntityOwner(actorId, params.entityId, params.owner);
 };
 
 export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  { entityId: EntityId; editor: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityEditor(actorId, params.entityId, params.viewer);
+  await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  { entityId: EntityId; editor: AccountId | AccountGroupId },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityEditor(actorId, params.entityId, params.viewer);
+  await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
 };
 
 export const addEntityViewer: ImpureGraphFunction<
