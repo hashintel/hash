@@ -10,7 +10,12 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import { format, formatDistanceToNow, isBefore, subWeeks } from "date-fns";
+import {
+  format,
+  formatDistanceToNowStrict,
+  isBefore,
+  subWeeks,
+} from "date-fns";
 import { Fragment, FunctionComponent, Ref, useMemo, useState } from "react";
 
 import { generateEntityLabel } from "../../lib/entities";
@@ -155,7 +160,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
                 subWeeks(new Date(), 1),
               )
                 ? format(updatedAt, "d MMMM yyyy")
-                : `${formatDistanceToNow(updatedAt)} ago`;
+                : `${formatDistanceToNowStrict(updatedAt)} ago`;
 
               return (
                 <Fragment key={entity.metadata.recordId.entityId}>
