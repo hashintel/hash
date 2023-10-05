@@ -31,5 +31,5 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_TITLE: Package release failed
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

@@ -67,7 +67,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_TITLE: Terraform apply failed
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
           VAULT_ADDR: ""
           VAULT_TOKEN: ""
