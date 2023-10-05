@@ -655,6 +655,20 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   });
 };
 
+export const addEntityOwner: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.addEntityOwner(actorId, params.entityId, params.viewer);
+};
+
+export const removeEntityOwner: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.removeEntityOwner(actorId, params.entityId, params.viewer);
+};
+
 export const addEntityViewer: ImpureGraphFunction<
   { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
   Promise<void>

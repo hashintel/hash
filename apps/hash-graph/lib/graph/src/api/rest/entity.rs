@@ -45,9 +45,11 @@ use crate::{
         get_entities_by_query,
         can_update_entity,
         update_entity,
+
+        add_entity_owner,
+        remove_entity_owner,
         add_entity_viewer,
         remove_entity_viewer,
-
     ),
     components(
         schemas(
@@ -94,8 +96,12 @@ impl RoutedResource for EntityResource {
                     "/:entity_id",
                     Router::new()
                         .route(
-                            "/public",
+                            "/viewers/:viewer",
                             post(add_entity_viewer::<A, S>).delete(remove_entity_viewer::<A, S>),
+                        )
+                        .route(
+                            "/owners/:owner",
+                            post(add_entity_owner::<A, S>).delete(remove_entity_owner::<A, S>),
                         )
                         .route("/permissions/update", get(can_update_entity::<A>)),
                 )
@@ -372,12 +378,14 @@ where
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Public;
+pub enum PublicTag {
+    Public,
+}
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Viewer {
-    Public(Public),
+    Public(PublicTag),
     Owner(OwnedById),
 }
 
@@ -395,6 +403,141 @@ impl<'s> ToSchema<'s> for Viewer {
                 .into(),
         )
     }
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/{entity_id}/owners/{owner}",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to add the owner to"),
+        ("owner" = OwnedById, Path, description = "The owner to add to the entity"),
+    ),
+    responses(
+        (status = 204, description = "The owner was added to the entity"),
+
+        (status = 403, description = "Permission denied"),
+)
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn add_entity_owner<A, S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not check if owner can be added to entity");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let store = store_pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let scope = VisibilityScope::from(store.identify_owned_by_id(owned_by_id).await.map_err(
+        |report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        },
+    )?);
+
+    authorization_api
+        .add_entity_owner(scope, entity_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add entity owner");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/entities/{entity_id}/owners/{owner}",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to remove the owner from"),
+        ("owner" = Viewer, Path, description = "The owner to remove from the entity"),
+    ),
+    responses(
+        (status = 204, description = "The owner was removed from the entity"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
+async fn remove_entity_owner<A, S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((entity_id, owned_by_id)): Path<(EntityId, OwnedById)>,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<StatusCode, StatusCode>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let has_permission = authorization_api
+        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if owner can be removed from entity"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .has_permission;
+
+    if !has_permission {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let store = store_pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let scope = VisibilityScope::from(store.identify_owned_by_id(owned_by_id).await.map_err(
+        |report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        },
+    )?);
+
+    authorization_api
+        .remove_entity_owner(scope, entity_id)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not remove entity owner");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
