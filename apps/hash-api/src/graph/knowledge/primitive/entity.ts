@@ -9,6 +9,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountGroupId,
+  AccountId,
   BaseUrl,
   Entity,
   EntityId,
@@ -653,16 +655,16 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   });
 };
 
-export const makeEntityPublic: ImpureGraphFunction<
-  { entityId: EntityId },
+export const addEntityViewer: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.makeEntityPublic(actorId, params.entityId);
+  await graphApi.addEntityViewer(actorId, params.entityId, params.viewer);
 };
 
-export const makeEntityPrivate: ImpureGraphFunction<
-  { entityId: EntityId },
+export const removeEntityViewer: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.makeEntityPrivate(actorId, params.entityId);
+  await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
 };

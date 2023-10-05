@@ -22,9 +22,9 @@ import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
+  addEntityViewer,
   createEntity,
   CreateEntityParams,
-  makeEntityPublic,
 } from "../primitive/entity";
 import { User } from "./user";
 
@@ -139,8 +139,9 @@ export const createHashInstance: ImpureGraphFunction<
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
   });
-  await makeEntityPublic(ctx, authentication, {
+  await addEntityViewer(ctx, authentication, {
     entityId: entity.metadata.recordId.entityId,
+    viewer: "public",
   });
 
   return getHashInstanceFromEntity({ entity });
