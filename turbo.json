@@ -6,11 +6,11 @@
       "dependsOn": ["^build", "codegen"]
     },
     "test:unit": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build", "codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build", "codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:system": {

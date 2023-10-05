@@ -2,7 +2,7 @@
 import enum
 from typing import Any
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 from temporalio import workflow
 
 from worker import AuthenticationContext
@@ -23,7 +23,7 @@ class EntityValidation(str, enum.Enum):
 
 
 # Keep this in sync with the ProposedLinkData type in the GraphQL definition
-class LinkData(BaseModel, extra=Extra.forbid):
+class LinkData(BaseModel, extra="forbid"):
     """Link data for an entity."""
 
     left_entity_id: int = Field(..., alias="leftEntityId")
@@ -31,7 +31,7 @@ class LinkData(BaseModel, extra=Extra.forbid):
 
 
 # Keep this in sync with the ProposedEntity type in the GraphQL definition
-class ProposedEntity(BaseModel, extra=Extra.forbid):
+class ProposedEntity(BaseModel, extra="forbid"):
     """An entity proposed by AI."""
 
     entity_type_id: str = Field(..., alias="entityTypeId")
@@ -45,7 +45,7 @@ class ProposedEntity(BaseModel, extra=Extra.forbid):
 
 
 # Keep this in sync with the inferEntities mutation in the GraphQL definition
-class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
+class InferEntitiesWorkflowParameter(BaseModel, extra="forbid"):
     """Parameters for entity inference workflow."""
 
     authentication: AuthenticationContext
@@ -59,13 +59,13 @@ class InferEntitiesWorkflowParameter(BaseModel, extra=Extra.forbid):
 
 
 # Keep this in sync with the InferEntitiesResult type in the GraphQL definition
-class InferEntitiesWorkflowResult(BaseModel, extra=Extra.forbid):
+class InferEntitiesWorkflowResult(BaseModel, extra="forbid"):
     """Result of entity inference workflow."""
 
     entities: list[ProposedEntity]
 
 
-class InferEntitiesActivityParameter(BaseModel, extra=Extra.forbid):
+class InferEntitiesActivityParameter(BaseModel, extra="forbid"):
     """Parameters for entity inference workflow."""
 
     text_input: str = Field(..., alias="textInput")
