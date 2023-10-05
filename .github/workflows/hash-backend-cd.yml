@@ -436,3 +436,18 @@ jobs:
       - name: Redeploy Temporal service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }} --service ${{ env.HASH_TEMPORAL_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+
+  notify-slack:
+    name: Notify Slack on failure
+    needs:
+      - deploy-app
+      - deploy-temporal
+    runs-on: ubuntu-latest
+    if: ${{ failure() }}
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_TITLE: Backend deployment failed
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
