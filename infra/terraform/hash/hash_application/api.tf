@@ -17,6 +17,11 @@ resource "aws_ssm_parameter" "api_env_vars" {
   tags      = {}
 }
 
+resource "aws_s3_bucket" "uploads" {
+  bucket = "${local.api_prefix}-uploads"
+  tags   = { Name = "${local.api_prefix}uploads" }
+}
+
 locals {
   api_service_container_def = {
     name        = "${local.api_prefix}container"
@@ -41,8 +46,13 @@ locals {
         "awslogs-region"        = var.region
       }
     }
-    Environment = [for env_var in var.api_env_vars :
-    { name = env_var.name, value = env_var.value } if !env_var.secret]
+    Environment = concat(
+      [
+        for env_var in var.api_env_vars :
+        { name = env_var.name, value = env_var.value } if !env_var.secret
+      ],
+      [{ name = "AWS_S3_UPLOADS_BUCKET", secret = false, value = aws_s3_bucket.uploads.bucket }],
+    ),
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.api_env_vars :
     { name = env_name, valueFrom = ssm_param.arn }]
