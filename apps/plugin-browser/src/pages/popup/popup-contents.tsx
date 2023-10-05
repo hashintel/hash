@@ -1,14 +1,11 @@
 import "../shared/common.scss";
 
 import { theme } from "@hashintel/design-system/theme";
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box, Skeleton, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
-import { getUser } from "../shared/get-user";
-import { retrieveUser, storeUser } from "../shared/storage";
+import { useUser } from "../shared/use-user";
 import { ActionCenter } from "./popup-contents/action-center";
 import { SignIn } from "./popup-contents/sign-in";
 
@@ -27,34 +24,13 @@ const getCurrentTab = async () => {
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
 export const PopupContents = () => {
-  const [loading, setLoading] = useState(true);
-  const [me, setMe] = useState<Simplified<User> | null>(null);
   const [activeTab, setActiveTab] = useState<Tabs.Tab | null>(null);
 
+  const { user, loading } = useUser();
+
   useEffect(() => {
-    void retrieveUser().then((storedUser) => {
-      setMe(storedUser);
-      if (storedUser) {
-        setLoading(false);
-      }
-    });
-
-    const init = async () => {
-      await Promise.all([
-        getUser().then((maybeMe) => {
-          setMe(maybeMe);
-          void storeUser(maybeMe);
-        }),
-        getCurrentTab().then(setActiveTab),
-      ]);
-
-      setLoading(false);
-    };
-
-    if (!activeTab) {
-      void init();
-    }
-  }, [activeTab]);
+    void getCurrentTab().then(setActiveTab);
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -84,8 +60,8 @@ export const PopupContents = () => {
               variant="rectangular"
             />
           </Box>
-        ) : me ? (
-          <ActionCenter activeTab={activeTab} user={me} />
+        ) : user ? (
+          <ActionCenter activeTab={activeTab} user={user} />
         ) : (
           <SignIn />
         )}

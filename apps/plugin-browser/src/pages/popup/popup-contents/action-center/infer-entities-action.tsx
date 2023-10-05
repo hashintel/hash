@@ -1,4 +1,5 @@
 import { EntityType } from "@blockprotocol/graph";
+import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useState } from "react";

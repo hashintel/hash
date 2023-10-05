@@ -20,3 +20,24 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
     });
   }
 });
+
+browser.action.setBadgeTextColor({ color: "#ffffff" });
+
+const setLoadingBadge = () => {
+  void browser.action.setBadgeText({ text: "💭" });
+  void browser.action.setBadgeBackgroundColor({ color: "#006DC3" });
+};
+
+const setErroredBadge = () => {
+  void browser.action.setBadgeText({ text: "❌" });
+  void browser.action.setBadgeBackgroundColor({ color: "black" });
+};
+
+const setSuccessBadge = (num: number) => {
+  void browser.action.setBadgeText({ text: num.toString() });
+  void browser.action.setBadgeBackgroundColor({ color: "#9AC952" });
+};
+
+const clearBadge = () => {
+  void browser.action.setBadgeText({ text: "" });
+};
