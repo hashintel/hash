@@ -869,13 +869,13 @@
         }
       }
     },
-    "/entities/{entity_id}/public": {
+    "/entities/{entity_id}/viewers/{viewer}": {
       "post": {
         "tags": [
           "Graph",
           "Entity"
         ],
-        "operationId": "make_entity_public",
+        "operationId": "add_entity_viewer",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -889,16 +889,25 @@
           {
             "name": "entity_id",
             "in": "path",
-            "description": "The Entity to make public",
+            "description": "The Entity to add the viewer to",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "viewer",
+            "in": "path",
+            "description": "The viewer to add to the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Viewer"
             }
           }
         ],
         "responses": {
           "204": {
-            "description": "The entity was made public"
+            "description": "The viewer was added to the entity"
           },
           "403": {
             "description": "Permission denied"
@@ -910,7 +919,7 @@
           "Graph",
           "Entity"
         ],
-        "operationId": "make_entity_private",
+        "operationId": "remove_entity_viewer",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -924,16 +933,25 @@
           {
             "name": "entity_id",
             "in": "path",
-            "description": "The Entity to make private",
+            "description": "The Entity to remove the viewer from",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "viewer",
+            "in": "path",
+            "description": "The viewer to remove from the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Viewer"
             }
           }
         ],
         "responses": {
           "204": {
-            "description": "The entity was made private"
+            "description": "The viewer was removed from the entity"
           },
           "403": {
             "description": "Permission denied"
@@ -3528,6 +3546,19 @@
             ]
           }
         }
+      },
+      "Viewer": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "public"
+            ]
+          },
+          {
+            "$ref": "#/components/schemas/OwnedById"
+          }
+        ]
       }
     }
   },

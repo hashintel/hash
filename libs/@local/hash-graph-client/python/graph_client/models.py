@@ -248,6 +248,11 @@ class TransactionTime(RootModel[Literal["transactionTime"]]):
     )
 
 
+class Viewer(RootModel[Literal["public"] | OwnedById]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: Literal["public"] | OwnedById
+
+
 class UpdateDataType(BaseModel):
     """
     The contents of a Data Type update request
