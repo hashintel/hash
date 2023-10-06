@@ -26,6 +26,8 @@ import { Fragment, FunctionComponent, Ref, useMemo, useState } from "react";
 
 import { generateEntityLabel } from "../../lib/entities";
 import { Org, User } from "../../lib/user-and-org";
+import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
 import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { Link, MenuItem } from "../../shared/ui";
@@ -108,7 +110,7 @@ const EntityRow: FunctionComponent<{
 const InlineSelectChevronDown = () => (
   <FontAwesomeIcon
     icon={faCaretDown}
-    sx={{ fontSize: 12, position: "absolute", top: 3, right: 4 }}
+    sx={{ fontSize: 12, position: "absolute", top: 3, right: 14 }}
   />
 );
 
@@ -137,11 +139,17 @@ const InlineSelect = styled(
   },
 }));
 
-type SortOrder = "updated-at-asc" | "updated-at-desc";
+type SortOrder =
+  | "updated-at-asc"
+  | "updated-at-desc"
+  | "alphabetical-asc"
+  | "alphabetical-desc";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
-  "updated-at-asc": "Oldest",
-  "updated-at-desc": "Most Recent",
+  "updated-at-asc": "Last edited (oldest first)",
+  "updated-at-desc": "Last edited (newest first)",
+  "alphabetical-asc": "Alphabetical (A-Z)",
+  "alphabetical-desc": "Alphabetical (Z-A)",
 };
 
 export const PinnedEntityTypeTabContents: FunctionComponent<
@@ -154,18 +162,32 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
   const sortedEntities = useMemo(
     () =>
       entities?.sort((a, b) => {
-        const aUpdatedAt = new Date(
-          a.metadata.temporalVersioning.decisionTime.start.limit,
-        ).getTime();
-        const bUpdatedAt = new Date(
-          b.metadata.temporalVersioning.decisionTime.start.limit,
-        ).getTime();
+        if (sortOrder.startsWith("updated-at")) {
+          const aUpdatedAt = new Date(
+            a.metadata.temporalVersioning.decisionTime.start.limit,
+          ).getTime();
+          const bUpdatedAt = new Date(
+            b.metadata.temporalVersioning.decisionTime.start.limit,
+          ).getTime();
 
-        return sortOrder === "updated-at-desc"
-          ? bUpdatedAt - aUpdatedAt
-          : aUpdatedAt - bUpdatedAt;
+          return sortOrder === "updated-at-desc"
+            ? bUpdatedAt - aUpdatedAt
+            : aUpdatedAt - bUpdatedAt;
+        }
+
+        if (!entitiesSubgraph) {
+          return 0;
+        }
+
+        const aLabel = generateEntityLabel(entitiesSubgraph, a);
+
+        const bLabel = generateEntityLabel(entitiesSubgraph, b);
+
+        return sortOrder === "alphabetical-desc"
+          ? bLabel.localeCompare(aLabel)
+          : aLabel.localeCompare(bLabel);
       }),
-    [entities, sortOrder],
+    [entities, sortOrder, entitiesSubgraph],
   );
 
   return (
@@ -190,15 +212,22 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
             </Typography>
             <InlineSelect
               startAdornment={
-                <ClockRegularIcon
-                  sx={{
-                    fontSize: 12,
-                    marginRight: 0.5,
-                    position: "relative",
-                    top: -1,
-                  }}
-                />
+                sortOrder === "alphabetical-asc" ? (
+                  <ArrowDownAZRegularIcon />
+                ) : sortOrder === "alphabetical-desc" ? (
+                  <ArrowUpZARegularIcon />
+                ) : (
+                  <ClockRegularIcon />
+                )
               }
+              sx={{
+                svg: {
+                  fontSize: 12,
+                  marginRight: 0.5,
+                  position: "relative",
+                  top: -1,
+                },
+              }}
               value={sortOrder}
               onChange={({ target }) => setSortOrder(target.value as SortOrder)}
             >
