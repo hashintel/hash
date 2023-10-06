@@ -12,6 +12,12 @@ export type ProfilePageTab =
       title: string;
     }
   | {
+      kind: "profile-pages";
+      title: "Pages";
+      entities?: Entity[];
+      entitiesSubgraph?: Subgraph<EntityRootType>;
+    }
+  | {
       kind: "pinned-entity-type";
       entityTypeBaseUrl: BaseUrl;
       title?: string;

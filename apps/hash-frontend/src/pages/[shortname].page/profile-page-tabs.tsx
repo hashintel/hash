@@ -12,13 +12,17 @@ export const ProfilePageTabs: FunctionComponent<{
   currentTab: ProfilePageTab;
 }> = ({ tabs, currentTab, profile }) => {
   return (
-    <Box>
+    <Box sx={{ overflowX: "scroll" }}>
       <Tabs value={currentTab.title}>
         {tabs.map((tab) =>
           tab.title ? (
             <TabLink
               active={currentTab.title === tab.title}
-              key={tab.kind === "profile" ? "profile" : tab.entityTypeBaseUrl}
+              key={
+                tab.kind === "pinned-entity-type"
+                  ? tab.entityTypeBaseUrl
+                  : tab.kind
+              }
               label={tab.title}
               value={tab.title}
               href={`/@${profile?.shortname}${

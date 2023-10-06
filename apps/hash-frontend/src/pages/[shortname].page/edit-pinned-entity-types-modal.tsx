@@ -195,6 +195,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       } else {
         /** @todo: error handling */
       }
+      setDisplayEntityTypesSearch(false);
     },
     [createEntityType, append],
   );
@@ -355,7 +356,12 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
             </Droppable>
             {displayEntityTypesSearch ? (
               <EntityTypeSelector
-                onSelect={(entityType) => append(entityType)}
+                excludeEntityTypeIds={[types.entityType.page.entityTypeId]}
+                disableCreateNewEmpty
+                onSelect={(entityType) => {
+                  append(entityType);
+                  setDisplayEntityTypesSearch(false);
+                }}
                 onCancel={() => setDisplayEntityTypesSearch(false)}
                 onCreateNew={handleCreateNewEntityType}
                 sx={{
@@ -368,6 +374,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                 variant="tertiary"
                 size="xs"
                 startIcon={<PlusRegularIcon />}
+                disabled={fields.length >= 5}
               >
                 Add {fields.length === 0 ? "type" : "another"}
               </Button>

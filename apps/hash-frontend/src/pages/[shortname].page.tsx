@@ -100,11 +100,15 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
-  const tabs = useMemo<ProfilePageTab[]>(
+  const baseTabs = useMemo<ProfilePageTab[]>(
     () => [
       {
         kind: "profile",
         title: "Profile",
+      },
+      {
+        kind: "profile-pages",
+        title: "Pages",
       },
       ...(profile?.pinnedEntityTypeBaseUrls?.map<ProfilePageTab>(
         (entityTypeBaseUrl) => ({
@@ -116,21 +120,72 @@ const ProfilePage: NextPageWithLayout = () => {
     [profile],
   );
 
+  const { data: pagesData } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              types.entityType.page.entityTypeId,
+              {
+                ignoreParents: true,
+              },
+            ),
+            ...(profile
+              ? [
+                  {
+                    equal: [
+                      { path: ["ownedById"] },
+                      {
+                        parameter:
+                          profile.kind === "org"
+                            ? profile.accountGroupId
+                            : profile.accountId,
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip: !profile,
+  });
+
+  const pageEntitiesSubgraph = pagesData?.structuralQueryEntities as
+    | Subgraph<EntityRootType>
+    | undefined;
+
+  const pageEntities = useMemo(
+    () => (pageEntitiesSubgraph ? getRoots(pageEntitiesSubgraph) : undefined),
+    [pageEntitiesSubgraph],
+  );
+
   const includeEntityTypeIds = useMemo(
     () =>
       entityTypes
         ?.filter(({ metadata }) =>
-          tabs.some(
+          baseTabs.some(
             (tab) =>
               tab.kind === "pinned-entity-type" &&
               tab.entityTypeBaseUrl === metadata.recordId.baseUrl,
           ),
         )
         .map(({ schema }) => schema.$id),
-    [entityTypes, tabs],
+    [entityTypes, baseTabs],
   );
 
-  const { data } = useQuery<
+  const { data: pinnedEntityTypesData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -174,7 +229,7 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profile || !includeEntityTypeIds,
   });
 
-  const entitiesSubgraph = data?.structuralQueryEntities as
+  const entitiesSubgraph = pinnedEntityTypesData?.structuralQueryEntities as
     | Subgraph<EntityRootType>
     | undefined;
 
@@ -185,7 +240,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const tabsWithEntities = useMemo(
     () =>
-      tabs.map((tab) =>
+      baseTabs.map((tab) =>
         tab.kind === "pinned-entity-type"
           ? {
               ...tab,
@@ -200,9 +255,22 @@ const ProfilePage: NextPageWithLayout = () => {
                   metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
               )?.schema.title,
             }
+          : tab.kind === "profile-pages"
+          ? {
+              ...tab,
+              entities: pageEntities,
+              entitiesSubgraph: pageEntitiesSubgraph,
+            }
           : tab,
       ),
-    [tabs, allPinnedEntities, entitiesSubgraph, entityTypes],
+    [
+      baseTabs,
+      allPinnedEntities,
+      entitiesSubgraph,
+      entityTypes,
+      pageEntities,
+      pageEntitiesSubgraph,
+    ],
   );
 
   const refetchProfile = useCallback(async () => {
@@ -210,7 +278,8 @@ const ProfilePage: NextPageWithLayout = () => {
   }, [refetch]);
 
   const currentTab =
-    tabsWithEntities.find(({ title }) => title === currentTabTitle) ?? tabs[0]!;
+    tabsWithEntities.find(({ title }) => title === currentTabTitle) ??
+    tabsWithEntities[0]!;
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>

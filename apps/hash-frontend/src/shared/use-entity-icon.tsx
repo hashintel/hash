@@ -19,8 +19,11 @@ export const entityTypeIcons = {
   ),
 } as const;
 
-export const useEntityIcon = (params: { entity?: Entity }) => {
-  const { entity } = params;
+export const useEntityIcon = (params: {
+  entity?: Entity;
+  pageIcon?: JSX.Element;
+}) => {
+  const { entity, pageIcon } = params;
   return useMemo(() => {
     if (entity) {
       if (entity.metadata.entityTypeId === types.entityType.page.entityTypeId) {
@@ -40,11 +43,12 @@ export const useEntityIcon = (params: { entity?: Entity }) => {
        * @todo: use the entity type icon
        * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
        */
-      return (
-        entityTypeIcons[entity.metadata.entityTypeId] ?? (
-          <AsteriskRegularIcon sx={{ fontSize: 12 }} />
-        )
-      );
+      return pageIcon &&
+        entity.metadata.entityTypeId === types.entityType.page.entityTypeId
+        ? pageIcon
+        : entityTypeIcons[entity.metadata.entityTypeId] ?? (
+            <AsteriskRegularIcon sx={{ fontSize: 12 }} />
+          );
     }
-  }, [entity]);
+  }, [entity, pageIcon]);
 };

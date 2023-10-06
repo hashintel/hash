@@ -1,3 +1,4 @@
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
@@ -5,21 +6,38 @@ import {
 } from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { BoxProps } from "@mui/material";
-import { FunctionComponent, useRef, useState } from "react";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
+  excludeEntityTypeIds?: VersionedUrl[];
   onSelect: (entityType: EntityTypeWithMetadata) => void;
   onCancel: () => void;
   onCreateNew: (searchValue: string) => void;
+  disableCreateNewEmpty?: boolean;
   sx?: BoxProps["sx"];
-}> = ({ onCancel, onSelect, onCreateNew, sx }) => {
+}> = ({
+  disableCreateNewEmpty,
+  excludeEntityTypeIds,
+  onCancel,
+  onSelect,
+  onCreateNew,
+  sx,
+}) => {
   const [search, setSearch] = useState("");
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const entityTypes = useLatestEntityTypesOptional();
+
+  const filteredEntityTypes = useMemo(
+    () =>
+      entityTypes?.filter(
+        ({ schema }) => !excludeEntityTypeIds?.includes(schema.$id),
+      ),
+    [excludeEntityTypeIds, entityTypes],
+  );
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
@@ -34,10 +52,11 @@ export const EntityTypeSelector: FunctionComponent<{
             evt.stopPropagation();
             onCreateNew(search);
           },
+          disabled: disableCreateNewEmpty && search === "",
         },
         variant: "entity type",
       }}
-      options={entityTypes ?? []}
+      options={filteredEntityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
