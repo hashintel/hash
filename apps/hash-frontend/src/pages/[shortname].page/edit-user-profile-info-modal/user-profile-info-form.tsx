@@ -1,6 +1,6 @@
 import { Select, TextField } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, OwnedById } from "@local/hash-subgraph/.";
+import { Entity, OwnedById } from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   LinkEntity,
@@ -52,8 +52,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const formMethods =
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // @ts-expect-error -- type instantiation is excessively deep and possibly infinite, will be fixed when we switch to V8 of react-hook-form (see https://github.com/react-hook-form/react-hook-form/issues/6679)
     useForm<UserProfileFormData>({
       mode: "all",
       defaultValues: {
