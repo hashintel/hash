@@ -352,7 +352,7 @@ export const UserProfileInfoForm: FunctionComponent<{
             Save changes
           </Button>
           <Button variant="tertiary" onClick={handleDiscard}>
-            Discard
+            {Object.keys(dirtyFields).length === 0 ? "Cancel" : "Discard"}
           </Button>
         </Box>
       </FormProvider>

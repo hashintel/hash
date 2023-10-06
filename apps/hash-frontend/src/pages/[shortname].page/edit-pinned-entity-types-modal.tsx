@@ -385,7 +385,9 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               Save changes
             </Button>
             <Button variant="tertiary" onClick={handleDiscard}>
-              Discard
+              {Object.keys(formState.dirtyFields).length === 0
+                ? "Cancel"
+                : "Discard"}
             </Button>
           </Box>
         </Box>
