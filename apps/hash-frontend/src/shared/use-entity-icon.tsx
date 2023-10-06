@@ -9,7 +9,7 @@ import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
-const entityIcons = {
+export const entityTypeIcons = {
   [types.entityType.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
   [types.entityType.org.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
@@ -41,7 +41,7 @@ export const useEntityIcon = (params: { entity?: Entity }) => {
        * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
        */
       return (
-        entityIcons[entity.metadata.entityTypeId] ?? (
+        entityTypeIcons[entity.metadata.entityTypeId] ?? (
           <AsteriskRegularIcon sx={{ fontSize: 12 }} />
         )
       );

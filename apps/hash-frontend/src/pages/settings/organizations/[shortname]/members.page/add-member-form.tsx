@@ -99,7 +99,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
         properties: {},
         linkData: {
           leftEntityId: user.metadata.recordId.entityId,
-          rightEntityId: org.entityRecordId.entityId,
+          rightEntityId: org.entity.metadata.recordId.entityId,
         },
       },
     });

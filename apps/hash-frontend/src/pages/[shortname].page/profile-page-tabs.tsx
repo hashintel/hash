@@ -14,22 +14,24 @@ export const ProfilePageTabs: FunctionComponent<{
   return (
     <Box>
       <Tabs value={currentTab.title}>
-        {tabs.map((tab) => (
-          <TabLink
-            active={currentTab.title === tab.title}
-            key={tab.title}
-            label={tab.title}
-            value={tab.title}
-            href={`/@${profile?.shortname}${
-              tab.kind === "profile" ? "" : `?tab=${tab.title}`
-            }`}
-            count={
-              tab.kind === "pinned-entity-type"
-                ? tab.entities?.length
-                : undefined
-            }
-          />
-        ))}
+        {tabs.map((tab) =>
+          tab.title ? (
+            <TabLink
+              active={currentTab.title === tab.title}
+              key={tab.kind === "profile" ? "profile" : tab.entityTypeBaseUrl}
+              label={tab.title}
+              value={tab.title}
+              href={`/@${profile?.shortname}${
+                tab.kind === "profile" ? "" : `?tab=${tab.title}`
+              }`}
+              count={
+                tab.kind === "pinned-entity-type"
+                  ? tab.entities?.length
+                  : undefined
+              }
+            />
+          ) : null,
+        )}
       </Tabs>
     </Box>
   );

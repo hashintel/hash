@@ -149,23 +149,27 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
 
   return (
     <Box display="flex" flexDirection="column" rowGap={2.75}>
-      <Box>
-        {latestEntityUpdatedAt ? (
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.blue[70],
-              fontWeight: 700,
-              lineHeight: 1,
-              marginBottom: -0.5,
-            }}
-          >
-            {formatDistanceToNowStrict(latestEntityUpdatedAt)}
+      {!entities || entities.length > 0 ? (
+        <Box>
+          {latestEntityUpdatedAt ? (
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.blue[70],
+                fontWeight: 700,
+                lineHeight: 1,
+                marginBottom: -0.5,
+              }}
+            >
+              {formatDistanceToNowStrict(latestEntityUpdatedAt)}
+            </Typography>
+          ) : (
+            <Skeleton variant="text" width="40%" />
+          )}
+          <Typography variant="smallTextParagraphs">
+            since last update
           </Typography>
-        ) : (
-          <Skeleton />
-        )}
-        <Typography variant="smallTextParagraphs">since last update</Typography>
-      </Box>
+        </Box>
+      ) : null}
     </Box>
   );
 };
@@ -183,7 +187,7 @@ export const ProfilePageInfo: FunctionComponent<{
 }) => {
   return (
     <Box>
-      <Box display="flex" marginBottom={1}>
+      <Box display="flex" marginBottom={1.5}>
         <SectionHeading>Info</SectionHeading>
         <Fade
           in={

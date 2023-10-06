@@ -105,7 +105,7 @@ export const SelectEntityTypePage = () => {
 
                       await router.push(
                         `/new/entity?entity-type-id=${encodeURIComponent(
-                          entityType.$id,
+                          entityType.schema.$id,
                         )}`,
                       );
                     } catch (error: any) {

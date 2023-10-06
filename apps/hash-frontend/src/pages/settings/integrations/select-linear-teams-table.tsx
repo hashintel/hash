@@ -51,7 +51,7 @@ const SelectWorkspaces: FunctionComponent<{
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
           {selected.map((value) => {
             const workspace = possibleWorkspaces.find(
-              ({ entityRecordId: { entityId } }) => entityId === value,
+              ({ entity }) => entity.metadata.recordId.entityId === value,
             )!;
 
             return (
@@ -70,8 +70,8 @@ const SelectWorkspaces: FunctionComponent<{
     >
       {possibleWorkspaces.map((userOrOrg) => (
         <MenuItem
-          key={userOrOrg.entityRecordId.entityId}
-          value={userOrOrg.entityRecordId.entityId}
+          key={userOrOrg.entity.metadata.recordId.entityId}
+          value={userOrOrg.entity.metadata.recordId.entityId}
         >
           {userOrOrg.kind === "org" ? userOrOrg.name : userOrOrg.preferredName}
         </MenuItem>
@@ -121,12 +121,13 @@ export const mapLinearOrganizationToSyncWithWorkspacesInputVariable = (params: {
   possibleWorkspaces: (Org | MinimalUser)[];
 }): SyncWithWorkspace[] =>
   params.possibleWorkspaces
-    .filter(({ entityRecordId: { entityId } }) =>
+    .filter(({ entity }) =>
       params.linearOrganization.teams.some(({ workspaceEntityIds }) =>
-        workspaceEntityIds.includes(entityId),
+        workspaceEntityIds.includes(entity.metadata.recordId.entityId),
       ),
     )
-    .map(({ entityRecordId: { entityId: workspaceEntityId } }) => {
+    .map(({ entity: workspaceEntity }) => {
+      const workspaceEntityId = workspaceEntity.metadata.recordId.entityId;
       const linearTeamIds = params.linearOrganization.teams
         .filter(({ workspaceEntityIds }) =>
           workspaceEntityIds.includes(workspaceEntityId),
@@ -164,7 +165,7 @@ export const SelectLinearTeamsTable: FunctionComponent<{
           const previousOrganization = prev[linearOrgIndex]!;
 
           const previousSelectedWorkspaceEntityIds = possibleWorkspaces
-            .map(({ entityRecordId: { entityId } }) => entityId)
+            .map(({ entity }) => entity.metadata.recordId.entityId)
             .filter((workspaceEntityId) => {
               const selectedTeams = previousOrganization.teams.filter(
                 ({ workspaceEntityIds }) =>
@@ -292,7 +293,7 @@ export const SelectLinearTeamsTable: FunctionComponent<{
               <TableCell>
                 <SelectWorkspaces
                   selectedWorkspaceEntityIds={possibleWorkspaces
-                    .map(({ entityRecordId: { entityId } }) => entityId)
+                    .map(({ entity }) => entity.metadata.recordId.entityId)
                     .filter(
                       (entityId) =>
                         linearOrganization.teams.length ===
@@ -316,7 +317,7 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                   <TableCell>
                     <SelectWorkspaces
                       selectedWorkspaceEntityIds={possibleWorkspaces
-                        .map(({ entityRecordId: { entityId } }) => entityId)
+                        .map(({ entity }) => entity.metadata.recordId.entityId)
                         .filter(
                           (entityId) =>
                             linearOrganization.teams

@@ -17,7 +17,7 @@ export const useGetAccountIdForShortname = (
   const accountId = useMemo(() => {
     /** @todo - don't do extract anymore */
     const userBaseId = users?.find((user) => user.shortname === shortname)
-      ?.entityRecordId.entityId;
+      ?.entity.metadata.recordId.entityId;
     const userAccountId = userBaseId
       ? extractAccountId(userBaseId as AccountEntityId)
       : undefined;
@@ -26,8 +26,8 @@ export const useGetAccountIdForShortname = (
       return userAccountId;
     }
 
-    const orgBaseId = orgs?.find((org) => org.shortname === shortname)
-      ?.entityRecordId.entityId;
+    const orgBaseId = orgs?.find((org) => org.shortname === shortname)?.entity
+      .metadata.recordId.entityId;
     const orgAccountId = orgBaseId
       ? extractAccountId(orgBaseId as AccountEntityId)
       : undefined;

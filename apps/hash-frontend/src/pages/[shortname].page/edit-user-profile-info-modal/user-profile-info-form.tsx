@@ -113,7 +113,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       await createEntity({
         data: {
           linkData: {
-            leftEntityId: userProfile.entityRecordId.entityId,
+            leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: serviceAccountEntity.metadata.recordId.entityId,
           },
           entityTypeId: types.linkEntityType.hasServiceAccount.linkEntityTypeId,

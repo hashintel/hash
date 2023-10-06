@@ -12,9 +12,9 @@ import {
   AccountGroupEntityId,
   AccountGroupId,
   AccountId,
+  BaseUrl,
   Entity,
   EntityId,
-  EntityRecordId,
   EntityRootType,
   extractAccountGroupId,
   extractAccountId,
@@ -39,24 +39,27 @@ export const constructMinimalOrg = (params: {
 }): MinimalOrg => {
   const { orgEntity } = params;
 
-  const simpleProperties = simplifyProperties(orgEntity.properties);
+  const { organizationName, pinnedEntityTypeBaseUrl, ...simpleProperties } =
+    simplifyProperties(orgEntity.properties);
 
   return {
     kind: "org",
-    entityRecordId: orgEntity.metadata.recordId,
+    entity: orgEntity,
     accountGroupId: extractAccountGroupId(
       orgEntity.metadata.recordId.entityId as AccountGroupEntityId,
     ),
-    name: simpleProperties.organizationName,
+    name: organizationName,
+    pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
     ...simpleProperties,
   };
 };
 
 export type MinimalUser = {
   kind: "user";
-  entityRecordId: EntityRecordId;
+  entity: Entity;
   accountId: AccountId;
   accountSignupComplete: boolean;
+  pinnedEntityTypeBaseUrls?: BaseUrl[];
   shortname?: string;
   preferredName?: string;
   preferredPronouns?: string;
@@ -71,18 +74,20 @@ export const constructMinimalUser = (params: {
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
-  const { shortname, preferredName } = simpleProperties;
+  const { shortname, preferredName, pinnedEntityTypeBaseUrl } =
+    simpleProperties;
 
   const accountSignupComplete = !!shortname && !!preferredName;
 
   return {
     kind: "user",
-    entityRecordId: userEntity.metadata.recordId,
+    entity: userEntity,
     // Cast reason: The EntityUuid of a User's baseId is an AccountId
     accountId: extractAccountId(
       userEntity.metadata.recordId.entityId as AccountEntityId,
     ),
     accountSignupComplete,
+    pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
     ...simpleProperties,
   };
 };
@@ -295,7 +300,7 @@ export const constructUser = (params: {
     }
 
     const fullyResolvedOrg = resolvedOrgs?.find(
-      (org) => org.entityRecordId.entityId === linkData.rightEntityId,
+      (org) => org.entity.metadata.recordId.entityId === linkData.rightEntityId,
     );
     if (fullyResolvedOrg) {
       return {
@@ -433,8 +438,9 @@ export const constructUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entityRecordId: EntityRecordId;
+  entity: Entity;
   accountGroupId: AccountGroupId;
+  pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;
   location?: string;
   name: string;

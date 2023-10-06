@@ -13,8 +13,8 @@ export type ProfilePageTab =
     }
   | {
       kind: "pinned-entity-type";
-      title: string;
       entityTypeBaseUrl: BaseUrl;
+      title?: string;
       entities?: Entity[];
       entitiesSubgraph?: Subgraph<EntityRootType>;
     };

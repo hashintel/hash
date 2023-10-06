@@ -9,17 +9,12 @@ import {
   OrgProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  BaseUrl,
-  Entity,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   StructuralQueryEntitiesQuery,
@@ -111,20 +106,14 @@ const ProfilePage: NextPageWithLayout = () => {
         kind: "profile",
         title: "Profile",
       },
-      {
-        kind: "pinned-entity-type",
-        title: "Page",
-        entityTypeBaseUrl:
-          "http://localhost:3000/@system-user/types/entity-type/page/" as BaseUrl,
-      },
-      {
-        kind: "pinned-entity-type",
-        title: "Text",
-        entityTypeBaseUrl:
-          "http://localhost:3000/@system-user/types/entity-type/text/" as BaseUrl,
-      },
+      ...(profile?.pinnedEntityTypeBaseUrls?.map<ProfilePageTab>(
+        (entityTypeBaseUrl) => ({
+          kind: "pinned-entity-type",
+          entityTypeBaseUrl,
+        }),
+      ) ?? []),
     ],
-    [],
+    [profile],
   );
 
   const includeEntityTypeIds = useMemo(
@@ -206,11 +195,19 @@ const ProfilePage: NextPageWithLayout = () => {
                   tab.entityTypeBaseUrl,
               ),
               entitiesSubgraph,
+              title: entityTypes?.find(
+                ({ metadata }) =>
+                  metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
+              )?.schema.title,
             }
           : tab,
       ),
-    [tabs, allPinnedEntities, entitiesSubgraph],
+    [tabs, allPinnedEntities, entitiesSubgraph, entityTypes],
   );
+
+  const refetchProfile = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const currentTab =
     tabsWithEntities.find(({ title }) => title === currentTabTitle) ?? tabs[0]!;
@@ -227,6 +224,7 @@ const ProfilePage: NextPageWithLayout = () => {
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         tabs={tabsWithEntities}
         currentTab={currentTab}
+        refetchProfile={refetchProfile}
       />
       <ProfilePageContent
         profile={profile}
@@ -239,9 +237,7 @@ const ProfilePage: NextPageWithLayout = () => {
           open={displayEditUserProfileInfoModal}
           onClose={() => setDisplayEditUserProfileInfoModal(false)}
           userProfile={profile}
-          refetchUserProfile={async () => {
-            await refetch();
-          }}
+          refetchUserProfile={refetchProfile}
         />
       ) : undefined}
     </>

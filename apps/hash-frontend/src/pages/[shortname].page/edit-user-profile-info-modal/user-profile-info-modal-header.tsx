@@ -173,7 +173,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         data: {
           entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
           linkData: {
-            leftEntityId: userProfile.entityRecordId.entityId,
+            leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: fileUploadData.metadata.recordId
               .entityId as EntityId,
           },
@@ -254,7 +254,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         data: {
           entityTypeId: types.linkEntityType.hasCoverImage.linkEntityTypeId,
           linkData: {
-            leftEntityId: userProfile.entityRecordId.entityId,
+            leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: fileUploadData.metadata.recordId
               .entityId as EntityId,
           },

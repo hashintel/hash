@@ -1,20 +1,21 @@
-import { EntityType } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
+import { BoxProps } from "@mui/material";
 import { FunctionComponent, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
-  onSelect: (entityType: EntityType) => void;
+  onSelect: (entityType: EntityTypeWithMetadata) => void;
   onCancel: () => void;
   onCreateNew: (searchValue: string) => void;
-}> = ({ onCancel, onSelect, onCreateNew }) => {
+  sx?: BoxProps["sx"];
+}> = ({ onCancel, onSelect, onCreateNew, sx }) => {
   const [search, setSearch] = useState("");
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -61,7 +62,7 @@ export const EntityTypeSelector: FunctionComponent<{
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        onSelect(option.schema);
+        onSelect(option);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {
@@ -76,7 +77,7 @@ export const EntityTypeSelector: FunctionComponent<{
       onBlur={() => {
         onCancel();
       }}
-      sx={{ maxWidth: 440 }}
+      sx={[{ maxWidth: 440 }, ...(Array.isArray(sx) ? sx : [sx])]}
     />
   );
 };

@@ -1,9 +1,12 @@
 import { Avatar } from "@hashintel/design-system";
 import { Box, Container, Skeleton, Typography } from "@mui/material";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
+import { CogRegularIcon } from "../../shared/icons/cog-regular-icon";
+import { Button } from "../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
 import { leftColumnWidth, ProfilePageTab } from "./util";
 
@@ -15,13 +18,20 @@ export const ProfilePageHeader: FunctionComponent<{
   setDisplayEditUserProfileInfoModal: (display: boolean) => void;
   tabs: ProfilePageTab[];
   currentTab: ProfilePageTab;
+  refetchProfile: () => Promise<void>;
 }> = ({
   profile,
   isEditable,
   setDisplayEditUserProfileInfoModal,
   tabs,
   currentTab,
+  refetchProfile,
 }) => {
+  const [
+    displayEditPinnedEntityTypesModal,
+    setDisplayEditPinnedEntityTypesModal,
+  ] = useState(false);
+
   const avatarSrc = profile?.hasAvatar
     ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
     : undefined;
@@ -84,6 +94,7 @@ export const ProfilePageHeader: FunctionComponent<{
             display="flex"
             flexDirection="column"
             justifyContent="space-between"
+            flexGrow={1}
           >
             <Box>
               {profile ? (
@@ -124,11 +135,40 @@ export const ProfilePageHeader: FunctionComponent<{
                 />
               )}
             </Box>
-            <ProfilePageTabs
-              profile={profile}
-              tabs={tabs}
-              currentTab={currentTab}
-            />
+            <Box display="flex" justifyContent="space-between">
+              <ProfilePageTabs
+                profile={profile}
+                tabs={tabs}
+                currentTab={currentTab}
+              />
+              {isEditable ? (
+                <>
+                  <Button
+                    onClick={() => setDisplayEditPinnedEntityTypesModal(true)}
+                    variant="secondary_quiet"
+                    size="xs"
+                    endIcon={
+                      <CogRegularIcon
+                        sx={{ color: ({ palette }) => palette.blue[70] }}
+                      />
+                    }
+                    sx={{ marginBottom: 0.5 }}
+                  >
+                    Modify
+                  </Button>
+                  {profile ? (
+                    <EditPinnedEntityTypesModal
+                      open={displayEditPinnedEntityTypesModal}
+                      profile={profile}
+                      onClose={() =>
+                        setDisplayEditPinnedEntityTypesModal(false)
+                      }
+                      refetchProfile={refetchProfile}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </Box>
           </Box>
         </Box>
       </Container>

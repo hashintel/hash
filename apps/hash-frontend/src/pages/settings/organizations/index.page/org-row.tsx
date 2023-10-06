@@ -29,7 +29,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
   };
 
   return (
-    <TableRow key={org.entityRecordId.entityId}>
+    <TableRow key={org.entity.metadata.recordId.entityId}>
       <Cell>
         <Link
           href={`/settings/organizations/${org.shortname}/general`}
