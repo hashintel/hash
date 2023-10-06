@@ -24,8 +24,9 @@ import { User } from "../../../lib/user-and-org";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, ButtonProps } from "../../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";
 import { useAuthInfo } from "../../shared/auth-info-context";
+import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";
+import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (
@@ -79,10 +80,10 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const avatarImageInputRef = useRef<HTMLInputElement>(null);
 
-  const [newAvatarImageUploading, setNewAvatarImageUploading] = useState(false);
-  const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
+  const { updateProfileAvatar, newAvatarImageUploading } =
+    useUpdateProfileAvatar({ profile: userProfile });
 
-  const existingAvatarImageEntity = userProfile.hasAvatar?.imageEntity;
+  const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
 
   const existingCoverImageEntity = userProfile.hasCoverImage?.imageEntity;
 
@@ -128,75 +129,11 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         throw new Error("No file provided");
       }
 
-      setNewAvatarImageUploading(true);
-
-      // Upload the file and get a file entity which describes it
-      const { data: fileUploadData, errors: fileUploadErrors } =
-        await uploadFile({
-          data: {
-            description: `The avatar for the ${userProfile.preferredName} user in HASH`,
-            name: `${userProfile.preferredName}'s avatar image`,
-            file,
-            ...(existingAvatarImageEntity
-              ? {
-                  fileEntityUpdateInput: {
-                    existingFileEntityId: existingAvatarImageEntity.metadata
-                      .recordId.entityId as EntityId,
-                  },
-                }
-              : {
-                  fileEntityCreationInput: {
-                    entityTypeId: types.entityType.imageFile.entityTypeId,
-                  },
-                }),
-          },
-        });
-
-      if (fileUploadErrors || !fileUploadData) {
-        throw new Error(
-          fileUploadErrors?.[0]?.message ?? "Unknown error uploading file",
-        );
-      }
-
-      if (userProfile.hasAvatar) {
-        // Delete the existing hasAvatar link, if any
-        await archiveEntity({
-          data: {
-            entityId:
-              userProfile.hasAvatar.linkEntity.metadata.recordId.entityId,
-          },
-        });
-      }
-
-      // Create a new hasAvatar link from the org to the new file entity
-      await createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
-          linkData: {
-            leftEntityId: userProfile.entity.metadata.recordId.entityId,
-            rightEntityId: fileUploadData.metadata.recordId
-              .entityId as EntityId,
-          },
-          properties: {},
-        },
-      });
-
-      /** @todo: error handling */
+      await updateProfileAvatar(file);
 
       void refetchUserProfile();
-      void refetchUserAndOrgs();
-
-      setNewAvatarImageUploading(false);
     },
-    [
-      archiveEntity,
-      createEntity,
-      existingAvatarImageEntity,
-      refetchUserAndOrgs,
-      uploadFile,
-      userProfile,
-      refetchUserProfile,
-    ],
+    [updateProfileAvatar, refetchUserProfile],
   );
 
   const handleCoverImageFileUpload = useCallback<

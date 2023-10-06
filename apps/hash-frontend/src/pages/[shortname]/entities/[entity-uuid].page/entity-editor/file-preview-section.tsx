@@ -25,10 +25,10 @@ import {
 } from "../../../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../../../settings/shared/file-upload-dropzone";
 import { useAuthInfo } from "../../../../shared/auth-info-context";
+import { getFileUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { getFileUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
 
 const previewHeight = 250;
 
