@@ -26,7 +26,7 @@ export const loginUsingTempForm = async ({
 
   // Wait for the redirect to the account page
   await expect(page.locator("text=Welcome to HASH")).toBeVisible({
-    timeout: 30_000,
+    timeout: 60_000,
   });
 
   // Wait for user avatar to appear

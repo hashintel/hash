@@ -3,7 +3,7 @@ require("setimmediate");
 
 import { EntityType, PropertyType } from "@blockprotocol/graph";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { fluidFontClassName, theme } from "@hashintel/design-system";
+import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { InheritanceRow } from "./entity-type-editor/inheritance-row";
@@ -74,7 +74,10 @@ export const EntityTypeEditor = ({
                     <Typography variant="h5" mb={2}>
                       Extends
                     </Typography>
-                    <InheritanceRow entityTypeId={entityType.$id} />
+                    <InheritanceRow
+                      entityTypeId={entityType.$id}
+                      typeTitle={entityType.title}
+                    />
                   </Box>
 
                   <Box>

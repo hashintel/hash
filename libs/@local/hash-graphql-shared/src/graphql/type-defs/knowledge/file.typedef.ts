@@ -27,6 +27,28 @@ export const fileTypedef = gql`
     fields: JSONObject!
   }
 
+  input FileEntityCreationInput {
+    """
+    Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
+    """
+    entityTypeId: VersionedUrl
+    """
+    The owner for the created file entity.
+    """
+    ownedById: OwnedById!
+  }
+
+  input FileEntityUpdateInput {
+    """
+    Optionally provide a more specific type for the file entity, which must inherit from @hash's File system type
+    """
+    entityTypeId: VersionedUrl
+    """
+    The entityId of the existing file entity, if this is replacing an existing file
+    """
+    existingFileEntityId: EntityId!
+  }
+
   extend type Mutation {
     """
     Requests to upload a file, returning the url and data needed
@@ -38,23 +60,27 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from Remote File
-        (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2)
+      The original name of the file (e.g. image.png)
       """
-      entityTypeId: VersionedUrl
+      name: String!
       """
-      An optional name for the file
+      An optional display name for the file
       """
-      name: String
-      """
-      The owner for the created file entity. Defaults to the user calling the mutation.
-      """
-      ownedById: OwnedById
+      displayName: String
       """
       Size of the file in bytes
       """
       size: Int!
+      """
+      Data used to create the file entity, if a new one is required
+      """
+      fileEntityCreationInput: FileEntityCreationInput
+      """
+      The entityId of the existing file entity, if this is replacing an existing file
+      """
+      fileEntityUpdateInput: FileEntityUpdateInput
     ): RequestFileUploadResponse!
+
     """
     Creates a file entity from an external link. The file entity will just have
     a reference to the link (the file isn't fetched by our server in this current version)
@@ -65,22 +91,21 @@ export const fileTypedef = gql`
       """
       description: String
       """
-      Optionally provide a more specific type for the file entity, which must inherit from Remote File
-      (https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/3)
+      An optional display name for the file
       """
-      entityTypeId: VersionedUrl
-      """
-      An optional name for the file
-      """
-      name: String
-      """
-      The owner for the created file entity. Defaults to the user calling the mutation.
-      """
-      ownedById: OwnedById
+      displayName: String
       """
       url of the external file
       """
       url: String!
+      """
+      Data used to create the file entity, if a new one is required
+      """
+      fileEntityCreationInput: FileEntityCreationInput
+      """
+      The entityId of the existing file entity, if this is replacing an existing file
+      """
+      fileEntityUpdateInput: FileEntityUpdateInput
     ): Entity!
   }
 `;

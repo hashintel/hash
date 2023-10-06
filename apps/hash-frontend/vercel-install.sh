@@ -45,6 +45,7 @@ echo "Installing turbo"
 yarn global add turbo
 
 # TODO: investigate why producing a pruned repo results in a broken Vercel build
+#   update: Probably due to missing `patches/` folder, needs investigation
 
 #echo "Producing pruned repo"
 #turbo prune --scope='@apps/hash-frontend'

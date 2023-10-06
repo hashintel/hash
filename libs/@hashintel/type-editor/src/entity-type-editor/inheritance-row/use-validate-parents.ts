@@ -22,16 +22,23 @@ const throwIfDuplicates = <
   inheritedTypes,
   childsOwnTypeIds,
   label,
+  newParentTitle,
   typeOptions,
 }: {
   inheritedTypes: T;
   childsOwnTypeIds: VersionedUrl[];
   label: string;
+  newParentTitle: string;
   typeOptions: T extends InheritedValues["links"]
     ? Record<VersionedUrl, EntityType>
     : Record<VersionedUrl, PropertyType>;
 }) => {
   for (const inheritedType of inheritedTypes) {
+    const inheritedFrom =
+      inheritedType.inheritanceChain[
+        inheritedType.inheritanceChain.length - 1
+      ]!;
+
     const fullTypeDetails = typeOptions[inheritedType.$id];
     if (!fullTypeDetails) {
       throw new Error(
@@ -45,25 +52,49 @@ const throwIfDuplicates = <
       )
     ) {
       throw new Error(
-        `You must remove the ${fullTypeDetails.title} ${label} from the child type before adding a parent that has it.`,
+        `The parent type you’re adding (${newParentTitle}) ${
+          inheritedFrom.title !== newParentTitle
+            ? `has a parent (${inheritedFrom.title}) which `
+            : ""
+        }
+        specifies a ${label} type (${
+          fullTypeDetails.title
+        }) already present on your type. Please remove it from your type in order to make ${newParentTitle} a parent.`,
       );
     }
 
-    if (
-      (inheritedTypes as InheritedValues["links"]).filter(
-        (type) =>
-          // Disallow duplicates of the same type by any version
-          extractBaseUrl(type.$id) === extractBaseUrl(inheritedType.$id) &&
-          // Unless they belong directly to the exact same entity type version –
-          // it might appear in multiple chains, e.g. Father <- Person, Salesman <- Person
-          inheritedType.inheritanceChain[ // the direct owner will be the last in the inheritance chain
-            inheritedType.inheritanceChain.length - 1
-          ]!.$id !==
-            type.inheritanceChain[type.inheritanceChain.length - 1]!.$id,
-      ).length > 1
-    ) {
+    const duplicateFromAnotherParent = (
+      inheritedTypes as InheritedValues["links"]
+    ).find(
+      (type) =>
+        // Disallow duplicates of the same type by any version
+        extractBaseUrl(type.$id) === extractBaseUrl(inheritedType.$id) &&
+        // Unless they belong directly to the exact same entity type version –
+        // it might appear in multiple chains, e.g. Father <- Person, Salesman <- Person
+        inheritedType.inheritanceChain[ // the direct owner will be the last in the inheritance chain
+          inheritedType.inheritanceChain.length - 1
+        ]!.$id !== type.inheritanceChain[type.inheritanceChain.length - 1]!.$id,
+    );
+
+    if (duplicateFromAnotherParent) {
+      const duplicateInheritedFrom =
+        duplicateFromAnotherParent.inheritanceChain[
+          duplicateFromAnotherParent.inheritanceChain.length - 1
+        ]!;
+
       throw new Error(
-        `You cannot add a parent that contains the ${fullTypeDetails.title} ${label} as another parent already contains it.`,
+        `The new type you’re adding (${newParentTitle}) ${
+          inheritedFrom.title !== newParentTitle
+            ? `has a parent ${inheritedFrom.title} which `
+            : ""
+        }
+        specifies a ${label} (${
+          fullTypeDetails.title
+        }) already present on another parent (${
+          duplicateInheritedFrom.title
+        }). Please remove it from either ${newParentTitle} or ${
+          duplicateInheritedFrom.title
+        } in order to add ${newParentTitle} as a parent.`,
       );
     }
   }
@@ -83,6 +114,7 @@ export const useValidateParents = (): ((args: {
   childPropertiesIds: VersionedUrl[];
   childLinksIds: VersionedUrl[];
   directParentIds: VersionedUrl[];
+  newParentTitle: string;
 }) => boolean) => {
   const getInheritedValues = useGetInheritedValues();
 
@@ -95,6 +127,7 @@ export const useValidateParents = (): ((args: {
       childPropertiesIds,
       childLinksIds,
       directParentIds,
+      newParentTitle,
     }) => {
       const areChainsLinkChains = [];
 
@@ -158,6 +191,7 @@ export const useValidateParents = (): ((args: {
         inheritedTypes: inheritedLinks,
         childsOwnTypeIds: childLinksIds,
         label: "link",
+        newParentTitle,
         typeOptions: linkTypes,
       });
 
@@ -165,6 +199,7 @@ export const useValidateParents = (): ((args: {
         inheritedTypes: inheritedProperties,
         childsOwnTypeIds: childPropertiesIds,
         label: "property",
+        newParentTitle,
         typeOptions: propertyTypes,
       });
 

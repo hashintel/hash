@@ -16,8 +16,9 @@ export const ensureLinearOrgExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { logger, context } = params;
+  const authentication = { actorId: systemUserAccountId };
 
-  const existingLinearOrg = await getOrgByShortname(context, {
+  const existingLinearOrg = await getOrgByShortname(context, authentication, {
     shortname: linearOrgShortname,
   });
 
@@ -27,9 +28,8 @@ export const ensureLinearOrgExists = async (params: {
     const shortname = linearOrgShortname;
     const name = "Linear";
 
-    const linearOrg = await createOrg(context, {
+    const linearOrg = await createOrg(context, authentication, {
       shortname,
-      actorId: systemUserAccountId,
       name,
     });
 

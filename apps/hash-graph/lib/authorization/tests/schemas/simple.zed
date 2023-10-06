@@ -1,9 +1,0 @@
-definition graph/account {}
-
-definition graph/entity {
-    relation writer: graph/account
-    relation reader: graph/account
-
-    permission edit = writer
-    permission view = reader + edit
-}

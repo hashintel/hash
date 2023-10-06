@@ -16,10 +16,7 @@ export const useBlockProtocolUpdateEntity = (
   const [updateFn] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  >(updateEntityMutation);
 
   const updateEntity = useCallback<UpdateEntityMessageCallback>(
     async ({ data }) => {

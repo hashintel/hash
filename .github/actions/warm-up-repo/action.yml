@@ -21,13 +21,13 @@ runs:
       shell: bash
 
     - name: Set up Python 3.11
-      uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+      uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
       with:
         python-version: "^3.11"
         cache: poetry
 
     - name: yarn install
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
       with:
         max_attempts: 3
         timeout_minutes: 10
@@ -38,7 +38,7 @@ runs:
 
     - name: npx playwright install
       if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@943e742917ac94714d2f408a0e8320f2d1fcafcd # v2.8.3
+      uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
       with:
         max_attempts: 3
         timeout_minutes: 10

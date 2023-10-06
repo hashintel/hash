@@ -1,9 +1,10 @@
 import { PenIcon } from "@hashintel/block-design-system";
-import { IconButton, LoadingSpinner } from "@hashintel/design-system";
+import { ArrowLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { ImageUploadDropzone } from "./image-upload-dropzone";
+import { GrayToBlueIconButton } from "../../shared/gray-to-blue-icon-button";
+import { FileUploadDropzone } from "./file-upload-dropzone";
 
 type ImageFieldProps = {
   imageUrl?: string;
@@ -20,6 +21,7 @@ export const ImageField = ({
 
   useEffect(() => {
     if (imageUrlFromProps) {
+      setEditingImage(false);
       setImageUrl(imageUrlFromProps);
     }
   }, [imageUrlFromProps]);
@@ -48,27 +50,34 @@ export const ImageField = ({
       })}
     >
       {editingImage ? (
-        <ImageUploadDropzone onFileProvided={setNewImage} />
+        <>
+          {imageUrl ? (
+            <Box sx={{ position: "absolute", top: 5, right: 5 }}>
+              <GrayToBlueIconButton
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingImage(false);
+                  setImageUrl(imageUrlFromProps);
+                }}
+                sx={{
+                  zIndex: 2,
+                }}
+              >
+                <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
+              </GrayToBlueIconButton>{" "}
+            </Box>
+          ) : null}
+          <FileUploadDropzone image onFileProvided={setNewImage} />
+        </>
       ) : (
         <>
-          <Box sx={{ position: "absolute", top: 2, right: 2 }}>
+          <Box sx={{ position: "absolute", top: 5, right: 5 }}>
             {newImageUploading ? (
               <LoadingSpinner color="gray.40" />
             ) : (
-              <IconButton
-                onClick={() => setEditingImage(true)}
-                sx={{
-                  color: "gray.50",
-                  p: 1,
-                  transition: ({ transitions }) => transitions.create("color"),
-                  "&:hover": {
-                    color: "gray.10",
-                    background: "none",
-                  },
-                }}
-              >
-                <PenIcon />
-              </IconButton>
+              <GrayToBlueIconButton onClick={() => setEditingImage(true)}>
+                <PenIcon sx={{ width: 13, height: 13 }} />
+              </GrayToBlueIconButton>
             )}
           </Box>
           <Box

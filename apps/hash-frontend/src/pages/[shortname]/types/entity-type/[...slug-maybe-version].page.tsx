@@ -11,11 +11,10 @@ import {
   getFormDataFromSchema,
   getSchemaFromFormData,
   useEntityTypeForm,
-  useEntityTypeFormWatch,
 } from "@hashintel/type-editor";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
-import { Box, Container, Theme, Typography } from "@mui/material";
+import { Box, Container, Theme } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 // eslint-disable-next-line unicorn/prefer-node-protocol -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/1931#issuecomment-1359324528
 import { Buffer } from "buffer/";
@@ -26,8 +25,8 @@ import { useMemo, useState } from "react";
 import { PageErrorState } from "../../../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../../../shared/entity-type-entities-context";
 import { useEntityTypeEntitiesContextValue } from "../../../../shared/entity-type-entities-context/use-entity-type-entities-context-value";
-import { useIsLinkType } from "../../../../shared/entity-types-context/hooks";
-import { isTypeArchived } from "../../../../shared/entity-types-context/util";
+import { useIsSpecialEntityType } from "../../../../shared/entity-types-context/hooks";
+import { isTypeArchived } from "../../../../shared/is-archived";
 import { isHrefExternal } from "../../../../shared/is-href-external";
 import {
   getLayoutWithSidebar,
@@ -42,6 +41,7 @@ import { DefinitionTab } from "./[...slug-maybe-version].page/definition-tab";
 import { EditBarTypeEditor } from "./[...slug-maybe-version].page/edit-bar-type-editor";
 import { EntitiesTab } from "./[...slug-maybe-version].page/entities-tab";
 import { EntityTypeTabs } from "./[...slug-maybe-version].page/entity-type-tabs";
+import { FileUploadsTab } from "./[...slug-maybe-version].page/file-uploads-tab";
 import { EntityTypeContext } from "./[...slug-maybe-version].page/shared/entity-type-context";
 import { EntityTypeHeader } from "./[...slug-maybe-version].page/shared/entity-type-header";
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/shared/get-entity-type-base-url";
@@ -73,15 +73,6 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const parentRefs = useEntityTypeFormWatch({
-    control: formMethods.control,
-    name: "allOf",
-  });
-
-  const entityTypeIsLink = useIsLinkType({
-    allOf: parentRefs.map((id) => ({ $ref: id })),
-  });
-
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
       const entityType = JSON.parse(
@@ -94,6 +85,7 @@ const Page: NextPageWithLayout = () => {
       const validationResult = validateEntityType(entityType);
       if (validationResult.type === "Ok") {
         reset(getFormDataFromSchema(entityType));
+
         return entityType as EntityType;
       } else {
         throw Error(
@@ -133,8 +125,14 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType?.schema ?? draftEntityType;
 
+  const parentRefs = formMethods.watch("allOf");
+  const { isLink, isFile, isImage } = useIsSpecialEntityType({
+    allOf: parentRefs.map((id) => ({ $ref: id })),
+    $id: entityType?.$id,
+  });
+
   const userUnauthorized = useIsReadonlyModeForResource(
-    routeNamespace?.accountId,
+    routeNamespace?.accountId as OwnedById,
   );
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
@@ -155,8 +153,14 @@ const Page: NextPageWithLayout = () => {
   const isDirty = formMethods.formState.isDirty;
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!isDirty) {
-      // prevent creating new types when there are no changes
+    if (!isDirty && !isDraft) {
+      /**
+       * Prevent publishing a type unless:
+       * 1. The form has been touched by the user (isDirty) – don't publish versions without changes
+       * OR
+       * 2. It's a new draft type – the user may not have touched the form from its initial state,
+       *    which is set from input the user supplies in a separate form/modal.
+       */
       return;
     }
 
@@ -248,12 +252,13 @@ const Page: NextPageWithLayout = () => {
                         />,
                       ]
                     : []),
-                  ...(!isReadonly && !isDraft && !entityTypeIsLink
+                  ...(!isReadonly && !isDraft && !isLink
                     ? [
                         <ConvertTypeMenuItem
                           key={entityType.$id}
                           convertToLinkType={convertToLinkType}
                           disabled={isDirty}
+                          typeTitle={entityType.title}
                         />,
                       ]
                     : []),
@@ -268,14 +273,14 @@ const Page: NextPageWithLayout = () => {
                   },
                   {
                     href: "/types/entity-type",
-                    title: `${entityTypeIsLink ? "Link" : "Entity"} Types`,
+                    title: `${isLink ? "Link" : "Entity"} Types`,
                     id: "entity-types",
                   },
                   {
                     title: entityType.title,
                     href: "#",
                     id: entityType.$id,
-                    icon: entityTypeIsLink ? (
+                    icon: isLink ? (
                       <LinkTypeIcon
                         sx={({ palette }) => ({
                           stroke: palette.gray[50],
@@ -309,6 +314,7 @@ const Page: NextPageWithLayout = () => {
                           },
                         }
                   }
+                  key={entityType.$id} // reset edit bar state when the entity type changes
                 />
               )}
 
@@ -326,45 +332,20 @@ const Page: NextPageWithLayout = () => {
                     ontologyChip={
                       <OntologyChip
                         domain={frontendDomain}
-                        path={
-                          <>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {router.query.shortname}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /types/entity-type/
-                            </Typography>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {slug}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /v/{currentVersion}
-                            </Typography>
-                          </>
-                        }
+                        path={`${router.query.shortname}/types/entity-type/${slug}/v/${currentVersion}`}
                       />
                     }
                     entityType={entityType}
-                    isLink={entityTypeIsLink}
+                    isLink={isLink}
                     isReadonly={isReadonly}
                     latestVersion={latestVersion}
                   />
 
-                  <EntityTypeTabs isDraft={isDraft} />
+                  <EntityTypeTabs
+                    isDraft={isDraft}
+                    isFile={isFile}
+                    isImage={isImage}
+                  />
                 </Container>
               </Box>
 
@@ -383,6 +364,9 @@ const Page: NextPageWithLayout = () => {
                     )
                   ) : null}
                   {currentTab === "entities" ? <EntitiesTab /> : null}
+                  {isFile && currentTab === "upload" ? (
+                    <FileUploadsTab isImage={isImage} />
+                  ) : null}
                 </Container>
               </Box>
             </Box>

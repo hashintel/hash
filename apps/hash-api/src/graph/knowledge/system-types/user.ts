@@ -1,18 +1,20 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountEntityId,
   AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
+  extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
-  Uuid,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -24,13 +26,12 @@ import {
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
-import { systemUserAccountId } from "../../system-user";
 import {
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  updateEntityProperty,
+  makeEntityPublic,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -87,9 +88,9 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
   return {
-    accountId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as Uuid as AccountId,
+    accountId: extractAccountId(
+      entity.metadata.recordId.entityId as AccountEntityId,
+    ),
     shortname,
     preferredName,
     isAccountSignupComplete,
@@ -107,8 +108,8 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
 export const getUserById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<User>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getUserFromEntity({ entity });
 };
@@ -121,17 +122,15 @@ export const getUserById: ImpureGraphFunction<
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string },
   Promise<User | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.user.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               {
@@ -146,6 +145,10 @@ export const getUserByShortname: ImpureGraphFunction<
         ],
       },
       graphResolveDepths: zeroedGraphResolveDepths,
+      // TODO: Should this be an all-time query? What happens if the user is
+      //       archived/deleted, do we want to allow users to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data: userEntitiesSubgraph }) =>
@@ -169,17 +172,15 @@ export const getUserByShortname: ImpureGraphFunction<
 export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string },
   Promise<User | null>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.user.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               {
@@ -230,11 +231,10 @@ export const createUser: ImpureGraphFunction<
     userAccountId?: AccountId;
   },
   Promise<User>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   const {
     emails,
     kratosIdentityId,
-    actorId,
     shortname,
     preferredName,
     isInstanceAdmin = false,
@@ -242,6 +242,7 @@ export const createUser: ImpureGraphFunction<
 
   const existingUserWithKratosIdentityId = await getUserByKratosIdentityId(
     ctx,
+    authentication,
     {
       kratosIdentityId,
     },
@@ -260,7 +261,7 @@ export const createUser: ImpureGraphFunction<
 
     if (
       shortnameIsRestricted({ shortname }) ||
-      (await shortnameIsTaken(ctx, { shortname }))
+      (await shortnameIsTaken(ctx, authentication, { shortname }))
     ) {
       throw new Error(
         `An account with shortname "${shortname}" already exists.`,
@@ -270,8 +271,11 @@ export const createUser: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const userAccountId =
-    params.userAccountId ?? (await graphApi.createAccountId()).data;
+  const userAccountId = params.userAccountId
+    ? params.userAccountId
+    : await graphApi
+        .createAccount(authentication.actorId)
+        .then(({ data: accountId }) => accountId as AccountId);
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
@@ -291,18 +295,26 @@ export const createUser: ImpureGraphFunction<
       : {}),
   };
 
-  const entity = await createEntity(ctx, {
-    ownedById: systemUserAccountId as OwnedById,
-    properties,
-    entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
-    entityUuid: userAccountId as EntityUuid,
-    actorId,
-  });
+  const entity = await createEntity(
+    ctx,
+    { actorId: userAccountId },
+    {
+      ownedById: userAccountId as OwnedById,
+      properties,
+      entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
+      entityUuid: userAccountId as string as EntityUuid,
+    },
+  );
+  await makeEntityPublic(
+    ctx,
+    { actorId: userAccountId },
+    { entityId: entity.metadata.recordId.entityId },
+  );
 
   const user = getUserFromEntity({ entity });
 
   if (isInstanceAdmin) {
-    await addHashInstanceAdmin(ctx, { user, actorId });
+    await addHashInstanceAdmin(ctx, authentication, { user });
   }
 
   return user;
@@ -316,7 +328,7 @@ export const createUser: ImpureGraphFunction<
 export const getUserKratosIdentity: ImpureGraphFunction<
   { user: User },
   Promise<KratosUserIdentity>
-> = async (_, { user }) => {
+> = async (_, __, { user }) => {
   const { kratosIdentityId } = user;
 
   const { data: kratosIdentity } = await kratosIdentityApi.getIdentity({
@@ -335,13 +347,13 @@ export const getUserKratosIdentity: ImpureGraphFunction<
 export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   { user: User; updatedTraits: Partial<KratosUserIdentityTraits> },
   Promise<void>
-> = async (ctx, { user, updatedTraits }) => {
+> = async (ctx, authentication, { user, updatedTraits }) => {
   const {
     id: kratosIdentityId,
     traits: currentKratosTraits,
     schema_id,
     state,
-  } = await getUserKratosIdentity(ctx, { user });
+  } = await getUserKratosIdentity(ctx, authentication, { user });
 
   /** @todo: figure out why the `state` can be undefined */
   if (!state) {
@@ -362,91 +374,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
 };
 
 /**
- * Update the shortname of a User.
- *
- * @param params.user - the user
- * @param params.updatedShortname - the new shortname to assign to the User
- * @param params.actorId - the id of the account that is updating the shortname
- */
-export const updateUserShortname: ImpureGraphFunction<
-  { user: User; updatedShortname: string; actorId: AccountId },
-  Promise<User>
-> = async (ctx, params) => {
-  const { user, updatedShortname, actorId } = params;
-
-  if (shortnameIsInvalid({ shortname: updatedShortname })) {
-    throw new Error(`The shortname "${updatedShortname}" is invalid`);
-  }
-
-  if (
-    shortnameIsRestricted({ shortname: updatedShortname }) ||
-    (await shortnameIsTaken(ctx, { shortname: updatedShortname }))
-  ) {
-    throw new Error(
-      `An account with shortname "${updatedShortname}" already exists.`,
-    );
-  }
-
-  const previousShortname = user.shortname;
-
-  const updatedUser = await updateEntityProperty(ctx, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-    value: updatedShortname,
-    actorId,
-  }).then((updatedEntity) => getUserFromEntity({ entity: updatedEntity }));
-
-  await updateUserKratosIdentityTraits(ctx, {
-    user: updatedUser,
-    updatedTraits: { shortname: updatedShortname },
-  }).catch(async (error) => {
-    // If an error occurred updating the entity, set the property to have the previous shortname
-    await updateEntityProperty(ctx, {
-      entity: user.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
-      value: previousShortname,
-      actorId,
-    });
-
-    return Promise.reject(error);
-  });
-
-  return updatedUser;
-};
-
-/**
- * Update the preferred name of a User.
- *
- * @param params.user - the user
- * @param params.updatedPreferredName - the new preferred name to assign to the User
- * @param params.actorId - the id of the account that is updating the preferred name
- */
-export const updateUserPreferredName: ImpureGraphFunction<
-  { user: User; updatedPreferredName: string; actorId: AccountId },
-  Promise<User>
-> = async (ctx, params) => {
-  const { user, updatedPreferredName, actorId } = params;
-
-  if (updatedPreferredName === "") {
-    throw new Error(
-      `Preferred name "${updatedPreferredName}" cannot be removed.`,
-    );
-  }
-
-  const updatedEntity = await updateEntityProperty(ctx, {
-    entity: user.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl,
-    value: updatedPreferredName,
-    actorId,
-  });
-
-  return getUserFromEntity({ entity: updatedEntity });
-};
-
-/**
  * Make the user a member of an organization.
  *
  * @param params.user - the user
@@ -457,16 +384,14 @@ export const joinOrg: ImpureGraphFunction<
   {
     userEntityId: EntityId;
     orgEntityId: EntityId;
-    actorId: AccountId;
   },
   Promise<void>
-> = async (ctx, params) => {
-  const { userEntityId, orgEntityId, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { userEntityId, orgEntityId } = params;
 
-  await createOrgMembership(ctx, {
+  await createOrgMembership(ctx, authentication, {
     orgEntityId,
     userEntityId,
-    actorId,
   });
 };
 
@@ -478,12 +403,16 @@ export const joinOrg: ImpureGraphFunction<
 export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },
   Promise<OrgMembership[]>
-> = async (ctx, { userEntityId }) => {
-  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: userEntityId,
-    linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
-  });
+> = async (ctx, authentication, { userEntityId }) => {
+  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(
+    ctx,
+    authentication,
+    {
+      entityId: userEntityId,
+      linkEntityTypeVersionedUrl:
+        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+    },
+  );
 
   return outgoingOrgMembershipLinkEntities.map((linkEntity) =>
     getOrgMembershipFromLinkEntity({ linkEntity }),
@@ -499,12 +428,16 @@ export const getUserOrgMemberships: ImpureGraphFunction<
 export const isUserMemberOfOrg: ImpureGraphFunction<
   { userEntityId: EntityId; orgEntityUuid: EntityUuid },
   Promise<boolean>
-> = async (ctx, params) => {
-  const orgMemberships = await getUserOrgMemberships(ctx, params);
+> = async (ctx, authentication, params) => {
+  const orgMemberships = await getUserOrgMemberships(
+    ctx,
+    authentication,
+    params,
+  );
 
   const orgs = await Promise.all(
     orgMemberships.map((orgMembership) =>
-      getOrgMembershipOrg(ctx, { orgMembership }),
+      getOrgMembershipOrg(ctx, authentication, { orgMembership }),
     ),
   );
 
@@ -523,20 +456,12 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 export const isUserHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<boolean>
-> = async (ctx, { user }) => {
-  const hashInstance = await getHashInstance(ctx, {});
-
-  const outgoingAdminLinkEntities = await getEntityOutgoingLinks(ctx, {
-    entityId: hashInstance.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-    rightEntityId: user.entity.metadata.recordId.entityId,
-  });
-
-  if (outgoingAdminLinkEntities.length > 1) {
-    throw new Error(
-      "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
-    );
-  }
-
-  return outgoingAdminLinkEntities.length === 1;
+> = async (ctx, authentication, params) => {
+  const hashInstance = await getHashInstance(ctx, authentication, {});
+  return ctx.graphApi
+    .canUpdateEntity(
+      params.user.accountId,
+      hashInstance.entity.metadata.recordId.entityId,
+    )
+    .then(({ data: { has_permission } }) => has_permission);
 };

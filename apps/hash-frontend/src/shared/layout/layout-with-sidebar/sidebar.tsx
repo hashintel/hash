@@ -2,9 +2,10 @@ import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useContext } from "react";
+import { FunctionComponent } from "react";
 
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { useHashInstance } from "../../../components/hooks/use-hash-instance";
+import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
@@ -19,9 +20,11 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
+
+  const { hashInstance } = useHashInstance();
 
   return (
     <Drawer
@@ -95,15 +98,17 @@ export const PageSidebar: FunctionComponent = () => {
           overflowY: "auto",
         }}
       >
-        {activeWorkspaceAccountId ? (
+        {activeWorkspaceOwnedById ? (
           <>
             {/* PAGES */}
-            <AccountPageList
-              currentPageEntityUuid={routePageEntityUuid}
-              accountId={activeWorkspaceAccountId}
-            />
+            {hashInstance?.properties.pagesAreEnabled ? (
+              <AccountPageList
+                currentPageEntityUuid={routePageEntityUuid}
+                ownedById={activeWorkspaceOwnedById}
+              />
+            ) : null}
             {/* TYPES */}
-            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
+            <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
           </>
         ) : null}
       </Box>

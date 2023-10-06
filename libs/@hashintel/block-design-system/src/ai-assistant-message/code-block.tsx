@@ -230,7 +230,9 @@ export const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
           <CodeBlockButton
             onClick={handleCopy}
             variant="tertiary"
-            endIcon={copied ? <CheckIcon /> : <CopyIcon />}
+            endIcon={
+              copied ? <CheckIcon sx={{ fontSize: 22 }} /> : <CopyIcon />
+            }
           >
             {copied ? "Copied" : "Copy"}
           </CodeBlockButton>

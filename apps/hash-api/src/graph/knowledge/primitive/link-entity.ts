@@ -1,5 +1,4 @@
 import {
-  AccountId,
   Entity,
   EntityId,
   EntityMetadata,
@@ -8,6 +7,7 @@ import {
   LinkData,
   OwnedById,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
 import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
@@ -21,11 +21,6 @@ export type CreateLinkEntityParams = {
   leftToRightOrder?: number;
   rightEntityId: EntityId;
   rightToLeftOrder?: number;
-  actorId: AccountId;
-};
-
-export type LinkEntity = Entity & {
-  linkData: NonNullable<Entity["linkData"]>;
 };
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
@@ -45,11 +40,10 @@ export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
 export const createLinkEntity: ImpureGraphFunction<
   CreateLinkEntityParams,
   Promise<LinkEntity>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const {
     ownedById,
     linkEntityType,
-    actorId,
     leftEntityId,
     leftToRightOrder,
     rightEntityId,
@@ -57,7 +51,13 @@ export const createLinkEntity: ImpureGraphFunction<
     properties = {},
   } = params;
 
-  if (!(await isEntityTypeLinkEntityType(context, linkEntityType.schema))) {
+  if (
+    !(await isEntityTypeLinkEntityType(
+      context,
+      authentication,
+      linkEntityType.schema,
+    ))
+  ) {
     throw new Error(
       `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
     );
@@ -70,13 +70,15 @@ export const createLinkEntity: ImpureGraphFunction<
     rightToLeftOrder,
   };
 
-  const { data: metadata } = await context.graphApi.createEntity({
-    ownedById,
-    linkData,
-    actorId,
-    entityTypeId: linkEntityType.schema.$id,
-    properties,
-  });
+  const { data: metadata } = await context.graphApi.createEntity(
+    authentication.actorId,
+    {
+      ownedById,
+      linkData,
+      entityTypeId: linkEntityType.schema.$id,
+      properties,
+    },
+  );
 
   return {
     metadata: metadata as EntityMetadata,
@@ -100,16 +102,14 @@ export const updateLinkEntity: ImpureGraphFunction<
     properties?: EntityPropertiesObject;
     leftToRightOrder?: number;
     rightToLeftOrder?: number;
-    actorId: AccountId;
   },
   Promise<LinkEntity>
-> = async ({ graphApi }, params) => {
-  const { actorId, leftToRightOrder, rightToLeftOrder, linkEntity } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { leftToRightOrder, rightToLeftOrder, linkEntity } = params;
 
   const properties = params.properties ?? linkEntity.properties;
 
-  const { data: metadata } = await graphApi.updateEntity({
-    actorId,
+  const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: linkEntity.metadata.recordId.entityId,
     entityTypeId: linkEntity.metadata.entityTypeId,
     properties,
@@ -137,8 +137,8 @@ export const updateLinkEntity: ImpureGraphFunction<
 export const getLinkEntityRightEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },
   Promise<Entity>
-> = async (ctx, { linkEntity }) => {
-  const rightEntity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { linkEntity }) => {
+  const rightEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.rightEntityId,
   });
 
@@ -153,8 +153,8 @@ export const getLinkEntityRightEntity: ImpureGraphFunction<
 export const getLinkEntityLeftEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },
   Promise<Entity>
-> = async (ctx, { linkEntity }) => {
-  const leftEntity = await getLatestEntityById(ctx, {
+> = async (ctx, authentication, { linkEntity }) => {
+  const leftEntity = await getLatestEntityById(ctx, authentication, {
     entityId: linkEntity.linkData.leftEntityId,
   });
 

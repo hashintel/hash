@@ -45,14 +45,14 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
 /**
- * A textual description of something
- */
-export type Description0PropertyValue = TextDataType;
-
-/**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
  */
-export type Description1PropertyValue = TextDataType;
+export type DescriptionPropertyValue = TextDataType;
+
+/**
+ * A human-friendly display name for something
+ */
+export type DisplayNamePropertyValue = TextDataType;
 
 export type EmailPropertyValue = TextDataType;
 
@@ -61,10 +61,42 @@ export type EmailPropertyValue = TextDataType;
  */
 export type ExpiredAtPropertyValue = TextDataType;
 
+export type File = Entity<FileProperties>;
+
+/**
+ * A unique signature derived from a file's contents
+ */
+export type FileHashPropertyValue = TextDataType;
+
 /**
  * The name of a file.
  */
 export type FileNamePropertyValue = TextDataType;
+
+export type FileOutgoingLinkAndTarget = never;
+
+export type FileOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A file hosted at a URL
+ */
+export type FileProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"?: FileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/"?: FileSizePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"?: MIMETypePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+};
+
+/**
+ * The size of a file
+ */
+export type FileSizePropertyValue = NumberDataType;
 
 /**
  * A URL that serves a file.
@@ -78,12 +110,60 @@ export type HasAvatarOutgoingLinkAndTarget = never;
 export type HasAvatarOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * The avatar something has
+ * The avatar something has.
  */
 export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
 export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
+
+export type HasCoverImage = Entity<HasCoverImageProperties> & {
+  linkData: LinkData;
+};
+
+export type HasCoverImageOutgoingLinkAndTarget = never;
+
+export type HasCoverImageOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The cover image something has.
+ */
+export type HasCoverImageProperties = HasCoverImageProperties1 &
+  HasCoverImageProperties2;
+export type HasCoverImageProperties1 = LinkProperties;
+
+export type HasCoverImageProperties2 = {};
+
+export type HasServiceAccount = Entity<HasServiceAccountProperties> & {
+  linkData: LinkData;
+};
+
+export type HasServiceAccountOutgoingLinkAndTarget = never;
+
+export type HasServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that has a service account.
+ */
+export type HasServiceAccountProperties = HasServiceAccountProperties1 &
+  HasServiceAccountProperties2;
+export type HasServiceAccountProperties1 = LinkProperties;
+
+export type HasServiceAccountProperties2 = {};
+
+export type Image = Entity<ImageProperties>;
+
+export type ImageOutgoingLinkAndTarget = never;
+
+export type ImageOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An image file hosted at a URL
+ */
+export type ImageProperties = ImageProperties1 & ImageProperties2;
+export type ImageProperties1 = FileProperties;
+
+export type ImageProperties2 = {};
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -108,15 +188,22 @@ export type LocationPropertyValue = TextDataType;
 export type MIMETypePropertyValue = TextDataType;
 
 /**
+ * An arithmetical value (in the Real number system)
+ */
+export type NumberDataType = number;
+
+/**
  * An opaque, untyped JSON object
  */
 export type ObjectDataType = {};
 
 export type Org = Entity<OrgProperties>;
 
-export type OrgHasAvatarLink = {
-  linkEntity: HasAvatar;
-  rightEntity: RemoteImageFile;
+export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
+
+export type OrgHasCoverImageLink = {
+  linkEntity: HasCoverImage;
+  rightEntity: Image;
 };
 
 export type OrgMembership = Entity<OrgMembershipProperties> & {
@@ -133,19 +220,20 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink;
+export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink | OrgHasCoverImageLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
 };
 
 export type OrgProperties = {
-  "http://localhost:3000/@system-user/types/property-type/description/"?: Description0PropertyValue;
   "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-name/": OrganizationNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/": ShortnamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
 };
 
 export type OrganizationNamePropertyValue = TextDataType;
@@ -155,6 +243,21 @@ export type OrganizationProvidedInformationPropertyValue = {
 };
 
 export type OrganizationSizePropertyValue = TextDataType;
+
+/**
+ * The original name of a file
+ */
+export type OriginalFileNamePropertyValue = TextDataType;
+
+/**
+ * The original source of something
+ */
+export type OriginalSourcePropertyValue = TextDataType;
+
+/**
+ * The original URL something was hosted at
+ */
+export type OriginalURLPropertyValue = TextDataType;
 
 export type Parent = Entity<ParentProperties> & { linkData: LinkData };
 
@@ -172,36 +275,25 @@ export type ParentProperties2 = {};
 
 export type PreferredNamePropertyValue = TextDataType;
 
-export type RemoteFile = Entity<RemoteFileProperties>;
-
-export type RemoteFileOutgoingLinkAndTarget = never;
-
-export type RemoteFileOutgoingLinksByLinkEntityTypeId = {};
+export type PreferredPronounsPropertyValue = TextDataType;
 
 /**
- * Information about a file hosted at a remote URL.
+ * A URL to a profile
  */
-export type RemoteFileProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: Description1PropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": FileURLPropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": MIMETypePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": FileNamePropertyValue;
+export type ProfileURLPropertyValue = TextDataType;
+
+export type ServiceAccount = Entity<ServiceAccountProperties>;
+
+export type ServiceAccountOutgoingLinkAndTarget = never;
+
+export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A service account.
+ */
+export type ServiceAccountProperties = {
+  "http://localhost:3000/@system-user/types/property-type/profile-url/": ProfileURLPropertyValue;
 };
-
-export type RemoteImageFile = Entity<RemoteImageFileProperties>;
-
-export type RemoteImageFileOutgoingLinkAndTarget = never;
-
-export type RemoteImageFileOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Information about an image file hosted at a remote URL.
- */
-export type RemoteImageFileProperties = RemoteImageFileProperties1 &
-  RemoteImageFileProperties2;
-export type RemoteImageFileProperties1 = RemoteFileProperties;
-
-export type RemoteImageFileProperties2 = {};
 
 /**
  * A unique identifier for something, in the form of a slug
@@ -227,9 +319,11 @@ export type TokensPropertyValue = ObjectDataType;
 
 export type User = Entity<UserProperties>;
 
-export type UserHasAvatarLink = {
-  linkEntity: HasAvatar;
-  rightEntity: RemoteImageFile;
+export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
+
+export type UserHasServiceAccountLink = {
+  linkEntity: HasServiceAccount;
+  rightEntity: ServiceAccount;
 };
 
 export type UserOrgMembershipLink = {
@@ -239,10 +333,12 @@ export type UserOrgMembershipLink = {
 
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
+  | UserHasServiceAccountLink
   | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };
 
@@ -255,8 +351,11 @@ export type UserProperties = {
     ...EmailPropertyValue[],
   ];
   "http://localhost:3000/@system-user/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/"?: ShortnamePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
 };
 
 export type UserSecret = Entity<UserSecretProperties>;

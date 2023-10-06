@@ -5,12 +5,12 @@ import {
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import {
-  createUser,
-  updateUserShortname,
-} from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
-import { systemUserAccountId } from "@apps/hash-api/src/graph/system-user";
+import {
+  AuthenticationContext,
+  publicUserAccountId,
+} from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -87,27 +87,23 @@ export const createTestUser = async (
 
   const kratosIdentityId = identity.id;
 
-  const createdUser = await createUser(context, {
-    emails: [`${shortname}@example.com`],
-    kratosIdentityId,
-    actorId: systemUserAccountId,
-  }).catch((err) => {
+  return createUser(
+    context,
+    { actorId: publicUserAccountId },
+    {
+      emails: [`${shortname}@example.com`],
+      kratosIdentityId,
+      shortname,
+    },
+  ).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
-    throw err;
-  });
-
-  return await updateUserShortname(context, {
-    user: createdUser,
-    updatedShortname: shortname,
-    actorId: createdUser.accountId,
-  }).catch((err) => {
-    logger.error(`Error updating shortname for UserModel to ${shortname}`);
     throw err;
   });
 };
 
 export const createTestOrg = async (
   context: ImpureGraphContext,
+  authentication: AuthenticationContext,
   shortNamePrefix: string,
   logger: Logger,
 ) => {
@@ -115,12 +111,11 @@ export const createTestOrg = async (
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
-  return await createOrg(context, {
+  return createOrg(context, authentication, {
     name: "Test org",
     shortname,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemUserAccountId,
   });
 };

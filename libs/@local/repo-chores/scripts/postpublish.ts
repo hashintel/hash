@@ -30,10 +30,17 @@ const script = async () => {
     path.join(packageInfo.path, "package.json"),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-  if (!packageJson.main.startsWith("dist/")) {
+  if (
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+    ("main" in packageJson && !packageJson.main.startsWith("dist/")) ||
+    ("exports" in packageJson &&
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      Object.values(packageJson.exports as Record<string, string>).some(
+        (value) => !value.startsWith("./dist/"),
+      ))
+  ) {
     throw new UserFriendlyError(
-      'Expected `package.json` "main" field to start with "dist/". Exiting script to avoid loss of uncommitted changes. Did you forget to run the prepublish script?',
+      'Expected `package.json` main or exports field to have values containing "dist/". Exiting script to avoid loss of uncommitted changes. Did you forget to run the prepublish script?',
     );
   }
 

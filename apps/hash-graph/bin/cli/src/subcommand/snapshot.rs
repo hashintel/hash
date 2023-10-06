@@ -1,9 +1,12 @@
+#[cfg(feature = "authorization")]
+use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
+#[cfg(not(feature = "authorization"))]
+use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use futures::{SinkExt, StreamExt, TryStreamExt};
 use graph::{
     logging::{init_logger, LoggingArgs},
-    snapshot::{codec, SnapshotEntry, SnapshotStore},
+    snapshot::{SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, PostgresStorePool, StorePool},
 };
 use tokio::io;
@@ -35,6 +38,21 @@ pub struct SnapshotArgs {
 
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
+
+    /// The host the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HOST")]
+    pub spicedb_host: String,
+
+    /// The port the Spice DB server is listening at.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT")]
+    pub spicedb_http_port: u16,
+
+    /// The secret key used to authenticate with the Spice DB server.
+    #[cfg(feature = "authorization")]
+    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
+    pub spicedb_grpc_preshared_key: Option<String>,
 }
 
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
@@ -49,49 +67,57 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut store = SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
-        |report| {
-            tracing::error!(error = ?report, "Failed to acquire database connection");
-            report
-        },
-    )?);
+    #[cfg(feature = "authorization")]
+    let mut authorization_api = {
+        let mut spicedb_client = SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            args.spicedb_grpc_preshared_key.as_deref(),
+        )
+        .change_context(GraphError)?;
+        spicedb_client
+            .import_schema(include_str!(
+                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+            ))
+            .await
+            .change_context(GraphError)?;
+        spicedb_client
+    };
+    #[cfg(not(feature = "authorization"))]
+    let mut authorization_api = NoAuthorization;
 
     match args.command {
         SnapshotCommand::Dump(_) => {
-            store
-                .dump_snapshot()
-                .map_err(|report| {
-                    report
-                        .change_context(GraphError)
-                        .attach_printable("Failed to produce snapshot dump")
-                })
-                .forward(
-                    FramedWrite::new(
-                        io::BufWriter::new(io::stdout()),
-                        codec::JsonLinesEncoder::default(),
-                    )
-                    .sink_map_err(|report| {
-                        report
-                            .change_context(GraphError)
-                            .attach_printable("Failed to write snapshot dump")
-                    }),
-                )
-                .await?;
+            pool.dump_snapshot(
+                FramedWrite::new(
+                    io::BufWriter::new(io::stdout()),
+                    codec::bytes::JsonLinesEncoder::default(),
+                ),
+                &authorization_api,
+                10_000,
+            )
+            .change_context(GraphError)
+            .attach_printable("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(_) => {
-            store
-                .restore_snapshot(
-                    FramedRead::new(
-                        io::BufReader::new(io::stdin()),
-                        codec::JsonLinesDecoder::default(),
-                    ),
-                    10_000,
-                )
-                .await
-                .change_context(GraphError)
-                .attach_printable("Failed to restore snapshot")?;
+            SnapshotStore::new(pool.acquire().await.change_context(GraphError).map_err(
+                |report| {
+                    tracing::error!(error = ?report, "Failed to acquire database connection");
+                    report
+                },
+            )?)
+            .restore_snapshot(
+                FramedRead::new(
+                    io::BufReader::new(io::stdin()),
+                    codec::bytes::JsonLinesDecoder::default(),
+                ),
+                &mut authorization_api,
+                10_000,
+            )
+            .await
+            .change_context(GraphError)
+            .attach_printable("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }

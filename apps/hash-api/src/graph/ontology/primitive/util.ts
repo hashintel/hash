@@ -21,20 +21,20 @@ export const getNamespaceOfAccountOwner: ImpureGraphFunction<
     ownerId: OwnedById;
   },
   Promise<string>
-> = async (ctx, params) => {
+> = async (ctx, authentication, params) => {
   const namespace =
     params.ownerId === systemUserAccountId
       ? systemUserShortname
       : (
-          (await getUserById(ctx, {
+          (await getUserById(ctx, authentication, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as OwnedById,
               params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined)) ??
-          (await getOrgById(ctx, {
+          (await getOrgById(ctx, authentication, {
             entityId: entityIdFromOwnedByIdAndEntityUuid(
-              systemUserAccountId as OwnedById,
+              params.ownerId as Uuid as OwnedById,
               params.ownerId as Uuid as EntityUuid,
             ),
           }).catch(() => undefined))

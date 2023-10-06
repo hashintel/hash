@@ -132,6 +132,14 @@ const systemEntityTypes = {
     title: "Text",
     description: undefined,
   },
+  file: {
+    title: "File",
+    description: "A file hosted at a URL",
+  },
+  imageFile: {
+    title: "Image",
+    description: "An image file hosted at a URL",
+  },
   user: {
     title: "User",
     description: undefined,
@@ -155,6 +163,34 @@ const systemEntityTypes = {
   linearIntegration: {
     title: "Linear Integration",
     description: "An instance of an integration with Linear.",
+  },
+  serviceAccount: {
+    title: "Service Account",
+    description: "A service account.",
+  },
+  linkedInAccount: {
+    title: "LinkedIn Account",
+    description: "A LinkedIn account.",
+  },
+  twitterAccount: {
+    title: "Twitter Account",
+    description: "A Twitter account.",
+  },
+  tikTokAccount: {
+    title: "TikTok Account",
+    description: "A TikTok account.",
+  },
+  facebookAccount: {
+    title: "Facebook Account",
+    description: "A Facebook account.",
+  },
+  instagramAccount: {
+    title: "Instagram Account",
+    description: "An Instagram account.",
+  },
+  gitHubAccount: {
+    title: "GitHub Account",
+    description: "A GitHub account.",
   },
 } as const;
 
@@ -190,6 +226,15 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
+  profileUrl: {
+    title: "Profile URL",
+    description: "A URL to a profile",
+  },
+  pagesAreEnabled: {
+    title: "Pages Are Enabled",
+    description:
+      "Whether or not user functionality related to pages is enabled.",
+  },
   userSelfRegistrationIsEnabled: {
     title: "User Self Registration Is Enabled",
     description: "Whether or not user self registration (sign-up) is enabled.",
@@ -210,6 +255,10 @@ const systemPropertyTypes = {
   },
   preferredName: {
     title: "Preferred Name",
+    description: undefined,
+  },
+  preferredPronouns: {
+    title: "Preferred Pronouns",
     description: undefined,
   },
   orgName: {
@@ -311,7 +360,11 @@ const systemLinkEntityTypes = {
   },
   hasAvatar: {
     title: "Has Avatar",
-    description: "The avatar something has",
+    description: "The avatar something has.",
+  },
+  hasCoverImage: {
+    title: "Has Cover Image",
+    description: "The cover image something has.",
   },
   hasText: {
     title: "Has Text",
@@ -333,6 +386,10 @@ const systemLinkEntityTypes = {
     title: "Uses User Secret",
     description: "Something that uses a user secret.",
   },
+  hasServiceAccount: {
+    title: "Has Service Account",
+    description: "Something that has a service account.",
+  },
 } as const;
 
 type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
@@ -346,27 +403,27 @@ export type SystemLinkEntityTypeTitle =
 const primitiveDataTypes = {
   text: {
     title: "Text",
-    description: "An ordered sequence of characters",
+    description: "An ordered sequence of characters.",
   },
   number: {
     title: "Number",
-    description: "An arithmetical value (in the Real number system)",
+    description: "An arithmetical value (in the Real number system).",
   },
   boolean: {
     title: "Boolean",
-    description: "A True or False value",
+    description: "A True or False value.",
   },
   emptyList: {
     title: "Empty List",
-    description: "An Empty List",
+    description: "An Empty List.",
   },
   object: {
     title: "Object",
-    description: "A plain JSON object with no pre-defined structure",
+    description: "A plain JSON object with no pre-defined structure.",
   },
   null: {
     title: "Null",
-    description: "A placeholder value representing 'nothing'",
+    description: "A placeholder value representing 'nothing'.",
   },
 } as const;
 
@@ -504,7 +561,7 @@ const linearPropertyTypes = {
   /** Organization */
   allowedAuthService: {
     title: "Allowed Auth Service",
-    description: "Allowed authentication provider",
+    description: "Allowed authentication provider.",
   },
   deletionRequestedAt: {
     title: "Deletion Requested At",
@@ -915,15 +972,16 @@ export const linearTypes: LinearTypeDefinitions = {
   ),
 };
 
-export const blockProtocolTypes = {
-  "remote-file": {
-    title: "Remote File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
-  },
-  "remote-image-file": {
-    title: "Remote Image File",
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-image-file/v/1",
-  },
-} as const;
+/**
+ * Add any Block Protocol entity types that we want to generate here.
+ *
+ * e.g.
+ * export const blockProtocolTypes = {
+ *   "remote-file": {
+ *     title: "Remote File",
+ *     entityTypeId:
+ *       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *   }
+ * }
+ */
+export const blockProtocolTypes = {} as const;

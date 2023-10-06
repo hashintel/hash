@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-09-04&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2023-10-02&color=blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -28,6 +28,48 @@
 //! custom-defined `Suggestion` struct.
 //!
 //! # Quick-Start Guide
+//!
+//! ## In a new project
+//!
+//! ```rust
+//! # #![allow(dead_code)]
+//! use error_stack::ResultExt;
+//! // using `thiserror` is not neccessary, but convenient
+//! use thiserror::Error;
+//!
+//! // Errors can enumerate variants users care about
+//! // but notably don't need to chain source/inner error manually.
+//! #[derive(Error, Debug)]
+//! enum AppError {
+//!     #[error("serious app error: {consequences}")]
+//!     Serious { consequences: &'static str },
+//!     #[error("trivial app error")]
+//!     Trivial,
+//! }
+//!
+//! type AppResult<T> = error_stack::Result<T, AppError>;
+//!
+//! // Errors can also be a plain `struct`, somewhat like in `anyhow`.
+//! #[derive(Error, Debug)]
+//! #[error("logic error")]
+//! struct LogicError;
+//!
+//! type LogicResult<T> = error_stack::Result<T, LogicError>;
+//!
+//! fn do_logic() -> LogicResult<()> {
+//!     Ok(())
+//! }
+//!
+//! fn main() -> AppResult<()> {
+//!     // `error-stack` requires developer to properly handle
+//!     // changing error contexts
+//!     do_logic().change_context(AppError::Serious {
+//!         consequences: "math no longer works",
+//!     })?;
+//!
+//!     Ok(())
+//! }
+//! ```
 //!
 //! ## Where to use a Report
 //!

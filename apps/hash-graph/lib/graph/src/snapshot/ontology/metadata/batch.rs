@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use authorization::backend::ZanzibarBackend;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -54,7 +55,11 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
         Ok(())
     }
 
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        _authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
             Self::Ids(ontology_ids) => {
@@ -63,6 +68,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_ids_tmp
                             SELECT * FROM UNNEST($1::ontology_ids[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_ids],
@@ -95,6 +101,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_owned_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_owned_metadata[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_owned_metadata],
@@ -111,6 +118,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                         r"
                             INSERT INTO ontology_external_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_external_metadata[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[ontology_external_metadata],

@@ -147,7 +147,10 @@ export const SelectLinearTeamsTable: FunctionComponent<{
   const { authenticatedUser } = useAuthenticatedUser();
 
   const possibleWorkspaces = useMemo(
-    () => [authenticatedUser, ...authenticatedUser.memberOf],
+    () => [
+      authenticatedUser,
+      ...authenticatedUser.memberOf.map(({ org }) => org),
+    ],
     [authenticatedUser],
   );
 

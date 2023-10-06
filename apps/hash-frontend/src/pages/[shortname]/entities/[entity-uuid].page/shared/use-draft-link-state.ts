@@ -1,9 +1,11 @@
-import { EntityId } from "@local/hash-subgraph";
+import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Dispatch, SetStateAction, useState } from "react";
 
 import { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";
 
-export type DraftLinksToCreate = LinkAndTargetEntity[];
+export type DraftLinksToCreate = (LinkAndTargetEntity & {
+  sourceSubgraph: Subgraph<EntityRootType> | null;
+})[];
 
 export type DraftLinksToArchive = EntityId[];
 

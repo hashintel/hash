@@ -15,6 +15,9 @@
     },
     "codegen:generate-openapi-specs": {
       "outputs": ["openapi/openapi.json", "openapi/models/**"]
+    },
+    "test:integration": {
+      "dependsOn": ["build"]
     }
   }
 }

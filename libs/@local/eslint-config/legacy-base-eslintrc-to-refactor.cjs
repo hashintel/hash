@@ -184,7 +184,11 @@ module.exports = {
         ],
         patterns: [
           {
-            group: ["@hashintel/design-system/*"],
+            group: [
+              "@hashintel/design-system/*",
+              "!@hashintel/design-system/theme",
+              "!@hashintel/design-system/constants",
+            ],
             message: "Please import from @hashintel/design-system instead.",
           },
         ],

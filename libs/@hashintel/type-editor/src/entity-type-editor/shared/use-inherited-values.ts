@@ -47,6 +47,15 @@ type ValueMap = {
   properties: Record<VersionedUrl, InheritedValues["properties"][0]>;
 };
 
+// This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
+const versionedUrlToTitle = (url: VersionedUrl) =>
+  url
+    .split("/")
+    .slice(-3, -2)[0]!
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
 /*
  * Mutates the provided map to add inherited values for the given entity type
  *
@@ -59,19 +68,37 @@ const addInheritedValuesForEntityType = (
   inheritedValuesMap: ValueMap,
   inheritanceChainToHere: EntityType[] = [],
 ) => {
-  const entity = entityTypeOptions[entityTypeId];
+  const entityType = entityTypeOptions[entityTypeId];
 
-  if (!entity) {
+  if (!entityType) {
     throw new Error(
       `Entity type ${entityTypeId} not found in entity type options`,
     );
   }
 
-  const newInheritanceChain = [...inheritanceChainToHere, entity];
+  const newInheritanceChain = [...inheritanceChainToHere, entityType];
 
-  const { properties, links } = getFormDataFromSchema(entity);
+  const { properties, links } = getFormDataFromSchema(entityType);
 
   for (const link of links) {
+    const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find(
+      (versionedUrl) => versionedUrl.startsWith(extractBaseUrl(link.$id)),
+    ) as VersionedUrl | undefined;
+    if (duplicateLinkKey) {
+      const duplicateInheritedFrom =
+        inheritedValuesMap.links[duplicateLinkKey]!.inheritanceChain[
+          inheritedValuesMap.links[duplicateLinkKey]!.inheritanceChain.length -
+            1
+        ]!;
+      throw new Error(
+        `Link type '${versionedUrlToTitle(
+          duplicateLinkKey,
+        )}' found on two parents: '${duplicateInheritedFrom.title}' and '${
+          entityType.title
+        }'. Please remove it from one in order to have both as a parent.`,
+      );
+    }
+
     // eslint-disable-next-line no-param-reassign
     inheritedValuesMap.links[link.$id] = {
       ...link,
@@ -80,13 +107,23 @@ const addInheritedValuesForEntityType = (
   }
 
   for (const property of properties) {
-    if (
-      Object.keys(inheritedValuesMap.properties).find((versionedUrl) =>
-        versionedUrl.startsWith(extractBaseUrl(property.$id)),
-      )
-    ) {
+    const duplicatePropertyKey = Object.keys(
+      inheritedValuesMap.properties,
+    ).find((versionedUrl) =>
+      versionedUrl.startsWith(extractBaseUrl(property.$id)),
+    ) as VersionedUrl | undefined;
+    if (duplicatePropertyKey) {
+      const duplicateInheritedFrom =
+        inheritedValuesMap.properties[duplicatePropertyKey]!.inheritanceChain[
+          inheritedValuesMap.properties[duplicatePropertyKey]!.inheritanceChain
+            .length - 1
+        ]!;
       throw new Error(
-        `Duplicate property ${property.$id} found in inheritance chain`,
+        `Property type '${versionedUrlToTitle(
+          duplicatePropertyKey,
+        )}' found on two parents: '${duplicateInheritedFrom.title}' and '${
+          entityType.title
+        }'. Please remove it from one in order to have both as a parent.`,
       );
     }
 
@@ -97,11 +134,11 @@ const addInheritedValuesForEntityType = (
     };
   }
 
-  if (!entity.allOf?.length) {
+  if (!entityType.allOf?.length) {
     // we have reached a root entity type, add the inheritance chain to the map
     inheritedValuesMap.inheritanceChains.push(newInheritanceChain);
   } else {
-    entity.allOf.map(({ $ref }) =>
+    entityType.allOf.map(({ $ref }) =>
       addInheritedValuesForEntityType(
         $ref,
         entityTypeOptions,

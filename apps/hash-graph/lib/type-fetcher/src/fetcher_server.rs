@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use futures::{stream, StreamExt, TryStreamExt};
 use reqwest::{
     header::{ACCEPT, USER_AGENT},
@@ -30,6 +32,7 @@ impl Fetcher for FetchServer {
                         .get(url.to_url())
                         .header(ACCEPT, "application/json")
                         .header(USER_AGENT, "HASH Graph")
+                        .timeout(Duration::from_secs(10))
                         .send()
                         .await
                         .map_err(|err| {

@@ -16,8 +16,10 @@
     "poetry:install": "poetry install --no-root --no-interaction",
     "poetry:install-production": "poetry install --no-root --no-interaction --only main"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@apps/hash-graph": "0.0.0-private"
+  },
   "devDependencies": {
-    "@redocly/cli": "1.0.2"
+    "@redocly/cli": "1.2.0"
   }
 }

@@ -7,6 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
+use authorization::{schema::OwnerId, AuthorizationApi, VisibilityScope};
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -14,12 +15,13 @@ use graph_types::knowledge::{
     link::LinkOrder,
 };
 use graph_types::{
-    account::AccountId,
+    account::{AccountGroupId, AccountId},
     ontology::{
         CustomOntologyMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 #[cfg(hash_graph_test_environment)]
 use temporal_versioning::{DecisionTime, Timestamp};
@@ -97,11 +99,11 @@ where
                 let created = self
                     .as_client()
                     .query_opt(
-                        r#"
+                        r"
                             INSERT INTO base_urls (base_url) VALUES ($1)
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
-                        "#,
+                        ",
                         &[&base_url.as_str()],
                     )
                     .await
@@ -111,20 +113,20 @@ where
                 if !created {
                     let query = match location {
                         OntologyLocation::Owned => {
-                            r#"
+                            r"
                                 SELECT EXISTS (SELECT 1
                                 FROM ontology_owned_metadata
                                 NATURAL JOIN ontology_ids
                                 WHERE base_url = $1);
-                            "#
+                            "
                         }
                         OntologyLocation::External => {
-                            r#"
+                            r"
                                 SELECT EXISTS (SELECT 1
                                 FROM ontology_external_metadata
                                 NATURAL JOIN ontology_ids
                                 WHERE base_url = $1);
-                            "#
+                            "
                         }
                     };
 
@@ -154,29 +156,36 @@ where
     ) -> Result<Option<OntologyId>, InsertionError> {
         let query: &str = match on_conflict {
             ConflictBehavior::Skip => {
-                r#"
+                r"
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
                     version
-                  ) VALUES (gen_random_uuid(), $1, $2)
+                  ) VALUES ($1, $2, $3)
                   ON CONFLICT DO NOTHING
                   RETURNING ontology_ids.ontology_id;
-                "#
+                "
             }
             ConflictBehavior::Fail => {
-                r#"
+                r"
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
                     version
-                  ) VALUES (gen_random_uuid(), $1, $2)
+                  ) VALUES ($1, $2, $3)
                   RETURNING ontology_ids.ontology_id;
-                "#
+                "
             }
         };
         self.as_client()
-            .query_opt(query, &[&record_id.base_url.as_str(), &record_id.version])
+            .query_opt(
+                query,
+                &[
+                    &OntologyId::from_record_id(record_id),
+                    &record_id.base_url.as_str(),
+                    &record_id.version,
+                ],
+            )
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
@@ -196,14 +205,14 @@ where
         ontology_id: OntologyId,
         record_created_by_id: RecordCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
-        let query: &str = r#"
+        let query: &str = r"
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
                 record_created_by_id
               ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
               RETURNING transaction_time;
-            "#;
+            ";
 
         self.as_client()
             .query_one(query, &[&ontology_id, &record_created_by_id])
@@ -217,7 +226,7 @@ where
         id: &VersionedUrl,
         record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        let query: &str = r#"
+        let query: &str = r"
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
@@ -228,7 +237,7 @@ where
             WHERE base_url = $1 AND version = $2
           ) AND transaction_time @> now()
           RETURNING transaction_time;
-        "#;
+        ";
 
         let optional = self
             .as_client()
@@ -250,13 +259,13 @@ where
             let exists = self
                 .as_client()
                 .query_one(
-                    r#"
+                    r"
                         SELECT EXISTS (
                             SELECT 1
                             FROM ontology_ids
                             WHERE base_url = $1 AND version = $2
                         );
-                    "#,
+                    ",
                     &[&id.base_url.as_str(), &OntologyTypeVersion::new(id.version)],
                 )
                 .await
@@ -280,7 +289,7 @@ where
         id: &VersionedUrl,
         record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        let query: &str = r#"
+        let query: &str = r"
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
@@ -291,7 +300,7 @@ where
             $3
           )
           RETURNING transaction_time;
-        "#;
+        ";
 
         Ok(OntologyTemporalMetadata {
             transaction_time: self
@@ -328,20 +337,37 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<(), InsertionError> {
-        let query: &str = r#"
-              INSERT INTO ontology_owned_metadata (
-                ontology_id,
-                owned_by_id
-              ) VALUES ($1, $2);
-            "#;
+    ) -> Result<VisibilityScope, InsertionError> {
+        let query: &str = r"
+                WITH inserted_owners AS (
+                    INSERT INTO ontology_owned_metadata (
+                        ontology_id,
+                        owned_by_id
+                    ) VALUES ($1, $2)
+                    RETURNING owned_by_id
+                )
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM account_groups
+                    JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
+                );
+            ";
 
-        self.as_client()
-            .query(query, &[&ontology_id, &owned_by_id])
+        let is_account_group: bool = self
+            .as_client()
+            .query_one(query, &[&ontology_id, &owned_by_id])
             .await
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?
+            .get(0);
 
-        Ok(())
+        let owned_by_uuid = owned_by_id.into_uuid();
+        if is_account_group {
+            Ok(VisibilityScope::AccountGroup(AccountGroupId::new(
+                owned_by_uuid,
+            )))
+        } else {
+            Ok(VisibilityScope::Account(AccountId::new(owned_by_uuid)))
+        }
     }
 
     async fn create_ontology_external_metadata(
@@ -349,12 +375,12 @@ where
         ontology_id: OntologyId,
         fetched_at: OffsetDateTime,
     ) -> Result<(), InsertionError> {
-        let query: &str = r#"
+        let query: &str = r"
               INSERT INTO ontology_external_metadata (
                 ontology_id,
                 fetched_at
               ) VALUES ($1, $2);
-            "#;
+            ";
 
         self.as_client()
             .query(query, &[&ontology_id, &fetched_at])
@@ -425,12 +451,12 @@ where
         Ok(self
             .as_client()
             .query_opt(
-                r#"
+                r"
                     INSERT INTO entity_types (ontology_id, schema, label_property)
                     VALUES ($1, $2, $3)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
-                "#,
+                ",
                 &[&ontology_id, &value, &label_property],
             )
             .await
@@ -447,7 +473,7 @@ where
         for property_type in property_type.property_type_references() {
             self.as_client()
                 .query_one(
-                r#"
+                    r"
                         INSERT INTO property_type_constrains_properties_on (
                             source_property_type_ontology_id,
                             target_property_type_ontology_id
@@ -455,13 +481,13 @@ where
                             $1,
                             (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                         ) RETURNING target_property_type_ontology_id;
-                    "#,
+                    ",
                     &[
                         &ontology_id,
                         &property_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(property_type.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -470,7 +496,7 @@ where
         for data_type in property_type.data_type_references() {
             self.as_client()
                 .query_one(
-                r#"
+                    r"
                         INSERT INTO property_type_constrains_values_on (
                             source_property_type_ontology_id,
                             target_data_type_ontology_id
@@ -478,13 +504,13 @@ where
                             $1,
                             (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                         ) RETURNING target_data_type_ontology_id;
-                    "#,
+                    ",
                     &[
                         &ontology_id,
                         &data_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(data_type.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -502,7 +528,7 @@ where
         for property_type in entity_type.property_type_references() {
             self.as_client()
                 .query_one(
-                    r#"
+                    r"
                         INSERT INTO entity_type_constrains_properties_on (
                             source_entity_type_ontology_id,
                             target_property_type_ontology_id
@@ -510,14 +536,14 @@ where
                             $1,
                             (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                         ) RETURNING source_entity_type_ontology_id;
-                    "#,
+                    ",
                     &[
                         &ontology_id,
                         &property_type.url().base_url.as_str(),
                         &OntologyTypeVersion::new(property_type.url().version),
                     ],
                 )
-            .await
+                .await
 
                 .change_context(InsertionError)?;
         }
@@ -525,7 +551,7 @@ where
         for inherits_from in entity_type.inherits_from().all_of() {
             self.as_client()
                 .query_one(
-                r#"
+                    r"
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
@@ -533,13 +559,13 @@ where
                             $1,
                             (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                         ) RETURNING target_entity_type_ontology_id;
-                    "#,
+                    ",
                     &[
                         &ontology_id,
                         &inherits_from.url().base_url.as_str(),
                         &OntologyTypeVersion::new(inherits_from.url().version),
                     ],
-            )
+                )
                 .await
 
                 .change_context(InsertionError)?;
@@ -550,7 +576,7 @@ where
         for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
-                    r#"
+                    r"
                         INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
@@ -558,39 +584,39 @@ where
                             $1,
                             (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
                         ) RETURNING target_entity_type_ontology_id;
-                    "#,
+                    ",
                     &[
                         &ontology_id,
                         &link_reference.url().base_url.as_str(),
                         &OntologyTypeVersion::new(link_reference.url().version),
                     ],
-            )
-            .await
+                )
+                .await
 
                 .change_context(InsertionError)?;
 
             if let Some(destinations) = destinations {
                 for destination in destinations {
                     self.as_client()
-                .query_one(
-                    r#"
-                        INSERT INTO entity_type_constrains_link_destinations_on (
-                        source_entity_type_ontology_id,
-                        target_entity_type_ontology_id
-                            ) VALUES (
-                                $1,
-                                (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
-                            ) RETURNING target_entity_type_ontology_id;
-                    "#,
-                        &[
-                            &ontology_id,
-                            &destination.url().base_url.as_str(),
-                            &OntologyTypeVersion::new(destination.url().version),
-                        ],
-                )
-                .await
+                        .query_one(
+                            r"
+                                INSERT INTO entity_type_constrains_link_destinations_on (
+                                source_entity_type_ontology_id,
+                                target_entity_type_ontology_id
+                                    ) VALUES (
+                                        $1,
+                                        (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                                    ) RETURNING target_entity_type_ontology_id;
+                            ",
+                            &[
+                                &ontology_id,
+                                &destination.url().base_url.as_str(),
+                                &OntologyTypeVersion::new(destination.url().version),
+                            ],
+                        )
+                        .await
 
-                .change_context(InsertionError)?;
+                        .change_context(InsertionError)?;
                 }
             }
         }
@@ -662,11 +688,11 @@ where
             .client
             .as_client()
             .query_one(
-                r#"
+                r"
                 SELECT ontology_id
                 FROM ontology_ids
                 WHERE base_url = $1 AND version = $2;
-                "#,
+                ",
                 &[&url.base_url.as_str(), &version],
             )
             .await
@@ -706,37 +732,36 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
+        record_created_by_id: RecordCreatedById,
         record_id: &OntologyTypeRecordId,
         custom_metadata: &PartialCustomOntologyMetadata,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<(OntologyId, LeftClosedTemporalInterval<TransactionTime>)>, InsertionError>
-    {
+    ) -> Result<
+        Option<(
+            OntologyId,
+            LeftClosedTemporalInterval<TransactionTime>,
+            VisibilityScope,
+        )>,
+        InsertionError,
+    > {
         match custom_metadata {
-            PartialCustomOntologyMetadata::Owned {
-                provenance,
-                owned_by_id,
-            } => {
+            PartialCustomOntologyMetadata::Owned { owned_by_id } => {
                 self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
-                    self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
+                    let visibility = self
+                        .create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((ontology_id, transaction_time, visibility)))
                 } else {
                     Ok(None)
                 }
             }
-            PartialCustomOntologyMetadata::External {
-                provenance,
-                fetched_at,
-            } => {
+            PartialCustomOntologyMetadata::External { fetched_at } => {
                 self.create_base_url(
                     &record_id.base_url,
                     ConflictBehavior::Skip,
@@ -746,14 +771,15 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(
-                            ontology_id,
-                            provenance.record_created_by_id,
-                        )
+                        .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time)))
+                    Ok(Some((
+                        ontology_id,
+                        transaction_time,
+                        VisibilityScope::Public,
+                    )))
                 } else {
                     Ok(None)
                 }
@@ -831,7 +857,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
-                r#"
+                r"
                   SELECT owned_by_id
                   FROM ontology_owned_metadata
                   NATURAL JOIN ontology_ids
@@ -839,7 +865,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     AND version = $2
                   LIMIT 1 -- There might be multiple versions of the same ontology, but we only
                           -- care about the `owned_by_id` which does not change when (un-)archiving.
-                ;"#,
+                ;",
                 &[&url.base_url.as_str(), &i64::from(url.version - 1)],
             )
             .await
@@ -849,13 +875,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             let exists: bool = self
                 .as_client()
                 .query_one(
-                    r#"
+                    r"
                   SELECT EXISTS (
                     SELECT 1
                     FROM ontology_ids
                     WHERE base_url = $1
                       AND version = $2
-                  );"#,
+                  );",
                     &[&url.base_url.as_str(), &i64::from(url.version - 1)],
                 )
                 .await
@@ -1199,32 +1225,166 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
 #[async_trait]
 impl<C: AsClient> AccountStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_account_id(&mut self, account_id: AccountId) -> Result<(), InsertionError> {
-        self.as_client()
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn insert_account_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        _actor_id: AccountId,
+        authorization_api: &mut A,
+        account_id: AccountId,
+    ) -> Result<(), InsertionError> {
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        transaction
+            .as_client()
             .query_one(
-                r#"
-                INSERT INTO accounts (account_id)
+                r"
+                INSERT INTO owners (owner_id)
                 VALUES ($1)
-                RETURNING account_id;
-                "#,
+                RETURNING owner_id;
+                ",
                 &[&account_id],
             )
             .await
             .change_context(InsertionError)
             .attach_printable(account_id)?;
 
-        Ok(())
+        transaction
+            .as_client()
+            .query_one(
+                r"
+                INSERT INTO accounts (account_id)
+                VALUES ($1)
+                RETURNING account_id;
+                ",
+                &[&account_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_id)?;
+
+        authorization_api
+            .add_web_owner(OwnerId::from(account_id), WebId::from(account_id))
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .remove_web_owner(OwnerId::from(account_id), WebId::from(account_id))
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn insert_account_group_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        account_group_id: AccountGroupId,
+    ) -> Result<(), InsertionError> {
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        transaction
+            .as_client()
+            .query_one(
+                r"
+                INSERT INTO owners (owner_id)
+                VALUES ($1)
+                RETURNING owner_id;
+                ",
+                &[&account_group_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_group_id)?;
+
+        transaction
+            .as_client()
+            .query_one(
+                r"
+                INSERT INTO account_groups (account_group_id)
+                VALUES ($1)
+                RETURNING account_group_id;
+                ",
+                &[&account_group_id],
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable(account_group_id)?;
+
+        authorization_api
+            .add_account_group_owner(actor_id, account_group_id)
+            .await
+            .change_context(InsertionError)?;
+
+        authorization_api
+            .add_web_owner(
+                OwnerId::from(account_group_id),
+                WebId::from(account_group_id),
+            )
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .remove_account_group_owner(actor_id, account_group_id)
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+            if let Err(auth_error) = authorization_api
+                .remove_web_owner(
+                    OwnerId::from(account_group_id),
+                    WebId::from(account_group_id),
+                )
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, _authorization_api))]
     #[cfg(hash_graph_test_environment)]
-    pub async fn delete_accounts(&mut self) -> Result<(), DeletionError> {
+    pub async fn delete_accounts<A: AuthorizationApi + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        _authorization_api: &A,
+    ) -> Result<(), DeletionError> {
         self.as_client()
             .client()
             .simple_query("DELETE FROM accounts;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM account_groups;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM owners;")
             .await
             .change_context(DeletionError)?;
 

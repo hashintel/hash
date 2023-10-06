@@ -1,10 +1,8 @@
 import { configureScope, setUser } from "@sentry/nextjs";
 
-import { AuthenticatedUser } from "../../lib/user-and-org";
+import { User } from "../../lib/user-and-org";
 
-export const setSentryUser = (params: {
-  authenticatedUser?: AuthenticatedUser;
-}) => {
+export const setSentryUser = (params: { authenticatedUser?: User }) => {
   const { authenticatedUser } = params;
   configureScope((scope) => {
     const sentryUser = scope.getUser();

@@ -3,6 +3,7 @@ import {
   Entity,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
 
@@ -28,7 +29,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 > = async (
   _,
   { linearIntegrationEntityId, syncWithWorkspaces },
-  { dataSources, user, temporal, vault },
+  { dataSources, authentication, temporal, vault },
 ) => {
   if (!vault) {
     throw new Error("Vault client not available");
@@ -38,18 +39,26 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     throw new Error("Temporal client not available");
   }
 
-  const linearIntegration = await getLinearIntegrationById(dataSources, {
-    entityId: linearIntegrationEntityId,
-  });
+  const linearIntegration = await getLinearIntegrationById(
+    dataSources,
+    authentication,
+    {
+      entityId: linearIntegrationEntityId,
+    },
+  );
 
   const userAccountId = extractOwnedByIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
-  );
+  ) as AccountId;
 
-  const linearUserSecret = await getLinearUserSecretByLinearOrgId(dataSources, {
-    userAccountId,
-    linearOrgId: linearIntegration.linearOrgId,
-  });
+  const linearUserSecret = await getLinearUserSecretByLinearOrgId(
+    dataSources,
+    authentication,
+    {
+      userAccountId,
+      linearOrgId: linearIntegration.linearOrgId,
+    },
+  );
 
   const vaultSecret = await vault.read<{ value: string }>({
     secretMountPath: "secret",
@@ -64,7 +73,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   });
 
   const existingSyncedWorkspaces =
-    await getSyncedWorkspacesForLinearIntegration(dataSources, {
+    await getSyncedWorkspacesForLinearIntegration(dataSources, authentication, {
       linearIntegrationEntityId,
     });
 
@@ -78,26 +87,24 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
   await Promise.all([
     ...removedSyncedWorkspaces.map(({ syncLinearDataWithLinkEntity }) =>
-      archiveEntity(dataSources, {
+      archiveEntity(dataSources, authentication, {
         entity: syncLinearDataWithLinkEntity,
-        actorId: user.accountId,
       }),
     ),
     ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceAccountId = extractEntityUuidFromEntityId(
+      const workspaceOwnedById = extractEntityUuidFromEntityId(
         workspaceEntityId,
-      ) as Uuid as AccountId;
+      ) as Uuid as OwnedById;
       return Promise.all([
         linearClient.triggerWorkspaceSync({
-          workspaceAccountId,
-          actorId: user.accountId,
+          authentication,
+          workspaceOwnedById,
           teamIds: linearTeamIds,
         }),
-        linkIntegrationToWorkspace(dataSources, {
+        linkIntegrationToWorkspace(dataSources, authentication, {
           linearIntegrationEntityId,
           workspaceEntityId,
           linearTeamIds,
-          actorId: user.accountId,
         }),
       ]);
     }),

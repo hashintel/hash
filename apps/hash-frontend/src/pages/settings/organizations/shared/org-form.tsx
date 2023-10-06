@@ -1,10 +1,7 @@
 import { TextField } from "@hashintel/design-system";
-import {
-  blockProtocolTypes,
-  types,
-} from "@local/hash-isomorphic-utils/ontology-types";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -14,6 +11,7 @@ import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-p
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
 import { Org } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui/button";
+import { useAuthInfo } from "../../../shared/auth-info-context";
 import { ImageField } from "../../shared/image-field";
 
 const Label = ({
@@ -72,10 +70,13 @@ const InputGroup = ({ children }: PropsWithChildren) => {
 
 export type OrgFormData = Omit<
   Org,
-  "accountId" | "kind" | "entityRecordId" | "memberships"
-> & { accountId?: Org["accountId"]; entityRecordId?: Org["entityRecordId"] };
+  "kind" | "entityRecordId" | "memberships"
+> & {
+  entityRecordId?: Org["entityRecordId"];
+};
 
 type OrgFormProps = {
+  autoFocusDisplayName?: boolean;
   onSubmit: (org: OrgFormData) => Promise<void>;
   /**
    * An existing org to edit. Editing the shortname will not be allowed.
@@ -86,6 +87,7 @@ type OrgFormProps = {
 };
 
 export const OrgForm = ({
+  autoFocusDisplayName = false,
   onSubmit,
   org: initialOrg,
   submitLabel,
@@ -94,12 +96,14 @@ export const OrgForm = ({
   const [loading, setLoading] = useState(false);
 
   const { createEntity } = useBlockProtocolCreateEntity(
-    (initialOrg?.accountId as OwnedById | undefined) ?? null,
+    (initialOrg?.accountGroupId as OwnedById | undefined) ?? null,
   );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { uploadFile } = useBlockProtocolFileUpload(
-    initialOrg?.accountId as OwnedById | undefined,
+    initialOrg?.accountGroupId as OwnedById | undefined,
   );
+
+  const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const {
     control,
@@ -122,6 +126,8 @@ export const OrgForm = ({
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
 
+  const shortnameWatcher = watch("shortname");
+
   const shortnameError = getShortnameError(
     errors.shortname?.message,
     !!touchedFields.shortname,
@@ -129,24 +135,37 @@ export const OrgForm = ({
 
   const nameWatcher = watch("name");
 
+  const existingImageEntity = initialOrg?.hasAvatar?.imageEntity;
+
   const avatarUrl =
-    initialOrg?.hasAvatar?.rightEntity.properties[
+    existingImageEntity?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 
   const setAvatar = async (file: File) => {
     if (!initialOrg?.entityRecordId) {
-      throw new Error("Cannot set org avatar without its entityRecordId");
+      throw new Error("Cannot set org avatar without the org's entityRecordId");
     }
 
     // Upload the file and get a file entity which describes it
     const { data: fileUploadData, errors: fileUploadErrors } = await uploadFile(
       {
         data: {
-          description: `${nameWatcher}'s avatar`,
-          entityTypeId: blockProtocolTypes["remote-image-file"].entityTypeId,
+          description: `The avatar for the ${nameWatcher} organization in HASH`,
+          name: `${nameWatcher}'s avatar`,
           file,
-          name: file.name,
+          ...(existingImageEntity
+            ? {
+                fileEntityUpdateInput: {
+                  existingFileEntityId: existingImageEntity.metadata.recordId
+                    .entityId as EntityId,
+                },
+              }
+            : {
+                fileEntityCreationInput: {
+                  entityTypeId: types.entityType.imageFile.entityTypeId,
+                },
+              }),
         },
       },
     );
@@ -176,6 +195,9 @@ export const OrgForm = ({
         properties: {},
       },
     });
+
+    // Refetch the authenticated user and their orgs so that avatar changes are reflected immediately in the UI
+    void refetchUserAndOrgs();
   };
 
   const nameError =
@@ -206,7 +228,7 @@ export const OrgForm = ({
           required
         />
         <TextField
-          autoFocus
+          autoFocus={autoFocusDisplayName}
           error={!!nameError}
           id="name"
           helperText={nameError}
@@ -237,15 +259,6 @@ export const OrgForm = ({
                 error={!!shortnameError}
                 helperText={shortnameError}
                 id="shortname"
-                inputProps={{
-                  sx: {
-                    borderColor: shortnameError ? "#FCA5A5" : "initial",
-                    "&:focus": {
-                      borderColor: shortnameError ? "#EF4444" : "initial",
-                    },
-                    paddingLeft: "2.25rem",
-                  },
-                }}
                 onBlur={field.onBlur}
                 onChange={(evt) => {
                   const newEvt = { ...evt };
@@ -254,22 +267,41 @@ export const OrgForm = ({
                   );
                   field.onChange(newEvt);
                 }}
+                InputProps={{
+                  startAdornment: (
+                    <Box
+                      component="span"
+                      sx={{
+                        marginLeft: 2,
+                        marginRight: 0.2,
+                        color: ({ palette }) =>
+                          shortnameError
+                            ? palette.red[80]
+                            : initialOrg
+                            ? palette.gray[50]
+                            : shortnameWatcher === ""
+                            ? "#9CA3AF"
+                            : palette.gray[80],
+                      }}
+                    >
+                      @
+                    </Box>
+                  ),
+                  sx: {
+                    borderColor: shortnameError ? "#FCA5A5" : "initial",
+                    "&:focus": {
+                      borderColor: shortnameError ? "#EF4444" : "initial",
+                    },
+                    [`.${outlinedInputClasses.input}`]: {
+                      paddingLeft: 0,
+                    },
+                  },
+                }}
                 placeholder="acme"
                 sx={{ width: 300 }}
               />
             )}
           />
-          <span
-            style={{
-              position: "absolute",
-              left: "1rem",
-              top: "1.5rem",
-              transform: "translateY(-50%)",
-              color: "#9CA3AF",
-            }}
-          >
-            @
-          </span>
         </Box>
       </InputGroup>
       {initialOrg && (

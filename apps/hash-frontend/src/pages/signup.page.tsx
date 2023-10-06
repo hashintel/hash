@@ -32,7 +32,10 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
 
   useEffect(() => {
     // If user registration is disabled, redirect the user to the login page
-    if (hashInstance && !hashInstance.userSelfRegistrationIsEnabled) {
+    if (
+      hashInstance &&
+      !hashInstance.properties.userSelfRegistrationIsEnabled
+    ) {
       void router.push("/login");
     }
   }, [hashInstance, router]);
@@ -169,6 +172,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <TextField
           label="Password"
@@ -183,6 +187,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             <Typography key={id}>{text}</Typography>
           ))}
           required
+          inputProps={{ "data-1p-ignore": false }}
         />
         <Button type="submit">Sign up with email</Button>
         {flow?.ui.messages?.map(({ text, id }) => (

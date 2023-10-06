@@ -14,7 +14,6 @@ use utoipa::{openapi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    account::AccountId,
     knowledge::link::LinkData,
     provenance::{OwnedById, ProvenanceMetadata},
 };
@@ -32,7 +31,12 @@ impl EntityUuid {
     }
 
     #[must_use]
-    pub const fn as_uuid(self) -> Uuid {
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
         self.0
     }
 }
@@ -203,9 +207,9 @@ impl<'de> Deserialize<'de> for EntityId {
             })
             .and_then(|(owned_by_id, entity_uuid)| {
                 Ok(Self {
-                    owned_by_id: OwnedById::new(AccountId::new(
+                    owned_by_id: OwnedById::new(
                         Uuid::from_str(owned_by_id).map_err(de::Error::custom)?,
-                    )),
+                    ),
                     entity_uuid: EntityUuid::new(
                         Uuid::from_str(entity_uuid).map_err(de::Error::custom)?,
                     ),
@@ -248,7 +252,12 @@ impl EntityEditionId {
     }
 
     #[must_use]
-    pub const fn as_uuid(self) -> Uuid {
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
         self.0
     }
 }

@@ -1,5 +1,4 @@
 import { Chip, TextField } from "@hashintel/design-system";
-import { OwnedById } from "@local/hash-subgraph/.";
 import {
   Autocomplete,
   AutocompleteChangeDetails,
@@ -30,7 +29,8 @@ import {
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
-import { WorkspaceContext } from "../pages/shared/workspace-context";
+import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { useActiveWorkspace } from "../pages/shared/workspace-context";
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import {
   // childMenu,
@@ -210,14 +210,15 @@ export const CommandBar: FunctionComponent = () => {
 
   const router = useRouter();
 
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceOwnedById, activeWorkspace } = useActiveWorkspace();
 
-  const [createUntitledPage] = useCreatePage(
-    activeWorkspaceAccountId as OwnedById,
-  );
-  const { lastRootPageIndex } = useAccountPages(
-    activeWorkspaceAccountId as OwnedById,
-  );
+  const { hashInstance } = useHashInstance();
+
+  const { lastRootPageIndex } = useAccountPages(activeWorkspaceOwnedById);
+  const [createUntitledPage] = useCreatePage({
+    shortname: activeWorkspace?.shortname,
+    ownedById: activeWorkspaceOwnedById,
+  });
 
   const [inputValue, setInputValue] = useState("");
   const [selectedOptionPath, setSelectedOptionPath] = useState<
@@ -453,12 +454,19 @@ export const CommandBar: FunctionComponent = () => {
   }, [router]);
 
   useEffect(() => {
+    if (!hashInstance?.properties.pagesAreEnabled) {
+      return;
+    }
     createPageOption.activate({
       command: async () => {
         await createUntitledPage(lastRootPageIndex);
       },
     });
-  }, [createUntitledPage, lastRootPageIndex]);
+  }, [
+    createUntitledPage,
+    hashInstance?.properties.pagesAreEnabled,
+    lastRootPageIndex,
+  ]);
 
   return (
     <>

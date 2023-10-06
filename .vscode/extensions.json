@@ -1,7 +1,14 @@
 {
   "recommendations": [
+    "Codecov.codecov",
     "davidanson.vscode-markdownlint",
     "esbenp.prettier-vscode",
-    "ms-playwright.playwright"
+    "ms-playwright.playwright",
+    "orta.vscode-jest",
+    "dbaeumer.vscode-eslint",
+    "GraphQL.vscode-graphql",
+    "GraphQL.vscode-graphql-syntax",
+    "hashicorp.terraform",
+    "ms-vscode.vscode-typescript-next"
   ]
 }

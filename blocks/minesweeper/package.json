@@ -30,8 +30,8 @@
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.3.0",
     "mock-block-dock": "0.1.5",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "block-scripts": {
     "port": 63212

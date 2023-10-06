@@ -11,6 +11,7 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -71,17 +72,24 @@ describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
 
   it("can create a data type", async () => {
-    createdDataType = await createDataType(graphContext, {
+    const authentication = { actorId: testUser.accountId };
+
+    createdDataType = await createDataType(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       schema: dataTypeSchema,
-      actorId: testUser.accountId,
     });
   });
 
   it("can read a data type", async () => {
-    const fetchedDataType = await getDataTypeById(graphContext, {
-      dataTypeId: createdDataType.schema.$id,
-    });
+    const authentication = { actorId: testUser.accountId };
+
+    const fetchedDataType = await getDataTypeById(
+      graphContext,
+      authentication,
+      {
+        dataTypeId: createdDataType.schema.$id,
+      },
+    );
 
     expect(fetchedDataType.schema).toEqual(createdDataType.schema);
   });
@@ -93,10 +101,11 @@ describe("Data type CRU", () => {
         createdDataType.metadata.custom.provenance.recordCreatedById,
     ).toBe(testUser.accountId);
 
-    const updatedDataType = await updateDataType(graphContext, {
+    const authentication = { actorId: testUser2.accountId };
+
+    const updatedDataType = await updateDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
-      actorId: testUser2.accountId,
     }).catch((err) => Promise.reject(err.data));
 
     expect(
@@ -106,17 +115,22 @@ describe("Data type CRU", () => {
   });
 
   it("can load an external type on demand", async () => {
+    const authentication = { actorId: testUser.accountId };
+
     const dataTypeId =
       "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
 
-    await expect(getDataTypeById(graphContext, { dataTypeId })).rejects.toThrow(
-      "Could not find data type with ID",
-    );
+    await expect(
+      getDataTypeById(
+        graphContext,
+        { actorId: publicUserAccountId },
+        { dataTypeId },
+      ),
+    ).rejects.toThrow("Could not find data type with ID");
 
     await expect(
-      getDataTypeSubgraphById(graphContext, {
+      getDataTypeSubgraphById(graphContext, authentication, {
         dataTypeId,
-        actorId: testUser.accountId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),

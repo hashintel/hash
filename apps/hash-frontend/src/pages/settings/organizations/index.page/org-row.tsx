@@ -22,7 +22,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
 
     await archiveEntity({
       data: {
-        entityId: membership.membershipEntity.metadata.recordId.entityId,
+        entityId: membership.linkEntity.metadata.recordId.entityId,
       },
     });
     void refetch();
@@ -56,7 +56,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <OrgContextMenu leaveOrg={leaveOrg} />
+        <OrgContextMenu org={org} leaveOrg={leaveOrg} />
       </TableCell>
     </TableRow>
   );

@@ -50,7 +50,12 @@ describe("Org", () => {
   let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(graphContext, "orgTest", logger);
+    createdOrg = await createTestOrg(
+      graphContext,
+      { actorId: systemUserAccountId },
+      "orgTest",
+      logger,
+    );
 
     shortname = createdOrg.shortname;
   });
@@ -60,25 +65,28 @@ describe("Org", () => {
   });
 
   it("can update the shortname of an org", async () => {
+    const authentication = { actorId: systemUserAccountId };
     shortname = generateRandomShortname("orgTest");
 
-    createdOrg = await updateOrgShortname(graphContext, {
+    createdOrg = await updateOrgShortname(graphContext, authentication, {
       org: createdOrg,
       updatedShortname: shortname,
-      actorId: systemUserAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
-    createdOrg = await updateOrgName(graphContext, {
+    const authentication = { actorId: systemUserAccountId };
+
+    createdOrg = await updateOrgName(graphContext, authentication, {
       org: createdOrg,
       updatedOrgName: "The testing org",
-      actorId: systemUserAccountId,
     });
   });
 
   it("can get an org by its shortname", async () => {
-    const fetchedOrg = await getOrgByShortname(graphContext, {
+    const authentication = { actorId: systemUserAccountId };
+
+    const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
       shortname,
     });
 

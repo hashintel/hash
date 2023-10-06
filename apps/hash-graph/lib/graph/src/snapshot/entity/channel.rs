@@ -3,19 +3,26 @@ use std::{
     task::{ready, Context, Poll},
 };
 
+use authorization::{
+    schema::{AccountGroupPermission, EntityRelation},
+    VisibilityScope,
+};
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::{ontology::OntologyTypeVersion, provenance::RecordCreatedById};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityUuid,
+    ontology::OntologyTypeVersion,
+};
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
 };
 
 use crate::snapshot::{
-    account::AccountSender,
     entity::{
         EntityEditionRow, EntityIdRow, EntityLinkEdgeRow, EntityRowBatch, EntityTemporalMetadataRow,
     },
@@ -28,11 +35,20 @@ use crate::snapshot::{
 /// function.
 #[derive(Debug, Clone)]
 pub struct EntitySender {
-    account: AccountSender,
     id: Sender<EntityIdRow>,
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
+    entity_account_relation: Sender<Vec<(EntityUuid, EntityRelation, AccountId)>>,
+    entity_account_group_relation: Sender<
+        Vec<(
+            EntityUuid,
+            EntityRelation,
+            AccountGroupId,
+            AccountGroupPermission,
+        )>,
+    >,
+    entity_public_account_relation: Sender<Vec<(EntityUuid, EntityRelation)>>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -42,8 +58,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_ready_unpin(cx))
-            .attach_printable("could not poll account sender")?;
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll id sender")?;
@@ -60,21 +74,14 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         Poll::Ready(Ok(()))
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "TODO: Needs to be split into smaller parts"
+    )]
     fn start_send(
         mut self: Pin<&mut Self>,
         entity: EntitySnapshotRecord,
     ) -> Result<(), Self::Error> {
-        self.account
-            .start_send_unpin(
-                entity
-                    .metadata
-                    .record_id
-                    .entity_id
-                    .owned_by_id
-                    .as_account_id(),
-            )
-            .attach_printable("could not send account")?;
-
         self.id
             .start_send_unpin(EntityIdRow {
                 owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
@@ -93,20 +100,8 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 right_to_left_order: entity
                     .link_data
                     .and_then(|link_data| link_data.order.right_to_left),
-                record_created_by_id: entity.metadata.custom.provenance.map_or_else(
-                    || {
-                        RecordCreatedById::new(
-                            entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .owned_by_id
-                                .as_account_id(),
-                        )
-                    },
-                    |p| p.record_created_by_id,
-                ),
-                archived: entity.metadata.custom.archived.unwrap_or(false),
+                record_created_by_id: entity.metadata.custom.provenance.record_created_by_id,
+                archived: entity.metadata.custom.archived,
                 entity_type_base_url: entity.metadata.entity_type_id.base_url.as_str().to_owned(),
                 entity_type_version: OntologyTypeVersion::new(
                     entity.metadata.entity_type_id.version,
@@ -156,12 +151,59 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                 .attach_printable("could not send entity link edges")?;
         }
 
+        let owners = entity
+            .owners
+            .into_iter()
+            .map(|owner| (owner, EntityRelation::DirectOwner));
+        let viewers = entity
+            .viewers
+            .into_iter()
+            .map(|viewer| (viewer, EntityRelation::DirectViewer));
+
+        let mut account_relations = Vec::new();
+        let mut account_group_relations = Vec::new();
+        let mut public_account_relations = Vec::new();
+        for (scope, relation) in owners.chain(viewers) {
+            match scope {
+                VisibilityScope::Account(account_id) => account_relations.push((
+                    entity.metadata.record_id.entity_id.entity_uuid,
+                    relation,
+                    account_id,
+                )),
+                VisibilityScope::AccountGroup(account_group_id) => account_group_relations.push((
+                    entity.metadata.record_id.entity_id.entity_uuid,
+                    relation,
+                    account_group_id,
+                    AccountGroupPermission::Member,
+                )),
+                VisibilityScope::Public => public_account_relations
+                    .push((entity.metadata.record_id.entity_id.entity_uuid, relation)),
+            }
+        }
+
+        if !account_relations.is_empty() {
+            self.entity_account_relation
+                .start_send_unpin(account_relations)
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity account relations")?;
+        }
+        if !account_group_relations.is_empty() {
+            self.entity_account_group_relation
+                .start_send_unpin(account_group_relations)
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity account group relations")?;
+        }
+        if !public_account_relations.is_empty() {
+            self.entity_public_account_relation
+                .start_send_unpin(public_account_relations)
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity public account relations")?;
+        }
+
         Ok(())
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_flush_unpin(cx))
-            .attach_printable("could not flush account sender")?;
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush id sender")?;
@@ -179,8 +221,6 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.account.poll_close_unpin(cx))
-            .attach_printable("could not close account sender")?;
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close id sender")?;
@@ -220,19 +260,26 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(chunk_size: usize, account_sender: AccountSender) -> (EntitySender, EntityReceiver) {
+pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (left_entity_tx, left_entity_rx) = mpsc::channel(chunk_size);
+    let (entity_account_relation_tx, entity_account_relation_rx) = mpsc::channel(chunk_size);
+    let (entity_account_group_relation_tx, entity_account_group_relation_rx) =
+        mpsc::channel(chunk_size);
+    let (entity_public_account_relation_tx, entity_public_account_relation_rx) =
+        mpsc::channel(chunk_size);
 
     (
         EntitySender {
-            account: account_sender,
             id: id_tx,
             edition: edition_tx,
             temporal_metadata: temporal_metadata_tx,
             links: left_entity_tx,
+            entity_account_relation: entity_account_relation_tx,
+            entity_account_group_relation: entity_account_group_relation_tx,
+            entity_public_account_relation: entity_public_account_relation_tx,
         },
         EntityReceiver {
             stream: select_all([
@@ -251,6 +298,15 @@ pub fn channel(chunk_size: usize, account_sender: AccountSender) -> (EntitySende
                 left_entity_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::Links)
+                    .boxed(),
+                entity_account_relation_rx
+                    .map(EntityRowBatch::AccountRelations)
+                    .boxed(),
+                entity_account_group_relation_rx
+                    .map(EntityRowBatch::AccountGroupRelations)
+                    .boxed(),
+                entity_public_account_relation_rx
+                    .map(EntityRowBatch::PublicAccountRelations)
                     .boxed(),
             ]),
         },

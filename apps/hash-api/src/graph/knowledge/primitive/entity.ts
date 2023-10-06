@@ -9,7 +9,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
   BaseUrl,
   Entity,
   EntityId,
@@ -25,6 +24,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
 import {
@@ -34,18 +34,13 @@ import {
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
-import {
-  createLinkEntity,
-  isEntityLinkEntity,
-  LinkEntity,
-} from "./link-entity";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
-  actorId: AccountId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -63,21 +58,19 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
 export const createEntity: ImpureGraphFunction<
   CreateEntityParams,
   Promise<Entity>
-> = async ({ graphApi }, params) => {
+> = async ({ graphApi }, { actorId }, params) => {
   const {
     ownedById,
     entityTypeId,
     properties,
-    actorId,
     entityUuid: overrideEntityUuid,
   } = params;
 
-  const { data: metadata } = await graphApi.createEntity({
+  const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
     entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
-    actorId,
   });
 
   return {
@@ -96,24 +89,28 @@ export const getEntities: ImpureGraphFunction<
     query: EntityStructuralQuery;
   },
   Promise<Subgraph<EntityRootType>>
-> = async ({ graphApi }, { query }) => {
-  return await graphApi.getEntitiesByQuery(query).then(({ data: subgraph }) => {
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
-      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+> = async ({ graphApi }, { actorId }, { query }) => {
+  return await graphApi
+    .getEntitiesByQuery(actorId, query)
+    .then(({ data: subgraph }) => {
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
+        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
 
-      if (
-        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !subgraph.roots.find((root) => root.baseId === entityId)
-      ) {
-        // eslint-disable-next-line no-param-reassign -- temporary hack
-        delete subgraph.vertices[entityId];
+        if (
+          (
+            editionMap[latestEditionTimestamp!]!.inner
+              .metadata as EntityMetadata
+          ).archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          // eslint-disable-next-line no-param-reassign -- temporary hack
+          delete subgraph.vertices[entityId];
+        }
       }
-    }
-    return subgraph as Subgraph<EntityRootType>;
-  });
+      return subgraph as Subgraph<EntityRootType>;
+    });
 };
 
 /**
@@ -126,28 +123,32 @@ export const getLatestEntityById: ImpureGraphFunction<
     entityId: EntityId;
   },
   Promise<Entity>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { entityId } = params;
 
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
-  const [entity, ...unexpectedEntities] = await getEntities(context, {
-    query: {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
+  const [entity, ...unexpectedEntities] = await getEntities(
+    context,
+    authentication,
+    {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+            },
+            { equal: [{ path: ["archived"] }, { parameter: false }] },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
     },
-  }).then(getRoots);
+  ).then(getRoots);
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -176,17 +177,16 @@ export const getOrCreateEntity: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     entityDefinition: Omit<EntityDefinition, "linkedEntities">;
-    actorId: AccountId;
   },
   Promise<Entity>
-> = async (context, params) => {
-  const { entityDefinition, ownedById, actorId } = params;
+> = async (context, authentication, params) => {
+  const { entityDefinition, ownedById } = params;
   const { entityProperties, existingEntityId } = entityDefinition;
 
   let entity;
 
   if (existingEntityId) {
-    entity = await getLatestEntityById(context, {
+    entity = await getLatestEntityById(context, authentication, {
       entityId: existingEntityId,
     });
 
@@ -207,11 +207,10 @@ export const getOrCreateEntity: ImpureGraphFunction<
       );
     }
 
-    entity = await createEntity(context, {
+    entity = await createEntity(context, authentication, {
       ownedById,
       entityTypeId,
       properties: entityProperties,
-      actorId,
     });
   } else {
     throw new Error(
@@ -237,12 +236,10 @@ export const createEntityWithLinks: ImpureGraphFunction<
     entityTypeId: VersionedUrl;
     properties: EntityPropertiesObject;
     linkedEntities?: LinkedEntityDefinition[];
-    actorId: AccountId;
   },
   Promise<Entity>
-> = async (context, params) => {
-  const { ownedById, entityTypeId, properties, linkedEntities, actorId } =
-    params;
+> = async (context, authentication, params) => {
+  const { ownedById, entityTypeId, properties, linkedEntities } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -273,10 +270,9 @@ export const createEntityWithLinks: ImpureGraphFunction<
             meta: definition.meta,
           }
         : undefined,
-      entity: await getOrCreateEntity(context, {
+      entity: await getOrCreateEntity(context, authentication, {
         ownedById,
         entityDefinition: definition,
-        actorId,
       }),
     })),
   );
@@ -299,18 +295,21 @@ export const createEntityWithLinks: ImpureGraphFunction<
         if (!parentEntity) {
           throw new ApolloError("Could not find parent entity");
         }
-        const linkEntityType = await getEntityTypeById(context, {
-          entityTypeId: link.meta.linkEntityTypeId,
-        });
+        const linkEntityType = await getEntityTypeById(
+          context,
+          authentication,
+          {
+            entityTypeId: link.meta.linkEntityTypeId,
+          },
+        );
 
         // links are created as an outgoing link from the parent entity to the children.
-        await createLinkEntity(context, {
+        await createLinkEntity(context, authentication, {
           linkEntityType,
           leftEntityId: parentEntity.entity.metadata.recordId.entityId,
           rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
           ownedById,
-          actorId,
         });
       }
     }),
@@ -328,17 +327,15 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: Entity;
+    entity: Pick<Entity, "metadata">;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
-    actorId: AccountId;
   },
   Promise<Entity>
-> = async ({ graphApi }, params) => {
-  const { entity, properties, actorId, entityTypeId } = params;
+> = async ({ graphApi }, { actorId }, params) => {
+  const { entity, properties, entityTypeId } = params;
 
-  const { data: metadata } = await graphApi.updateEntity({
-    actorId,
+  const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     /**
      * @todo: this field could be optional when updating an entity
@@ -360,15 +357,13 @@ export const updateEntity: ImpureGraphFunction<
 export const archiveEntity: ImpureGraphFunction<
   {
     entity: Entity;
-    actorId: AccountId;
   },
   Promise<void>
-> = async ({ graphApi }, params) => {
-  const { entity, actorId } = params;
-  await graphApi.updateEntity({
+> = async ({ graphApi }, { actorId }, params) => {
+  const { entity } = params;
+  await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
     archived: true,
-    actorId,
     /**
      * @todo: these fields shouldn't be required when archiving an entity
      *
@@ -393,13 +388,12 @@ export const updateEntityProperties: ImpureGraphFunction<
       propertyTypeBaseUrl: BaseUrl;
       value: PropertyValue | undefined | undefined;
     }[];
-    actorId: AccountId;
   },
   Promise<Entity>
-> = async (ctx, params) => {
-  const { entity, updatedProperties, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { entity, updatedProperties } = params;
 
-  return await updateEntity(ctx, {
+  return await updateEntity(ctx, authentication, {
     entity,
     properties: updatedProperties.reduce<EntityPropertiesObject>(
       (prev, { propertyTypeBaseUrl, value }) =>
@@ -411,7 +405,6 @@ export const updateEntityProperties: ImpureGraphFunction<
           : prev,
       entity.properties,
     ),
-    actorId,
   });
 };
 
@@ -428,16 +421,14 @@ export const updateEntityProperty: ImpureGraphFunction<
     entity: Entity;
     propertyTypeBaseUrl: BaseUrl;
     value: PropertyValue | undefined;
-    actorId: AccountId;
   },
   Promise<Entity>
-> = async (ctx, params) => {
-  const { entity, propertyTypeBaseUrl, value, actorId } = params;
+> = async (ctx, authentication, params) => {
+  const { entity, propertyTypeBaseUrl, value } = params;
 
-  return await updateEntityProperties(ctx, {
+  return await updateEntityProperties(ctx, authentication, {
     entity,
     updatedProperties: [{ propertyTypeBaseUrl, value }],
-    actorId,
   });
 };
 
@@ -453,7 +444,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     linkEntityType?: EntityTypeWithMetadata;
   },
   Promise<LinkEntity[]>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { entityId } = params;
   const filter: Filter = {
     all: [
@@ -490,13 +481,17 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  const incomingLinkEntitiesSubgraph = await getEntities(context, {
-    query: {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+  const incomingLinkEntitiesSubgraph = await getEntities(
+    context,
+    authentication,
+    {
+      query: {
+        filter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
     },
-  });
+  );
 
   const incomingLinkEntities = getRoots(incomingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -526,7 +521,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     rightEntityId?: EntityId;
   },
   Promise<LinkEntity[]>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { entityId, linkEntityTypeVersionedUrl, rightEntityId } = params;
   const filter: Filter = {
     all: [
@@ -584,13 +579,17 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  const outgoingLinkEntitiesSubgraph = await getEntities(context, {
-    query: {
-      filter,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
+  const outgoingLinkEntitiesSubgraph = await getEntities(
+    context,
+    authentication,
+    {
+      query: {
+        filter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
     },
-  });
+  );
 
   const outgoingLinkEntities = getRoots(outgoingLinkEntitiesSubgraph).map(
     (linkEntity) => {
@@ -615,10 +614,10 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   { entity: Entity; graphResolveDepths: Partial<GraphResolveDepths> },
   Promise<Subgraph<EntityRootType>>
-> = async (context, params) => {
+> = async (context, authentication, params) => {
   const { entity, graphResolveDepths } = params;
 
-  return await getEntities(context, {
+  return await getEntities(context, authentication, {
     query: {
       filter: {
         all: [
@@ -652,4 +651,18 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
+};
+
+export const makeEntityPublic: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.makeEntityPublic(actorId, params.entityId);
+};
+
+export const makeEntityPrivate: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.makeEntityPrivate(actorId, params.entityId);
 };

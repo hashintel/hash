@@ -8,8 +8,8 @@ import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
   Entity,
+  EntityId,
   EntityRootType,
-  extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -22,7 +22,8 @@ import { generateEntityLabel } from "../../../lib/entities";
 import { MinimalUser } from "../../../lib/user-and-org";
 
 export interface TypeEntitiesRow {
-  entityId: string;
+  rowId: string;
+  entityId: EntityId;
   entity: string;
   entityTypeVersion: string;
   namespace: string;
@@ -99,7 +100,7 @@ export const useEntitiesTable = (params: {
             )?.title ?? "Entity"
           : "Entity",
         id: "entity",
-        width: 250,
+        width: 252,
         grow: 1,
       },
       ...(hideEntityTypeVersionColumn
@@ -155,9 +156,7 @@ export const useEntitiesTable = (params: {
 
         const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
-        const entityId = extractEntityUuidFromEntityId(
-          entity.metadata.recordId.entityId,
-        );
+        const entityId = entity.metadata.recordId.entityId;
 
         const isPage =
           entity.metadata.entityTypeId === types.entityType.page.entityTypeId;
@@ -178,6 +177,7 @@ export const useEntitiesTable = (params: {
         );
 
         return {
+          rowId: entityId,
           entityId,
           entity: entityLabel,
           entityTypeVersion: entityType

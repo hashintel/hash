@@ -1,4 +1,5 @@
-#![allow(dead_code, unreachable_pub)]
+#![allow(dead_code, unreachable_pub, unused_attributes)]
+#![cfg_attr(nightly, feature(error_in_core, error_generic_member_access))]
 
 pub fn create_report() -> Report<RootError> {
     Report::new(RootError)

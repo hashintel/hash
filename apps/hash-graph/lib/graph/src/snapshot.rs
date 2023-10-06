@@ -1,20 +1,5 @@
-pub mod account;
-pub mod codec;
 pub mod entity;
-
-mod error;
-mod metadata;
-mod ontology;
-mod restore;
-
-use async_trait::async_trait;
-use error_stack::{ensure, Context, Report, Result, ResultExt};
-use futures::{stream, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt};
-use graph_types::knowledge::entity::Entity;
-use hash_status::StatusCode;
-use serde::{Deserialize, Serialize};
-use tokio_postgres::error::SqlState;
-use type_system::{DataType, EntityType, PropertyType};
+pub mod owner;
 
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
@@ -22,15 +7,79 @@ pub use self::{
     ontology::OntologyTypeSnapshotRecord,
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
+
+mod error;
+mod metadata;
+mod ontology;
+mod restore;
+mod web;
+
+use std::future::ready;
+
+use async_scoped::TokioScope;
+use async_trait::async_trait;
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebRelation},
+    zanzibar::Consistency,
+    AccountOrPublic, VisibilityScope,
+};
+use error_stack::{ensure, Context, Report, Result, ResultExt};
+use futures::{
+    channel::mpsc, stream, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt,
+};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::{Entity, EntityUuid},
+    web::WebId,
+};
+use hash_status::StatusCode;
+use postgres_types::ToSql;
+use serde::{Deserialize, Serialize};
+use tokio_postgres::{
+    error::SqlState,
+    tls::{MakeTlsConnect, TlsConnect},
+    Socket,
+};
+use type_system::{DataType, EntityType, PropertyType};
+
 use crate::{
-    snapshot::{entity::EntitySnapshotRecord, restore::SnapshotRecordBatch},
-    store::{crud::Read, query::Filter, AsClient, InsertionError, PostgresStore},
+    snapshot::{
+        entity::{CustomEntityMetadata, EntityMetadata, EntitySnapshotRecord},
+        restore::SnapshotRecordBatch,
+    },
+    store::{
+        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
+        StorePool,
+    },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    id: AccountId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AccountGroup {
+    id: AccountGroupId,
+    owners: Vec<AccountId>,
+    admins: Vec<AccountId>,
+    members: Vec<AccountId>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Web {
+    id: WebId,
+    owner: OwnerId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
+    Account(Account),
+    AccountGroup(AccountGroup),
+    Web(Web),
     DataType(OntologyTypeSnapshotRecord<DataType>),
     PropertyType(OntologyTypeSnapshotRecord<PropertyType>),
     EntityType(OntologyTypeSnapshotRecord<EntityType>),
@@ -45,6 +94,15 @@ impl SnapshotEntry {
                     "graph version: {}",
                     global_metadata.block_protocol_module_versions.graph
                 ));
+            }
+            Self::Account(account) => {
+                context.push_body(format!("account: {}", account.id));
+            }
+            Self::AccountGroup(account_group) => {
+                context.push_body(format!("account group: {}", account_group.id));
+            }
+            Self::Web(web) => {
+                context.push_body(format!("web: {}", web.id));
             }
             Self::DataType(data_type) => {
                 context.push_body(format!("data type: {}", data_type.metadata.record_id));
@@ -95,7 +153,11 @@ impl SnapshotEntry {
 #[async_trait]
 trait WriteBatch<C> {
     async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
-    async fn write(&self, postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
+    async fn write(
+        &self,
+        postgres_client: &PostgresStore<C>,
+        authorization_api: &mut (impl ZanzibarBackend + Send),
+    ) -> Result<(), InsertionError>;
     async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
 }
 
@@ -107,18 +169,160 @@ impl<C> SnapshotStore<C> {
     }
 }
 
-impl<C: AsClient> SnapshotStore<C> {
-    /// Convenience function to create a stream of snapshot entries.
-    async fn create_dump_stream<T>(
+impl<Tls: Clone + Send + Sync + 'static> PostgresStorePool<Tls>
+where
+    Tls: MakeTlsConnect<
+            Socket,
+            Stream: Send + Sync,
+            TlsConnect: Send + TlsConnect<Socket, Future: Send>,
+        >,
+{
+    async fn read_accounts(
         &self,
-    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send, SnapshotDumpError>
-    where
-        PostgresStore<C>: Read<T>,
+    ) -> Result<impl Stream<Item = Result<Account, SnapshotDumpError>> + Send, SnapshotDumpError>
     {
-        Ok(Read::<T>::read(&self.0, &Filter::All(vec![]), None)
+        // TODO: Make accounts a first-class `Record` type
+        //   see https://linear.app/hash/issue/H-752
+        Ok(self
+            .acquire()
             .await
-            .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
-            .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT account_id FROM accounts",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
+            .map_ok(|row| Account { id: row.get(0) })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_account_groups<'a>(
+        &'a self,
+        authorization_api: &'a (impl ZanzibarBackend + Sync),
+    ) -> Result<
+        impl Stream<Item = Result<AccountGroup, SnapshotDumpError>> + Send + 'a,
+        SnapshotDumpError,
+    > {
+        // TODO: Make account groups a first-class `Record` type
+        //   see https://linear.app/hash/issue/H-752
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT account_group_id FROM account_groups",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
+            .and_then(move |row| async move {
+                let id: AccountGroupId = row.get(0);
+                let mut owners = Vec::new();
+                let mut admins = Vec::new();
+                let mut members = Vec::new();
+                for (_group, relation, user, user_set) in authorization_api
+                    .read_relations::<AccountGroupId, AccountGroupRelation, AccountId, ()>(
+                        Some(id),
+                        None,
+                        None,
+                        None,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(SnapshotDumpError::Query)?
+                {
+                    assert!(user_set.is_none());
+                    match relation {
+                        AccountGroupRelation::DirectOwner => owners.push(user),
+                        AccountGroupRelation::DirectAdmin => admins.push(user),
+                        AccountGroupRelation::DirectMember => members.push(user),
+                    }
+                }
+                Ok(AccountGroup {
+                    id,
+                    owners,
+                    admins,
+                    members,
+                })
+            }))
+    }
+
+    async fn read_webs<'a>(
+        &'a self,
+        authorization_api: &'a (impl ZanzibarBackend + Sync),
+    ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
+    {
+        let accounts = authorization_api
+            .read_relations::<WebId, WebRelation, AccountId, ()>(
+                None,
+                None,
+                None,
+                None,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .into_iter()
+            .map(|(id, relation, account_id, account_relation)| {
+                assert!(account_relation.is_none());
+                match relation {
+                    WebRelation::DirectOwner => Ok(Web {
+                        id,
+                        owner: OwnerId::Account(account_id),
+                    }),
+                }
+            });
+
+        let account_groups = authorization_api
+            .read_relations::<WebId, WebRelation, AccountGroupId, AccountGroupPermission>(
+                None,
+                None,
+                None,
+                None,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .into_iter()
+            .map(|(id, relation, account_group, account_group_permission)| {
+                assert_eq!(
+                    account_group_permission,
+                    Some(AccountGroupPermission::Member)
+                );
+                match relation {
+                    WebRelation::DirectOwner => Ok(Web {
+                        id,
+                        owner: OwnerId::AccountGroup(account_group),
+                    }),
+                }
+            });
+
+        Ok(stream::iter(accounts.chain(account_groups)))
+    }
+
+    /// Convenience function to create a stream of snapshot entries.
+    async fn create_dump_stream<'pool, T>(
+        &'pool self,
+    ) -> Result<impl Stream<Item = Result<T, SnapshotDumpError>> + Send + 'pool, SnapshotDumpError>
+    where
+        <Self as StorePool>::Store<'pool>: Read<T>,
+        T: 'pool,
+    {
+        Ok(Read::<T>::read(
+            &self
+                .acquire()
+                .await
+                .change_context(SnapshotDumpError::Query)?,
+            &Filter::All(vec![]),
+            None,
+        )
+        .await
+        .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
+        .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
     }
 
     /// Reads the snapshot from the store into the given sink.
@@ -130,46 +334,159 @@ impl<C: AsClient> SnapshotStore<C> {
     ///
     /// - If reading a record from the datastore fails
     /// - If writing a record into the sink fails
+    #[expect(clippy::too_many_lines, reason = "TODO: Refactor")]
     pub fn dump_snapshot(
         &self,
-    ) -> impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + '_ {
-        // TODO: Postgres does not allow to have multiple queries open at the same time. This means
-        //       that each stream needs to be fully processed before the next one can be created.
-        //       We might want to work around this by using a single stream that yields all the
-        //       entries or even use multiple connections to the database.
-        //   see https://app.asana.com/0/0/1204347352251098/f
+        sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
+        authorization_api: &(impl ZanzibarBackend + Sync),
+        chunk_size: usize,
+    ) -> Result<(), SnapshotDumpError> {
+        let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(chunk_size);
+        let snapshot_record_tx = snapshot_record_tx
+            .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
 
-        stream::once(async {
-            SnapshotEntry::Snapshot(SnapshotMetadata {
-                block_protocol_module_versions: BlockProtocolModuleVersions {
-                    graph: semver::Version::new(0, 3, 0),
-                },
-                custom: CustomGlobalMetadata,
-            })
-        })
-        .map(Ok)
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::DataType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::PropertyType),
-        )
-        .chain(
-            self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
-                .try_flatten_stream()
-                .map_ok(SnapshotEntry::EntityType),
-        )
-        .chain(
-            self.create_dump_stream::<Entity>()
-                .try_flatten_stream()
-                .map_ok(|entity| SnapshotEntry::Entity(entity.into())),
-        )
+        let ((), results) = TokioScope::scope_and_block(|scope| {
+            scope.spawn(snapshot_record_rx.map(Ok).forward(
+                sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
+            ));
+
+            scope.spawn(
+                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                    block_protocol_module_versions: BlockProtocolModuleVersions {
+                        graph: semver::Version::new(0, 3, 0),
+                    },
+                    custom: CustomGlobalMetadata,
+                }))))
+                .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_webs(authorization_api)
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::Web)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_accounts()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::Account)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.read_account_groups(authorization_api)
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::AccountGroup)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::DataType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::PropertyType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
+                    .try_flatten_stream()
+                    .map_ok(SnapshotEntry::EntityType)
+                    .forward(snapshot_record_tx.clone()),
+            );
+
+            scope.spawn(
+                self.create_dump_stream::<Entity>()
+                    .try_flatten_stream()
+                    .and_then(move |entity| async move {
+                        let id = entity.metadata.record_id().entity_id.entity_uuid;
+                        let mut owners = Vec::new();
+                        let mut viewers = Vec::new();
+
+                        for (_group, relation, account, _account_relation) in authorization_api
+                            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
+                                Some(id),
+                                None,
+                                None,
+                                None,
+                                Consistency::FullyConsistent,
+                            )
+                            .await
+                            .change_context(SnapshotDumpError::Query)?
+                        {
+                            match relation {
+                                EntityRelation::DirectOwner => {
+                                    owners.push(VisibilityScope::from(account));
+                                }
+                                EntityRelation::DirectViewer => {
+                                    viewers.push(VisibilityScope::from(account));
+                                }
+                            }
+                        }
+
+                        for (_group, relation, account_group, account_group_permission) in authorization_api
+                            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
+                                Some(id),
+                                None,
+                                None,
+                                None,
+                                Consistency::FullyConsistent,
+                            )
+                            .await
+                            .change_context(SnapshotDumpError::Query)?
+                        {
+                            if account_group_permission == Some(AccountGroupPermission::Member){
+                                match relation {
+                                    EntityRelation::DirectOwner => {
+                                        owners.push(VisibilityScope::AccountGroup(account_group));
+                                    }
+                                    EntityRelation::DirectViewer => {
+                                        viewers.push(VisibilityScope::AccountGroup(account_group));
+                                    }
+                                }
+                            } else {
+                                unreachable!("unexpected account group permission")
+                            }
+                        }
+
+                        Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
+                            properties: entity.properties,
+                            metadata: EntityMetadata {
+                                record_id: entity.metadata.record_id(),
+                                entity_type_id: entity.metadata.entity_type_id().clone(),
+                                temporal_versioning: Some(
+                                    entity.metadata.temporal_versioning().clone(),
+                                ),
+                                custom: CustomEntityMetadata {
+                                    provenance: entity.metadata.provenance(),
+                                    archived: entity.metadata.archived(),
+                                },
+                            },
+                            link_data: entity.link_data,
+                            owners,
+                            viewers,
+                        }))
+                    })
+                    .forward(snapshot_record_tx),
+            );
+        });
+
+        for result in results {
+            result.change_context(SnapshotDumpError::Read)??;
+        }
+
+        Ok(())
     }
+}
 
+impl<C: AsClient> SnapshotStore<C> {
     /// Reads the snapshot from from the stream into the store.
     ///
     /// The data emitted by the stream is read in a separate thread and is sent to different
@@ -204,6 +521,7 @@ impl<C: AsClient> SnapshotStore<C> {
     pub async fn restore_snapshot(
         &mut self,
         snapshot: impl Stream<Item = Result<SnapshotEntry, impl Context>> + Send + 'static,
+        authorization_api: &mut (impl ZanzibarBackend + Send),
         chunk_size: usize,
     ) -> Result<(), SnapshotRestoreError> {
         tracing::info!("snapshot restore started");
@@ -229,15 +547,18 @@ impl<C: AsClient> SnapshotStore<C> {
             .await
             .change_context(SnapshotRestoreError::Write)?;
 
-        let client = snapshot_record_rx
+        let (client, _) = snapshot_record_rx
             .map(Ok::<_, Report<SnapshotRestoreError>>)
-            .try_fold(client, |client, records: SnapshotRecordBatch| async move {
-                records
-                    .write(&client)
-                    .await
-                    .change_context(SnapshotRestoreError::Write)?;
-                Ok(client)
-            })
+            .try_fold(
+                (client, authorization_api),
+                |(client, authorization_api), records: SnapshotRecordBatch| async move {
+                    records
+                        .write(&client, authorization_api)
+                        .await
+                        .change_context(SnapshotRestoreError::Write)?;
+                    Ok((client, authorization_api))
+                },
+            )
             .await?;
 
         tracing::info!("snapshot reading finished, committing...");

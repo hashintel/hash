@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -8,6 +9,7 @@ import {
   EntityId,
   EntityRootType,
   extractOwnedByIdFromEntityId,
+  OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -60,39 +62,32 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
-            equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
-          },
-          {
             equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.userSecret.schema.$id,
-              },
+              { path: ["ownedById"] },
+              { parameter: userAccountId as OwnedById },
             ],
           },
-          {
-            equal: [
-              { path: ["incomingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["incomingLinks", "leftEntity", "type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.userSecret.schema.$id,
+            { ignoreParents: true },
+          ),
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
+            { ignoreParents: true, pathPrefix: ["incomingLinks"] },
+          ),
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            {
+              ignoreParents: true,
+              pathPrefix: ["incomingLinks", "leftEntity"],
+            },
+          ),
           {
             equal: [
               {
@@ -141,24 +136,22 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
   { hashWorkspaceEntityId: EntityId; vaultClient: VaultClient },
   Promise<string>
-> = async (context, { hashWorkspaceEntityId, vaultClient }) => {
+> = async (context, authentication, { hashWorkspaceEntityId, vaultClient }) => {
   const [workspaceOwnedById, workspaceUuid] = splitEntityId(
     hashWorkspaceEntityId,
   );
 
   const linearIntegrationEntities = await context.graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          {
-            equal: [
-              { path: ["outgoingLinks", "type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            {
+              ignoreParents: true,
+              pathPrefix: ["outgoingLinks"],
+            },
+          ),
           {
             equal: [
               { path: ["outgoingLinks", "rightEntity", "uuid"] },
@@ -196,14 +189,18 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     );
   }
 
-  const secretEntity = await getLinearUserSecretByLinearOrgId(context, {
-    linearOrgId: integrationEntity.properties[
-      SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
-    ] as string,
-    userAccountId: extractOwnedByIdFromEntityId(
-      integrationEntity.metadata.recordId.entityId,
-    ),
-  });
+  const secretEntity = await getLinearUserSecretByLinearOrgId(
+    context,
+    authentication,
+    {
+      linearOrgId: integrationEntity.properties[
+        SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
+      ] as string,
+      userAccountId: extractOwnedByIdFromEntityId(
+        integrationEntity.metadata.recordId.entityId,
+      ) as AccountId,
+    },
+  );
 
   const secret = await vaultClient.read({
     path: secretEntity.vaultPath,

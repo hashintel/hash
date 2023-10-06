@@ -3,17 +3,19 @@ import { gql } from "@apollo/client";
 export const requestFileUpload = gql`
   mutation requestFileUpload(
     $size: Int!
-    $name: String
+    $name: String!
     $description: String
-    $entityTypeId: VersionedUrl
-    $ownedById: OwnedById
+    $displayName: String
+    $fileEntityCreationInput: FileEntityCreationInput
+    $fileEntityUpdateInput: FileEntityUpdateInput
   ) {
     requestFileUpload(
       size: $size
       name: $name
       description: $description
-      entityTypeId: $entityTypeId
-      ownedById: $ownedById
+      displayName: $displayName
+      fileEntityCreationInput: $fileEntityCreationInput
+      fileEntityUpdateInput: $fileEntityUpdateInput
     ) {
       presignedPost {
         url
@@ -27,17 +29,17 @@ export const requestFileUpload = gql`
 export const createFileFromUrl = gql`
   mutation createFileFromUrl(
     $url: String!
-    $name: String
+    $displayName: String
     $description: String
-    $entityTypeId: VersionedUrl
-    $ownedById: OwnedById
+    $fileEntityCreationInput: FileEntityCreationInput
+    $fileEntityUpdateInput: FileEntityUpdateInput
   ) {
     createFileFromUrl(
       url: $url
-      name: $name
+      displayName: $displayName
       description: $description
-      entityTypeId: $entityTypeId
-      ownedById: $ownedById
+      fileEntityCreationInput: $fileEntityCreationInput
+      fileEntityUpdateInput: $fileEntityUpdateInput
     )
   }
 `;

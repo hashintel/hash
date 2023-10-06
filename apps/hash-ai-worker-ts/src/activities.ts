@@ -5,6 +5,7 @@ import {
 import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -14,12 +15,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  AccountId,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { Status, StatusCode } from "@local/status";
 
 export const createImpureGraphContext = (): ImpureGraphContext => {
   const logger = new Logger({
@@ -62,68 +63,103 @@ export const createImpureGraphContext = (): ImpureGraphContext => {
   };
 };
 
+const valueToStatus = <T extends object>(
+  value: T | undefined,
+  id: string,
+): Status<T> => {
+  if (!value) {
+    return {
+      code: StatusCode.NotFound,
+      message: `Type with ID ${id} not found.`,
+      contents: [],
+    };
+  }
+
+  return {
+    code: StatusCode.Ok,
+    message: "Success",
+    contents: [value],
+  };
+};
+
+const errorToStatus = <T extends object>(error: any): Status<T> => {
+  let message = "unknown";
+  if (typeof error === "string") {
+    message = error;
+  } else if (error instanceof Error) {
+    message = error.message;
+  }
+
+  return {
+    code: StatusCode.Unknown,
+    message,
+    contents: [],
+  };
+};
+
 export const createGraphActivities = (createInfo: {
   graphContext: ImpureGraphContext;
 }) => ({
   async getDataTypeActivity(params: {
+    authentication: AuthenticationContext;
     dataTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<DataTypeWithMetadata> {
-    const [dataType] = await getDataTypeSubgraphById(createInfo.graphContext, {
-      dataTypeId: params.dataTypeId,
-      graphResolveDepths: zeroedGraphResolveDepths,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      actorId: params.actorId,
-    }).then(getRoots);
+  }): Promise<Status<DataTypeWithMetadata>> {
+    try {
+      const [dataType] = await getDataTypeSubgraphById(
+        createInfo.graphContext,
+        params.authentication,
+        {
+          dataTypeId: params.dataTypeId,
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+        },
+      ).then(getRoots);
 
-    if (!dataType) {
-      throw new Error(`Data type with ID ${params.dataTypeId} not found.`);
+      return valueToStatus(dataType, params.dataTypeId);
+    } catch (error) {
+      return errorToStatus(error);
     }
-
-    return dataType;
   },
 
   async getPropertyTypeActivity(params: {
+    authentication: AuthenticationContext;
     propertyTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<PropertyTypeWithMetadata> {
-    const [propertyType] = await getPropertyTypeSubgraphById(
-      createInfo.graphContext,
-      {
-        propertyTypeId: params.propertyTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
-      },
-    ).then(getRoots);
+  }): Promise<Status<PropertyTypeWithMetadata>> {
+    try {
+      const [propertyType] = await getPropertyTypeSubgraphById(
+        createInfo.graphContext,
+        params.authentication,
+        {
+          propertyTypeId: params.propertyTypeId,
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+        },
+      ).then(getRoots);
 
-    if (!propertyType) {
-      throw new Error(
-        `Property type with ID ${params.propertyTypeId} not found.`,
-      );
+      return valueToStatus(propertyType, params.propertyTypeId);
+    } catch (error) {
+      return errorToStatus(error);
     }
-
-    return propertyType;
   },
 
   async getEntityTypeActivity(params: {
+    authentication: AuthenticationContext;
     entityTypeId: VersionedUrl;
-    actorId: AccountId;
-  }): Promise<EntityTypeWithMetadata> {
-    const [entityType] = await getEntityTypeSubgraphById(
-      createInfo.graphContext,
-      {
-        entityTypeId: params.entityTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        actorId: params.actorId,
-      },
-    ).then(getRoots);
+  }): Promise<Status<EntityTypeWithMetadata>> {
+    try {
+      const [entityType] = await getEntityTypeSubgraphById(
+        createInfo.graphContext,
+        params.authentication,
+        {
+          entityTypeId: params.entityTypeId,
+          graphResolveDepths: zeroedGraphResolveDepths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+        },
+      ).then(getRoots);
 
-    if (!entityType) {
-      throw new Error(`Entity type with ID ${params.entityTypeId} not found.`);
+      return valueToStatus(entityType, params.entityTypeId);
+    } catch (error) {
+      return errorToStatus(error);
     }
-
-    return entityType;
   },
 });

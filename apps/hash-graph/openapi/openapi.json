@@ -9,13 +9,347 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/account_groups": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "create_account_group",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The schema of the created account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountGroupId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/admins/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "add_account_group_admin",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the admin to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The account group admin was added"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "remove_account_group_admin",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the admin from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account group admin was removed"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/members/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "add_account_group_member",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the member to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The account group member was added"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "remove_account_group_member",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the member from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account group member was removed"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/account_groups/{account_group_id}/owners/{account_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "add_account_group_owner",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to add the owner to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The account group owner was added"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
+        "operationId": "remove_account_group_owner",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "account_group_id",
+            "in": "path",
+            "description": "The ID of the account group to remove the owner from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "The ID of the account to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account group owner was removed"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/accounts": {
       "post": {
         "tags": [
           "Graph",
           "Account"
         ],
-        "operationId": "create_account_id",
+        "operationId": "create_account",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The schema of the created account",
@@ -40,6 +374,17 @@
           "DataType"
         ],
         "operationId": "create_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -78,6 +423,17 @@
           "DataType"
         ],
         "operationId": "update_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -118,6 +474,17 @@
           "DataType"
         ],
         "operationId": "archive_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -161,6 +528,17 @@
           "DataType"
         ],
         "operationId": "load_external_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -201,6 +579,17 @@
           "DataType"
         ],
         "operationId": "get_data_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -238,6 +627,17 @@
           "DataType"
         ],
         "operationId": "unarchive_data_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -281,6 +681,17 @@
           "Entity"
         ],
         "operationId": "create_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -319,6 +730,17 @@
           "Entity"
         ],
         "operationId": "update_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -362,6 +784,17 @@
           "Entity"
         ],
         "operationId": "get_entities_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -392,6 +825,122 @@
         }
       }
     },
+    "/entities/{entity_id}/permissions/update": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "can_update_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The entity ID to check if the actor can update",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information if the actor can update the entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/entities/{entity_id}/public": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "make_entity_public",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to make public",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The entity was made public"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "make_entity_private",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to make private",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The entity was made private"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entity-types": {
       "post": {
         "tags": [
@@ -399,6 +948,17 @@
           "EntityType"
         ],
         "operationId": "create_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -458,6 +1018,17 @@
           "EntityType"
         ],
         "operationId": "update_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -498,6 +1069,17 @@
           "EntityType"
         ],
         "operationId": "archive_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -541,6 +1123,17 @@
           "EntityType"
         ],
         "operationId": "load_external_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -602,6 +1195,17 @@
           "EntityType"
         ],
         "operationId": "get_entity_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -636,9 +1240,20 @@
       "put": {
         "tags": [
           "Graph",
-          "DataType"
+          "EntityType"
         ],
         "operationId": "unarchive_entity_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -682,6 +1297,17 @@
           "PropertyType"
         ],
         "operationId": "create_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -720,6 +1346,17 @@
           "PropertyType"
         ],
         "operationId": "update_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -760,6 +1397,17 @@
           "PropertyType"
         ],
         "operationId": "archive_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -803,6 +1451,17 @@
           "PropertyType"
         ],
         "operationId": "load_external_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -843,6 +1502,17 @@
           "PropertyType"
         ],
         "operationId": "get_property_types_by_query",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -877,9 +1547,20 @@
       "put": {
         "tags": [
           "Graph",
-          "DataType"
+          "PropertyType"
         ],
         "operationId": "unarchive_property_type",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -919,6 +1600,10 @@
   },
   "components": {
     "schemas": {
+      "AccountGroupId": {
+        "type": "string",
+        "format": "uuid"
+      },
       "AccountId": {
         "type": "string",
         "format": "uuid"
@@ -926,13 +1611,9 @@
       "ArchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -941,13 +1622,9 @@
       "ArchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -956,13 +1633,9 @@
       "ArchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToArchive",
-          "actorId"
+          "typeToArchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordArchivedById"
-          },
           "typeToArchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -998,13 +1671,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -1028,13 +1697,9 @@
         "required": [
           "properties",
           "entityTypeId",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           },
@@ -1064,12 +1729,12 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
+          "icon": {
+            "type": "string",
+            "nullable": true
           },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
@@ -1096,13 +1761,9 @@
         "type": "object",
         "required": [
           "schema",
-          "ownedById",
-          "actorId"
+          "ownedById"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -1120,56 +1781,6 @@
             ]
           }
         }
-      },
-      "CustomEntityTypeMetadata": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "CustomOwnedEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "ownedById"
-            ],
-            "properties": {
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "ownedById": {
-                "$ref": "#/components/schemas/OwnedById"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "CustomExternalEntityTypeMetadata",
-            "required": [
-              "provenance",
-              "temporalVersioning",
-              "fetchedAt"
-            ],
-            "properties": {
-              "fetchedAt": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "./models/shared.json#/definitions/BaseUrl"
-              },
-              "provenance": {
-                "$ref": "#/components/schemas/ProvenanceMetadata"
-              },
-              "temporalVersioning": {
-                "$ref": "#/components/schemas/OntologyTemporalMetadata"
-              }
-            }
-          }
-        ]
       },
       "CustomOntologyMetadata": {
         "oneOf": [
@@ -1496,7 +2107,19 @@
         ],
         "properties": {
           "custom": {
-            "$ref": "#/components/schemas/CustomEntityTypeMetadata"
+            "$ref": "#/components/schemas/CustomOntologyMetadata"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "labelProperty": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            ],
+            "nullable": true
           },
           "recordId": {
             "$ref": "#/components/schemas/OntologyTypeRecordId"
@@ -1519,6 +2142,7 @@
           "properties",
           "required",
           "labelProperty",
+          "icon",
           "links",
           "inheritsFrom",
           "children"
@@ -2006,13 +2630,9 @@
       "LoadExternalDataTypeRequest": {
         "type": "object",
         "required": [
-          "dataTypeId",
-          "actorId"
+          "dataTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "dataTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2021,13 +2641,9 @@
       "LoadExternalEntityTypeRequest": {
         "type": "object",
         "required": [
-          "entityTypeId",
-          "actorId"
+          "entityTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "entityTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2036,13 +2652,9 @@
       "LoadExternalPropertyTypeRequest": {
         "type": "object",
         "required": [
-          "propertyTypeId",
-          "actorId"
+          "propertyTypeId"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "propertyTypeId": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2324,6 +2936,17 @@
       "OwnedById": {
         "type": "string",
         "format": "uuid"
+      },
+      "PermissionResponse": {
+        "type": "object",
+        "required": [
+          "has_permission"
+        ],
+        "properties": {
+          "has_permission": {
+            "type": "boolean"
+          }
+        }
       },
       "PropertyTypeQueryToken": {
         "type": "string",
@@ -2743,13 +3366,9 @@
       "UnarchiveDataTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2758,13 +3377,9 @@
       "UnarchiveEntityTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2773,13 +3388,9 @@
       "UnarchivePropertyTypeRequest": {
         "type": "object",
         "required": [
-          "typeToUnarchive",
-          "actorId"
+          "typeToUnarchive"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "typeToUnarchive": {
             "$ref": "./models/shared.json#/definitions/VersionedUrl"
           }
@@ -2814,13 +3425,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_data_type.json"
           },
@@ -2840,13 +3447,9 @@
               "properties",
               "entityId",
               "entityTypeId",
-              "actorId",
               "archived"
             ],
             "properties": {
-              "actorId": {
-                "$ref": "#/components/schemas/RecordCreatedById"
-              },
               "archived": {
                 "type": "boolean"
               },
@@ -2867,12 +3470,12 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
+          "icon": {
+            "type": "string",
+            "nullable": true
           },
           "labelProperty": {
             "$ref": "./models/shared.json#/definitions/BaseUrl"
@@ -2889,13 +3492,9 @@
         "type": "object",
         "required": [
           "schema",
-          "typeToUpdate",
-          "actorId"
+          "typeToUpdate"
         ],
         "properties": {
-          "actorId": {
-            "$ref": "#/components/schemas/RecordCreatedById"
-          },
           "schema": {
             "$ref": "./models/update_property_type.json"
           },

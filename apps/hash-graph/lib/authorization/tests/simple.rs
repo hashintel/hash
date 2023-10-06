@@ -7,23 +7,22 @@ mod schema;
 use std::error::Error;
 
 use authorization::{
-    backend::{Precondition, RelationFilter, ZanzibarBackend},
+    backend::ZanzibarBackend,
+    schema::{EntityPermission, EntityRelation},
     zanzibar::Consistency,
 };
 
-use crate::schema::{
-    EntityPermission, EntityRelation, ALICE, BOB, CHARLIE, ENTITY_A, ENTITY_B, ENTITY_C,
-};
+use crate::schema::{ALICE, BOB, ENTITY_A, ENTITY_B};
 
 #[tokio::test]
 async fn test_schema() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    api.import_schema(include_str!("schemas/simple.zed"))
+    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
 
     let mut schema = api.export_schema().await?.schema;
-    let mut imported_schema = include_str!("schemas/simple.zed").to_owned();
+    let mut imported_schema = include_str!("../schemas/v1__initial_schema.zed").to_owned();
 
     // Remove whitespace from schemas, they are not preserved
     schema.retain(|c| !c.is_whitespace());
@@ -38,25 +37,22 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let mut api = api::TestApi::connect();
 
-    api.import_schema(include_str!("schemas/simple.zed"))
+    api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
 
     let token = api
-        .create_relations(
-            [
-                &(ENTITY_A, EntityRelation::Writer, ALICE),
-                &(ENTITY_A, EntityRelation::Reader, BOB),
-                &(ENTITY_B, EntityRelation::Reader, ALICE),
-            ],
-            [],
-        )
+        .create_relations([
+            (ENTITY_A, EntityRelation::DirectOwner, ALICE),
+            (ENTITY_A, EntityRelation::DirectViewer, BOB),
+            (ENTITY_B, EntityRelation::DirectOwner, BOB),
+        ])
         .await?
         .written_at;
 
     // Test relations
     assert!(
         api.check(
-            &(ENTITY_A, EntityRelation::Writer, ALICE),
+            &(ENTITY_A, EntityRelation::DirectOwner, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -64,7 +60,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_A, EntityRelation::Reader, BOB),
+            &(ENTITY_A, EntityRelation::DirectViewer, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -72,7 +68,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_B, EntityRelation::Reader, ALICE),
+            &(ENTITY_B, EntityRelation::DirectOwner, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -89,7 +85,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        api.check(
+        !api.check(
             &(ENTITY_B, EntityPermission::View, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
@@ -105,7 +101,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .has_permission
     );
     assert!(
-        !api.check(
+        api.check(
             &(ENTITY_B, EntityPermission::View, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
@@ -114,7 +110,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         api.check(
-            &(ENTITY_A, EntityPermission::Edit, ALICE),
+            &(ENTITY_A, EntityPermission::Update, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -122,7 +118,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         !api.check(
-            &(ENTITY_B, EntityPermission::Edit, ALICE),
+            &(ENTITY_B, EntityPermission::Update, ALICE),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -130,15 +126,15 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
     assert!(
         !api.check(
-            &(ENTITY_A, EntityPermission::Edit, BOB),
+            &(ENTITY_A, EntityPermission::Update, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
         .has_permission
     );
     assert!(
-        !api.check(
-            &(ENTITY_B, EntityPermission::Edit, BOB),
+        api.check(
+            &(ENTITY_B, EntityPermission::Update, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?
@@ -146,133 +142,13 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relations([&(ENTITY_A, EntityRelation::Reader, BOB)], [])
+        .delete_relations([(ENTITY_A, EntityRelation::DirectViewer, BOB)])
         .await?
         .deleted_at;
 
     assert!(
         !api.check(
             &(ENTITY_A, EntityPermission::View, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_preconditions() -> Result<(), Box<dyn Error>> {
-    let mut api = api::TestApi::connect();
-
-    api.import_schema(include_str!("schemas/simple.zed"))
-        .await?;
-
-    let _ = api
-        .create_relations(
-            [
-                &(ENTITY_C, EntityRelation::Reader, ALICE),
-                &(ENTITY_C, EntityRelation::Reader, BOB),
-            ],
-            [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
-            )],
-        )
-        .await
-        .expect_err("precondition should not be met");
-
-    let token = api
-        .create_relations([&(ENTITY_C, EntityRelation::Writer, CHARLIE)], [])
-        .await?
-        .written_at;
-
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    let token = api
-        .create_relations(
-            [
-                &(ENTITY_C, EntityRelation::Reader, ALICE),
-                &(ENTITY_C, EntityRelation::Reader, BOB),
-            ],
-            [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
-            )],
-        )
-        .await?
-        .written_at;
-
-    assert!(
-        api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-
-    let _ = api
-        .delete_relations_by_filter(
-            RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
-            [Precondition::must_not_match(
-                RelationFilter::for_resource(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
-            )],
-        )
-        .await
-        .expect_err("precondition should not be met");
-
-    let token = api
-        .delete_relations_by_filter(
-            RelationFilter::for_resource(&ENTITY_C).by_relation(&EntityRelation::Reader),
-            [Precondition::must_match(
-                RelationFilter::for_resource(&ENTITY_C)
-                    .by_relation(&EntityRelation::Writer)
-                    .with_subject(&CHARLIE),
-            )],
-        )
-        .await?
-        .deleted_at;
-
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, ALICE),
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        !api.check(
-            &(ENTITY_C, EntityRelation::Reader, BOB),
             Consistency::AtLeastAsFresh(&token)
         )
         .await?

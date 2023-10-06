@@ -9,6 +9,7 @@
       "libs/@hashintel/*",
       "libs/@local/*",
       "libs/@local/*/typescript",
+      "libs/@local/*/rust",
       "libs/@local/*/python",
       "tests/*"
     ]
@@ -16,12 +17,12 @@
   "scripts": {
     "codegen": "turbo codegen",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
-    "dev": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
-    "dev:backend": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --",
-    "dev:backend:api": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-api' --",
-    "dev:backend:realtime": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-realtime' --",
-    "dev:backend:search-loader": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
-    "dev:frontend": "NODE_ENV=development turbo dev --log-order stream --filter '@apps/hash-frontend' --",
+    "dev": "turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-search-loader' --filter '@apps/hash-realtime' --filter '@apps/hash-frontend' --",
+    "dev:backend": "turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-realtime' --filter '@apps/hash-search-loader' --",
+    "dev:backend:api": "turbo dev --log-order stream --filter '@apps/hash-api' --",
+    "dev:backend:realtime": "turbo dev --log-order stream --filter '@apps/hash-realtime' --",
+    "dev:backend:search-loader": "turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
+    "dev:frontend": "turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
@@ -58,9 +59,10 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "poetry:install": "turbo poetry:install",
     "poetry:install-production": "turbo poetry:install-production",
-    "test:backend-integration": "turbo test --filter '@tests/hash-backend-integration' --",
-    "test:playwright": "turbo test --filter '@tests/hash-playwright' --",
-    "test:unit": "turbo test --filter '@apps/hash-api' --filter '@local/hash-backend-utils' --filter '@local/hash-isomorphic-utils' --"
+    "test": "npm-run-all --continue-on-error \"test:*\"",
+    "test:unit": "turbo run test:unit --",
+    "test:integration": "turbo run test:integration --",
+    "test:system": "turbo run test:system --"
   },
   "lint-staged": {
     "**": [
@@ -90,8 +92,8 @@
   },
   "resolutions": {
     "@types/react": "18.0.25",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.4.8",
@@ -103,16 +105,16 @@
     "husky": "8.0.3",
     "lint-staged": "14.0.1",
     "lockfile-lint": "4.12.1",
-    "markdownlint-cli": "0.36.0",
+    "markdownlint-cli": "0.37.0",
     "npm-run-all": "4.1.5",
     "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
     "prettier": "3.0.3",
-    "prettier-plugin-packagejson": "2.4.5",
+    "prettier-plugin-packagejson": "2.4.6",
     "prettier-plugin-sh": "0.13.1",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.13",
+    "turbo": "1.10.14",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   }

@@ -169,7 +169,14 @@ const LinkTypeRow = ({
       <EntityTypeTableRow flash={flash}>
         <TableCell>
           <EntityTypeTableTitleCellText>
-            <Link href={link.$id} style={{ color: "inherit", fontWeight: 600 }}>
+            <Link
+              href={link.$id}
+              style={{
+                color: "inherit",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+              }}
+            >
               {link.title}
             </Link>
             {currentVersion !== latestVersion && !isReadonly ? (

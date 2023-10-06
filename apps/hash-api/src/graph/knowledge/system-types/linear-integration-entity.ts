@@ -1,5 +1,6 @@
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -58,22 +59,18 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string },
   Promise<LinearIntegration | null>
-> = async ({ graphApi }, { userAccountId, linearOrgId }) => {
+> = async ({ graphApi }, { actorId }, { userAccountId, linearOrgId }) => {
   const entities = await graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               {
@@ -112,8 +109,8 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 export const getLinearIntegrationById: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<LinearIntegration>
-> = async (ctx, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, { entityId });
+> = async (ctx, authentication, { entityId }) => {
+  const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getLinearIntegrationFromEntity({ entity });
 };
@@ -121,23 +118,18 @@ export const getLinearIntegrationById: ImpureGraphFunction<
 export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId },
   Promise<{ syncLinearDataWithLinkEntity: Entity; workspaceEntity: Entity }[]>
-> = async ({ graphApi }, { linearIntegrationEntityId }) =>
+> = async ({ graphApi }, { actorId }, { linearIntegrationEntityId }) =>
   graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(actorId, {
       filter: {
         all: [
           {
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
@@ -178,29 +170,24 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     linearIntegrationEntityId: EntityId;
     workspaceEntityId: EntityId;
     linearTeamIds: string[];
-    actorId: AccountId;
   },
   Promise<void>
 > = async (
   context,
-  { linearIntegrationEntityId, workspaceEntityId, linearTeamIds, actorId },
+  authentication,
+  { linearIntegrationEntityId, workspaceEntityId, linearTeamIds },
 ) => {
   const existingLinkEntities = await context.graphApi
-    .getEntitiesByQuery({
+    .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
           {
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
-          {
-            equal: [
-              { path: ["type", "versionedUrl"] },
-              {
-                parameter:
-                  SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
-              },
-            ],
-          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            { ignoreParents: true },
+          ),
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
@@ -233,21 +220,19 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
 
-    await updateEntity(context, {
+    await updateEntity(context, authentication, {
       entity: existingLinkEntity,
-      actorId,
       properties: {
         [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
           linearTeamIds,
       },
     });
   } else {
-    await createLinkEntity(context, {
+    await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
       linkEntityType: SYSTEM_TYPES.linkEntityType.syncLinearDataWith,
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
-      actorId,
       properties: {
         [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
           linearTeamIds,

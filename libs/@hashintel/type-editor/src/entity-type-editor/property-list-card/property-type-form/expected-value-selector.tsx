@@ -3,11 +3,11 @@ import {
   AutocompleteDropdown,
   Button,
   Chip,
-  fluidFontClassName,
   FontAwesomeIcon,
   StyledPlusCircleIcon,
   TextField,
 } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { Autocomplete, Box, PaperProps, Typography } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 import {

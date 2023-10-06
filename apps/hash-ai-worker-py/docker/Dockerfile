@@ -69,6 +69,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY --from=installer /usr/local/src/hash/ /usr/local/src/hash
 
 WORKDIR "/usr/local/src/hash/apps/hash-ai-worker-py"
+ENV PYTHONPATH="src"
 
 
 RUN apt-get update && \
@@ -82,6 +83,6 @@ USER pyworker:hash
 
 RUN . .venv/bin/activate
 ENTRYPOINT [ ".venv/bin/python" ]
-CMD ["-m", "app"]
+CMD ["-m", "worker"]
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4200/health || exit 1

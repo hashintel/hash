@@ -1,5 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/target/**",
+    "**/dist/**"
+  ],
   "extends": ["config:base"],
 
   "automerge": true,
@@ -47,7 +54,8 @@
       "matchManagers": ["cargo"],
       "commitMessageTopic": "Rust crate `{{depName}}`",
       "additionalBranchPrefix": "rs/",
-      "reviewers": ["team:Rust"]
+      "reviewers": ["team:Rust"],
+      "dependencyDashboardApproval": false
     },
     {
       "matchDepTypes": ["devDependencies"],
@@ -61,7 +69,8 @@
         "prettier$",
         "rimraf",
         "turbo",
-        "yarn-deduplicate"
+        "yarn-deduplicate",
+        "@redocly/cli"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
@@ -144,7 +153,13 @@
     },
     {
       "matchManagers": ["poetry"],
-      "matchPackagePatterns": ["mypy", "ruff", "black"],
+      "matchPackagePatterns": [
+        "mypy$",
+        "ruff$",
+        "black$",
+        "^pytest-",
+        "pytest$"
+      ],
       "dependencyDashboardApproval": false
     },
     {
@@ -182,8 +197,7 @@
     {
       "matchManagers": ["cargo"],
       "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` Rust crates",
-      "dependencyDashboardApproval": false
+      "groupName": "`criterion` Rust crates"
     },
     {
       "matchManagers": ["cargo"],

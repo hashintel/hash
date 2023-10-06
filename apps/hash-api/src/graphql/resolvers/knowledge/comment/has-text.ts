@@ -12,10 +12,10 @@ export const commentHasTextResolver: ResolverFn<
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ metadata }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const textEntity = await getCommentText(context, {
+  const textEntity = await getCommentText(context, authentication, {
     commentEntityId: metadata.recordId.entityId,
   });
 

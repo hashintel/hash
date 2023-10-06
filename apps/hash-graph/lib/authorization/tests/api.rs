@@ -1,25 +1,18 @@
 #![allow(unused_attributes)] // This file is used as module in other tests
 #![feature(async_fn_in_trait, associated_type_bounds)]
 
-use std::{mem, thread::JoinHandle};
-
 use authorization::{
     backend::{
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
-        DeleteRelationError, DeleteRelationResponse, DeleteRelationsError, DeleteRelationsResponse,
-        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
-        Precondition, RelationFilter, SpiceDb, ZanzibarBackend,
+        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
+        ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Tuple, UntypedTuple},
+    zanzibar::{Consistency, Relation, Resource, Tuple},
 };
 use error_stack::Report;
-use tokio::sync::oneshot::Sender;
 
 pub struct TestApi {
-    client: SpiceDb,
-
-    tuples: Vec<UntypedTuple<'static>>,
-    cleanup: Option<(Sender<Vec<UntypedTuple<'static>>>, JoinHandle<()>)>,
+    client: SpiceDbOpenApi,
 }
 
 impl TestApi {
@@ -31,9 +24,10 @@ impl TestApi {
     /// - `HASH_SPICEDB_GRPC_PRESHARED_KEY`: The preshared key to use for authentication. Defaults
     ///   to `secret`.
     ///
-    /// After disconnecting every created relation will be deleted again.
+    /// # Panics
+    ///
+    /// Panics if the connection to `SpiceDB` fails.
     #[must_use]
-    #[allow(clippy::missing_panics_doc, clippy::print_stderr)] // Only the cleanup thread may panic
     pub fn connect() -> Self {
         let host =
             std::env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "http://localhost".to_owned());
@@ -42,62 +36,9 @@ impl TestApi {
         let key = std::env::var("HASH_SPICEDB_GRPC_PRESHARED_KEY")
             .unwrap_or_else(|_| "secret".to_owned());
 
-        let client = SpiceDb {
-            configuration: authorization::backend::SpiceDbConfig {
-                base_path: std::borrow::Cow::Owned(format!("{host}:{http_port}")),
-                client: reqwest::Client::new(),
-                key: std::borrow::Cow::Owned(key.clone()),
-            },
-        };
-
-        let (tuple_sender, tuple_receiver) = tokio::sync::oneshot::channel();
-
-        let cleanup_task = std::thread::spawn(move || {
-            tokio::runtime::Runtime::new()
-                .expect("failed to create runtime")
-                .block_on(async {
-                    let mut client = SpiceDb {
-                        configuration: authorization::backend::SpiceDbConfig {
-                            base_path: std::borrow::Cow::Owned(format!("{host}:{http_port}")),
-                            // Sending the client to another thread seems to break the client
-                            // so we create a new one here
-                            client: reqwest::Client::new(),
-                            key: std::borrow::Cow::Owned(key.clone()),
-                        },
-                    };
-
-                    let tuples: Vec<UntypedTuple> =
-                        tuple_receiver.await.expect("failed to receive tuples");
-
-                    if let Err(error) = client.delete_relations(&tuples, []).await {
-                        eprintln!(
-                            "failed to delete relations: {error:?} while cleaning up {} tuples",
-                            tuples.len()
-                        );
-                        for tuple in &tuples {
-                            eprintln!("\n  - {tuple}");
-                        }
-                    }
-                });
-        });
-
         Self {
-            client,
-            tuples: Vec::new(),
-            cleanup: Some((tuple_sender, cleanup_task)),
-        }
-    }
-}
-
-impl Drop for TestApi {
-    #[allow(clippy::print_stderr, clippy::use_debug)]
-    fn drop(&mut self) {
-        let (sender, thread) = self.cleanup.take().expect("cleanup task already dropped");
-        sender
-            .send(mem::take(&mut self.tuples))
-            .expect("failed to send namespaces");
-        if let Err(error) = thread.join() {
-            eprintln!("failed to join cleanup thread: {error:?}\n");
+            client: SpiceDbOpenApi::new(format!("{host}:{http_port}"), Some(&key))
+                .expect("failed to connect to SpiceDB"),
         }
     }
 }
@@ -114,55 +55,61 @@ impl ZanzibarBackend for TestApi {
         self.client.export_schema().await
     }
 
-    async fn create_relations<'p, 't, T>(
+    async fn create_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Tuple + Send + Sync + 't,
+        T: Tuple + Send + Sync,
     {
-        let (tuples, untyped_tuples): (Vec<_>, Vec<_>) = tuples
-            .into_iter()
-            .map(|tuple| {
-                let untyped_tuples = UntypedTuple::from_tuple(tuple).into_owned();
-                (tuple, untyped_tuples)
-            })
-            .unzip();
-
-        let result = self.client.create_relations(tuples, preconditions).await?;
-
-        self.tuples.extend(untyped_tuples);
-
-        Ok(result)
+        self.client.create_relations(tuples).await
     }
 
-    async fn delete_relations<'p, 't, T>(
+    async fn touch_relations<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = &'t T, IntoIter: Send> + Send,
-        preconditions: impl IntoIterator<Item = Precondition<'p>, IntoIter: Send> + Send + 'p,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+    where
+        T: Tuple + Send + Sync,
+    {
+        self.client.touch_relations(tuples).await
+    }
+
+    async fn delete_relations<T>(
+        &mut self,
+        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Tuple + Send + Sync + 't,
+        T: Tuple + Send + Sync,
     {
-        self.client.delete_relations(tuples, preconditions).await
+        self.client.delete_relations(tuples).await
     }
 
-    async fn delete_relations_by_filter<'f>(
-        &mut self,
-        filter: RelationFilter<'_>,
-        preconditions: impl IntoIterator<Item = Precondition<'f>> + Send,
-    ) -> Result<DeleteRelationsResponse, Report<DeleteRelationsError>> {
-        self.client
-            .delete_relations_by_filter(filter, preconditions)
-            .await
-    }
-
-    async fn check(
+    async fn check<T>(
         &self,
-        tuple: &(impl Tuple + Sync),
+        tuple: &T,
         consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, Report<CheckError>> {
+    ) -> Result<CheckResponse, Report<CheckError>>
+    where
+        T: Tuple + Sync,
+    {
         self.client.check(tuple, consistency).await
+    }
+
+    async fn read_relations<O, R, U, S>(
+        &self,
+        _object: Option<O>,
+        _relation: Option<R>,
+        _user: Option<U>,
+        _user_set: Option<S>,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
+    where
+        O: Resource + Send + Sync,
+        R: Relation<O> + Send,
+        U: Resource + Send,
+        S: Send,
+    {
+        Ok(Vec::new())
     }
 }

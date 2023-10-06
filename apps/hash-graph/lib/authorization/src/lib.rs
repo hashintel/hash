@@ -6,72 +6,248 @@
     return_position_impl_trait_in_trait
 )]
 
-use std::future::Future;
+pub mod backend;
+pub mod schema;
+pub mod zanzibar;
 
-use futures::Stream;
-use graph_types::{account::AccountId, knowledge::entity::EntityId};
+pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+
+mod api;
+
+use error_stack::Result;
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    knowledge::entity::EntityId,
+    web::WebId,
+};
 
 use crate::{
-    backend::CheckError,
+    backend::{CheckError, CheckResponse, ModifyRelationError},
+    schema::OwnerId,
     zanzibar::{Consistency, Zookie},
 };
 
-pub mod backend;
-
-pub mod zanzibar;
-
-pub trait AuthorizationApi {
-    async fn view_entity(
-        &self,
-        actor: AccountId,
-        entity: EntityId,
-        consistency: Consistency<'_>,
-    ) -> Result<(bool, zanzibar::Zookie<'static>), CheckError>;
-
-    fn view_entities(
-        &self,
-        actor: AccountId,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
-        consistency: Consistency<'_>,
-    ) -> impl Future<
-        Output = Result<
-            (
-                impl Stream<Item = Result<(EntityId, bool), CheckError>> + Send,
-                Zookie<'static>,
-            ),
-            CheckError,
-        >,
-    > + Send;
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct NoAuthorization;
 
 impl AuthorizationApi for NoAuthorization {
-    async fn view_entity(
+    async fn can_add_group_owner(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn add_account_group_owner(
+        &mut self,
+        _member: AccountId,
+        _account_group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_remove_group_owner(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn remove_account_group_owner(
+        &mut self,
+        _member: AccountId,
+        _account_group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_web_owner(
+        &mut self,
+        _owner: OwnerId,
+        _web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_web_owner(
+        &mut self,
+        _owner: OwnerId,
+        _web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_add_group_admin(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn add_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_remove_group_admin(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn remove_account_group_admin(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_add_group_member(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn add_account_group_member(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_remove_group_member(
+        &self,
+        _actor: AccountId,
+        _account_group: AccountGroupId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn remove_account_group_member(
+        &mut self,
+        _member: AccountId,
+        _group: AccountGroupId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_entity_owner(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_owner(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_entity_viewer(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_viewer(
+        &mut self,
+        _scope: VisibilityScope,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn can_create_entity(
+        &self,
+        _actor: AccountId,
+        _web: impl Into<WebId> + Send,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn can_update_entity(
         &self,
         _actor: AccountId,
         _entity: EntityId,
         _consistency: Consistency<'_>,
-    ) -> Result<(bool, Zookie<'static>), CheckError> {
-        Ok((true, Zookie::empty()))
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
     }
 
-    async fn view_entities(
+    async fn can_view_entity(
         &self,
         _actor: AccountId,
-        entities: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        _entity: EntityId,
         _consistency: Consistency<'_>,
-    ) -> Result<
-        (
-            impl Stream<Item = Result<(EntityId, bool), CheckError>> + Send,
-            Zookie<'static>,
-        ),
-        CheckError,
-    > {
-        Ok((
-            futures::stream::iter(entities.into_iter().map(|entity| Ok((entity, true)))),
-            Zookie::empty(),
-        ))
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+}
+
+impl<A> AuthorizationApiPool for A
+where
+    A: AuthorizationApi + Clone + Send + Sync,
+{
+    type Api<'pool> = Self;
+    type Error = std::convert::Infallible;
+
+    async fn acquire(&self) -> Result<Self::Api<'_>, Self::Error> {
+        Ok(self.clone())
+    }
+
+    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error> {
+        Ok(self.clone())
     }
 }

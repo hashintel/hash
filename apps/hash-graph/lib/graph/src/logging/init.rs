@@ -178,9 +178,12 @@ pub fn init_logger(log_args: &LoggingArgs) -> Result<impl Drop, TryInitError> {
 
     let opentelemetry_layer = otlp_endpoint.as_deref().map(configure_opentelemetry_layer);
 
+    let sentry_layer = sentry::integrations::tracing::layer();
+
     tracing_subscriber::registry()
         .with(filter)
         .with(opentelemetry_layer)
+        .with(sentry_layer)
         .with(output_layer)
         .with(json_output_layer)
         .with(json_file_layer)

@@ -72,6 +72,7 @@ export const RESTRICTED_SHORTNAMES = [
   "jwt",
   "local",
   "login",
+  "new",
   "oauth",
   "org",
   "profile",
@@ -168,6 +169,8 @@ export const propertyTypeInitializer = (
   let propertyType: PropertyTypeWithMetadata;
 
   return async (context?: ImpureGraphContext) => {
+    const authentication = { actorId: systemUserAccountId };
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
       return propertyType;
@@ -179,15 +182,14 @@ export const propertyTypeInitializer = (
       const propertyTypeSchema = generateSystemPropertyTypeSchema(params);
 
       // initialize
-      propertyType = await getPropertyTypeById(context, {
+      propertyType = await getPropertyTypeById(context, authentication, {
         propertyTypeId: propertyTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createPropertyType(context, {
+          return await createPropertyType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: propertyTypeSchema,
-            actorId: systemUserAccountId,
           }).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
@@ -212,6 +214,7 @@ type linkDestinationConstraint =
   | "SELF_REFERENCE";
 
 export type EntityTypeCreatorParams = {
+  allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
   title: string;
   description?: string;
@@ -313,10 +316,13 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
+  const allOf = params.allOf?.map((url) => ({ $ref: url }));
+
   return {
     $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType",
     $id: params.entityTypeId,
+    allOf,
     title: params.title,
     description: params.description,
     type: "object",
@@ -338,13 +344,22 @@ export type LinkEntityTypeCreatorParams = Omit<
  */
 export const generateSystemLinkEntityTypeSchema = (
   params: LinkEntityTypeCreatorParams,
-): EntityType => ({
-  ...generateSystemEntityTypeSchema({
+): EntityType => {
+  const baseSchema = generateSystemEntityTypeSchema({
     ...params,
     entityTypeId: params.linkEntityTypeId,
-  }),
-  allOf: [{ $ref: linkEntityTypeUrl }],
-});
+  });
+
+  return {
+    ...baseSchema,
+    allOf: [
+      ...(baseSchema.allOf ?? []),
+      {
+        $ref: linkEntityTypeUrl,
+      },
+    ],
+  };
+};
 
 /**
  * Returns a function which can be used to initialize a given entity type. This asynchronous design allows us to express
@@ -360,6 +375,8 @@ export const entityTypeInitializer = (
   let entityType: EntityTypeWithMetadata | undefined;
 
   return async (context?: ImpureGraphContext) => {
+    const authentication = { actorId: systemUserAccountId };
+
     if (entityType) {
       return entityType;
     } else if (!context) {
@@ -373,15 +390,14 @@ export const entityTypeInitializer = (
           : generateSystemEntityTypeSchema(params);
 
       // initialize
-      entityType = await getEntityTypeById(context, {
+      entityType = await getEntityTypeById(context, authentication, {
         entityTypeId: entityTypeSchema.$id,
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createEntityType(context, {
+          return await createEntityType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: entityTypeSchema,
-            actorId: systemUserAccountId,
           }).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;

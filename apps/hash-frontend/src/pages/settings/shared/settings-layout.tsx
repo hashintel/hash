@@ -12,14 +12,16 @@ import {
   SidebarItemData,
 } from "./settings-layout/settings-sidebar";
 
-const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
+const generateMenuLinks = (
+  organizations: { org: Org }[],
+): SidebarItemData[] => {
   const organizationItems: SidebarItemData[] = organizations
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((org) => [
+    .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
+    .map(({ org }) => [
       {
         label: org.name,
         href: `/settings/organizations/${org.shortname}/general`,
-        activeIfHrefStartsWith: `/settings/organizations/${org.shortname}`,
+        activeIfPathStartsWith: `/settings/organizations/${org.shortname}`,
         parentHref: "/settings/organizations",
       },
       {
@@ -49,8 +51,8 @@ const generateMenuLinks = (organizations: Org[]): SidebarItemData[] => {
     item.children = menuItems.filter(
       (child) =>
         child.parentHref === item.href ||
-        (item.activeIfHrefStartsWith &&
-          child.parentHref === item.activeIfHrefStartsWith),
+        (item.activeIfPathStartsWith &&
+          child.parentHref === item.activeIfPathStartsWith),
     );
   }
 
@@ -87,8 +89,8 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
           // eslint-disable-next-line no-loop-func
           (item) =>
             item.href === href ||
-            (item.activeIfHrefStartsWith &&
-              item.activeIfHrefStartsWith === href),
+            (item.activeIfPathStartsWith &&
+              item.activeIfPathStartsWith === href),
         );
 
         if (!currentPage) {

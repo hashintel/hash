@@ -2,6 +2,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -16,6 +17,7 @@ import { getEntities } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
+import { publicUserAccountId } from "../graphql/context";
 import { getRequiredEnv } from "../util";
 import { ImpureGraphContext } from "./index";
 import {
@@ -39,14 +41,13 @@ export const ensureSystemUserAccountIdExists = async (params: {
     logger,
     context: { graphApi },
   } = params;
+
   const { data: existingUserEntitiesSubgraph } =
-    await graphApi.getEntitiesByQuery({
-      filter: {
-        equal: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: types.entityType.user.entityTypeId },
-        ],
-      },
+    await graphApi.getEntitiesByQuery(publicUserAccountId, {
+      filter: generateVersionedUrlMatchingFilter(
+        types.entityType.user.entityTypeId,
+        { ignoreParents: true },
+      ),
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     });
@@ -71,7 +72,9 @@ export const ensureSystemUserAccountIdExists = async (params: {
     );
   } else {
     // The account id generated here is the very origin on all `AccountId` instances.
-    systemUserAccountId = (await graphApi.createAccountId()).data as AccountId;
+    systemUserAccountId = await graphApi
+      .createAccount(publicUserAccountId)
+      .then(({ data: accountId }) => accountId as AccountId);
     logger.info(`Created system user account id: ${systemUserAccountId}`);
   }
 };
@@ -89,8 +92,9 @@ export const ensureSystemUserExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { logger, context } = params;
+  const authentication = { actorId: systemUserAccountId };
 
-  const existingSystemUser = await getUserByShortname(context, {
+  const existingSystemUser = await getUserByShortname(context, authentication, {
     shortname: systemUserShortname,
   });
 
@@ -110,9 +114,8 @@ export const ensureSystemUserExists = async (params: {
       credentials: { password: { config: { password } } },
     });
 
-    systemUser = await createUser(context, {
+    systemUser = await createUser(context, authentication, {
       shortname,
-      actorId: systemUserAccountId,
       preferredName,
       emails: [emailAddress],
       kratosIdentityId,

@@ -5,7 +5,7 @@ import { OwnedById, PropertyTypeWithMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { useLatestPropertyTypes } from "../../../../../shared/latest-property-types-context";
+import { usePropertyTypes } from "../../../../../shared/property-types-context";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 import { getTypesWithoutMetadata } from "./shared/get-types-without-metadata";
 
@@ -26,7 +26,9 @@ export const DefinitionTab = ({
   readonly,
 }: DefinitionTabProps) => {
   const entityTypesContext = useEntityTypesContextRequired();
-  const possiblyIncompletePropertyTypeOptions = useLatestPropertyTypes();
+
+  const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
+    usePropertyTypes();
 
   const [propertyTypeOptionsWithMetadata, propertyTypeOptions] = useMemo(() => {
     const propertyTypesWithMetadata = {
@@ -80,6 +82,7 @@ export const DefinitionTab = ({
       customization={{ onNavigateToType }}
       entityType={entityTypeAndPropertyTypes.entityType}
       entityTypeOptions={entityTypeOptions}
+      key={entityTypeAndPropertyTypes.entityType.$id} // Reset state when switching entity types, helps avoid state mismatch issues
       ontologyFunctions={ontologyFunctions}
       propertyTypeOptions={propertyTypeOptions}
       readonly={readonly}

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use authorization::{backend::ZanzibarBackend, NoAuthorization};
 use axum::{
     extract::BodyStream,
     response::Response,
@@ -8,10 +9,12 @@ use axum::{
 };
 use error_stack::{Context, Report};
 use futures::TryStreamExt;
+use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedRead, io::StreamReader};
+use uuid::Uuid;
 
 use crate::{
     api::{
@@ -21,20 +24,24 @@ use crate::{
             status::status_to_response,
         },
     },
-    snapshot::{codec, SnapshotStore},
+    snapshot::SnapshotStore,
     store::{PostgresStorePool, StorePool},
 };
 
 /// Create routes for interacting with entities.
-pub fn routes(pool: PostgresStorePool<NoTls>) -> Router {
+pub fn routes<A>(store_pool: PostgresStorePool<NoTls>, authorization_api: A) -> Router
+where
+    A: ZanzibarBackend + Clone + Send + Sync + 'static,
+{
     Router::new()
-        .route("/snapshot", post(restore_snapshot))
+        .route("/snapshot", post(restore_snapshot::<A>))
         .route("/accounts", delete(delete_accounts))
         .route("/data-types", delete(delete_data_types))
         .route("/property-types", delete(delete_property_types))
         .route("/entity-types", delete(delete_entity_types))
         .route("/entities", delete(delete_entities))
-        .layer(Extension(Arc::new(pool)))
+        .layer(Extension(Arc::new(store_pool)))
+        .layer(Extension(Arc::new(authorization_api)))
         .layer(axum::middleware::from_fn(log_request_and_response))
         .layer(span_trace_layer())
 }
@@ -63,11 +70,19 @@ fn store_acquisition_error(report: Report<impl Context>) -> Response {
     ))
 }
 
-async fn restore_snapshot(
-    pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+async fn restore_snapshot<A>(
+    store_pool: Extension<Arc<PostgresStorePool<NoTls>>>,
+    authorization_api: Extension<Arc<A>>,
     snapshot: BodyStream,
-) -> Result<Response, Response> {
-    let store = pool.acquire().await.map_err(store_acquisition_error)?;
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
+    let store = store_pool
+        .acquire()
+        .await
+        .map_err(store_acquisition_error)?;
+    let mut authorization_api = (**authorization_api).clone();
 
     SnapshotStore::new(store)
         .restore_snapshot(
@@ -75,8 +90,9 @@ async fn restore_snapshot(
                 StreamReader::new(
                     snapshot.map_err(|err| io::Error::new(io::ErrorKind::Other, err)),
                 ),
-                codec::JsonLinesDecoder::default(),
+                codec::bytes::JsonLinesDecoder::default(),
             ),
+            &mut authorization_api,
             10_000,
         )
         .await
@@ -113,21 +129,24 @@ async fn delete_accounts(
 ) -> Result<Response, Response> {
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
 
-    store.delete_accounts().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not delete accounts");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "ACCOUNT_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
-    })?;
+    store
+        .delete_accounts(AccountId::new(Uuid::nil()), &NoAuthorization)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete accounts");
+            status_to_response(Status::new(
+                report
+                    .request_ref::<StatusCode>()
+                    .copied()
+                    .next()
+                    .unwrap_or(StatusCode::Unknown),
+                Some(report.to_string()),
+                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    HashMap::new(),
+                    "ACCOUNT_DELETION_FAILURE".to_owned(),
+                ))],
+            ))
+        })?;
 
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,

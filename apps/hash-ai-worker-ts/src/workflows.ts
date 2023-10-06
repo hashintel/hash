@@ -1,10 +1,11 @@
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
-  AccountId,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { Status } from "@local/status";
 import { proxyActivities } from "@temporalio/workflow";
 
 import { createGraphActivities } from "./activities";
@@ -25,14 +26,16 @@ export const HelloWorld = async (): Promise<string> =>
   Promise.resolve("Hello Temporal!");
 
 export const getDataType = async (params: {
+  authentication: AuthenticationContext;
   dataTypeId: VersionedUrl;
-  actorId: AccountId;
-}): Promise<DataTypeWithMetadata> => await getDataTypeActivity(params);
+}): Promise<Status<DataTypeWithMetadata>> => await getDataTypeActivity(params);
 export const getPropertyType = async (params: {
+  authentication: AuthenticationContext;
   propertyTypeId: VersionedUrl;
-  actorId: AccountId;
-}): Promise<PropertyTypeWithMetadata> => await getPropertyTypeActivity(params);
+}): Promise<Status<PropertyTypeWithMetadata>> =>
+  await getPropertyTypeActivity(params);
 export const getEntityType = async (params: {
+  authentication: AuthenticationContext;
   entityTypeId: VersionedUrl;
-  actorId: AccountId;
-}): Promise<EntityTypeWithMetadata> => await getEntityTypeActivity(params);
+}): Promise<Status<EntityTypeWithMetadata>> =>
+  await getEntityTypeActivity(params);

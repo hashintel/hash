@@ -4,9 +4,7 @@ import {
   faPencilRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Collapse,
@@ -27,14 +25,15 @@ import {
   useState,
 } from "react";
 
-import { isTypeArchived } from "../../shared/entity-types-context/util";
+import { isItemArchived } from "../../shared/is-archived";
+import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
-import { isEntityPageEntity, isItemEntityType } from "./top-context-bar/util";
+import { isItemEntityType } from "./top-context-bar/util";
 
-export { isEntityPageEntity, isItemEntityType };
+export { isItemEntityType };
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 
 const PageRestoredMessageWrapper: FunctionComponent<{
@@ -149,19 +148,12 @@ export const TopContextBar = ({
   };
 
   // @todo make 'additional banner' a prop and move this logic to the (1) page page and (2) entity type pages
-  const isItemArchived = useMemo(() => {
+  const archived = useMemo(() => {
     if (!item) {
       return false;
     }
 
-    if (isItemEntityType(item)) {
-      return isTypeArchived(item);
-    } else if (isEntityPageEntity(item)) {
-      return item.properties[
-        extractBaseUrl(types.propertyType.archived.propertyTypeId)
-      ] as boolean;
-    }
-    return false;
+    return isItemArchived(item);
   }, [item]);
 
   const isBlockPage = useMemo(
@@ -258,7 +250,7 @@ export const TopContextBar = ({
         </Box>
       </Box>
       {item ? (
-        <Collapse in={isItemArchived}>
+        <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}
             onUnarchived={() => {

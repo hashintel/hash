@@ -53,8 +53,15 @@ export const processEntityChange = async (
     entity.metadata.recordId.entityId,
   );
 
+  // @todo: Figure out who the actor should be
+  //    see https://linear.app/hash/issue/H-756
+  const authentication = {
+    actorId: entity.metadata.provenance.recordCreatedById,
+  };
+
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
     { graphApi, uploadProvider: null as any }, // @todo uploadProvider shouldn't be required
+    authentication,
     {
       hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
         systemUserAccountId as OwnedById,

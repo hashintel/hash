@@ -36,7 +36,7 @@
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
-    "@mui/material": "5.11.9",
+    "@mui/material": "5.14.11",
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",
@@ -44,12 +44,14 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
+    "@types/lodash.debounce": "4.0.7",
     "@types/react-dom": "18.0.9",
+    "@types/uuid": "8.3.0",
     "block-scripts": "0.3.0",
     "mock-block-dock": "0.1.5",
     "prettier": "3.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "peerDependencies": {
     "react": "^18.0.0",

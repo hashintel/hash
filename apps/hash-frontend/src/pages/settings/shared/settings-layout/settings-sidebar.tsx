@@ -10,13 +10,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 
 import { Link } from "../../../../shared/ui/link";
 
 export type SidebarItemData = {
   // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy
-  activeIfHrefStartsWith?: string;
+  activeIfPathStartsWith?: string;
   children?: SidebarItemData[];
   label: string;
   href: string;
@@ -42,44 +42,30 @@ const ItemLink = styled(Link)<{
 );
 
 const SidebarItem = ({
+  expandedItemHrefs,
+  setItemExpanded,
   item,
+  lastChild,
   level,
 }: {
+  expandedItemHrefs: string[];
   item: SidebarItemData;
+  lastChild: boolean;
   level: number;
+  setItemExpanded: (item: SidebarItemData, shouldExpand: boolean) => void;
 }) => {
-  const expandable = !!item.children?.length;
+  const expandableViaButtton = level > 1 && !!item.children?.length;
 
   const router = useRouter();
   const active =
     router.asPath.startsWith(item.href) ||
-    (!!item.activeIfHrefStartsWith &&
-      router.asPath.startsWith(item.activeIfHrefStartsWith));
+    (!!item.activeIfPathStartsWith &&
+      router.asPath.startsWith(item.activeIfPathStartsWith));
+
   const parentActive =
     item.parentHref && router.asPath.startsWith(item.parentHref);
 
-  const [expanded, setExpanded] = useState(active);
-
-  useEffect(() => {
-    const handleRouteChange = (path: string) => {
-      if (
-        path.startsWith(item.href) ||
-        (item.parentHref && path.startsWith(item.parentHref)) ||
-        (item.activeIfHrefStartsWith &&
-          path.startsWith(item.activeIfHrefStartsWith))
-      ) {
-        setExpanded(true);
-      } else {
-        setExpanded(false);
-      }
-    };
-
-    router.events.on("routeChangeComplete", handleRouteChange);
-
-    return () => {
-      router.events.off("routeChangeComplete", handleRouteChange);
-    };
-  }, [item, router.events]);
+  const expanded = expandedItemHrefs.includes(item.href);
 
   const theme = useTheme();
 
@@ -100,13 +86,20 @@ const SidebarItem = ({
       ? "transparent"
       : theme.palette.gray[20];
 
+  const paddingLevels: Record<number, number> = {
+    1: 0.5,
+    2: 0.4,
+    3: 0.2,
+  };
+
   return (
     <>
       <ListItem
         sx={{
           borderLeft: `3px solid ${borderColor}`,
           pl: 2,
-          py: 0.5,
+          py: paddingLevels[level],
+          pb: lastChild ? paddingLevels[Math.max(1, level - 1)] : undefined,
           position: "relative",
         }}
       >
@@ -141,11 +134,11 @@ const SidebarItem = ({
         >
           {item.label}
         </ItemLink>
-        {expandable && (
+        {expandableViaButtton && (
           <IconButton
             onClick={(event) => {
               event.stopPropagation();
-              setExpanded((isExpanded) => !isExpanded);
+              setItemExpanded(item, !expanded);
             }}
             size="small"
             unpadded
@@ -171,8 +164,15 @@ const SidebarItem = ({
       </ListItem>
 
       <Collapse in={expanded}>
-        {item.children?.map((child) => (
-          <SidebarItem key={child.href} item={child} level={level + 1} />
+        {item.children?.map((child, index) => (
+          <SidebarItem
+            expandedItemHrefs={expandedItemHrefs}
+            setItemExpanded={setItemExpanded}
+            key={child.href}
+            item={child}
+            level={level + 1}
+            lastChild={index === item.children!.length - 1}
+          />
         ))}
       </Collapse>
     </>
@@ -184,6 +184,78 @@ export const SettingsSidebar = ({
 }: {
   menuItems: SidebarItemData[];
 }) => {
+  const router = useRouter();
+
+  const rootItems = menuItems.filter((item) => !item.parentHref);
+
+  const findItemAndParentsHrefs = useCallback(
+    (item: SidebarItemData) => {
+      const itemAndParents = [item];
+      do {
+        const parent =
+          itemAndParents[0]!.parentHref &&
+          menuItems.find((itemOption) =>
+            [itemOption.href, itemOption.activeIfPathStartsWith].includes(
+              itemAndParents[0]!.parentHref,
+            ),
+          );
+        if (parent) {
+          itemAndParents.unshift(parent);
+        }
+      } while (itemAndParents[0]!.parentHref);
+      return itemAndParents.map((itemOption) => itemOption.href);
+    },
+    [menuItems],
+  );
+
+  const [expandedItemHrefs, setExpandedItemHrefs] = useState<string[]>(() => {
+    const activeItem = menuItems.find(
+      (item) =>
+        router.asPath === item.href ||
+        (item.activeIfPathStartsWith &&
+          router.asPath.startsWith(item.activeIfPathStartsWith)),
+    );
+
+    return activeItem ? findItemAndParentsHrefs(activeItem) : [];
+  });
+
+  const setItemExpansion = useCallback(
+    (itemToChange: SidebarItemData, shouldExpand: boolean) => {
+      setExpandedItemHrefs((currentlyExpandedItems) => {
+        if (shouldExpand) {
+          return findItemAndParentsHrefs(itemToChange);
+        } else {
+          return currentlyExpandedItems.filter((i) => i !== itemToChange.href);
+        }
+      });
+    },
+    [findItemAndParentsHrefs],
+  );
+
+  const handlePathChange = useCallback(
+    (path: string) => {
+      const activeItem = menuItems.find(
+        (item) =>
+          path === item.href ||
+          (item.activeIfPathStartsWith &&
+            path.startsWith(item.activeIfPathStartsWith)),
+      );
+
+      if (activeItem) {
+        setExpandedItemHrefs(findItemAndParentsHrefs(activeItem));
+      }
+    },
+    [findItemAndParentsHrefs, menuItems],
+  );
+
+  useEffect(() => {
+    router.events.on("routeChangeComplete", handlePathChange);
+
+    return () => {
+      router.events.off("routeChangeComplete", handlePathChange);
+    };
+  }, [handlePathChange, router.events]);
+
   return (
     <Box mr={4} width={200}>
       <Typography
@@ -199,11 +271,16 @@ export const SettingsSidebar = ({
       >
         ACCOUNT
       </Typography>
-      {menuItems
-        .filter((item) => !item.parentHref)
-        .map((item) => (
-          <SidebarItem key={item.href} item={item} level={1} />
-        ))}
+      {rootItems.map((item, index) => (
+        <SidebarItem
+          expandedItemHrefs={expandedItemHrefs}
+          setItemExpanded={setItemExpansion}
+          key={item.href}
+          item={item}
+          level={1}
+          lastChild={index === menuItems.length - 1}
+        />
+      ))}
     </Box>
   );
 };

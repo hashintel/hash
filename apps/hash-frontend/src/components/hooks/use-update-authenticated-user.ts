@@ -13,18 +13,23 @@ import {
 } from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { AuthenticatedUser } from "../../lib/user-and-org";
+import { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
   preferredName?: string;
+  location?: string;
+  website?: string;
+  preferredPronouns?: string;
 };
 
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthInfo();
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -37,7 +42,7 @@ export const useUpdateAuthenticatedUser = () => {
     async (
       params: UpdateAuthenticatedUserParams,
     ): Promise<{
-      updatedAuthenticatedUser?: AuthenticatedUser;
+      updatedAuthenticatedUser?: User;
       errors?: readonly GraphQLError[] | undefined;
     }> => {
       if (!authenticatedUser) {
@@ -46,7 +51,7 @@ export const useUpdateAuthenticatedUser = () => {
 
       try {
         setLoading(true);
-        if (!params.shortname && !params.preferredName) {
+        if (Object.keys(params).length === 0) {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
@@ -85,6 +90,26 @@ export const useUpdateAuthenticatedUser = () => {
                     [extractBaseUrl(
                       types.propertyType.preferredName.propertyTypeId,
                     )]: params.preferredName,
+                  }
+                : {}),
+              ...(typeof params.location !== "undefined"
+                ? {
+                    [extractBaseUrl(
+                      types.propertyType.location.propertyTypeId,
+                    )]: params.location,
+                  }
+                : {}),
+              ...(typeof params.website !== "undefined"
+                ? {
+                    [extractBaseUrl(types.propertyType.website.propertyTypeId)]:
+                      params.website,
+                  }
+                : {}),
+              ...(typeof params.preferredPronouns !== "undefined"
+                ? {
+                    [extractBaseUrl(
+                      types.propertyType.preferredPronouns.propertyTypeId,
+                    )]: params.preferredPronouns,
                   }
                 : {}),
             },

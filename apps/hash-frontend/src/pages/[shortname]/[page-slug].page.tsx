@@ -1,10 +1,16 @@
 import { useQuery } from "@apollo/client";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   OrgProperties,
@@ -18,7 +24,6 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -47,17 +52,20 @@ import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
-import { QueryEntitiesQuery } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../../lib/apollo-client";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import {
   constructMinimalOrg,
   constructMinimalUser,
+  extractOwnedById,
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
@@ -105,64 +113,71 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspacesSubgraph = (await apolloClient
-    .query<QueryEntitiesQuery>({
-      query: queryEntitiesQuery,
-      variables: {
-        operation: {
-          multiFilter: {
-            filters: [
-              entityHasEntityTypeByVersionedUrlFilter(
-                types.entityType.user.entityTypeId,
-              ),
-              entityHasEntityTypeByVersionedUrlFilter(
-                types.entityType.org.entityTypeId,
-              ),
-            ],
-            operator: "OR",
+  const workspaceSubgraph = (await apolloClient
+    .query<StructuralQueryEntitiesQuery, StructuralQueryEntitiesQueryVariables>(
+      {
+        context: { headers: { cookie } },
+        query: structuralQueryEntitiesQuery,
+        variables: {
+          query: {
+            filter: {
+              all: [
+                {
+                  equal: [
+                    {
+                      path: [
+                        "properties",
+                        extractBaseUrl(
+                          types.propertyType.shortname.propertyTypeId,
+                        ),
+                      ],
+                    },
+                    { parameter: workspaceShortname },
+                  ],
+                },
+                {
+                  any: [
+                    generateVersionedUrlMatchingFilter(
+                      types.entityType.user.entityTypeId,
+                      { ignoreParents: true },
+                    ),
+                    generateVersionedUrlMatchingFilter(
+                      types.entityType.org.entityTypeId,
+                      { ignoreParents: true },
+                    ),
+                  ],
+                },
+              ],
+            },
+            graphResolveDepths: zeroedGraphResolveDepths,
+            temporalAxes: currentTimeInstantTemporalAxes,
           },
         },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        inheritsFrom: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
-      context: { headers: { cookie } },
-    })
-    .then(({ data }) => data.queryEntities)) as Subgraph<EntityRootType>;
+    )
+    .then(
+      ({ data }) => data.structuralQueryEntities,
+    )) as Subgraph<EntityRootType>;
 
-  const workspaces = getRoots(workspacesSubgraph).map((entity) =>
-    entity.metadata.entityTypeId === types.entityType.user.entityTypeId
-      ? constructMinimalUser({
-          userEntity: entity as Entity<UserProperties>,
-        })
-      : constructMinimalOrg({
-          orgEntity: entity as Entity<OrgProperties>,
-        }),
-  );
+  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
 
-  /**
-   * @todo: filtering all workspaces by their shortname should not be happening
-   * client side. This could be addressed by exposing structural querying
-   * to the frontend.
-   *
-   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
-   */
-  const pageWorkspace = workspaces.find(
-    (workspace) => workspace.shortname === workspaceShortname,
-  );
-
-  if (!pageWorkspace) {
+  if (!pageWorkspaceEntity) {
     throw new Error(
       `Could not find page workspace with shortname "${workspaceShortname}".`,
     );
   }
 
-  const pageOwnedById = pageWorkspace.accountId as OwnedById;
+  const pageWorkspace =
+    pageWorkspaceEntity.metadata.entityTypeId ===
+    types.entityType.user.entityTypeId
+      ? constructMinimalUser({
+          userEntity: pageWorkspaceEntity as Entity<UserProperties>,
+        })
+      : constructMinimalOrg({
+          orgEntity: pageWorkspaceEntity as Entity<OrgProperties>,
+        });
+
+  const pageOwnedById = extractOwnedById(pageWorkspace);
 
   const pageEntityId = entityIdFromOwnedByIdAndEntityUuid(
     pageOwnedById,
@@ -442,7 +457,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <PageBlock
-                  accountId={pageWorkspace.accountId}
+                  ownedById={extractOwnedById(pageWorkspace)}
                   contents={contents}
                   pageComments={pageComments}
                   entityId={pageEntityId}

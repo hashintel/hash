@@ -16,7 +16,7 @@ export const useBlockProtocolQueryDataTypes = (): {
     QueryDataTypesQuery,
     QueryDataTypesQueryVariables
   >(queryDataTypesQuery, {
-    fetchPolicy: "no-cache",
+    fetchPolicy: "cache-and-network",
   });
 
   const queryDataTypes = useCallback<QueryDataTypesMessageCallback>(

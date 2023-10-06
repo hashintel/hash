@@ -8,6 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountId,
   Entity,
   ENTITY_ID_DELIMITER,
   EntityRootType,
@@ -80,12 +81,16 @@ let link_cb: Entity;
 let link_dc: Entity;
 let link_ad: Entity;
 
+const authentication = {
+  actorId: "00000000-0001-0000-0000-000000000000" as AccountId,
+};
+
 beforeAll(async () => {
   await restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl"));
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntities(graphContext, {
+  const entities = await getEntities(graphContext, authentication, {
     query: {
       filter: {
         all: [],
@@ -196,7 +201,7 @@ describe("Single linked list", () => {
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
   it("finds AB", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery(
         {
           hasLeftEntity: {
@@ -223,7 +228,7 @@ describe("Single linked list", () => {
   });
 
   it("finds AB and travels back", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery(
         {
           hasLeftEntity: {
@@ -260,7 +265,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery(
         {
           hasLeftEntity: {
@@ -301,7 +306,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B and travels back", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery(
         {
           hasLeftEntity: {
@@ -399,7 +404,7 @@ describe("Single linked list", () => {
   });
 
   it("finds D", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery(
         {
           hasLeftEntity: {
@@ -517,7 +522,7 @@ describe("Double linked list", () => {
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
   it("finds AB/AD", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery({
         hasLeftEntity: {
           incoming: 1,
@@ -542,7 +547,7 @@ describe("Double linked list", () => {
   });
 
   it("finds AD/DA and travels back", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery({
         hasLeftEntity: {
           incoming: 1,
@@ -587,7 +592,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery({
         hasLeftEntity: {
           incoming: 1,
@@ -644,7 +649,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D and travels back", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery({
         hasLeftEntity: {
           incoming: 1,
@@ -857,7 +862,7 @@ describe("Double linked list", () => {
   });
 
   it("finds D/A", async () => {
-    const subgraph = await getEntities(graphContext, {
+    const subgraph = await getEntities(graphContext, authentication, {
       query: createQuery({
         hasLeftEntity: {
           incoming: 3,

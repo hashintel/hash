@@ -76,14 +76,15 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not convert schema to entity type")?;
 
-        let ontology_id = Uuid::new_v4();
+        let record_id = entity_type.metadata.record_id.to_string();
+        let ontology_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, record_id.as_bytes());
 
         self.metadata
             .start_send_unpin((
                 ontology_id,
                 OntologyElementMetadata {
                     record_id: entity_type.metadata.record_id,
-                    custom: entity_type.metadata.custom.common,
+                    custom: entity_type.metadata.custom,
                 },
             ))
             .attach_printable("could not send metadata")?;
@@ -173,9 +174,9 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
                 schema: Json(schema.into()),
                 label_property: entity_type
                     .metadata
-                    .custom
                     .label_property
                     .map(|label_property| label_property.to_string()),
+                icon: entity_type.metadata.icon,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

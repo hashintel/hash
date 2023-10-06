@@ -197,6 +197,17 @@ pub enum EntityTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     LabelProperty,
+    /// The icon of the entity type.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["icon"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Icon);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Icon,
     /// An edge to a [`PropertyType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding reversed edge is [`PropertyTypeQueryPath::EntityTypeEdge`].
@@ -512,7 +523,7 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             Self::VersionedUrl => ParameterType::VersionedUrl,
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::TransactionTime => ParameterType::TimeInterval,
-            Self::Title | Self::Description => ParameterType::Text,
+            Self::Title | Self::Description | Self::Icon => ParameterType::Text,
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
@@ -538,6 +549,7 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::Examples => fmt.write_str("examples"),
             Self::Required => fmt.write_str("required"),
             Self::LabelProperty => fmt.write_str("labelProperty"),
+            Self::Icon => fmt.write_str("icon"),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                 path,
@@ -633,6 +645,7 @@ pub enum EntityTypeQueryToken {
     Properties,
     Required,
     LabelProperty,
+    Icon,
     Links,
     InheritsFrom,
     Children,
@@ -650,7 +663,7 @@ impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `recordCreatedById`, \
          `recordArchivedById`, `title`, `description`, `examples`, `properties`, `required`, \
-         `labelProperty`, `links`, `inheritsFrom`, `children`";
+         `labelProperty`, `icon`, `links`, `inheritsFrom`, `children`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -702,6 +715,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::LabelProperty => EntityTypeQueryPath::LabelProperty,
+            EntityTypeQueryToken::Icon => EntityTypeQueryPath::Icon,
             EntityTypeQueryToken::Links => {
                 seq.next_element::<Selector>()?
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;

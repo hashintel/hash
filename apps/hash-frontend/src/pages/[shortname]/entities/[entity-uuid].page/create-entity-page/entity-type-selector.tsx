@@ -7,6 +7,7 @@ import {
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { FunctionComponent, useRef, useState } from "react";
 
+import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
@@ -15,7 +16,9 @@ export const EntityTypeSelector: FunctionComponent<{
   onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
-  const { entityTypes, isLinkTypeLookup } = useEntityTypesContextRequired();
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+
+  const entityTypes = useLatestEntityTypesOptional();
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
@@ -36,7 +39,10 @@ export const EntityTypeSelector: FunctionComponent<{
       options={entityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
-        Icon: isLinkTypeLookup?.[$id] ? LinkTypeIcon : EntityTypeIcon,
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
+        Icon: isSpecialEntityTypeLookup?.[$id]?.isLink
+          ? LinkTypeIcon
+          : EntityTypeIcon,
         typeId: $id,
         title,
         description,

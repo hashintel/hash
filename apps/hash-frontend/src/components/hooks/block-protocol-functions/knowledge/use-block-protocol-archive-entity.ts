@@ -16,10 +16,7 @@ export const useBlockProtocolArchiveEntity = (
   const [archiveEntityFn] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
-  >(archiveEntityMutation, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  >(archiveEntityMutation);
 
   const archiveEntity: ArchiveEntityMessageCallback = useCallback(
     async ({ data }) => {

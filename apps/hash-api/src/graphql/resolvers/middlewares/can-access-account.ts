@@ -19,14 +19,14 @@ export const canAccessAccountMiddleware: ResolverMiddleware<
   LoggedInGraphQLContext
 > = (next) =>
   loggedInAndSignedUpMiddleware(async (_, args, ctx, info) => {
-    const { user, dataSources } = ctx;
+    const { dataSources, authentication, user } = ctx;
     const context = dataSourcesToImpureGraphContext(dataSources);
 
     let isAllowed = false;
     if (user.accountId === args.ownedById) {
       isAllowed = true;
     } else {
-      isAllowed = await isUserMemberOfOrg(context, {
+      isAllowed = await isUserMemberOfOrg(context, authentication, {
         userEntityId: user.entity.metadata.recordId.entityId,
         orgEntityUuid: args.ownedById,
       });

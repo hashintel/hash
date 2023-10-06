@@ -6,13 +6,13 @@ import {
   blankCell,
 } from "../../../../../../../components/grid/utils";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
+import { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
+import { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
 import { ChangeTypeCell } from "./cells/change-type-cell";
-import { ChipCell } from "./cells/chip-cell";
 import { PropertyNameCell } from "./cells/property-name-cell";
-import { SummaryChipCell } from "./cells/summary-chip-cell";
 import { editorSpecs } from "./cells/value-cell/editor-specs";
 import { ValueCell } from "./cells/value-cell/types";
 import {

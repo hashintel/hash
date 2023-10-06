@@ -4,6 +4,7 @@ use std::{
     str::FromStr,
 };
 
+use authorization::NoAuthorization;
 use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -12,7 +13,7 @@ use graph_types::{
         entity::{EntityProperties, EntityUuid},
         link::{EntityLinkOrder, LinkData},
     },
-    provenance::{OwnedById, RecordCreatedById},
+    provenance::OwnedById,
 };
 use type_system::{repr, url::VersionedUrl, EntityType};
 use uuid::Uuid;
@@ -126,7 +127,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     transaction
-        .insert_account_id(account_id)
+        .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
 
@@ -154,8 +155,16 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = transaction
             .insert_entities_batched_by_type(
-                repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
-                RecordCreatedById::new(account_id),
+                account_id,
+                &mut NoAuthorization,
+                repeat((
+                    OwnedById::new(account_id.into_uuid()),
+                    None,
+                    properties,
+                    None,
+                    None,
+                ))
+                .take(quantity),
                 &entity_type_id,
             )
             .await
@@ -175,12 +184,14 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = transaction
             .insert_entities_batched_by_type(
+                account_id,
+                &mut NoAuthorization,
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_entity_metadata, right_entity_metadata)| {
                         (
-                            OwnedById::new(account_id),
+                            OwnedById::new(account_id.into_uuid()),
                             None,
                             EntityProperties::empty(),
                             Some(LinkData {
@@ -194,7 +205,6 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                             None,
                         )
                     }),
-                RecordCreatedById::new(account_id),
                 &entity_type_id,
             )
             .await
@@ -262,7 +272,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
             .store
             .as_client()
             .query(
-                r#"
+                r"
                 -- Very naive and slow sampling, we can replace when this becomes a bottleneck
                 SELECT entity_uuid FROM entity_temporal_metadata
                 INNER JOIN entity_is_of_type ON entity_is_of_type.entity_edition_id = entity_temporal_metadata.entity_edition_id
@@ -270,7 +280,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
                 WHERE ontology_ids.base_url = $1 AND ontology_ids.version = $2
                 ORDER BY RANDOM()
                 LIMIT 50
-                "#,
+                ",
                 &[
                     &entity_type_id.base_url.as_str(),
                     &i64::from(entity_type_id.version),
@@ -308,9 +318,9 @@ pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samp
         .store
         .as_client()
         .query_one(
-            r#"
+            r"
             SELECT EXISTS(SELECT 1 FROM accounts WHERE account_id=$1)
-            "#,
+            ",
             &[&account_id],
         )
         .await

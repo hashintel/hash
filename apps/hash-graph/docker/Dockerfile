@@ -44,6 +44,7 @@ WORKDIR /usr/local/src/apps/hash-graph
 
 ARG PROFILE=production
 ARG ENABLE_TEST_SERVER=no
+ARG ENABLE_AUTHORIZATION=no
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
@@ -52,6 +53,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     if [[ ${ENABLE_TEST_SERVER^^} == Y* || ${ENABLE_TEST_SERVER^^} == T* || $ENABLE_TEST_SERVER == 1 ]]; then \
       export RUSTFLAGS="$RUSTFLAGS --cfg hash_graph_test_environment"; \
       FEATURES+=("test-server"); \
+    fi; \
+    if [[ ${ENABLE_AUTHORIZATION^^} == Y* || ${ENABLE_AUTHORIZATION^^} == T* || $ENABLE_AUTHORIZATION == 1 ]]; then \
+      FEATURES+=("authorization"); \
     fi; \
     FEATURES=${FEATURES[@]}; \
     cargo install --path bin/cli --features "${FEATURES// /,}" --profile $PROFILE --locked;

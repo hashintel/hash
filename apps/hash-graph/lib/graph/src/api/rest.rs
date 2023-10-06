@@ -18,27 +18,29 @@ mod entity;
 mod entity_type;
 mod property_type;
 
-use std::{fs, io, sync::Arc};
+use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::{AuthorizationApi, AuthorizationApiPool};
 use axum::{
-    extract::Path,
-    http::StatusCode,
+    extract::{FromRequestParts, Path},
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Extension, Json, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph_types::{
+    account::AccountId,
     ontology::{
-        CustomEntityTypeMetadata, CustomOntologyMetadata, EntityTypeMetadata,
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, OntologyTypeVersion,
+        CustomOntologyMetadata, EntityTypeMetadata, OntologyElementMetadata,
+        OntologyTemporalMetadata, OntologyTypeRecordId, OntologyTypeReference, OntologyTypeVersion,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
 use include_dir::{include_dir, Dir};
+use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
+use serde::Serialize;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp, TransactionTime,
@@ -50,6 +52,7 @@ use utoipa::{
     },
     Modify, OpenApi, ToSchema,
 };
+use uuid::Uuid;
 
 use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
@@ -82,13 +85,42 @@ use crate::{
     },
 };
 
+pub struct AuthenticatedUserHeader(pub AccountId);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        if let Some(header_value) = parts.headers.get("X-Authenticated-User-Actor-Id") {
+            let header_string = header_value
+                .to_str()
+                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
+            let uuid = Uuid::from_str(header_string)
+                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
+            Ok(Self(AccountId::new(uuid)))
+        } else {
+            Err((
+                StatusCode::BAD_REQUEST,
+                Cow::Borrowed("`X-Authenticated-User-Actor-Id` header is missing"),
+            ))
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PermissionResponse {
+    has_permission: bool,
+}
+
 #[async_trait]
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type(
+    async fn load_external_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, StatusCode>;
 }
 
@@ -97,11 +129,12 @@ impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
 {
-    async fn load_external_type(
+    async fn load_external_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-        actor_id: RecordCreatedById,
     ) -> Result<OntologyElementMetadata, StatusCode> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             tracing::error!(id=%reference.url(), "Ontology type is not external");
@@ -110,8 +143,9 @@ where
 
         self
             .insert_external_ontology_type(
-                reference,
                 actor_id,
+                authorization_api,
+                reference,
             )
             .await
             .map_err(|report| {
@@ -127,17 +161,18 @@ where
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
-fn api_resources<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>()
--> Vec<Router>
+fn api_resources<S, A>() -> Vec<Router>
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
     vec![
-        account::AccountResource::routes::<P, A>(),
-        data_type::DataTypeResource::routes::<P, A>(),
-        property_type::PropertyTypeResource::routes::<P, A>(),
-        entity_type::EntityTypeResource::routes::<P, A>(),
-        entity::EntityResource::routes::<P, A>(),
+        account::AccountResource::routes::<S, A>(),
+        data_type::DataTypeResource::routes::<S, A>(),
+        property_type::PropertyTypeResource::routes::<S, A>(),
+        entity_type::EntityTypeResource::routes::<S, A>(),
+        entity::EntityResource::routes::<S, A>(),
     ]
 }
 
@@ -161,11 +196,12 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-pub struct RestRouterDependencies<
-    P: StorePool + Send + 'static,
-    A: AuthorizationApi + Send + Sync + 'static,
-> {
-    pub store: Arc<P>,
+pub struct RestRouterDependencies<S, A>
+where
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+{
+    pub store: Arc<S>,
     pub authorization_api: Arc<A>,
     pub domain_regex: DomainValidator,
 }
@@ -184,14 +220,14 @@ pub fn openapi_only_router() -> Router {
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
-pub fn rest_api_router<P: StorePool + Send + 'static, A: AuthorizationApi + Send + Sync + 'static>(
-    dependencies: RestRouterDependencies<P, A>,
-) -> Router
+pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Router
 where
-    for<'pool> P::Store<'pool>: RestApiStore,
+    S: StorePool + Send + Sync + 'static,
+    A: AuthorizationApiPool + Send + Sync + 'static,
+    for<'pool> S::Store<'pool>: RestApiStore,
 {
     // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<P, A>()
+    let merged_routes = api_resources::<S, A>()
         .into_iter()
         .fold(Router::new(), Router::merge);
 
@@ -199,6 +235,8 @@ where
     // Make sure extensions are added at the end so they are made available to merged routers.
     // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
     merged_routes
+        .layer(NewSentryLayer::new_from_top())
+        .layer(SentryHttpLayer::with_transaction())
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.domain_regex))
@@ -238,6 +276,8 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
     ),
     components(
         schemas(
+            PermissionResponse,
+
             OwnedById,
             RecordCreatedById,
             RecordArchivedById,
@@ -247,7 +287,6 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OntologyTemporalMetadata,
             CustomOntologyMetadata,
             EntityTypeMetadata,
-            CustomEntityTypeMetadata,
             MaybeListOfOntologyElementMetadata,
             MaybeListOfEntityTypeMetadata,
             EntityVertexId,

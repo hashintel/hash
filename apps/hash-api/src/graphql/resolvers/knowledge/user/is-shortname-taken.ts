@@ -11,11 +11,11 @@ export const isShortnameTakenResolver: ResolverFn<
   {},
   GraphQLContext,
   QueryIsShortnameTakenArgs
-> = async (_, { shortname }, { dataSources }) => {
+> = async (_, { shortname }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   return (
     shortnameIsRestricted({ shortname }) ||
-    (await shortnameIsTaken(context, { shortname }))
+    (await shortnameIsTaken(context, authentication, { shortname }))
   );
 };
