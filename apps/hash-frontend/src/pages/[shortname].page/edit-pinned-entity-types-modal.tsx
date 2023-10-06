@@ -356,7 +356,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
             </Droppable>
             {displayEntityTypesSearch ? (
               <EntityTypeSelector
-                excludeEntityTypeIds={[types.entityType.page.entityTypeId]}
+                excludeEntityTypeIds={[
+                  ...fields.map(({ schema }) => schema.$id),
+                  types.entityType.page.entityTypeId,
+                ]}
                 disableCreateNewEmpty
                 onSelect={(entityType) => {
                   append(entityType);
