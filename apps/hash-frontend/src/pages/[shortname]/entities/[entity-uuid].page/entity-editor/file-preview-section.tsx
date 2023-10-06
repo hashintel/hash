@@ -28,7 +28,7 @@ import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { getFileUrlFromFileProperties } from "./shared/get-image-url-from-properties";
+import { getFileUrlFromFileProperties } from "../../../../shared/get-image-url-from-properties";
 
 const previewHeight = 250;
 

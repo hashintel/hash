@@ -5,7 +5,7 @@ import { FunctionComponent, useState } from "react";
 import { Org, User } from "../../lib/user-and-org";
 import { CogRegularIcon } from "../../shared/icons/cog-regular-icon";
 import { Button } from "../../shared/ui";
-import { getImageUrlFromEntityProperties } from "../[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
 import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
 import { leftColumnWidth, ProfilePageTab } from "./util";

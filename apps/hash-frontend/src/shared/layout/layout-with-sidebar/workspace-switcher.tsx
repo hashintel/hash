@@ -18,7 +18,7 @@ import {
 import { FunctionComponent, useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
-import { getImageUrlFromEntityProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../ui";

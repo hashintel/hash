@@ -16,7 +16,7 @@ import {
 import { FunctionComponent, useMemo } from "react";
 
 import { User } from "../../../lib/user-and-org";
-import { getImageUrlFromEntityProperties } from "../../../pages/[shortname]/entities/[entity-uuid].page/entity-editor/shared/get-image-url-from-properties";
+import { getImageUrlFromEntityProperties } from "../../../pages/shared/get-image-url-from-properties";
 import { Link, MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
