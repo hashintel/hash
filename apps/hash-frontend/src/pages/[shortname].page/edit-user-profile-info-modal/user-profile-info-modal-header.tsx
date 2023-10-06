@@ -24,9 +24,9 @@ import { User } from "../../../lib/user-and-org";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, ButtonProps } from "../../../shared/ui";
+import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../shared/get-image-url-from-properties";
-import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (
@@ -36,6 +36,7 @@ const AvatarButton = styled((props: ButtonProps) => (
   borderWidth: 0,
   padding: 0,
   minHeight: "unset",
+  fontSize: 12,
   [`.${buttonClasses.startIcon}`]: {
     marginLeft: 0,
     transition: theme.transitions.create("color"),
@@ -311,7 +312,6 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           <AvatarButton
             disabled={newCoverImageUploading}
             startIcon={<FontAwesomeIcon icon={faImage} />}
-            sx={{ marginBottom: 1 }}
             onClick={handleChangeCoverImage}
           >
             Add cover image
