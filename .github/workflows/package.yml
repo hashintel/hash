@@ -270,6 +270,8 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
+          just lint-toml "check"
+
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
           RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
