@@ -21,6 +21,7 @@ rustflags = [
     "-Aclippy::blanket_clippy_restriction_lints",
     "-Aclippy::default_numeric_fallback",
     "-Aclippy::else_if_without_else",
+    "-Aclippy::enum_variant_names",
     "-Aclippy::exhaustive_enums",
     "-Aclippy::exhaustive_structs",
     "-Aclippy::expect_used",

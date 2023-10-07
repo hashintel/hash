@@ -13,6 +13,10 @@ profile := env_var_or_default('PROFILE', "dev")
 [private]
 clippy *arguments:
   @just install-cargo-hack
+  @just install-rust-script
+
+  @just lint-toml "generate"
+  @export CLIPPY_CONF_DIR=../../.config
 
   @just in-pr cargo clippy --profile {{profile}} --workspace --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} --ignore-unknown-features clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
