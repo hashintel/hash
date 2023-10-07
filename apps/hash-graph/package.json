@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@local/hash-authorization-rs": "0.0.0-private",
-    "@local/hash-codec": "0.0.0-private",
+    "@local/hash-codec-rs": "0.0.0-private",
     "@local/hash-graph-types-rs": "0.0.0-private",
     "@local/hash-temporal-versioning-rs": "0.0.0-private",
     "@local/status-rust": "0.0.0-private",
