@@ -24,9 +24,7 @@
     "lint": {
       "dependsOn": ["^build", "codegen"]
     },
-    "lint:clippy": {
-      "dependsOn": ["^build", "codegen"]
-    },
+    "lint:clippy": {},
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["^build", "codegen"]
@@ -36,7 +34,8 @@
     },
     "fix:eslint": {
       "dependsOn": ["^build", "codegen"]
-    }
+    },
+    "fix:clippy": {}
   },
   "globalDependencies": [
     "**/turbo.json",

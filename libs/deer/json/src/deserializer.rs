@@ -38,7 +38,7 @@ impl StackLimit {
     }
 
     #[must_use]
-    pub const fn limit(&self) -> usize {
+    pub const fn limit(self) -> usize {
         self.0
     }
 }

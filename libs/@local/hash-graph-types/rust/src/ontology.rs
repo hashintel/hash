@@ -38,7 +38,7 @@ impl OntologyTypeVersion {
     }
 
     #[must_use]
-    pub const fn inner(&self) -> u32 {
+    pub const fn inner(self) -> u32 {
         self.0
     }
 }
