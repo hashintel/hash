@@ -13,7 +13,10 @@ pub(crate) struct RpcError {
     code: i32,
     message: String,
     #[serde(default)]
-    #[expect(dead_code, reason = "Currently not used but captured from gRPC connections")]
+    #[expect(
+        dead_code,
+        reason = "Currently not used but captured from gRPC connections"
+    )]
     details: Vec<serde_json::Value>,
 }
 
