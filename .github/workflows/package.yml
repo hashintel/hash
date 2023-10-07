@@ -215,7 +215,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@1c0627575f22314174574ac9c993e9233d952f76 # v2.20.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -295,7 +295,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@ddccb873888234080b77e9bc2d4764d5ccaaccf9 # v2.21.9
+        uses: github/codeql-action/upload-sarif@2cb752a87e96af96708ab57187ab6372ee1973ab # v2.22.0
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -393,7 +393,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@1c0627575f22314174574ac9c993e9233d952f76 # v2.20.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -533,7 +533,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@1c0627575f22314174574ac9c993e9233d952f76 # v2.20.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -656,7 +656,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@1c0627575f22314174574ac9c993e9233d952f76 # v2.20.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -740,7 +740,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@1c0627575f22314174574ac9c993e9233d952f76 # v2.20.0
         with:
           tool: cargo-semver-checks
 

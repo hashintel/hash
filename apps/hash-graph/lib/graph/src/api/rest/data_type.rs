@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on Data Types.
 
+#![expect(clippy::str_to_string)]
+
 use std::sync::Arc;
 
 use authorization::AuthorizationApiPool;
