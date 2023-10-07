@@ -1,0 +1,11 @@
+{
+  "name": "@local/hash-graph-types-rs",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@local/hash-temporal-versioning-rs": "0.0.0-private"
+  }
+}

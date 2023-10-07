@@ -8,7 +8,7 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
     backend::{
-        spicedb::{model, model::RpcError},
+        spicedb::model::{self, RpcError},
         CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
         DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
         ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
@@ -27,49 +27,67 @@ pub struct Empty {}
 enum InvocationError {
     Request,
     Response,
-    Api,
+    Api(RpcError),
 }
 
 impl fmt::Display for InvocationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str(match self {
-            Self::Request => "an error happened while making the request",
-            Self::Response => "the response returned from the server could not be parsed",
-            Self::Api => "the authorization service returned an error",
-        })
+        match self {
+            Self::Request => fmt.write_str("an error happened while making the request"),
+            Self::Response => {
+                fmt.write_str("the response returned from the server could not be parsed")
+            }
+            Self::Api(error) => fmt::Display::fmt(&error, fmt),
+        }
     }
 }
 
 impl Error for InvocationError {}
 
+#[derive(Debug)]
+enum StreamError {
+    Parse,
+    Api(RpcError),
+}
+
+impl fmt::Display for StreamError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Parse => fmt.write_str("the item returned from the server could not be parsed"),
+            Self::Api(error) => fmt::Display::fmt(&error, fmt),
+        }
+    }
+}
+
+impl Error for StreamError {}
+
 impl SpiceDbOpenApi {
-    async fn create_request(
+    async fn invoke_request(
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
     ) -> Result<Response, Report<InvocationError>> {
+        let request = self
+            .client
+            .post(format!("{}{}", self.base_path, path))
+            .json(&body)
+            .build()
+            .change_context(InvocationError::Request)?;
+
         let response = self
             .client
-            .execute(
-                self.client
-                    .post(format!("{}{}", self.base_path, path))
-                    .json(&body)
-                    .build()
-                    .change_context(InvocationError::Request)?,
-            )
+            .execute(request)
             .await
             .change_context(InvocationError::Request)?;
 
         if response.status().is_success() {
             Ok(response)
         } else {
-            Err(Report::new(
-                response
-                    .json::<RpcError>()
-                    .await
-                    .change_context(InvocationError::Response)?,
-            )
-            .change_context(InvocationError::Api))
+            let rpc_error = response
+                .json::<RpcError>()
+                .await
+                .change_context(InvocationError::Response)?;
+            Err(Report::new(InvocationError::Api(rpc_error)))
         }
     }
 
@@ -78,7 +96,7 @@ impl SpiceDbOpenApi {
         path: &'static str,
         body: &(impl Serialize + Sync),
     ) -> Result<R, Report<InvocationError>> {
-        self.create_request(path, body)
+        self.invoke_request(path, body)
             .await?
             .json()
             .await
@@ -89,8 +107,7 @@ impl SpiceDbOpenApi {
         &self,
         path: &'static str,
         body: &(impl Serialize + Sync),
-    ) -> Result<impl Stream<Item = Result<R, Report<InvocationError>>>, Report<InvocationError>>
-    {
+    ) -> Result<impl Stream<Item = Result<R, Report<StreamError>>>, Report<InvocationError>> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         enum StreamResult<T> {
@@ -98,23 +115,28 @@ impl SpiceDbOpenApi {
             Error(RpcError),
         }
 
-        Ok(FramedRead::new(
-            StreamReader::new(
-                self.create_request(path, body)
-                    .await?
-                    .bytes_stream()
-                    .map_err(|error| io::Error::new(io::ErrorKind::Other, error)),
-            ),
-            codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
-        )
-        .map(
-            |result| match result.change_context(InvocationError::Response)? {
-                StreamResult::Result(result) => Ok(result),
-                StreamResult::Error(error) => {
-                    Err(Report::new(error).change_context(InvocationError::Api))
+        impl<T> From<StreamResult<T>> for Result<T, Report<StreamError>> {
+            fn from(result: StreamResult<T>) -> Self {
+                match result {
+                    StreamResult::Result(result) => Ok(result),
+                    StreamResult::Error(rpc_error) => Err(Report::new(StreamError::Api(rpc_error))),
                 }
-            },
-        ))
+            }
+        }
+
+        let stream_response = self.invoke_request(path, body).await?;
+        let stream_reader = StreamReader::new(
+            stream_response
+                .bytes_stream()
+                .map_err(|request_error| io::Error::new(io::ErrorKind::Other, request_error)),
+        );
+        let framed_stream = FramedRead::new(
+            stream_reader,
+            codec::bytes::JsonLinesDecoder::<StreamResult<R>>::new(),
+        );
+
+        Ok(framed_stream
+            .map(|io_result| Result::from(io_result.change_context(StreamError::Parse)?)))
     }
 
     // TODO: Expose batch-version

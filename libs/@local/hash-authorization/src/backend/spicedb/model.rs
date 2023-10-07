@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt};
+use std::{collections::HashMap, fmt};
 
 use serde::{
     de::IntoDeserializer, ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializer,
@@ -21,8 +21,6 @@ impl fmt::Display for RpcError {
         write!(fmt, "Error {}: {}", self.code, self.message)
     }
 }
-
-impl Error for RpcError {}
 
 pub struct ObjectReference<T>(pub T);
 

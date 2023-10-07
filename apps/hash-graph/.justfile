@@ -18,7 +18,7 @@ run *arguments:
 # Generates the OpenAPI specifications and the clients
 generate-openapi-specs:
   cargo run --bin hash-graph -- server --write-openapi-specs
-  just yarn codegen --filter @local/hash-graph-client-python
+  just yarn codegen --filter @local/hash-graph-client-py
   just yarn codegen --filter @local/hash-graph-sdk-python
 
 [private]

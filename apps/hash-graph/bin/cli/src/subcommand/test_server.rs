@@ -80,7 +80,7 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
         .change_context(GraphError)?;
         spicedb_client
             .import_schema(include_str!(
-                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+                "../../../../../../libs/@Local/hash-authorization/schemas/v1__initial_schema.zed"
             ))
             .await
             .change_context(GraphError)?;

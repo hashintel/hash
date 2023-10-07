@@ -114,15 +114,13 @@ name = "authorization"
 version = "0.0.0"
 dependencies = [
  "codec",
- "error-stack",
+ "error-stack 0.4.1",
  "futures",
  "graph-types",
  "reqwest",
  "serde",
  "serde_json",
- "tokio",
  "tokio-util",
- "uuid",
 ]
 
 [[package]]
@@ -377,7 +375,7 @@ name = "codec"
 version = "0.0.0"
 dependencies = [
  "derive-where",
- "error-stack",
+ "error-stack 0.4.1",
  "serde",
  "serde_json",
  "tokio-util",
@@ -657,6 +655,16 @@ source = "git+https://github.com/hashintel/hash?rev=0829935#0829935d60c3bdb50683
 dependencies = [
  "anyhow",
  "rustc_version",
+]
+
+[[package]]
+name = "error-stack"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27a72baa257b5e0e2de241967bc5ee8f855d6072351042688621081d66b2a76b"
+dependencies = [
+ "anyhow",
+ "rustc_version",
  "tracing-error",
 ]
 
@@ -843,7 +851,7 @@ dependencies = [
  "criterion",
  "derivative",
  "dotenv-flow",
- "error-stack",
+ "error-stack 0.4.1",
  "futures",
  "graph-test-data",
  "graph-types",
@@ -907,7 +915,7 @@ name = "graph-integration"
 version = "0.0.0"
 dependencies = [
  "authorization",
- "error-stack",
+ "error-stack 0.4.1",
  "futures",
  "graph",
  "graph-test-data",
@@ -932,8 +940,7 @@ name = "graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "error-stack",
- "graph-test-data",
+ "error-stack 0.4.1",
  "postgres-types",
  "serde",
  "serde_json",
@@ -978,7 +985,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "codec",
- "error-stack",
+ "error-stack 0.4.1",
  "futures",
  "graph",
  "graph-types",
@@ -1003,7 +1010,7 @@ dependencies = [
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
- "error-stack",
+ "error-stack 0.3.1",
  "serde",
  "serde_json",
 ]

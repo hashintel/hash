@@ -1,0 +1,13 @@
+{
+  "name": "@local/hash-authorization",
+  "version": "0.0.0-private",
+  "private": true,
+  "scripts": {
+    "test:integration": "cargo hack nextest run --feature-powerset --test '*'",
+    "test:unit:disabled": "cargo hack nextest run --feature-powerset --lib && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@local/hash-codec": "0.0.0-private",
+    "@local/hash-graph-types-rs": "0.0.0-private"
+  }
+}
