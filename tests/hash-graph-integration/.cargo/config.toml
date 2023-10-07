@@ -94,9 +94,7 @@ rustflags = [
     "-Wclippy::zero_sized_map_values",
     "-Wfuture_incompatible",
     "-Wnonstandard_style",
-    "-Wunreachable_pub",
     "-Aclippy::module_name_repetitions",
-    "-Aclippy::redundant_pub_crate",
     "-Aclippy::significant_drop_tightening",
     ## END CLIPPY LINTS ##
 ]
