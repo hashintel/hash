@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-graph-sdk-python",
+  "name": "@local/hash-graph-sdk-py",
   "version": "0.0.0-private",
   "private": true,
   "description": "Type definitions for the type system and entity validation based on schemas",

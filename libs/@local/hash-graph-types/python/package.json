@@ -15,6 +15,5 @@
     "poetry:install": "poetry install --no-root --no-interaction",
     "poetry:install-production": "poetry install --no-root --no-interaction --only main"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {}
 }
