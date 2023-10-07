@@ -292,7 +292,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@ddccb873888234080b77e9bc2d4764d5ccaaccf9 # v2.21.9
+        uses: github/codeql-action/upload-sarif@2cb752a87e96af96708ab57187ab6372ee1973ab # v2.22.0
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
