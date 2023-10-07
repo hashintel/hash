@@ -76,10 +76,11 @@ pub struct Deserializer<'a, 'de> {
 }
 
 impl<'a, 'de> Deserializer<'a, 'de> {
+    #[must_use]
     pub fn new(slice: &'de [u8], context: &'a Context) -> Self {
         let limit = context
             .request_ref::<StackLimit>()
-            .map_or(usize::MAX, StackLimit::limit);
+            .map_or(usize::MAX, |limit| limit.limit());
 
         Self {
             tokenizer: Tokenizer::for_json_bytes(slice),
