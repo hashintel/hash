@@ -10,8 +10,5 @@
     "deploy:prod": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.type-fetcher.yml --file docker-compose.prod.yml --env-file ../../.env --env-file ../../.env.production --env-file ../../.env.local",
     "deploy:prototype": "docker compose --project-name hash-prototype-services --file docker-compose.prototype.yml --env-file ../../.env --env-file ../../.env.local",
     "deploy:test": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.test.yml --file docker-compose.type-fetcher.yml --file docker-compose.temporal.yml --env-file ../../.env --env-file ../../.env.test --env-file ../../.env.local"
-  },
-  "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private"
   }
 }
