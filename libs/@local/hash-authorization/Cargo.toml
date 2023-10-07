@@ -7,7 +7,7 @@ publish = false
 [dependencies]
 error-stack = { version = "0.4.1", features = ["spantrace"] }
 graph-types = { path = "../hash-graph-types/rust" }
-codec = { path = "../hash-codec" }
+codec = { path = "../codec" }
 
 futures = { version = "0.3.28", default-features = false }
 serde = { version = "1.0.188", features = ["derive"] }
