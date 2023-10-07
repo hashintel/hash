@@ -9,6 +9,6 @@
     "@local/hash-temporal-versioning-rs": "0.0.0-private"
   },
   "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private"
+    "@tests/hash-graph-test-data-rs": "0.0.0-private"
   }
 }

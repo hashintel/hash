@@ -14,7 +14,7 @@ publish = false
 repository = "https://github.com/hashintel/hash/tree/main/apps/hash-graph"
 
 [workspace.dependencies]
-graph-test-data = { path = "tests/test_data" }
+graph-test-data = { path = "../../tests/hash-graph-test-data/rust" }
 
 # Ideally we would move this to `libs/` but we currently cannot have multiple Rust workspaces depending on each other
 # as otherwise the CI would not be able to determine the dependency order. This would result in dependants not being
