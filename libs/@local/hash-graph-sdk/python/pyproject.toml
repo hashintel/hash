@@ -23,7 +23,7 @@ ruff = "^0.0.292"
 mypy = "^1.5.1"
 
 hash-graph-client = { path = "../../hash-graph-client/python", develop = true }
-hash-graph-types = { path = "../../hash-graph-types", develop = true }
+hash-graph-types = { path = "../../hash-graph-types/python", develop = true }
 
 
 [tool.black]

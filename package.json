@@ -5,13 +5,8 @@
     "packages": [
       "apps/*",
       "blocks/*",
-      "libs/*",
-      "libs/@hashintel/*",
-      "libs/@local/*",
-      "libs/@local/*/typescript",
-      "libs/@local/*/rust",
-      "libs/@local/*/python",
-      "tests/*"
+      "libs/**",
+      "tests/**"
     ]
   },
   "scripts": {

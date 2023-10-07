@@ -270,9 +270,14 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
+          just lint-toml "check"
+
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
-          export RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          # If `export` would be on the same line this would not fail the workflow if the above line fails
+          export RUSTFLAGS
+
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -568,7 +573,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal temporal-setup"
+          SERVICES="kratos mailslurper redis temporal temporal-setup spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
