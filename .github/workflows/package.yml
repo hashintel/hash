@@ -272,9 +272,9 @@ jobs:
         run: |
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
-          set -o pipefail
-          export RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
-          set +o pipefail
+          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          # If `export` would be on the same line this would not fail the workflow if the above line fails
+          export RUSTFLAGS
 
           just clippy --message-format=json \
             | clippy-sarif \
