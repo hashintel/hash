@@ -22,7 +22,7 @@ impl<T> IntervalBound<T> for Bound<T> {
     }
 }
 
-pub trait IntervalBoundHelper<T>: IntervalBound<T> {
+pub(crate) trait IntervalBoundHelper<T>: IntervalBound<T> {
     fn flip<B: IntervalBound<T>>(self) -> B
     where
         Self: Sized,
@@ -108,12 +108,12 @@ where
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BoundType {
+pub(crate) enum BoundType {
     Start,
     End,
 }
 
-pub fn compare_bounds<T: PartialEq, O: From<Ordering>>(
+pub(crate) fn compare_bounds<T: PartialEq, O: From<Ordering>>(
     lhs: Bound<&T>,
     rhs: Bound<&T>,
     lhs_type: BoundType,

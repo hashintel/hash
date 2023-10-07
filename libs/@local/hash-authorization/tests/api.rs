@@ -1,4 +1,4 @@
-#![allow(unused_attributes)] // This file is used as module in other tests
+#![allow(unused_attributes, unreachable_pub)] // This file is used as module in other tests
 #![feature(async_fn_in_trait, associated_type_bounds)]
 
 use authorization::{

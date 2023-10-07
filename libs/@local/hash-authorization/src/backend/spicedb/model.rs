@@ -9,11 +9,12 @@ use crate::zanzibar::{self, Resource, Tuple};
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcError {
-    pub code: i32,
-    pub message: String,
+pub(crate) struct RpcError {
+    code: i32,
+    message: String,
     #[serde(default)]
-    pub details: Vec<serde_json::Value>,
+    #[expect(dead_code, reason = "Currently not used but captured from gRPC connections")]
+    details: Vec<serde_json::Value>,
 }
 
 impl fmt::Display for RpcError {
@@ -22,7 +23,7 @@ impl fmt::Display for RpcError {
     }
 }
 
-pub struct ObjectReference<T>(pub T);
+pub(crate) struct ObjectReference<T>(pub(crate) T);
 
 impl<T: Tuple> Serialize for ObjectReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -64,7 +65,7 @@ where
     }
 }
 
-pub struct RelationReference<T>(pub T);
+pub(crate) struct RelationReference<T>(pub(crate) T);
 
 impl<T: Tuple> Serialize for RelationReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -76,7 +77,7 @@ impl<T: Tuple> Serialize for RelationReference<T> {
 }
 
 #[derive(Debug)]
-pub struct SubjectReference<T>(pub T);
+pub(crate) struct SubjectReference<T>(pub(crate) T);
 
 impl<T: Tuple> Serialize for SubjectReference<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -84,7 +85,7 @@ impl<T: Tuple> Serialize for SubjectReference<T> {
         S: Serializer,
     {
         #[derive(Debug)]
-        pub struct ObjectReference<T>(pub T);
+        struct ObjectReference<T>(T);
 
         impl<T: Tuple> Serialize for ObjectReference<T> {
             fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
@@ -152,7 +153,7 @@ where
 /// Specifies how a resource relates to a subject.
 ///
 /// Relationships form the data for the graph over which all permissions questions are answered.
-pub struct Relationship<T>(pub T);
+pub(crate) struct Relationship<T>(pub(crate) T);
 
 impl<T: Tuple> Serialize for Relationship<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -167,7 +168,7 @@ impl<T: Tuple> Serialize for Relationship<T> {
     }
 }
 
-pub struct Consistency<'z>(zanzibar::Consistency<'z>);
+pub(crate) struct Consistency<'z>(zanzibar::Consistency<'z>);
 
 impl<'z> From<zanzibar::Consistency<'z>> for Consistency<'z> {
     fn from(consistency: zanzibar::Consistency<'z>) -> Self {
@@ -217,7 +218,7 @@ impl From<ZedToken> for zanzibar::Zookie<'static> {
 
 /// Used for mutating a single relationship within the service.
 #[derive(Debug, Copy, Clone, Serialize)]
-pub enum RelationshipUpdateOperation {
+pub(crate) enum RelationshipUpdateOperation {
     /// Create the relationship only if it doesn't exist, and error otherwise.
     #[serde(rename = "OPERATION_CREATE")]
     Create,
@@ -232,11 +233,11 @@ pub enum RelationshipUpdateOperation {
 /// Represents a reference to a caveat to be used by caveated relationships.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase", bound = "")]
-pub struct ContextualizedCaveat<'a> {
+pub(crate) struct ContextualizedCaveat<'a> {
     /// The name of the caveat expression to use, as defined in the schema.
-    pub caveat_name: &'a str,
+    caveat_name: &'a str,
     /// Consists of key-value pairs that will be injected at evaluation time.
     ///
     /// The keys must match the arguments defined on the caveat in the schema.
-    pub context: HashMap<&'a str, serde_json::Value>,
+    context: HashMap<&'a str, serde_json::Value>,
 }

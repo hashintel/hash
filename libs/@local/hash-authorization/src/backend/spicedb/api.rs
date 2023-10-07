@@ -21,7 +21,7 @@ use crate::{
     clippy::empty_structs_with_brackets,
     reason = "Used for serializing and deserializing an empty object `{}`"
 )]
-pub struct Empty {}
+struct Empty {}
 
 #[derive(Debug)]
 enum InvocationError {
