@@ -19,7 +19,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE data_types_tmp
                         (LIKE data_types INCLUDING ALL)
                         ON COMMIT DROP;
@@ -41,7 +41,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
             Self::Schema(data_types) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO data_types_tmp
                             SELECT DISTINCT * FROM UNNEST($1::data_types[])
                             RETURNING 1;
@@ -63,7 +63,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     INSERT INTO data_types SELECT * FROM data_types_tmp;
                 ",
             )

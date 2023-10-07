@@ -331,7 +331,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 .change_context(DeserializerError)),
             Some(PeekableTokenKind::Null) => {
                 // we know the value will be `null`, therefore we can just discard the next token
-                let _ = self.tokenizer.next();
+                _ = self.tokenizer.next();
 
                 visitor.visit_null().change_context(DeserializerError)
             }
@@ -348,7 +348,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
         let is_map = match token {
             Some(PeekableTokenKind::Object) => {
                 // eat the token, so that we're at the key (that we need)
-                let _ = self.next();
+                _ = self.next();
                 true
             }
             Some(_) => false,
@@ -403,7 +403,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             if self.peek() == Some(PeekableTokenKind::ObjectEnd) {
                 // we can safely continue
                 // we know this won't error because parsing of `ObjectEnd` will never fail
-                let _ = self.next();
+                _ = self.next();
             } else {
                 // we have received multiple objects, error out
                 // make sure we close the object

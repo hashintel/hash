@@ -25,7 +25,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE accounts_tmp
                         (LIKE accounts INCLUDING ALL)
                         ON COMMIT DROP;
@@ -50,7 +50,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             Self::Accounts(accounts) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO accounts_tmp
                             SELECT DISTINCT * FROM UNNEST($1::accounts[])
                             ON CONFLICT DO NOTHING
@@ -67,7 +67,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             Self::AccountGroups(account_groups) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO account_groups_tmp
                             SELECT DISTINCT * FROM UNNEST($1::account_groups[])
                             ON CONFLICT DO NOTHING
@@ -96,7 +96,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     WITH inserted_accounts AS (
                         INSERT INTO accounts
                         SELECT * FROM accounts_tmp

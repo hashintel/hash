@@ -29,7 +29,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE entity_types_tmp
                         (LIKE entity_types INCLUDING ALL)
                         ON COMMIT DROP;
@@ -75,7 +75,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             Self::Schema(entity_types) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_types_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_types[])
                             RETURNING 1;
@@ -91,7 +91,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             Self::InheritsFrom(entity_types) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_type_inherits_from_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_type_inherits_from_tmp[])
                             RETURNING 1;
@@ -107,15 +107,15 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             Self::ConstrainsProperties(properties) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_type_constrains_properties_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_type_constrains_properties_on_tmp[])
+                            SELECT DISTINCT * FROM \
+                         UNNEST($1::entity_type_constrains_properties_on_tmp[])
                             RETURNING 1;
                         ",
                         &[properties],
                     )
                     .await
-
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} entity type property constrains", rows.len());
@@ -124,9 +124,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             Self::ConstrainsLinks(links) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_type_constrains_links_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_type_constrains_links_on_tmp[])
+                            SELECT DISTINCT * FROM \
+                         UNNEST($1::entity_type_constrains_links_on_tmp[])
                             RETURNING 1;
                         ",
                         &[links],
@@ -140,15 +141,15 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             Self::ConstrainsLinkDestinations(links) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_type_constrains_link_destinations_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_type_constrains_link_destinations_on_tmp[])
+                            SELECT DISTINCT * FROM \
+                         UNNEST($1::entity_type_constrains_link_destinations_on_tmp[])
                             RETURNING 1;
                         ",
                         &[links],
                     )
                     .await
-
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!(
@@ -166,7 +167,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     INSERT INTO entity_types SELECT * FROM entity_types_tmp;
 
                     INSERT INTO entity_type_inherits_from
@@ -175,8 +176,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
                         FROM entity_type_inherits_from_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = entity_type_inherits_from_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = entity_type_inherits_from_tmp.target_entity_type_version;
+                            ontology_ids_tmp.base_url = \
+                 entity_type_inherits_from_tmp.target_entity_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 entity_type_inherits_from_tmp.target_entity_type_version;
 
                     INSERT INTO entity_type_constrains_properties_on
                         SELECT
@@ -184,8 +187,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
                         FROM entity_type_constrains_properties_on_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = entity_type_constrains_properties_on_tmp.target_property_type_base_url
-                            AND ontology_ids_tmp.version = entity_type_constrains_properties_on_tmp.target_property_type_version;
+                            ontology_ids_tmp.base_url = \
+                 entity_type_constrains_properties_on_tmp.target_property_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 entity_type_constrains_properties_on_tmp.target_property_type_version;
 
                     INSERT INTO entity_type_constrains_links_on
                         SELECT
@@ -193,8 +198,10 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
                         FROM entity_type_constrains_links_on_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = entity_type_constrains_links_on_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = entity_type_constrains_links_on_tmp.target_entity_type_version;
+                            ontology_ids_tmp.base_url = \
+                 entity_type_constrains_links_on_tmp.target_entity_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 entity_type_constrains_links_on_tmp.target_entity_type_version;
 
                     INSERT INTO entity_type_constrains_link_destinations_on
                         SELECT
@@ -202,12 +209,13 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_entity_type_ontology_id
                         FROM entity_type_constrains_link_destinations_on_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = entity_type_constrains_link_destinations_on_tmp.target_entity_type_base_url
-                            AND ontology_ids_tmp.version = entity_type_constrains_link_destinations_on_tmp.target_entity_type_version;
+                            ontology_ids_tmp.base_url = \
+                 entity_type_constrains_link_destinations_on_tmp.target_entity_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 entity_type_constrains_link_destinations_on_tmp.target_entity_type_version;
                 ",
             )
             .await
-
             .change_context(InsertionError)?;
         Ok(())
     }

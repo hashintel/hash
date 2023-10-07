@@ -6,7 +6,7 @@ use serde_json::json;
 
 #[test]
 fn array_u8_ok() {
-    let array = [0u8, 1, 2, 3, 4, 5, 6, 7];
+    let array = [0_u8, 1, 2, 3, 4, 5, 6, 7];
 
     assert_tokens(
         &array,

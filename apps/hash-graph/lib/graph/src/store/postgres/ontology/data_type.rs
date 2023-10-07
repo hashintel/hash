@@ -59,7 +59,7 @@ impl<C: AsClient> PostgresStore<C> {
         let data_types = transaction
             .as_client()
             .query(
-                r"
+                "
                     DELETE FROM data_types
                     RETURNING ontology_id
                 ",

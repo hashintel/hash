@@ -375,7 +375,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             tracing::error!(error = ?report, "Failed to connect to database");
             report
         })?;
-    let _ = pool
+    _ = pool
         .acquire()
         .await
         .change_context(GraphError)

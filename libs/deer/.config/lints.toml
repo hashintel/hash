@@ -10,5 +10,7 @@ warn = [
 allow = [
     # enable once more stable
     "missing_docs",
-    "clippy::missing_errors_doc"
+    "clippy::missing_errors_doc",
+    "clippy::error_impl_error",
+    "clippy::panic_in_result_fn"
 ]

@@ -24,6 +24,9 @@
     "lint": {
       "dependsOn": ["^build", "codegen"]
     },
+    "lint:clippy": {
+      "dependsOn": ["^build", "codegen"]
+    },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["^build", "codegen"]
