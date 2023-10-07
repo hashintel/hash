@@ -278,7 +278,7 @@ jobs:
           # If `export` would be on the same line this would not fail the workflow if the above line fails
           export RUSTFLAGS
 
-          turbo run lint:clippy --message-format=json \
+          just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             | tee clippy.sarif \
