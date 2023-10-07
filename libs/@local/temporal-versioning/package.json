@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-temporal-versioning-rs",
+  "name": "@local/temporal-versioning-rs",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {

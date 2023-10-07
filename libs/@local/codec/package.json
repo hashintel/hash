@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-codec-rs",
+  "name": "@local/codec-rs",
   "version": "0.0.0-private",
   "private": true
 }
