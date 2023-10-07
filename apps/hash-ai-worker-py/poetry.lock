@@ -508,7 +508,7 @@ types-python-slugify = "^8.0"
 
 [package.source]
 type = "directory"
-url = "../../libs/@local/hash-graph-types"
+url = "../../libs/@local/hash-graph-types/python"
 
 [[package]]
 name = "httpcore"
@@ -1496,4 +1496,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "352bb6635d2f345dd0c5d2d41b1f326ca2279291f995acee37492e64a90c7eef"
+content-hash = "d34210c7bdaf01580d11e76d8bfdcac4ab09e65986d5c62900010e53ecd133d3"
