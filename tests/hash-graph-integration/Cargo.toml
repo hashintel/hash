@@ -8,7 +8,7 @@ publish = false
 graph = { path = "../../apps/hash-graph/lib/graph" }
 graph-test-data = { path = "../hash-graph-test-data/rust" }
 graph-types = { path = "../../libs/@local/hash-graph-types/rust" }
-temporal-versioning = { path = "../../libs/@local/hash-temporal-versioning" }
+temporal-versioning = { path = "../../libs/@local/temporal-versioning" }
 authorization = { path = "../../libs/@local/hash-authorization" }
 
 error-stack = { version = "0.4.1", features = ["spantrace"] }
