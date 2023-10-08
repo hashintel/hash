@@ -84,8 +84,6 @@ pub struct Interval<T, S, E> {
 impl<T, S, E> Interval<T, S, E> {
     /// Creates an interval from the given bounds.
     ///
-    /// # Safety
-    ///
     /// The start bound must be less than or equal to the end bound.
     pub const fn new_unchecked(start: S, end: E) -> Self {
         Self {
@@ -515,13 +513,13 @@ where
         match self.start_bound() {
             Bound::Included(limit) => write!(fmt, "[{limit:?}")?,
             Bound::Excluded(limit) => write!(fmt, "({limit:?}")?,
-            Bound::Unbounded => write!(fmt, "(-∞")?,
+            Bound::Unbounded => write!(fmt, "(-\u{221e}")?, // ∞
         }
         fmt.write_str(", ")?;
         match self.end_bound() {
             Bound::Included(limit) => write!(fmt, "{limit:?}]"),
             Bound::Excluded(limit) => write!(fmt, "{limit:?})"),
-            Bound::Unbounded => write!(fmt, "+∞)"),
+            Bound::Unbounded => write!(fmt, "+\u{221e})"), // ∞
         }
     }
 }

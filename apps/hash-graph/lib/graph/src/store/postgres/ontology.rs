@@ -50,7 +50,7 @@ impl PostgresStore<Transaction<'_>> {
     ) -> Result<(), DeletionError> {
         self.as_client()
             .query(
-                r"
+                "
                     DELETE FROM ontology_owned_metadata
                     WHERE ontology_id = ANY($1)
                 ",
@@ -61,7 +61,7 @@ impl PostgresStore<Transaction<'_>> {
 
         self.as_client()
             .query(
-                r"
+                "
                     DELETE FROM ontology_external_metadata
                     WHERE ontology_id = ANY($1)
                 ",
@@ -72,7 +72,7 @@ impl PostgresStore<Transaction<'_>> {
 
         self.as_client()
             .query(
-                r"
+                "
                     DELETE FROM ontology_temporal_metadata
                     WHERE ontology_id = ANY($1)
                 ",
@@ -84,7 +84,7 @@ impl PostgresStore<Transaction<'_>> {
         let base_urls = self
             .as_client()
             .query(
-                r"
+                "
                     DELETE FROM ontology_ids
                     WHERE ontology_id = ANY($1)
                     RETURNING base_url
@@ -99,7 +99,7 @@ impl PostgresStore<Transaction<'_>> {
 
         self.as_client()
             .query(
-                r"
+                "
                     DELETE FROM base_urls
                     WHERE base_url = ANY($1)
                 ",

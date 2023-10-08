@@ -99,7 +99,7 @@ fn tuple_too_many_items_err() {
 #[test]
 fn tuple_fallback_to_default_ok() {
     assert_tokens(
-        &(Some(12u8), None::<u16>),
+        &(Some(12_u8), None::<u16>),
         &[
             Token::Array { length: Some(1) },
             Token::Number(12.into()),

@@ -565,7 +565,7 @@ mod tests {
             .change_context(VisitorError);
 
         let value = Report::new(Error::new(ValueError))
-            .attach(ReceivedValue::new(256u16))
+            .attach(ReceivedValue::new(256_u16))
             .attach(ExpectedType::new(u8::reflection()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);

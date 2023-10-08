@@ -398,13 +398,13 @@ macro_rules! sym {
 impl Symbol {
     const fn to_str_utf8(self) -> &'static str {
         match self {
-            Self::Vertical => "│",
-            Self::VerticalRight => "├",
-            Self::Horizontal => "─",
-            Self::HorizontalLeft => "╴",
-            Self::HorizontalDown => "┬",
-            Self::ArrowRight => "▶",
-            Self::CurveRight => "╰",
+            Self::Vertical => "\u{2502}",       // │
+            Self::VerticalRight => "\u{251c}",  // ├
+            Self::Horizontal => "\u{2500}",     // ─
+            Self::HorizontalLeft => "\u{2574}", // ╴
+            Self::HorizontalDown => "\u{252c}", // ┬
+            Self::ArrowRight => "\u{25b6}",     // ▶
+            Self::CurveRight => "\u{2570}",     // ╰
             Self::Space => " ",
         }
     }
@@ -1137,7 +1137,7 @@ impl<C> Debug for Report<C> {
 
                 lines.push_str("\n\n");
                 if charset == Charset::Utf8 {
-                    lines.push_str(&"━".repeat(40));
+                    lines.push_str(&"\u{2501}".repeat(40)); // ━
                 } else {
                     lines.push_str(&"=".repeat(40));
                 }

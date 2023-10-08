@@ -169,7 +169,7 @@ impl<'de> Visitor<'de> for DirtyArrayVisitor {
         T: ArrayAccess<'de>,
     {
         // simulate dirty by taking one item
-        let _ = array.next::<Option<u8>>();
+        _ = array.next::<Option<u8>>();
 
         array.into_bound(2).change_context(VisitorError)?;
 
@@ -449,7 +449,7 @@ impl<'de> Visitor<'de> for DirtyObjectVisitor {
         T: ObjectAccess<'de>,
     {
         // simulate dirty by taking one item
-        let _ = object.next::<Option<()>, Option<()>>();
+        _ = object.next::<Option<()>, Option<()>>();
 
         object.into_bound(3).change_context(VisitorError)?;
 

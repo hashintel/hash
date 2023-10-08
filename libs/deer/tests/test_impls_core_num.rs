@@ -25,7 +25,7 @@ macro_rules! test_zero {
         paste::paste! {
             #[test]
             fn [<$ty:lower _err_zero >]() {
-                let zero = Number::from(0u8);
+                let zero = Number::from(0_u8);
 
                 assert_tokens_error::<$ty>(
                     &error! {

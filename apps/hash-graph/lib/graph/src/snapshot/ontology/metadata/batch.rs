@@ -28,10 +28,10 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE ontology_ids_tmp
                         (LIKE ontology_ids INCLUDING ALL)
-                       ON COMMIT DROP;
+                        ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE ontology_temporal_metadata_tmp
                         (LIKE ontology_temporal_metadata INCLUDING ALL)
@@ -65,7 +65,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             Self::Ids(ontology_ids) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO ontology_ids_tmp
                             SELECT * FROM UNNEST($1::ontology_ids[])
                             ON CONFLICT DO NOTHING
@@ -82,7 +82,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             Self::TemporalMetadata(ontology_temporal_metadata) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO ontology_temporal_metadata_tmp
                             SELECT * FROM UNNEST($1::ontology_temporal_metadata[])
                             RETURNING 1;
@@ -98,7 +98,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             Self::OwnedMetadata(ontology_owned_metadata) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO ontology_owned_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_owned_metadata[])
                             ON CONFLICT DO NOTHING
@@ -115,7 +115,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             Self::ExternalMetadata(ontology_external_metadata) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO ontology_external_metadata_tmp
                             SELECT DISTINCT * FROM UNNEST($1::ontology_external_metadata[])
                             ON CONFLICT DO NOTHING
@@ -138,16 +138,19 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
-                    INSERT INTO base_urls                  SELECT DISTINCT base_url FROM ontology_ids_tmp;
+                "
+                    INSERT INTO base_urls                  SELECT DISTINCT base_url FROM \
+                 ontology_ids_tmp;
                     INSERT INTO ontology_ids               SELECT * FROM ontology_ids_tmp;
-                    INSERT INTO ontology_temporal_metadata SELECT * FROM ontology_temporal_metadata_tmp;
-                    INSERT INTO ontology_owned_metadata    SELECT * FROM ontology_owned_metadata_tmp;
-                    INSERT INTO ontology_external_metadata SELECT * FROM ontology_external_metadata_tmp;
+                    INSERT INTO ontology_temporal_metadata SELECT * FROM \
+                 ontology_temporal_metadata_tmp;
+                    INSERT INTO ontology_owned_metadata    SELECT * FROM \
+                 ontology_owned_metadata_tmp;
+                    INSERT INTO ontology_external_metadata SELECT * FROM \
+                 ontology_external_metadata_tmp;
                 ",
             )
             .await
-
             .change_context(InsertionError)?;
         Ok(())
     }

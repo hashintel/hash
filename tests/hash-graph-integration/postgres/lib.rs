@@ -1,4 +1,3 @@
-#![cfg(test)]
 #![feature(associated_type_bounds, lint_reasons)]
 #![allow(
     clippy::missing_panics_doc,
