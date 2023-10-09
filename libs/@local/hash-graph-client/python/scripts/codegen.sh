@@ -16,6 +16,8 @@ SPEC="$SPEC_DIR/openapi.json"
 # cd up to the package directory (needed for poetry and yarn)
 cd "$DIR/.."
 
+poetry run datamodel-codegen --version
+
 # Take the specification and bundle all models into a single file
 yarn run redocly bundle --format=json "$SPEC" -o "$DIR/openapi.bundle.json"
 
