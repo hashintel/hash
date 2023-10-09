@@ -28,7 +28,7 @@ export const getPageSectionContainerStyles = (
 };
 
 export interface PageSectionContainerProps {
-  pageComments: PageThread[];
+  pageComments?: PageThread[];
   sx?: SxProps;
   readonly: boolean;
 }
@@ -42,7 +42,9 @@ export const PageSectionContainer = ({
   return (
     <Box
       sx={[
-        getPageSectionContainerStyles(pageComments, readonly),
+        ...(pageComments
+          ? [getPageSectionContainerStyles(pageComments, readonly)]
+          : []),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >

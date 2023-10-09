@@ -25,7 +25,7 @@ import {
 
 type PageBlockProps = {
   contents: PageContentItem[];
-  pageComments: PageThread[];
+  pageComments?: PageThread[];
   ownedById: OwnedById;
   entityId: EntityId;
 };
@@ -129,7 +129,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   return (
     <>
-      {isReadonlyMode ? null : (
+      {!isReadonlyMode && pageComments ? (
         <PageSectionContainer
           pageComments={pageComments}
           readonly={isReadonlyMode}
@@ -160,7 +160,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
             </Box>
           </Box>
         </PageSectionContainer>
-      )}
+      ) : null}
       <Box
         id="root"
         ref={root}
