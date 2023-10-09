@@ -27,11 +27,11 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
+  addEntityViewer,
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  makeEntityPublic,
 } from "../primitive/entity";
 import {
   shortnameIsInvalid,
@@ -305,10 +305,10 @@ export const createUser: ImpureGraphFunction<
       entityUuid: userAccountId as string as EntityUuid,
     },
   );
-  await makeEntityPublic(
+  await addEntityViewer(
     ctx,
     { actorId: userAccountId },
-    { entityId: entity.metadata.recordId.entityId },
+    { entityId: entity.metadata.recordId.entityId, viewer: "public" },
   );
 
   const user = getUserFromEntity({ entity });

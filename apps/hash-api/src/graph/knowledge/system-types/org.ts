@@ -22,10 +22,10 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
+  addEntityViewer,
   createEntity,
   CreateEntityParams,
   getLatestEntityById,
-  makeEntityPublic,
   updateEntityProperty,
 } from "../primitive/entity";
 import {
@@ -155,8 +155,9 @@ export const createOrg: ImpureGraphFunction<
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountGroupId as string as EntityUuid,
   });
-  await makeEntityPublic(ctx, authentication, {
+  await addEntityViewer(ctx, authentication, {
     entityId: entity.metadata.recordId.entityId,
+    viewer: "public",
   });
 
   return getOrgFromEntity({ entity });
