@@ -11,22 +11,27 @@ export const ProfilePageTabs: FunctionComponent<{
   tabs: ProfilePageTab[];
   currentTab: ProfilePageTab;
 }> = ({ tabs, currentTab, profile }) => {
+  const currentTabLabel =
+    currentTab.kind === "profile" ? currentTab.title : currentTab.pluralTitle;
+
   return (
     <Box sx={{ overflowX: "scroll" }}>
-      <Tabs value={currentTab.title}>
-        {tabs.map((tab) =>
-          tab.title ? (
+      <Tabs value={currentTabLabel}>
+        {tabs.map((tab) => {
+          const label = tab.kind === "profile" ? tab.title : tab.pluralTitle;
+
+          return label ? (
             <TabLink
-              active={currentTab.title === tab.title}
+              active={currentTabLabel === label}
               key={
                 tab.kind === "pinned-entity-type"
                   ? tab.entityTypeBaseUrl
                   : tab.kind
               }
-              label={tab.title}
-              value={tab.title}
+              label={label}
+              value={label}
               href={`/@${profile?.shortname}${
-                tab.kind === "profile" ? "" : `?tab=${tab.title}`
+                tab.kind === "profile" ? "" : `?tab=${label}`
               }`}
               count={
                 tab.kind === "pinned-entity-type"
@@ -34,8 +39,8 @@ export const ProfilePageTabs: FunctionComponent<{
                   : undefined
               }
             />
-          ) : null,
-        )}
+          ) : null;
+        })}
       </Tabs>
     </Box>
   );

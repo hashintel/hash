@@ -227,7 +227,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
           variant="smallCaps"
           sx={{ color: ({ palette }) => palette.gray[70], fontSize: 12 }}
         >
-          {currentTab.title}
+          {currentTab.pluralTitle}
         </Typography>
         <Box display="flex" alignItems="center" columnGap={1}>
           <Typography

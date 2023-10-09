@@ -288,9 +288,18 @@ const ProfilePage: NextPageWithLayout = () => {
     await refetch();
   }, [refetch]);
 
-  const currentTab =
-    tabsWithEntities.find(({ title }) => title === currentTabTitle) ??
-    tabsWithEntities[0]!;
+  const currentTab = useMemo(() => {
+    const matchingTab = tabsWithEntities.find((tab) =>
+      tab.kind === "pinned-entity-type" || tab.kind === "profile-pages"
+        ? tab.pluralTitle === currentTabTitle
+        : tab.title === currentTabTitle,
+    );
+
+    if (!matchingTab) {
+      return tabsWithEntities[0]!;
+    }
+    return matchingTab;
+  }, [tabsWithEntities, currentTabTitle]);
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
