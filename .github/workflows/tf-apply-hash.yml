@@ -66,6 +66,8 @@ jobs:
         uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
         if: ${{ failure() }}
         env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "Error applying Terraform configuration <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
           SLACK_TITLE: Terraform apply failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
