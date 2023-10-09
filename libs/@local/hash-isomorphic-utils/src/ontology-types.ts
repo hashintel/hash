@@ -124,8 +124,16 @@ const systemEntityTypes = {
     title: "Block",
     description: undefined,
   },
+  blockCollection: {
+    title: "Block Collection",
+    description: undefined,
+  },
   page: {
     title: "Page",
+    description: undefined,
+  },
+  profileBio: {
+    title: "Profile Bio",
     description: undefined,
   },
   text: {

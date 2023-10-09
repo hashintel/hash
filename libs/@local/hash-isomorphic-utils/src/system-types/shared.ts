@@ -8,6 +8,21 @@ export type Block = Entity<BlockProperties>;
 
 export type BlockBlockDataLink = { linkEntity: BlockData; rightEntity: Entity };
 
+export type BlockCollection = Entity<BlockCollectionProperties>;
+
+export type BlockCollectionContainsLink = {
+  linkEntity: Contains;
+  rightEntity: Block;
+};
+
+export type BlockCollectionOutgoingLinkAndTarget = BlockCollectionContainsLink;
+
+export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/contains/v/1": BlockCollectionContainsLink;
+};
+
+export type BlockCollectionProperties = {};
+
 export type BlockData = Entity<BlockDataProperties> & { linkData: LinkData };
 
 export type BlockDataOutgoingLinkAndTarget = never;
@@ -43,6 +58,20 @@ export type ComponentIdPropertyValue = TextDataType;
  * The name of the connection source.
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
+
+export type Contains = Entity<ContainsProperties> & { linkData: LinkData };
+
+export type ContainsOutgoingLinkAndTarget = never;
+
+export type ContainsOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something containing something.
+ */
+export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
+export type ContainsProperties1 = LinkProperties;
+
+export type ContainsProperties2 = {};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
