@@ -14,6 +14,7 @@ import {
   Fade,
   inputBaseClasses,
   selectClasses,
+  Skeleton,
   styled,
   Typography,
 } from "@mui/material";
@@ -343,7 +344,13 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 </Fragment>
               );
             })
-          ) : null}
+          ) : (
+            <Box sx={{ padding: 3 }} display="flex" columnGap={1.5}>
+              <Skeleton sx={{ width: 15 }} />
+              <Skeleton variant="text" width={100} />
+              <Skeleton variant="text" width={60} />
+            </Box>
+          )}
         </Box>
       </Fade>
     </Box>

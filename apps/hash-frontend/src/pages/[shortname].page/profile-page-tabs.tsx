@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import { Org, User } from "../../lib/user-and-org";
@@ -20,7 +20,7 @@ export const ProfilePageTabs: FunctionComponent<{
         {tabs.map((tab) => {
           const label = tab.kind === "profile" ? tab.title : tab.pluralTitle;
 
-          return label ? (
+          return (
             <TabLink
               active={currentTabLabel === label}
               key={
@@ -28,8 +28,8 @@ export const ProfilePageTabs: FunctionComponent<{
                   ? tab.entityTypeBaseUrl
                   : tab.kind
               }
-              label={label}
-              value={label}
+              label={label ?? <Skeleton width={60} />}
+              value={label ?? ""}
               href={`/@${profile?.shortname}${
                 tab.kind === "profile" ? "" : `?tab=${label}`
               }`}
@@ -39,7 +39,7 @@ export const ProfilePageTabs: FunctionComponent<{
                   : undefined
               }
             />
-          ) : null;
+          );
         })}
       </Tabs>
     </Box>
