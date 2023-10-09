@@ -2,7 +2,10 @@
   "extends": ["//"],
   "pipeline": {
     "codegen": {
-      "inputs": ["../../../../apps/hash-graph/openapi/openapi.json"],
+      "inputs": [
+        "../../../../apps/hash-graph/openapi/openapi.json",
+        "./scripts/codegen.sh"
+      ],
       "outputs": ["./graph_client/models.py"]
     },
     "build": {
