@@ -45,6 +45,7 @@ use crate::{
     paths(
         create_entity,
         get_entities_by_query,
+        can_view_entity,
         can_update_entity,
         update_entity,
 
@@ -105,6 +106,7 @@ impl RoutedResource for EntityResource {
                             "/owners/:owner",
                             post(add_entity_owner::<A, S>).delete(remove_entity_owner::<A, S>),
                         )
+                        .route("/permissions/view", get(can_view_entity::<A>))
                         .route("/permissions/update", get(can_update_entity::<A>)),
                 )
                 .route("/query", post(get_entities_by_query::<S, A>)),
@@ -251,6 +253,50 @@ where
 
 #[utoipa::path(
     get,
+    path = "/entities/{entity_id}/permissions/view",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor can view"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor can view the entity"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn can_view_entity<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_id): Path<EntityId>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(|error| {
+                tracing::error!(?error, "Could not acquire access to the authorization API");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .can_view_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .await
+            .map_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if entity can be viewed by the specified actor"
+                );
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .has_permission,
+    }))
+}
+
+#[utoipa::path(
+    get,
     path = "/entities/{entity_id}/permissions/update",
     tag = "Entity",
     params(
@@ -285,7 +331,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if account group member can be removed"
+                    "Could not check if entity can be updated by the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?

@@ -33,6 +33,7 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
@@ -682,3 +683,25 @@ export const removeEntityViewer: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
 };
+
+export const canViewEntity: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .canViewEntity(actorId, params.entityId)
+    .then(({ data }) => data.has_permission);
+
+export const canUpdateEntity: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .canUpdateEntity(actorId, params.entityId)
+    .then(({ data }) => data.has_permission);
+
+export const isEntityPublic: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<boolean>
+> = async (ctx, _, params) =>
+  canViewEntity(ctx, { actorId: publicUserAccountId }, params);

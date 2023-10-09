@@ -959,6 +959,50 @@
         }
       }
     },
+    "/entities/{entity_id}/permissions/view": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "can_view_entity",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The entity ID to check if the actor can view",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information if the actor can view the entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/viewers/{viewer}": {
       "post": {
         "tags": [
