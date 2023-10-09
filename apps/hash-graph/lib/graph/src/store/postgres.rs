@@ -1372,7 +1372,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         let row = self
             .as_client()
             .query_one(
-                r"
+                "
                     SELECT EXISTS (
                         SELECT 1
                         FROM accounts
