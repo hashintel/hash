@@ -19,5 +19,6 @@ export const queryApi = (query: string, variables?: Record<string, unknown>) =>
           resp.errors?.[0].message ?? "No data and no errors returned",
         );
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       return { data: resp.data };
     });

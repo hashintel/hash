@@ -1,6 +1,5 @@
 import { EntityType, VersionedUrl } from "@blockprotocol/graph";
 import { Autocomplete, Button, Chip, MenuItem } from "@hashintel/design-system";
-import { ProposedEntity } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
@@ -14,13 +13,16 @@ import { useEffect, useState } from "react";
 import browser, { Tabs } from "webextension-polyfill";
 
 import { Message } from "../../../../../shared/messages";
+import { queryApi } from "../../../../../shared/query-api";
+import { InferenceStatus } from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
   darkModeInputColor,
   darkModePlaceholderColor,
 } from "../../../../shared/dark-mode-values";
-import { queryApi } from "../../../../shared/query-api";
+import { sendMessageToBackground } from "../../../../shared/messages";
+import { useSessionStorage } from "../../../../shared/use-storage-sync";
 
 const getEntityTypesQuery = /* GraphQL */ `
   query getEntityTypes {
@@ -54,44 +56,6 @@ const getEntityTypes = () => {
   );
 };
 
-const inferEntitiesQuery = /* GraphQL */ `
-  mutation inferEntities(
-    $textInput: String!
-    $entityTypeIds: [VersionedUrl!]!
-  ) {
-    inferEntities(
-      allowEmptyResults: false
-      entityTypeIds: $entityTypeIds
-      maxTokens: 0
-      model: "gpt-4-0613"
-      temperature: 0
-      textInput: $textInput
-      validation: PARTIAL
-    ) {
-      entities {
-        entityId
-        entityTypeId
-        properties
-        linkData {
-          leftEntityId
-          rightEntityId
-        }
-      }
-    }
-  }
-`;
-
-const inferEntities = (textInput: string, entityTypeIds: VersionedUrl[]) => {
-  return queryApi(inferEntitiesQuery, {
-    entityTypeIds,
-    textInput: textInput.slice(0, 7900),
-  }).then(
-    ({ data }: { data: { inferEntities: { entities: ProposedEntity[] } } }) => {
-      return data.inferEntities.entities;
-    },
-  );
-};
-
 // This assumes a VersionedURL in the hash.ai/blockprotocol.org format
 const getChipLabelFromId = (id: VersionedUrl) => {
   const url = new URL(id);
@@ -105,35 +69,32 @@ const getChipLabelFromId = (id: VersionedUrl) => {
 
 type SelectTypesAndInferProps = {
   activeTab?: Tabs.Tab | null;
-  setInferredEntities: (entities: ProposedEntity[]) => void;
+  inferenceStatus: InferenceStatus;
+  resetInferenceStatus: () => void;
   setTargetEntityTypes: (types: EntityType[]) => void;
   targetEntityTypes: EntityType[];
 };
 
 export const SelectTypesAndInfer = ({
   activeTab,
-  setInferredEntities,
+  inferenceStatus,
+  resetInferenceStatus,
   setTargetEntityTypes,
   targetEntityTypes,
 }: SelectTypesAndInferProps) => {
-  const [allEntityTypes, setAllEntityTypes] = useState<EntityType[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [allEntityTypes, setAllEntityTypes] = useSessionStorage(
+    "entityTypes",
+    [],
+  );
   const [selectOpen, setSelectOpen] = useState(false);
 
   useEffect(() => {
-    // Preload from storage, in case we already loaded them
-    void browser.storage.session.get("entityTypes").then((result) => {
-      setAllEntityTypes((result.entityTypes as EntityType[] | undefined) ?? []);
-    });
-
     void getEntityTypes().then((entityTypes) => {
       setAllEntityTypes(
         entityTypes.sort((a, b) => a.title.localeCompare(b.title)),
       );
-      void browser.storage.session.set({ entityTypes });
     });
-  }, []);
+  }, [setAllEntityTypes]);
 
   const inferEntitiesFromPage = async () => {
     if (!activeTab?.id) {
@@ -149,21 +110,11 @@ export const SelectTypesAndInfer = ({
       message,
     ) as Promise<string>);
 
-    try {
-      setLoading(true);
-      const proposedEntitiesFromApi = await inferEntities(
-        siteContent,
-        targetEntityTypes.map((type) => type.$id),
-      );
-
-      setInferredEntities(proposedEntitiesFromApi);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(`Couldn't infer entities: ${(err as Error).message}`);
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+    void sendMessageToBackground({
+      entityTypeIds: targetEntityTypes.map((type) => type.$id),
+      textInput: siteContent,
+      type: "infer-entities",
+    });
   };
 
   return (
@@ -174,13 +125,13 @@ export const SelectTypesAndInfer = ({
         void inferEntitiesFromPage();
       }}
     >
-      {error ? (
+      {inferenceStatus.status === "error" ? (
         <Typography
           sx={{ color: ({ palette }) => palette.error.main, fontSize: 14 }}
         >
-          {error}
+          {inferenceStatus.message}
         </Typography>
-      ) : loading ? (
+      ) : inferenceStatus.status === "pending" ? (
         <Skeleton variant="rectangular" height={54} sx={{ borderRadius: 1 }} />
       ) : (
         <Autocomplete
@@ -307,11 +258,11 @@ export const SelectTypesAndInfer = ({
           value={targetEntityTypes}
         />
       )}
-      {error ? (
+      {inferenceStatus.status === "error" ? (
         <Button
           onClick={(event) => {
             event.preventDefault();
-            setError("");
+            resetInferenceStatus();
           }}
           type="button"
           sx={{ mt: 1.5 }}
@@ -320,12 +271,16 @@ export const SelectTypesAndInfer = ({
         </Button>
       ) : (
         <Button
-          disabled={loading || targetEntityTypes.length < 1}
+          disabled={
+            inferenceStatus.status === "pending" || targetEntityTypes.length < 1
+          }
           size="small"
           type="submit"
           sx={{ mt: 1.5 }}
         >
-          {loading ? "Loading..." : "Suggest entities"}
+          {inferenceStatus.status === "pending"
+            ? "Loading..."
+            : "Suggest entities"}
         </Button>
       )}
     </Box>

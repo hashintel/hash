@@ -1,11 +1,9 @@
-import { EntityType } from "@blockprotocol/graph";
-import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { useState } from "react";
-import { v4 as uuid } from "uuid";
 import { Tabs } from "webextension-polyfill";
 
+import { clearBadge } from "../../../../shared/badge";
+import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 import { CreateInferredEntities } from "./infer-entities-action/create-inferred-entities";
@@ -18,10 +16,19 @@ export const InferEntitiesAction = ({
   activeTab?: Tabs.Tab | null;
   user: Simplified<User>;
 }) => {
-  const [inferredEntities, setInferredEntities] = useState<ProposedEntity[]>(
+  const [inferenceStatus, setInferenceStatus] = useSessionStorage(
+    "inferenceStatus",
+    { status: "not-started" },
+  );
+  const [targetEntityTypes, setTargetEntityTypes] = useSessionStorage(
+    "targetEntityTypes",
     [],
   );
-  const [targetEntityTypes, setTargetEntityTypes] = useState<EntityType[]>([]);
+
+  const reset = () => {
+    setInferenceStatus({ status: "not-started" });
+    clearBadge();
+  };
 
   return (
     <Action
@@ -30,24 +37,18 @@ export const InferEntitiesAction = ({
       linkHref="https://app.hash.ai/entities"
       linkText="View entities"
     >
-      {inferredEntities.length > 0 ? (
+      {inferenceStatus.status === "success" ? (
         <CreateInferredEntities
-          reset={() => setInferredEntities([])}
-          inferredEntities={inferredEntities}
+          reset={reset}
+          inferredEntities={inferenceStatus.proposedEntities}
           targetEntityTypes={targetEntityTypes}
           user={user}
         />
       ) : (
         <SelectTypesAndInfer
           activeTab={activeTab}
-          setInferredEntities={(entities) =>
-            setInferredEntities(
-              entities.map((entity) => ({
-                ...entity,
-                tempUuid: uuid(),
-              })),
-            )
-          }
+          inferenceStatus={inferenceStatus}
+          resetInferenceStatus={reset}
           setTargetEntityTypes={setTargetEntityTypes}
           targetEntityTypes={targetEntityTypes}
         />

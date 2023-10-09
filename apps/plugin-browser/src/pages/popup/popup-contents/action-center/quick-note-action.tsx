@@ -1,9 +1,9 @@
 import { Button } from "@hashintel/design-system";
 import { Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
-import { useState } from "react";
 
-import { queryApi } from "../../../shared/query-api";
+import { queryApi } from "../../../../shared/query-api";
+import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
@@ -31,9 +31,16 @@ const createQuickNote = (text: string) => {
 };
 
 export const QuickNoteAction = () => {
-  const [draftQuickNote, setDraftQuickNote] = useState("");
+  const [draftQuickNote, setDraftQuickNote] = useSessionStorage(
+    "draftQuickNote",
+    "",
+  );
 
   const saveQuickNote = () => {
+    if (!draftQuickNote) {
+      return;
+    }
+
     void createQuickNote(draftQuickNote).then(() => {
       setDraftQuickNote("");
     });

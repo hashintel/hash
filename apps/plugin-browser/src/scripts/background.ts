@@ -1,5 +1,9 @@
 import browser from "webextension-polyfill";
 
+import { Message } from "../shared/messages";
+import { createEntities } from "./background/create-entities";
+import { inferEntities } from "./background/infer-entities";
+
 /**
  * This is the service worker for the extension.
  *
@@ -10,8 +14,6 @@ import browser from "webextension-polyfill";
  * You must update the extension if you amend this file, from the extensions manager page in the browser.
  */
 
-console.log("Background script run");
-
 browser.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === "install") {
     // Open the options page when the extension is first installed
@@ -21,23 +23,15 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-browser.action.setBadgeTextColor({ color: "#ffffff" });
+browser.runtime.onMessage.addListener((message: Message, sender) => {
+  if (sender.tab) {
+    // We are not expecting any messages from the content script
+    return;
+  }
 
-const setLoadingBadge = () => {
-  void browser.action.setBadgeText({ text: "💭" });
-  void browser.action.setBadgeBackgroundColor({ color: "#006DC3" });
-};
-
-const setErroredBadge = () => {
-  void browser.action.setBadgeText({ text: "❌" });
-  void browser.action.setBadgeBackgroundColor({ color: "black" });
-};
-
-const setSuccessBadge = (num: number) => {
-  void browser.action.setBadgeText({ text: num.toString() });
-  void browser.action.setBadgeBackgroundColor({ color: "#9AC952" });
-};
-
-const clearBadge = () => {
-  void browser.action.setBadgeText({ text: "" });
-};
+  if (message.type === "infer-entities") {
+    void inferEntities(message);
+  } else if (message.type === "create-entities") {
+    void createEntities(message);
+  }
+});

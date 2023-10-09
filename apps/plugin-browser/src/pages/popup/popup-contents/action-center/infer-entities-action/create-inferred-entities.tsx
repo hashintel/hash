@@ -1,27 +1,17 @@
-import {
-  EntityPropertyValue,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/graph";
+import { EntityPropertyValue, EntityType } from "@blockprotocol/graph";
 import {
   ArrowUpRightIcon,
   Button,
   CaretDownSolidIcon,
   IconButton,
 } from "@hashintel/design-system";
-import { ProposedEntity } from "@local/hash-graphql-shared/graphql/api-types.gen";
+import { ProposedEntity } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   Simplified,
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  BaseUrl,
-  Entity,
-  EntityId,
-  LinkData,
-  OwnedById,
-} from "@local/hash-subgraph";
+import { BaseUrl, EntityId, OwnedById } from "@local/hash-subgraph";
 import {
   Box,
   Checkbox,
@@ -37,7 +27,8 @@ import {
   darkModeBorderColor,
   darkModeInputColor,
 } from "../../../../shared/dark-mode-values";
-import { queryApi } from "../../../../shared/query-api";
+import { sendMessageToBackground } from "../../../../shared/messages";
+import { useSessionStorage } from "../../../../shared/use-storage-sync";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
@@ -80,40 +71,6 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-const createEntityMutation = /* GraphQL */ `
-  mutation createEntity(
-    $entityTypeId: VersionedUrl!
-    $ownedById: OwnedById
-    $properties: EntityPropertiesObject!
-    $linkData: LinkData
-  ) {
-    # This is a scalar, which has no selection.
-    createEntity(
-      entityTypeId: $entityTypeId
-      ownedById: $ownedById
-      properties: $properties
-      linkData: $linkData
-    )
-  }
-`;
-
-type CreationStatus = "errored" | "pending" | "skipped" | EntityId;
-
-type CreationStatuses = Record<string, CreationStatus | undefined>;
-
-const createEntity = (variables: {
-  entityTypeId: VersionedUrl;
-  linkData?: LinkData;
-  ownedById: OwnedById;
-  properties: Record<string, EntityPropertyValue>;
-}) => {
-  return queryApi(createEntityMutation, variables).then(
-    ({ data }: { data: { createEntity: Entity } }) => {
-      return data.createEntity;
-    },
-  );
-};
-
 type CreateInferredEntitiesProps = {
   inferredEntities: ProposedEntity[];
   user: Simplified<User>;
@@ -127,14 +84,14 @@ export const CreateInferredEntities = ({
   targetEntityTypes,
   user,
 }: CreateInferredEntitiesProps) => {
-  const [entitiesToCreate, setEntitiesToCreate] =
-    useState<ProposedEntity[]>(inferredEntities);
-  const [creationStatuses, setCreationStatuses] = useState<CreationStatuses>(
-    {},
+  const [entitiesToCreate, setEntitiesToCreate] = useSessionStorage(
+    "entitiesToCreate",
+    [],
   );
-  const [overallStatus, setOverallStatus] = useState<
-    "pending" | "done" | "not-started"
-  >("not-started");
+  const [creationStatus] = useSessionStorage("creationStatus", {
+    overallStatus: "not-started",
+    entityStatuses: {},
+  });
 
   const [entitiesToExpand, setEntitiesToExpand] = useState<
     Record<EntityId, boolean | undefined>
@@ -152,61 +109,38 @@ export const CreateInferredEntities = ({
     );
   }, [inferredEntities, targetEntityTypes]);
 
-  const createEntities = async () => {
-    setOverallStatus("pending");
+  const createEntities = () => {
     setEntitiesToExpand({});
 
-    const initialStatuses: CreationStatuses = {};
+    const skippedEntities: ProposedEntity[] = [];
     for (const entity of inferredEntities) {
-      if (entitiesToCreate.includes(entity)) {
-        initialStatuses[entity.entityId] = "pending";
-      } else {
-        initialStatuses[entity.entityId] = "skipped";
+      if (
+        !entitiesToCreate.some((option) => option.entityId === entity.entityId)
+      ) {
+        skippedEntities.push(entity);
       }
     }
-    setCreationStatuses(initialStatuses);
 
-    await Promise.all(
-      entitiesToCreate.map(async (entityToCreate) => {
-        try {
-          // @todo handle link entities – must be created after the entities they link
-          const entity = await createEntity({
-            entityTypeId: entityToCreate.entityTypeId,
-            // @todo figure out why extractOwnedByIdFromEntityId has WASM in its evaluation path
-            ownedById: user.metadata.recordId.entityId.split(
-              "~",
-            )[1] as OwnedById,
-            properties: entityToCreate.properties,
-          });
-          setCreationStatuses((statuses) => {
-            return {
-              ...statuses,
-              [entityToCreate.entityId]: entity.metadata.recordId.entityId,
-            };
-          });
-        } catch (err) {
-          setCreationStatuses((statuses) => {
-            return {
-              ...statuses,
-              [entityToCreate.entityId]: "errored",
-            };
-          });
-        }
-      }),
-    );
-
-    setOverallStatus("done");
+    void sendMessageToBackground({
+      type: "create-entities",
+      entitiesToCreate,
+      skippedEntities,
+      // @todo figure out why extractOwnedByIdFromEntityId has WASM in its evaluation path
+      ownedById: user.metadata.recordId.entityId.split("~")[1] as OwnedById,
+    });
   };
+
+  const { entityStatuses, overallStatus } = creationStatus;
 
   return (
     <Box
       component="form"
       onSubmit={(event) => {
-        if (overallStatus === "pending" || overallStatus === "done") {
+        if (overallStatus === "pending") {
           return;
         }
         event.preventDefault();
-        void createEntities();
+        createEntities();
       }}
     >
       {Object.entries(inferredEntitiesByType).map(([typeId, entities]) => {
@@ -245,7 +179,7 @@ export const CreateInferredEntities = ({
               </Typography>
             </Box>
             {entities.map((entity, index) => {
-              const status = creationStatuses[entity.entityId];
+              const status = entityStatuses[entity.entityId];
 
               const successfullyCreated = status?.includes("~");
 
@@ -359,7 +293,9 @@ export const CreateInferredEntities = ({
                       />
                     ) : status === "skipped" ? null : (
                       <Checkbox
-                        checked={entitiesToCreate.includes(entity)}
+                        checked={entitiesToCreate.some(
+                          (option) => option.entityId === entity.entityId,
+                        )}
                         id={entity.entityId}
                         onChange={(event) => {
                           if (event.target.checked) {
@@ -423,7 +359,7 @@ export const CreateInferredEntities = ({
       })}
 
       <Box mt={1.5}>
-        {overallStatus !== "done" && (
+        {overallStatus !== "complete" && (
           <Button
             disabled={
               entitiesToCreate.length < 1 || overallStatus === "pending"
@@ -436,7 +372,7 @@ export const CreateInferredEntities = ({
           </Button>
         )}
         <Button size="small" type="button" variant="tertiary" onClick={reset}>
-          {overallStatus === "done" ? "Done" : "Discard"}
+          {overallStatus === "complete" ? "Done" : "Discard"}
         </Button>
       </Box>
     </Box>
