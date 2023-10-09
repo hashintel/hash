@@ -36,8 +36,9 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { Org, User } from "../../lib/user-and-org";
-import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
+import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../shared/icons/grip-dots-vertical-regular-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
@@ -91,7 +92,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   }
 > = ({ profile, onClose, refetchProfile, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const entityTypes = useLatestEntityTypesOptional();
+  const { entityTypes, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
 
   const [loading, setLoading] = useState(false);
   const [displayEntityTypesSearch, setDisplayEntityTypesSearch] =
@@ -327,9 +329,31 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                 },
                               }}
                             >
-                              {entityTypeIcons[field.schema.$id] ?? (
-                                <AsteriskRegularIcon sx={{ fontSize: 12 }} />
-                              )}
+                              <Box
+                                sx={{
+                                  width: 15,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {isSpecialEntityTypeLookup?.[field.schema.$id]
+                                  ?.isLink ? (
+                                  <CustomLinkIcon
+                                    sx={{
+                                      fontSize: 22,
+                                      marginLeft: -0.75,
+                                      marginRight: -0.75,
+                                    }}
+                                  />
+                                ) : (
+                                  entityTypeIcons[field.schema.$id] ?? (
+                                    <AsteriskRegularIcon
+                                      sx={{ fontSize: 12 }}
+                                    />
+                                  )
+                                )}
+                              </Box>
                               <Typography
                                 sx={{
                                   fontSize: 14,
