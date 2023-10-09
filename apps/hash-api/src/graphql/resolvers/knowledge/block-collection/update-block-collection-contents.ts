@@ -1,20 +1,20 @@
+import { Entity } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 
+import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
-  addBlockToPage,
-  getPageById,
-  moveBlockInPage,
-  removeBlockFromPage,
-} from "../../../../graph/knowledge/system-types/page";
+  addBlockToBlockCollection,
+  moveBlockInBlockCollection,
+  removeBlockFromBlockCollection,
+} from "../../../../graph/knowledge/system-types/block-collection";
 import { exactlyOne } from "../../../../util";
 import {
-  MutationUpdatePageContentsArgs,
+  MutationUpdateBlockCollectionContentsArgs,
   ResolverFn,
-  UpdatePageContentsResult,
+  UpdateBlockCollectionContentsResult,
 } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
-import { mapPageToGQL, UnresolvedPageGQL } from "../graphql-mapping";
 import {
   createEntityWithPlaceholdersFn,
   filterForAction,
@@ -23,7 +23,7 @@ import {
   handleSwapBlockData,
   handleUpdateEntity,
   PlaceholderResultsMap,
-} from "./update-page-actions";
+} from "./update-block-collection-actions";
 
 /**
  * @todo This operation should ideally be atomic in nature, either we do all
@@ -32,18 +32,18 @@ import {
  *   When we have a transaction primitive in the Graph API, we should use it here.
  *   See https://app.asana.com/0/1200211978612931/1202573572594586/f
  */
-export const updatePageContents: ResolverFn<
+export const updateBlockCollectionContents: ResolverFn<
   Promise<
-    Omit<UpdatePageContentsResult, "page"> & {
-      page: UnresolvedPageGQL;
+    Omit<UpdateBlockCollectionContentsResult, "blockCollection"> & {
+      blockCollection: Entity;
     }
   >,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePageContentsArgs
+  MutationUpdateBlockCollectionContentsArgs
 > = async (
   _,
-  { entityId: pageEntityId, actions },
+  { entityId: blockCollectionEntityId, actions },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -60,7 +60,7 @@ export const updatePageContents: ResolverFn<
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of the fields on UpdatePageAction must be specified`,
+        `at action ${i}: exactly one of the fields on UpdateBlockCollectionAction must be specified`,
       );
     }
   }
@@ -116,13 +116,17 @@ export const updatePageContents: ResolverFn<
     ),
   );
 
-  const page = await getPageById(context, authentication, {
-    entityId: pageEntityId,
-  });
+  const blockCollectionEntity = await getLatestEntityById(
+    context,
+    authentication,
+    {
+      entityId: blockCollectionEntityId,
+    },
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-  if (!page) {
-    const msg = `Page with Entity ID ${pageEntityId}`;
+  if (!blockCollectionEntity) {
+    const msg = `BlockCollection with Entity ID ${blockCollectionEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
@@ -130,22 +134,22 @@ export const updatePageContents: ResolverFn<
   for (const [i, action] of actions.entries()) {
     try {
       if (action.insertBlock) {
-        await addBlockToPage(context, authentication, {
-          page,
+        await addBlockToBlockCollection(context, authentication, {
+          blockCollectionEntity,
           block: insertedBlocks[insertCount]!,
           canvasPosition: action.insertBlock.canvasPosition ?? undefined,
           position: action.insertBlock.position,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
-        await moveBlockInPage(context, authentication, {
+        await moveBlockInBlockCollection(context, authentication, {
           ...action.moveBlock,
           canvasPosition: action.moveBlock.canvasPosition ?? undefined,
-          page,
+          blockCollectionEntity,
         });
       } else if (action.removeBlock) {
-        await removeBlockFromPage(context, authentication, {
-          page,
+        await removeBlockFromBlockCollection(context, authentication, {
+          blockCollectionEntity,
           position: action.removeBlock.position,
           allowRemovingFinal: actions
             .slice(i + 1)
@@ -164,7 +168,7 @@ export const updatePageContents: ResolverFn<
   }
 
   return {
-    page: mapPageToGQL(page),
+    blockCollection: blockCollectionEntity,
     placeholders: placeholderResults.getResults(),
   };
 };

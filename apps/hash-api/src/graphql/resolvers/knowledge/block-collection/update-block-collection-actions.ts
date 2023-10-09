@@ -23,8 +23,8 @@ import {
   EntityDefinition,
   InsertBlockAction,
   SwapBlockDataAction,
+  UpdateBlockCollectionAction,
   UpdateEntityAction,
-  UpdatePageAction,
 } from "../../../api-types.gen";
 import { AuthenticationContext } from "../../../context";
 
@@ -59,7 +59,7 @@ export const createEntityWithPlaceholdersFn =
     }
   };
 
-type UpdatePageActionKey = keyof UpdatePageAction;
+type UpdateBlockCollectionActionKey = keyof UpdateBlockCollectionAction;
 
 /**
  * @optimization instead of iterating the actions list on every call, we can
@@ -68,20 +68,19 @@ type UpdatePageActionKey = keyof UpdatePageAction;
  *   Do note that we would likely have very small `actions` lists, so each
  *   iteration is very cheap.
  */
-export const filterForAction = <T extends UpdatePageActionKey>(
-  actions: UpdatePageAction[],
+export const filterForAction = <T extends UpdateBlockCollectionActionKey>(
+  actions: UpdateBlockCollectionAction[],
   key: T,
-): { action: NonNullable<UpdatePageAction[T]>; index: number }[] =>
-  actions.reduce<{ action: NonNullable<UpdatePageAction[T]>; index: number }[]>(
-    (acc, current, index) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-      if (current != null && key in current) {
-        acc.push({ action: current[key]!, index });
-      }
-      return acc;
-    },
-    [],
-  );
+): { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[] =>
+  actions.reduce<
+    { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[]
+  >((acc, current, index) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+    if (current != null && key in current) {
+      acc.push({ action: current[key]!, index });
+    }
+    return acc;
+  }, []);
 
 const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
@@ -163,7 +162,7 @@ export const handleCreateNewEntity = async (params: {
 };
 
 /**
- * Insert new block onto page.
+ * Insert new block onto block collection.
  * Acts on {@link InsertBlockAction}
  */
 export const handleInsertNewBlock = async (

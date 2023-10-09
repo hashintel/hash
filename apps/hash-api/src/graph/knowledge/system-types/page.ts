@@ -1,4 +1,3 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
@@ -11,13 +10,12 @@ import {
   EntityId,
   EntityPropertiesObject,
   EntityRootType,
-  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -34,7 +32,6 @@ import {
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
-  updateLinkEntity,
 } from "../primitive/link-entity";
 import {
   Block,
@@ -42,6 +39,7 @@ import {
   getBlockComments,
   getBlockFromEntity,
 } from "./block";
+import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
 
 export type Page = {
@@ -175,8 +173,10 @@ export const createPage: ImpureGraphFunction<
         ];
 
   for (const block of initialBlocks) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    await addBlockToPage(ctx, authentication, { page, block });
+    await addBlockToBlockCollection(ctx, authentication, {
+      blockCollectionEntity: page.entity,
+      block,
+    });
   }
 
   return page;
@@ -469,153 +469,6 @@ export const getPageBlocks: ImpureGraphFunction<
         }).then((entity) => getBlockFromEntity({ entity })),
       })),
   );
-};
-
-/**
- * Insert a block into this page
- *
- * @param params.block - the block to insert in the page
- * @param params.position (optional) - the position of the block in the page
- * @param params.insertedById - the id of the account that is inserting the block into the page
- */
-export const addBlockToPage: ImpureGraphFunction<
-  {
-    page: Page;
-    block: Block;
-    canvasPosition?: CanvasPosition;
-    position?: number;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { position: specifiedPosition, canvasPosition, page, block } = params;
-
-  await createLinkEntity(ctx, authentication, {
-    leftEntityId: page.entity.metadata.recordId.entityId,
-    rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
-    leftToRightOrder:
-      specifiedPosition ??
-      // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
-      ((
-        await getPageBlocks(ctx, authentication, {
-          pageEntityId: page.entity.metadata.recordId.entityId,
-        })
-      ).length === 0
-        ? 0
-        : undefined),
-    // assume that link to block is owned by the same account as the page
-    ownedById: extractOwnedByIdFromEntityId(
-      page.entity.metadata.recordId.entityId,
-    ),
-    properties: canvasPosition ?? {},
-  });
-};
-
-/**
- * Move a block in the page from one position to another.
- *
- * @param params.page - the page
- * @param params.currentPosition - the current position of the block being moved
- * @param params.newPosition - the new position of the block being moved
- * @param params.movedById - the id of the account that is moving the block
- */
-export const moveBlockInPage: ImpureGraphFunction<
-  {
-    page: Page;
-    canvasPosition?: CanvasPosition;
-    currentPosition: number;
-    newPosition: number;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { page, canvasPosition, currentPosition, newPosition } = params;
-
-  const contentLinks = await getEntityOutgoingLinks(ctx, authentication, {
-    entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-  });
-
-  if (currentPosition < 0 || currentPosition >= contentLinks.length) {
-    throw new UserInputError(
-      `invalid currentPosition: ${params.currentPosition}`,
-    );
-  }
-  if (newPosition < 0 || newPosition >= contentLinks.length) {
-    throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
-  }
-
-  const linkEntity = contentLinks.find(
-    ({ linkData }) => linkData.leftToRightOrder === currentPosition,
-  );
-
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${currentPosition} for page with entityId ${page.entity.metadata.recordId.entityId}`,
-    );
-  }
-
-  await updateLinkEntity(ctx, authentication, {
-    properties: {
-      ...linkEntity.properties,
-      ...canvasPosition,
-    },
-    linkEntity,
-    leftToRightOrder: newPosition,
-  });
-};
-
-/**
- * Remove a block from the page.
- *
- * @param params.page - the page
- * @param params.position - the position of the block being removed
- * @param params.actorId - the id of the account that is removing the block
- * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
- */
-export const removeBlockFromPage: ImpureGraphFunction<
-  {
-    page: Page;
-    position: number;
-
-    allowRemovingFinal?: boolean;
-  },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { page, allowRemovingFinal = false, position } = params;
-
-  const contentLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: page.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-    },
-  );
-
-  /**
-   * @todo currently the count of outgoing links are not the best indicator of a valid position
-   *   as page saving could assume index positions higher than the number of blocks.
-   *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
-   *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
-   */
-
-  const linkEntity = contentLinkEntities.find(
-    (contentLinkEntity) =>
-      contentLinkEntity.linkData.leftToRightOrder === position,
-  );
-
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${position} for page with entity ID ${page.entity.metadata.recordId.entityId}`,
-    );
-  }
-
-  if (!allowRemovingFinal && contentLinkEntities.length === 1) {
-    throw new Error("Cannot remove final block from page");
-  }
-
-  await archiveEntity(ctx, authentication, { entity: linkEntity });
 };
 
 /**
