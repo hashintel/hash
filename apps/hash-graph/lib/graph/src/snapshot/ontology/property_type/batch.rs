@@ -27,7 +27,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE property_types_tmp
                         (LIKE property_types INCLUDING ALL)
                         ON COMMIT DROP;
@@ -61,7 +61,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
             Self::Schema(property_types) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO property_types_tmp
                             SELECT DISTINCT * FROM UNNEST($1::property_types[])
                             RETURNING 1;
@@ -77,15 +77,15 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
             Self::ConstrainsValues(values) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO property_type_constrains_values_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::property_type_constrains_values_on_tmp[])
+                            SELECT DISTINCT * FROM \
+                         UNNEST($1::property_type_constrains_values_on_tmp[])
                             RETURNING 1;
                         ",
                         &[values],
                     )
                     .await
-
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} property type value constrains", rows.len());
@@ -94,15 +94,15 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
             Self::ConstrainsProperties(properties) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO property_type_constrains_properties_on_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::property_type_constrains_properties_on_tmp[])
+                            SELECT DISTINCT * FROM \
+                         UNNEST($1::property_type_constrains_properties_on_tmp[])
                             RETURNING 1;
                         ",
                         &[properties],
                     )
                     .await
-
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} property type property type constrains", rows.len());
@@ -117,7 +117,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     INSERT INTO property_types SELECT * FROM property_types_tmp;
 
                     INSERT INTO property_type_constrains_values_on
@@ -126,8 +126,10 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_data_type_ontology_id
                         FROM property_type_constrains_values_on_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = property_type_constrains_values_on_tmp.target_data_type_base_url
-                            AND ontology_ids_tmp.version = property_type_constrains_values_on_tmp.target_data_type_version;
+                            ontology_ids_tmp.base_url = \
+                 property_type_constrains_values_on_tmp.target_data_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 property_type_constrains_values_on_tmp.target_data_type_version;
 
                     INSERT INTO property_type_constrains_properties_on
                         SELECT
@@ -135,12 +137,13 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                             ontology_ids_tmp.ontology_id AS target_property_type_ontology_id
                         FROM property_type_constrains_properties_on_tmp
                         INNER JOIN ontology_ids_tmp ON
-                            ontology_ids_tmp.base_url = property_type_constrains_properties_on_tmp.target_property_type_base_url
-                            AND ontology_ids_tmp.version = property_type_constrains_properties_on_tmp.target_property_type_version;
+                            ontology_ids_tmp.base_url = \
+                 property_type_constrains_properties_on_tmp.target_property_type_base_url
+                            AND ontology_ids_tmp.version = \
+                 property_type_constrains_properties_on_tmp.target_property_type_version;
                 ",
             )
             .await
-
             .change_context(InsertionError)?;
         Ok(())
     }

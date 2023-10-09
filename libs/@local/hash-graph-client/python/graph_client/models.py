@@ -316,68 +316,34 @@ class DataTypeReference(BaseModel):
     field_ref: VersionedURL = Field(..., alias="$ref")
 
 
-class PropertyTypeObject(BaseModel):
-    """
-    A JSON object where each entry is constrained by a property type.
-    """
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class PropertyObjectValue(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    type: Literal["object"]
-    properties: PropertyTypeObject
-
-
 class EntityTypeReference(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
     field_ref: VersionedURL = Field(..., alias="$ref")
 
 
+class Items1(BaseModel):
+    """
+    Specifies a set of entity types inside a oneOf
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    one_of: list[EntityTypeReference] | None = Field(None, alias="oneOf")
+
+
 class LinkTypeObject(BaseModel):
-    pass
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    type: Literal["array"]
+    ordered: bool
+    items: Items1 = Field(
+        ..., description="Specifies a set of entity types inside a oneOf"
+    )
+    min_items: int | None = Field(None, alias="minItems", ge=0)
+    max_items: int | None = Field(None, alias="maxItems", ge=0)
+
+
+class LinkTypeObject1(RootModel[dict[str, LinkTypeObject]]):
     model_config = ConfigDict(populate_by_name=True)
-
-
-class EntityType(OntologyTypeSchema):
-    """
-    Specifies the structure of a Block Protocol entity type
-    """
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    schema_url: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["entityType"]
-    identifier: VersionedURL = Field(..., alias="$id")
-    type: Literal["object"]
-    title: str
-    description: str | None = None
-    all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")
-    examples: list[dict[str, Any]] | None = None
-    properties: PropertyTypeObject
-    required: list[BaseURL] | None = None
-    links: LinkTypeObject | None = None
-
-
-class UpdateEntityType(BaseModel):
-    """
-    The contents of an Entity Type update request
-    """
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    schema_url: Literal[
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-    ] = Field(..., alias="$schema")
-    kind: Literal["entityType"]
-    type: Literal["object"]
-    title: str
-    description: str | None = None
-    examples: list[dict[str, Any]] | None = None
-    properties: PropertyTypeObject
-    required: list[BaseURL] | None = None
-    links: LinkTypeObject | None = None
+    root: dict[str, LinkTypeObject]
 
 
 class StatusCode(Enum):
@@ -530,6 +496,11 @@ class Status(BaseModel):
     contents: list[ErrorInfo | RequestInfo | ResourceInfo]
 
 
+class PropertyObjectReference(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    field_ref: BaseURL = Field(..., alias="$ref")
+
+
 class ArchiveDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     type_to_archive: VersionedURL = Field(..., alias="typeToArchive")
@@ -560,14 +531,6 @@ class CreateDataTypeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     schema_: DataType | list[DataType] = Field(..., alias="schema")
-
-
-class CreateEntityTypeRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    icon: str | None = None
-    label_property: BaseURL | None = Field(None, alias="labelProperty")
-    owned_by_id: OwnedById = Field(..., alias="ownedById")
-    schema_: EntityType | list[EntityType] = Field(..., alias="schema")
 
 
 class DataTypeVertexId(BaseModel):
@@ -745,12 +708,69 @@ class UpdateEntityRequest(EntityLinkOrder):
     properties: EntityProperties
 
 
-class UpdateEntityTypeRequest(BaseModel):
+class PropertyTypeObjectItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    type: Literal["array"]
+    items: PropertyObjectReference
+    min_items: int | None = Field(None, alias="minItems", ge=0)
+    max_items: int | None = Field(None, alias="maxItems", ge=0)
+
+
+class PropertyTypeObject(
+    RootModel[dict[str, PropertyObjectReference | PropertyTypeObjectItem]]
+):
     model_config = ConfigDict(populate_by_name=True)
-    icon: str | None = None
-    label_property: BaseURL | None = Field(None, alias="labelProperty")
-    schema_: UpdateEntityType = Field(..., alias="schema")
-    type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
+    root: dict[str, PropertyObjectReference | PropertyTypeObjectItem] = Field(
+        ...,
+        description="A JSON object where each entry is constrained by a property type.",
+        title="Property Type Object",
+    )
+
+
+class PropertyObjectValue(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    type: Literal["object"]
+    properties: PropertyTypeObject
+
+
+class EntityType(OntologyTypeSchema):
+    """
+    Specifies the structure of a Block Protocol entity type
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    schema_url: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["entityType"]
+    identifier: VersionedURL = Field(..., alias="$id")
+    type: Literal["object"]
+    title: str
+    description: str | None = None
+    all_of: list[EntityTypeReference] | None = Field(None, alias="allOf")
+    examples: list[dict[str, Any]] | None = None
+    properties: PropertyTypeObject
+    required: list[BaseURL] | None = None
+    links: LinkTypeObject1 | None = None
+
+
+class UpdateEntityType(BaseModel):
+    """
+    The contents of an Entity Type update request
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    schema_url: Literal[
+        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
+    ] = Field(..., alias="$schema")
+    kind: Literal["entityType"]
+    type: Literal["object"]
+    title: str
+    description: str | None = None
+    examples: list[dict[str, Any]] | None = None
+    properties: PropertyTypeObject
+    required: list[BaseURL] | None = None
+    links: LinkTypeObject1 | None = None
 
 
 class CreateEntityRequest(BaseModel):
@@ -760,6 +780,14 @@ class CreateEntityRequest(BaseModel):
     link_data: LinkData | None = Field(None, alias="linkData")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
     properties: EntityProperties
+
+
+class CreateEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
+    owned_by_id: OwnedById = Field(..., alias="ownedById")
+    schema_: EntityType | list[EntityType] = Field(..., alias="schema")
 
 
 class EqualFilter(BaseModel):
@@ -877,6 +905,14 @@ class RightBoundedTemporalInterval(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     end: LimitedTemporalBound
     start: TemporalBound
+
+
+class UpdateEntityTypeRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
+    label_property: BaseURL | None = Field(None, alias="labelProperty")
+    schema_: UpdateEntityType = Field(..., alias="schema")
+    type_to_update: VersionedURL = Field(..., alias="typeToUpdate")
 
 
 class CustomOwnedOntologyElementMetadata(BaseModel):

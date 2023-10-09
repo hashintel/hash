@@ -145,7 +145,7 @@ impl<C: AsClient> PostgresStore<C> {
         transaction
             .as_client()
             .simple_query(
-                r"
+                "
                     DELETE FROM property_type_constrains_properties_on;
                     DELETE FROM property_type_constrains_values_on;
                 ",
@@ -156,7 +156,7 @@ impl<C: AsClient> PostgresStore<C> {
         let property_types = transaction
             .as_client()
             .query(
-                r"
+                "
                     DELETE FROM property_types
                     RETURNING ontology_id
                 ",

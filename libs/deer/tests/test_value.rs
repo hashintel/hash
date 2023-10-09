@@ -201,7 +201,7 @@ proptest! {
         let de = StrDeserializer::new(&expected, &context);
         let result = u8::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 
     #[test]
@@ -223,7 +223,7 @@ proptest! {
         let de = BorrowedStrDeserializer::new(value, &context);
         let result = u8::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 
     // TODO: deserialize no yet implemented for alloc
@@ -266,7 +266,7 @@ proptest! {
         let de = NumberDeserializer::new(value, &context);
         let result = <&str>::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 }
 
@@ -285,7 +285,7 @@ fn null_err() {
     let de = NullDeserializer::new(&context);
     let result = u8::deserialize(de);
 
-    assert!(result.is_err());
+    _ = result.expect_err("should not be able to deserialize");
 }
 
 struct Bytes<'a>(&'a [u8]);
@@ -405,7 +405,7 @@ proptest! {
         let de = BorrowedBytesDeserializer::new(value, &context);
         let result = u8::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 
     #[test]
@@ -438,7 +438,7 @@ proptest! {
         let de = BytesDeserializer::new(value, &context);
         let result = u8::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 
     #[test]
@@ -458,7 +458,7 @@ proptest! {
         let de = BytesBufferDeserializer::new(expected, &context);
         let result = u8::deserialize(de);
 
-        assert!(result.is_err());
+        _ = result.expect_err("should not be able to deserialize");
     }
 }
 

@@ -25,3 +25,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify Slack on failure
+        uses: rtCamp/action-slack-notify@b24d75fe0e728a4bf9fc42ee217caa686d141ee8
+        if: ${{ failure() }}
+        env:
+          SLACK_TITLE: Package release failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub

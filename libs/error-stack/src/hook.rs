@@ -147,6 +147,49 @@ impl Report<()> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
     ///
+    /// `error-stack` comes with some built-in hooks which can be overwritten. This is useful if you
+    /// want to change the output of the built-in hooks, or if you want to add additional
+    /// information to the output. For example, you can override the built-in hook for [`Location`]
+    /// to hide the file path:
+    ///
+    /// ```rust
+    /// # // we only test the snapshot on nightly, therefore report is unused (so is render)
+    /// # #![cfg_attr(not(nightly), allow(dead_code, unused_variables, unused_imports))]
+    /// use std::{
+    ///     io::{Error, ErrorKind},
+    ///     panic::Location,
+    /// };
+    ///
+    /// error_stack::Report::install_debug_hook::<Location>(|_location, _context| {
+    ///     // Intentionally left empty so nothing will be printed
+    /// });
+    ///
+    /// let report = error_stack::report!(Error::from(ErrorKind::InvalidInput));
+    ///
+    /// # error_stack::Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
+    /// # fn render(value: String) -> String {
+    /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+    /// #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
+    /// #
+    /// #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+    /// #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
+    /// #
+    /// #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+    /// # }
+    /// #
+    /// # #[cfg(nightly)]
+    /// # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__location_hook.snap")].assert_eq(&render(format!("{report:?}")));
+    /// #
+    /// println!("{report:?}");
+    /// ```
+    ///
+    /// Which will result in something like:
+    ///
+    /// <pre>
+    #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__location_hook.snap"))]
+    /// </pre>
+    ///
+    /// [`Location`]: std::panic::Location
     /// [`Error::provide`]: std::error::Error::provide
     #[cfg(any(feature = "std", feature = "hooks"))]
     pub fn install_debug_hook<T: Send + Sync + 'static>(

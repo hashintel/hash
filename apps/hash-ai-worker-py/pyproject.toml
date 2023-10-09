@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "worker", from = "src" }]
 
 [tool.poetry.dependencies]
-hash-graph-types = { path = "../../libs/@local/hash-graph-types", develop = true }
+hash-graph-types = { path = "../../libs/@local/hash-graph-types/python", develop = true }
 
 aiohttp = "^3.8.5"
 python = "^3.11"

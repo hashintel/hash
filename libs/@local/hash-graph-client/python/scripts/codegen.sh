@@ -10,13 +10,28 @@ while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
 
-SPEC="$DIR/../../../../../apps/hash-graph/openapi/openapi.json"
+SPEC_DIR="$DIR/../../../../../apps/hash-graph/openapi"
+SPEC="$SPEC_DIR/openapi.json"
 
 # cd up to the package directory (needed for poetry and yarn)
 cd "$DIR/.."
 
+poetry run datamodel-codegen --version
+
 # Take the specification and bundle all models into a single file
 yarn run redocly bundle --format=json "$SPEC" -o "$DIR/openapi.bundle.json"
+
+# we need to do a bit of plumbing, this includes:
+# merging `PropertyObjectReference` from `models/shared.json` into components.schemas, renaming all `#/definitions/` to `#/components/schemas/` (redocly ignores `x-patternProperties` and `patternProeprties`)
+# renaming `x-patternProperties` to `patternProperties`.
+SHARED_MODELS="$SPEC_DIR/models/shared.json"
+jq -s '
+  .[0].components.schemas.PropertyObjectReference = .[1].definitions.PropertyObjectReference
+  | .[0]
+  | walk( if type == "string" then sub("^#/definitions/"; "#/components/schemas/") else . end )
+  | walk( if type == "object" and has("x-patternProperties") then .patternProperties = .["x-patternProperties"] | del(.["x-patternProperties"]) else . end )
+  ' "$DIR/openapi.bundle.json" "$SHARED_MODELS" > "$DIR/openapi.bundle.json.tmp"
+mv "$DIR/openapi.bundle.json.tmp" "$DIR/openapi.bundle.json"
 
 poetry run datamodel-codegen \
   --input "$DIR/openapi.bundle.json" \

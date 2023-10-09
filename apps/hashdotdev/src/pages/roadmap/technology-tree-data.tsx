@@ -973,8 +973,17 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
     heading: "Browser Extension",
     body: "Find, use and create entities as you browse",
     parentIds: ["30"],
-    status: "in-progress",
+    status: "working-poc",
     useCases: ["general", "knowledge-management", "data-management"],
     variant: "feature",
+  },
+  {
+    id: "98",
+    heading: "Encrypted Properties",
+    body: "Support for selectively encrypting individual properties on entity types",
+    parentIds: ["82"],
+    status: "future",
+    useCases: ["general"],
+    variant: "infrastructure",
   },
 ];

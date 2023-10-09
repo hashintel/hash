@@ -1,0 +1,22 @@
+diff --git a/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts b/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
+index eaeaf91..54b2b4e 100644
+--- a/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
++++ b/node_modules/@types/webextension-polyfill/namespaces/runtime.d.ts
+@@ -448,7 +448,7 @@ export namespace Runtime {
+          * will keep the message channel open to the other end until <code>sendResponse</code> is called).
+          */
+         onMessage: Events.Event<
+-            (message: any, sender: MessageSender, sendResponse: () => void) => Promise<any> | true | void
++            (message: any, sender: MessageSender, sendResponse: (response: any) => void) => Promise<any> | true | void
+         >;
+ 
+         /**
+@@ -463,7 +463,7 @@ export namespace Runtime {
+          * will keep the message channel open to the other end until <code>sendResponse</code> is called).
+          */
+         onMessageExternal: Events.Event<
+-            (message: any, sender: MessageSender, sendResponse: () => void) => Promise<any> | true | void
++            (message: any, sender: MessageSender, sendResponse: (response: any) => void) => Promise<any> | true | void
+         >;
+ 
+         /**

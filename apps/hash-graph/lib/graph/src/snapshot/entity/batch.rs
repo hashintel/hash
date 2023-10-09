@@ -42,7 +42,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     CREATE TEMPORARY TABLE entity_ids_tmp
                         (LIKE entity_ids INCLUDING ALL)
                         ON COMMIT DROP;
@@ -91,7 +91,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             Self::Ids(ids) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_ids_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_ids[])
                             ON CONFLICT DO NOTHING
@@ -108,7 +108,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             Self::Editions(editions) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_editions_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_editions_tmp[])
                             ON CONFLICT DO NOTHING
@@ -125,7 +125,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             Self::TemporalMetadata(temporal_metadata) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_temporal_metadata_tmp
                             SELECT * FROM UNNEST($1::entity_temporal_metadata[])
                             RETURNING 1;
@@ -141,7 +141,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             Self::Links(links) => {
                 let rows = client
                     .query(
-                        r"
+                        "
                             INSERT INTO entity_link_edges_tmp
                             SELECT DISTINCT * FROM UNNEST($1::entity_link_edges_tmp[])
                             RETURNING 1;
@@ -186,7 +186,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             .as_client()
             .client()
             .simple_query(
-                r"
+                "
                     INSERT INTO entity_ids SELECT * FROM entity_ids_tmp;
 
                     INSERT INTO entity_editions
@@ -199,7 +199,8 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             archived BOOLEAN
                         FROM entity_editions_tmp;
 
-                    INSERT INTO entity_temporal_metadata SELECT * FROM entity_temporal_metadata_tmp;
+                    INSERT INTO entity_temporal_metadata SELECT * FROM \
+                 entity_temporal_metadata_tmp;
 
                     INSERT INTO entity_is_of_type
                         SELECT

@@ -375,7 +375,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
             tracing::error!(error = ?report, "Failed to connect to database");
             report
         })?;
-    let _ = pool
+    _ = pool
         .acquire()
         .await
         .change_context(GraphError)
@@ -405,7 +405,7 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         .change_context(GraphError)?;
         spicedb_client
             .import_schema(include_str!(
-                "../../../../lib/authorization/schemas/v1__initial_schema.zed"
+                "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
             ))
             .await
             .change_context(GraphError)?;

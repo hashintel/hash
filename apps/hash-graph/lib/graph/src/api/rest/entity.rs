@@ -1,5 +1,7 @@
 //! Web routes for CRU operations on entities.
 
+#![expect(clippy::str_to_string)]
+
 use std::{iter::once, sync::Arc};
 
 use authorization::{
