@@ -118,7 +118,7 @@ const ProfileTabInfo: FunctionComponent<{ profile?: User | Org }> = ({
 };
 
 const PinnedEntityTypeTabInfo: FunctionComponent<
-  Extract<ProfilePageTab, { kind: "pinned-entity-type" }>
+  Extract<ProfilePageTab, { kind: "pinned-entity-type" | "profile-pages" }>
 > = ({ entities }) => {
   const latestEntityUpdatedAt = useMemo(() => {
     const latestEntity = entities?.reduce<Entity | undefined>(
