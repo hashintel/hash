@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
-
 import {
   Block,
   BlockBlockDataLink,
@@ -28,6 +26,10 @@ import {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  ProfileBio,
+  ProfileBioOutgoingLinkAndTarget,
+  ProfileBioOutgoingLinksByLinkEntityTypeId,
+  ProfileBioProperties,
   TextDataType,
 } from "./shared";
 
@@ -55,17 +57,9 @@ export type {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  ProfileBio,
+  ProfileBioOutgoingLinkAndTarget,
+  ProfileBioOutgoingLinksByLinkEntityTypeId,
+  ProfileBioProperties,
   TextDataType,
 };
-
-export type ProfileBio = Entity<ProfileBioProperties>;
-
-export type ProfileBioOutgoingLinkAndTarget = never;
-
-export type ProfileBioOutgoingLinksByLinkEntityTypeId = {};
-
-export type ProfileBioProperties = ProfileBioProperties1 &
-  ProfileBioProperties2;
-export type ProfileBioProperties1 = BlockCollectionProperties;
-
-export type ProfileBioProperties2 = {};

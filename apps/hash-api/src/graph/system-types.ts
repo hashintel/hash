@@ -116,6 +116,7 @@ export let SYSTEM_TYPES: {
     // Account-related
     hasAvatar: EntityTypeWithMetadata;
     hasCoverImage: EntityTypeWithMetadata;
+    hasBio: EntityTypeWithMetadata;
 
     // Block-related
     blockData: EntityTypeWithMetadata;
@@ -247,6 +248,9 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
   })(context);
 };
 
+const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
+  entityTypeInitializer(types.linkEntityType.hasBio)(context);
+
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -278,6 +282,13 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
+
+  const hasBioLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasBio(context);
+
+  const profileBioEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.profileBio(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -324,6 +335,12 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
+      },
+      {
+        linkEntityType: hasBioLinkEntityType,
+        destinationEntityTypes: [profileBioEntityType],
+        minItems: 0,
+        maxItems: 1,
       },
     ],
   })(context);
@@ -430,6 +447,12 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
 
+  const hasBioLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasBio(context);
+
+  const profileBioEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.profileBio(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -478,6 +501,12 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       {
         linkEntityType: hasServiceAccountLinkEntityType,
         destinationEntityTypes: [serviceAccountEntityType],
+      },
+      {
+        linkEntityType: hasBioLinkEntityType,
+        destinationEntityTypes: [profileBioEntityType],
+        minItems: 0,
+        maxItems: 1,
       },
     ],
   })(context);
@@ -1115,6 +1144,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
+    hasBio: hasBioLinkEntityTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,

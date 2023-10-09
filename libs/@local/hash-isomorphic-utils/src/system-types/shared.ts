@@ -146,6 +146,20 @@ export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
 
+export type HasBio = Entity<HasBioProperties> & { linkData: LinkData };
+
+export type HasBioOutgoingLinkAndTarget = never;
+
+export type HasBioOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that has a bio.
+ */
+export type HasBioProperties = HasBioProperties1 & HasBioProperties2;
+export type HasBioProperties1 = LinkProperties;
+
+export type HasBioProperties2 = {};
+
 export type HasCoverImage = Entity<HasCoverImageProperties> & {
   linkData: LinkData;
 };
@@ -230,6 +244,8 @@ export type Org = Entity<OrgProperties>;
 
 export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type OrgHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
+
 export type OrgHasCoverImageLink = {
   linkEntity: HasCoverImage;
   rightEntity: Image;
@@ -249,10 +265,14 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink | OrgHasCoverImageLink;
+export type OrgOutgoingLinkAndTarget =
+  | OrgHasAvatarLink
+  | OrgHasBioLink
+  | OrgHasCoverImageLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": OrgHasBioLink;
   "http://localhost:3000/@system-user/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
 };
 
@@ -339,6 +359,18 @@ export type PreferredNamePropertyValue = TextDataType;
 
 export type PreferredPronounsPropertyValue = TextDataType;
 
+export type ProfileBio = Entity<ProfileBioProperties>;
+
+export type ProfileBioOutgoingLinkAndTarget = never;
+
+export type ProfileBioOutgoingLinksByLinkEntityTypeId = {};
+
+export type ProfileBioProperties = ProfileBioProperties1 &
+  ProfileBioProperties2;
+export type ProfileBioProperties1 = BlockCollectionProperties;
+
+export type ProfileBioProperties2 = {};
+
 /**
  * A URL to a profile
  */
@@ -383,6 +415,8 @@ export type User = Entity<UserProperties>;
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
+
 export type UserHasServiceAccountLink = {
   linkEntity: HasServiceAccount;
   rightEntity: ServiceAccount;
@@ -395,11 +429,13 @@ export type UserOrgMembershipLink = {
 
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
+  | UserHasBioLink
   | UserHasServiceAccountLink
   | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": UserHasBioLink;
   "http://localhost:3000/@system-user/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };

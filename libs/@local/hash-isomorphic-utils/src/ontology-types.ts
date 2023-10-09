@@ -362,6 +362,10 @@ const systemLinkEntityTypes = {
     title: "Block Data",
     description: "The entity representing the data in a block.",
   },
+  hasBio: {
+    title: "Has Bio",
+    description: "Something that has a bio.",
+  },
   contains: {
     title: "Contains",
     description: "Something containing something.",
