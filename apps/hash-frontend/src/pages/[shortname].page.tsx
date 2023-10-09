@@ -301,6 +301,15 @@ const ProfilePage: NextPageWithLayout = () => {
     return matchingTab;
   }, [tabsWithEntities, currentTabTitle]);
 
+  if (
+    entitiesSubgraph &&
+    currentTab.kind === "profile" &&
+    profile &&
+    router.asPath !== `/@${profile.shortname}`
+  ) {
+    void router.push(`/@${profile.shortname}`);
+  }
+
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
       <Typography variant="h2">Profile not found</Typography>
