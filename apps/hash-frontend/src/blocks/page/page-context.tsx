@@ -50,3 +50,9 @@ export const usePageContext = () => {
 
   return context;
 };
+
+export const usePageContextOptional = () => {
+  const context = useContext(PageContext);
+
+  return context;
+};

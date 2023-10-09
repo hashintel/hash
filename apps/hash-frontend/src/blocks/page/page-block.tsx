@@ -17,7 +17,7 @@ import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";
 import { createEditorView } from "./create-editor-view";
-import { usePageContext } from "./page-context";
+import { usePageContextOptional } from "./page-context";
 import {
   getPageSectionContainerStyles,
   PageSectionContainer,
@@ -69,7 +69,9 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   const isReadonlyMode = useIsReadonlyModeForResource(ownedById);
 
-  const { setEditorContext, pageTitleRef } = usePageContext();
+  const pageContext = usePageContextOptional();
+
+  const { pageTitleRef, setEditorContext } = pageContext ?? {};
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -84,20 +86,22 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
      * contain at least one child, so lets insert a special "blank" placeholder
      * child
      */
-    const { view, connection, manager } = createEditorView(
-      node,
+    const { view, connection, manager } = createEditorView({
+      renderNode: node,
       renderPortal,
       ownedById,
-      entityId,
-      () => currentBlocks.current,
-      isReadonlyMode,
+      pageEntityId: entityId,
+      blocks: () => currentBlocks.current,
+      readonly: isReadonlyMode,
       pageTitleRef,
-      () =>
+      getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
-    );
+    });
 
-    setEditorContext({ view, manager });
+    if (setEditorContext) {
+      setEditorContext({ view, manager });
+    }
 
     prosemirrorSetup.current = {
       view,

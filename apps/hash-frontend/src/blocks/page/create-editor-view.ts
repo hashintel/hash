@@ -129,17 +129,29 @@ const createSavePlugin = (
  * An editor view manages the DOM structure that represents an editable document.
  * @see https://prosemirror.net/docs/ref/#view.EditorView
  */
-export const createEditorView = (
-  renderNode: HTMLElement,
-  renderPortal: RenderPortal,
-  ownedById: OwnedById,
-  pageEntityId: EntityId,
-  blocks: () => ComponentIdHashBlockMap,
-  readonly: boolean,
-  pageTitleRef: RefObject<HTMLTextAreaElement>,
-  getLastSavedValue: () => BlockEntity[],
-  client: ApolloClient<unknown>,
-) => {
+export const createEditorView = (params: {
+  renderNode: HTMLElement;
+  renderPortal: RenderPortal;
+  ownedById: OwnedById;
+  pageEntityId: EntityId;
+  blocks: () => ComponentIdHashBlockMap;
+  readonly: boolean;
+  pageTitleRef?: RefObject<HTMLTextAreaElement>;
+  getLastSavedValue: () => BlockEntity[];
+  client: ApolloClient<unknown>;
+}) => {
+  const {
+    renderNode,
+    renderPortal,
+    ownedById,
+    pageEntityId,
+    blocks,
+    readonly,
+    pageTitleRef,
+    getLastSavedValue,
+    client,
+  } = params;
+
   let manager: ProsemirrorManager;
 
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
@@ -151,7 +163,7 @@ export const createEditorView = (
         createSuggester(renderPortal, ownedById, renderNode, () => manager),
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
-        createFocusPageTitlePlugin(pageTitleRef),
+        ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
         createSavePlugin(ownedById, pageEntityId, blocks, client),
       ];
 
@@ -197,7 +209,7 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      const isInitialPageTitleEmpty = pageTitleRef.current?.value === "";
+      const isInitialPageTitleEmpty = pageTitleRef?.current?.value === "";
 
       return new ComponentView(
         node,
