@@ -5,6 +5,7 @@ import {
   Entity,
   EntityRootType,
   extractEntityUuidFromEntityId,
+  OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
@@ -22,15 +23,25 @@ import {
   isBefore,
   subWeeks,
 } from "date-fns";
-import { Fragment, FunctionComponent, Ref, useMemo, useState } from "react";
+import {
+  Fragment,
+  FunctionComponent,
+  Ref,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 
+import { useAccountPages } from "../../components/hooks/use-account-pages";
+import { useCreatePage } from "../../components/hooks/use-create-page";
 import { generateEntityLabel } from "../../lib/entities";
 import { Org, User } from "../../lib/user-and-org";
 import { ArrowDownAZRegularIcon } from "../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../shared/icons/arrow-up-a-z-regular-icon";
 import { ClockRegularIcon } from "../../shared/icons/clock-regular-icon";
 import { PageLightIcon } from "../../shared/icons/page-light-icon";
-import { Link, MenuItem } from "../../shared/ui";
+import { PlusRegularIcon } from "../../shared/icons/plus-regular";
+import { Button, Link, MenuItem } from "../../shared/ui";
 import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfilePageTab } from "./util";
 
@@ -152,12 +163,31 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
   "alphabetical-desc": "Alphabetical (Z-A)",
 };
 
-export const PinnedEntityTypeTabContents: FunctionComponent<
-  Extract<ProfilePageTab, { kind: "pinned-entity-type" | "profile-pages" }> & {
-    profile: User | Org;
-  }
-> = ({ title, profile, entities, entitiesSubgraph }) => {
+export const PinnedEntityTypeTabContents: FunctionComponent<{
+  currentTab: Extract<
+    ProfilePageTab,
+    { kind: "pinned-entity-type" | "profile-pages" }
+  >;
+  profile: User | Org;
+  isEditable: boolean;
+}> = ({ currentTab, profile, isEditable }) => {
+  const { entities, entitiesSubgraph } = currentTab;
+
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
+
+  const ownedById = (
+    profile.kind === "user" ? profile.accountId : profile.accountGroupId
+  ) as OwnedById;
+
+  const { lastRootPageIndex } = useAccountPages(ownedById);
+  const [createUntitledPage] = useCreatePage({
+    shortname: profile.shortname,
+    ownedById,
+  });
+
+  const createPage = useCallback(async () => {
+    await createUntitledPage(lastRootPageIndex);
+  }, [lastRootPageIndex, createUntitledPage]);
 
   const sortedEntities = useMemo(
     () =>
@@ -187,7 +217,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
           ? bLabel.localeCompare(aLabel)
           : aLabel.localeCompare(bLabel);
       }),
-    [entities, sortOrder, entitiesSubgraph],
+    [entities, entitiesSubgraph, sortOrder],
   );
 
   return (
@@ -197,50 +227,48 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
           variant="smallCaps"
           sx={{ color: ({ palette }) => palette.gray[70], fontSize: 12 }}
         >
-          {title}
+          {currentTab.title}
         </Typography>
-        <Fade in={entities && entities.length > 0}>
-          <Box display="flex" alignItems="center" columnGap={1}>
-            <Typography
-              sx={{
+        <Box display="flex" alignItems="center" columnGap={1}>
+          <Typography
+            sx={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: ({ palette }) => palette.gray[70],
+            }}
+          >
+            Sort by
+          </Typography>
+          <InlineSelect
+            startAdornment={
+              sortOrder === "alphabetical-asc" ? (
+                <ArrowDownAZRegularIcon />
+              ) : sortOrder === "alphabetical-desc" ? (
+                <ArrowUpZARegularIcon />
+              ) : (
+                <ClockRegularIcon />
+              )
+            }
+            sx={{
+              svg: {
                 fontSize: 12,
-                fontWeight: 600,
-                color: ({ palette }) => palette.gray[70],
-              }}
-            >
-              Sort by
-            </Typography>
-            <InlineSelect
-              startAdornment={
-                sortOrder === "alphabetical-asc" ? (
-                  <ArrowDownAZRegularIcon />
-                ) : sortOrder === "alphabetical-desc" ? (
-                  <ArrowUpZARegularIcon />
-                ) : (
-                  <ClockRegularIcon />
-                )
-              }
-              sx={{
-                svg: {
-                  fontSize: 12,
-                  marginRight: 0.5,
-                  position: "relative",
-                  top: -1,
-                },
-              }}
-              value={sortOrder}
-              onChange={({ target }) => setSortOrder(target.value as SortOrder)}
-            >
-              {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
-                <MenuItem key={value} value={value}>
-                  {label}
-                </MenuItem>
-              ))}
-            </InlineSelect>
-          </Box>
-        </Fade>
+                marginRight: 0.5,
+                position: "relative",
+                top: -1,
+              },
+            }}
+            value={sortOrder}
+            onChange={({ target }) => setSortOrder(target.value as SortOrder)}
+          >
+            {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </InlineSelect>
+        </Box>
       </Box>
-      <Fade in={entities && entities.length > 0}>
+      <Fade in={!!entities && !!entitiesSubgraph}>
         <Box
           sx={{
             borderRadius: "4px",
@@ -251,20 +279,71 @@ export const PinnedEntityTypeTabContents: FunctionComponent<
             boxShadow: "0px 1px 5px 0px rgba(27, 33, 40, 0.07)",
           }}
         >
-          {entitiesSubgraph
-            ? sortedEntities?.map((entity, index, all) => {
-                return (
-                  <Fragment key={entity.metadata.recordId.entityId}>
-                    <EntityRow
-                      entity={entity}
-                      profile={profile}
-                      entitiesSubgraph={entitiesSubgraph}
-                    />
-                    {index < all.length - 1 ? <Divider /> : null}
-                  </Fragment>
-                );
-              })
-            : null}
+          {sortedEntities?.length === 0 ? (
+            <Box
+              padding={6}
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+            >
+              <Typography
+                gutterBottom
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 21,
+                  fontWeight: 600,
+                }}
+              >
+                No {currentTab.pluralTitle?.toLowerCase()} could be found
+              </Typography>
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 16,
+                  fontWeight: 500,
+                }}
+              >
+                No {currentTab.pluralTitle?.toLowerCase()} could be found in @
+                {profile.shortname}
+              </Typography>
+              {isEditable ? (
+                <Box marginTop={2}>
+                  <Button
+                    startIcon={<PlusRegularIcon />}
+                    size="small"
+                    href={
+                      currentTab.kind === "pinned-entity-type" &&
+                      currentTab.entityType
+                        ? `/new/entity?entity-type-id=${encodeURIComponent(
+                            currentTab.entityType.schema.$id,
+                          )}`
+                        : undefined
+                    }
+                    onClick={
+                      currentTab.kind === "profile-pages"
+                        ? createPage
+                        : undefined
+                    }
+                  >
+                    Create a {currentTab.title}
+                  </Button>
+                </Box>
+              ) : null}
+            </Box>
+          ) : entitiesSubgraph ? (
+            sortedEntities?.map((entity, index, all) => {
+              return (
+                <Fragment key={entity.metadata.recordId.entityId}>
+                  <EntityRow
+                    entity={entity}
+                    profile={profile}
+                    entitiesSubgraph={entitiesSubgraph}
+                  />
+                  {index < all.length - 1 ? <Divider /> : null}
+                </Fragment>
+              );
+            })
+          ) : null}
         </Box>
       </Fade>
     </Box>

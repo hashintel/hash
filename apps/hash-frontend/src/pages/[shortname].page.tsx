@@ -14,6 +14,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
+import pluralize from "pluralize";
 import { useCallback, useMemo, useState } from "react";
 
 import {
@@ -108,7 +109,8 @@ const ProfilePage: NextPageWithLayout = () => {
       },
       {
         kind: "profile-pages",
-        title: "Pages",
+        title: "Page",
+        pluralTitle: "Pages",
       },
       ...(profile?.pinnedEntityTypeBaseUrls?.map<ProfilePageTab>(
         (entityTypeBaseUrl) => ({
@@ -240,29 +242,38 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const tabsWithEntities = useMemo(
     () =>
-      baseTabs.map((tab) =>
-        tab.kind === "pinned-entity-type"
-          ? {
-              ...tab,
-              entities: allPinnedEntities?.filter(
-                ({ metadata }) =>
-                  extractBaseUrl(metadata.entityTypeId) ===
-                  tab.entityTypeBaseUrl,
-              ),
-              entitiesSubgraph,
-              title: entityTypes?.find(
-                ({ metadata }) =>
-                  metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
-              )?.schema.title,
-            }
-          : tab.kind === "profile-pages"
-          ? {
-              ...tab,
-              entities: pageEntities,
-              entitiesSubgraph: pageEntitiesSubgraph,
-            }
-          : tab,
-      ),
+      baseTabs.map((tab) => {
+        if (tab.kind === "pinned-entity-type") {
+          const entityType = entityTypes?.find(
+            ({ metadata }) =>
+              metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
+          );
+
+          const title = entityType?.schema.title;
+
+          const pluralTitle = title ? pluralize(title) : undefined;
+
+          return {
+            ...tab,
+            entities: allPinnedEntities?.filter(
+              ({ metadata }) =>
+                extractBaseUrl(metadata.entityTypeId) === tab.entityTypeBaseUrl,
+            ),
+            entitiesSubgraph,
+            title: entityType?.schema.title,
+            pluralTitle,
+            entityType,
+          };
+        } else if (tab.kind === "profile-pages") {
+          return {
+            ...tab,
+            entities: pageEntities,
+            entitiesSubgraph: pageEntitiesSubgraph,
+          };
+        }
+
+        return tab;
+      }),
     [
       baseTabs,
       allPinnedEntities,

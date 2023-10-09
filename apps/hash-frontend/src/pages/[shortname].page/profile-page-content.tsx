@@ -35,7 +35,11 @@ export const ProfilePageContent: FunctionComponent<{
             currentTab.kind === "profile" ? (
               <Box />
             ) : (
-              <PinnedEntityTypeTabContents profile={profile} {...currentTab} />
+              <PinnedEntityTypeTabContents
+                profile={profile}
+                isEditable={isEditable}
+                currentTab={currentTab}
+              />
             )
           ) : null}
         </Box>

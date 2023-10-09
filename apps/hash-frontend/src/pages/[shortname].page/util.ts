@@ -2,6 +2,7 @@ import {
   BaseUrl,
   Entity,
   EntityRootType,
+  EntityTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
 import { NextParsedUrlQuery } from "next/dist/server/request-meta";
@@ -13,13 +14,16 @@ export type ProfilePageTab =
     }
   | {
       kind: "profile-pages";
-      title: "Pages";
+      pluralTitle: "Pages";
+      title: "Page";
       entities?: Entity[];
       entitiesSubgraph?: Subgraph<EntityRootType>;
     }
   | {
       kind: "pinned-entity-type";
       entityTypeBaseUrl: BaseUrl;
+      entityType?: EntityTypeWithMetadata;
+      pluralTitle?: string;
       title?: string;
       entities?: Entity[];
       entitiesSubgraph?: Subgraph<EntityRootType>;
