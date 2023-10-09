@@ -16,13 +16,13 @@ type OnBlockLoadedFunction = (blockEntityId: string) => void;
 /** @private enforces use of custom provider */
 const BlockLoadedContext = createContext<{
   onBlockLoaded: OnBlockLoadedFunction;
-  highlightedBlockId: string;
-  setHighlightedBlockId: (blockId: string) => void;
+  highlightedBlockId?: string;
+  setHighlightedBlockId: (blockId: string | undefined) => void;
 } | null>(null);
 
 type BlockLoadedProviderProps = {
   children?: ReactNode;
-  routeHash: string;
+  routeHash?: string;
 };
 
 export const BlockLoadedProvider: FunctionComponent<
@@ -37,8 +37,9 @@ export const BlockLoadedProvider: FunctionComponent<
    * The initial value is `routeHash`, so when the page is first open, the block which has its id in URL is highlighted
    * `highlightedBlockId` will be used when block context menus are open to indicate which block is being edited
    */
-  const [highlightedBlockId, setHighlightedBlockId] =
-    useState<string>(routeHash);
+  const [highlightedBlockId, setHighlightedBlockId] = useState<
+    string | undefined
+  >(routeHash);
 
   const onBlockLoaded = useCallback(
     (blockEntityId: string) => {

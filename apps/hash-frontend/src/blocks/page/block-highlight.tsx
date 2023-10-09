@@ -47,5 +47,7 @@ export const BlockHighlight = ({ blockEntityId }: BlockHighlightProps) => {
     return null;
   }
 
-  return <Highlight onAnimationComplete={() => setHighlightedBlockId("")} />;
+  return (
+    <Highlight onAnimationComplete={() => setHighlightedBlockId(undefined)} />
+  );
 };
