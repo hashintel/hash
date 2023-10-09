@@ -70,7 +70,10 @@ pub struct AccountGroup {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
     id: WebId,
-    owner: OwnerId,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    owners: Vec<OwnerId>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    editors: Vec<OwnerId>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -272,7 +275,13 @@ where
                 match relation {
                     WebRelation::DirectOwner => Ok(Web {
                         id,
-                        owner: OwnerId::Account(account_id),
+                        owners: vec![OwnerId::Account(account_id)],
+                        editors: Vec::new(),
+                    }),
+                    WebRelation::DirectEditor => Ok(Web {
+                        id,
+                        owners: Vec::new(),
+                        editors: vec![OwnerId::Account(account_id)],
                     }),
                 }
             });
@@ -293,10 +302,19 @@ where
                     account_group_permission,
                     Some(AccountGroupPermission::Member)
                 );
+                // TODO: Partition web ids so a single web holds multiple owners/editors per
+                //       snapshot line. For the restoring logic this has no effect, but it would
+                //       make the snapshot file smaller and more readable.
                 match relation {
                     WebRelation::DirectOwner => Ok(Web {
                         id,
-                        owner: OwnerId::AccountGroup(account_group),
+                        owners: vec![OwnerId::AccountGroup(account_group)],
+                        editors: Vec::new(),
+                    }),
+                    WebRelation::DirectEditor => Ok(Web {
+                        id,
+                        owners: Vec::new(),
+                        editors: vec![OwnerId::AccountGroup(account_group)],
                     }),
                 }
             });
@@ -408,6 +426,7 @@ where
                     .and_then(move |entity| async move {
                         let id = entity.metadata.record_id().entity_id.entity_uuid;
                         let mut owners = Vec::new();
+                        let mut editors = Vec::new();
                         let mut viewers = Vec::new();
 
                         for (_group, relation, account, _account_relation) in authorization_api
@@ -424,6 +443,9 @@ where
                             match relation {
                                 EntityRelation::DirectOwner => {
                                     owners.push(VisibilityScope::from(account));
+                                }
+                                EntityRelation::DirectEditor => {
+                                    editors.push(VisibilityScope::from(account));
                                 }
                                 EntityRelation::DirectViewer => {
                                     viewers.push(VisibilityScope::from(account));
@@ -446,6 +468,9 @@ where
                                 match relation {
                                     EntityRelation::DirectOwner => {
                                         owners.push(VisibilityScope::AccountGroup(account_group));
+                                    }
+                                    EntityRelation::DirectEditor => {
+                                        editors.push(VisibilityScope::AccountGroup(account_group));
                                     }
                                     EntityRelation::DirectViewer => {
                                         viewers.push(VisibilityScope::AccountGroup(account_group));
@@ -471,6 +496,7 @@ where
                             },
                             link_data: entity.link_data,
                             owners,
+                            editors,
                             viewers,
                         }))
                     })

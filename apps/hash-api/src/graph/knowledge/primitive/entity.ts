@@ -670,6 +670,20 @@ export const removeEntityOwner: ImpureGraphFunction<
   await graphApi.removeEntityOwner(actorId, params.entityId, params.viewer);
 };
 
+export const addEntityEditor: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.addEntityEditor(actorId, params.entityId, params.viewer);
+};
+
+export const removeEntityEditor: ImpureGraphFunction<
+  { entityId: EntityId; viewer: AccountId | AccountGroupId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.removeEntityEditor(actorId, params.entityId, params.viewer);
+};
+
 export const addEntityViewer: ImpureGraphFunction<
   { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
   Promise<void>

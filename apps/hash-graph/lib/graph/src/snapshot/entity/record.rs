@@ -36,5 +36,7 @@ pub struct EntitySnapshotRecord {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub owners: Vec<VisibilityScope>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub editors: Vec<VisibilityScope>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub viewers: Vec<VisibilityScope>,
 }

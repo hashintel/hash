@@ -87,6 +87,22 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
+    async fn add_web_editor(
+        &mut self,
+        _editor: OwnerId,
+        _web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_web_editor(
+        &mut self,
+        _editor: OwnerId,
+        _web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
     async fn can_add_group_admin(
         &self,
         _actor: AccountId,
@@ -169,7 +185,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn add_entity_owner(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: OwnerId,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
@@ -177,7 +193,23 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn remove_entity_owner(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: OwnerId,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn add_entity_editor(
+        &mut self,
+        _scope: OwnerId,
+        _entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn remove_entity_editor(
+        &mut self,
+        _scope: OwnerId,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())

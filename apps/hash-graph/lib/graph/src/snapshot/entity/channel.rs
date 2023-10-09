@@ -155,6 +155,10 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             .owners
             .into_iter()
             .map(|owner| (owner, EntityRelation::DirectOwner));
+        let editors = entity
+            .editors
+            .into_iter()
+            .map(|editor| (editor, EntityRelation::DirectEditor));
         let viewers = entity
             .viewers
             .into_iter()
@@ -163,7 +167,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         let mut account_relations = Vec::new();
         let mut account_group_relations = Vec::new();
         let mut public_account_relations = Vec::new();
-        for (scope, relation) in owners.chain(viewers) {
+        for (scope, relation) in owners.chain(editors).chain(viewers) {
             match scope {
                 VisibilityScope::Account(account_id) => account_relations.push((
                     entity.metadata.record_id.entity_id.entity_uuid,

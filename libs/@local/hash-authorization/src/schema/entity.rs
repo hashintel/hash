@@ -21,6 +21,7 @@ impl Resource for EntityUuid {
 #[serde(rename_all = "snake_case")]
 pub enum EntityRelation {
     DirectOwner,
+    DirectEditor,
     DirectViewer,
 }
 

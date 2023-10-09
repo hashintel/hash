@@ -152,6 +152,18 @@ pub trait AuthorizationApi {
         web: WebId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
+    fn add_web_editor(
+        &mut self,
+        editor: OwnerId,
+        web: WebId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn remove_web_editor(
+        &mut self,
+        editor: OwnerId,
+        web: WebId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
     fn can_create_entity(
         &self,
         actor: AccountId,
@@ -164,12 +176,23 @@ pub trait AuthorizationApi {
     ////////////////////////////////////////////////////////////////////////////
     fn add_entity_owner(
         &mut self,
-        scope: VisibilityScope,
+        scope: OwnerId,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
     fn remove_entity_owner(
         &mut self,
-        scope: VisibilityScope,
+        scope: OwnerId,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn add_entity_editor(
+        &mut self,
+        scope: OwnerId,
+        entity: EntityId,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+    fn remove_entity_editor(
+        &mut self,
+        scope: OwnerId,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
@@ -178,7 +201,6 @@ pub trait AuthorizationApi {
         scope: VisibilityScope,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
     fn remove_entity_viewer(
         &mut self,
         scope: VisibilityScope,

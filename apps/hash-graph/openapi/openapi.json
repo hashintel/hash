@@ -825,6 +825,96 @@
         }
       }
     },
+    "/entities/{entity_id}/editors/{editor}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "add_entity_editor",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to add the editor to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "editor",
+            "in": "path",
+            "description": "The editor to add to the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The editor was added to the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "remove_entity_editor",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to remove the editor from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "editor",
+            "in": "path",
+            "description": "The editor to remove from the entity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The editor was removed from the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/owners/{owner}": {
       "post": {
         "tags": [
