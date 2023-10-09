@@ -1,0 +1,21 @@
+[package]
+name = "authorization"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+error-stack = { version = "0.4.1", features = ["spantrace"] }
+graph-types = { path = "../hash-graph-types/rust" }
+codec = { path = "../codec" }
+
+futures = { version = "0.3.28", default-features = false }
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = { version = "1.0.107" }
+
+reqwest = { version = "0.11.22", default-features = false, features = ["json", "stream"] }
+tokio-util = { version ="0.7.9", features = ["io"] }
+
+[dev-dependencies]
+uuid =  { version = "1.4.1", default-features = false }
+tokio = { version = "1.32.0", default-features = false , features = ["macros", "rt-multi-thread"] }

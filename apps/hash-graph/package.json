@@ -18,15 +18,21 @@
     "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_AUTHORIZATION=yes --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "exe": "ts-node",
-    "test": "just test",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },
   "dependencies": {
+    "@local/codec-rs": "0.0.0-private",
+    "@local/hash-authorization-rs": "0.0.0-private",
+    "@local/hash-graph-types-rs": "0.0.0-private",
     "@local/status-rust": "0.0.0-private",
+    "@local/temporal-versioning-rs": "0.0.0-private",
     "ts-node": "10.9.1"
   },
   "devDependencies": {
+    "@tests/hash-graph-test-data-rs": "0.0.0-private",
     "httpyac": "6.7.1",
     "quicktype": "^16.0.43",
     "typescript": "5.1.6"

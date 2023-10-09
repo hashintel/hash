@@ -1,5 +1,5 @@
 {
-  "name": "@local/hash-graph-sdk-python",
+  "name": "@local/hash-graph-sdk-py",
   "version": "0.0.0-private",
   "private": true,
   "description": "Type definitions for the type system and entity validation based on schemas",
@@ -19,8 +19,8 @@
     "poetry:install-production": "poetry install --no-root --no-interaction --only main"
   },
   "dependencies": {
-    "@local/hash-graph-client-python": "0.0.0-private",
-    "@local/hash-graph-types": "0.0.0-private"
+    "@local/hash-graph-client-py": "0.0.0-private",
+    "@local/hash-graph-types-py": "0.0.0-private"
   },
   "devDependencies": {}
 }

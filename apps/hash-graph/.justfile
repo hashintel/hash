@@ -18,7 +18,7 @@ run *arguments:
 # Generates the OpenAPI specifications and the clients
 generate-openapi-specs:
   cargo run --bin hash-graph -- server --write-openapi-specs
-  just yarn codegen --filter @local/hash-graph-client-python
+  just yarn codegen --filter @local/hash-graph-client-py
   just yarn codegen --filter @local/hash-graph-sdk-python
 
 [private]
@@ -40,7 +40,6 @@ test-unit *arguments:
 test-integration *arguments:
   @just install-cargo-nextest
 
-  @RUSTFLAGS="{{ test-env-flags }}" cargo nextest run --workspace --all-features --test '*' --cargo-profile {{profile}} {{arguments}}
   @RUSTFLAGS="{{ test-env-flags }}" cargo test --workspace --all-features --bench '*' --profile {{profile}} {{arguments}}
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http

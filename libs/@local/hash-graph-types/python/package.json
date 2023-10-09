@@ -1,0 +1,19 @@
+{
+  "name": "@local/hash-graph-types-py",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Type definitions for the type system and entity validation based on schemas",
+  "scripts": {
+    "build": "poetry build --no-interaction",
+    "fix:black": "poetry run black graph_types",
+    "fix:lock-files": "poetry lock --no-update",
+    "fix:ruff": "poetry run ruff graph_types --fix",
+    "lint:black": "poetry run black --check --diff --color graph_types",
+    "lint:lock-files": "poetry lock --check",
+    "lint:mypy": "poetry run mypy .",
+    "lint:ruff": "poetry run ruff graph_types",
+    "poetry:install": "poetry install --no-root --no-interaction",
+    "poetry:install-production": "poetry install --no-root --no-interaction --only main"
+  },
+  "dependencies": {}
+}

@@ -171,7 +171,7 @@ impl<C: AsClient> PostgresStore<C> {
         transaction
             .as_client()
             .simple_query(
-                r"
+                "
                     DELETE FROM entity_type_inherits_from;
                     DELETE FROM entity_type_constrains_link_destinations_on;
                     DELETE FROM entity_type_constrains_links_on;
@@ -184,7 +184,7 @@ impl<C: AsClient> PostgresStore<C> {
         let entity_types = transaction
             .as_client()
             .query(
-                r"
+                "
                     DELETE FROM entity_types
                     RETURNING ontology_id
                 ",

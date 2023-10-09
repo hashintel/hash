@@ -241,7 +241,7 @@ impl<C: AsClient> PostgresStore<C> {
         self.as_client()
             .client()
             .simple_query(
-                r"
+                "
                     DELETE FROM entity_has_left_entity;
                     DELETE FROM entity_has_right_entity;
                     DELETE FROM entity_is_of_type;
@@ -291,7 +291,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let is_account_group: bool = transaction
             .as_client()
             .query_one(
-                r"
+                "
                     WITH inserted_owners AS (
                         INSERT INTO entity_ids (owned_by_id, entity_uuid)
                         VALUES ($1, $2)
@@ -320,7 +320,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query(
-                    r"
+                    "
                         INSERT INTO entity_has_left_entity (
                             owned_by_id,
                             entity_uuid,
@@ -341,7 +341,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query(
-                    r"
+                    "
                         INSERT INTO entity_has_right_entity (
                             owned_by_id,
                             entity_uuid,
@@ -381,7 +381,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_one(
-                    r"
+                    "
                     INSERT INTO entity_temporal_metadata (
                         owned_by_id,
                         entity_uuid,
@@ -409,7 +409,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_one(
-                    r"
+                    "
                     INSERT INTO entity_temporal_metadata (
                         owned_by_id,
                         entity_uuid,
@@ -701,7 +701,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if transaction
             .as_client()
             .query_opt(
-                r"
+                "
                  SELECT EXISTS (
                     SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2
                  );",
@@ -733,7 +733,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_opt(
-                    r"
+                    "
                         UPDATE entity_temporal_metadata
                         SET decision_time = tstzrange($4, upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
@@ -756,7 +756,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             transaction
                 .as_client()
                 .query_opt(
-                    r"
+                    "
                         UPDATE entity_temporal_metadata
                         SET decision_time = tstzrange(now(), upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
@@ -811,7 +811,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
-                r"
+                "
                     INSERT INTO entity_editions (
                         entity_edition_id,
                         record_created_by_id,
@@ -841,7 +841,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
         self.as_client()
             .query(
-                r"
+                "
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
                         entity_type_ontology_id

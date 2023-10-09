@@ -2,7 +2,7 @@ use crate::status_code::StatusCode;
 
 impl StatusCode {
     #[must_use]
-    pub const fn to_http_code(&self) -> u16 {
+    pub const fn to_http_code(self) -> u16 {
         match self {
             Self::Ok => 200,
             Self::FailedPrecondition | Self::InvalidArgument | Self::OutOfRange => 400,

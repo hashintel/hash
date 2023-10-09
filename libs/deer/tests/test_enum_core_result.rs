@@ -20,7 +20,7 @@ proptest! {
 
     #[test]
     fn result_ok_not_err(value in any::<bool>()) {
-        let _ = assert_tokens_any_error::<Result<u8, bool>>(&[
+        _ = assert_tokens_any_error::<Result<u8, bool>>(&[
             Token::Object { length: Some(1) },
             Token::String("Ok"),
             Token::Bool(value),
@@ -42,7 +42,7 @@ proptest! {
 
     #[test]
     fn result_err_not_ok(value in any::<u8>()) {
-        let _ = assert_tokens_any_error::<Result<u8, bool>>(&[
+         _ = assert_tokens_any_error::<Result<u8, bool>>(&[
             Token::Object { length: Some(1) },
             Token::String("Err"),
             Token::Number(value.into()),

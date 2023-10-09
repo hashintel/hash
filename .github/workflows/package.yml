@@ -215,7 +215,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@f6df2ed02b5d67ca6f4081800ff74835e62fb83c # v2.20.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -270,9 +270,14 @@ jobs:
         if: always() && steps.lints.outputs.has-clippy == 'true'
         working-directory: ${{ matrix.directory }}
         run: |
+          just lint-toml "check"
+
           # For some reason, clippy does not use the rustflags from `.cargo/config.toml`. This is not a solution
           # but a workaround to make sure that the flags are used.
-          export RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          RUSTFLAGS="$(yq -oy '.target["cfg(all())"].rustflags | join(" ")' .cargo/config.toml) $RUSTFLAGS"
+          # If `export` would be on the same line this would not fail the workflow if the above line fails
+          export RUSTFLAGS
+
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
@@ -292,7 +297,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@ddccb873888234080b77e9bc2d4764d5ccaaccf9 # v2.21.9
+        uses: github/codeql-action/upload-sarif@2cb752a87e96af96708ab57187ab6372ee1973ab # v2.22.0
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -390,7 +395,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@f6df2ed02b5d67ca6f4081800ff74835e62fb83c # v2.20.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -530,7 +535,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@f6df2ed02b5d67ca6f4081800ff74835e62fb83c # v2.20.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -568,7 +573,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="kratos mailslurper redis temporal temporal-setup"
+          SERVICES="kratos mailslurper redis temporal temporal-setup spicedb"
 
           if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
             SERVICES="$SERVICES graph"
@@ -653,7 +658,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@f6df2ed02b5d67ca6f4081800ff74835e62fb83c # v2.20.1
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -737,7 +742,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@ebb475ef6e41abb770588020cd8c6ca3503cb868 # v2.19.4
+        uses: taiki-e/install-action@f6df2ed02b5d67ca6f4081800ff74835e62fb83c # v2.20.1
         with:
           tool: cargo-semver-checks
 

@@ -272,11 +272,13 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
             .store
             .as_client()
             .query(
-                r"
+                "
                 -- Very naive and slow sampling, we can replace when this becomes a bottleneck
                 SELECT entity_uuid FROM entity_temporal_metadata
-                INNER JOIN entity_is_of_type ON entity_is_of_type.entity_edition_id = entity_temporal_metadata.entity_edition_id
-                INNER JOIN ontology_ids ON ontology_ids.ontology_id = entity_is_of_type.entity_type_ontology_id
+                INNER JOIN entity_is_of_type ON entity_is_of_type.entity_edition_id = \
+                 entity_temporal_metadata.entity_edition_id
+                INNER JOIN ontology_ids ON ontology_ids.ontology_id = \
+                 entity_is_of_type.entity_type_ontology_id
                 WHERE ontology_ids.base_url = $1 AND ontology_ids.version = $2
                 ORDER BY RANDOM()
                 LIMIT 50
@@ -318,7 +320,7 @@ pub async fn setup_and_extract_samples(store_wrapper: &mut StoreWrapper) -> Samp
         .store
         .as_client()
         .query_one(
-            r"
+            "
             SELECT EXISTS(SELECT 1 FROM accounts WHERE account_id=$1)
             ",
             &[&account_id],

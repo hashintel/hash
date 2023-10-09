@@ -5,13 +5,8 @@
     "packages": [
       "apps/*",
       "blocks/*",
-      "libs/*",
-      "libs/@hashintel/*",
-      "libs/@local/*",
-      "libs/@local/*/typescript",
-      "libs/@local/*/rust",
-      "libs/@local/*/python",
-      "tests/*"
+      "libs/**",
+      "tests/**"
     ]
   },
   "scripts": {
@@ -91,7 +86,7 @@
     ]
   },
   "resolutions": {
-    "@types/react": "18.0.25",
+    "@types/react": "18.0.26",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -114,7 +109,7 @@
     "prettier-plugin-sh": "0.13.1",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.14",
+    "turbo": "1.10.15",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   }

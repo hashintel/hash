@@ -198,7 +198,7 @@ fn newtype_variant() {
         &[
             Token::Object { length: Some(1) },
             Token::String("Variant"),
-            Token::Number(12u8.into()),
+            Token::Number(12_u8.into()),
             Token::ObjectEnd,
         ],
     );
@@ -453,7 +453,7 @@ fn struct_variant() {
             Token::String("Variant"),
             Token::Object { length: Some(1) },
             Token::String("id"),
-            Token::Number(12u8.into()),
+            Token::Number(12_u8.into()),
             Token::ObjectEnd,
             Token::ObjectEnd,
         ],

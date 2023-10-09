@@ -99,7 +99,7 @@ where
                 let created = self
                     .as_client()
                     .query_opt(
-                        r"
+                        "
                             INSERT INTO base_urls (base_url) VALUES ($1)
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
@@ -113,7 +113,7 @@ where
                 if !created {
                     let query = match location {
                         OntologyLocation::Owned => {
-                            r"
+                            "
                                 SELECT EXISTS (SELECT 1
                                 FROM ontology_owned_metadata
                                 NATURAL JOIN ontology_ids
@@ -121,7 +121,7 @@ where
                             "
                         }
                         OntologyLocation::External => {
-                            r"
+                            "
                                 SELECT EXISTS (SELECT 1
                                 FROM ontology_external_metadata
                                 NATURAL JOIN ontology_ids
@@ -156,7 +156,7 @@ where
     ) -> Result<Option<OntologyId>, InsertionError> {
         let query: &str = match on_conflict {
             ConflictBehavior::Skip => {
-                r"
+                "
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
@@ -167,7 +167,7 @@ where
                 "
             }
             ConflictBehavior::Fail => {
-                r"
+                "
                   INSERT INTO ontology_ids (
                     ontology_id,
                     base_url,
@@ -205,7 +205,7 @@ where
         ontology_id: OntologyId,
         record_created_by_id: RecordCreatedById,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
-        let query: &str = r"
+        let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
@@ -226,7 +226,7 @@ where
         id: &VersionedUrl,
         record_archived_by_id: RecordArchivedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        let query: &str = r"
+        let query = "
           UPDATE ontology_temporal_metadata
           SET
             transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
@@ -259,7 +259,7 @@ where
             let exists = self
                 .as_client()
                 .query_one(
-                    r"
+                    "
                         SELECT EXISTS (
                             SELECT 1
                             FROM ontology_ids
@@ -289,7 +289,7 @@ where
         id: &VersionedUrl,
         record_created_by_id: RecordCreatedById,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        let query: &str = r"
+        let query = "
           INSERT INTO ontology_temporal_metadata (
             ontology_id,
             transaction_time,
@@ -338,7 +338,7 @@ where
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
     ) -> Result<VisibilityScope, InsertionError> {
-        let query: &str = r"
+        let query = "
                 WITH inserted_owners AS (
                     INSERT INTO ontology_owned_metadata (
                         ontology_id,
@@ -375,7 +375,7 @@ where
         ontology_id: OntologyId,
         fetched_at: OffsetDateTime,
     ) -> Result<(), InsertionError> {
-        let query: &str = r"
+        let query = "
               INSERT INTO ontology_external_metadata (
                 ontology_id,
                 fetched_at
@@ -451,7 +451,7 @@ where
         Ok(self
             .as_client()
             .query_opt(
-                r"
+                "
                     INSERT INTO entity_types (ontology_id, schema, label_property)
                     VALUES ($1, $2, $3)
                     ON CONFLICT DO NOTHING
@@ -473,13 +473,14 @@ where
         for property_type in property_type.property_type_references() {
             self.as_client()
                 .query_one(
-                    r"
+                    "
                         INSERT INTO property_type_constrains_properties_on (
                             source_property_type_ontology_id,
                             target_property_type_ontology_id
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
+                     = $3)
                         ) RETURNING target_property_type_ontology_id;
                     ",
                     &[
@@ -489,20 +490,20 @@ where
                     ],
                 )
                 .await
-
                 .change_context(InsertionError)?;
         }
 
         for data_type in property_type.data_type_references() {
             self.as_client()
                 .query_one(
-                    r"
+                    "
                         INSERT INTO property_type_constrains_values_on (
                             source_property_type_ontology_id,
                             target_data_type_ontology_id
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
+                     = $3)
                         ) RETURNING target_data_type_ontology_id;
                     ",
                     &[
@@ -512,7 +513,6 @@ where
                     ],
                 )
                 .await
-
                 .change_context(InsertionError)?;
         }
 
@@ -528,13 +528,14 @@ where
         for property_type in entity_type.property_type_references() {
             self.as_client()
                 .query_one(
-                    r"
+                    "
                         INSERT INTO entity_type_constrains_properties_on (
                             source_entity_type_ontology_id,
                             target_property_type_ontology_id
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
+                     = $3)
                         ) RETURNING source_entity_type_ontology_id;
                     ",
                     &[
@@ -544,20 +545,20 @@ where
                     ],
                 )
                 .await
-
                 .change_context(InsertionError)?;
         }
 
         for inherits_from in entity_type.inherits_from().all_of() {
             self.as_client()
                 .query_one(
-                    r"
+                    "
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
+                     = $3)
                         ) RETURNING target_entity_type_ontology_id;
                     ",
                     &[
@@ -567,7 +568,6 @@ where
                     ],
                 )
                 .await
-
                 .change_context(InsertionError)?;
         }
 
@@ -576,13 +576,14 @@ where
         for (link_reference, destinations) in entity_type.link_mappings() {
             self.as_client()
                 .query_one(
-                    r"
+                    "
                         INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
+                     = $3)
                         ) RETURNING target_entity_type_ontology_id;
                     ",
                     &[
@@ -592,20 +593,20 @@ where
                     ],
                 )
                 .await
-
                 .change_context(InsertionError)?;
 
             if let Some(destinations) = destinations {
                 for destination in destinations {
                     self.as_client()
                         .query_one(
-                            r"
+                            "
                                 INSERT INTO entity_type_constrains_link_destinations_on (
                                 source_entity_type_ontology_id,
                                 target_entity_type_ontology_id
                                     ) VALUES (
                                         $1,
-                                        (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version = $3)
+                                        (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 \
+                             AND version = $3)
                                     ) RETURNING target_entity_type_ontology_id;
                             ",
                             &[
@@ -615,7 +616,6 @@ where
                             ],
                         )
                         .await
-
                         .change_context(InsertionError)?;
                 }
             }
@@ -688,7 +688,7 @@ where
             .client
             .as_client()
             .query_one(
-                r"
+                "
                 SELECT ontology_id
                 FROM ontology_ids
                 WHERE base_url = $1 AND version = $2;
@@ -857,14 +857,15 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let Some(owned_by_id) = self
             .as_client()
             .query_opt(
-                r"
+                "
                   SELECT owned_by_id
                   FROM ontology_owned_metadata
                   NATURAL JOIN ontology_ids
                   WHERE base_url = $1
                     AND version = $2
                   LIMIT 1 -- There might be multiple versions of the same ontology, but we only
-                          -- care about the `owned_by_id` which does not change when (un-)archiving.
+                          -- care about the `owned_by_id` which does not change when \
+                 (un-)archiving.
                 ;",
                 &[&url.base_url.as_str(), &i64::from(url.version - 1)],
             )
@@ -875,7 +876,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             let exists: bool = self
                 .as_client()
                 .query_one(
-                    r"
+                    "
                   SELECT EXISTS (
                     SELECT 1
                     FROM ontology_ids
@@ -1237,7 +1238,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         transaction
             .as_client()
             .query_one(
-                r"
+                "
                 INSERT INTO owners (owner_id)
                 VALUES ($1)
                 RETURNING owner_id;
@@ -1251,7 +1252,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         transaction
             .as_client()
             .query_one(
-                r"
+                "
                 INSERT INTO accounts (account_id)
                 VALUES ($1)
                 RETURNING account_id;
@@ -1296,7 +1297,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         transaction
             .as_client()
             .query_one(
-                r"
+                "
                 INSERT INTO owners (owner_id)
                 VALUES ($1)
                 RETURNING owner_id;
@@ -1310,7 +1311,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         transaction
             .as_client()
             .query_one(
-                r"
+                "
                 INSERT INTO account_groups (account_group_id)
                 VALUES ($1)
                 RETURNING account_group_id;
