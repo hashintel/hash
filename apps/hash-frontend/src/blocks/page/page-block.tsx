@@ -171,7 +171,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
           ".ProseMirror": {
             ...getPageSectionContainerStyles(pageComments, readonly),
             paddingTop: 0,
-            paddingBottom: "320px",
           },
           // prevents blue outline on selected nodes
           ".ProseMirror-selectednode": { outline: "none" },
