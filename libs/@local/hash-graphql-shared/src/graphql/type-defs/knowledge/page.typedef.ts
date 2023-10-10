@@ -1,15 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const pageTypedef = gql`
-  """
-  A special return type to include blocks linked from pages and the link entity (as it might contain positioning data)
-  @todo – migrate from pages having special return types to returning subgraphs like other entities
-  """
-  type PageContentItem {
-    rightEntity: Block!
-    linkEntity: Entity!
-  }
-
   type Page {
     """
     The title of the page.
@@ -30,7 +21,7 @@ export const pageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [PageContentItem!]!
+    contents: [BlockCollectionContentItem!]!
     """
     The fractional index of the page in the page tree.
     """

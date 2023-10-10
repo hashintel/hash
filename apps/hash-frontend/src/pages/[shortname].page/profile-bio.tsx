@@ -25,10 +25,7 @@ import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
-import {
-  BlockCollectionContentItem,
-  PageContentItem,
-} from "../../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
 import { Org, User } from "../../lib/user-and-org";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 
@@ -63,7 +60,7 @@ const getProfileBioContents = (params: {
       );
     });
 
-  return outgoingContentLinks.map<PageContentItem>(
+  return outgoingContentLinks.map<BlockCollectionContentItem>(
     ({
       linkEntity: containsLinkEntityRevisions,
       rightEntity: rightEntityRevisions,
@@ -115,7 +112,7 @@ export const ProfileBio: FunctionComponent<{
   const [isTogglingEdit, setIsTogglingEdit] = useState(false);
 
   const [profileBioContents, setProfileBioContents] = useState<
-    PageContentItem[] | null
+    BlockCollectionContentItem[] | null
   >(null);
 
   const fetchProfileBioContents = useCallback(async () => {
