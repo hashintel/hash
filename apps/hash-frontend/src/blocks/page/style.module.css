@@ -19,11 +19,19 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  margin: 30px 0;
+  margin: 20px 0;
   word-break: break-word;
   white-space: pre-wrap;
   outline: none !important;
   position: relative;
+}
+
+.Block:first-of-type {
+  margin-top: 0;
+}
+
+.Block:last-of-type {
+  margin-bottom: 0;
 }
 
 /**

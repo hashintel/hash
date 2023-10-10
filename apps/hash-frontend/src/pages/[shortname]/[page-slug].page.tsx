@@ -456,13 +456,15 @@ const Page: NextPageWithLayout<PageProps> = ({
               {canvasPage ? (
                 <CanvasPageBlock contents={contents} />
               ) : (
-                <PageBlock
-                  ownedById={extractOwnedById(pageWorkspace)}
-                  contents={contents}
-                  pageComments={pageComments}
-                  entityId={pageEntityId}
-                  readonly={isReadonlyMode}
-                />
+                <Box marginTop={5}>
+                  <PageBlock
+                    ownedById={extractOwnedById(pageWorkspace)}
+                    contents={contents}
+                    pageComments={pageComments}
+                    entityId={pageEntityId}
+                    readonly={isReadonlyMode}
+                  />
+                </Box>
               )}
             </BlockLoadedProvider>
           </UserBlocksProvider>
