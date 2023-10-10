@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import {
   AsteriskRegularIcon,
   IconButton,
@@ -33,8 +34,12 @@ import {
 import { createPortal } from "react-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 
-import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
+import {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -95,11 +100,14 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   const { entityTypes, isSpecialEntityTypeLookup } =
     useEntityTypesContextRequired();
 
-  const [loading, setLoading] = useState(false);
   const [displayEntityTypesSearch, setDisplayEntityTypesSearch] =
     useState(false);
 
-  const { updateEntity } = useBlockProtocolUpdateEntity();
+  const [updateEntity, { loading }] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation, { errorPolicy: "all" });
+
   const { createEntityType } = useBlockProtocolCreateEntityType(
     authenticatedUser.accountId as OwnedById,
   );
@@ -131,8 +139,6 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   });
 
   const innerSubmit = handleSubmit(async (data) => {
-    setLoading(true);
-
     const { pinnedEntityTypes } = data;
 
     const updatedPinnedEntityTypeBaseUrls = pinnedEntityTypes
@@ -140,10 +146,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       .filter((value, index, all) => all.indexOf(value) === index);
 
     await updateEntity({
-      data: {
+      variables: {
         entityId: profile.entity.metadata.recordId.entityId,
         entityTypeId: profile.entity.metadata.entityTypeId,
-        properties: {
+        updatedProperties: {
           ...profile.entity.properties,
           [extractBaseUrl(
             types.propertyType.pinnedEntityTypeBaseUrl.propertyTypeId,
@@ -153,8 +159,6 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
     });
 
     /** @todo: error handling */
-
-    setLoading(false);
 
     void refetchProfile();
 
