@@ -47,23 +47,35 @@ impl Sink<Web> for WebSender {
     }
 
     fn start_send(mut self: Pin<&mut Self>, item: Web) -> StdResult<(), Self::Error> {
-        match item.owner {
-            OwnerId::Account(account_id) => self
-                .web_account_relation
-                .start_send_unpin((item.id, WebRelation::DirectOwner, account_id))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send web account relation owner"),
-            OwnerId::AccountGroup(account_group_id) => self
-                .web_account_group_relation
-                .start_send_unpin((
-                    item.id,
-                    WebRelation::DirectOwner,
-                    account_group_id,
-                    AccountGroupPermission::Member,
-                ))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send web account group relation owners"),
+        let owner_relations = item
+            .owners
+            .into_iter()
+            .map(|owner| (WebRelation::DirectOwner, owner));
+        let editor_relations = item
+            .editors
+            .into_iter()
+            .map(|owner| (WebRelation::DirectEditor, owner));
+
+        for (relation, id) in owner_relations.chain(editor_relations) {
+            match id {
+                OwnerId::Account(account_id) => self
+                    .web_account_relation
+                    .start_send_unpin((item.id, relation, account_id))
+                    .change_context(SnapshotRestoreError::Read)
+                    .attach_printable("could not send web account relation owner")?,
+                OwnerId::AccountGroup(account_group_id) => self
+                    .web_account_group_relation
+                    .start_send_unpin((
+                        item.id,
+                        relation,
+                        account_group_id,
+                        AccountGroupPermission::Member,
+                    ))
+                    .change_context(SnapshotRestoreError::Read)
+                    .attach_printable("could not send web account group relation owners")?,
+            }
         }
+        Ok(())
     }
 
     fn poll_flush(

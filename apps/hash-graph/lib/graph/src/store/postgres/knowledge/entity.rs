@@ -4,8 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
+    schema::OwnerId,
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi, VisibilityScope,
+    AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -311,9 +312,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let owned_by_uuid = owned_by_id.into_uuid();
         let visibility_scope = if is_account_group {
-            VisibilityScope::AccountGroup(AccountGroupId::new(owned_by_uuid))
+            OwnerId::AccountGroup(AccountGroupId::new(owned_by_uuid))
         } else {
-            VisibilityScope::Account(AccountId::new(owned_by_uuid))
+            OwnerId::Account(AccountId::new(owned_by_uuid))
         };
 
         let link_order = if let Some(link_data) = link_data {

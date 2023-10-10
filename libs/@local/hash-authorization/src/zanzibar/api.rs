@@ -136,6 +136,58 @@ where
         .deleted_at)
     }
 
+    async fn add_web_editor(
+        &mut self,
+        editor: OwnerId,
+        web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match editor {
+            OwnerId::Account(account) => {
+                self.backend
+                    .create_relations([(web, WebRelation::DirectEditor, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .create_relations([(
+                        web,
+                        WebRelation::DirectEditor,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .written_at)
+    }
+
+    async fn remove_web_editor(
+        &mut self,
+        editor: OwnerId,
+        web: WebId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match editor {
+            OwnerId::Account(account) => {
+                self.backend
+                    .delete_relations([(web, WebRelation::DirectEditor, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .delete_relations([(
+                        web,
+                        WebRelation::DirectEditor,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .deleted_at)
+    }
+
     async fn can_add_group_admin(
         &self,
         actor: AccountId,
@@ -246,25 +298,16 @@ where
 
     async fn add_entity_owner(
         &mut self,
-        scope: VisibilityScope,
+        scope: OwnerId,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
-                self.backend
-                    .create_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectOwner,
-                        PublicAccess::Public,
-                    )])
-                    .await
-            }
-            VisibilityScope::Account(account) => {
+            OwnerId::Account(account) => {
                 self.backend
                     .create_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -281,29 +324,72 @@ where
 
     async fn remove_entity_owner(
         &mut self,
-        scope: VisibilityScope,
+        scope: OwnerId,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
-                self.backend
-                    .delete_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectOwner,
-                        PublicAccess::Public,
-                    )])
-                    .await
-            }
-            VisibilityScope::Account(account) => {
+            OwnerId::Account(account) => {
                 self.backend
                     .delete_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            OwnerId::AccountGroup(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectOwner,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .deleted_at)
+    }
+
+    async fn add_entity_editor(
+        &mut self,
+        scope: OwnerId,
+        entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match scope {
+            OwnerId::Account(account) => {
+                self.backend
+                    .create_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectEditor,
+                        account_group,
+                        AccountGroupPermission::Member,
+                    )])
+                    .await
+            }
+        }
+        .change_context(ModifyRelationError)?
+        .written_at)
+    }
+
+    async fn remove_entity_editor(
+        &mut self,
+        scope: OwnerId,
+        entity: EntityId,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(match scope {
+            OwnerId::Account(account) => {
+                self.backend
+                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
+                    .await
+            }
+            OwnerId::AccountGroup(account_group) => {
+                self.backend
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityRelation::DirectEditor,
                         account_group,
                         AccountGroupPermission::Member,
                     )])

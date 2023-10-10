@@ -43,6 +43,7 @@ impl Resource for WebId {
 #[serde(rename_all = "snake_case")]
 pub enum WebRelation {
     DirectOwner,
+    DirectEditor,
 }
 
 impl fmt::Display for WebRelation {

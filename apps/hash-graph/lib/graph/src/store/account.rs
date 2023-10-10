@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use authorization::{AuthorizationApi, VisibilityScope};
+use authorization::{schema::OwnerId, AuthorizationApi, VisibilityScope};
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -56,6 +56,17 @@ pub enum AccountOrAccountGroup {
 }
 
 impl From<AccountOrAccountGroup> for VisibilityScope {
+    fn from(id: AccountOrAccountGroup) -> Self {
+        match id {
+            AccountOrAccountGroup::Account(account_id) => Self::Account(account_id),
+            AccountOrAccountGroup::AccountGroup(account_group_id) => {
+                Self::AccountGroup(account_group_id)
+            }
+        }
+    }
+}
+
+impl From<AccountOrAccountGroup> for OwnerId {
     fn from(id: AccountOrAccountGroup) -> Self {
         match id {
             AccountOrAccountGroup::Account(account_id) => Self::Account(account_id),
