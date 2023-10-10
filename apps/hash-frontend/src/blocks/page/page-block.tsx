@@ -10,7 +10,6 @@ import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
 import { PageContentItem } from "../../graphql/api-types.gen";
-import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import { Button } from "../../shared/ui";
 import { useUserBlocks } from "../user-blocks";
 import { usePortals } from "./block-portals";
@@ -28,6 +27,7 @@ type PageBlockProps = {
   pageComments?: PageThread[];
   ownedById: OwnedById;
   entityId: EntityId;
+  readonly: boolean;
 };
 
 /**
@@ -41,6 +41,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   pageComments,
   ownedById,
   entityId,
+  readonly,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
@@ -67,8 +68,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     currentBlocks.current = newestBlocks;
   }, [newestBlocks]);
 
-  const isReadonlyMode = useIsReadonlyModeForResource(ownedById);
-
   const pageContext = usePageContextOptional();
 
   const { pageTitleRef, setEditorContext } = pageContext ?? {};
@@ -92,7 +91,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       ownedById,
       pageEntityId: entityId,
       blocks: () => currentBlocks.current,
-      readonly: isReadonlyMode,
+      readonly,
       pageTitleRef,
       getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
@@ -120,7 +119,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     currentBlocks,
     entityId,
     renderPortal,
-    isReadonlyMode,
+    readonly,
     clearPortals,
     setEditorContext,
     pageTitleRef,
@@ -129,10 +128,10 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
 
   return (
     <>
-      {!isReadonlyMode && pageComments ? (
+      {!readonly && pageComments ? (
         <PageSectionContainer
           pageComments={pageComments}
-          readonly={isReadonlyMode}
+          readonly={readonly}
           sx={{
             position: "absolute",
             top: 0,
@@ -170,7 +169,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
            * so it automatically handles focusing on closest node on margin-clicking
            */
           ".ProseMirror": {
-            ...getPageSectionContainerStyles(pageComments, isReadonlyMode),
+            ...getPageSectionContainerStyles(pageComments, readonly),
             paddingTop: 0,
             paddingBottom: "320px",
           },

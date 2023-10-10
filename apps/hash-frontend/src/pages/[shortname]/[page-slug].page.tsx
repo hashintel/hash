@@ -461,6 +461,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                   contents={contents}
                   pageComments={pageComments}
                   entityId={pageEntityId}
+                  readonly={isReadonlyMode}
                 />
               )}
             </BlockLoadedProvider>
