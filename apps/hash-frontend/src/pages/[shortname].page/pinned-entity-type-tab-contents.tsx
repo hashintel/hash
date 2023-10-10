@@ -16,6 +16,7 @@ import {
   selectClasses,
   Skeleton,
   styled,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -103,16 +104,18 @@ const EntityRow: FunctionComponent<{
           <Typography component="h2" sx={{ fontWeight: 700, fontSize: 14 }}>
             {label}
           </Typography>
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.gray[90],
-              fontSize: 11,
-              fontWeight: 500,
-              textTransform: "uppercase",
-            }}
-          >
-            {updatedAtHumanReadable}
-          </Typography>
+          <Tooltip title={format(updatedAt, "MMMM do yyyy, h:mm a")}>
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontSize: 11,
+                fontWeight: 500,
+                textTransform: "uppercase",
+              }}
+            >
+              {updatedAtHumanReadable}
+            </Typography>
+          </Tooltip>
         </Box>
       </Box>
     </Link>
