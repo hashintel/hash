@@ -28,6 +28,7 @@ import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   addEntityViewer,
+  canUpdateEntity,
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
@@ -456,12 +457,13 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 export const isUserHashInstanceAdmin: ImpureGraphFunction<
   { user: User },
   Promise<boolean>
-> = async (ctx, authentication, params) => {
-  const hashInstance = await getHashInstance(ctx, authentication, {});
-  return ctx.graphApi
-    .canUpdateEntity(
-      params.user.accountId,
-      hashInstance.entity.metadata.recordId.entityId,
-    )
-    .then(({ data: { has_permission } }) => has_permission);
-};
+> = async (ctx, authentication, { user }) =>
+  getHashInstance(ctx, authentication, {}).then((hashInstance) =>
+    canUpdateEntity(
+      ctx,
+      { actorId: user.accountId },
+      {
+        entityId: hashInstance.entity.metadata.recordId.entityId,
+      },
+    ),
+  );
