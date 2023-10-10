@@ -6,7 +6,7 @@
 import { Status } from "../../type-defs/status";
 import { StatusCode } from "./status-code";
 
-export { Status } from "../../type-defs/status";
+export type { Status } from "../../type-defs/status";
 export {
   convertHttpCodeToStatusCode,
   convertStatusCodeToHttpCode,
