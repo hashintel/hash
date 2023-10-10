@@ -68,11 +68,8 @@ const InputGroup = ({ children }: PropsWithChildren) => {
   return <Box mb={3}>{children}</Box>;
 };
 
-export type OrgFormData = Omit<
-  Org,
-  "kind" | "entityRecordId" | "memberships"
-> & {
-  entityRecordId?: Org["entityRecordId"];
+export type OrgFormData = Omit<Org, "kind" | "entity" | "memberships"> & {
+  entity?: Org["entity"];
 };
 
 type OrgFormProps = {
@@ -143,8 +140,8 @@ export const OrgForm = ({
     ];
 
   const setAvatar = async (file: File) => {
-    if (!initialOrg?.entityRecordId) {
-      throw new Error("Cannot set org avatar without the org's entityRecordId");
+    if (!initialOrg?.entity) {
+      throw new Error("Cannot set org avatar without the org's entity");
     }
 
     // Upload the file and get a file entity which describes it
@@ -189,7 +186,7 @@ export const OrgForm = ({
       data: {
         entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
         linkData: {
-          leftEntityId: initialOrg.entityRecordId.entityId,
+          leftEntityId: initialOrg.entity.metadata.recordId.entityId,
           rightEntityId: fileUploadData.metadata.recordId.entityId as EntityId,
         },
         properties: {},

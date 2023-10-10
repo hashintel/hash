@@ -2,12 +2,12 @@ import { LoadingSpinner } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
 import { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
 import millify from "millify";
-import { FunctionComponent, ReactElement } from "react";
+import { FunctionComponent, ReactElement, ReactNode } from "react";
 
 import { Link } from "./link";
 
 export type TabLinkProps = {
-  label: string;
+  label: ReactNode;
   href: string;
   value: string;
   count?: number;

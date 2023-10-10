@@ -66,7 +66,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
     await updateEntity({
       data: {
-        entityId: org.entityRecordId.entityId,
+        entityId: org.entity.metadata.recordId.entityId,
         entityTypeId: types.entityType.org.entityTypeId,
         properties: {
           // @todo allow partial property updates, or spread the existing entity's properties here
@@ -93,7 +93,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
         ref={topRef}
       >
         <OrgForm
-          key={org.entityRecordId.entityId}
+          key={org.entity.metadata.recordId.entityId}
           org={org}
           onSubmit={updateOrg}
           submitLabel="Update organization profile"

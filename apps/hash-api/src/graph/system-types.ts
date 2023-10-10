@@ -31,6 +31,7 @@ export let SYSTEM_TYPES: {
 
     // General account related
     shortname: PropertyTypeWithMetadata;
+    pinnedEntityTypeBaseUrl: PropertyTypeWithMetadata;
 
     // User-related
     email: PropertyTypeWithMetadata;
@@ -260,6 +261,11 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const websitePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
 
+  const pinnedEntityTypeBaseUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.pinnedEntityTypeBaseUrl(
+      context,
+    );
+
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
 
@@ -296,6 +302,10 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
       {
         propertyType: websitePropertyType,
         required: false,
+      },
+      {
+        propertyType: pinnedEntityTypeBaseUrlPropertyType,
+        array: { maxItems: 5 },
       },
     ],
     outgoingLinks: [
@@ -360,6 +370,11 @@ const preferredPronounsPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+const pinnedEntityTypeBaseUrlPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.pinnedEntityTypeBaseUrl,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -382,6 +397,11 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const preferredPronounsPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredPronouns(context);
+
+  const pinnedEntityTypeBaseUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.pinnedEntityTypeBaseUrl(
+      context,
+    );
 
   const locationPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
@@ -434,6 +454,10 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: websitePropertyType,
+      },
+      {
+        propertyType: pinnedEntityTypeBaseUrlPropertyType,
+        array: { maxItems: 5 },
       },
     ],
     outgoingLinks: [
@@ -1002,6 +1026,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     website: websitePropertyTypeInitializer,
 
     shortname: shortnamePropertyTypeInitializer,
+    pinnedEntityTypeBaseUrl: pinnedEntityTypeBaseUrlPropertyTypeInitializer,
 
     email: emailPropertyTypeInitializer,
     kratosIdentityId: kratosIdentityIdPropertyTypeInitializer,

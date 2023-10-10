@@ -261,6 +261,10 @@ const systemPropertyTypes = {
     title: "Preferred Pronouns",
     description: undefined,
   },
+  pinnedEntityTypeBaseUrl: {
+    title: "Pinned Entity Type Base URL",
+    description: "The base URL of a pinned entity type.",
+  },
   orgName: {
     title: "Organization Name",
     description: undefined,

@@ -1,14 +1,13 @@
-import { TextField } from "@hashintel/design-system";
-import { RHFSelect } from "@hashintel/query-editor/src/entity-query-editor/query-form/filter-row/rhf-select";
+import { Select, TextField } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, OwnedById } from "@local/hash-subgraph/.";
+import { Entity, OwnedById } from "@local/hash-subgraph";
 import {
   extractBaseUrl,
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { FunctionComponent, useCallback, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -53,8 +52,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const formMethods =
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    // @ts-expect-error -- type instantiation is excessively deep and possibly infinite, will be fixed when we switch to V8 of react-hook-form (see https://github.com/react-hook-form/react-hook-form/issues/6679)
     useForm<UserProfileFormData>({
       mode: "all",
       defaultValues: {
@@ -113,7 +111,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       await createEntity({
         data: {
           linkData: {
-            leftEntityId: userProfile.entityRecordId.entityId,
+            leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: serviceAccountEntity.metadata.recordId.entityId,
           },
           entityTypeId: types.linkEntityType.hasServiceAccount.linkEntityTypeId,
@@ -316,41 +314,45 @@ export const UserProfileInfoForm: FunctionComponent<{
             },
           })}
         />
-        <RHFSelect
+        <Controller
           control={control}
           name="preferredPronouns"
           defaultValue=""
-          selectProps={{
-            label: "Preferred pronouns",
-            displayEmpty: true,
-            placeholder: "Select pronouns (he/him, she/her, they/them)",
-            renderValue: (selected) =>
-              selected === "" ? (
-                <Box
-                  component="span"
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                  }}
-                >
-                  Select pronouns (he/him, she/her, they/them)
-                </Box>
-              ) : (
-                <>{String(selected)}</>
-              ),
-          }}
-        >
-          <MenuItem value="">None</MenuItem>
-          <MenuItem value="he/him">he/him</MenuItem>
-          <MenuItem value="she/her">she/her</MenuItem>
-          <MenuItem value="they/them">they/them</MenuItem>
-        </RHFSelect>
+          render={({ field }) => (
+            <Select
+              {...field}
+              label="Preferred pronouns"
+              displayEmpty
+              placeholder="Select pronouns (he/him, she/her, they/them)"
+              renderValue={(selected) =>
+                selected === "" ? (
+                  <Box
+                    component="span"
+                    sx={{
+                      color: ({ palette }) => palette.gray[50],
+                    }}
+                  >
+                    Select pronouns (he/him, she/her, they/them)
+                  </Box>
+                ) : (
+                  <>{String(selected)}</>
+                )
+              }
+            >
+              <MenuItem value="">None</MenuItem>
+              <MenuItem value="he/him">he/him</MenuItem>
+              <MenuItem value="she/her">she/her</MenuItem>
+              <MenuItem value="they/them">they/them</MenuItem>
+            </Select>
+          )}
+        />
         <ServiceAccountsInput />
         <Box display="flex" columnGap={1.5}>
           <Button type="submit" loading={loading} disabled={isSubmitDisabled}>
             Save changes
           </Button>
           <Button variant="tertiary" onClick={handleDiscard}>
-            Discard
+            {Object.keys(dirtyFields).length === 0 ? "Cancel" : "Discard"}
           </Button>
         </Box>
       </FormProvider>

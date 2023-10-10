@@ -231,6 +231,34 @@ export type OrgProperties = {
   "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-name/": OrganizationNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
+  /**
+   * @maxItems 5
+   */
+  "http://localhost:3000/@system-user/types/property-type/pinned-entity-type-base-url/"?:
+    | []
+    | [PinnedEntityTypeBaseURLPropertyValue]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ];
   "http://localhost:3000/@system-user/types/property-type/shortname/": ShortnamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
@@ -272,6 +300,11 @@ export type ParentProperties = ParentProperties1 & ParentProperties2;
 export type ParentProperties1 = LinkProperties;
 
 export type ParentProperties2 = {};
+
+/**
+ * The base URL of a pinned entity type.
+ */
+export type PinnedEntityTypeBaseURLPropertyValue = TextDataType;
 
 export type PreferredNamePropertyValue = TextDataType;
 
@@ -352,6 +385,34 @@ export type UserProperties = {
   ];
   "http://localhost:3000/@system-user/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
+  /**
+   * @maxItems 5
+   */
+  "http://localhost:3000/@system-user/types/property-type/pinned-entity-type-base-url/"?:
+    | []
+    | [PinnedEntityTypeBaseURLPropertyValue]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ]
+    | [
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+        PinnedEntityTypeBaseURLPropertyValue,
+      ];
   "http://localhost:3000/@system-user/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
   "http://localhost:3000/@system-user/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/shortname/"?: ShortnamePropertyValue;

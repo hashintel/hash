@@ -1,24 +1,43 @@
-import { EntityType } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   LinkTypeIcon,
   SelectorAutocomplete,
 } from "@hashintel/design-system";
 import { EntityTypeWithMetadata } from "@local/hash-subgraph";
-import { FunctionComponent, useRef, useState } from "react";
+import { BoxProps } from "@mui/material";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 
-import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
-import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
-  onSelect: (entityType: EntityType) => void;
+  excludeEntityTypeIds?: VersionedUrl[];
+  onSelect: (entityType: EntityTypeWithMetadata) => void;
   onCancel: () => void;
   onCreateNew: (searchValue: string) => void;
-}> = ({ onCancel, onSelect, onCreateNew }) => {
+  disableCreateNewEmpty?: boolean;
+  sx?: BoxProps["sx"];
+}> = ({
+  disableCreateNewEmpty,
+  excludeEntityTypeIds,
+  onCancel,
+  onSelect,
+  onCreateNew,
+  sx,
+}) => {
   const [search, setSearch] = useState("");
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const entityTypes = useLatestEntityTypesOptional();
+
+  const filteredEntityTypes = useMemo(
+    () =>
+      entityTypes?.filter(
+        ({ schema }) => !excludeEntityTypeIds?.includes(schema.$id),
+      ),
+    [excludeEntityTypeIds, entityTypes],
+  );
 
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | EntityTypeWithMetadata>(null);
@@ -33,10 +52,11 @@ export const EntityTypeSelector: FunctionComponent<{
             evt.stopPropagation();
             onCreateNew(search);
           },
+          disabled: disableCreateNewEmpty && search === "",
         },
         variant: "entity type",
       }}
-      options={entityTypes ?? []}
+      options={filteredEntityTypes ?? []}
       optionToRenderData={({ schema: { $id, title, description } }) => ({
         uniqueId: $id,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo why this false positive?
@@ -61,7 +81,7 @@ export const EntityTypeSelector: FunctionComponent<{
         highlightedRef.current = value;
       }}
       onChange={(_, option) => {
-        onSelect(option.schema);
+        onSelect(option);
       }}
       onKeyUp={(evt) => {
         if (evt.key === "Enter" && !highlightedRef.current) {
@@ -76,7 +96,7 @@ export const EntityTypeSelector: FunctionComponent<{
       onBlur={() => {
         onCancel();
       }}
-      sx={{ maxWidth: 440 }}
+      sx={[{ maxWidth: 440 }, ...(Array.isArray(sx) ? sx : [sx])]}
     />
   );
 };
