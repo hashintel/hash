@@ -6,7 +6,7 @@ import {
 } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import { Entity } from "@local/hash-subgraph";
-import { Box, Fade, Skeleton, styled, Typography } from "@mui/material";
+import { Box, Fade, Skeleton, Typography } from "@mui/material";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { FunctionComponent, ReactNode, useMemo } from "react";
 
@@ -14,14 +14,8 @@ import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
+import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { ProfilePageTab } from "./util";
-
-const SectionHeading = styled(Typography)(({ theme }) => ({
-  color: theme.palette.gray[70],
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: "uppercase",
-}));
 
 const InfoItem: FunctionComponent<{
   icon: ReactNode;
@@ -188,7 +182,7 @@ export const ProfilePageInfo: FunctionComponent<{
   return (
     <Box>
       <Box display="flex" marginBottom={1.5}>
-        <SectionHeading>Info</SectionHeading>
+        <ProfileSectionHeading>Info</ProfileSectionHeading>
         <Fade
           in={
             currentTab.kind === "profile" &&
