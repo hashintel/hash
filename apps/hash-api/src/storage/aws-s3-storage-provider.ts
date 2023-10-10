@@ -60,10 +60,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
       signableHeaders: new Set(["content-length", "content-type"]),
     });
 
-    console.log({ presignedPutUrl });
-
     return {
-      headers: {},
       url: presignedPutUrl,
     };
   }

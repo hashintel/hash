@@ -10,7 +10,6 @@ import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPutUpload,
-  PresignedStorageRequest,
   StorageProvider,
   StorageType,
 } from "./storage-provider";
@@ -58,9 +57,7 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
     this.setupExpressRoutes(app);
   }
 
-  async presignUpload(
-    params: PresignedStorageRequest,
-  ): Promise<PresignedPutUpload> {
+  async presignUpload(): Promise<PresignedPutUpload> {
     const presignedPut = {
       url: new URL(UPLOAD_BASE_URL, this.apiOrigin).href,
     };

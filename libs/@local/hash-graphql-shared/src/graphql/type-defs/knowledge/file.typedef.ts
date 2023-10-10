@@ -14,17 +14,12 @@ export const fileTypedef = gql`
 
   """
   Presigned data to send a PUT request to upload a file
-  The fields object contains form parameters that need to be sent with the POST request to upload a file
   """
   type PresignedPut {
     """
     url to POST the file to
     """
     url: String!
-    """
-    Headers that need to be sent with the request when uploading
-    """
-    headers: JSONObject!
   }
 
   input FileEntityCreationInput {

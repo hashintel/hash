@@ -19,7 +19,6 @@ export const requestFileUpload = gql`
     ) {
       presignedPut {
         url
-        headers
       }
       entity
     }
