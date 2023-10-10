@@ -23,12 +23,12 @@ import {
 import pluralize from "pluralize";
 import { useMemo, useState } from "react";
 
+import { CreationStatusRecord } from "../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputColor,
 } from "../../../../shared/dark-mode-values";
 import { sendMessageToBackground } from "../../../../shared/messages";
-import { useSessionStorage } from "../../../../shared/use-storage-sync";
 
 // @todo consolidate this with generateEntityLabel in hash-frontend
 const generateEntityLabel = (
@@ -72,27 +72,24 @@ const baseUrlToPropertyTitle = (baseUrl: BaseUrl) =>
     .join(" ");
 
 type CreateInferredEntitiesProps = {
+  creationStatus: CreationStatusRecord;
+  entitiesToCreate: ProposedEntity[];
   inferredEntities: ProposedEntity[];
   user: Simplified<User>;
   reset: () => void;
+  setEntitiesToCreate: (entities: ProposedEntity[]) => void;
   targetEntityTypes: EntityType[];
 };
 
 export const CreateInferredEntities = ({
+  creationStatus,
+  entitiesToCreate,
   inferredEntities,
   reset,
+  setEntitiesToCreate,
   targetEntityTypes,
   user,
 }: CreateInferredEntitiesProps) => {
-  const [entitiesToCreate, setEntitiesToCreate] = useSessionStorage(
-    "entitiesToCreate",
-    [],
-  );
-  const [creationStatus] = useSessionStorage("creationStatus", {
-    overallStatus: "not-started",
-    entityStatuses: {},
-  });
-
   const [entitiesToExpand, setEntitiesToExpand] = useState<
     Record<EntityId, boolean | undefined>
   >({});

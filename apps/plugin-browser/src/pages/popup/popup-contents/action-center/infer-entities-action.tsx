@@ -20,6 +20,18 @@ export const InferEntitiesAction = ({
     "inferenceStatus",
     { status: "not-started" },
   );
+  const [entitiesToCreate, setEntitiesToCreate] = useSessionStorage(
+    "entitiesToCreate",
+    [],
+  );
+
+  const [creationStatus, setCreationStatus] = useSessionStorage(
+    "creationStatus",
+    {
+      overallStatus: "not-started",
+      entityStatuses: {},
+    },
+  );
   const [targetEntityTypes, setTargetEntityTypes] = useSessionStorage(
     "targetEntityTypes",
     [],
@@ -27,6 +39,7 @@ export const InferEntitiesAction = ({
 
   const reset = () => {
     setInferenceStatus({ status: "not-started" });
+    setCreationStatus({ overallStatus: "not-started", entityStatuses: {} });
     clearBadge();
   };
 
@@ -39,8 +52,11 @@ export const InferEntitiesAction = ({
     >
       {inferenceStatus.status === "success" ? (
         <CreateInferredEntities
-          reset={reset}
+          creationStatus={creationStatus}
+          entitiesToCreate={entitiesToCreate}
           inferredEntities={inferenceStatus.proposedEntities}
+          reset={reset}
+          setEntitiesToCreate={setEntitiesToCreate}
           targetEntityTypes={targetEntityTypes}
           user={user}
         />

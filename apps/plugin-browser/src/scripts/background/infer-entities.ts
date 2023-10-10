@@ -65,6 +65,7 @@ export const inferEntities = async (message: InferEntitiesRequest) => {
       proposedEntities: inferredEntities,
       status: "success",
     });
+    void setInSessionStorage("entitiesToCreate", inferredEntities);
   } catch (err) {
     setErroredBadge();
     void setInSessionStorage("inferenceStatus", {
