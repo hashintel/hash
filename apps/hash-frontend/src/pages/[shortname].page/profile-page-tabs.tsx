@@ -15,7 +15,7 @@ export const ProfilePageTabs: FunctionComponent<{
     currentTab.kind === "profile" ? currentTab.title : currentTab.pluralTitle;
 
   return (
-    <Box sx={{ overflowX: "auto" }}>
+    <Box sx={{ overflowX: "auto", overflowY: "hidden" }}>
       <Tabs value={currentTabLabel}>
         {tabs.map((tab) => {
           const label = tab.kind === "profile" ? tab.title : tab.pluralTitle;
