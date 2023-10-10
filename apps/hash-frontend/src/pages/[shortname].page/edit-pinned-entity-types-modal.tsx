@@ -44,8 +44,8 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { entityTypeIcons } from "../../shared/use-entity-icon";
-import { EntityTypeSelector } from "../[shortname]/entities/[entity-uuid].page/create-entity-page/entity-type-selector";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
+import { EntityTypeSelector } from "../shared/entity-type-selector";
 
 /** @see https://github.com/atlassian/react-beautiful-dnd/issues/128#issuecomment-1010053365 */
 const useDraggableInPortal = () => {

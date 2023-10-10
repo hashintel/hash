@@ -8,8 +8,8 @@ import { EntityTypeWithMetadata } from "@local/hash-subgraph";
 import { BoxProps } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
-import { useLatestEntityTypesOptional } from "../../../../../shared/entity-types-context/hooks";
-import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 
 export const EntityTypeSelector: FunctionComponent<{
   excludeEntityTypeIds?: VersionedUrl[];
