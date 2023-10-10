@@ -13,13 +13,6 @@ export type ProfilePageTab =
       title: string;
     }
   | {
-      kind: "profile-pages";
-      pluralTitle: "Pages";
-      title: "Page";
-      entities?: Entity[];
-      entitiesSubgraph?: Subgraph<EntityRootType>;
-    }
-  | {
       kind: "pinned-entity-type";
       entityTypeBaseUrl: BaseUrl;
       entityType?: EntityTypeWithMetadata;

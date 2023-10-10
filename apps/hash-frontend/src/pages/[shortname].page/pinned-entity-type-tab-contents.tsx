@@ -8,6 +8,7 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
   Divider,
@@ -224,6 +225,10 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
     [entities, entitiesSubgraph, sortOrder],
   );
 
+  const isPagesTab =
+    currentTab.entityTypeBaseUrl ===
+    extractBaseUrl(types.entityType.page.entityTypeId);
+
   return (
     <Box>
       <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
@@ -316,18 +321,13 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                     startIcon={<PlusRegularIcon />}
                     size="small"
                     href={
-                      currentTab.kind === "pinned-entity-type" &&
-                      currentTab.entityType
+                      !isPagesTab && currentTab.entityType
                         ? `/new/entity?entity-type-id=${encodeURIComponent(
                             currentTab.entityType.schema.$id,
                           )}`
                         : undefined
                     }
-                    onClick={
-                      currentTab.kind === "profile-pages"
-                        ? createPage
-                        : undefined
-                    }
+                    onClick={isPagesTab ? createPage : undefined}
                   >
                     Create a {currentTab.title}
                   </Button>

@@ -101,76 +101,26 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const profileNotFound = !profile && !loading;
 
+  const pinnedEntityTypeBaseUrls = useMemo(
+    () => [
+      extractBaseUrl(types.entityType.page.entityTypeId),
+      ...(profile?.pinnedEntityTypeBaseUrls ?? []),
+    ],
+    [profile],
+  );
+
   const baseTabs = useMemo<ProfilePageTab[]>(
     () => [
       {
         kind: "profile",
         title: "Profile",
       },
-      {
-        kind: "profile-pages",
-        title: "Page",
-        pluralTitle: "Pages",
-      },
-      ...(profile?.pinnedEntityTypeBaseUrls?.map<ProfilePageTab>(
-        (entityTypeBaseUrl) => ({
-          kind: "pinned-entity-type",
-          entityTypeBaseUrl,
-        }),
-      ) ?? []),
+      ...pinnedEntityTypeBaseUrls.map<ProfilePageTab>((entityTypeBaseUrl) => ({
+        kind: "pinned-entity-type",
+        entityTypeBaseUrl,
+      })),
     ],
-    [profile],
-  );
-
-  const { data: pagesData } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      query: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              types.entityType.page.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
-            ...(profile
-              ? [
-                  {
-                    equal: [
-                      { path: ["ownedById"] },
-                      {
-                        parameter:
-                          profile.kind === "org"
-                            ? profile.accountGroupId
-                            : profile.accountId,
-                      },
-                    ],
-                  },
-                ]
-              : []),
-          ],
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-    skip: !profile,
-  });
-
-  const pageEntitiesSubgraph = pagesData?.structuralQueryEntities as
-    | Subgraph<EntityRootType>
-    | undefined;
-
-  const pageEntities = useMemo(
-    () => (pageEntitiesSubgraph ? getRoots(pageEntitiesSubgraph) : undefined),
-    [pageEntitiesSubgraph],
+    [pinnedEntityTypeBaseUrls],
   );
 
   const includeEntityTypeIds = useMemo(
@@ -264,24 +214,11 @@ const ProfilePage: NextPageWithLayout = () => {
             pluralTitle,
             entityType,
           };
-        } else if (tab.kind === "profile-pages") {
-          return {
-            ...tab,
-            entities: pageEntities,
-            entitiesSubgraph: pageEntitiesSubgraph,
-          };
         }
 
         return tab;
       }),
-    [
-      baseTabs,
-      allPinnedEntities,
-      entitiesSubgraph,
-      entityTypes,
-      pageEntities,
-      pageEntitiesSubgraph,
-    ],
+    [baseTabs, allPinnedEntities, entitiesSubgraph, entityTypes],
   );
 
   const refetchProfile = useCallback(async () => {
@@ -290,7 +227,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const currentTab = useMemo(() => {
     const matchingTab = tabsWithEntities.find((tab) =>
-      tab.kind === "pinned-entity-type" || tab.kind === "profile-pages"
+      tab.kind === "pinned-entity-type"
         ? tab.pluralTitle === currentTabTitle
         : tab.title === currentTabTitle,
     );
