@@ -3,7 +3,7 @@ import "prosemirror-view/style/prosemirror.css";
 import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Box, SxProps } from "@mui/material";
+import { Box, BoxProps, SxProps } from "@mui/material";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
@@ -22,7 +22,7 @@ type BlockCollectionProps = {
   ownedById: OwnedById;
   entityId: EntityId;
   readonly: boolean;
-  sx?: SxProps;
+  sx?: BoxProps["sx"];
 };
 
 /**
