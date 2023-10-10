@@ -99,6 +99,7 @@ export class BlockView implements NodeView {
     public manager: ProsemirrorManager,
     public documentRoot: HTMLElement,
     public readonly: boolean,
+    public isCommentingEnabled: boolean,
   ) {
     this.rootNode = documentRoot;
     this.dom = document.createElement("div");
@@ -280,10 +281,12 @@ export class BlockView implements NodeView {
                 }}
                 onClick={this.onDragEnd}
               />
-              <CreateBlockCommentButton
-                blockEntityId={blockEntityId}
-                rootNode={this.rootNode}
-              />
+              {this.isCommentingEnabled ? (
+                <CreateBlockCommentButton
+                  blockEntityId={blockEntityId}
+                  rootNode={this.rootNode}
+                />
+              ) : null}
             </BlockViewContext.Provider>
           );
         }}

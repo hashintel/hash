@@ -96,6 +96,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
+      isCommentingEnabled: !!pageComments,
     });
 
     if (setEditorContext) {
@@ -124,6 +125,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     setEditorContext,
     pageTitleRef,
     client,
+    pageComments,
   ]);
 
   return (

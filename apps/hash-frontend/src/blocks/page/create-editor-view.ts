@@ -139,6 +139,7 @@ export const createEditorView = (params: {
   pageTitleRef?: RefObject<HTMLTextAreaElement>;
   getLastSavedValue: () => BlockEntity[];
   client: ApolloClient<unknown>;
+  isCommentingEnabled: boolean;
 }) => {
   const {
     renderNode,
@@ -150,6 +151,7 @@ export const createEditorView = (params: {
     pageTitleRef,
     getLastSavedValue,
     client,
+    isCommentingEnabled,
   } = params;
 
   let manager: ProsemirrorManager;
@@ -190,6 +192,7 @@ export const createEditorView = (params: {
             manager,
             renderNode,
             readonly,
+            isCommentingEnabled,
           );
         },
         loading(currentNode, _currentView, _getPos) {
