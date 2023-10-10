@@ -3,9 +3,9 @@ import { gql } from "apollo-server-express";
 export const fileTypedef = gql`
   type RequestFileUploadResponse {
     """
-    Presigned post object containing the info needed to send a POST request
+    Presigned object containing the info needed to send a PUT request
     """
-    presignedPost: PresignedFormPost!
+    presignedPut: PresignedPut!
     """
     The file Entity
     """
@@ -13,18 +13,18 @@ export const fileTypedef = gql`
   }
 
   """
-  Presigned data to send a POST request to upload a file
+  Presigned data to send a PUT request to upload a file
   The fields object contains form parameters that need to be sent with the POST request to upload a file
   """
-  type PresignedFormPost {
+  type PresignedPut {
     """
     url to POST the file to
     """
     url: String!
     """
-    form-data fields that need to be appended to the POST request when uploading
+    Headers that need to be sent with the request when uploading
     """
-    fields: JSONObject!
+    headers: JSONObject!
   }
 
   input FileEntityCreationInput {

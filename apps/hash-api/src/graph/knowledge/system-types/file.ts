@@ -12,7 +12,7 @@ import {
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
 import { AuthenticationContext } from "../../../graphql/context";
-import { PresignedPostUpload } from "../../../storage";
+import { PresignedPutUpload } from "../../../storage";
 import { genId } from "../../../util";
 import { ImpureGraphContext, ImpureGraphFunction } from "../..";
 import {
@@ -80,12 +80,10 @@ const generateCommonParameters = async (
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
-  Promise<{ presignedPost: PresignedPostUpload; entity: File }>
+  Promise<{ presignedPut: PresignedPutUpload; entity: File }>
 > = async (ctx, authentication, params) => {
-  // @todo we have the size available here -- we could use it for size limitations. can the presigned POST URL also validate size?
-
   const { uploadProvider } = ctx;
-  const { description, displayName, name } = params;
+  const { description, displayName, name, size } = params;
 
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
@@ -116,9 +114,12 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         "Upload",
     };
 
-    const presignedPost = await uploadProvider.presignUpload({
+    const presignedPut = await uploadProvider.presignUpload({
       key,
-      fields: {},
+      headers: {
+        "content-length": size,
+        "content-type": mimeType,
+      },
       expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
     });
 
@@ -135,7 +136,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         })) as unknown as File);
 
     return {
-      presignedPost,
+      presignedPut,
       entity,
     };
   } catch (error) {

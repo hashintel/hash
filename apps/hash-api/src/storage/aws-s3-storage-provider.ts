@@ -1,11 +1,15 @@
-import { GetObjectCommand, S3Client, S3ClientConfig } from "@aws-sdk/client-s3";
-import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  S3ClientConfig,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
-  PresignedPostUpload,
+  PresignedPutUpload,
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
@@ -43,14 +47,25 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
 
   async presignUpload(
     params: PresignedStorageRequest,
-  ): Promise<PresignedPostUpload> {
-    const presignedPost = await createPresignedPost(this.client, {
+  ): Promise<PresignedPutUpload> {
+    const command = new PutObjectCommand({
       Bucket: this.bucket,
+      ContentLength: params.headers?.["content-length"],
+      ContentType: params.headers?.["content-type"],
       Key: params.key,
-      Fields: params.fields,
-      Expires: params.expiresInSeconds,
     });
-    return presignedPost;
+
+    const presignedPutUrl = await getSignedUrl(this.client, command, {
+      expiresIn: params.expiresInSeconds,
+      signableHeaders: new Set(["content-length", "content-type"]),
+    });
+
+    console.log({ presignedPutUrl });
+
+    return {
+      headers: {},
+      url: presignedPutUrl,
+    };
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {

@@ -249,6 +249,7 @@ module "application" {
     { name = "AWS_REGION", secret = false, value = local.region },
     { name = "AWS_S3_UPLOADS_ACCESS_KEY_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_access_key_id" ]) },
     { name = "AWS_S3_UPLOADS_BUCKET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_bucket" ]) },
+    { name = "AWS_S3_UPLOADS_ENDPOINT", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_endpoint" ]) },
     { name = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key" ]) },
     { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_system_user_password"]) },
     { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"]) },
