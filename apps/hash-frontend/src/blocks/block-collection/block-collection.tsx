@@ -3,32 +3,26 @@ import "prosemirror-view/style/prosemirror.css";
 import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
-import { Box } from "@mui/material";
+import { Box, SxProps } from "@mui/material";
 import { EditorView } from "prosemirror-view";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { PageThread } from "../../components/hooks/use-page-comments";
 import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
 import { Button } from "../../shared/ui";
 import { useUserBlocks } from "../user-blocks";
-import {
-  BlockCollectionSectionContainer,
-  getBlockCollectionSectionContainerStyles,
-} from "./block-collection-section-container";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
-import { CommentThread } from "./comments/comment-thread";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
 
 type BlockCollectionProps = {
   contents: BlockCollectionContentItem[];
-  pageComments?: PageThread[];
+  enableCommenting?: boolean;
   ownedById: OwnedById;
   entityId: EntityId;
   readonly: boolean;
-  paddingY?: number;
+  sx?: SxProps;
 };
 
 /**
@@ -39,11 +33,11 @@ type BlockCollectionProps = {
  */
 export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
-  pageComments,
+  enableCommenting = false,
   ownedById,
   entityId,
   readonly,
-  paddingY,
+  sx,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
@@ -98,7 +92,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       getLastSavedValue: () =>
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
-      isCommentingEnabled: !!pageComments,
+      isCommentingEnabled: enableCommenting,
     });
 
     if (setEditorContext) {
@@ -127,92 +121,55 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
     setEditorContext,
     pageTitleRef,
     client,
-    pageComments,
+    enableCommenting,
   ]);
 
   return (
     <>
-      {!readonly && pageComments ? (
-        <BlockCollectionSectionContainer
-          pageComments={pageComments}
-          readonly={readonly}
-          sx={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            left: 0,
-            width: "100%",
-          }}
-        >
-          <Box width="100%" position="relative">
-            <Box
-              sx={{
-                position: "absolute",
-                top: 16,
-                left: "calc(100% + 48px)",
-                zIndex: 1,
-              }}
-            >
-              {pageComments.map((comment) => (
-                <CommentThread
-                  key={comment.metadata.recordId.entityId}
-                  pageId={entityId}
-                  comment={comment}
-                />
-              ))}
-            </Box>
-          </Box>
-        </BlockCollectionSectionContainer>
-      ) : null}
       <Box
         id="root"
         ref={root}
-        sx={{
-          /**
-           * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-           * so it automatically handles focusing on closest node on margin-clicking
-           */
-          ".ProseMirror": {
-            ...getBlockCollectionSectionContainerStyles({
-              pageComments,
-              readonly,
-              paddingY,
-            }),
-            paddingTop: 0,
-          },
-          // prevents blue outline on selected nodes
-          ".ProseMirror-selectednode": { outline: "none" },
-          ".suggester-placeholder-text::after": {
-            content: "attr(placeholder)",
-            color: ({ palette }) => palette.gray[60],
-          },
-          ".suggester-at-symbol": {
-            color: ({ palette }) => palette.gray[40],
-          },
-          ".suggester": {
-            "&:not(.suggester-placeholder-text):first-of-type": {
-              borderRightWidth: 0,
-              paddingRight: 0,
-              borderTopRightRadius: 0,
-              borderBottomRightRadius: 0,
+        sx={[
+          {
+            ".ProseMirror": {
+              width: "100%",
+              paddingTop: 0,
             },
-            "&:not(.suggester-placeholder-text):last-of-type": {
-              borderLeftWidth: 0,
-              paddingLeft: 0,
-              borderTopLeftRadius: 0,
-              borderBottomLeftRadius: 0,
+            // prevents blue outline on selected nodes
+            ".ProseMirror-selectednode": { outline: "none" },
+            ".suggester-placeholder-text::after": {
+              content: "attr(placeholder)",
+              color: ({ palette }) => palette.gray[60],
             },
-            background: ({ palette }) => palette.gray[10],
-            borderStyle: "solid",
-            borderWidth: 1,
-            borderColor: ({ palette }) => palette.gray[20],
-            borderTopLeftRadius: "8px",
-            borderTopRightRadius: "8px",
-            px: 1,
-            paddingTop: 0.5,
-            paddingBottom: 1,
+            ".suggester-at-symbol": {
+              color: ({ palette }) => palette.gray[40],
+            },
+            ".suggester": {
+              "&:not(.suggester-placeholder-text):first-of-type": {
+                borderRightWidth: 0,
+                paddingRight: 0,
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
+              },
+              "&:not(.suggester-placeholder-text):last-of-type": {
+                borderLeftWidth: 0,
+                paddingLeft: 0,
+                borderTopLeftRadius: 0,
+                borderBottomLeftRadius: 0,
+              },
+              background: ({ palette }) => palette.gray[10],
+              borderStyle: "solid",
+              borderWidth: 1,
+              borderColor: ({ palette }) => palette.gray[20],
+              borderTopLeftRadius: "8px",
+              borderTopRightRadius: "8px",
+              px: 1,
+              paddingTop: 0.5,
+              paddingBottom: 1,
+            },
           },
-        }}
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
       />
       {portals}
       {/**

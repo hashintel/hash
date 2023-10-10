@@ -27,18 +27,15 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Box } from "@mui/material";
+import { Box, SxProps } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
 import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 
 import { BlockCollection } from "../../blocks/block-collection/block-collection";
-import {
-  BlockCollectionSectionContainer,
-  BlockCollectionSectionContainerProps,
-} from "../../blocks/block-collection/block-collection-section-container";
+import { CommentThread } from "../../blocks/block-collection/comments/comment-thread";
 import { PageContextProvider } from "../../blocks/block-collection/page-context";
 import { PageTitle } from "../../blocks/block-collection/page-title/page-title";
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
@@ -47,7 +44,10 @@ import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/use-account-pages";
-import { usePageComments } from "../../components/hooks/use-page-comments";
+import {
+  PageThread,
+  usePageComments,
+} from "../../components/hooks/use-page-comments";
 import { PageIcon, pageIconVariantSizes } from "../../components/page-icon";
 import { PageIconButton } from "../../components/page-icon-button";
 import { PageLoadingState } from "../../components/page-loading-state";
@@ -79,6 +79,61 @@ import {
 } from "../shared/top-context-bar";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
+
+export const pageContentWidth = 696;
+export const commentsWidth = 320;
+export const pageMinPadding = 48;
+
+export const getPageSectionContainerStyles = (params: {
+  pageComments?: PageThread[];
+  readonly?: boolean;
+}) => {
+  const { pageComments, readonly } = params;
+
+  const commentsContainerWidth =
+    !readonly && pageComments?.length ? commentsWidth + pageMinPadding : 0;
+
+  const paddingLeft = `max(calc((100% - ${
+    pageContentWidth + commentsContainerWidth
+  }px) / 2), ${pageMinPadding}px)`;
+  const paddingRight = `calc(100% - ${pageContentWidth}px - ${paddingLeft})`;
+
+  return {
+    padding: `${pageMinPadding}px ${paddingRight} 0 ${paddingLeft}`,
+    minWidth: `calc(${pageContentWidth}px + (${pageMinPadding}px * 2))`,
+  };
+};
+
+export interface PageSectionContainerProps {
+  pageComments?: PageThread[];
+  sx?: SxProps;
+  readonly: boolean;
+}
+
+export const PageSectionContainer = ({
+  children,
+  pageComments,
+  sx = [],
+  readonly,
+}: PropsWithChildren<PageSectionContainerProps>) => {
+  return (
+    <Box
+      sx={[
+        ...(pageComments
+          ? [
+              getPageSectionContainerStyles({
+                pageComments,
+                readonly,
+              }),
+            ]
+          : []),
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    >
+      {children}
+    </Box>
+  );
+};
 
 type PageProps = {
   pageWorkspace: MinimalUser | MinimalOrg;
@@ -295,49 +350,40 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
-  const blockCollectionSectionContainerProps: BlockCollectionSectionContainerProps =
-    {
-      pageComments,
-      readonly: isReadonlyMode,
-    };
+  const PageSectionContainerProps: PageSectionContainerProps = {
+    pageComments,
+    readonly: isReadonlyMode,
+  };
 
   if (pageState === "transferring") {
     return (
-      <BlockCollectionSectionContainer
-        {...blockCollectionSectionContainerProps}
-      >
+      <PageSectionContainer {...PageSectionContainerProps}>
         <h1>Transferring you to the new page...</h1>
-      </BlockCollectionSectionContainer>
+      </PageSectionContainer>
     );
   }
 
   if (loading) {
     return (
-      <BlockCollectionSectionContainer
-        {...blockCollectionSectionContainerProps}
-      >
+      <PageSectionContainer {...PageSectionContainerProps}>
         <PageLoadingState />
-      </BlockCollectionSectionContainer>
+      </PageSectionContainer>
     );
   }
 
   if (error) {
     return (
-      <BlockCollectionSectionContainer
-        {...blockCollectionSectionContainerProps}
-      >
+      <PageSectionContainer {...PageSectionContainerProps}>
         <h1>Error: {error.message}</h1>
-      </BlockCollectionSectionContainer>
+      </PageSectionContainer>
     );
   }
 
   if (!data) {
     return (
-      <BlockCollectionSectionContainer
-        {...blockCollectionSectionContainerProps}
-      >
+      <PageSectionContainer {...PageSectionContainerProps}>
         <h1>No data loaded.</h1>
-      </BlockCollectionSectionContainer>
+      </PageSectionContainer>
     );
   }
 
@@ -395,9 +441,7 @@ const Page: NextPageWithLayout<PageProps> = ({
         </Box>
 
         {!canvasPage && (
-          <BlockCollectionSectionContainer
-            {...blockCollectionSectionContainerProps}
-          >
+          <PageSectionContainer {...PageSectionContainerProps}>
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
@@ -458,7 +502,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           </div> */}
               </Box>
             </Box>
-          </BlockCollectionSectionContainer>
+          </PageSectionContainer>
         )}
 
         <CollabPositionProvider value={[]}>
@@ -468,13 +512,56 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <Box marginTop={5}>
+                  {!isReadonlyMode && pageComments.length > 0 ? (
+                    <PageSectionContainer
+                      pageComments={pageComments}
+                      readonly={isReadonlyMode}
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        left: 0,
+                        width: "100%",
+                      }}
+                    >
+                      <Box width="100%" position="relative">
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 16,
+                            left: "calc(100% + 48px)",
+                            zIndex: 1,
+                          }}
+                        >
+                          {pageComments.map((comment) => (
+                            <CommentThread
+                              key={comment.metadata.recordId.entityId}
+                              pageId={pageEntityId}
+                              comment={comment}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    </PageSectionContainer>
+                  ) : null}
                   <BlockCollection
                     ownedById={extractOwnedById(pageWorkspace)}
                     contents={contents}
-                    pageComments={pageComments}
+                    enableCommenting
                     entityId={pageEntityId}
                     readonly={isReadonlyMode}
-                    paddingY={48}
+                    sx={{
+                      /**
+                       * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+                       * so it automatically handles focusing on closest node on margin-clicking
+                       */
+                      ".ProseMirror": {
+                        ...getPageSectionContainerStyles({
+                          pageComments,
+                          readonly: isReadonlyMode,
+                        }),
+                      },
+                    }}
                   />
                 </Box>
               )}

@@ -272,6 +272,7 @@ export const ProfileTab: FunctionComponent<{
             <UserBlocksProvider value={{}}>
               <Box
                 sx={{
+                  flexGrow: 1,
                   paddingY: isEditing ? 2 : 0,
                   transition: ({ transitions }) =>
                     transitions.create("padding"),
@@ -284,7 +285,11 @@ export const ProfileTab: FunctionComponent<{
                     profile.hasBio.profileBioEntity.metadata.recordId.entityId
                   }
                   readonly={!isEditable || !isEditing}
-                  paddingY={isEditing ? 16 : 0}
+                  sx={{
+                    ".ProseMirror": {
+                      paddingLeft: isEditing ? 1 : 0,
+                    },
+                  }}
                 />
               </Box>
             </UserBlocksProvider>
