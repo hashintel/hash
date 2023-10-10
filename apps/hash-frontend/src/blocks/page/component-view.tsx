@@ -168,6 +168,7 @@ export class ComponentView implements NodeView {
       const childEntity = getChildEntity(entity);
 
       const beforeCapture = (scope: Sentry.Scope) => {
+        scope.setTag("error-boundary", "block");
         scope.setTag("block", this.block.meta.componentId);
       };
 
