@@ -135,6 +135,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
 
     const { pinnedEntityTypes } = data;
 
+    const updatedPinnedEntityTypeBaseUrls = pinnedEntityTypes
+      .map(({ metadata }) => metadata.recordId.baseUrl)
+      .filter((value, index, all) => all.indexOf(value) === index);
+
     await updateEntity({
       data: {
         entityId: profile.entity.metadata.recordId.entityId,
@@ -143,9 +147,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           ...profile.entity.properties,
           [extractBaseUrl(
             types.propertyType.pinnedEntityTypeBaseUrl.propertyTypeId,
-          )]: pinnedEntityTypes.map(
-            ({ metadata }) => metadata.recordId.baseUrl,
-          ),
+          )]: updatedPinnedEntityTypeBaseUrls,
         },
       },
     });
