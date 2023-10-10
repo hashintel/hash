@@ -463,6 +463,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                     pageComments={pageComments}
                     entityId={pageEntityId}
                     readonly={isReadonlyMode}
+                    paddingY={48}
                   />
                 </Box>
               )}

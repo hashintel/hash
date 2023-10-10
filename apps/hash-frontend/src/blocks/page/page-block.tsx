@@ -28,6 +28,7 @@ type PageBlockProps = {
   ownedById: OwnedById;
   entityId: EntityId;
   readonly: boolean;
+  paddingY?: number;
 };
 
 /**
@@ -42,6 +43,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   ownedById,
   entityId,
   readonly,
+  paddingY,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
@@ -171,7 +173,11 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
            * so it automatically handles focusing on closest node on margin-clicking
            */
           ".ProseMirror": {
-            ...getPageSectionContainerStyles(pageComments, readonly),
+            ...getPageSectionContainerStyles({
+              pageComments,
+              readonly,
+              paddingY,
+            }),
             paddingTop: 0,
           },
           // prevents blue outline on selected nodes
