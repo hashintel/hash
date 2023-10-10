@@ -211,6 +211,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
 
   const isSubmitDisabled = Object.keys(formState.dirtyFields).length === 0;
 
+  const isDragDisabled = fields.length <= 1;
+
   return (
     <Modal
       {...modalProps}
@@ -258,6 +260,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         </Box>
         <Divider />
         <Box
+          id="test-pinned-entity-types"
           component="form"
           onSubmit={innerSubmit}
           padding={3}
@@ -286,6 +289,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                     <Draggable
                       key={field.id}
                       draggableId={field.id.toString()}
+                      isDragDisabled={isDragDisabled}
                       index={index}
                     >
                       {renderDraggable((provided) => (
@@ -303,6 +307,9 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                               sx={{
                                 color: ({ palette }) => palette.gray[50],
                                 fontSize: 16,
+                                opacity: isDragDisabled ? 0 : 1,
+                                transition: ({ transitions }) =>
+                                  transitions.create("opacity"),
                               }}
                             />
                           </Box>
