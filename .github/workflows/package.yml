@@ -703,7 +703,6 @@ jobs:
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Run tests
-        continue-on-error: ${{ matrix.package == '@tests/hash-playwright' }}
         run: |
           turbo run test:system --filter "${{ matrix.package }}"
 
