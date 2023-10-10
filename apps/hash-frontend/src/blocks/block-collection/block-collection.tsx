@@ -9,21 +9,21 @@ import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { PageThread } from "../../components/hooks/use-page-comments";
-import { PageContentItem } from "../../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
 import { Button } from "../../shared/ui";
 import { useUserBlocks } from "../user-blocks";
+import {
+  BlockCollectionSectionContainer,
+  getBlockCollectionSectionContainerStyles,
+} from "./block-collection-section-container";
 import { usePortals } from "./block-portals";
 import { EditorConnection } from "./collab/editor-connection";
 import { CommentThread } from "./comments/comment-thread";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
-import {
-  getPageSectionContainerStyles,
-  PageSectionContainer,
-} from "./page-section-container";
 
-type PageBlockProps = {
-  contents: PageContentItem[];
+type BlockCollectionProps = {
+  contents: BlockCollectionContentItem[];
   pageComments?: PageThread[];
   ownedById: OwnedById;
   entityId: EntityId;
@@ -37,7 +37,7 @@ type PageBlockProps = {
  * rendering child blocks from this and have a renderer, but it seems tricky to
  * do that
  */
-export const PageBlock: FunctionComponent<PageBlockProps> = ({
+export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
   pageComments,
   ownedById,
@@ -133,7 +133,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <>
       {!readonly && pageComments ? (
-        <PageSectionContainer
+        <BlockCollectionSectionContainer
           pageComments={pageComments}
           readonly={readonly}
           sx={{
@@ -162,7 +162,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
               ))}
             </Box>
           </Box>
-        </PageSectionContainer>
+        </BlockCollectionSectionContainer>
       ) : null}
       <Box
         id="root"
@@ -173,7 +173,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
            * so it automatically handles focusing on closest node on margin-clicking
            */
           ".ProseMirror": {
-            ...getPageSectionContainerStyles({
+            ...getBlockCollectionSectionContainerStyles({
               pageComments,
               readonly,
               paddingY,

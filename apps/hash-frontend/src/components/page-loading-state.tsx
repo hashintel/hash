@@ -1,11 +1,11 @@
 import { Box, Skeleton } from "@mui/material";
 
-import { ProsemirrorLoadingState } from "../blocks/page/loading-view";
-import { PAGE_CONTENT_WIDTH } from "../blocks/page/page-section-container";
+import { PAGE_CONTENT_WIDTH } from "../blocks/block-collection/block-collection-section-container";
+import { ProsemirrorLoadingState } from "../blocks/block-collection/loading-view";
 import {
   PAGE_TITLE_FONT_SIZE,
   PAGE_TITLE_LINE_HEIGHT,
-} from "../blocks/page/page-title/page-title";
+} from "../blocks/block-collection/page-title/page-title";
 import { pageIconVariantSizes } from "./page-icon";
 
 export const PageLoadingState = () => {

@@ -34,14 +34,14 @@ import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-import { PageBlock } from "../../blocks/page/page-block";
-import { PageContextProvider } from "../../blocks/page/page-context";
+import { BlockCollection } from "../../blocks/block-collection/block-collection";
 import {
-  PageSectionContainer,
-  PageSectionContainerProps,
-} from "../../blocks/page/page-section-container";
-import { PageTitle } from "../../blocks/page/page-title/page-title";
+  BlockCollectionSectionContainer,
+  BlockCollectionSectionContainerProps,
+} from "../../blocks/block-collection/block-collection-section-container";
+import { PageContextProvider } from "../../blocks/block-collection/page-context";
+import { PageTitle } from "../../blocks/block-collection/page-title/page-title";
+import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
   AccountPagesInfo,
@@ -295,40 +295,49 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
-  const pageSectionContainerProps: PageSectionContainerProps = {
-    pageComments,
-    readonly: isReadonlyMode,
-  };
+  const blockCollectionSectionContainerProps: BlockCollectionSectionContainerProps =
+    {
+      pageComments,
+      readonly: isReadonlyMode,
+    };
 
   if (pageState === "transferring") {
     return (
-      <PageSectionContainer {...pageSectionContainerProps}>
+      <BlockCollectionSectionContainer
+        {...blockCollectionSectionContainerProps}
+      >
         <h1>Transferring you to the new page...</h1>
-      </PageSectionContainer>
+      </BlockCollectionSectionContainer>
     );
   }
 
   if (loading) {
     return (
-      <PageSectionContainer {...pageSectionContainerProps}>
+      <BlockCollectionSectionContainer
+        {...blockCollectionSectionContainerProps}
+      >
         <PageLoadingState />
-      </PageSectionContainer>
+      </BlockCollectionSectionContainer>
     );
   }
 
   if (error) {
     return (
-      <PageSectionContainer {...pageSectionContainerProps}>
+      <BlockCollectionSectionContainer
+        {...blockCollectionSectionContainerProps}
+      >
         <h1>Error: {error.message}</h1>
-      </PageSectionContainer>
+      </BlockCollectionSectionContainer>
     );
   }
 
   if (!data) {
     return (
-      <PageSectionContainer {...pageSectionContainerProps}>
+      <BlockCollectionSectionContainer
+        {...blockCollectionSectionContainerProps}
+      >
         <h1>No data loaded.</h1>
-      </PageSectionContainer>
+      </BlockCollectionSectionContainer>
     );
   }
 
@@ -386,7 +395,9 @@ const Page: NextPageWithLayout<PageProps> = ({
         </Box>
 
         {!canvasPage && (
-          <PageSectionContainer {...pageSectionContainerProps}>
+          <BlockCollectionSectionContainer
+            {...blockCollectionSectionContainerProps}
+          >
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
@@ -447,7 +458,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           </div> */}
               </Box>
             </Box>
-          </PageSectionContainer>
+          </BlockCollectionSectionContainer>
         )}
 
         <CollabPositionProvider value={[]}>
@@ -457,7 +468,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <Box marginTop={5}>
-                  <PageBlock
+                  <BlockCollection
                     ownedById={extractOwnedById(pageWorkspace)}
                     contents={contents}
                     pageComments={pageComments}

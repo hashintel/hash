@@ -6,7 +6,7 @@ import { PageThread } from "../../components/hooks/use-page-comments";
 export const PAGE_CONTENT_WIDTH = 696;
 export const COMMENTS_WIDTH = 320;
 
-export const getPageSectionContainerStyles = (params: {
+export const getBlockCollectionSectionContainerStyles = (params: {
   pageComments?: PageThread[];
   readonly?: boolean;
   paddingY?: number;
@@ -27,23 +27,28 @@ export const getPageSectionContainerStyles = (params: {
   };
 };
 
-export interface PageSectionContainerProps {
+export interface BlockCollectionSectionContainerProps {
   pageComments?: PageThread[];
   sx?: SxProps;
   readonly: boolean;
 }
 
-export const PageSectionContainer = ({
+export const BlockCollectionSectionContainer = ({
   children,
   pageComments,
   sx = [],
   readonly,
-}: PropsWithChildren<PageSectionContainerProps>) => {
+}: PropsWithChildren<BlockCollectionSectionContainerProps>) => {
   return (
     <Box
       sx={[
         ...(pageComments
-          ? [getPageSectionContainerStyles({ pageComments, readonly })]
+          ? [
+              getBlockCollectionSectionContainerStyles({
+                pageComments,
+                readonly,
+              }),
+            ]
           : []),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

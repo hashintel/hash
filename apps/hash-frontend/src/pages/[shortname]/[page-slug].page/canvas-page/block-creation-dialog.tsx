@@ -8,8 +8,8 @@ import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
 
-import { BlockSuggester } from "../../../../blocks/page/create-suggester/block-suggester";
-import { usePageContext } from "../../../../blocks/page/page-context";
+import { BlockSuggester } from "../../../../blocks/block-collection/create-suggester/block-suggester";
+import { usePageContext } from "../../../../blocks/block-collection/page-context";
 import {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,

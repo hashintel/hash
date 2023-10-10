@@ -16,7 +16,7 @@ import {
   TLOpacityType,
 } from "@tldraw/tldraw";
 
-import { BlockContextProvider } from "../../../../blocks/page/block-context";
+import { BlockContextProvider } from "../../../../blocks/block-collection/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
 import { apolloClient } from "../../../../lib/apollo-client";
 import {

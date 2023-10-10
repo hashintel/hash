@@ -25,8 +25,8 @@ import {
   useRef,
 } from "react";
 
+import { useBlockContext } from "../../blocks/block-collection/block-context";
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
 import { WorkspaceContext } from "../../pages/shared/workspace-context";
 import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
