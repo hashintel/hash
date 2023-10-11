@@ -41,7 +41,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let token = api
-        .create_relations([
+        .touch_relations([
             (ENTITY_A, EntityRelation::DirectOwner, ALICE),
             (ENTITY_A, EntityRelation::DirectViewer, BOB),
             (ENTITY_B, EntityRelation::DirectOwner, BOB),
