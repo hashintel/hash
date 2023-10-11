@@ -21,7 +21,7 @@ datamodel-code-generator = "^0.22.1"
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"
 ruff = "^0.0.292"
-mypy = "^1.5.1"
+mypy = "^1.6.0"
 
 
 [tool.black]
