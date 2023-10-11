@@ -340,18 +340,6 @@ resource "aws_iam_role" "task_role" {
           Effect   = "Allow",
           Resource = "*"
         },
-        # Enable read/write access to file upload bucket
-        {
-          Action = [
-            "s3:GetObject",
-            "s3:PutObject",
-            "s3:PutObjectAcl",
-          ]
-          Effect   = "Allow"
-          Resource = [
-            "${aws_s3_bucket.uploads.arn}/*",
-          ]
-        }
       ]
     })
   }

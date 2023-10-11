@@ -28,7 +28,7 @@ export const requestFileUpload: ResolverFn<
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  const { presignedPost, entity } = await createFileFromUploadRequest(
+  const { presignedPut, entity } = await createFileFromUploadRequest(
     context,
     authentication,
     {
@@ -42,7 +42,7 @@ export const requestFileUpload: ResolverFn<
   );
 
   return {
-    presignedPost,
+    presignedPut,
     entity: entity as unknown as Entity,
   };
 };

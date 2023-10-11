@@ -1,3 +1,4 @@
+import { CaretDownSolidIcon } from "@hashintel/design-system";
 import {
   Box,
   ListSubheader,
@@ -11,7 +12,6 @@ import {
 } from "@mui/material";
 import { ReactNode, useMemo, useState } from "react";
 
-import { CaretDownIcon } from "./icons/caret-down";
 import { CheckIcon } from "./icons/check";
 
 export interface Option<OptionId extends string = string> {
@@ -228,7 +228,7 @@ export const DropdownSelector = <OptionId extends string = string>({
           },
         },
       }}
-      IconComponent={CaretDownIcon}
+      IconComponent={CaretDownSolidIcon}
       sx={[
         {
           background: "none !important",

@@ -17,9 +17,8 @@ export const requestFileUpload = gql`
       fileEntityCreationInput: $fileEntityCreationInput
       fileEntityUpdateInput: $fileEntityUpdateInput
     ) {
-      presignedPost {
+      presignedPut {
         url
-        fields
       }
       entity
     }

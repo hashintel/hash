@@ -1,5 +1,4 @@
 /* eslint-disable import/first */
-
 // @todo have webpack polyfill this
 require("setimmediate");
 
@@ -14,7 +13,7 @@ import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { configureScope } from "@sentry/nextjs";
+import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -33,10 +32,15 @@ import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
-import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import {
+  getLayoutWithSidebar,
+  getPlainLayout,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
+import { ErrorFallback } from "./_app.page/error-fallback";
 import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { fetchKratosSession } from "./shared/ory-kratos";
@@ -139,7 +143,16 @@ const App: FunctionComponent<AppProps> = ({
                     <PropertyTypesContextProvider includeArchived>
                       <FileUploadsProvider>
                         <SidebarContextProvider>
-                          {getLayout(<Component {...pageProps} />)}
+                          <ErrorBoundary
+                            beforeCapture={(scope) => {
+                              scope.setTag("error-boundary", "_app");
+                            }}
+                            fallback={(props) =>
+                              getLayoutWithSidebar(<ErrorFallback {...props} />)
+                            }
+                          >
+                            {getLayout(<Component {...pageProps} />)}
+                          </ErrorBoundary>
                         </SidebarContextProvider>
                       </FileUploadsProvider>
                     </PropertyTypesContextProvider>

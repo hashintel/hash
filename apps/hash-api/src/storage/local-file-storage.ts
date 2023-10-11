@@ -9,8 +9,7 @@ import multer, { Multer, StorageEngine } from "multer";
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
-  PresignedPostUpload,
-  PresignedStorageRequest,
+  PresignedPutUpload,
   StorageProvider,
   StorageType,
 } from "./storage-provider";
@@ -58,16 +57,11 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
     this.setupExpressRoutes(app);
   }
 
-  async presignUpload(
-    params: PresignedStorageRequest,
-  ): Promise<PresignedPostUpload> {
-    const presignedPost = {
+  async presignUpload(): Promise<PresignedPutUpload> {
+    const presignedPut = {
       url: new URL(UPLOAD_BASE_URL, this.apiOrigin).href,
-      fields: {
-        key: params.key,
-      },
     };
-    return presignedPost;
+    return presignedPut;
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {

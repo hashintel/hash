@@ -1,22 +1,15 @@
 import { RequestFileUploadResponse } from "../graphql/api-types.gen";
 
 export const uploadFileToStorageProvider = async (
-  presignedPostData: RequestFileUploadResponse["presignedPost"],
+  presignedPutData: RequestFileUploadResponse["presignedPut"],
   file: File,
   onProgress?: (progress: number) => void,
 ) => {
-  const formData = new FormData();
-  const { url, fields } = presignedPostData;
-
-  for (const [key, val] of Object.entries(fields)) {
-    formData.append(key, val as string);
-  }
-
-  formData.append("file", file);
+  const { url } = presignedPutData;
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", url, true);
+    xhr.open("PUT", url, true);
 
     if (onProgress) {
       xhr.upload.addEventListener("progress", (event) => {
@@ -39,6 +32,6 @@ export const uploadFileToStorageProvider = async (
       reject(new Error(xhr.statusText || "Network error."));
     };
 
-    xhr.send(formData);
+    xhr.send(file);
   });
 };

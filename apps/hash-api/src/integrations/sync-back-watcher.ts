@@ -40,38 +40,43 @@ export const createIntegrationSyncBackWatcher = async (
   const queue = new RedisQueueExclusiveConsumer(redisClient);
 
   const processQueueMessage = () => {
-    void queue.pop(queueName, null, async (item: string) => {
-      const message = JSON.parse(item) as Wal2JsonMsg;
+    queue
+      .pop(queueName, null, async (item: string) => {
+        const message = JSON.parse(item) as Wal2JsonMsg;
 
-      const entityEdition = entityEditionRecordFromRealtimeMessage(message);
+        const entityEdition = entityEditionRecordFromRealtimeMessage(message);
 
-      const entity = (
-        await graphApiClient
-          .getEntitiesByQuery(systemUserAccountId, {
-            filter: {
-              equal: [
-                { path: ["editionId"] },
-                { parameter: entityEdition.entityEditionId },
-              ],
-            },
-            graphResolveDepths: zeroedGraphResolveDepths,
-            temporalAxes: fullDecisionTimeAxis,
-          })
-          .then(({ data: subgraph }) =>
-            getRoots(subgraph as Subgraph<EntityRootType>),
-          )
-      )[0];
+        const entity = (
+          await graphApiClient
+            .getEntitiesByQuery(systemUserAccountId, {
+              filter: {
+                equal: [
+                  { path: ["editionId"] },
+                  { parameter: entityEdition.entityEditionId },
+                ],
+              },
+              graphResolveDepths: zeroedGraphResolveDepths,
+              temporalAxes: fullDecisionTimeAxis,
+            })
+            .then(({ data: subgraph }) =>
+              getRoots(subgraph as Subgraph<EntityRootType>),
+            )
+        )[0];
 
-      if (!entity) {
-        throw new Error(
-          `Entity with editionId ${entityEdition.entityEditionId} not found in database.`,
-        );
-      }
+        if (!entity) {
+          throw new Error(
+            `Entity with editionId ${entityEdition.entityEditionId} not found in database.`,
+          );
+        }
 
-      sendEntityToRelevantProcessor(entity, graphApiClient);
+        sendEntityToRelevantProcessor(entity, graphApiClient);
 
-      return true;
-    });
+        return true;
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- caught because this function loses ownership of the queue occasionally in dev
+        console.error(`Could not take message from queue: ${err.message}`);
+      });
   };
 
   let interval: NodeJS.Timer;

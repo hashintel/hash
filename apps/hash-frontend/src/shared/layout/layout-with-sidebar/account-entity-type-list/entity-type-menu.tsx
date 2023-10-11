@@ -4,14 +4,13 @@ import {
   faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
+import { ArrowUpRightIcon, FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import pluralize from "pluralize";
 import { FunctionComponent, ReactElement, useState } from "react";
 
 import { useFrozenValue } from "../../../frozen";
-import { ArrowUpRightIcon } from "../../../icons/arrow-up-right-icon";
 import { MenuItem } from "../../../ui";
 
 type EntityTypeMenuProps = {
