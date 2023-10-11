@@ -17,10 +17,17 @@ import {
 } from "apollo-server-express";
 
 import {
+  addEntityEditor,
+  addEntityOwner,
+  addEntityViewer,
   archiveEntity,
   createEntityWithLinks,
   getEntities,
   getLatestEntityById,
+  isEntityPublic,
+  removeEntityEditor,
+  removeEntityOwner,
+  removeEntityViewer,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -32,15 +39,25 @@ import {
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { genId } from "../../../../util";
 import {
+  EditorInput,
   Mutation,
+  MutationAddEntityEditorArgs,
+  MutationAddEntityOwnerArgs,
+  MutationAddEntityViewerArgs,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
   MutationInferEntitiesArgs,
+  MutationRemoveEntityEditorArgs,
+  MutationRemoveEntityOwnerArgs,
+  MutationRemoveEntityViewerArgs,
   MutationUpdateEntityArgs,
+  OwnerInput,
   QueryGetEntityArgs,
+  QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
+  ViewerInput,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
@@ -354,4 +371,169 @@ export const inferEntitiesResolver: ResolverFn<
   }
 
   return status.contents[0];
+};
+
+const parseGqlOwnerInput = (ownerInput: OwnerInput) => {
+  if (Object.values(ownerInput).length > 1) {
+    throw new UserInputError(
+      "Only one owner can be specified in the GQL OwnerInput type",
+    );
+  }
+
+  if (ownerInput.accountGroupId) {
+    return ownerInput.accountGroupId;
+  } else if (ownerInput.accountId) {
+    return ownerInput.accountId;
+  }
+
+  throw new UserInputError(
+    "One of accountId or accountGroupId must be specified in the GQL OwnerInput type",
+  );
+};
+
+export const addEntityOwnerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityOwnerArgs
+> = async (_, { entityId, owner }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityOwner(context, authentication, {
+    entityId,
+    owner: parseGqlOwnerInput(owner),
+  });
+
+  return true;
+};
+
+export const removeEntityOwnerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityOwnerArgs
+> = async (_, { entityId, owner }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityOwner(context, authentication, {
+    entityId,
+    owner: parseGqlOwnerInput(owner),
+  });
+
+  return true;
+};
+
+const parseGqlEditorInput = (editorInput: EditorInput) => {
+  if (Object.values(editorInput).length > 1) {
+    throw new UserInputError(
+      "More than one owner specified in GQL EditorInput type",
+    );
+  }
+
+  if (editorInput.accountGroupId) {
+    return editorInput.accountGroupId;
+  } else if (editorInput.accountId) {
+    return editorInput.accountId;
+  }
+
+  throw new UserInputError(
+    "One of accountId or accountGroupId must be specified in the GQL EditorInput type",
+  );
+};
+
+export const addEntityEditorResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityEditorArgs
+> = async (_, { entityId, editor }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityEditor(context, authentication, {
+    entityId,
+    editor: parseGqlEditorInput(editor),
+  });
+
+  return true;
+};
+
+export const removeEntityEditorResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityEditorArgs
+> = async (_, { entityId, editor }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityEditor(context, authentication, {
+    entityId,
+    editor: parseGqlEditorInput(editor),
+  });
+
+  return true;
+};
+
+const parseGqlViewerInput = (viewerInput: ViewerInput) => {
+  if (Object.values(viewerInput).length > 1) {
+    throw new UserInputError(
+      "More than one owner specified in GQL ViewerInput type",
+    );
+  }
+
+  if (viewerInput.accountGroupId) {
+    return viewerInput.accountGroupId;
+  } else if (viewerInput.accountId) {
+    return viewerInput.accountId;
+  } else if (viewerInput.public) {
+    return "public" as const;
+  }
+
+  throw new UserInputError(
+    "One of accountId, accountGroupId or public must be specified in the GQL ViewerInput type",
+  );
+};
+
+export const addEntityViewerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityViewerArgs
+> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityViewer(context, authentication, {
+    entityId,
+    viewer: parseGqlViewerInput(viewer),
+  });
+
+  return true;
+};
+
+export const removeEntityViewerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityViewerArgs
+> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityViewer(context, authentication, {
+    entityId,
+    viewer: parseGqlViewerInput(viewer),
+  });
+
+  return true;
+};
+
+export const isEntityPublicResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  QueryIsEntityPublicArgs
+> = async (_, { entityId }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  return await isEntityPublic(context, authentication, {
+    entityId,
+  });
 };

@@ -150,6 +150,24 @@ export const entityTypedef = gql`
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
+
+    isEntityPublic(entityId: EntityId!): Boolean!
+  }
+
+  input OwnerInput {
+    accountId: AccountId
+    accountGroupId: AccountGroupId
+  }
+
+  input EditorInput {
+    accountId: AccountId
+    accountGroupId: AccountGroupId
+  }
+
+  input ViewerInput {
+    accountId: AccountId
+    accountGroupId: AccountGroupId
+    public: Boolean
   }
 
   extend type Mutation {
@@ -250,5 +268,17 @@ export const entityTypedef = gql`
       """
       temperature: Float!
     ): InferEntitiesResult!
+
+    addEntityOwner(entityId: EntityId!, owner: OwnerInput!): Boolean!
+
+    removeEntityOwner(entityId: EntityId!, owner: OwnerInput!): Boolean!
+
+    addEntityEditor(entityId: EntityId!, editor: EditorInput!): Boolean!
+
+    removeEntityEditor(entityId: EntityId!, editor: EditorInput!): Boolean!
+
+    addEntityViewer(entityId: EntityId!, viewer: ViewerInput!): Boolean!
+
+    removeEntityViewer(entityId: EntityId!, viewer: ViewerInput!): Boolean!
   }
 `;
