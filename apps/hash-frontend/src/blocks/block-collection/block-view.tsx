@@ -281,7 +281,7 @@ export class BlockView implements NodeView {
                 }}
                 onClick={this.onDragEnd}
               />
-              {this.isCommentingEnabled ? (
+              {!this.readonly && this.isCommentingEnabled ? (
                 <CreateBlockCommentButton
                   blockEntityId={blockEntityId}
                   rootNode={this.rootNode}
