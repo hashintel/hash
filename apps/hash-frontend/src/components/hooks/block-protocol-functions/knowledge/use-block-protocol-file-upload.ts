@@ -125,10 +125,10 @@ export const useBlockProtocolFileUpload = (
        * Upload file with presignedPost data to storage provider
        */
       const {
-        requestFileUpload: { presignedPost, entity: uploadedFileEntity },
+        requestFileUpload: { presignedPut, entity: uploadedFileEntity },
       } = data;
 
-      await uploadFileToStorageProvider(presignedPost, file);
+      await uploadFileToStorageProvider(presignedPut, file);
 
       return { data: uploadedFileEntity as unknown as FileEntityType };
     },

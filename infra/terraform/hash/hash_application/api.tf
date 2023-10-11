@@ -17,27 +17,6 @@ resource "aws_ssm_parameter" "api_env_vars" {
   tags      = {}
 }
 
-resource "aws_s3_bucket" "uploads" {
-  bucket = "${local.api_prefix}-uploads"
-  tags   = { Name = "${local.api_prefix}uploads" }
-}
-
-resource "aws_s3_bucket_public_access_block" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "uploads" {
-  bucket = aws_s3_bucket.uploads.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-}
-
 locals {
   api_service_container_def = {
     name        = "${local.api_prefix}container"
@@ -62,13 +41,10 @@ locals {
         "awslogs-region"        = var.region
       }
     }
-    Environment = concat(
-      [
-        for env_var in var.api_env_vars :
-        { name = env_var.name, value = env_var.value } if !env_var.secret
-      ],
-      [{ name = "AWS_S3_UPLOADS_BUCKET", secret = false, value = aws_s3_bucket.uploads.bucket }],
-    ),
+    Environment = [
+      for env_var in var.api_env_vars :
+      { name = env_var.name, value = env_var.value } if !env_var.secret
+    ]
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.api_env_vars :
     { name = env_name, valueFrom = ssm_param.arn }]

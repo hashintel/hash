@@ -59,9 +59,7 @@ describe("File", () => {
     graphContext.uploadProvider = {
       getFileEntityStorageKey: jest.fn(() => fileKey),
       presignDownload: jest.fn(() => Promise.resolve(downloadUrl)),
-      presignUpload: jest.fn(() =>
-        Promise.resolve({ url: uploadUrl, fields: {} }),
-      ),
+      presignUpload: jest.fn(() => Promise.resolve({ url: uploadUrl })),
       storageType: StorageType.LocalFileSystem,
     };
 
@@ -75,7 +73,7 @@ describe("File", () => {
       },
     );
 
-    expect(file.presignedPost.url).toEqual(uploadUrl);
+    expect(file.presignedPut.url).toEqual(uploadUrl);
 
     expect(
       file.entity.properties[
