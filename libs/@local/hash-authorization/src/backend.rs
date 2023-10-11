@@ -21,10 +21,10 @@ pub trait ZanzibarBackend {
     /// # Errors
     ///
     /// Returns an error if the schema could not be loaded
-    async fn import_schema(
+    fn import_schema(
         &mut self,
         schema: &str,
-    ) -> Result<ImportSchemaResponse, Report<ImportSchemaError>>;
+    ) -> impl Future<Output = Result<ImportSchemaResponse, Report<ImportSchemaError>>> + Send;
 
     /// Reads a schema from the backend.
     ///
@@ -33,7 +33,9 @@ pub trait ZanzibarBackend {
     /// # Errors
     ///
     /// Returns an error if the schema could not be read
-    async fn export_schema(&self) -> Result<ExportSchemaResponse, Report<ExportSchemaError>>;
+    fn export_schema(
+        &self,
+    ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
     /// Creates a new relation specified by the [`Tuple`].
     ///
