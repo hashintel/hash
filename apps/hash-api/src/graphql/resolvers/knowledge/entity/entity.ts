@@ -104,7 +104,7 @@ export const createEntityResolver: ResolverFn<
 };
 
 export const queryEntitiesResolver: Extract<
-  QueryResolvers<LoggedInGraphQLContext>["queryEntities"],
+  QueryResolvers<GraphQLContext>["queryEntities"],
   Function
 > = async (
   _,
@@ -173,7 +173,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
 export const getEntityResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetEntityArgs
 > = async (
   _,

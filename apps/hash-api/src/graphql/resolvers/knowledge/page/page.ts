@@ -60,7 +60,7 @@ export const createPageResolver: ResolverFn<
 };
 
 export const parentPageResolver: ResolverFn<
-  Promise<UnresolvedPageGQL | null>,
+  UnresolvedPageGQL | null,
   UnresolvedPageGQL,
   GraphQLContext,
   QueryPagesArgs

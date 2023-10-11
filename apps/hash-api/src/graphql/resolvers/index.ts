@@ -1,5 +1,12 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  MutationResolvers,
+  QueryResolvers,
+  ResolverFn,
+  Resolvers,
+} from "../api-types.gen";
+import { GraphQLContext } from "../context";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -41,11 +48,7 @@ import { updatePageResolver } from "./knowledge/page/update-page";
 import { createUserResolver } from "./knowledge/user/create-user";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
-import { createLinkedAggregation } from "./linked-aggregation/create-linked-aggregation";
-import { deleteLinkedAggregation } from "./linked-aggregation/delete-linked-aggregation";
-import { getLinkedAggregation } from "./linked-aggregation/get-linked-aggregation";
 import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
-import { updateLinkedAggregationOperation } from "./linked-aggregation/update-linked-aggregation-operation";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
@@ -67,12 +70,19 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
-/** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
-export const resolvers = {
+export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
+  Query: Record<
+    keyof QueryResolvers,
+    ResolverFn<any, any, GraphQLContext, any>
+  >;
+  Mutation: Record<
+    keyof MutationResolvers,
+    ResolverFn<any, any, GraphQLContext, any>
+  >;
+} = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
-    getLinkedAggregation: loggedInAndSignedUpMiddleware(getLinkedAggregation),
     // Logged in users only
     me: loggedInMiddleware(meResolver),
     // Any user
@@ -104,15 +114,6 @@ export const resolvers = {
 
   Mutation: {
     // Logged in and signed up users only
-    createLinkedAggregation: loggedInAndSignedUpMiddleware(
-      createLinkedAggregation,
-    ),
-    updateLinkedAggregationOperation: loggedInAndSignedUpMiddleware(
-      updateLinkedAggregationOperation,
-    ),
-    deleteLinkedAggregation: loggedInAndSignedUpMiddleware(
-      deleteLinkedAggregation,
-    ),
     updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
@@ -153,6 +154,7 @@ export const resolvers = {
     // HASH instance admin mutations
     createUser:
       loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
+
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
@@ -165,9 +167,10 @@ export const resolvers = {
     results: linkedAggregationResults,
   },
 
-  // New knowledge field resolvers
   Page: {
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
+    // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver
     parentPage: parentPageResolver,
   },
 
@@ -176,6 +179,7 @@ export const resolvers = {
     textUpdatedAt: commentTextUpdatedAtResolver,
     parent: commentParentResolver,
     author: commentAuthorResolver,
+    // @ts-expect-error –– the type requires all comment fields returned, but many are dealt with in field resolvers above
     replies: commentRepliesResolver,
   },
 

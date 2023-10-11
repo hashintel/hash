@@ -12,7 +12,7 @@ import {
 } from "../graphql-mapping";
 
 export const pageContents: ResolverFn<
-  Promise<{ linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[]>,
+  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}

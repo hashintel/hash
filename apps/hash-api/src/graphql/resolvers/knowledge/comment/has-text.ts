@@ -8,7 +8,7 @@ import { dataSourcesToImpureGraphContext } from "../../util";
 import { UnresolvedCommentGQL } from "../graphql-mapping";
 
 export const commentHasTextResolver: ResolverFn<
-  Promise<TextToken[]>,
+  TextToken[],
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
