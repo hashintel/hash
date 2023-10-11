@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   monorepoRootDir,
+  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
@@ -367,15 +368,17 @@ const main = async () => {
     });
   });
 
-  const integrationSyncBackWatcher =
-    await createIntegrationSyncBackWatcher(graphApi);
+  if (realtimeSyncEnabled) {
+    const integrationSyncBackWatcher =
+      await createIntegrationSyncBackWatcher(graphApi);
 
-  void integrationSyncBackWatcher.start();
+    void integrationSyncBackWatcher.start();
 
-  shutdown.addCleanup(
-    "Integration sync back watcher",
-    integrationSyncBackWatcher.stop,
-  );
+    shutdown.addCleanup(
+      "Integration sync back watcher",
+      integrationSyncBackWatcher.stop,
+    );
+  }
 };
 
 void main().catch(async (err) => {

@@ -5,6 +5,7 @@ import * as http from "node:http";
 
 import {
   getRequiredEnv,
+  realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -20,6 +21,14 @@ import {
 import { sql } from "slonik";
 
 import { generateQueues, MONITOR_TABLES } from "./config";
+
+if (!realtimeSyncEnabled) {
+  // eslint-disable-next-line no-console
+  console.log(
+    "*********** Realtime sync is not enabled – exiting. ***********",
+  );
+  process.exit();
+}
 
 // The number of milliseconds between queries to the replication slot
 const POLL_INTERVAL_MILLIS = 250;
