@@ -45,7 +45,6 @@ WORKDIR /usr/local/src/apps/hash-graph
 ARG PROFILE=production
 ARG ENABLE_TEST_SERVER=no
 ARG ENABLE_AUTHORIZATION=no
-ARG TRIM_DEBUG_SYMBOLS=yes
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
@@ -58,8 +57,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     if [[ ${ENABLE_AUTHORIZATION^^} == Y* || ${ENABLE_AUTHORIZATION^^} == T* || $ENABLE_AUTHORIZATION == 1 ]]; then \
       FEATURES+=("authorization"); \
     fi; \
-    if [[ ${TRIM_DEBUG_SYMBOLS^^} == Y* || ${TRIM_DEBUG_SYMBOLS^^} == T* || $TRIM_DEBUG_SYMBOLS == 1 ]]; then \
-        export RUSTFLAGS="$RUSTFLAGS -C link-arg=-s"; \
+    if [[ ${PROFILE} == dev ]]; then \
+        export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
     fi; \
     FEATURES=${FEATURES[@]}; \
     cargo install --path bin/cli --features "${FEATURES// /,}" --profile $PROFILE --locked;

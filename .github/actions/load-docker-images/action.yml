@@ -44,7 +44,7 @@ runs:
 
     - name: Clean docker system
       shell: bash
-      run: docker system prune --force
+      run: docker system prune --force --all
 
     - name: Download hash-graph image
       if: inputs.hash-graph == 'true'
