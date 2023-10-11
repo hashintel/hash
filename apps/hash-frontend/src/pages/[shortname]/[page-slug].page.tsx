@@ -34,10 +34,6 @@ import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 
-import { BlockCollection } from "../../blocks/block-collection/block-collection";
-import { CommentThread } from "../../blocks/block-collection/comments/comment-thread";
-import { PageContextProvider } from "../../blocks/block-collection/page-context";
-import { PageTitle } from "../../blocks/block-collection/page-title/page-title";
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
@@ -73,6 +69,10 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../shared/routing/route-page-info";
+import { BlockCollection } from "../shared/block-collection/block-collection";
+import { CommentThread } from "../shared/block-collection/comments/comment-thread";
+import { PageContextProvider } from "../shared/block-collection/page-context";
+import { PageTitle } from "../shared/block-collection/page-title/page-title";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,

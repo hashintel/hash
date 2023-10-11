@@ -20,7 +20,6 @@ import {
   useState,
 } from "react";
 
-import { BlockCollection } from "../../blocks/block-collection/block-collection";
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -30,6 +29,7 @@ import { Org, User } from "../../lib/user-and-org";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+import { BlockCollection } from "../shared/block-collection/block-collection";
 
 const getProfileBioContents = (params: {
   profileBioSubgraph: Subgraph<EntityRootType>;

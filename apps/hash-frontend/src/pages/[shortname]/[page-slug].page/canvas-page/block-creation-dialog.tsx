@@ -8,12 +8,12 @@ import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
 
-import { BlockSuggester } from "../../../../blocks/block-collection/create-suggester/block-suggester";
-import { usePageContext } from "../../../../blocks/block-collection/page-context";
 import {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import { BlockSuggester } from "../../../shared/block-collection/create-suggester/block-suggester";
+import { usePageContext } from "../../../shared/block-collection/page-context";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
