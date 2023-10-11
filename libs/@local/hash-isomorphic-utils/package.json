@@ -43,7 +43,7 @@
     "prosemirror-view": "1.29.1",
     "slugify": "1.6.5",
     "tsx": "3.12.7",
-    "uuid": "9.0.0"
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.1.1",
@@ -57,7 +57,7 @@
     "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
     "eslint": "8.33.0",
-    "next": "13.5.3",
+    "next": "13.5.5-canary.4",
     "react": "18.2.0",
     "rimraf": "^5.0.5",
     "typescript": "5.1.6"

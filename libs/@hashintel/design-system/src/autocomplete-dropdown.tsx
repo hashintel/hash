@@ -9,7 +9,7 @@ export const AutocompleteDropdown = ({
   inputHeight = 0,
   joined = true,
   ...props
-}: PaperProps & { inputHeight?: number; joined?: boolean }) => {
+}: PaperProps & { inputHeight?: number | string; joined?: boolean }) => {
   return (
     <>
       <Box
@@ -70,7 +70,7 @@ export const AutocompleteDropdown = ({
               : {}),
 
             [`.${autocompleteClasses.listbox}`]: { p: 0 },
-            [`.${autocompleteClasses.noOptions}`]: { display: "none" },
+            [`.${autocompleteClasses.noOptions}`]: { fontSize: 14 },
             [`.${autocompleteClasses.option}`]: {
               borderRadius: 1,
               my: 0.25,

@@ -8,8 +8,7 @@ const webpack = require("webpack");
 const path = require("node:path");
 const config = require("../webpack.config");
 
-const options = config.chromeExtensionBoilerplate || {};
-const excludeEntriesToHotReload = options.notHotReload || [];
+const excludeEntriesToHotReload = ["background", "content"];
 
 const port = 8080;
 
@@ -29,8 +28,6 @@ for (const entryName in config.entry) {
 config.plugins = [new webpack.HotModuleReplacementPlugin({})].concat(
   config.plugins || [],
 );
-
-delete config.chromeExtensionBoilerplate;
 
 const compiler = webpack(config);
 

@@ -23,7 +23,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
         const error = new Error(
           `GraphQL Error: ${path?.[0]?.toString() ?? "?"}`,
         );
-        scope.setExtra("Exception", extensions?.exception);
+        scope.setExtra("Exception", extensions.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query.loc?.source.body);
         scope.setExtra("Variables", operation.variables);

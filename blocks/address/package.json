@@ -40,7 +40,7 @@
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",
-    "uuid": "9.0.0"
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
