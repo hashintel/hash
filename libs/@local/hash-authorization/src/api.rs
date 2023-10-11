@@ -264,5 +264,6 @@ pub trait AuthorizationApiPool {
     /// reference to the `AuthorizationApiPool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
-    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error>;
+    fn acquire_owned(&self)
+    -> impl Future<Output = Result<Self::Api<'static>, Self::Error>> + Send;
 }

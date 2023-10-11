@@ -1,7 +1,7 @@
 import { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
 
 import { BlockLoaderProps } from "../../../../components/block-loader/block-loader";
-import { PageContentItem } from "../../../../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../../../../graphql/api-types.gen";
 
 export type JsonSerializableBlockLoaderProps = Omit<
   BlockLoaderProps,
@@ -9,7 +9,7 @@ export type JsonSerializableBlockLoaderProps = Omit<
 >;
 
 export type CanvasProps = {
-  contents: PageContentItem[];
+  contents: BlockCollectionContentItem[];
   blocks: ComponentIdHashBlockMap;
 };
 

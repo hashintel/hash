@@ -264,6 +264,7 @@ const ProfilePage: NextPageWithLayout = () => {
       <ProfilePageContent
         profile={profile}
         isEditable={isEditable}
+        refetchProfile={refetchProfile}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}
       />

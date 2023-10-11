@@ -9,15 +9,17 @@ import {
   createBlock,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
-  addBlockToPage,
+  addBlockToBlockCollection,
+  moveBlockInBlockCollection,
+  removeBlockFromBlockCollection,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block-collection";
+import {
   createPage,
   getAllPagesInWorkspace,
   getPageBlocks,
   getPageById,
   getPageParentPage,
-  moveBlockInPage,
   Page,
-  removeBlockFromPage,
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -209,13 +211,13 @@ describe("Page", () => {
     ]);
 
     // insert block at un-specified position
-    await addBlockToPage(graphContext, authentication, {
-      page: testPage,
+    await addBlockToBlockCollection(graphContext, authentication, {
+      blockCollectionEntity: testPage.entity,
       block: testBlock3,
     });
     // insert block at specified position
-    await addBlockToPage(graphContext, authentication, {
-      page: testPage,
+    await addBlockToBlockCollection(graphContext, authentication, {
+      blockCollectionEntity: testPage.entity,
       block: testBlock2,
       position: 1,
     });
@@ -234,8 +236,8 @@ describe("Page", () => {
   it("can move a block", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    await moveBlockInPage(graphContext, authentication, {
-      page: testPage,
+    await moveBlockInBlockCollection(graphContext, authentication, {
+      blockCollectionEntity: testPage.entity,
       currentPosition: 0,
       newPosition: 2,
     });
@@ -252,8 +254,8 @@ describe("Page", () => {
       expect.arrayContaining(expectedInitialBlocks),
     );
 
-    await moveBlockInPage(graphContext, authentication, {
-      page: testPage,
+    await moveBlockInBlockCollection(graphContext, authentication, {
+      blockCollectionEntity: testPage.entity,
       currentPosition: 2,
       newPosition: 0,
     });
@@ -273,8 +275,8 @@ describe("Page", () => {
   it("can remove blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    await removeBlockFromPage(graphContext, authentication, {
-      page: testPage,
+    await removeBlockFromBlockCollection(graphContext, authentication, {
+      blockCollectionEntity: testPage.entity,
       position: 0,
     });
 

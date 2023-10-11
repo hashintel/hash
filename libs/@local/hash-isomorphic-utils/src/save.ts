@@ -1,10 +1,18 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
-  getPageQuery,
-  updatePageContents,
-} from "@local/hash-graphql-shared/queries/page.queries";
-import { EntityId, OwnedById } from "@local/hash-subgraph";
+  Entity,
+  EntityId,
+  EntityRootType,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -19,14 +27,21 @@ import {
   TEXT_ENTITY_TYPE_ID,
 } from "./entity-store";
 import {
-  GetPageQuery,
-  GetPageQueryVariables,
-  UpdatePageAction,
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-  UpdatePageContentsResultPlaceholder,
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "./graph-queries";
+import {
+  Block as GqlBlock,
+  GetEntityQuery,
+  GetEntityQueryVariables,
+  UpdateBlockCollectionAction,
+  UpdateBlockCollectionContentsMutation,
+  UpdateBlockCollectionContentsMutationVariables,
+  UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
+import { types } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
+import { BlockProperties } from "./system-types/shared";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -45,7 +60,7 @@ const calculateSaveActions = (
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
 ) => {
-  const actions: UpdatePageAction[] = [];
+  const actions: UpdateBlockCollectionAction[] = [];
 
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
@@ -63,10 +78,10 @@ const calculateSaveActions = (
 
       /**
        * This can happen if the saved entity this draft entity belonged to has
-       * been removed from the page post-save. We don't currently flush those
+       * been removed from the block collection post-save. We don't currently flush those
        * draft entities from the draft entity store when this happens.
        *
-       * @todo Remove draft entities when they are removed from the page
+       * @todo Remove draft entities when they are removed from the block collection
        */
       if (!savedEntity) {
         continue;
@@ -143,7 +158,7 @@ const calculateSaveActions = (
         entityTypeId = assumedEntityTypeId;
       }
 
-      const action: UpdatePageAction = {
+      const action: UpdateBlockCollectionAction = {
         createEntity: {
           ownedById,
           entityPlaceholderId: placeholderId,
@@ -173,7 +188,7 @@ const calculateSaveActions = (
 
   // Having dealt with non-block entities, now we check for changes in the blocks themselves
   // Block entities are wrappers which point to (a) a component and (b) a child entity
-  // First, gather the ids of the blocks as they appear in the db-persisted page
+  // First, gather the ids of the blocks as they appear in the db-persisted block collection
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(
       store.draft,
@@ -188,7 +203,7 @@ const calculateSaveActions = (
 
   const afterBlockDraftIds: string[] = [];
 
-  // Check nodes in the ProseMirror document to gather the ids of the blocks as they appear in the latest page
+  // Check nodes in the ProseMirror document to gather the ids of the blocks as they appear in the latest block collection
   doc.descendants((node) => {
     if (isEntityNode(node)) {
       if (!node.attrs.draftId) {
@@ -210,11 +225,11 @@ const calculateSaveActions = (
     return true;
   });
 
-  // Check the blocks from the db-persisted page against the latest version of the page
+  // Check the blocks from the db-persisted block collection against the latest version of the block collection
   let position = 0;
   let itCount = 0;
   // Move actions are order-sensitive, so we're going to sort them separately.
-  const moveActions: UpdatePageAction[] = [];
+  const moveActions: UpdateBlockCollectionAction[] = [];
 
   while (
     position < Math.max(beforeBlockDraftIds.length, afterBlockDraftIds.length)
@@ -351,7 +366,7 @@ const calculateSaveActions = (
 };
 
 const getDraftEntityIds = (
-  placeholders: UpdatePageContentsResultPlaceholder[],
+  placeholders: UpdateBlockCollectionContentsResultPlaceholder[],
   placeholderToDraft: Map<string, string>,
 ) => {
   const result: Record<string, string> = {};
@@ -366,23 +381,96 @@ const getDraftEntityIds = (
   return result;
 };
 
+const mapEntityToGqlBlock = (
+  entity: Entity<BlockProperties>,
+  entitySubgraph: Subgraph<EntityRootType>,
+): GqlBlock => {
+  if (entity.metadata.entityTypeId !== types.entityType.block.entityTypeId) {
+    throw new Error(
+      `Entity with type ${entity.metadata.entityTypeId} is not a block`,
+    );
+  }
+
+  const blockChildEntity = getOutgoingLinkAndTargetEntities(
+    entitySubgraph,
+    entity.metadata.recordId.entityId,
+  ).find(
+    ({ linkEntity: linkEntityRevisions }) =>
+      linkEntityRevisions[0] &&
+      linkEntityRevisions[0].metadata.entityTypeId ===
+        types.linkEntityType.blockData.linkEntityTypeId,
+  )?.rightEntity[0];
+
+  if (!blockChildEntity) {
+    throw new Error(
+      `Could not get data entity of block with entity ID ${entity.metadata.recordId.entityId}`,
+    );
+  }
+
+  const componentId =
+    entity.properties[
+      "http://localhost:3000/@system-user/types/property-type/component-id/"
+    ];
+
+  return {
+    blockChildEntity,
+    componentId,
+    metadata: entity.metadata,
+    properties: entity.properties,
+  };
+};
+
 export const save = async (
   apolloClient: ApolloClient<unknown>,
   ownedById: OwnedById,
-  pageEntityId: EntityId,
+  blockCollectionEntityId: EntityId,
   doc: Node,
   store: EntityStore,
   blocksMap: () => ComponentIdHashBlockMap,
 ) => {
   const blocks = await apolloClient
-    .query<GetPageQuery, GetPageQueryVariables>({
-      query: getPageQuery,
-      variables: { entityId: pageEntityId },
+    .query<GetEntityQuery, GetEntityQueryVariables>({
+      query: getEntityQuery,
+      variables: {
+        entityId: blockCollectionEntityId,
+        ...zeroedGraphResolveDepths,
+        isOfType: { outgoing: 1 },
+        hasLeftEntity: { outgoing: 2, incoming: 2 },
+        hasRightEntity: { outgoing: 2, incoming: 2 },
+        ...currentTimeInstantTemporalAxes,
+      },
       fetchPolicy: "network-only",
     })
-    .then((res) =>
-      res.data.page.contents.map((contentItem) => contentItem.rightEntity),
-    );
+    .then(({ data }) => {
+      const subgraph = data.getEntity as Subgraph<EntityRootType>;
+
+      const [blockCollectionEntity] = getRoots(subgraph);
+
+      const blockEntities = getOutgoingLinkAndTargetEntities(
+        subgraph,
+        blockCollectionEntity!.metadata.recordId.entityId,
+      )
+        .filter(
+          ({
+            linkEntity: linkEntityRevisions,
+            rightEntity: rightEntityRevisions,
+          }) =>
+            linkEntityRevisions[0] &&
+            linkEntityRevisions[0].metadata.entityTypeId ===
+              types.linkEntityType.contains.linkEntityTypeId &&
+            rightEntityRevisions[0] &&
+            rightEntityRevisions[0].metadata.entityTypeId ===
+              types.entityType.block.entityTypeId,
+        )
+        .map(
+          ({ rightEntity: rightEntityRevisions }) =>
+            rightEntityRevisions[0] as Entity<BlockProperties>,
+        );
+
+      return blockEntities.map((blockEntity) =>
+        mapEntityToGqlBlock(blockEntity, subgraph),
+      );
+    });
 
   // const entityTypeForComponentId = new Map<string, string>();
 
@@ -406,27 +494,28 @@ export const save = async (
   );
 
   let currentBlocks = blocks;
-  let placeholders: UpdatePageContentsResultPlaceholder[] = [];
+  let placeholders: UpdateBlockCollectionContentsResultPlaceholder[] = [];
 
   if (actions.length > 0) {
     // Even if the actions list is empty, we hit the endpoint to get an updated
-    // page result.
+    // block collection result.
     const res = await apolloClient.mutate<
-      UpdatePageContentsMutation,
-      UpdatePageContentsMutationVariables
+      UpdateBlockCollectionContentsMutation,
+      UpdateBlockCollectionContentsMutationVariables
     >({
-      variables: { entityId: pageEntityId, actions },
-      mutation: updatePageContents,
+      variables: { entityId: blockCollectionEntityId, actions },
+      mutation: updateBlockCollectionContents,
     });
 
     if (!res.data) {
       throw new Error("Failed");
     }
 
-    currentBlocks = res.data.updatePageContents.page.contents.map(
-      (contentItem) => contentItem.rightEntity,
-    );
-    placeholders = res.data.updatePageContents.placeholders;
+    currentBlocks =
+      res.data.updateBlockCollectionContents.blockCollection.contents.map(
+        (contentItem) => contentItem.rightEntity,
+      );
+    placeholders = res.data.updateBlockCollectionContents.placeholders;
   }
   const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);
 

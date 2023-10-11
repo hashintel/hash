@@ -1,8 +1,10 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
+import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import {
-  getPageQuery,
-  updatePageContents,
-} from "@local/hash-graphql-shared/queries/page.queries";
+  UpdateBlockCollectionContentsMutation,
+  UpdateBlockCollectionContentsMutationVariables,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { EntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
 import {
@@ -14,13 +16,9 @@ import {
   TLOpacityType,
 } from "@tldraw/tldraw";
 
-import { BlockContextProvider } from "../../../../blocks/page/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
-import {
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { apolloClient } from "../../../../lib/apollo-client";
+import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import {
   defaultBlockHeight,
   defaultBlockWidth,
@@ -51,8 +49,8 @@ const persistBlockPosition = ({
   canvasPosition: CanvasPosition;
 }) => {
   void apolloClient.mutate<
-    UpdatePageContentsMutation,
-    UpdatePageContentsMutationVariables
+    UpdateBlockCollectionContentsMutation,
+    UpdateBlockCollectionContentsMutationVariables
   >({
     variables: {
       actions: {
@@ -64,7 +62,7 @@ const persistBlockPosition = ({
       },
       entityId: pageEntityId,
     },
-    mutation: updatePageContents,
+    mutation: updateBlockCollectionContents,
     refetchQueries: [
       { query: getPageQuery, variables: { entityId: pageEntityId } },
     ],

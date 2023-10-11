@@ -1,6 +1,5 @@
 import { gql } from "@apollo/client";
-
-import { subgraphFieldsFragment } from "../subgraph";
+import { subgraphFieldsFragment } from "@local/hash-graphql-shared/queries/subgraph";
 
 export const createOrgMutation = gql`
   mutation createOrg($shortname: String!, $name: String!, $website: String) {
