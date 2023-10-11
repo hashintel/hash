@@ -1,9 +1,12 @@
 import { EntityType, extractVersion } from "@blockprotocol/type-system/slim";
-import { EntityTypeIcon, LinkTypeIcon } from "@hashintel/design-system";
+import {
+  ArrowUpRightIcon,
+  EntityTypeIcon,
+  LinkTypeIcon,
+} from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
 
-import { ArrowUpRightIcon } from "../../../../../../shared/icons/arrow-up-right-icon";
 import { Button, Link, Modal } from "../../../../../../shared/ui";
 import { CreateEntityTypeForm } from "../../../../../shared/create-entity-type-form";
 import { EntityTypeDescription } from "../entity-type-description";

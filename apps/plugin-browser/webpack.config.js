@@ -49,9 +49,6 @@ const options = {
     options: path.join(__dirname, "src", "pages", "options.tsx"),
     popup: path.join(__dirname, "src", "pages", "popup.tsx"),
   },
-  chromeExtensionBoilerplate: {
-    notHotReload: ["background", "content"],
-  },
   output: {
     filename: "[name].bundle.js",
     path: path.resolve(__dirname, "build"),
@@ -92,17 +89,6 @@ const options = {
         test: /\.html$/,
         use: {
           loader: "html-loader",
-          options: {
-            sources: {
-              urlFilter: (attribute, value) => {
-                if (/browser-polyfill.js$/.test(value)) {
-                  return false;
-                }
-
-                return true;
-              },
-            },
-          },
         },
         exclude: /node_modules/,
       },

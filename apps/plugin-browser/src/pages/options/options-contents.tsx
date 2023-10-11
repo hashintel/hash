@@ -2,14 +2,10 @@ import "../shared/common.scss";
 
 import { Button } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box, Skeleton, Stack, ThemeProvider, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
 
-import { getUser } from "../shared/get-user";
 import { HashLockup } from "../shared/hash-lockup";
-import { retrieveUser, storeUser } from "../shared/storage";
+import { useUser } from "../shared/use-user";
 import { browserName } from "../shared/which-browser";
 
 /**
@@ -19,19 +15,7 @@ import { browserName } from "../shared/which-browser";
  * @see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync
  */
 export const OptionsContents = () => {
-  const userInStorage = retrieveUser();
-
-  const [loading, setLoading] = useState(!userInStorage);
-  const [user, setUser] = useState<Simplified<User> | null>(userInStorage);
-
-  useEffect(() => {
-    void getUser()
-      .then((simplifiedUser) => {
-        setUser(simplifiedUser);
-        storeUser(simplifiedUser);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { user, loading } = useUser();
 
   return (
     <ThemeProvider theme={theme}>

@@ -3,7 +3,7 @@ import { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { queryApi } from "./query-api";
+import { queryApi } from "../../shared/query-api";
 
 const meQuery = /* GraphQL */ `
   {

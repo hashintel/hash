@@ -12,8 +12,6 @@ import browser from "webextension-polyfill";
  */
 import { Message } from "../shared/messages";
 
-console.log("Content script loaded");
-
 browser.runtime.onMessage.addListener(
   (message: Message, _sender, sendResponse) => {
     if (message.type === "get-site-content") {

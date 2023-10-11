@@ -35,7 +35,7 @@
     "@mui/material": "5.14.11",
     "immer": "9.0.6",
     "lodash.isequal": "4.5.0",
-    "uuid": "9.0.0"
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

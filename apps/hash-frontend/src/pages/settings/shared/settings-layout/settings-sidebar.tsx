@@ -1,5 +1,4 @@
-import { CaretDownIcon } from "@hashintel/block-design-system";
-import { IconButton } from "@hashintel/design-system";
+import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   Collapse,
@@ -153,7 +152,7 @@ const SidebarItem = ({
               }),
             })}
           >
-            <CaretDownIcon
+            <CaretDownSolidIcon
               sx={{
                 fill:
                   level === 2 && !active ? theme.palette.gray[40] : itemColor,
