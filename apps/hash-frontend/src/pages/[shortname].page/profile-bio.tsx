@@ -11,7 +11,7 @@ import {
 } from "@local/hash-subgraph/.";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import {
   FunctionComponent,
   useCallback,
@@ -344,11 +344,13 @@ export const ProfileBio: FunctionComponent<{
               </Box>
             </UserBlocksProvider>
           </BlockLoadedProvider>
-        ) : (
+        ) : isBioEmpty ? (
           <Typography sx={{ color: ({ palette }) => palette.gray[60] }}>
             Add a bio for{" "}
             {profile.kind === "user" ? profile.preferredName : profile.name}...
           </Typography>
+        ) : (
+          <Skeleton width="75%" />
         )}
         {isEditable ? (
           <IconButton
