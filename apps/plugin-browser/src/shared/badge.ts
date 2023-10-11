@@ -1,3 +1,4 @@
+import { customColors } from "@hashintel/design-system/theme";
 import browser from "webextension-polyfill";
 
 export const clearBadge = () => {
@@ -6,7 +7,7 @@ export const clearBadge = () => {
 
 export const setLoadingBadge = () => {
   void browser.action.setBadgeText({ text: "💭" });
-  void browser.action.setBadgeBackgroundColor({ color: "#006DC3" });
+  void browser.action.setBadgeBackgroundColor({ color: customColors.blue[80] });
 };
 
 export const setErroredBadge = () => {
@@ -15,7 +16,7 @@ export const setErroredBadge = () => {
 };
 
 export const setSuccessBadge = (num: number) => {
-  void browser.action.setBadgeBackgroundColor({ color: "#78B040" });
+  void browser.action.setBadgeBackgroundColor({ color: customColors.lime[70] });
   void browser.action.setBadgeText({ text: num.toString() });
   browser.action.setBadgeTextColor({ color: "white" });
 };
