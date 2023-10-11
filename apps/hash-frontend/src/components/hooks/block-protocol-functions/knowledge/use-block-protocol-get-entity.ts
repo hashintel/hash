@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
@@ -6,7 +7,6 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntityQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
