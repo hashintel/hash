@@ -188,6 +188,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <EntityEditorPage
+      entity={entityFromDb}
       editBar={
         <EditBar
           visible={showEditBar}
