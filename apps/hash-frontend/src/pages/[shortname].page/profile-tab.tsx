@@ -10,10 +10,12 @@ export const ProfileTab: FunctionComponent<{
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => (
   <Box>
-    <ProfileBio
-      profile={profile}
-      refetchProfile={refetchProfile}
-      isEditable={isEditable}
-    />
+    {profile.hasBio || isEditable ? (
+      <ProfileBio
+        profile={profile}
+        refetchProfile={refetchProfile}
+        isEditable={isEditable}
+      />
+    ) : null}
   </Box>
 );
