@@ -28,6 +28,8 @@ import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol
 import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
 import { Org, User } from "../../lib/user-and-org";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
+import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
+import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 
 const getProfileBioContents = (params: {
   profileBioSubgraph: Subgraph<EntityRootType>;
@@ -279,66 +281,89 @@ export const ProfileBio: FunctionComponent<{
   }, [profile, profileBioContents]);
 
   return (
-    <Box
-      sx={{
-        paddingY: 3,
-        paddingX: 4,
-        backgroundColor: ({ palette }) => palette.common.white,
-        display: "flex",
-        alignItems: "flex-start",
-        borderRadius: "8px",
-        borderColor: ({ palette }) => palette.gray[30],
-        borderStyle: "solid",
-        borderWidth: 1,
-        justifyContent: "space-between",
-      }}
-    >
-      {profile.hasBio && profileBioContents && (isEditing || !isBioEmpty) ? (
-        <BlockLoadedProvider>
-          <UserBlocksProvider value={{}}>
-            <Box
-              sx={{
-                flexGrow: 1,
-                paddingY: isEditing ? 2 : 0,
-              }}
-            >
-              <BlockCollection
-                contents={profileBioContents}
-                ownedById={ownedById}
-                entityId={
-                  profile.hasBio.profileBioEntity.metadata.recordId.entityId
-                }
-                readonly={!isEditable || !isEditing}
-                sx={{
-                  ".ProseMirror": {
-                    paddingLeft: isEditing ? 1 : 0,
-                    transition: ({ transitions }) =>
-                      transitions.create("padding"),
-                  },
-                }}
-              />
-            </Box>
-          </UserBlocksProvider>
-        </BlockLoadedProvider>
-      ) : (
-        <Typography sx={{ color: ({ palette }) => palette.gray[60] }}>
-          Add a bio for{" "}
-          {profile.kind === "user" ? profile.preferredName : profile.name}...
-        </Typography>
-      )}
-      {isEditable ? (
-        <IconButton
-          onClick={toggleEdit}
-          disabled={isTogglingEdit}
+    <>
+      <Box display="flex" columnGap={1.5}>
+        <ProfileSectionHeading marginBottom={1.5}>
+          Overview
+        </ProfileSectionHeading>
+        <Typography
           sx={{
-            color: ({ palette }) => palette.blue[70],
-            marginRight: -2,
-            marginTop: -1,
+            fontSize: 12,
+            fontWeight: 600,
+            color: ({ palette }) => palette.gray[70],
           }}
         >
-          {isEditing ? <CheckRegularIcon /> : <PenRegularIcon />}
-        </IconButton>
-      ) : null}
-    </Box>
+          Always{" "}
+          <Box
+            component="span"
+            sx={{ color: ({ palette }) => palette.common.black }}
+          >
+            <GlobeRegularIcon sx={{ fontSize: 11, marginBottom: -0.1 }} />{" "}
+            Public
+          </Box>
+        </Typography>
+      </Box>
+      <Box
+        sx={{
+          paddingY: 3,
+          paddingX: 4,
+          backgroundColor: ({ palette }) => palette.common.white,
+          display: "flex",
+          alignItems: "flex-start",
+          borderRadius: "8px",
+          borderColor: ({ palette }) => palette.gray[30],
+          borderStyle: "solid",
+          borderWidth: 1,
+          justifyContent: "space-between",
+        }}
+      >
+        {profile.hasBio && profileBioContents && (isEditing || !isBioEmpty) ? (
+          <BlockLoadedProvider>
+            <UserBlocksProvider value={{}}>
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  paddingY: isEditing ? 2 : 0,
+                }}
+              >
+                <BlockCollection
+                  contents={profileBioContents}
+                  ownedById={ownedById}
+                  entityId={
+                    profile.hasBio.profileBioEntity.metadata.recordId.entityId
+                  }
+                  readonly={!isEditable || !isEditing}
+                  sx={{
+                    ".ProseMirror": {
+                      paddingLeft: isEditing ? 1 : 0,
+                      transition: ({ transitions }) =>
+                        transitions.create("padding"),
+                    },
+                  }}
+                />
+              </Box>
+            </UserBlocksProvider>
+          </BlockLoadedProvider>
+        ) : (
+          <Typography sx={{ color: ({ palette }) => palette.gray[60] }}>
+            Add a bio for{" "}
+            {profile.kind === "user" ? profile.preferredName : profile.name}...
+          </Typography>
+        )}
+        {isEditable ? (
+          <IconButton
+            onClick={toggleEdit}
+            disabled={isTogglingEdit}
+            sx={{
+              color: ({ palette }) => palette.blue[70],
+              marginRight: -2,
+              marginTop: -1,
+            }}
+          >
+            {isEditing ? <CheckRegularIcon /> : <PenRegularIcon />}
+          </IconButton>
+        ) : null}
+      </Box>
+    </>
   );
 };
