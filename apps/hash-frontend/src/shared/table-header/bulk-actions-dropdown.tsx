@@ -1,6 +1,5 @@
 import { useMutation } from "@apollo/client";
-import { CaretDownIcon } from "@hashintel/block-design-system";
-import { Chip } from "@hashintel/design-system";
+import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -263,7 +262,7 @@ export const BulkActionsDropdown: FunctionComponent<{
         label={
           <>
             {selectedItems.length} selected{" "}
-            <CaretDownIcon
+            <CaretDownSolidIcon
               sx={{
                 fontSize: 12,
                 transform: `rotate(${popupState.isOpen ? 180 : 0}deg)`,

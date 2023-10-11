@@ -29,7 +29,7 @@ pytest-vcr = "^1.0.2"
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.9.1"
 ruff = "^0.0.292"
-mypy = "^1.5.1"
+mypy = "^1.6.0"
 
 
 [tool.pytest.ini_options]

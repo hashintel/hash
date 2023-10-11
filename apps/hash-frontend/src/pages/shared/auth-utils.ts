@@ -95,18 +95,18 @@ export const parseGraphQLError = (
   priorityErrorCode?: string,
 ): { errorCode: string; message: string } => {
   const priorityError = errors.find(
-    ({ extensions }) => extensions?.code === priorityErrorCode,
+    ({ extensions }) => extensions.code === priorityErrorCode,
   );
 
   if (priorityError) {
     return {
-      errorCode: priorityError.extensions!.code,
+      errorCode: priorityError.extensions.code as string,
       message: priorityError.message,
     };
   }
 
   return {
-    errorCode: errors[0]!.extensions?.code,
+    errorCode: errors[0]!.extensions.code as string,
     message: errors[0]!.message,
   };
 };
