@@ -57,22 +57,14 @@ const PrivacyStatusMenuItem = styled(MenuItem)(({ theme }) => ({
   },
 }));
 
-const EditPrivacyStatusMenu: FunctionComponent<{ entity: Entity }> = ({
-  entity,
-}) => {
+const EditPrivacyStatusMenu: FunctionComponent<{
+  entity: Entity;
+  isEntityPublic?: boolean;
+}> = ({ isEntityPublic, entity }) => {
   const privacyStatusPopupState = usePopupState({
     variant: "popover",
     popupId: "privacy-status-dropdown-menu",
   });
-
-  const { data } = useQuery<IsEntityPublicQuery, IsEntityPublicQueryVariables>(
-    isEntityPublicQuery,
-    {
-      variables: {
-        entityId: entity.metadata.recordId.entityId,
-      },
-    },
-  );
 
   const { entityId } = entity.metadata.recordId;
 
@@ -100,8 +92,6 @@ const EditPrivacyStatusMenu: FunctionComponent<{ entity: Entity }> = ({
         },
       ],
     });
-
-  const { isEntityPublic } = data ?? {};
 
   const setEntityToPrivate = useCallback(async () => {
     await removeEntityViewer({
@@ -176,14 +166,36 @@ const EditPrivacyStatusMenu: FunctionComponent<{ entity: Entity }> = ({
 export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
   entity,
 }) => {
+  const { data } = useQuery<IsEntityPublicQuery, IsEntityPublicQueryVariables>(
+    isEntityPublicQuery,
+    {
+      variables: {
+        entityId: entity.metadata.recordId.entityId,
+      },
+    },
+  );
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "share-dropdown-menu",
   });
 
+  const { isEntityPublic } = data ?? {};
+
   return (
     <>
-      <Button size="xs" variant="tertiary_quiet" {...bindTrigger(popupState)}>
+      <Button
+        startIcon={
+          typeof isEntityPublic === "undefined" ? null : isEntityPublic ? (
+            <GlobeRegularIcon />
+          ) : (
+            <LockRegularIcon />
+          )
+        }
+        size="xs"
+        variant="tertiary_quiet"
+        {...bindTrigger(popupState)}
+      >
         Share
       </Button>
       <Popover
@@ -222,7 +234,10 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
         </Box>
         <Divider sx={{ borderColor: ({ palette }) => palette.gray[30] }} />
         <Box position="relative" paddingBottom={4.25}>
-          <EditPrivacyStatusMenu entity={entity} />
+          <EditPrivacyStatusMenu
+            isEntityPublic={isEntityPublic}
+            entity={entity}
+          />
           {/* @todo: add "Share this page" section */}
         </Box>
       </Popover>
