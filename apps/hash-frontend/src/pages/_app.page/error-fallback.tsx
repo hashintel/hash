@@ -73,8 +73,8 @@ export const ErrorFallback: FallbackRender = ({
         </Button>
       </Box>
       <Typography mt={2}>
-        You can also <Link href="/contact">contact us</Link>. If you do, please
-        include the details below.
+        You can also <Link href="https://hash.ai/contact">contact us</Link>. If
+        you do, please include the details below.
       </Typography>
       <Button
         onClick={() => setShowMessage(!showMessage)}
