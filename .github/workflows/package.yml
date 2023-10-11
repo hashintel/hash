@@ -686,6 +686,9 @@ jobs:
           hash-ai-worker-py: true
           hash-integration-worker: true
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
