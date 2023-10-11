@@ -18,6 +18,7 @@ impl Resource for EntityUuid {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EntityRelation {
     DirectOwner,

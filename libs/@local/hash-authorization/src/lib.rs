@@ -22,8 +22,8 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError},
-    schema::OwnerId,
+    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    schema::{EntityRelation, OwnerId},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -265,6 +265,14 @@ impl AuthorizationApi for NoAuthorization {
             has_permission: true,
             checked_at: Zookie::empty(),
         })
+    }
+
+    async fn get_entity_relations(
+        &self,
+        _entity: EntityId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(VisibilityScope, EntityRelation)>, ReadError> {
+        Ok(Vec::new())
     }
 }
 

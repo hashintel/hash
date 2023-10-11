@@ -9,18 +9,22 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError},
-    schema::{OwnerId, PublicAccess},
+    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    schema::{EntityRelation, OwnerId, PublicAccess},
     zanzibar::{Consistency, Resource, Zookie},
 };
 
 // TODO: Replace with something permission specific which can directly be reused once permissions
 //       are implemented.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum VisibilityScope {
+    #[cfg_attr(feature = "utoipa", schema(title = "PublicScope"))]
     Public,
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountScope"))]
     Account(AccountId),
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountGroupScope"))]
     AccountGroup(AccountGroupId),
 }
 
@@ -244,6 +248,12 @@ pub trait AuthorizationApi {
             Ok((result, zookie))
         }
     }
+
+    fn get_entity_relations(
+        &self,
+        entity: EntityId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<(VisibilityScope, EntityRelation)>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

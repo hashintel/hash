@@ -5,7 +5,9 @@
 use std::{iter::once, sync::Arc};
 
 use authorization::{
-    schema::OwnerId, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool, VisibilityScope,
+    schema::{EntityRelation, OwnerId},
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool, VisibilityScope,
 };
 use axum::{
     extract::Path,
@@ -49,6 +51,8 @@ use crate::{
         can_update_entity,
         update_entity,
 
+        get_entity_relations,
+
         add_entity_owner,
         remove_entity_owner,
         add_entity_editor,
@@ -62,6 +66,11 @@ use crate::{
             UpdateEntityRequest,
             EntityQueryToken,
             EntityStructuralQuery,
+
+            EntityRelations,
+            EntityRelation,
+            VisibilityScope,
+            EntityRelationScope,
 
             Entity,
             EntityUuid,
@@ -100,6 +109,7 @@ impl RoutedResource for EntityResource {
                 .nest(
                     "/:entity_id",
                     Router::new()
+                        .route("/relations", get(get_entity_relations::<A>))
                         .route(
                             "/owners/:owner",
                             post(add_entity_owner::<A, S>).delete(remove_entity_owner::<A, S>),
@@ -457,6 +467,59 @@ impl<'s> ToSchema<'s> for Viewer {
                 .into(),
         )
     }
+}
+
+#[derive(Serialize, ToSchema)]
+struct EntityRelationScope {
+    relation: EntityRelation,
+    scope: VisibilityScope,
+}
+
+#[derive(Serialize, ToSchema)]
+struct EntityRelations {
+    relations: Vec<EntityRelationScope>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/entities/{entity_id}/relations",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The Entity to read the relations for"),
+    ),
+    responses(
+        (status = 200, description = "The relations of the entity", body = EntityRelations),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn get_entity_relations<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_id): Path<EntityId>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<EntityRelations>, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(EntityRelations {
+        relations: authorization_api
+            .get_entity_relations(entity_id, Consistency::FullyConsistent)
+            .await
+            .map_err(|error| {
+                tracing::error!(?error, "Could not add entity owner");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .into_iter()
+            .map(|(scope, relation)| EntityRelationScope { relation, scope })
+            .collect(),
+    }))
 }
 
 #[utoipa::path(
