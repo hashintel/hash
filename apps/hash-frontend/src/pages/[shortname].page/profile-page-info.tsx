@@ -18,6 +18,7 @@ import {
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { FunctionComponent, ReactNode, useMemo } from "react";
 
+import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
@@ -123,16 +124,17 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
 const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
   userProfile,
 }) => {
-  const orgs = useMemo(
-    () => userProfile.memberOf.map(({ org }) => org),
-    [userProfile],
-  );
+  const { orgs } = useOrgsWithLinks({
+    orgAccountGroupIds: userProfile.memberOf.map(
+      ({ org }) => org.accountGroupId,
+    ),
+  });
 
   return (
     <Box>
       <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
       <Box display="flex" flexWrap="wrap" gap={1.5}>
-        {orgs.map((org) => {
+        {orgs?.map((org) => {
           const avatarSrc = org.hasAvatar
             ? getImageUrlFromEntityProperties(
                 org.hasAvatar.imageEntity.properties,
@@ -161,9 +163,7 @@ const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
                   src={avatarSrc}
                   title={org.name}
                   size={28}
-                  sx={{
-                    borderRadius: "4px",
-                  }}
+                  borderRadius="4px"
                 />
               </Link>
             </Tooltip>
