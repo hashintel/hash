@@ -26,8 +26,8 @@ import {
 } from "react";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useBlockContext } from "../../blocks/page/block-context";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
+import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { WorkspaceContext } from "../../pages/shared/workspace-context";
 import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";

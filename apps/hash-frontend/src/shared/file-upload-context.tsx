@@ -25,7 +25,7 @@ import {
   CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
   CreateFileFromUrlMutationVariables,
-  PresignedFormPost,
+  PresignedPut,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
 } from "../graphql/api-types.gen";
@@ -90,7 +90,7 @@ type FileCreatingFileEntity = FileUploadVariant<{
 
 type FileUploadUploading = FileUploadVariant<{
   createdEntities: Pick<FileUploadEntities, "fileEntity">;
-  presignedPostForm: PresignedFormPost;
+  presignedPut: PresignedPut;
   status: "uploading-file-locally";
 }>;
 
@@ -108,7 +108,7 @@ type FileUploadError = FileUploadVariant<{
   createdEntities?: Pick<FileUploadEntities, "fileEntity">;
   errorMessage: string;
   failedStep: FileUploadStatus;
-  presignedPostForm?: PresignedFormPost;
+  presignedPut?: PresignedPut;
   status: "error";
 }>;
 
@@ -282,8 +282,8 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         existingUpload?.failedStep !== "creating-link-entity" &&
         existingUpload?.failedStep !== "archiving-link-entity"
       ) {
-        let presignedPostForm: PresignedFormPost | undefined =
-          "presignedPostForm" in upload ? upload.presignedPostForm : undefined;
+        let presignedPut: PresignedPut | undefined =
+          "presignedPut" in upload ? upload.presignedPut : undefined;
 
         try {
           if (!fileEntity) {
@@ -312,21 +312,21 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             fileEntity = data.requestFileUpload
               .entity as unknown as FileEntityType;
 
-            presignedPostForm = data.requestFileUpload.presignedPost;
+            presignedPut = data.requestFileUpload.presignedPut;
 
             const updatedUpload: FileUpload = {
               ...upload,
               createdEntities: { fileEntity },
-              presignedPostForm,
+              presignedPut,
               status: "uploading-file-locally",
             };
             updateUpload(updatedUpload);
           }
 
-          if (!presignedPostForm) {
+          if (!presignedPut) {
             // We should never get here as we should have the presigned form from an existing upload or the requestFileUploadFn call above
             throw new Error(
-              `No presignedPostForm found for requestId ${requestId}, cannot upload file`,
+              `No presignedPut found for requestId ${requestId}, cannot upload file`,
             );
           }
 
@@ -334,7 +334,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
            * Upload file with presignedPost data to storage provider
            */
           await uploadFileToStorageProvider(
-            presignedPostForm,
+            presignedPut,
             fileData.file,
             (progress) => {
               setUploadsProgress((prevProgress) => ({

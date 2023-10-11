@@ -28,9 +28,9 @@ export interface GetFileEntityStorageKeyParams {
 
 export interface UploadableStorageProvider extends StorageProvider, DataSource {
   /** Presigns a file upload request for a client to later upload a file
-   * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
+   * @return {Promise<PresignedPutUpload>} Object containing the data and url needed to POST the file
    */
-  presignUpload(params: PresignedStorageRequest): Promise<PresignedPostUpload>;
+  presignUpload(params: PresignedStorageRequest): Promise<PresignedPutUpload>;
   /** For a given file upload request, generates the path/key to store the file. This method
    * needs to be defined by each storage provider, as different storage providers might want to store files in different paths
    */
@@ -41,9 +41,10 @@ export interface UploadableStorageProvider extends StorageProvider, DataSource {
 export interface PresignedStorageRequest {
   /** Key (or path) of the file in the storage */
   key: string;
-  /** Custom parameter fields to add to the storage request (currently used by S3) */
-  fields: {
-    [key: string]: string;
+  /** Headers to add to the storage request (currently used by S3-compatible storage providers) */
+  headers?: {
+    "content-type"?: string;
+    "content-length"?: number;
   };
   /** Expiry delay for the upload authorisation. The client needs to upload a file before that time */
   expiresInSeconds: number;
@@ -57,14 +58,12 @@ export interface PresignedDownloadRequest {
   expiresInSeconds: number;
 }
 
-/** Data returned for a client
- * to be able to send a POST request to upload a file */
-export interface PresignedPostUpload {
-  /** URL to send the upload request to */
+/**
+ * Data returned for a client to be able to send a PUT request to upload a file
+ * PUT rather than POST is used for R2 compatibility
+ * @see https://developers.cloudflare.com/r2/api/s3/presigned-urls
+ */
+export interface PresignedPutUpload {
+  /** PUT URL to send the upload request to, including any headers */
   url: string;
-  /** form-data fields that must be appended to the POST data
-   * when uploading the file */
-  fields: {
-    [key: string]: string;
-  };
 }

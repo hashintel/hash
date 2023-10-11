@@ -33,3 +33,5 @@ export const waitOnResource = async (
 
   logger?.debug(`${resource} is ready`);
 };
+
+export const realtimeSyncEnabled = process.env.ENABLE_REALTIME_SYNC === "true";

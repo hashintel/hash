@@ -8,6 +8,21 @@ export type Block = Entity<BlockProperties>;
 
 export type BlockBlockDataLink = { linkEntity: BlockData; rightEntity: Entity };
 
+export type BlockCollection = Entity<BlockCollectionProperties>;
+
+export type BlockCollectionContainsLink = {
+  linkEntity: Contains;
+  rightEntity: Block;
+};
+
+export type BlockCollectionOutgoingLinkAndTarget = BlockCollectionContainsLink;
+
+export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/contains/v/1": BlockCollectionContainsLink;
+};
+
+export type BlockCollectionProperties = {};
+
 export type BlockData = Entity<BlockDataProperties> & { linkData: LinkData };
 
 export type BlockDataOutgoingLinkAndTarget = never;
@@ -43,6 +58,20 @@ export type ComponentIdPropertyValue = TextDataType;
  * The name of the connection source.
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
+
+export type Contains = Entity<ContainsProperties> & { linkData: LinkData };
+
+export type ContainsOutgoingLinkAndTarget = never;
+
+export type ContainsOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something containing something.
+ */
+export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
+export type ContainsProperties1 = LinkProperties;
+
+export type ContainsProperties2 = {};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -116,6 +145,20 @@ export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
 export type HasAvatarProperties1 = LinkProperties;
 
 export type HasAvatarProperties2 = {};
+
+export type HasBio = Entity<HasBioProperties> & { linkData: LinkData };
+
+export type HasBioOutgoingLinkAndTarget = never;
+
+export type HasBioOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that has a bio.
+ */
+export type HasBioProperties = HasBioProperties1 & HasBioProperties2;
+export type HasBioProperties1 = LinkProperties;
+
+export type HasBioProperties2 = {};
 
 export type HasCoverImage = Entity<HasCoverImageProperties> & {
   linkData: LinkData;
@@ -201,6 +244,8 @@ export type Org = Entity<OrgProperties>;
 
 export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type OrgHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
+
 export type OrgHasCoverImageLink = {
   linkEntity: HasCoverImage;
   rightEntity: Image;
@@ -220,10 +265,14 @@ export type OrgMembershipProperties1 = LinkProperties;
 
 export type OrgMembershipProperties2 = {};
 
-export type OrgOutgoingLinkAndTarget = OrgHasAvatarLink | OrgHasCoverImageLink;
+export type OrgOutgoingLinkAndTarget =
+  | OrgHasAvatarLink
+  | OrgHasBioLink
+  | OrgHasCoverImageLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": OrgHasBioLink;
   "http://localhost:3000/@system-user/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
 };
 
@@ -310,6 +359,18 @@ export type PreferredNamePropertyValue = TextDataType;
 
 export type PreferredPronounsPropertyValue = TextDataType;
 
+export type ProfileBio = Entity<ProfileBioProperties>;
+
+export type ProfileBioOutgoingLinkAndTarget = never;
+
+export type ProfileBioOutgoingLinksByLinkEntityTypeId = {};
+
+export type ProfileBioProperties = ProfileBioProperties1 &
+  ProfileBioProperties2;
+export type ProfileBioProperties1 = BlockCollectionProperties;
+
+export type ProfileBioProperties2 = {};
+
 /**
  * A URL to a profile
  */
@@ -354,6 +415,8 @@ export type User = Entity<UserProperties>;
 
 export type UserHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
 
+export type UserHasBioLink = { linkEntity: HasBio; rightEntity: ProfileBio };
+
 export type UserHasServiceAccountLink = {
   linkEntity: HasServiceAccount;
   rightEntity: ServiceAccount;
@@ -366,11 +429,13 @@ export type UserOrgMembershipLink = {
 
 export type UserOutgoingLinkAndTarget =
   | UserHasAvatarLink
+  | UserHasBioLink
   | UserHasServiceAccountLink
   | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": UserHasBioLink;
   "http://localhost:3000/@system-user/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };

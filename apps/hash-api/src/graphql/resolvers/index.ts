@@ -6,6 +6,8 @@ import { getLinearOrganizationResolver } from "./integrations/linear/linear-orga
 import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
+import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
+import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
 import { commentAuthorResolver } from "./knowledge/comment/author";
 import { createCommentResolver } from "./knowledge/comment/comment";
 import { deleteCommentResolver } from "./knowledge/comment/delete";
@@ -28,7 +30,7 @@ import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceEntityResolver } from "./knowledge/hash-instance/hash-instance";
 import { createOrgResolver } from "./knowledge/org/create-org";
-import { pageContents, updatePageContents } from "./knowledge/page";
+import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
   pageCommentsResolver,
@@ -98,7 +100,9 @@ export const resolvers = {
 
   Mutation: {
     // Logged in and signed up users only
-    updatePageContents: loggedInAndSignedUpMiddleware(updatePageContents),
+    updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
+      updateBlockCollectionContents,
+    ),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
     // Ontology
@@ -150,6 +154,10 @@ export const resolvers = {
   Page: {
     contents: pageContents,
     parentPage: parentPageResolver,
+  },
+
+  BlockCollection: {
+    contents: blockCollectionContents,
   },
 
   Comment: {

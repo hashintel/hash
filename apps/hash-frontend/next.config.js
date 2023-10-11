@@ -20,12 +20,10 @@ const sentryWebpackPluginOptions = {
 
 // Insert other public env variables here. We have to add the `NEXT_PUBLIC` prefix for next to find them.
 // They then get converted into variables with the right name in `frontend/src/lib/public-env.ts`
-process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
-  process.env.HASH_OPENSEARCH_ENABLED;
+// NOTE THAT any environment variable which is _missing_ will be converted to the string 'undefined' if no fallback is set
 
-process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
-  process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR ??
-  process.env.BLOCK_BASED_ENTITY_EDITOR;
+process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
+  process.env.HASH_OPENSEARCH_ENABLED ?? false;
 
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
@@ -33,14 +31,15 @@ process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 // This allows the frontend to have the system account shortname, used to generate system types in shared/src/types.ts
 // the frontend imports 'types' from that file in various places
 process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME =
-  process.env.SYSTEM_USER_SHORTNAME;
+  process.env.SYSTEM_USER_SHORTNAME ?? "system-user";
 
 // The API origin
-process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
+process.env.NEXT_PUBLIC_API_ORIGIN =
+  process.env.API_ORIGIN ?? "http://localhost:5001";
 
-process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
+process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
-  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
+  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? 1;
 
 /**
  * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`

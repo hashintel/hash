@@ -46,6 +46,7 @@ import { PageLightIcon } from "../../shared/icons/page-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button, Link, MenuItem } from "../../shared/ui";
 import { useEntityIcon } from "../../shared/use-entity-icon";
+import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
@@ -232,12 +233,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
   return (
     <Box>
       <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
-        <Typography
-          variant="smallCaps"
-          sx={{ color: ({ palette }) => palette.gray[70], fontSize: 12 }}
-        >
-          {currentTab.pluralTitle}
-        </Typography>
+        <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
         <Box display="flex" alignItems="center" columnGap={1}>
           <Typography
             sx={{

@@ -16,8 +16,8 @@ import {
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
 
-import { PAGE_TITLE_PLACEHOLDER } from "../../blocks/page/page-title/page-title";
 import { Button, MenuItem } from "../../shared/ui";
+import { PAGE_TITLE_PLACEHOLDER } from "./block-collection/page-title/page-title";
 
 export type Breadcrumb = {
   title: string;
