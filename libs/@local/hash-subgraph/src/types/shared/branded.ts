@@ -3,6 +3,7 @@ import {
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
+import { EntityRelation, EntitySubject } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
@@ -89,3 +90,15 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
   entityId: AccountGroupEntityId,
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
 ) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
+
+export type AuthorizationRelationship<O, R, S> = {
+  object: O;
+  relation: R;
+  subject: S;
+};
+
+export type EntityAuthorizationRelationship = AuthorizationRelationship<
+  EntityId,
+  EntityRelation,
+  EntitySubject
+>;

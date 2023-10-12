@@ -49,6 +49,7 @@ import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
 import { Button, Link } from "../../shared/ui";
 import { entityTypeIcons } from "../../shared/use-entity-icon";
+import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 
@@ -272,12 +273,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           padding={3}
           paddingTop={2.25}
         >
-          <Typography
-            variant="smallCaps"
-            sx={{ color: ({ palette }) => palette.gray[70] }}
-          >
-            Types
-          </Typography>
+          <ProfileSectionHeading>Types</ProfileSectionHeading>
           <DragDropContext onDragEnd={handleOnDragEnd}>
             <Droppable droppableId="pinnedEntityTypes">
               {(providedDroppable) => (

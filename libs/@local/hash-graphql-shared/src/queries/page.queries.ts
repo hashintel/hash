@@ -37,22 +37,3 @@ export const getPageQuery = gql`
   }
   ${pageFieldsFragment}
 `;
-
-export const updatePageContents = gql`
-  mutation updatePageContents(
-    $entityId: EntityId!
-    $actions: [UpdatePageAction!]!
-  ) {
-    updatePageContents(entityId: $entityId, actions: $actions) {
-      page {
-        ...PageFields
-      }
-      placeholders {
-        placeholderId
-        entityId
-      }
-    }
-  }
-
-  ${pageFieldsFragment}
-`;

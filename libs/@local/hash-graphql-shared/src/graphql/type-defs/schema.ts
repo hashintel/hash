@@ -4,6 +4,7 @@ import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { linearTypedef } from "./integration/linear.typedef";
 import { blockTypedef } from "./knowledge/block.typedef";
+import { blockCollectionTypedef } from "./knowledge/block-collection.typedef";
 import { commentTypedef } from "./knowledge/comment.typedef";
 import { entityTypedef } from "./knowledge/entity.typedef";
 import { fileTypedef } from "./knowledge/file.typedef";
@@ -35,6 +36,7 @@ const knowledge = [
   entityTypedef,
   blockTypedef,
   pageTypedef,
+  blockCollectionTypedef,
   commentTypedef,
   userTypedef,
   orgTypedef,

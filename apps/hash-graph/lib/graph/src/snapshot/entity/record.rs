@@ -1,4 +1,4 @@
-use authorization::VisibilityScope;
+use authorization::EntitySubject;
 use graph_types::{
     knowledge::{
         entity::{EntityProperties, EntityRecordId, EntityTemporalMetadata},
@@ -34,9 +34,9 @@ pub struct EntitySnapshotRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_data: Option<LinkData>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub owners: Vec<VisibilityScope>,
+    pub owners: Vec<EntitySubject>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub editors: Vec<VisibilityScope>,
+    pub editors: Vec<EntitySubject>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub viewers: Vec<VisibilityScope>,
+    pub viewers: Vec<EntitySubject>,
 }

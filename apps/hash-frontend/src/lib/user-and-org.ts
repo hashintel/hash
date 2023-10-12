@@ -4,6 +4,7 @@ import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
   OrgMembershipProperties,
   OrgProperties,
+  ProfileBioProperties,
   ServiceAccountProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -120,6 +121,10 @@ export type Org = MinimalOrg & {
     linkEntity: LinkEntity;
     imageEntity: Image;
   };
+  hasBio?: {
+    linkEntity: LinkEntity;
+    profileBioEntity: Entity<ProfileBioProperties>;
+  };
   memberships: {
     linkEntity: Entity<OrgMembershipProperties>;
     user: MinimalUser;
@@ -163,6 +168,24 @@ export const constructOrg = (params: {
         linkEntity: avatarLinkAndEntities[0].linkEntity[0] as LinkEntity,
         imageEntity: avatarLinkAndEntities[0]
           .rightEntity[0] as unknown as Image,
+      }
+    : undefined;
+
+  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    orgEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasBio.linkEntityTypeId,
+  );
+
+  const hasBio = hasBioLinkAndEntities[0]
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: hasBioLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
       }
     : undefined;
 
@@ -216,7 +239,7 @@ export const constructOrg = (params: {
     orgEntity.metadata.recordId.entityId,
   );
 
-  return { ...minimalOrg, createdAt, hasAvatar, memberships };
+  return { ...minimalOrg, createdAt, hasAvatar, memberships, hasBio };
 };
 
 export type ServiceAccountKind =
@@ -244,6 +267,10 @@ export type User = MinimalUser & {
   hasCoverImage?: {
     linkEntity: LinkEntity;
     imageEntity: Image;
+  };
+  hasBio?: {
+    linkEntity: LinkEntity;
+    profileBioEntity: Entity<ProfileBioProperties>;
   };
   hasServiceAccounts: UserServiceAccount[];
   isInstanceAdmin: boolean;
@@ -385,6 +412,24 @@ export const constructUser = (params: {
       }
     : undefined;
 
+  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
+    subgraph,
+    userEntity.metadata.recordId.entityId,
+    intervalForTimestamp(new Date().toISOString() as Timestamp),
+  ).filter(
+    ({ linkEntity }) =>
+      linkEntity[0]?.metadata.entityTypeId ===
+      types.linkEntityType.hasBio.linkEntityTypeId,
+  );
+
+  const hasBio = hasBioLinkAndEntities[0]
+    ? {
+        // these are each arrays because each entity can have multiple revisions
+        linkEntity: hasBioLinkAndEntities[0].linkEntity[0] as LinkEntity,
+        profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]!,
+      }
+    : undefined;
+
   const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
@@ -429,6 +474,7 @@ export const constructUser = (params: {
   return {
     ...minimalUser,
     hasAvatar,
+    hasBio,
     hasCoverImage,
     hasServiceAccounts,
     joinedAt,

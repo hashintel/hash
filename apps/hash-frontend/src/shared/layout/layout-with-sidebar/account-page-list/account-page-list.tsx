@@ -429,10 +429,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               <DragOverlay dropAnimation={null} />
             </Box>
           )}
+          <Box marginLeft={1} marginTop={0.5}>
+            <ViewAllLink href="/pages">View all pages</ViewAllLink>
+          </Box>
         </NavLink>
-        <Box marginLeft={1} marginTop={0.5}>
-          <ViewAllLink href="/pages">View all pages</ViewAllLink>
-        </Box>
       </SortableContext>
     </DndContext>
   );

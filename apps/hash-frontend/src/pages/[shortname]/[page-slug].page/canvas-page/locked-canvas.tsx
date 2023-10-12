@@ -1,8 +1,8 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
-import { BlockContextProvider } from "../../../../blocks/page/block-context";
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
+import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import { CanvasProps } from "./shared";
 
 /**

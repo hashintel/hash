@@ -9,19 +9,23 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError},
-    schema::{OwnerId, PublicAccess},
+    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    schema::{EntityRelation, OwnerId, PublicAccess},
     zanzibar::{Consistency, Resource, Zookie},
 };
 
 // TODO: Replace with something permission specific which can directly be reused once permissions
 //       are implemented.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
-pub enum VisibilityScope {
+pub enum EntitySubject {
+    #[cfg_attr(feature = "utoipa", schema(title = "PublicSubject"))]
     Public,
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountSubject"))]
     Account(AccountId),
-    AccountGroup(AccountGroupId),
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountGroupMembersSubject"))]
+    AccountGroupMembers(AccountGroupId),
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -31,7 +35,7 @@ pub enum AccountOrPublic {
     Account(AccountId),
 }
 
-impl From<AccountOrPublic> for VisibilityScope {
+impl From<AccountOrPublic> for EntitySubject {
     fn from(account_or_public: AccountOrPublic) -> Self {
         match account_or_public {
             AccountOrPublic::Public(_) => Self::Public,
@@ -198,12 +202,12 @@ pub trait AuthorizationApi {
 
     fn add_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
     fn remove_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
@@ -244,6 +248,12 @@ pub trait AuthorizationApi {
             Ok((result, zookie))
         }
     }
+
+    fn get_entity_relations(
+        &self,
+        entity: EntityId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<(EntitySubject, EntityRelation)>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.
@@ -264,5 +274,6 @@ pub trait AuthorizationApiPool {
     /// reference to the `AuthorizationApiPool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
-    async fn acquire_owned(&self) -> Result<Self::Api<'static>, Self::Error>;
+    fn acquire_owned(&self)
+    -> impl Future<Output = Result<Self::Api<'static>, Self::Error>> + Send;
 }

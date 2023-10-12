@@ -2,11 +2,16 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import { Entity } from "@blockprotocol/graph";
 
 import {
   Block,
   BlockBlockDataLink,
+  BlockCollection,
+  BlockCollectionContainsLink,
+  BlockCollectionOutgoingLinkAndTarget,
+  BlockCollectionOutgoingLinksByLinkEntityTypeId,
+  BlockCollectionProperties,
   BlockData,
   BlockDataOutgoingLinkAndTarget,
   BlockDataOutgoingLinksByLinkEntityTypeId,
@@ -16,6 +21,10 @@ import {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
+  Contains,
+  ContainsOutgoingLinkAndTarget,
+  ContainsOutgoingLinksByLinkEntityTypeId,
+  ContainsProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -30,6 +39,11 @@ import {
 export type {
   Block,
   BlockBlockDataLink,
+  BlockCollection,
+  BlockCollectionContainsLink,
+  BlockCollectionOutgoingLinkAndTarget,
+  BlockCollectionOutgoingLinksByLinkEntityTypeId,
+  BlockCollectionProperties,
   BlockData,
   BlockDataOutgoingLinkAndTarget,
   BlockDataOutgoingLinksByLinkEntityTypeId,
@@ -39,6 +53,10 @@ export type {
   BlockProperties,
   BooleanDataType,
   ComponentIdPropertyValue,
+  Contains,
+  ContainsOutgoingLinkAndTarget,
+  ContainsOutgoingLinksByLinkEntityTypeId,
+  ContainsProperties,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -55,20 +73,6 @@ export type {
  */
 export type ArchivedPropertyValue = BooleanDataType;
 
-export type Contains = Entity<ContainsProperties> & { linkData: LinkData };
-
-export type ContainsOutgoingLinkAndTarget = never;
-
-export type ContainsOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * Something containing something.
- */
-export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
-export type ContainsProperties1 = LinkProperties;
-
-export type ContainsProperties2 = {};
-
 /**
  * An emoji icon.
  */
@@ -81,18 +85,18 @@ export type IndexPropertyValue = TextDataType;
 
 export type Page = Entity<PageProperties>;
 
-export type PageContainsLink = { linkEntity: Contains; rightEntity: Block };
-
-export type PageOutgoingLinkAndTarget = PageContainsLink | PageParentLink;
+export type PageOutgoingLinkAndTarget = PageParentLink;
 
 export type PageOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/contains/v/1": PageContainsLink;
   "http://localhost:3000/@system-user/types/entity-type/parent/v/1": PageParentLink;
 };
 
 export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
 
-export type PageProperties = {
+export type PageProperties = PageProperties1 & PageProperties2;
+export type PageProperties1 = BlockCollectionProperties;
+
+export type PageProperties2 = {
   "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;

@@ -1,27 +1,31 @@
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
+  Avatar,
   FontAwesomeIcon,
   IconButton,
   PenRegularIcon,
 } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import { Entity } from "@local/hash-subgraph";
-import { Box, Fade, Skeleton, styled, Typography } from "@mui/material";
+import {
+  Box,
+  Divider,
+  Fade,
+  Skeleton,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { FunctionComponent, ReactNode, useMemo } from "react";
 
+import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { Org, User } from "../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
+import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+import { getImageUrlFromEntityProperties } from "../shared/get-image-url-from-properties";
 import { ProfilePageTab } from "./util";
-
-const SectionHeading = styled(Typography)(({ theme }) => ({
-  color: theme.palette.gray[70],
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: "uppercase",
-}));
 
 const InfoItem: FunctionComponent<{
   icon: ReactNode;
@@ -71,7 +75,7 @@ const InfoItem: FunctionComponent<{
   );
 };
 
-const ProfileTabInfo: FunctionComponent<{ profile?: User | Org }> = ({
+const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
   profile,
 }) => {
   const websiteUrl = profile?.website
@@ -113,6 +117,59 @@ const ProfileTabInfo: FunctionComponent<{ profile?: User | Org }> = ({
           ) : undefined
         }
       />
+    </Box>
+  );
+};
+
+const UserProfileWebsSection: FunctionComponent<{ userProfile: User }> = ({
+  userProfile,
+}) => {
+  const { orgs } = useOrgsWithLinks({
+    orgAccountGroupIds: userProfile.memberOf.map(
+      ({ org }) => org.accountGroupId,
+    ),
+  });
+
+  return (
+    <Box>
+      <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
+      <Box display="flex" flexWrap="wrap" gap={1.5}>
+        {orgs?.map((org) => {
+          const avatarSrc = org.hasAvatar
+            ? getImageUrlFromEntityProperties(
+                org.hasAvatar.imageEntity.properties,
+              )
+            : undefined;
+
+          return (
+            <Tooltip
+              key={org.entity.metadata.recordId.entityId}
+              title={org.name}
+              placement="bottom"
+            >
+              <Link
+                href={`/@${org.shortname}`}
+                target="_blank"
+                sx={{
+                  opacity: 1,
+                  transition: ({ transitions }) =>
+                    transitions.create("opacity"),
+                  ":hover": {
+                    opacity: 0.8,
+                  },
+                }}
+              >
+                <Avatar
+                  src={avatarSrc}
+                  title={org.name}
+                  size={28}
+                  borderRadius="4px"
+                />
+              </Link>
+            </Tooltip>
+          );
+        })}
+      </Box>
     </Box>
   );
 };
@@ -186,45 +243,53 @@ export const ProfilePageInfo: FunctionComponent<{
   currentTab,
 }) => {
   return (
-    <Box>
-      <Box display="flex" marginBottom={1.5}>
-        <SectionHeading>Info</SectionHeading>
-        <Fade
-          in={
-            currentTab.kind === "profile" &&
-            isEditable &&
-            profile?.kind === "user"
-          }
-        >
-          <IconButton
-            onClick={() => setDisplayEditUserProfileInfoModal(true)}
-            sx={{
-              marginLeft: 0.75,
-              padding: 0,
-              minHeight: "unset",
-              position: "relative",
-              top: -1,
-              svg: {
-                color: ({ palette }) => palette.blue[70],
-                fontSize: 12,
-              },
-              "&:hover": {
-                background: "transparent",
-                svg: {
-                  color: ({ palette }) => palette.blue[50],
-                },
-              },
-            }}
+    <Box display="flex" flexDirection="column" rowGap={2.25}>
+      <Box>
+        <Box display="flex" marginBottom={1.5}>
+          <ProfileSectionHeading>Info</ProfileSectionHeading>
+          <Fade
+            in={
+              currentTab.kind === "profile" &&
+              isEditable &&
+              profile?.kind === "user"
+            }
           >
-            <PenRegularIcon />
-          </IconButton>
-        </Fade>
+            <IconButton
+              onClick={() => setDisplayEditUserProfileInfoModal(true)}
+              sx={{
+                marginLeft: 0.75,
+                padding: 0,
+                minHeight: "unset",
+                position: "relative",
+                top: -1,
+                svg: {
+                  color: ({ palette }) => palette.blue[70],
+                  fontSize: 12,
+                },
+                "&:hover": {
+                  background: "transparent",
+                  svg: {
+                    color: ({ palette }) => palette.blue[50],
+                  },
+                },
+              }}
+            >
+              <PenRegularIcon />
+            </IconButton>
+          </Fade>
+        </Box>
+        {currentTab.kind === "profile" ? (
+          <ProfileTabInfoSection profile={profile} />
+        ) : (
+          <PinnedEntityTypeTabInfo {...currentTab} />
+        )}
       </Box>
-      {currentTab.kind === "profile" ? (
-        <ProfileTabInfo profile={profile} />
-      ) : (
-        <PinnedEntityTypeTabInfo {...currentTab} />
-      )}
+      {profile?.kind === "user" ? (
+        <>
+          <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
+          <UserProfileWebsSection userProfile={profile} />
+        </>
+      ) : null}
     </Box>
   );
 };

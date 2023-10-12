@@ -22,7 +22,7 @@ use authorization::{
     backend::ZanzibarBackend,
     schema::{AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebRelation},
     zanzibar::Consistency,
-    AccountOrPublic, VisibilityScope,
+    AccountOrPublic, EntitySubject,
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -442,13 +442,13 @@ where
                         {
                             match relation {
                                 EntityRelation::DirectOwner => {
-                                    owners.push(VisibilityScope::from(account));
+                                    owners.push(EntitySubject::from(account));
                                 }
                                 EntityRelation::DirectEditor => {
-                                    editors.push(VisibilityScope::from(account));
+                                    editors.push(EntitySubject::from(account));
                                 }
                                 EntityRelation::DirectViewer => {
-                                    viewers.push(VisibilityScope::from(account));
+                                    viewers.push(EntitySubject::from(account));
                                 }
                             }
                         }
@@ -467,13 +467,13 @@ where
                             if account_group_permission == Some(AccountGroupPermission::Member){
                                 match relation {
                                     EntityRelation::DirectOwner => {
-                                        owners.push(VisibilityScope::AccountGroup(account_group));
+                                        owners.push(EntitySubject::AccountGroupMembers(account_group));
                                     }
                                     EntityRelation::DirectEditor => {
-                                        editors.push(VisibilityScope::AccountGroup(account_group));
+                                        editors.push(EntitySubject::AccountGroupMembers(account_group));
                                     }
                                     EntityRelation::DirectViewer => {
-                                        viewers.push(VisibilityScope::AccountGroup(account_group));
+                                        viewers.push(EntitySubject::AccountGroupMembers(account_group));
                                     }
                                 }
                             } else {

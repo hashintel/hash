@@ -1,21 +1,19 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
-import {
-  getPageQuery,
-  updatePageContents,
-} from "@local/hash-graphql-shared/queries/page.queries";
+import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
+import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { OwnedById } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import { DialogProps } from "@tldraw/tldraw";
 import { useCallback, useState } from "react";
 
-import { BlockSuggester } from "../../../../blocks/page/create-suggester/block-suggester";
-import { usePageContext } from "../../../../blocks/page/page-context";
 import {
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
+  UpdateBlockCollectionContentsMutation,
+  UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import { BlockSuggester } from "../../../shared/block-collection/create-suggester/block-suggester";
+import { usePageContext } from "../../../shared/block-collection/page-context";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
@@ -32,10 +30,10 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const { pageEntityId } = usePageContext();
 
-  const [updatePageContentsFn] = useMutation<
-    UpdatePageContentsMutation,
-    UpdatePageContentsMutationVariables
-  >(updatePageContents);
+  const [updateBlockCollectionContentsFn] = useMutation<
+    UpdateBlockCollectionContentsMutation,
+    UpdateBlockCollectionContentsMutationVariables
+  >(updateBlockCollectionContents);
 
   const createBlock = useCallback(
     async (blockMeta: HashBlockMeta) => {
@@ -55,7 +53,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         );
       }
 
-      const { data } = await updatePageContentsFn({
+      const { data } = await updateBlockCollectionContentsFn({
         variables: {
           entityId: pageEntityId,
           actions: [
@@ -91,12 +89,12 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       });
 
       if (!data) {
-        throw new Error("No data returned from updatePageContents");
+        throw new Error("No data returned from updateBlockCollectionContents");
       }
 
-      const { page } = data.updatePageContents;
+      const { blockCollection } = data.updateBlockCollectionContents;
 
-      const newBlock = page.contents.find(
+      const newBlock = blockCollection.contents.find(
         (contentItem) =>
           contentItem.linkEntity.linkData?.leftToRightOrder === position,
       )!.rightEntity;
@@ -140,7 +138,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         );
       });
     },
-    [accountId, app, onClose, pageEntityId, updatePageContentsFn],
+    [accountId, app, onClose, pageEntityId, updateBlockCollectionContentsFn],
   );
 
   return creatingEntity ? (

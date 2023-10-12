@@ -124,8 +124,16 @@ const systemEntityTypes = {
     title: "Block",
     description: undefined,
   },
+  blockCollection: {
+    title: "Block Collection",
+    description: undefined,
+  },
   page: {
     title: "Page",
+    description: undefined,
+  },
+  profileBio: {
+    title: "Profile Bio",
     description: undefined,
   },
   text: {
@@ -353,6 +361,10 @@ const systemLinkEntityTypes = {
   blockData: {
     title: "Block Data",
     description: "The entity representing the data in a block.",
+  },
+  hasBio: {
+    title: "Has Bio",
+    description: "Something that has a bio.",
   },
   contains: {
     title: "Contains",

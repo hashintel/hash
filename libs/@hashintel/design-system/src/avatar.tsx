@@ -18,6 +18,7 @@ interface AvatarProps extends BoxProps {
   src?: string;
   onEditIconButtonDisabled?: boolean;
   onEditIconButtonClick?: () => void;
+  borderRadius?: number | string;
 }
 
 export const Avatar: FunctionComponent<AvatarProps> = ({
@@ -26,6 +27,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
   src,
   onEditIconButtonDisabled,
   onEditIconButtonClick,
+  borderRadius = "50%",
   ...props
 }) => {
   const { sx = [], bgcolor, ...otherProps } = props;
@@ -43,7 +45,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
           }),
           background:
             bgcolor ?? src ? undefined : ({ palette }) => palette.blue[70],
-          borderRadius: "50%",
+          borderRadius,
           border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },
         ...(Array.isArray(sx) ? sx : [sx]),
@@ -58,7 +60,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             height: "100%",
             width: "100%",
             objectFit: "cover",
-            borderRadius: "50%",
+            borderRadius,
           }}
         />
       ) : (

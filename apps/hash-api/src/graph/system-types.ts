@@ -90,6 +90,8 @@ export let SYSTEM_TYPES: {
     imageFile: EntityTypeWithMetadata;
     org: EntityTypeWithMetadata;
     block: EntityTypeWithMetadata;
+    blockCollection: EntityTypeWithMetadata;
+    profileBio: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
@@ -114,12 +116,15 @@ export let SYSTEM_TYPES: {
     // Account-related
     hasAvatar: EntityTypeWithMetadata;
     hasCoverImage: EntityTypeWithMetadata;
+    hasBio: EntityTypeWithMetadata;
 
     // Block-related
     blockData: EntityTypeWithMetadata;
 
-    // Page-related
+    // Block Collection related
     contains: EntityTypeWithMetadata;
+
+    // Page-related
     parent: EntityTypeWithMetadata;
 
     // Comment-related
@@ -243,6 +248,9 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
   })(context);
 };
 
+const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
+  entityTypeInitializer(types.linkEntityType.hasBio)(context);
+
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -274,6 +282,13 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
+
+  const hasBioLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasBio(context);
+
+  const profileBioEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.profileBio(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -320,6 +335,12 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         destinationEntityTypes: [imageFileEntityType],
         maxItems: 1,
         minItems: 0,
+      },
+      {
+        linkEntityType: hasBioLinkEntityType,
+        destinationEntityTypes: [profileBioEntityType],
+        minItems: 0,
+        maxItems: 1,
       },
     ],
   })(context);
@@ -426,6 +447,12 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const imageFileEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.imageFile(context);
 
+  const hasBioLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasBio(context);
+
+  const profileBioEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.profileBio(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -474,6 +501,12 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
       {
         linkEntityType: hasServiceAccountLinkEntityType,
         destinationEntityTypes: [serviceAccountEntityType],
+      },
+      {
+        linkEntityType: hasBioLinkEntityType,
+        destinationEntityTypes: [profileBioEntityType],
+        minItems: 0,
+        maxItems: 1,
       },
     ],
   })(context);
@@ -765,6 +798,32 @@ const containsLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.contains,
 );
 
+const blockCollectionEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const containsLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.blockCollection,
+    outgoingLinks: [
+      {
+        linkEntityType: containsLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
+        minItems: 1,
+        ordered: true,
+      },
+    ],
+  })(context);
+};
+
 const parentLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.parent,
 );
@@ -787,19 +846,17 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
 
-  const containsLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(context);
-
   const parentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
 
-  const blockEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+  const blockCollectionEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     ...types.entityType.page,
+    allOf: [blockCollectionEntityType.schema.$id],
     properties: [
       {
         propertyType: summaryPropertyType,
@@ -821,17 +878,25 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
     outgoingLinks: [
       {
-        linkEntityType: containsLinkEntityType,
-        destinationEntityTypes: [blockEntityType],
-        minItems: 1,
-        ordered: true,
-      },
-      {
         linkEntityType: parentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
     ],
+  })(context);
+};
+
+const profileBioEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const blockCollectionEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.profileBio,
+    allOf: [blockCollectionEntityType.schema.$id],
   })(context);
 };
 
@@ -1079,6 +1144,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
+    hasBio: hasBioLinkEntityTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
@@ -1087,6 +1153,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     file: fileEntityTypeInitializer,
     imageFile: imageFileEntityTypeInitializer,
     block: blockEntityTypeInitializer,
+    blockCollection: blockCollectionEntityTypeInitializer,
+    profileBio: profileBioEntityTypeInitializer,
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
