@@ -645,6 +645,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Install turbo
         run: yarn global add turbo
 
