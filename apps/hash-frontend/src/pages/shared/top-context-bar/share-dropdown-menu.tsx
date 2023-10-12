@@ -39,6 +39,7 @@ import { ChevronDownRegularIcon } from "../../../shared/icons/chevron-down-regul
 import { GlobeRegularIcon } from "../../../shared/icons/globe-regular-icon";
 import { LockRegularIcon } from "../../../shared/icons/lock-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
+import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";
 
 const PrivacyStatusMenuItem = styled(MenuItem)(({ theme }) => ({
   [`&.${menuItemClasses.disabled}`]: {
@@ -240,12 +241,12 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
           </Typography>
         </Box>
         <Divider sx={{ borderColor: ({ palette }) => palette.gray[30] }} />
-        <Box position="relative" paddingBottom={4.25}>
+        <Box position="relative" padding={2}>
           <EditPrivacyStatusMenu
             isEntityPublic={isEntityPublic}
             entity={entity}
           />
-          {/* @todo: add "Share this page" section */}
+          <ShareEntitySection entity={entity} />
         </Box>
       </Popover>
     </>

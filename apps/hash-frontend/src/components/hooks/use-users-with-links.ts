@@ -1,7 +1,7 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
-  AccountGroupId,
+  AccountId,
   Entity,
   EntityRootType,
   Subgraph,
@@ -14,18 +14,18 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructOrg, Org } from "../../lib/user-and-org";
+import { constructUser, User } from "../../lib/user-and-org";
 
 /**
- * Retrieves a specific set of organizations, with their avatars and members populated
+ * Retrieves a specific set of useranizations, with their avatars and members populated
  */
-export const useOrgsWithLinks = ({
-  orgAccountGroupIds,
+export const useUsersWithLinks = ({
+  userAccountIds,
 }: {
-  orgAccountGroupIds?: AccountGroupId[];
+  userAccountIds?: AccountId[];
 }): {
   loading: boolean;
-  orgs?: Org[];
+  users?: User[];
   refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
@@ -36,10 +36,10 @@ export const useOrgsWithLinks = ({
       operation: {
         multiFilter: {
           filters:
-            orgAccountGroupIds?.map((accountGroupId) => ({
+            userAccountIds?.map((accountId) => ({
               field: ["metadata", "recordId", "uuid"],
               operator: "EQUALS",
-              value: accountGroupId,
+              value: accountId,
             })) ?? [],
           operator: "OR",
         },
@@ -51,33 +51,33 @@ export const useOrgsWithLinks = ({
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
       // These depths are chosen to cover the following:
-      // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
-      // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
+      // 1. the user's avatar (user -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+      // 2. the user's user memberships (user <- [hasLeftEntity outgoing 1] userMembership [hasRightEntity incoming 1] <- user)
       hasLeftEntity: { incoming: 1, outgoing: 1 },
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     fetchPolicy: "cache-and-network",
-    skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
+    skip: !userAccountIds || !userAccountIds.length,
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const subgraph = data?.queryEntities as Subgraph<EntityRootType> | undefined;
 
-  const orgs = useMemo(() => {
+  const users = useMemo(() => {
     if (!subgraph) {
       return undefined;
     }
 
-    return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
-      constructOrg({
+    return getRoots(subgraph).map((userEntity) =>
+      constructUser({
         subgraph,
-        orgEntity: orgEntity as Entity<OrgProperties>,
+        userEntity: userEntity as Entity<UserProperties>,
       }),
     );
   }, [subgraph]);
 
   return {
     loading,
-    orgs,
+    users,
     refetch,
   };
 };

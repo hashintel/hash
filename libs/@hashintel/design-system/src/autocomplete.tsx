@@ -21,11 +21,11 @@ import { TextField } from "./text-field";
 type AutocompleteProps<
   T,
   Multiple extends boolean | undefined = undefined,
-> = Omit<MUIAutocompleteProps<T, Multiple, true, false>, "renderInput"> & {
+> = Omit<MUIAutocompleteProps<T, Multiple, boolean, false>, "renderInput"> & {
   height?: number | string;
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
-  inputProps: InputProps;
+  inputProps?: InputProps;
   autoFocus?: boolean;
   modifiers?: PopperProps["modifiers"];
   /**
@@ -51,6 +51,7 @@ export const Autocomplete = <
   joined = true,
   options,
   componentsProps,
+  disableClearable = true,
   ...rest
 }: AutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
@@ -121,15 +122,18 @@ export const Autocomplete = <
           InputProps={{
             ...params.InputProps,
             ...inputProps,
-            endAdornment: inputProps.endAdornment ?? (
-              <FontAwesomeIcon
-                icon={faSearch}
-                sx={{
-                  fontSize: 14,
-                  color: ({ palette }) => palette.gray[40],
-                }}
-              />
-            ),
+            endAdornment:
+              inputProps && "endAdornment" in inputProps ? (
+                inputProps.endAdornment
+              ) : (
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  sx={{
+                    fontSize: 14,
+                    color: ({ palette }) => palette.gray[40],
+                  }}
+                />
+              ),
             sx: [
               (theme) => ({
                 // The popover needs to know how tall this is to draw
@@ -149,7 +153,7 @@ export const Autocomplete = <
                 },
               }),
               open && options.length ? popperOpenStyles : {},
-              ...(inputProps.sx
+              ...(inputProps?.sx
                 ? Array.isArray(inputProps.sx)
                   ? inputProps.sx
                   : [inputProps.sx]
@@ -159,7 +163,7 @@ export const Autocomplete = <
         />
       )}
       popupIcon={null}
-      disableClearable
+      disableClearable={disableClearable}
       forcePopupIcon={false}
       selectOnFocus={false}
       openOnFocus

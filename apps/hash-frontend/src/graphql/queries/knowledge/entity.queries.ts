@@ -140,3 +140,26 @@ export const isEntityPublicQuery = gql`
     isEntityPublic(entityId: $entityId)
   }
 `;
+
+export const getEntityAuthorizationRelationshipsQuery = gql`
+  query getEntityAuthorizationRelationships($entityId: EntityId!) {
+    getEntityAuthorizationRelationships(entityId: $entityId) {
+      objectEntityId
+      relation
+      subject {
+        ... on AccountGroupAuthorizationSubject {
+          __typename
+          accountGroupId
+        }
+        ... on AccountAuthorizationSubject {
+          __typename
+          accountId
+        }
+        ... on PublicAuthorizationSubject {
+          __typename
+          public
+        }
+      }
+    }
+  }
+`;
