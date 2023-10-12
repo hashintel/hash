@@ -39,7 +39,6 @@ import {
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { genId } from "../../../../util";
 import {
-  EditorInput,
   Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -51,13 +50,11 @@ import {
   MutationRemoveEntityOwnerArgs,
   MutationRemoveEntityViewerArgs,
   MutationUpdateEntityArgs,
-  OwnerInput,
   QueryGetEntityArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
-  ViewerInput,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
@@ -373,24 +370,6 @@ export const inferEntitiesResolver: ResolverFn<
   return status.contents[0];
 };
 
-const parseGqlOwnerInput = (ownerInput: OwnerInput) => {
-  if (Object.values(ownerInput).length > 1) {
-    throw new UserInputError(
-      "Only one owner can be specified in the GQL OwnerInput type",
-    );
-  }
-
-  if (ownerInput.accountGroupId) {
-    return ownerInput.accountGroupId;
-  } else if (ownerInput.accountId) {
-    return ownerInput.accountId;
-  }
-
-  throw new UserInputError(
-    "One of accountId or accountGroupId must be specified in the GQL OwnerInput type",
-  );
-};
-
 export const addEntityOwnerResolver: ResolverFn<
   Promise<boolean>,
   {},
@@ -401,7 +380,7 @@ export const addEntityOwnerResolver: ResolverFn<
 
   await addEntityOwner(context, authentication, {
     entityId,
-    owner: parseGqlOwnerInput(owner),
+    owner: owner.accountGroupId ?? owner.accountId,
   });
 
   return true;
@@ -417,28 +396,10 @@ export const removeEntityOwnerResolver: ResolverFn<
 
   await removeEntityOwner(context, authentication, {
     entityId,
-    owner: parseGqlOwnerInput(owner),
+    owner: owner.accountGroupId ?? owner.accountId,
   });
 
   return true;
-};
-
-const parseGqlEditorInput = (editorInput: EditorInput) => {
-  if (Object.values(editorInput).length > 1) {
-    throw new UserInputError(
-      "More than one owner specified in GQL EditorInput type",
-    );
-  }
-
-  if (editorInput.accountGroupId) {
-    return editorInput.accountGroupId;
-  } else if (editorInput.accountId) {
-    return editorInput.accountId;
-  }
-
-  throw new UserInputError(
-    "One of accountId or accountGroupId must be specified in the GQL EditorInput type",
-  );
 };
 
 export const addEntityEditorResolver: ResolverFn<
@@ -451,7 +412,7 @@ export const addEntityEditorResolver: ResolverFn<
 
   await addEntityEditor(context, authentication, {
     entityId,
-    editor: parseGqlEditorInput(editor),
+    editor: editor.accountGroupId ?? editor.accountId,
   });
 
   return true;
@@ -467,30 +428,10 @@ export const removeEntityEditorResolver: ResolverFn<
 
   await removeEntityEditor(context, authentication, {
     entityId,
-    editor: parseGqlEditorInput(editor),
+    editor: editor.accountGroupId ?? editor.accountId,
   });
 
   return true;
-};
-
-const parseGqlViewerInput = (viewerInput: ViewerInput) => {
-  if (Object.values(viewerInput).length > 1) {
-    throw new UserInputError(
-      "More than one owner specified in GQL ViewerInput type",
-    );
-  }
-
-  if (viewerInput.accountGroupId) {
-    return viewerInput.accountGroupId;
-  } else if (viewerInput.accountId) {
-    return viewerInput.accountId;
-  } else if (viewerInput.public) {
-    return "public" as const;
-  }
-
-  throw new UserInputError(
-    "One of accountId, accountGroupId or public must be specified in the GQL ViewerInput type",
-  );
 };
 
 export const addEntityViewerResolver: ResolverFn<
@@ -503,7 +444,7 @@ export const addEntityViewerResolver: ResolverFn<
 
   await addEntityViewer(context, authentication, {
     entityId,
-    viewer: parseGqlViewerInput(viewer),
+    viewer: viewer.accountGroupId ?? viewer.accountId ?? "public",
   });
 
   return true;
@@ -519,7 +460,7 @@ export const removeEntityViewerResolver: ResolverFn<
 
   await removeEntityViewer(context, authentication, {
     entityId,
-    viewer: parseGqlViewerInput(viewer),
+    viewer: viewer.accountGroupId ?? viewer.accountId ?? "public",
   });
 
   return true;

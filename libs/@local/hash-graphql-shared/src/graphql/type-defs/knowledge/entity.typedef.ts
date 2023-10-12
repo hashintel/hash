@@ -154,17 +154,17 @@ export const entityTypedef = gql`
     isEntityPublic(entityId: EntityId!): Boolean!
   }
 
-  input OwnerInput {
+  input OwnerInput @oneOf {
     accountId: AccountId
     accountGroupId: AccountGroupId
   }
 
-  input EditorInput {
+  input EditorInput @oneOf {
     accountId: AccountId
     accountGroupId: AccountGroupId
   }
 
-  input ViewerInput {
+  input ViewerInput @oneOf {
     accountId: AccountId
     accountGroupId: AccountGroupId
     public: Boolean
