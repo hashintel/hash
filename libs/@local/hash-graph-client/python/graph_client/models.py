@@ -96,6 +96,38 @@ class EntityRecordId(BaseModel):
     entity_id: EntityId = Field(..., alias="entityId")
 
 
+class EntityRelation(Enum):
+    direct_owner = "direct_owner"
+    direct_editor = "direct_editor"
+    direct_viewer = "direct_viewer"
+
+
+class PublicSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    type: Literal["public"]
+
+
+class AccountSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountId
+    type: Literal["account"]
+
+
+class AccountGroupMembersSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountGroupId
+    type: Literal["accountGroupMembers"]
+
+
+class EntitySubject(
+    RootModel[PublicSubject | AccountSubject | AccountGroupMembersSubject]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PublicSubject | AccountSubject | AccountGroupMembersSubject = Field(
+        ..., discriminator="type"
+    )
+
+
 class EntityTypeQueryToken(Enum):
     """
     A single token in a [`EntityTypeQueryPath`].
@@ -537,6 +569,12 @@ class DataTypeVertexId(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     base_id: BaseURL = Field(..., alias="baseId")
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
+
+
+class EntityAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: EntityRelation
+    subject: EntitySubject
 
 
 class EntityLinkOrder(BaseModel):

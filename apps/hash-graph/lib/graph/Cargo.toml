@@ -9,7 +9,7 @@ description = "HASH Graph API"
 graph-types = { workspace = true, features = ["postgres", "utoipa"] }
 temporal-versioning = { workspace = true, features = ["postgres", "utoipa"] }
 type-fetcher = { path = "../type-fetcher" }
-authorization = { workspace = true }
+authorization = { workspace = true, features = ["utoipa"] }
 codec = { workspace = true }
 
 error-stack = { workspace = true }

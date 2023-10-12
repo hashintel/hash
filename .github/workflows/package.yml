@@ -241,6 +241,9 @@ jobs:
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
         run: turbo run poetry:install
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Run codegen
         if: always() && steps.lints.outputs.codegen == 'true'
         run: |
@@ -252,6 +255,9 @@ jobs:
               git --no-pager diff --exit-code --color -- "${{ matrix.directory }}/$line"
             fi
           done <<< "$(cat ${{ matrix.directory }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+
+      - name: Show disk usage
+        run: df -h
 
       - name: Run ESLint
         if: always() && steps.lints.outputs.eslint == 'true'
@@ -333,6 +339,9 @@ jobs:
       - name: Run MyPy
         if: always() && steps.lints.outputs.mypy == 'true'
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
+
+      - name: Show disk usage
+        run: df -h
 
   unit-tests:
     name: Unit Tests
@@ -421,12 +430,18 @@ jobs:
         if: always() && steps.tests.outputs.has-poetry-deps == 'true'
         run: turbo run poetry:install
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Run tests
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
           turbo run test:unit --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+
+      - name: Show disk usage
+        run: df -h
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
@@ -561,6 +576,9 @@ jobs:
         if: always() && steps.tests.outputs.has-poetry-deps == 'true'
         run: turbo run poetry:install
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
@@ -568,6 +586,9 @@ jobs:
           hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
           hash-ai-worker-py: ${{ steps.tests.outputs.external-service-ai-worker-py == 'true' }}
           hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
+
+      - name: Show disk usage
+        run: df -h
 
       - name: Launch external services
         run: |
@@ -591,10 +612,16 @@ jobs:
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Run tests
         run: |
           turbo run test:integration --filter "${{ matrix.package }}"
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+
+      - name: Show disk usage
+        run: df -h
 
       - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
@@ -678,6 +705,9 @@ jobs:
           shell: bash
           command: npx playwright install --with-deps chromium
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Load Docker images
         uses: ./.github/actions/load-docker-images
         with:
@@ -685,6 +715,9 @@ jobs:
           hash-ai-worker-ts: true
           hash-ai-worker-py: true
           hash-integration-worker: true
+
+      - name: Show disk usage
+        run: df -h
 
       - name: Launch external services
         run: |
@@ -702,9 +735,15 @@ jobs:
           yarn workspace @apps/hash-frontend start &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Run tests
         run: |
           turbo run test:system --filter "${{ matrix.package }}"
+
+      - name: Show disk usage
+        run: df -h
 
       - name: Show container logs
         if: ${{ success() || failure() }}

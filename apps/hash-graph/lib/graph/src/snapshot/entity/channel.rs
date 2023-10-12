@@ -5,7 +5,7 @@ use std::{
 
 use authorization::{
     schema::{AccountGroupPermission, EntityRelation},
-    VisibilityScope,
+    EntitySubject,
 };
 use error_stack::{Report, ResultExt};
 use futures::{
@@ -169,18 +169,19 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         let mut public_account_relations = Vec::new();
         for (scope, relation) in owners.chain(editors).chain(viewers) {
             match scope {
-                VisibilityScope::Account(account_id) => account_relations.push((
+                EntitySubject::Account(account_id) => account_relations.push((
                     entity.metadata.record_id.entity_id.entity_uuid,
                     relation,
                     account_id,
                 )),
-                VisibilityScope::AccountGroup(account_group_id) => account_group_relations.push((
-                    entity.metadata.record_id.entity_id.entity_uuid,
-                    relation,
-                    account_group_id,
-                    AccountGroupPermission::Member,
-                )),
-                VisibilityScope::Public => public_account_relations
+                EntitySubject::AccountGroupMembers(account_group_id) => account_group_relations
+                    .push((
+                        entity.metadata.record_id.entity_id.entity_uuid,
+                        relation,
+                        account_group_id,
+                        AccountGroupPermission::Member,
+                    )),
+                EntitySubject::Public => public_account_relations
                     .push((entity.metadata.record_id.entity_id.entity_uuid, relation)),
             }
         }

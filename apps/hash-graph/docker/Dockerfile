@@ -57,6 +57,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     if [[ ${ENABLE_AUTHORIZATION^^} == Y* || ${ENABLE_AUTHORIZATION^^} == T* || $ENABLE_AUTHORIZATION == 1 ]]; then \
       FEATURES+=("authorization"); \
     fi; \
+    if [[ ${PROFILE} == dev ]]; then \
+        export RUSTFLAGS="$RUSTFLAGS -C debuginfo=line-tables-only"; \
+    fi; \
     FEATURES=${FEATURES[@]}; \
     cargo install --path bin/cli --features "${FEATURES// /,}" --profile $PROFILE --locked;
 

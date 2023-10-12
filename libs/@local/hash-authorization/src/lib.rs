@@ -10,7 +10,7 @@ pub mod backend;
 pub mod schema;
 pub mod zanzibar;
 
-pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, EntitySubject};
 
 mod api;
 
@@ -22,8 +22,8 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError},
-    schema::OwnerId,
+    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    schema::{EntityRelation, OwnerId},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -217,7 +217,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn add_entity_viewer(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: EntitySubject,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
@@ -225,7 +225,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn remove_entity_viewer(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: EntitySubject,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
@@ -265,6 +265,14 @@ impl AuthorizationApi for NoAuthorization {
             has_permission: true,
             checked_at: Zookie::empty(),
         })
+    }
+
+    async fn get_entity_relations(
+        &self,
+        _entity: EntityId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
+        Ok(Vec::new())
     }
 }
 
