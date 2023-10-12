@@ -258,19 +258,31 @@ export const updateEntityResolver: ResolverFn<
     rightToLeftOrder,
     entityTypeId,
   },
-  { dataSources, authentication, user },
+  { dataSources, authentication: uncheckedAuthenticationContext, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  // The user needs to be signed up if they aren't updating their own user entity
-  if (
-    entityId !== user.entity.metadata.recordId.entityId &&
-    !user.isAccountSignupComplete
-  ) {
+  const isIncompleteUser = !user.isAccountSignupComplete;
+  const isUpdatingOwnEntity =
+    entityId === user.entity.metadata.recordId.entityId;
+
+  // The user needs to have completed signup if they aren't updating their own user entity
+  if (isIncompleteUser && !isUpdatingOwnEntity) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
   }
+
+  /*
+   * We default incomplete users to acting as an unauthenticated user when creating the authentication context.
+   * They are allowed to perform this mutation, so we need to restore their actorId.
+   */
+  const authentication = isIncompleteUser
+    ? {
+        ...uncheckedAuthenticationContext,
+        actorId: user.accountId,
+      }
+    : uncheckedAuthenticationContext;
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
