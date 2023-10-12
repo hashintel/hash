@@ -1,18 +1,18 @@
 use error_stack::{Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityId,
+    knowledge::entity::{EntityId, EntityUuid},
     web::WebId,
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ZanzibarBackend},
+    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError, ZanzibarBackend},
     schema::{
         AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
         PublicAccess, WebPermission, WebRelation,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi, VisibilityScope,
+    AccountOrPublic, AuthorizationApi, EntitySubject,
 };
 
 #[derive(Debug, Clone)]
@@ -402,11 +402,11 @@ where
 
     async fn add_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
+            EntitySubject::Public => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -415,12 +415,12 @@ where
                     )])
                     .await
             }
-            VisibilityScope::Account(account) => {
+            EntitySubject::Account(account) => {
                 self.backend
                     .create_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -437,11 +437,11 @@ where
 
     async fn remove_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
+            EntitySubject::Public => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
@@ -450,12 +450,12 @@ where
                     )])
                     .await
             }
-            VisibilityScope::Account(account) => {
+            EntitySubject::Account(account) => {
                 self.backend
                     .delete_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
@@ -510,5 +510,49 @@ where
                 consistency,
             )
             .await
+    }
+
+    async fn get_entity_relations(
+        &self,
+        entity: EntityId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
+        let accounts = self
+            .backend
+            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
+                Some(entity.entity_uuid),
+                None,
+                None,
+                None,
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(entity_uuid, relation, account, account_relation)| {
+                debug_assert_eq!(entity_uuid, entity.entity_uuid);
+                assert!(account_relation.is_none());
+                (EntitySubject::from(account), relation)
+            });
+
+        let account_groups = self
+            .backend
+            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
+                Some(entity.entity_uuid),
+                None,
+                None,
+                None,
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(entity_uuid, relation, account_group, account_relation)| {
+                debug_assert_eq!(entity_uuid, entity.entity_uuid);
+                assert_eq!(account_relation, Some(AccountGroupPermission::Member));
+                (EntitySubject::AccountGroupMembers(account_group), relation)
+            });
+
+        Ok(accounts.chain(account_groups).collect())
     }
 }
