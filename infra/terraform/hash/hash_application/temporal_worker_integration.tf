@@ -22,7 +22,6 @@ locals {
     name      = local.temporal_worker_integration_prefix
     image     = "${var.temporal_worker_integration_image.url}:latest"
     cpu       = 0 # let ECS divvy up the available CPU
-    dependsOn   = [{ condition = "HEALTHY", containerName = local.graph_service_container_def.name }]
     healthCheck = {
       command     = ["CMD", "/bin/sh", "-c", "curl -f http://localhost:4300/health || exit 1"]
       startPeriod = 10

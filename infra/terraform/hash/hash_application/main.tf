@@ -4,6 +4,14 @@ locals {
   param_prefix   = "${var.param_prefix}/app"
   task_defs = [
     {
+      task_def = local.spicedb_migration_container_def
+      env_vars = aws_ssm_parameter.spicedb_env_vars
+    },
+    {
+      task_def = local.spicedb_service_container_def
+      env_vars = aws_ssm_parameter.spicedb_env_vars
+    },
+    {
       task_def = local.graph_migration_container_def
       env_vars = aws_ssm_parameter.graph_env_vars
       ecr_arn  = var.graph_image.ecr_arn
@@ -33,13 +41,16 @@ locals {
       env_vars = aws_ssm_parameter.api_env_vars
       ecr_arn  = var.api_image.ecr_arn
     },
-    # To scale up the worker we probably want to move these into a separated service. They are defined in this task
-    # to easily connect to the Graph API.
+    # TODO: Move it to the `worker` service and make sure it can connect to the Graph container
     {
       task_def = local.temporal_worker_ai_ts_service_container_def
       env_vars = aws_ssm_parameter.temporal_worker_ai_ts_env_vars
       ecr_arn  = var.temporal_worker_ai_ts_image.ecr_arn
     },
+  ]
+  # To scale up the worker we probably want to move these into a separated service. They are defined in this task
+  # to easily connect to the Graph API.
+  worker_task_defs = [
     {
       task_def = local.temporal_worker_ai_py_service_container_def
       env_vars = aws_ssm_parameter.temporal_worker_ai_py_env_vars
@@ -271,14 +282,20 @@ resource "aws_iam_role" "execution_role" {
             Resource = ["*"]
           }
         ],
-        sum([for def in local.task_defs : length(def.env_vars)]) > 0 ?
         [{
           Effect = "Allow"
           Action = ["ssm:GetParameters"]
           Resource = concat(
             flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
           )
-        }] : [],
+        }],
+        [{
+          Effect = "Allow"
+          Action = ["ssm:GetParameters"]
+          Resource = concat(
+            flatten([for def in local.worker_task_defs : [for _, env_var in def.env_vars : env_var.arn]])
+          )
+        }],
       ])
     })
   }
@@ -359,6 +376,18 @@ resource "aws_ecs_task_definition" "task" {
   tags                     = {}
 }
 
+resource "aws_ecs_task_definition" "worker_task" {
+  family                   = "${local.prefix}taskdef"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.worker_cpu
+  memory                   = var.worker_memory
+  network_mode             = "awsvpc"
+  execution_role_arn       = aws_iam_role.execution_role.arn
+  task_role_arn            = aws_iam_role.task_role.arn
+  container_definitions    = jsonencode([for task_def in local.worker_task_defs : task_def.task_def])
+  tags                     = {}
+}
+
 resource "aws_ecs_service" "svc" {
   depends_on             = [aws_iam_role.task_role]
   name                   = "${local.prefix}svc"
@@ -388,6 +417,26 @@ resource "aws_ecs_service" "svc" {
   }
 
   tags = { Service = "${local.prefix}svc" }
+  # @todo: consider using deployment_circuit_breaker
+}
+
+resource "aws_ecs_service" "worker" {
+  depends_on             = [aws_iam_role.task_role]
+  name                   = "${local.prefix}worker-svc"
+  cluster                = data.aws_ecs_cluster.ecs.arn
+  task_definition        = aws_ecs_task_definition.worker_task.arn
+  enable_execute_command = true
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  network_configuration {
+    subnets          = var.subnets
+    assign_public_ip = true
+    security_groups = [
+      aws_security_group.app_sg.id,
+    ]
+  }
+
+  tags = { Service = "${local.prefix}worker-svc" }
   # @todo: consider using deployment_circuit_breaker
 }
 
