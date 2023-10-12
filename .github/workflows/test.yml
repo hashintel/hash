@@ -118,7 +118,7 @@ jobs:
           echo "publish=$PUBLISH_PACKAGES" >> $GITHUB_OUTPUT
 
   unit-tests:
-    name: Unit Tests
+    name: Unit
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
@@ -250,7 +250,7 @@ jobs:
           hash-integration-worker: ${{ matrix.package == '@apps/hash-integration-worker' }}
 
   integration-tests:
-    name: Integration Tests
+    name: Integration
     needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
@@ -408,7 +408,7 @@ jobs:
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
   system-tests:
-    name: System Tests
+    name: System
     needs: [setup, build]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.system-tests) }}
