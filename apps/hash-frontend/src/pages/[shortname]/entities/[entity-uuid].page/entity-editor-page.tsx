@@ -1,6 +1,6 @@
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
-import { EntityPropertiesObject } from "@local/hash-subgraph";
+import { Entity, EntityPropertiesObject } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import { ReactNode, useState } from "react";
 
@@ -13,6 +13,7 @@ import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
 interface EntityEditorPageProps extends EntityEditorProps {
+  entity?: Entity;
   entityLabel: string;
   editBar: ReactNode;
   owner: string;
@@ -25,6 +26,7 @@ interface EntityEditorPageProps extends EntityEditorProps {
 }
 
 export const EntityEditorPage = ({
+  entity,
   entityLabel,
   editBar,
   entityUuid,
@@ -70,6 +72,7 @@ export const EntityEditorPage = ({
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              entity={entity}
               entityLabel={entityLabel}
               editBar={editBar}
               chip={
