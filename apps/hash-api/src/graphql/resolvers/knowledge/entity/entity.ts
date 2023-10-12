@@ -25,6 +25,7 @@ import {
   archiveEntity,
   createEntityWithLinks,
   getEntities,
+  getEntityAuthorizationRelationships,
   getLatestEntityById,
   isEntityPublic,
   removeEntityEditor,
@@ -43,6 +44,8 @@ import { genId } from "../../../../util";
 import {
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
+  EntityAuthorizationRelation,
+  EntityAuthorizationRelationship,
   Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -488,4 +491,35 @@ export const isEntityPublicResolver: ResolverFn<
   return await isEntityPublic(context, authentication, {
     entityId,
   });
+};
+
+export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
+  Promise<EntityAuthorizationRelationship[]>,
+  {},
+  LoggedInGraphQLContext,
+  QueryIsEntityPublicArgs
+> = async (_, { entityId }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const relationships = await getEntityAuthorizationRelationships(
+    context,
+    authentication,
+    { entityId },
+  );
+
+  return relationships.map(({ object, relation, subject }) => ({
+    objectEntityId: object,
+    relation:
+      relation === "direct_editor"
+        ? EntityAuthorizationRelation.Editor
+        : relation === "direct_owner"
+        ? EntityAuthorizationRelation.Owner
+        : EntityAuthorizationRelation.Viewer,
+    subject:
+      subject.type === "accountGroupMembers"
+        ? { accountGroupId: subject.id as AccountGroupId }
+        : subject.type === "account"
+        ? { accountId: subject.id as AccountId }
+        : { public: true },
+  }));
 };

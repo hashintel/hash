@@ -1,5 +1,6 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import { EntityAuthorizationSubject } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -23,6 +24,7 @@ import {
   addEntityViewerResolver,
   archiveEntityResolver,
   createEntityResolver,
+  getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
   inferEntitiesResolver,
   isEntityPublicResolver,
@@ -104,6 +106,9 @@ export const resolvers = {
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
+    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
+      getEntityAuthorizationRelationshipsResolver,
+    ),
     structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
@@ -208,5 +213,17 @@ export const resolvers = {
 
   Block: {
     blockChildEntity: blockChildEntityResolver,
+  },
+
+  EntityAuthorizationSubject: {
+    __resolveType(object: EntityAuthorizationSubject) {
+      if ("accountGroupId" in object) {
+        return "AccountGroupAuthorizationSubject";
+      } else if ("accountId" in object) {
+        return "AccountAuthorizationSubject";
+      } else {
+        return "PublicAuthorizationSubject";
+      }
+    },
   },
 };
