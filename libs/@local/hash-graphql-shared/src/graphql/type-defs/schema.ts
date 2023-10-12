@@ -23,6 +23,10 @@ const baseSchema = gql`
   # Branded types
   scalar OwnedById
   scalar AccountId
+
+  type Query
+
+  type Mutation
 `;
 
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
