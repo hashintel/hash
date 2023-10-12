@@ -726,6 +726,7 @@ jobs:
 
       - name: Launch HASH-API
         run: |
+          turbo run build --filter "@apps/hash-api"
           yarn workspace @apps/hash-api start &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
