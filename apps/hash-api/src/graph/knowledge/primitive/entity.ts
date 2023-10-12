@@ -13,6 +13,7 @@ import {
   AccountId,
   BaseUrl,
   Entity,
+  EntityAuthorizationRelationship,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
@@ -719,3 +720,16 @@ export const isEntityPublic: ImpureGraphFunction<
   Promise<boolean>
 > = async (ctx, _, params) =>
   canViewEntity(ctx, { actorId: publicUserAccountId }, params);
+
+export const getEntityAuthorizationRelationships: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<EntityAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getEntityAuthorizationRelationships(actorId, params.entityId)
+    .then(({ data }) =>
+      data.map((relationship) => ({
+        object: params.entityId,
+        ...relationship,
+      })),
+    );

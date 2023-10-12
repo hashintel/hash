@@ -1093,6 +1093,53 @@
         }
       }
     },
+    "/entities/{entity_id}/relationships": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "get_entity_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "description": "The Entity to read the relations for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The relations of the entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityAuthorizationRelationship"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/viewers/{viewer}": {
       "post": {
         "tags": [
@@ -2200,6 +2247,21 @@
           }
         }
       },
+      "EntityAuthorizationRelationship": {
+        "type": "object",
+        "required": [
+          "relation",
+          "subject"
+        ],
+        "properties": {
+          "relation": {
+            "$ref": "#/components/schemas/EntityRelation"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/EntitySubject"
+          }
+        }
+      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
@@ -2307,6 +2369,14 @@
           }
         }
       },
+      "EntityRelation": {
+        "type": "string",
+        "enum": [
+          "direct_owner",
+          "direct_editor",
+          "direct_viewer"
+        ]
+      },
       "EntityStructuralQuery": {
         "type": "object",
         "required": [
@@ -2324,6 +2394,66 @@
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
+        }
+      },
+      "EntitySubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PublicSubject",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AccountSubject",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AccountGroupMembersSubject",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accountGroupMembers"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
         }
       },
       "EntityTemporalMetadata": {
