@@ -42,8 +42,6 @@ Although published to package managers, the following libraries were developed f
 | [@hashintel/design-system]       | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/design-system)       | To be written | A collection of styleguide-aligned reusable UI primitives for [HASH] and our [hash.ai] website       |
 | [@hashintel/block-design-system] | TypeScript  | [npm](https://www.npmjs.com/package/@hashintel/block-design-system) | To be written | A relatively unopinionated set of reusable UI primitives for use in building [Block Protocol] blocks |
 
-## Internal unpublished libraries
-
 The packages inside of [`@local`](./@local) are libraries used inside this repository which are **not** published to package managers. All of these libraries may be subject to breaking changes. External consumers should be especially careful when using or upgrading these.
 
 The following list is a non-exhaustive list of packages in `@local`:
