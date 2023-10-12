@@ -24,6 +24,8 @@ const baseSchema = gql`
   # Branded types
   scalar OwnedById
   scalar AccountId
+  scalar AccountGroupId
+  scalar AuthorizationSubjectId
 
   type Query
 
