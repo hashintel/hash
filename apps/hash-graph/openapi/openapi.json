@@ -1093,13 +1093,13 @@
         }
       }
     },
-    "/entities/{entity_id}/relations": {
+    "/entities/{entity_id}/relationships": {
       "get": {
         "tags": [
           "Graph",
           "Entity"
         ],
-        "operationId": "get_entity_relations",
+        "operationId": "get_entity_authorization_relationships",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1126,7 +1126,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntityRelations"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntityAuthorizationRelationship"
+                  }
                 }
               }
             }
@@ -2244,6 +2247,21 @@
           }
         }
       },
+      "EntityAuthorizationRelationship": {
+        "type": "object",
+        "required": [
+          "relation",
+          "subject"
+        ],
+        "properties": {
+          "relation": {
+            "$ref": "#/components/schemas/EntityRelation"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/EntitySubject"
+          }
+        }
+      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
@@ -2359,35 +2377,6 @@
           "direct_viewer"
         ]
       },
-      "EntityRelationScope": {
-        "type": "object",
-        "required": [
-          "relation",
-          "scope"
-        ],
-        "properties": {
-          "relation": {
-            "$ref": "#/components/schemas/EntityRelation"
-          },
-          "scope": {
-            "$ref": "#/components/schemas/VisibilityScope"
-          }
-        }
-      },
-      "EntityRelations": {
-        "type": "object",
-        "required": [
-          "relations"
-        ],
-        "properties": {
-          "relations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityRelationScope"
-            }
-          }
-        }
-      },
       "EntityStructuralQuery": {
         "type": "object",
         "required": [
@@ -2405,6 +2394,66 @@
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
+        }
+      },
+      "EntitySubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "PublicSubject",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AccountSubject",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "AccountGroupMembersSubject",
+            "required": [
+              "type",
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accountGroupMembers"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
         }
       },
       "EntityTemporalMetadata": {
@@ -3864,66 +3913,6 @@
             "$ref": "#/components/schemas/OwnedById"
           }
         ]
-      },
-      "VisibilityScope": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "PublicScope",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "AccountScope",
-            "required": [
-              "type",
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountId"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "AccountGroupScope",
-            "required": [
-              "type",
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type"
-        }
       }
     }
   },

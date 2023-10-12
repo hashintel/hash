@@ -1,10 +1,8 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
-  EntityRelation,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
-  VisibilityScope,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,6 +13,7 @@ import {
   AccountId,
   BaseUrl,
   Entity,
+  EntityAuthorizationRelationship,
   EntityId,
   EntityMetadata,
   EntityPropertiesObject,
@@ -722,10 +721,15 @@ export const isEntityPublic: ImpureGraphFunction<
 > = async (ctx, _, params) =>
   canViewEntity(ctx, { actorId: publicUserAccountId }, params);
 
-export const getEntityRelations: ImpureGraphFunction<
+export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },
-  Promise<{ relation: EntityRelation; scope: VisibilityScope }[]>
+  Promise<EntityAuthorizationRelationship[]>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .getEntityRelations(actorId, params.entityId)
-    .then(({ data }) => data.relations);
+    .getEntityAuthorizationRelationships(actorId, params.entityId)
+    .then(({ data }) =>
+      data.map((relationship) => ({
+        object: params.entityId,
+        ...relationship,
+      })),
+    );

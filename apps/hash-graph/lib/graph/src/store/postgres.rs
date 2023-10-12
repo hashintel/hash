@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 
 use async_trait::async_trait;
-use authorization::{schema::OwnerId, AuthorizationApi, VisibilityScope};
+use authorization::{schema::OwnerId, AuthorizationApi, EntitySubject};
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -337,7 +337,7 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<VisibilityScope, InsertionError> {
+    ) -> Result<EntitySubject, InsertionError> {
         let query = "
                 WITH inserted_owners AS (
                     INSERT INTO ontology_owned_metadata (
@@ -362,11 +362,11 @@ where
 
         let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
-            Ok(VisibilityScope::AccountGroup(AccountGroupId::new(
+            Ok(EntitySubject::AccountGroupMembers(AccountGroupId::new(
                 owned_by_uuid,
             )))
         } else {
-            Ok(VisibilityScope::Account(AccountId::new(owned_by_uuid)))
+            Ok(EntitySubject::Account(AccountId::new(owned_by_uuid)))
         }
     }
 
@@ -740,7 +740,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Option<(
             OntologyId,
             LeftClosedTemporalInterval<TransactionTime>,
-            VisibilityScope,
+            EntitySubject,
         )>,
         InsertionError,
     > {
@@ -775,11 +775,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((
-                        ontology_id,
-                        transaction_time,
-                        VisibilityScope::Public,
-                    )))
+                    Ok(Some((ontology_id, transaction_time, EntitySubject::Public)))
                 } else {
                     Ok(None)
                 }

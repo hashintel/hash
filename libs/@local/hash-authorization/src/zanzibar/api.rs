@@ -12,7 +12,7 @@ use crate::{
         PublicAccess, WebPermission, WebRelation,
     },
     zanzibar::{Consistency, Zookie},
-    AccountOrPublic, AuthorizationApi, VisibilityScope,
+    AccountOrPublic, AuthorizationApi, EntitySubject,
 };
 
 #[derive(Debug, Clone)]
@@ -402,11 +402,11 @@ where
 
     async fn add_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
+            EntitySubject::Public => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -415,12 +415,12 @@ where
                     )])
                     .await
             }
-            VisibilityScope::Account(account) => {
+            EntitySubject::Account(account) => {
                 self.backend
                     .create_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -437,11 +437,11 @@ where
 
     async fn remove_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(match scope {
-            VisibilityScope::Public => {
+            EntitySubject::Public => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
@@ -450,12 +450,12 @@ where
                     )])
                     .await
             }
-            VisibilityScope::Account(account) => {
+            EntitySubject::Account(account) => {
                 self.backend
                     .delete_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
                     .await
             }
-            VisibilityScope::AccountGroup(account_group) => {
+            EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
@@ -516,7 +516,7 @@ where
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<(VisibilityScope, EntityRelation)>, ReadError> {
+    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
         let accounts = self
             .backend
             .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
@@ -532,7 +532,7 @@ where
             .map(|(entity_uuid, relation, account, account_relation)| {
                 debug_assert_eq!(entity_uuid, entity.entity_uuid);
                 assert!(account_relation.is_none());
-                (VisibilityScope::from(account), relation)
+                (EntitySubject::from(account), relation)
             });
 
         let account_groups = self
@@ -550,7 +550,7 @@ where
             .map(|(entity_uuid, relation, account_group, account_relation)| {
                 debug_assert_eq!(entity_uuid, entity.entity_uuid);
                 assert_eq!(account_relation, Some(AccountGroupPermission::Member));
-                (VisibilityScope::AccountGroup(account_group), relation)
+                (EntitySubject::AccountGroupMembers(account_group), relation)
             });
 
         Ok(accounts.chain(account_groups).collect())

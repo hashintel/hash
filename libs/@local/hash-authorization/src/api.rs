@@ -19,13 +19,13 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
-pub enum VisibilityScope {
-    #[cfg_attr(feature = "utoipa", schema(title = "PublicScope"))]
+pub enum EntitySubject {
+    #[cfg_attr(feature = "utoipa", schema(title = "PublicSubject"))]
     Public,
-    #[cfg_attr(feature = "utoipa", schema(title = "AccountScope"))]
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountSubject"))]
     Account(AccountId),
-    #[cfg_attr(feature = "utoipa", schema(title = "AccountGroupScope"))]
-    AccountGroup(AccountGroupId),
+    #[cfg_attr(feature = "utoipa", schema(title = "AccountGroupMembersSubject"))]
+    AccountGroupMembers(AccountGroupId),
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -35,7 +35,7 @@ pub enum AccountOrPublic {
     Account(AccountId),
 }
 
-impl From<AccountOrPublic> for VisibilityScope {
+impl From<AccountOrPublic> for EntitySubject {
     fn from(account_or_public: AccountOrPublic) -> Self {
         match account_or_public {
             AccountOrPublic::Public(_) => Self::Public,
@@ -202,12 +202,12 @@ pub trait AuthorizationApi {
 
     fn add_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
     fn remove_entity_viewer(
         &mut self,
-        scope: VisibilityScope,
+        scope: EntitySubject,
         entity: EntityId,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
@@ -253,7 +253,7 @@ pub trait AuthorizationApi {
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<(VisibilityScope, EntityRelation)>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<(EntitySubject, EntityRelation)>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

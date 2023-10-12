@@ -10,7 +10,7 @@ pub mod backend;
 pub mod schema;
 pub mod zanzibar;
 
-pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, VisibilityScope};
+pub use self::api::{AccountOrPublic, AuthorizationApi, AuthorizationApiPool, EntitySubject};
 
 mod api;
 
@@ -217,7 +217,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn add_entity_viewer(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: EntitySubject,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
@@ -225,7 +225,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn remove_entity_viewer(
         &mut self,
-        _scope: VisibilityScope,
+        _scope: EntitySubject,
         _entity: EntityId,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
@@ -271,7 +271,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _entity: EntityId,
         _consistency: Consistency<'static>,
-    ) -> Result<Vec<(VisibilityScope, EntityRelation)>, ReadError> {
+    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
         Ok(Vec::new())
     }
 }

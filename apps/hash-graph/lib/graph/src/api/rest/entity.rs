@@ -7,7 +7,7 @@ use std::{iter::once, sync::Arc};
 use authorization::{
     schema::{EntityRelation, OwnerId},
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool, VisibilityScope,
+    AuthorizationApi, AuthorizationApiPool, EntitySubject,
 };
 use axum::{
     extract::Path,
@@ -51,7 +51,7 @@ use crate::{
         can_update_entity,
         update_entity,
 
-        get_entity_relations,
+        get_entity_authorization_relationships,
 
         add_entity_owner,
         remove_entity_owner,
@@ -67,10 +67,9 @@ use crate::{
             EntityQueryToken,
             EntityStructuralQuery,
 
-            EntityRelations,
             EntityRelation,
-            VisibilityScope,
-            EntityRelationScope,
+            EntitySubject,
+            EntityAuthorizationRelationship,
 
             Entity,
             EntityUuid,
@@ -109,7 +108,10 @@ impl RoutedResource for EntityResource {
                 .nest(
                     "/:entity_id",
                     Router::new()
-                        .route("/relations", get(get_entity_relations::<A>))
+                        .route(
+                            "/relationships",
+                            get(get_entity_authorization_relationships::<A>),
+                        )
                         .route(
                             "/owners/:owner",
                             post(add_entity_owner::<A, S>).delete(remove_entity_owner::<A, S>),
@@ -470,36 +472,31 @@ impl<'s> ToSchema<'s> for Viewer {
 }
 
 #[derive(Serialize, ToSchema)]
-struct EntityRelationScope {
+struct EntityAuthorizationRelationship {
     relation: EntityRelation,
-    scope: VisibilityScope,
-}
-
-#[derive(Serialize, ToSchema)]
-struct EntityRelations {
-    relations: Vec<EntityRelationScope>,
+    subject: EntitySubject,
 }
 
 #[utoipa::path(
     get,
-    path = "/entities/{entity_id}/relations",
+    path = "/entities/{entity_id}/relationships",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to read the relations for"),
     ),
     responses(
-        (status = 200, description = "The relations of the entity", body = EntityRelations),
+        (status = 200, description = "The relations of the entity", body = [EntityAuthorizationRelationship]),
 
         (status = 403, description = "Permission denied"),
     )
 )]
 #[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn get_entity_relations<A>(
+async fn get_entity_authorization_relationships<A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(entity_id): Path<EntityId>,
     authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<EntityRelations>, StatusCode>
+) -> Result<Json<Vec<EntityAuthorizationRelationship>>, StatusCode>
 where
     A: AuthorizationApiPool + Send + Sync,
 {
@@ -508,8 +505,8 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    Ok(Json(EntityRelations {
-        relations: authorization_api
+    Ok(Json(
+        authorization_api
             .get_entity_relations(entity_id, Consistency::FullyConsistent)
             .await
             .map_err(|error| {
@@ -517,9 +514,12 @@ where
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
             .into_iter()
-            .map(|(scope, relation)| EntityRelationScope { relation, scope })
+            .map(|(scope, relation)| EntityAuthorizationRelationship {
+                relation,
+                subject: scope,
+            })
             .collect(),
-    }))
+    ))
 }
 
 #[utoipa::path(
@@ -839,7 +839,7 @@ where
     }
 
     let scope = match viewer {
-        Viewer::Public(_) => VisibilityScope::Public,
+        Viewer::Public(_) => EntitySubject::Public,
         Viewer::Owner(owned_by_id) => {
             let store = store_pool.acquire().await.map_err(|report| {
                 tracing::error!(error=?report, "Could not acquire store");
@@ -915,7 +915,7 @@ where
     }
 
     let scope = match viewer {
-        Viewer::Public(_) => VisibilityScope::Public,
+        Viewer::Public(_) => EntitySubject::Public,
         Viewer::Owner(owned_by_id) => {
             let store = store_pool.acquire().await.map_err(|report| {
                 tracing::error!(error=?report, "Could not acquire store");

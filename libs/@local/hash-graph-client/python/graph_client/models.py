@@ -102,6 +102,32 @@ class EntityRelation(Enum):
     direct_viewer = "direct_viewer"
 
 
+class PublicSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    type: Literal["public"]
+
+
+class AccountSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountId
+    type: Literal["account"]
+
+
+class AccountGroupMembersSubject(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountGroupId
+    type: Literal["accountGroupMembers"]
+
+
+class EntitySubject(
+    RootModel[PublicSubject | AccountSubject | AccountGroupMembersSubject]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PublicSubject | AccountSubject | AccountGroupMembersSubject = Field(
+        ..., discriminator="type"
+    )
+
+
 class EntityTypeQueryToken(Enum):
     """
     A single token in a [`EntityTypeQueryPath`].
@@ -257,30 +283,6 @@ class TransactionTime(RootModel[Literal["transactionTime"]]):
 class Viewer(RootModel[Literal["public"] | OwnedById]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal["public"] | OwnedById
-
-
-class PublicScope(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    type: Literal["public"]
-
-
-class AccountScope(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
-    type: Literal["account"]
-
-
-class AccountGroupScope(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
-    type: Literal["accountGroup"]
-
-
-class VisibilityScope(RootModel[PublicScope | AccountScope | AccountGroupScope]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: PublicScope | AccountScope | AccountGroupScope = Field(
-        ..., discriminator="type"
-    )
 
 
 class UpdateDataType(BaseModel):
@@ -569,21 +571,16 @@ class DataTypeVertexId(BaseModel):
     revision_id: OntologyTypeVersion = Field(..., alias="revisionId")
 
 
+class EntityAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: EntityRelation
+    subject: EntitySubject
+
+
 class EntityLinkOrder(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     left_to_right_order: LinkOrder | None = Field(None, alias="leftToRightOrder")
     right_to_left_order: LinkOrder | None = Field(None, alias="rightToLeftOrder")
-
-
-class EntityRelationScope(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    relation: EntityRelation
-    scope: VisibilityScope
-
-
-class EntityRelations(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    relations: list[EntityRelationScope]
 
 
 class EntityTypeVertexId(BaseModel):
