@@ -20,12 +20,7 @@ jobs:
   setup:
     runs-on: ubuntu-22.04
     outputs:
-      unit-tests: ${{ steps.packages.outputs.unit-tests }}
-      integration-tests: ${{ steps.packages.outputs.integration-tests }}
-      system-tests: ${{ steps.packages.outputs.system-tests }}
-      dockers: ${{ steps.packages.outputs.dockers }}
-      lints: ${{ steps.packages.outputs.lints }}
-      publish: ${{ steps.packages.outputs.publish }}
+      packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
@@ -38,18 +33,20 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          LINT_PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
+          PACKAGES=$(turbo run lint --dry-run=json --filter '...[HEAD^]' \
             | jq '.tasks[]' \
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
 
   package:
     name: Package
     needs: [setup]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.lints) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
-    if: needs.setup.outputs.lints != '{"package":[],"include":[]}'
+    if: needs.setup.outputs.packages != '{"package":[],"include":[]}'
     runs-on: ubuntu-22.04
     env:
       RUSTFLAGS: "--cfg hash_graph_test_environment"

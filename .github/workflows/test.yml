@@ -24,7 +24,6 @@ jobs:
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
       system-tests: ${{ steps.packages.outputs.system-tests }}
       dockers: ${{ steps.packages.outputs.dockers }}
-      lints: ${{ steps.packages.outputs.lints }}
       publish: ${{ steps.packages.outputs.publish }}
     steps:
       - name: Checkout source code
@@ -116,7 +115,6 @@ jobs:
           echo "integration-tests=$INTEGRATION_TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "system-tests=$SYSTEM_TEST_PACKAGES" >> $GITHUB_OUTPUT
           echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
-          echo "lints=$LINT_PACKAGES" >> $GITHUB_OUTPUT
           echo "publish=$PUBLISH_PACKAGES" >> $GITHUB_OUTPUT
 
   unit-tests:
