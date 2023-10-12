@@ -726,7 +726,7 @@ jobs:
 
       - name: Launch HASH-API
         run: |
-          turbo run dev --filter "@apps/hash-api" &
+          turbo run start --filter "@apps/hash-api" &
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
