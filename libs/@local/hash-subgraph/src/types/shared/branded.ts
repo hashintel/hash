@@ -21,6 +21,9 @@ export type AccountId = Brand<Uuid, "AccountId">;
 /** An ID to uniquely identify an account group (e.g. an Org) */
 export type AccountGroupId = Brand<Uuid, "AccountGroupId">;
 
+/** An ID to uniquely identify an authorization subject (either a User or an Org) */
+export type AuthorizationSubjectId = AccountId | AccountGroupId;
+
 /** An account ID of an actor that is the owner of something */
 export type OwnedById = Brand<AccountId | AccountGroupId, "OwnedById">;
 

@@ -4,6 +4,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountGroupId,
+  AccountId,
   Entity,
   OwnedById,
   splitEntityId,
@@ -39,6 +41,8 @@ import {
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { genId } from "../../../../util";
 import {
+  AuthorizationSubjectKind,
+  AuthorizationViewerInput,
   Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -378,10 +382,7 @@ export const addEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await addEntityOwner(context, authentication, {
-    entityId,
-    owner: owner.accountGroupId ?? owner.accountId,
-  });
+  await addEntityOwner(context, authentication, { entityId, owner });
 
   return true;
 };
@@ -394,10 +395,7 @@ export const removeEntityOwnerResolver: ResolverFn<
 > = async (_, { entityId, owner }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await removeEntityOwner(context, authentication, {
-    entityId,
-    owner: owner.accountGroupId ?? owner.accountId,
-  });
+  await removeEntityOwner(context, authentication, { entityId, owner });
 
   return true;
 };
@@ -410,10 +408,7 @@ export const addEntityEditorResolver: ResolverFn<
 > = async (_, { entityId, editor }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await addEntityEditor(context, authentication, {
-    entityId,
-    editor: editor.accountGroupId ?? editor.accountId,
-  });
+  await addEntityEditor(context, authentication, { entityId, editor });
 
   return true;
 };
@@ -426,12 +421,28 @@ export const removeEntityEditorResolver: ResolverFn<
 > = async (_, { entityId, editor }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await removeEntityEditor(context, authentication, {
-    entityId,
-    editor: editor.accountGroupId ?? editor.accountId,
-  });
+  await removeEntityEditor(context, authentication, { entityId, editor });
 
   return true;
+};
+
+const parseGqlAuthorizationViewerInput = ({
+  kind,
+  viewer,
+}: AuthorizationViewerInput): AccountId | AccountGroupId | "public" => {
+  if (kind === AuthorizationSubjectKind.Public) {
+    return "public" as const;
+  } else if (kind === AuthorizationSubjectKind.Account) {
+    if (!viewer) {
+      throw new UserInputError("Viewer Account ID must be specified");
+    }
+    return viewer;
+  } else {
+    if (!viewer) {
+      throw new UserInputError("Viewer Account Group ID must be specified");
+    }
+    return viewer;
+  }
 };
 
 export const addEntityViewerResolver: ResolverFn<
@@ -444,7 +455,7 @@ export const addEntityViewerResolver: ResolverFn<
 
   await addEntityViewer(context, authentication, {
     entityId,
-    viewer: viewer.accountGroupId ?? viewer.accountId ?? "public",
+    viewer: parseGqlAuthorizationViewerInput(viewer),
   });
 
   return true;
@@ -460,7 +471,7 @@ export const removeEntityViewerResolver: ResolverFn<
 
   await removeEntityViewer(context, authentication, {
     entityId,
-    viewer: viewer.accountGroupId ?? viewer.accountId ?? "public",
+    viewer: parseGqlAuthorizationViewerInput(viewer),
   });
 
   return true;

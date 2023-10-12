@@ -26,6 +26,7 @@ const baseSchema = gql`
   scalar OwnedById
   scalar AccountId
   scalar AccountGroupId
+  scalar AuthorizationSubjectId
 
   """
   The queries available in this schema

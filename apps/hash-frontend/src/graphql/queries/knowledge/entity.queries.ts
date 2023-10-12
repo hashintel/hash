@@ -82,37 +82,55 @@ export const archiveEntityMutation = gql`
 `;
 
 export const addEntityOwnerMutation = gql`
-  mutation addEntityOwner($entityId: EntityId!, $owner: OwnerInput!) {
+  mutation addEntityOwner(
+    $entityId: EntityId!
+    $owner: AuthorizationSubjectId!
+  ) {
     addEntityOwner(entityId: $entityId, owner: $owner)
   }
 `;
 
 export const removeEntityOwnerMutation = gql`
-  mutation removeEntityOwner($entityId: EntityId!, $owner: OwnerInput!) {
+  mutation removeEntityOwner(
+    $entityId: EntityId!
+    $owner: AuthorizationSubjectId!
+  ) {
     removeEntityOwner(entityId: $entityId, owner: $owner)
   }
 `;
 
 export const addEntityEditorMutation = gql`
-  mutation addEntityEditor($entityId: EntityId!, $editor: EditorInput!) {
+  mutation addEntityEditor(
+    $entityId: EntityId!
+    $editor: AuthorizationSubjectId!
+  ) {
     addEntityEditor(entityId: $entityId, editor: $editor)
   }
 `;
 
 export const removeEntityEditorMutation = gql`
-  mutation removeEntityEditor($entityId: EntityId!, $editor: EditorInput!) {
+  mutation removeEntityEditor(
+    $entityId: EntityId!
+    $editor: AuthorizationSubjectId!
+  ) {
     removeEntityEditor(entityId: $entityId, editor: $editor)
   }
 `;
 
 export const addEntityViewerMutation = gql`
-  mutation addEntityViewer($entityId: EntityId!, $viewer: ViewerInput!) {
+  mutation addEntityViewer(
+    $entityId: EntityId!
+    $viewer: AuthorizationViewerInput!
+  ) {
     addEntityViewer(entityId: $entityId, viewer: $viewer)
   }
 `;
 
 export const removeEntityViewerMutation = gql`
-  mutation removeEntityViewer($entityId: EntityId!, $viewer: ViewerInput!) {
+  mutation removeEntityViewer(
+    $entityId: EntityId!
+    $viewer: AuthorizationViewerInput!
+  ) {
     removeEntityViewer(entityId: $entityId, viewer: $viewer)
   }
 `;

@@ -24,6 +24,7 @@ import { FunctionComponent, useCallback } from "react";
 import {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
+  AuthorizationSubjectKind,
   IsEntityPublicQuery,
   IsEntityPublicQueryVariables,
   RemoveEntityViewerMutation,
@@ -95,14 +96,20 @@ const EditPrivacyStatusMenu: FunctionComponent<{
 
   const setEntityToPrivate = useCallback(async () => {
     await removeEntityViewer({
-      variables: { entityId, viewer: { public: true } },
+      variables: {
+        entityId,
+        viewer: { kind: AuthorizationSubjectKind.Public },
+      },
     });
     privacyStatusPopupState.close();
   }, [removeEntityViewer, entityId, privacyStatusPopupState]);
 
   const setEntityToPublic = useCallback(async () => {
     await addEntityViewer({
-      variables: { entityId, viewer: { public: true } },
+      variables: {
+        entityId,
+        viewer: { kind: AuthorizationSubjectKind.Public },
+      },
     });
     privacyStatusPopupState.close();
   }, [addEntityViewer, entityId, privacyStatusPopupState]);

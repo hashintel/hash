@@ -154,20 +154,15 @@ export const entityTypedef = gql`
     isEntityPublic(entityId: EntityId!): Boolean!
   }
 
-  input OwnerInput @oneOf {
-    accountId: AccountId
-    accountGroupId: AccountGroupId
+  enum AuthorizationSubjectKind {
+    Public
+    Account
+    AccountGroup
   }
 
-  input EditorInput @oneOf {
-    accountId: AccountId
-    accountGroupId: AccountGroupId
-  }
-
-  input ViewerInput @oneOf {
-    accountId: AccountId
-    accountGroupId: AccountGroupId
-    public: Boolean
+  input AuthorizationViewerInput {
+    viewer: AuthorizationSubjectId
+    kind: AuthorizationSubjectKind!
   }
 
   extend type Mutation {
@@ -269,16 +264,34 @@ export const entityTypedef = gql`
       temperature: Float!
     ): InferEntitiesResult!
 
-    addEntityOwner(entityId: EntityId!, owner: OwnerInput!): Boolean!
+    addEntityOwner(
+      entityId: EntityId!
+      owner: AuthorizationSubjectId!
+    ): Boolean!
 
-    removeEntityOwner(entityId: EntityId!, owner: OwnerInput!): Boolean!
+    removeEntityOwner(
+      entityId: EntityId!
+      owner: AuthorizationSubjectId!
+    ): Boolean!
 
-    addEntityEditor(entityId: EntityId!, editor: EditorInput!): Boolean!
+    addEntityEditor(
+      entityId: EntityId!
+      editor: AuthorizationSubjectId!
+    ): Boolean!
 
-    removeEntityEditor(entityId: EntityId!, editor: EditorInput!): Boolean!
+    removeEntityEditor(
+      entityId: EntityId!
+      editor: AuthorizationSubjectId!
+    ): Boolean!
 
-    addEntityViewer(entityId: EntityId!, viewer: ViewerInput!): Boolean!
+    addEntityViewer(
+      entityId: EntityId!
+      viewer: AuthorizationViewerInput!
+    ): Boolean!
 
-    removeEntityViewer(entityId: EntityId!, viewer: ViewerInput!): Boolean!
+    removeEntityViewer(
+      entityId: EntityId!
+      viewer: AuthorizationViewerInput!
+    ): Boolean!
   }
 `;
