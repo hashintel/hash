@@ -45,13 +45,11 @@ import {
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
-import { createUserResolver } from "./knowledge/user/create-user";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
 import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
@@ -150,10 +148,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
-
-    // HASH instance admin mutations
-    createUser:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
 
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
