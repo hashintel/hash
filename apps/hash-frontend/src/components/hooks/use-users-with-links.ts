@@ -77,7 +77,7 @@ export const useUsersWithLinks = ({
 
   return {
     loading,
-    users,
+    users: userAccountIds && userAccountIds.length === 0 ? [] : users,
     refetch,
   };
 };

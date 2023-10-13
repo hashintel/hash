@@ -1,5 +1,4 @@
 import { useMutation, useQuery } from "@apollo/client";
-import { Avatar } from "@hashintel/design-system";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -10,6 +9,7 @@ import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-l
 import {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
+  EntityAuthorizationRelation,
   GetEntityAuthorizationRelationshipsQuery,
   GetEntityAuthorizationRelationshipsQueryVariables,
 } from "../../../../graphql/api-types.gen";
@@ -17,22 +17,22 @@ import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
-import { MinimalOrg, MinimalUser } from "../../../../lib/user-and-org";
+import {
+  MinimalOrg,
+  MinimalUser,
+  Org,
+  User,
+} from "../../../../lib/user-and-org";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
-import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
+import {
+  AccountAuthorizationRelationship,
+  EditableAccountAuthorizationRelationships,
+} from "./editable-account-authorization-relationship";
 import { InviteAccountForm } from "./invite-account-form";
 
-type AuthorizationRelationship =
-  GetEntityAuthorizationRelationshipsQuery["getEntityAuthorizationRelationships"][number];
-
-type AuthorizationAccountRelationship = Omit<
-  AuthorizationRelationship,
-  "subject"
-> & {
-  subject: Exclude<
-    AuthorizationRelationship["subject"],
-    { __typename: "PublicAuthorizationSubject" }
-  >;
+type AccountAuthorizationRelationshipsByAccount = {
+  account: User | Org;
+  relationships: AccountAuthorizationRelationship[];
 };
 
 export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
@@ -45,20 +45,99 @@ export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
     GetEntityAuthorizationRelationshipsQueryVariables
   >(getEntityAuthorizationRelationshipsQuery, {
     variables: { entityId },
+    fetchPolicy: "cache-and-network",
   });
 
-  const authorizationAccountRelationships = useMemo(() => {
-    return (
-      data?.getEntityAuthorizationRelationships
-        // Filter out the public relationship if it exists
-        .filter(
-          (relationship): relationship is AuthorizationAccountRelationship =>
-            relationship.subject.__typename === "AccountAuthorizationSubject" ||
-            relationship.subject.__typename ===
-              "AccountGroupAuthorizationSubject",
-        )
-    );
-  }, [data]);
+  const authorizationRelationships = data?.getEntityAuthorizationRelationships;
+
+  const accountAuthorizationRelationships = useMemo(
+    () =>
+      authorizationRelationships?.filter(
+        (relationship): relationship is AccountAuthorizationRelationship =>
+          relationship.subject.__typename === "AccountAuthorizationSubject" ||
+          relationship.subject.__typename ===
+            "AccountGroupAuthorizationSubject",
+      ),
+    [authorizationRelationships],
+  );
+
+  const sharedWithUserAccountIds = useMemo(
+    () =>
+      accountAuthorizationRelationships?.reduce<AccountId[]>(
+        (acc, { subject }) =>
+          subject.__typename === "AccountAuthorizationSubject" &&
+          !acc.includes(subject.accountId)
+            ? [...acc, subject.accountId]
+            : acc,
+        [],
+      ),
+    [accountAuthorizationRelationships],
+  );
+
+  const sharedWithOrgAccountGroupIds = useMemo(
+    () =>
+      accountAuthorizationRelationships?.reduce<AccountGroupId[]>(
+        (acc, { subject }) =>
+          subject.__typename === "AccountGroupAuthorizationSubject" &&
+          !acc.includes(subject.accountGroupId)
+            ? [...acc, subject.accountGroupId]
+            : acc,
+        [],
+      ),
+    [accountAuthorizationRelationships],
+  );
+
+  const { users } = useUsersWithLinks({
+    userAccountIds: sharedWithUserAccountIds,
+  });
+
+  const { orgs } = useOrgsWithLinks({
+    orgAccountGroupIds: sharedWithOrgAccountGroupIds,
+  });
+
+  const accounts = useMemo(
+    () => (users && orgs ? [...users, ...orgs] : undefined),
+    [users, orgs],
+  );
+
+  // console.log({ sharedWithUserAccountIds, accounts, users, orgs });
+
+  const accountAuthorizationRelationshipsByAccount = useMemo(
+    () =>
+      accounts && accountAuthorizationRelationships
+        ? // Group the relationships by subject
+          accountAuthorizationRelationships.reduce<
+            AccountAuthorizationRelationshipsByAccount[]
+          >((acc, relationship) => {
+            const subjectId =
+              relationship.subject.__typename === "AccountAuthorizationSubject"
+                ? relationship.subject.accountId
+                : relationship.subject.accountGroupId;
+
+            const existingAccountIndex = acc.findIndex(({ account }) =>
+              account.kind === "user"
+                ? account.accountId === subjectId
+                : account.accountGroupId === subjectId,
+            );
+
+            if (existingAccountIndex !== -1) {
+              acc[existingAccountIndex]!.relationships.push(relationship);
+            } else {
+              acc.push({
+                account: accounts.find((account) =>
+                  account.kind === "user"
+                    ? account.accountId === subjectId
+                    : account.accountGroupId === subjectId,
+                )!,
+                relationships: [relationship],
+              });
+            }
+
+            return acc;
+          }, [])
+        : undefined,
+    [accountAuthorizationRelationships, accounts],
+  );
 
   const [addEntityViewer] = useMutation<
     AddEntityViewerMutation,
@@ -93,37 +172,61 @@ export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
     [addEntityViewer, entity],
   );
 
-  const sharedWithUserAccountIds = useMemo(
+  const ownerAuthorizationRelationshipsByAccount = useMemo(
     () =>
-      authorizationAccountRelationships?.reduce<AccountId[]>(
-        (acc, { subject }) =>
-          subject.__typename === "AccountAuthorizationSubject"
-            ? [...acc, subject.accountId]
-            : acc,
-        [],
-      ),
-    [authorizationAccountRelationships],
+      accountAuthorizationRelationshipsByAccount
+        ?.filter(({ relationships }) =>
+          relationships.some(
+            ({ relation }) => relation === EntityAuthorizationRelation.Owner,
+          ),
+        )
+        .sort((a, b) => {
+          const aLabel =
+            a.account.kind === "user"
+              ? a.account.preferredName ?? "Unknown"
+              : a.account.name;
+          const bLabel =
+            b.account.kind === "user"
+              ? b.account.preferredName ?? "Unknown"
+              : b.account.name;
+
+          return aLabel.localeCompare(bLabel);
+        }),
+    [accountAuthorizationRelationshipsByAccount],
   );
 
-  const sharedWithOrgAccountGroupIds = useMemo(
+  const nonOwnerAuthorizationRelationshipsByAccount = useMemo(
     () =>
-      authorizationAccountRelationships?.reduce<AccountGroupId[]>(
-        (acc, { subject }) =>
-          subject.__typename === "AccountGroupAuthorizationSubject"
-            ? [...acc, subject.accountGroupId]
-            : acc,
-        [],
-      ),
-    [authorizationAccountRelationships],
+      ownerAuthorizationRelationshipsByAccount &&
+      accountAuthorizationRelationshipsByAccount
+        ?.filter(
+          ({ account }) =>
+            !ownerAuthorizationRelationshipsByAccount.some(
+              ({ account: ownerAccount }) =>
+                ownerAccount.kind === account.kind &&
+                (account.kind === "org"
+                  ? (ownerAccount as Org).accountGroupId ===
+                    account.accountGroupId
+                  : (ownerAccount as User).accountId === account.accountId),
+            ),
+        )
+        .sort((a, b) => {
+          const aLabel =
+            a.account.kind === "user"
+              ? a.account.preferredName ?? "Unknown"
+              : a.account.name;
+          const bLabel =
+            b.account.kind === "user"
+              ? b.account.preferredName ?? "Unknown"
+              : b.account.name;
+
+          return aLabel.localeCompare(bLabel);
+        }),
+    [
+      ownerAuthorizationRelationshipsByAccount,
+      accountAuthorizationRelationshipsByAccount,
+    ],
   );
-
-  const { users } = useUsersWithLinks({
-    userAccountIds: sharedWithUserAccountIds,
-  });
-
-  const { orgs } = useOrgsWithLinks({
-    orgAccountGroupIds: sharedWithOrgAccountGroupIds,
-  });
 
   return (
     <>
@@ -139,68 +242,44 @@ export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
         Share this {isEntityPageEntity(entity) ? "page" : "entity"}
       </Typography>
       <InviteAccountForm
-        excludeAccountIds={authorizationAccountRelationships?.map(
-          ({ subject }) =>
-            subject.__typename === "AccountAuthorizationSubject"
-              ? subject.accountId
-              : subject.accountGroupId,
-        )}
+        excludeAccountIds={[
+          ...(sharedWithUserAccountIds ?? []),
+          ...(sharedWithOrgAccountGroupIds ?? []),
+        ]}
         onInviteAccount={handleInviteAccount}
       />
       <Box marginTop={1.5}>
-        {authorizationAccountRelationships ? (
-          authorizationAccountRelationships.map(({ subject }) => {
-            const account =
-              subject.__typename === "AccountAuthorizationSubject"
-                ? users?.find((user) => user.accountId === subject.accountId)
-                : orgs?.find(
-                    (org) => org.accountGroupId === subject.accountGroupId,
-                  );
-
-            if (!account) {
-              return (
-                <Skeleton
+        {accountAuthorizationRelationshipsByAccount ? (
+          <>
+            {ownerAuthorizationRelationshipsByAccount?.map(
+              ({ account, relationships }) => (
+                <EditableAccountAuthorizationRelationships
+                  objectEntity={entity}
                   key={
-                    subject.__typename === "AccountAuthorizationSubject"
-                      ? subject.accountId
-                      : subject.accountGroupId
+                    account.kind === "user"
+                      ? account.accountId
+                      : account.accountGroupId
                   }
+                  account={account}
+                  relationships={relationships}
                 />
-              );
-            }
-
-            const avatarSrc = account.hasAvatar
-              ? getImageUrlFromEntityProperties(
-                  account.hasAvatar.imageEntity.properties,
-                )
-              : undefined;
-
-            const accountName =
-              account.kind === "user" ? account.preferredName : account.name;
-
-            return (
-              <Box
-                key={
-                  subject.__typename === "AccountAuthorizationSubject"
-                    ? subject.accountId
-                    : subject.accountGroupId
-                }
-                display="flex"
-                alignItems="center"
-                paddingY={1}
-              >
-                <Avatar
-                  src={avatarSrc}
-                  title={accountName}
-                  size={28}
-                  sx={{ marginRight: 1 }}
+              ),
+            )}
+            {nonOwnerAuthorizationRelationshipsByAccount?.map(
+              ({ account, relationships }) => (
+                <EditableAccountAuthorizationRelationships
+                  objectEntity={entity}
+                  key={
+                    account.kind === "user"
+                      ? account.accountId
+                      : account.accountGroupId
+                  }
+                  account={account}
+                  relationships={relationships}
                 />
-                <Box flexGrow={1}>
-                  <Typography variant="microText">{accountName}</Typography>
-                </Box>
-              </Box>
-            );
-          })
+              ),
+            )}
+          </>
         ) : (
           <Skeleton />
         )}

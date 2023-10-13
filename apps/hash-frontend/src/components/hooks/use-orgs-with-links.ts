@@ -77,7 +77,7 @@ export const useOrgsWithLinks = ({
 
   return {
     loading,
-    orgs,
+    orgs: orgAccountGroupIds && orgAccountGroupIds.length === 0 ? [] : orgs,
     refetch,
   };
 };
