@@ -1,6 +1,11 @@
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import { AccountGroupId, AccountId } from "@local/hash-subgraph";
-import { autocompleteClasses, Box, outlinedInputClasses } from "@mui/material";
+import {
+  autocompleteClasses,
+  Box,
+  outlinedInputClasses,
+  Typography,
+} from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useOrgs } from "../../../../components/hooks/use-orgs";
@@ -99,11 +104,13 @@ export const InviteAccountForm: FunctionComponent<{
           if (!option) {
             return null;
           }
+
           const avatarSrc = option.hasAvatar
             ? getImageUrlFromEntityProperties(
                 option.hasAvatar.imageEntity.properties,
               )
             : undefined;
+
           return (
             <Box component="li" {...props}>
               <Avatar
@@ -113,8 +120,11 @@ export const InviteAccountForm: FunctionComponent<{
                 }
                 size={28}
                 sx={{ marginRight: 1 }}
+                borderRadius={option.kind === "org" ? "4px" : undefined}
               />
-              {option.kind === "user" ? option.preferredName : option.name}
+              <Typography>
+                {option.kind === "user" ? option.preferredName : option.name}
+              </Typography>
             </Box>
           );
         }}
