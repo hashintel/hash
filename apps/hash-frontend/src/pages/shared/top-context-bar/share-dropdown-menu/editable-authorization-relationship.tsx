@@ -46,22 +46,13 @@ import {
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../../../lib/user-and-org";
 import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
+import { GlobeLightIcon } from "../../../../shared/icons/globe-light-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 import { AuthorizationRelationship } from "./types";
-
-export type AccountAuthorizationRelationship = Omit<
-  AuthorizationRelationship,
-  "subject"
-> & {
-  subject: Exclude<
-    AuthorizationRelationship["subject"],
-    { __typename: "PublicAuthorizationSubject" }
-  >;
-};
 
 const relationHierarchy: Record<EntityAuthorizationRelation, number> = {
   Owner: 3,
@@ -75,28 +66,24 @@ const relationLabels: Record<EntityAuthorizationRelation, string> = {
   Viewer: "Can view",
 };
 
-export const EditableAccountAuthorizationRelationships: FunctionComponent<{
+export const EditableAuthorizationRelationships: FunctionComponent<{
   objectEntity: Entity;
-  account: User | Org;
-  relationships: AccountAuthorizationRelationship[];
+  account?: User | Org;
+  relationships: AuthorizationRelationship[];
 }> = ({ objectEntity, account, relationships }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const primaryRelationship = useMemo(
     () =>
-      relationships.reduce<AccountAuthorizationRelationship>(
-        (prev, current) => {
-          if (
-            relationHierarchy[current.relation] >
-            relationHierarchy[prev.relation]
-          ) {
-            return current;
-          }
+      relationships.reduce<AuthorizationRelationship>((prev, current) => {
+        if (
+          relationHierarchy[current.relation] > relationHierarchy[prev.relation]
+        ) {
+          return current;
+        }
 
-          return prev;
-        },
-        relationships[0]!,
-      ),
+        return prev;
+      }, relationships[0]!),
     [relationships],
   );
 
@@ -109,7 +96,9 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
   const subjectId =
     subject.__typename === "AccountAuthorizationSubject"
       ? subject.accountId
-      : subject.accountGroupId;
+      : subject.__typename === "AccountGroupAuthorizationSubject"
+      ? subject.accountGroupId
+      : "public";
 
   const popupState = usePopupState({
     variant: "popover",
@@ -142,27 +131,16 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
   >(removeEntityViewerMutation, { refetchQueries });
 
   const removeRelationship = useCallback(
-    async (relationship: AccountAuthorizationRelationship) => {
+    async (relationship: AuthorizationRelationship) => {
       const relationshipSubjectId =
         relationship.subject.__typename === "AccountAuthorizationSubject"
           ? relationship.subject.accountId
-          : relationship.subject.accountGroupId;
+          : relationship.subject.__typename ===
+            "AccountGroupAuthorizationSubject"
+          ? relationship.subject.accountGroupId
+          : undefined;
 
-      if (relationship.relation === EntityAuthorizationRelation.Owner) {
-        await removeEntityOwner({
-          variables: {
-            entityId: relationship.objectEntityId,
-            owner: relationshipSubjectId,
-          },
-        });
-      } else if (relationship.relation === EntityAuthorizationRelation.Editor) {
-        await removeEntityEditor({
-          variables: {
-            entityId: relationship.objectEntityId,
-            editor: relationshipSubjectId,
-          },
-        });
-      } else {
+      if (relationship.relation === EntityAuthorizationRelation.Viewer) {
         await removeEntityViewer({
           variables: {
             entityId: relationship.objectEntityId,
@@ -172,10 +150,33 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
                 relationship.subject.__typename ===
                 "AccountAuthorizationSubject"
                   ? AuthorizationSubjectKind.Account
-                  : AuthorizationSubjectKind.AccountGroup,
+                  : relationship.subject.__typename ===
+                    "AccountGroupAuthorizationSubject"
+                  ? AuthorizationSubjectKind.AccountGroup
+                  : AuthorizationSubjectKind.Public,
             },
           },
         });
+      }
+
+      if (relationshipSubjectId) {
+        if (relationship.relation === EntityAuthorizationRelation.Owner) {
+          await removeEntityOwner({
+            variables: {
+              entityId: relationship.objectEntityId,
+              owner: relationshipSubjectId,
+            },
+          });
+        } else if (
+          relationship.relation === EntityAuthorizationRelation.Editor
+        ) {
+          await removeEntityEditor({
+            variables: {
+              entityId: relationship.objectEntityId,
+              editor: relationshipSubjectId,
+            },
+          });
+        }
       }
     },
     [removeEntityViewer, removeEntityEditor, removeEntityOwner],
@@ -202,7 +203,7 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
 
   const updateAuthorizationRelation = useCallback(
     async (updatedRelation: EntityAuthorizationRelation) => {
-      if (currentRelation === updatedRelation) {
+      if (currentRelation === updatedRelation || subjectId === "public") {
         return;
       }
 
@@ -249,14 +250,21 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
     ],
   );
 
-  const avatarSrc = account.hasAvatar
+  const avatarSrc = account?.hasAvatar
     ? getImageUrlFromEntityProperties(account.hasAvatar.imageEntity.properties)
     : undefined;
 
-  const accountName =
-    account.kind === "user" ? account.preferredName : account.name;
+  const name = account
+    ? account.kind === "user"
+      ? account.preferredName
+      : account.name
+    : "Public";
 
   const dropdownItems = useMemo(() => {
+    if (subjectId === "public") {
+      return [];
+    }
+
     const isObjectPageEntity = isEntityPageEntity(objectEntity);
 
     return [
@@ -273,22 +281,36 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
         }`,
       },
     ];
-  }, [objectEntity]);
+  }, [objectEntity, subjectId]);
 
   return (
     <Box display="flex" alignItems="center" paddingY={0.25}>
-      <Avatar
-        src={avatarSrc}
-        title={accountName}
-        size={28}
-        sx={{ marginRight: 1 }}
-        borderRadius={account.kind === "org" ? "4px" : undefined}
-      />
+      <Box
+        minWidth={28}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        marginRight={1}
+      >
+        {account ? (
+          <Avatar
+            src={avatarSrc}
+            title={name}
+            size={28}
+            borderRadius={account.kind === "org" ? "4px" : undefined}
+          />
+        ) : (
+          <GlobeLightIcon
+            sx={{ fontSize: 18, color: ({ palette }) => palette.gray[50] }}
+          />
+        )}
+      </Box>
       <Box flexGrow={1} display="flex" columnGap={1}>
         <Typography variant="microText" sx={{ fontWeight: 500, fontSize: 14 }}>
-          {accountName}
+          {name}
         </Typography>
-        {account.kind === "user" &&
+        {account &&
+        account.kind === "user" &&
         account.accountId === authenticatedUser.accountId ? (
           <Typography variant="microText" sx={{ fontSize: 13 }}>
             (You)
@@ -340,7 +362,7 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
               <ListItemText primary={label} secondary={description} />
             </PrivacyStatusMenuItem>
           ))}
-          <Divider sx={{}} />
+          {dropdownItems.length ? <Divider /> : null}
           <PrivacyStatusMenuItem
             onClick={async () => {
               await removeCurrentRelationships();

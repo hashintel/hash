@@ -22,12 +22,13 @@ import {
   User,
 } from "../../../../lib/user-and-org";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
+import { EditableAuthorizationRelationships } from "./editable-authorization-relationship";
+import { InviteAccountForm } from "./invite-account-form";
 import {
   AccountAuthorizationRelationship,
-  EditableAccountAuthorizationRelationships,
-} from "./editable-account-authorization-relationship";
-import { InviteAccountForm } from "./invite-account-form";
-import { AuthorizationRelationship } from "./types";
+  AuthorizationRelationship,
+  PublicAuthorizationRelationship,
+} from "./types";
 
 type AccountAuthorizationRelationshipsByAccount = {
   account: User | Org;
@@ -47,6 +48,15 @@ export const ShareEntitySection: FunctionComponent<{
           relationship.subject.__typename === "AccountAuthorizationSubject" ||
           relationship.subject.__typename ===
             "AccountGroupAuthorizationSubject",
+      ),
+    [authorizationRelationships],
+  );
+
+  const publicAuthorizationRelationships = useMemo(
+    () =>
+      authorizationRelationships?.filter(
+        (relationship): relationship is PublicAuthorizationRelationship =>
+          relationship.subject.__typename === "PublicAuthorizationSubject",
       ),
     [authorizationRelationships],
   );
@@ -241,7 +251,7 @@ export const ShareEntitySection: FunctionComponent<{
           <>
             {ownerAuthorizationRelationshipsByAccount?.map(
               ({ account, relationships }) => (
-                <EditableAccountAuthorizationRelationships
+                <EditableAuthorizationRelationships
                   objectEntity={entity}
                   key={
                     account.kind === "user"
@@ -255,7 +265,7 @@ export const ShareEntitySection: FunctionComponent<{
             )}
             {nonOwnerAuthorizationRelationshipsByAccount?.map(
               ({ account, relationships }) => (
-                <EditableAccountAuthorizationRelationships
+                <EditableAuthorizationRelationships
                   objectEntity={entity}
                   key={
                     account.kind === "user"
@@ -267,6 +277,12 @@ export const ShareEntitySection: FunctionComponent<{
                 />
               ),
             )}
+            {publicAuthorizationRelationships?.length ? (
+              <EditableAuthorizationRelationships
+                objectEntity={entity}
+                relationships={publicAuthorizationRelationships}
+              />
+            ) : null}
           </>
         ) : (
           <Skeleton />
