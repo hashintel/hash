@@ -139,16 +139,12 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
         label: "Private",
         status: "private" as const,
         description: "Only you have access",
-        disabled:
-          loading ||
-          authorizationStatus === "private" ||
-          authorizationStatus === "shared-with-others",
-        tooltipText:
-          authorizationStatus === "shared-with-others"
-            ? `To make this ${
-                isPageEntity ? "page" : "entity"
-              } private remove the members/webs it has been shared with`
-            : undefined,
+        disabled: loading || !!isSharedWithOthers,
+        tooltipText: isSharedWithOthers
+          ? `To make this ${
+              isPageEntity ? "page" : "entity"
+            } private remove the members/webs it has been shared with`
+          : undefined,
         onClick: removePublicViewer,
       },
       isSharedWithOthers
