@@ -18,11 +18,18 @@ import { resolveCommentResolver } from "./knowledge/comment/resolve";
 import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
 import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
+  addEntityEditorResolver,
+  addEntityOwnerResolver,
+  addEntityViewerResolver,
   archiveEntityResolver,
   createEntityResolver,
   getEntityResolver,
   inferEntitiesResolver,
+  isEntityPublicResolver,
   queryEntitiesResolver,
+  removeEntityEditorResolver,
+  removeEntityOwnerResolver,
+  removeEntityViewerResolver,
   structuralQueryEntitiesResolver,
   updateEntityResolver,
 } from "./knowledge/entity/entity";
@@ -96,6 +103,7 @@ export const resolvers = {
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
+    isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
@@ -153,6 +161,17 @@ export const resolvers = {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+
+    addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
+    removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),
+    addEntityEditor: loggedInAndSignedUpMiddleware(addEntityEditorResolver),
+    removeEntityEditor: loggedInAndSignedUpMiddleware(
+      removeEntityEditorResolver,
+    ),
+    addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
+    removeEntityViewer: loggedInAndSignedUpMiddleware(
+      removeEntityViewerResolver,
+    ),
 
     // HASH instance admin mutations
     createUser:

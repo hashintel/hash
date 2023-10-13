@@ -36,8 +36,9 @@ env:
   HASH_TEMPORAL_MIGRATE_RESOURCE_NAME: h-temporal-prod-usea1-migrate
   HASH_TEMPORAL_VERSION: 1.21.0.0
 
-  HASH_ECS_CLUSTER_NAME: ${{ secrets.HASH_ECS_CLUSTER_NAME }}
-  HASH_APP_SERVICE_NAME: ${{ secrets.HASH_APP_SERVICE_NAME }}
+  HASH_ECS_CLUSTER_NAME: h-hash-prod-usea1-ecs
+  HASH_APP_SERVICE_NAME: h-hash-prod-usea1-app-svc
+  HASH_WORKER_SERVICE_NAME: h-hash-prod-usea1-appworker-svc
 
   HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
   HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
@@ -358,15 +359,12 @@ jobs:
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
   deploy-app:
-    name: Deploy HASH images
+    name: Deploy HASH app images
     runs-on: ubuntu-latest
     needs:
       - build-graph
       - build-api
       - build-kratos
-      - build-ts-worker
-      - build-py-worker
-      - build-integration-worker
     permissions:
       id-token: write
       contents: read
@@ -398,6 +396,45 @@ jobs:
       - name: Redeploy HASH backend service
         run: |
           aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+
+  deploy-workers:
+    name: Deploy HASH worker images
+    runs-on: ubuntu-latest
+    needs:
+      - build-ts-worker
+      - build-py-worker
+      - build-integration-worker
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@cb841f2c86fb6d07cff94fda240828c1abc5ba43 # v2.7.3
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: prod
+          # Even though it could look like separate calls to fetch the secrets
+          # the responses here are cached, so we're only issuing a single set of credentials
+          secrets: |
+            aws/creds/prod-deploy access_key | AWS_ACCESS_KEY_ID ;
+            aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
+            aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
+
+      - uses: ./.github/actions/docker-ecr-login
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Redeploy HASH worker service
+        run: |
+          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_WORKER_SERVICE_NAME }} --force-new-deployment 1> /dev/null
 
   deploy-temporal:
     name: Deploy Temporal images

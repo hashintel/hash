@@ -41,6 +41,8 @@ export const scalars = {
   OwnedById: "@local/hash-subgraph#OwnedById",
   RecordCreatedById: "@local/hash-subgraph#RecordCreatedById",
   AccountId: "@local/hash-subgraph#AccountId",
+  AccountGroupId: "@local/hash-subgraph#AccountGroupId",
+  AuthorizationSubjectId: "@local/hash-subgraph#AuthorizationSubjectId",
   EntityId: "@local/hash-subgraph#EntityId",
 
   EntityUuid: "@local/hash-subgraph#EntityUuid",

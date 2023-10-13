@@ -150,6 +150,19 @@ export const entityTypedef = gql`
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
+
+    isEntityPublic(entityId: EntityId!): Boolean!
+  }
+
+  enum AuthorizationSubjectKind {
+    Public
+    Account
+    AccountGroup
+  }
+
+  input AuthorizationViewerInput {
+    viewer: AuthorizationSubjectId
+    kind: AuthorizationSubjectKind!
   }
 
   extend type Mutation {
@@ -250,5 +263,35 @@ export const entityTypedef = gql`
       """
       temperature: Float!
     ): InferEntitiesResult!
+
+    addEntityOwner(
+      entityId: EntityId!
+      owner: AuthorizationSubjectId!
+    ): Boolean!
+
+    removeEntityOwner(
+      entityId: EntityId!
+      owner: AuthorizationSubjectId!
+    ): Boolean!
+
+    addEntityEditor(
+      entityId: EntityId!
+      editor: AuthorizationSubjectId!
+    ): Boolean!
+
+    removeEntityEditor(
+      entityId: EntityId!
+      editor: AuthorizationSubjectId!
+    ): Boolean!
+
+    addEntityViewer(
+      entityId: EntityId!
+      viewer: AuthorizationViewerInput!
+    ): Boolean!
+
+    removeEntityViewer(
+      entityId: EntityId!
+      viewer: AuthorizationViewerInput!
+    ): Boolean!
   }
 `;
