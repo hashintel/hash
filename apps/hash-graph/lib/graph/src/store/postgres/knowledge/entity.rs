@@ -292,7 +292,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         transaction
             .as_client()
-            .query_one(
+            .query(
                 "
                     INSERT INTO entity_ids (owned_by_id, entity_uuid)
                     VALUES ($1, $2);

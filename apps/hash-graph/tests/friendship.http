@@ -1137,6 +1137,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
+  "owner": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
@@ -1265,6 +1266,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
+  "owner": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
@@ -1349,6 +1351,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "owner": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
