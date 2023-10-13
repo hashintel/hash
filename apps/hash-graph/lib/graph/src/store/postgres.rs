@@ -45,8 +45,8 @@ use crate::store::error::DeletionError;
 use crate::store::{
     error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     postgres::ontology::{OntologyDatabaseType, OntologyId},
-    AccountOrAccountGroup, AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError,
-    QueryError, StoreError, UpdateError,
+    AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
+    UpdateError,
 };
 
 /// A Postgres-backed store
@@ -1260,13 +1260,13 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .attach_printable(account_id)?;
 
         authorization_api
-            .add_web_owner(OwnerId::from(account_id), WebId::from(account_id))
+            .add_web_owner(OwnerId::Account(account_id), WebId::from(account_id))
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_web_owner(OwnerId::from(account_id), WebId::from(account_id))
+                .remove_web_owner(OwnerId::Account(account_id), WebId::from(account_id))
                 .await
                 .change_context(InsertionError)
             {
@@ -1325,7 +1325,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 
         authorization_api
             .add_web_owner(
-                OwnerId::from(account_group_id),
+                OwnerId::AccountGroupMembers(account_group_id),
                 WebId::from(account_group_id),
             )
             .await
@@ -1343,7 +1343,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             }
             if let Err(auth_error) = authorization_api
                 .remove_web_owner(
-                    OwnerId::from(account_group_id),
+                    OwnerId::AccountGroupMembers(account_group_id),
                     WebId::from(account_group_id),
                 )
                 .await
@@ -1361,10 +1361,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_owned_by_id(
-        &self,
-        owned_by_id: OwnedById,
-    ) -> Result<AccountOrAccountGroup, QueryError> {
+    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError> {
         let row = self
             .as_client()
             .query_one(
@@ -1388,10 +1385,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             (false, false) => Err(Report::new(QueryError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
-            (true, false) => Ok(AccountOrAccountGroup::Account(AccountId::new(
-                owned_by_id.into_uuid(),
-            ))),
-            (false, true) => Ok(AccountOrAccountGroup::AccountGroup(AccountGroupId::new(
+            (true, false) => Ok(OwnerId::Account(AccountId::new(owned_by_id.into_uuid()))),
+            (false, true) => Ok(OwnerId::AccountGroupMembers(AccountGroupId::new(
                 owned_by_id.into_uuid(),
             ))),
             (true, true) => Err(Report::new(QueryError)

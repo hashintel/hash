@@ -28,6 +28,17 @@ pub enum EntitySubject {
     AccountGroupMembers(AccountGroupId),
 }
 
+impl From<OwnerId> for EntitySubject {
+    fn from(id: OwnerId) -> Self {
+        match id {
+            OwnerId::Account(account_id) => Self::Account(account_id),
+            OwnerId::AccountGroupMembers(account_group_id) => {
+                Self::AccountGroupMembers(account_group_id)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AccountOrPublic {

@@ -308,13 +308,13 @@ where
                 match relation {
                     WebRelation::DirectOwner => Ok(Web {
                         id,
-                        owners: vec![OwnerId::AccountGroup(account_group)],
+                        owners: vec![OwnerId::AccountGroupMembers(account_group)],
                         editors: Vec::new(),
                     }),
                     WebRelation::DirectEditor => Ok(Web {
                         id,
                         owners: Vec::new(),
-                        editors: vec![OwnerId::AccountGroup(account_group)],
+                        editors: vec![OwnerId::AccountGroupMembers(account_group)],
                     }),
                 }
             });

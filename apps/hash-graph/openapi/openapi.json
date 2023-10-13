@@ -1986,7 +1986,8 @@
         "required": [
           "properties",
           "entityTypeId",
-          "ownedById"
+          "ownedById",
+          "owner"
         ],
         "properties": {
           "entityTypeId": {
@@ -2007,6 +2008,9 @@
             ]
           },
           "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "owner": {
             "$ref": "#/components/schemas/OwnedById"
           },
           "properties": {
