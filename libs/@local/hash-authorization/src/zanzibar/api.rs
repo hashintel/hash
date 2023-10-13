@@ -95,7 +95,7 @@ where
                     .create_relations([(web, WebRelation::DirectOwner, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         web,
@@ -121,7 +121,7 @@ where
                     .delete_relations([(web, WebRelation::DirectOwner, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         web,
@@ -147,7 +147,7 @@ where
                     .create_relations([(web, WebRelation::DirectEditor, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         web,
@@ -173,7 +173,7 @@ where
                     .delete_relations([(web, WebRelation::DirectEditor, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         web,
@@ -307,7 +307,7 @@ where
                     .create_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -333,7 +333,7 @@ where
                     .delete_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
@@ -359,7 +359,7 @@ where
                     .create_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
@@ -385,7 +385,7 @@ where
                     .delete_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
                     .await
             }
-            OwnerId::AccountGroup(account_group) => {
+            OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
