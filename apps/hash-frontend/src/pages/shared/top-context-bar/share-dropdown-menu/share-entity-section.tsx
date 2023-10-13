@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { AccountGroupId, AccountId, Entity } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
@@ -10,8 +10,6 @@ import {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
   EntityAuthorizationRelation,
-  GetEntityAuthorizationRelationshipsQuery,
-  GetEntityAuthorizationRelationshipsQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
@@ -29,26 +27,18 @@ import {
   EditableAccountAuthorizationRelationships,
 } from "./editable-account-authorization-relationship";
 import { InviteAccountForm } from "./invite-account-form";
+import { AuthorizationRelationship } from "./types";
 
 type AccountAuthorizationRelationshipsByAccount = {
   account: User | Org;
   relationships: AccountAuthorizationRelationship[];
 };
 
-export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
-  entity,
-}) => {
+export const ShareEntitySection: FunctionComponent<{
+  entity: Entity;
+  authorizationRelationships?: AuthorizationRelationship[];
+}> = ({ entity, authorizationRelationships }) => {
   const { entityId } = entity.metadata.recordId;
-
-  const { data } = useQuery<
-    GetEntityAuthorizationRelationshipsQuery,
-    GetEntityAuthorizationRelationshipsQueryVariables
-  >(getEntityAuthorizationRelationshipsQuery, {
-    variables: { entityId },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const authorizationRelationships = data?.getEntityAuthorizationRelationships;
 
   const accountAuthorizationRelationships = useMemo(
     () =>
@@ -100,8 +90,6 @@ export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
     [users, orgs],
   );
 
-  // console.log({ sharedWithUserAccountIds, accounts, users, orgs });
-
   const accountAuthorizationRelationshipsByAccount = useMemo(
     () =>
       accounts && accountAuthorizationRelationships
@@ -143,7 +131,7 @@ export const ShareEntitySection: FunctionComponent<{ entity: Entity }> = ({
     AddEntityViewerMutation,
     AddEntityViewerMutationVariables
   >(addEntityViewerMutation, {
-    refetchQueries: () => [
+    refetchQueries: [
       {
         query: getEntityAuthorizationRelationshipsQuery,
         variables: { entityId },

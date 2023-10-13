@@ -18,7 +18,6 @@ import {
   AddEntityViewerMutationVariables,
   AuthorizationSubjectKind,
   EntityAuthorizationRelation,
-  GetEntityAuthorizationRelationshipsQuery,
   RemoveEntityEditorMutation,
   RemoveEntityEditorMutationVariables,
   RemoveEntityOwnerMutation,
@@ -41,9 +40,7 @@ import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
-
-type AuthorizationRelationship =
-  GetEntityAuthorizationRelationshipsQuery["getEntityAuthorizationRelationships"][number];
+import { AuthorizationRelationship } from "./types";
 
 export type AccountAuthorizationRelationship = Omit<
   AuthorizationRelationship,
