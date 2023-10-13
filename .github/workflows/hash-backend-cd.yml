@@ -37,7 +37,7 @@ env:
   HASH_TEMPORAL_VERSION: 1.21.0.0
 
   HASH_ECS_CLUSTER_NAME: h-hash-prod-usea1-ecs
-  HASH_APP_SERVICE_NAME: h-hash-prod-usea1-app-svc
+  HASH_APP_SERVICE_NAME: h-hash-prod-usea1-appsvc
   HASH_WORKER_SERVICE_NAME: h-hash-prod-usea1-appworker-svc
 
   HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
