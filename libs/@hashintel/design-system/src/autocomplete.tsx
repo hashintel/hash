@@ -20,8 +20,12 @@ import { TextField } from "./text-field";
 
 type AutocompleteProps<
   T,
-  Multiple extends boolean | undefined = undefined,
-> = Omit<MUIAutocompleteProps<T, Multiple, boolean, false>, "renderInput"> & {
+  Multiple extends boolean | undefined,
+  DisableClearable extends boolean | undefined,
+> = Omit<
+  MUIAutocompleteProps<T, Multiple, DisableClearable, false>,
+  "renderInput"
+> & {
   height?: number | string;
   inputRef?: Ref<any>;
   inputPlaceholder?: string;
@@ -38,7 +42,8 @@ type AutocompleteProps<
 
 export const Autocomplete = <
   T,
-  Multiple extends boolean | undefined = undefined,
+  Multiple extends boolean | undefined,
+  DisableClearable extends boolean | undefined,
 >({
   height = 57,
   open,
@@ -51,11 +56,11 @@ export const Autocomplete = <
   joined = true,
   options,
   componentsProps,
-  disableClearable = true,
   ...rest
 }: AutocompleteProps<
   Multiple extends true ? (T extends any[] ? T[number] : T) : T,
-  Multiple
+  Multiple,
+  DisableClearable
 >) => {
   const allModifiers = useMemo(
     (): PopperProps["modifiers"] => [
@@ -163,7 +168,6 @@ export const Autocomplete = <
         />
       )}
       popupIcon={null}
-      disableClearable={disableClearable}
       forcePopupIcon={false}
       selectOnFocus={false}
       openOnFocus
