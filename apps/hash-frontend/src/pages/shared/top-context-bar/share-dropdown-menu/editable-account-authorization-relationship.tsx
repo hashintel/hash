@@ -1,7 +1,17 @@
 import { MutationHookOptions, useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
 import { Entity } from "@local/hash-subgraph/.";
-import { Box, Divider, ListItemText, Menu, Typography } from "@mui/material";
+import {
+  Box,
+  buttonClasses,
+  Divider,
+  dividerClasses,
+  ListItemText,
+  listItemTextClasses,
+  Menu,
+  menuItemClasses,
+  Typography,
+} from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
@@ -38,6 +48,7 @@ import { Org, User } from "../../../../lib/user-and-org";
 import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button } from "../../../../shared/ui";
+import { useAuthenticatedUser } from "../../auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../get-image-url-from-properties";
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 import { AuthorizationRelationship } from "./types";
@@ -58,11 +69,19 @@ const relationHierarchy: Record<EntityAuthorizationRelation, number> = {
   Viewer: 1,
 };
 
+const relationLabels: Record<EntityAuthorizationRelation, string> = {
+  Owner: "Owner",
+  Editor: "Can edit",
+  Viewer: "Can view",
+};
+
 export const EditableAccountAuthorizationRelationships: FunctionComponent<{
   objectEntity: Entity;
   account: User | Org;
   relationships: AccountAuthorizationRelationship[];
 }> = ({ objectEntity, account, relationships }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const primaryRelationship = useMemo(
     () =>
       relationships.reduce<AccountAuthorizationRelationship>(
@@ -243,12 +262,12 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
     return [
       {
         relation: EntityAuthorizationRelation.Viewer,
-        label: "Can view",
+        label: relationLabels[EntityAuthorizationRelation.Viewer],
         description: `Can view this ${isObjectPageEntity ? "page" : "entity"}`,
       },
       {
         relation: EntityAuthorizationRelation.Editor,
-        label: "Can edit",
+        label: relationLabels[EntityAuthorizationRelation.Editor],
         description: `Can view, comment and edit this ${
           isObjectPageEntity ? "page" : "entity"
         }`,
@@ -257,27 +276,57 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
   }, [objectEntity]);
 
   return (
-    <Box display="flex" alignItems="center" paddingY={1}>
+    <Box display="flex" alignItems="center" paddingY={0.25}>
       <Avatar
         src={avatarSrc}
         title={accountName}
         size={28}
         sx={{ marginRight: 1 }}
+        borderRadius={account.kind === "org" ? "4px" : undefined}
       />
-      <Box flexGrow={1}>
-        <Typography variant="microText">{accountName}</Typography>
+      <Box flexGrow={1} display="flex" columnGap={1}>
+        <Typography variant="microText" sx={{ fontWeight: 500, fontSize: 14 }}>
+          {accountName}
+        </Typography>
+        {account.kind === "user" &&
+        account.accountId === authenticatedUser.accountId ? (
+          <Typography variant="microText" sx={{ fontSize: 13 }}>
+            (You)
+          </Typography>
+        ) : null}
       </Box>
       <Box minWidth={125}>
         <Button
           size="xs"
-          variant="tertiary"
-          endIcon={<ChevronDownRegularIcon />}
+          variant="tertiary_quiet"
+          endIcon={<ChevronDownRegularIcon sx={{ fontSize: 10 }} />}
           disabled={primaryRelationship.relation === "Owner"}
+          sx={{
+            color: ({ palette }) => palette.gray[80],
+            [`&.${buttonClasses.disabled}`]: {
+              color: ({ palette }) => palette.gray[80],
+              background: "transparent",
+              borderColor: "transparent",
+              [`.${buttonClasses.endIcon}`]: {
+                opacity: 0,
+              },
+            },
+            [`.${buttonClasses.endIcon}`]: {
+              fontSize: 10,
+            },
+          }}
           {...bindTrigger(popupState)}
         >
-          {primaryRelationship.relation}
+          {relationLabels[currentRelation]}
         </Button>
-        <Menu {...bindMenu(popupState)}>
+        <Menu
+          {...bindMenu(popupState)}
+          sx={{
+            [`.${menuItemClasses.root}+.${dividerClasses.root}`]: {
+              marginY: 0.5,
+            },
+          }}
+        >
           {dropdownItems.map(({ relation, label, description }) => (
             <PrivacyStatusMenuItem
               key={relation}
@@ -291,11 +340,22 @@ export const EditableAccountAuthorizationRelationships: FunctionComponent<{
               <ListItemText primary={label} secondary={description} />
             </PrivacyStatusMenuItem>
           ))}
-          <Divider />
+          <Divider sx={{}} />
           <PrivacyStatusMenuItem
             onClick={async () => {
               await removeCurrentRelationships();
               popupState.close();
+            }}
+            sx={{
+              [`.${listItemTextClasses.primary}`]: {
+                fontWeight: 600,
+                color: ({ palette }) => palette.red[70],
+              },
+              "&:hover": {
+                [`.${listItemTextClasses.primary}`]: {
+                  color: ({ palette }) => palette.red[70],
+                },
+              },
             }}
           >
             <ListItemText primary="Remove access" />
