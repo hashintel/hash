@@ -36,7 +36,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
       linkEntity.metadata.entityTypeId,
     );
   }

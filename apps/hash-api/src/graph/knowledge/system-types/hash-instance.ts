@@ -42,7 +42,7 @@ export const getHashInstanceFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.hashInstance.schema.$id,
       entity.metadata.entityTypeId,
     );
   }

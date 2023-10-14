@@ -38,7 +38,7 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
       entity.metadata.entityTypeId,
     );
   }

@@ -59,7 +59,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      SYSTEM_TYPES.entityType.page.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
