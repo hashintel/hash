@@ -1,10 +1,5 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import {
-  AccountEntityId,
-  Entity,
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import { Entity, EntityId } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -48,7 +43,7 @@ export const getCommentFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      SYSTEM_TYPES.entityType.comment.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -222,14 +217,6 @@ export const updateCommentText: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { commentEntityId, tokens } = params;
 
-  if (
-    authentication.actorId !== extractOwnedByIdFromEntityId(commentEntityId)
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to edit the comment with entityId ${commentEntityId}`,
-    );
-  }
-
   const textEntity = await getCommentText(ctx, authentication, {
     commentEntityId,
   });
@@ -255,18 +242,6 @@ export const deleteComment: ImpureGraphFunction<
   Promise<Comment>
 > = async (ctx, authentication, params) => {
   const { comment } = params;
-
-  // Throw error if the user trying to delete the comment is not the comment's author
-  if (
-    authentication.actorId !==
-    extractOwnedByIdFromEntityId(
-      comment.entity.metadata.recordId.entityId as AccountEntityId,
-    )
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
-    );
-  }
 
   const updatedCommentEntity = await updateEntityProperties(
     ctx,
@@ -390,26 +365,6 @@ export const resolveComment: ImpureGraphFunction<
   Promise<Comment>
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
-
-  const commentEntityId = comment.entity.metadata.recordId.entityId;
-
-  const [parent, author] = await Promise.all([
-    getCommentParent(ctx, authentication, { commentEntityId }),
-    getCommentAuthor(ctx, authentication, { commentEntityId }),
-  ]);
-
-  // Throw error if the user trying to resolve the comment is not the comment's author
-  // or the author of the block the comment is attached to
-  if (
-    authentication.actorId !== author.accountId &&
-    parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
-    authentication.actorId !==
-      extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to resolve the comment with entityId ${commentEntityId}`,
-    );
-  }
 
   const updatedEntity = await updateEntityProperties(ctx, authentication, {
     entity: comment.entity,
