@@ -4,6 +4,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  AccountGroupId,
+  AccountId,
   Entity,
   OwnedById,
   splitEntityId,
@@ -17,10 +19,17 @@ import {
 } from "apollo-server-express";
 
 import {
+  addEntityEditor,
+  addEntityOwner,
+  addEntityViewer,
   archiveEntity,
   createEntityWithLinks,
   getEntities,
   getLatestEntityById,
+  isEntityPublic,
+  removeEntityEditor,
+  removeEntityOwner,
+  removeEntityViewer,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -32,12 +41,21 @@ import {
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { genId } from "../../../../util";
 import {
+  AuthorizationSubjectKind,
+  AuthorizationViewerInput,
   Mutation,
+  MutationAddEntityEditorArgs,
+  MutationAddEntityOwnerArgs,
+  MutationAddEntityViewerArgs,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
   MutationInferEntitiesArgs,
+  MutationRemoveEntityEditorArgs,
+  MutationRemoveEntityOwnerArgs,
+  MutationRemoveEntityViewerArgs,
   MutationUpdateEntityArgs,
   QueryGetEntityArgs,
+  QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
@@ -354,4 +372,120 @@ export const inferEntitiesResolver: ResolverFn<
   }
 
   return status.contents[0];
+};
+
+export const addEntityOwnerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityOwnerArgs
+> = async (_, { entityId, owner }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityOwner(context, authentication, { entityId, owner });
+
+  return true;
+};
+
+export const removeEntityOwnerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityOwnerArgs
+> = async (_, { entityId, owner }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityOwner(context, authentication, { entityId, owner });
+
+  return true;
+};
+
+export const addEntityEditorResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityEditorArgs
+> = async (_, { entityId, editor }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityEditor(context, authentication, { entityId, editor });
+
+  return true;
+};
+
+export const removeEntityEditorResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityEditorArgs
+> = async (_, { entityId, editor }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityEditor(context, authentication, { entityId, editor });
+
+  return true;
+};
+
+const parseGqlAuthorizationViewerInput = ({
+  kind,
+  viewer,
+}: AuthorizationViewerInput): AccountId | AccountGroupId | "public" => {
+  if (kind === AuthorizationSubjectKind.Public) {
+    return "public" as const;
+  } else if (kind === AuthorizationSubjectKind.Account) {
+    if (!viewer) {
+      throw new UserInputError("Viewer Account ID must be specified");
+    }
+    return viewer;
+  } else {
+    if (!viewer) {
+      throw new UserInputError("Viewer Account Group ID must be specified");
+    }
+    return viewer;
+  }
+};
+
+export const addEntityViewerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationAddEntityViewerArgs
+> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await addEntityViewer(context, authentication, {
+    entityId,
+    viewer: parseGqlAuthorizationViewerInput(viewer),
+  });
+
+  return true;
+};
+
+export const removeEntityViewerResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationRemoveEntityViewerArgs
+> = async (_, { entityId, viewer }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  await removeEntityViewer(context, authentication, {
+    entityId,
+    viewer: parseGqlAuthorizationViewerInput(viewer),
+  });
+
+  return true;
+};
+
+export const isEntityPublicResolver: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  QueryIsEntityPublicArgs
+> = async (_, { entityId }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  return await isEntityPublic(context, authentication, {
+    entityId,
+  });
 };

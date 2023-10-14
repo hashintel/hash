@@ -1,5 +1,6 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { Entity } from "@local/hash-subgraph";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
@@ -9,11 +10,13 @@ import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 
 export const EntityPageHeader = ({
+  entity,
   entityLabel,
   lightTitle,
   chip,
   editBar,
 }: {
+  entity?: Entity;
   entityLabel: string;
   lightTitle?: boolean;
   chip: ReactNode;
@@ -34,6 +37,7 @@ export const EntityPageHeader = ({
     <>
       <TopContextBar
         defaultCrumbIcon={null}
+        item={entity}
         crumbs={[
           {
             title: "Entities",

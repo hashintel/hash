@@ -42,6 +42,21 @@ variable "memory" {
   description = "API service Fargate memory (MB). See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
 }
 
+variable "worker_cpu" {
+  type        = number
+  description = "API service Fargate CPU units"
+
+  validation {
+    condition     = contains([256, 512, 1024, 2048, 4096], var.worker_cpu)
+    error_message = "Invalid API CPU allocation. See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
+  }
+}
+
+variable "worker_memory" {
+  type        = number
+  description = "API service Fargate memory (MB). See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html#w380aac44c17c17"
+}
+
 variable "graph_image" {
   type = object({
     url     = string
@@ -176,5 +191,31 @@ variable "temporal_port" {
   type        = string
   default     = "7233"
   description = "The port of the Temporal cluster to connect to."
+}
+
+variable "spicedb_image" {
+  type = object({
+    name    = string
+    version = string
+  })
+  description = "URL of the docker image for SpiceDB"
+}
+
+variable "spicedb_migration_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the SpiceDB migration step"
+}
+
+variable "spicedb_env_vars" {
+  type = list(object({
+    name   = string,
+    secret = bool,
+    value  = string
+  }))
+  description = "A list of environment variables to save as system parameters and inject into the SpiceDB service"
 }
 

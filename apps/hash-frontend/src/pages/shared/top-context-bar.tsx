@@ -31,6 +31,7 @@ import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 import { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
+import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
 import { isItemEntityType } from "./top-context-bar/util";
 
 export { isItemEntityType };
@@ -194,6 +195,10 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {item && !isItemEntityType(item) ? (
+            <ShareDropdownMenu entity={item} />
+          ) : null}
+
           {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>
               {actionMenuItems}
@@ -249,7 +254,7 @@ export const TopContextBar = ({
           )}
         </Box>
       </Box>
-      {item ? (
+      {item && !(!isItemEntityType(item) && !isEntityPageEntity(item)) ? (
         <Collapse in={archived}>
           <ArchivedItemBanner
             item={item}

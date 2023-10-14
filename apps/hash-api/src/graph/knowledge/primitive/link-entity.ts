@@ -1,4 +1,6 @@
 import {
+  AccountGroupId,
+  AccountId,
   Entity,
   EntityId,
   EntityMetadata,
@@ -17,6 +19,7 @@ export type CreateLinkEntityParams = {
   ownedById: OwnedById;
   properties?: EntityPropertiesObject;
   linkEntityType: EntityTypeWithMetadata;
+  owner?: AccountId | AccountGroupId;
   leftEntityId: EntityId;
   leftToRightOrder?: number;
   rightEntityId: EntityId;
@@ -77,6 +80,7 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
+      owner: params.owner ?? authentication.actorId,
     },
   );
 

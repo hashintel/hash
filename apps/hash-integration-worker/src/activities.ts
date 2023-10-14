@@ -127,6 +127,7 @@ const createOrUpdateHashEntity = async (params: {
   if (entities.length === 0 && params.workspaceOwnedById) {
     await params.graphApiClient.createEntity(params.authentication.actorId, {
       ownedById: params.workspaceOwnedById,
+      owner: params.workspaceOwnedById,
       ...params.entity,
     });
   }

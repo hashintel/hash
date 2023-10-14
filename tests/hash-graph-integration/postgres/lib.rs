@@ -13,7 +13,7 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use authorization::NoAuthorization;
+use authorization::{schema::OwnerId, NoAuthorization};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -419,6 +419,7 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
+                OwnerId::Account(self.account_id),
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
@@ -543,6 +544,7 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
+                OwnerId::Account(self.account_id),
                 entity_uuid,
                 None,
                 false,
