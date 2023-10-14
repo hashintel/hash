@@ -248,7 +248,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if group member could be added by the specified actor"
+                    "Could not check if group owner could be added by the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
@@ -349,7 +349,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if group member could be removed by the specified actor"
+                    "Could not check if group owner could be removed by the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
@@ -450,7 +450,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if group member could be added by the specified actor"
+                    "Could not check if group admin could be added by the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
@@ -551,7 +551,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if group member could be removed by the specified actor"
+                    "Could not check if group admin could be removed by the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
