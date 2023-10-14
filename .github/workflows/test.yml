@@ -504,7 +504,7 @@ jobs:
       - name: Launch HASH-API
         run: |
           turbo run build --filter "@apps/hash-api"
-          yarn workspace @apps/hash-api start 2>&1 | tee var/logs/backend.log & 
+          yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log & 
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
