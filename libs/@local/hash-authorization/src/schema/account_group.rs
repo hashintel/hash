@@ -3,19 +3,10 @@ use std::{error::Error, fmt};
 use graph_types::account::AccountGroupId;
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::{types::object::Object, Affiliation, Permission, Relation, Resource};
-
-impl Resource for AccountGroupId {
-    type Id = Self;
-
-    fn namespace() -> &'static str {
-        "graph/account_group"
-    }
-
-    fn id(&self) -> Self::Id {
-        *self
-    }
-}
+use crate::zanzibar::{
+    types::{object::Object, subject::Subject},
+    Affiliation, Permission, Relation,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccountGroupNamespace {
@@ -80,3 +71,50 @@ impl fmt::Display for AccountGroupPermission {
 
 impl Affiliation<AccountGroupId> for AccountGroupPermission {}
 impl Permission<AccountGroupId> for AccountGroupPermission {}
+
+impl Subject for (AccountGroupId, Option<AccountGroupRelation>) {
+    type Object = AccountGroupId;
+    type Relation = AccountGroupRelation;
+
+    fn new(
+        object: Self::Object,
+        relation: Option<AccountGroupRelation>,
+    ) -> Result<Self, impl Error> {
+        Ok::<_, !>((object, relation))
+    }
+
+    fn object(&self) -> &Self::Object {
+        &self.0
+    }
+
+    fn relation(&self) -> Option<&Self::Relation> {
+        self.1.as_ref()
+    }
+}
+
+impl Subject for (AccountGroupId, AccountGroupPermission) {
+    type Object = AccountGroupId;
+    type Relation = AccountGroupPermission;
+
+    fn new(
+        object: Self::Object,
+        relation: Option<AccountGroupPermission>,
+    ) -> Result<Self, impl Error> {
+        if let Some(relation) = relation {
+            return Ok((object, relation));
+        }
+        // TODO: This should be a real error type
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Permission not specified",
+        ))
+    }
+
+    fn object(&self) -> &Self::Object {
+        &self.0
+    }
+
+    fn relation(&self) -> Option<&Self::Relation> {
+        Some(&self.1)
+    }
+}

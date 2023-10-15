@@ -7,9 +7,10 @@ use authorization::{
         DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
         ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Relation, Resource, Tuple},
+    zanzibar::{types::relationship::RelationshipFilter, Consistency, Tuple},
 };
 use error_stack::Report;
+use serde::Serialize;
 
 pub struct TestApi {
     client: SpiceDbOpenApi,
@@ -96,20 +97,19 @@ impl ZanzibarBackend for TestApi {
         self.client.check(tuple, consistency).await
     }
 
-    async fn read_relations<O, R, U, S>(
+    async fn read_relations<R>(
         &self,
-        _object: Option<O>,
-        _relation: Option<R>,
-        _user: Option<U>,
-        _user_set: Option<S>,
-        _consistency: Consistency<'static>,
-    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
-    where
-        O: Resource + Send + Sync,
-        R: Relation<O> + Send,
-        U: Resource + Send,
-        S: Send,
-    {
+        _filter: RelationshipFilter<
+            '_,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        _consistency: Consistency<'_>,
+    ) -> Result<Vec<R>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }

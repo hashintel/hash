@@ -1,15 +1,27 @@
 use std::error::Error;
 
-use crate::zanzibar::types::{
-    object::{Object, ObjectFilter},
-    subject::{Subject, SubjectFilter},
+use serde::Serialize;
+
+use crate::zanzibar::{
+    types::{
+        object::{Object, ObjectFilter},
+        subject::{Subject, SubjectFilter},
+    },
+    Affiliation,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RelationshipFilter<'a, ON, OI, R, SN, SI, SR> {
     pub object: ObjectFilter<'a, ON, OI>,
     pub relation: Option<&'a R>,
     pub subject: Option<SubjectFilter<'a, SN, SI, SR>>,
+}
+
+impl<ON, OI, R, SN, SI, SR> Copy for RelationshipFilter<'_, ON, OI, R, SN, SI, SR> {}
+impl<ON, OI, R, SN, SI, SR> Clone for RelationshipFilter<'_, ON, OI, R, SN, SI, SR> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<'a, R> From<&'a R>
@@ -77,7 +89,7 @@ impl<'a, ON, OI, R> RelationshipFilter<'a, ON, OI, R, !, !, !> {
 
 pub trait Relationship: Sized + Send + Sync {
     type Object: Object;
-    type Relation;
+    type Relation: Serialize + Affiliation<Self::Object>;
     type Subject: Subject;
 
     fn new(
@@ -91,4 +103,35 @@ pub trait Relationship: Sized + Send + Sync {
     fn relation(&self) -> &Self::Relation;
 
     fn subject(&self) -> &Self::Subject;
+}
+
+impl<O, R, S> Relationship for (O, R, S)
+where
+    O: Object,
+    R: Send + Sync + Serialize + Affiliation<O>,
+    S: Subject,
+{
+    type Object = O;
+    type Relation = R;
+    type Subject = S;
+
+    fn new(
+        object: Self::Object,
+        relation: Self::Relation,
+        subject: Self::Subject,
+    ) -> Result<Self, impl Error> {
+        Ok::<_, !>((object, relation, subject))
+    }
+
+    fn object(&self) -> &Self::Object {
+        &self.0
+    }
+
+    fn relation(&self) -> &Self::Relation {
+        &self.1
+    }
+
+    fn subject(&self) -> &Self::Subject {
+        &self.2
+    }
 }

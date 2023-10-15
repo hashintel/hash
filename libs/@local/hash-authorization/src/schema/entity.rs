@@ -1,19 +1,32 @@
-use std::fmt;
+use std::{error::Error, fmt};
 
 use graph_types::knowledge::entity::EntityUuid;
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
+use crate::zanzibar::{types::object::Object, Affiliation, Permission, Relation};
 
-impl Resource for EntityUuid {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EntityNamespace {
+    #[serde(rename = "graph/entity")]
+    Entity,
+}
+
+impl Object for EntityUuid {
     type Id = Self;
+    type Namespace = EntityNamespace;
 
-    fn namespace() -> &'static str {
-        "graph/entity"
+    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+        match namespace {
+            EntityNamespace::Entity => Ok::<_, !>(id),
+        }
     }
 
-    fn id(&self) -> Self::Id {
-        *self
+    fn namespace(&self) -> &Self::Namespace {
+        &EntityNamespace::Entity
+    }
+
+    fn id(&self) -> &Self::Id {
+        self
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, future::Future};
+use std::{collections::HashMap, fmt, fmt::Write, future::Future};
 
 use error_stack::Result;
 use graph_types::{
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
     schema::{EntityRelation, OwnerId, PublicAccess},
-    zanzibar::{Consistency, Resource, Zookie},
+    zanzibar::{Consistency, Zookie},
 };
 
 // TODO: Replace with something permission specific which can directly be reused once permissions
@@ -58,21 +58,9 @@ impl From<AccountOrPublic> for EntitySubject {
 impl fmt::Display for AccountOrPublic {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Public(access) => fmt::Display::fmt(access.id(), fmt),
+            Self::Public(PublicAccess::Public) => fmt.write_char('*'),
             Self::Account(account_id) => fmt::Display::fmt(account_id, fmt),
         }
-    }
-}
-
-impl Resource for AccountOrPublic {
-    type Id = Self;
-
-    fn namespace() -> &'static str {
-        AccountId::namespace()
-    }
-
-    fn id(&self) -> Self::Id {
-        *self
     }
 }
 

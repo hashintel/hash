@@ -11,7 +11,7 @@ use crate::{
         AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
         PublicAccess, WebPermission, WebRelation,
     },
-    zanzibar::{Consistency, Zookie},
+    zanzibar::{types::relationship::RelationshipFilter, Consistency, Zookie},
     AccountOrPublic, AuthorizationApi, EntitySubject,
 };
 
@@ -100,8 +100,7 @@ where
                     .create_relations([(
                         web,
                         WebRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -126,8 +125,7 @@ where
                     .delete_relations([(
                         web,
                         WebRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -152,8 +150,7 @@ where
                     .create_relations([(
                         web,
                         WebRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -178,8 +175,7 @@ where
                     .delete_relations([(
                         web,
                         WebRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -312,8 +308,7 @@ where
                     .create_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -338,8 +333,7 @@ where
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -364,8 +358,7 @@ where
                     .create_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -390,8 +383,7 @@ where
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -425,8 +417,7 @@ where
                     .create_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectViewer,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -460,8 +451,7 @@ where
                     .delete_relations([(
                         entity.entity_uuid,
                         EntityRelation::DirectViewer,
-                        account_group,
-                        AccountGroupPermission::Member,
+                        (account_group, AccountGroupPermission::Member),
                     )])
                     .await
             }
@@ -519,39 +509,38 @@ where
     ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
         let accounts = self
             .backend
-            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
-                Some(entity.entity_uuid),
-                None,
-                None,
-                None,
+            .read_relations::<(EntityUuid, EntityRelation, AccountOrPublic)>(
+                RelationshipFilter::from_object(&entity.entity_uuid),
                 consistency,
             )
             .await
             .change_context(ReadError)?
             .into_iter()
-            .map(|(entity_uuid, relation, account, account_relation)| {
+            .map(|(entity_uuid, relation, account)| {
                 debug_assert_eq!(entity_uuid, entity.entity_uuid);
-                assert!(account_relation.is_none());
                 (EntitySubject::from(account), relation)
             });
 
         let account_groups = self
             .backend
-            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
-                Some(entity.entity_uuid),
-                None,
-                None,
-                None,
+            .read_relations::<(
+                EntityUuid,
+                EntityRelation,
+                (AccountGroupId, AccountGroupPermission),
+            )>(
+                RelationshipFilter::from_object(&entity.entity_uuid),
                 consistency,
             )
             .await
             .change_context(ReadError)?
             .into_iter()
-            .map(|(entity_uuid, relation, account_group, account_relation)| {
-                debug_assert_eq!(entity_uuid, entity.entity_uuid);
-                assert_eq!(account_relation, Some(AccountGroupPermission::Member));
-                (EntitySubject::AccountGroupMembers(account_group), relation)
-            });
+            .map(
+                |(entity_uuid, relation, (account_group, account_relation))| {
+                    debug_assert_eq!(entity_uuid, entity.entity_uuid);
+                    assert_eq!(account_relation, AccountGroupPermission::Member);
+                    (EntitySubject::AccountGroupMembers(account_group), relation)
+                },
+            );
 
         Ok(accounts.chain(account_groups).collect())
     }

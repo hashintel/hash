@@ -1,8 +1,10 @@
 use std::error::Error;
 
+use serde::Serialize;
+
 pub trait Object: Sized + Send + Sync {
-    type Namespace;
-    type Id;
+    type Namespace: Serialize;
+    type Id: Serialize;
 
     fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error>;
 
@@ -11,10 +13,17 @@ pub trait Object: Sized + Send + Sync {
     fn id(&self) -> &Self::Id;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ObjectFilter<'a, N, I> {
     pub namespace: &'a N,
     pub id: Option<&'a I>,
+}
+
+impl<N, I> Copy for ObjectFilter<'_, N, I> {}
+impl<N, I> Clone for ObjectFilter<'_, N, I> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<'a, O> From<&'a O> for ObjectFilter<'a, O::Namespace, O::Id>

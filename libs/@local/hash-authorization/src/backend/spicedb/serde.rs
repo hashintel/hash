@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::IntoDeserializer, Deserialize, Deserializer, Serialize};
 
 use crate::zanzibar::types::{object::Object, relationship::Relationship, subject::Subject};
 
@@ -11,7 +11,7 @@ struct SerializedObjectRef<'a, N, I> {
 
 impl<'a, N, I> SerializedObjectRef<'a, N, I> {
     #[must_use]
-    pub fn from_object<O: Object<Namespace = N, Id = I>>(object: &'a O) -> Self {
+    pub(crate) fn from_object<O: Object<Namespace = N, Id = I>>(object: &'a O) -> Self {
         Self {
             object_type: object.namespace(),
             object_id: object.id(),
@@ -26,7 +26,7 @@ struct SerializedObject<N, I> {
     object_id: I,
 }
 
-pub mod object {
+pub(crate) mod object {
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
     use crate::{
@@ -34,15 +34,16 @@ pub mod object {
         zanzibar::types::object::Object,
     };
 
-    pub fn serialize<T, S>(object: &T, serializer: S) -> Result<S::Ok, S::Error>
+    #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
+    pub(crate) fn serialize<T, S>(object: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Object<Namespace: Serialize, Id: Serialize>,
         S: Serializer,
     {
-        SerializedObjectRef::from_object(object).serialize(serializer)
+        SerializedObjectRef::from_object(*object).serialize(serializer)
     }
 
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
         D: Deserializer<'de>,
@@ -58,17 +59,31 @@ pub mod object {
     bound = "O::Namespace: Serialize, O::Id: Serialize, R: Serialize"
 )]
 struct SerializedSubjectRef<'a, O: Object, R> {
-    object: SerializedObjectRef<'a, O::Namespace, O::Id>,
+    #[serde(with = "object")]
+    object: &'a O,
+    #[serde(skip_serializing_if = "Option::is_none")]
     optional_relation: Option<&'a R>,
 }
 
 impl<'a, O: Object + 'a, R> SerializedSubjectRef<'a, O, R> {
     #[must_use]
-    pub fn from_subject<S: Subject<Object = O, Relation = R>>(subject: &'a S) -> Self {
+    pub(crate) fn from_subject<S: Subject<Object = O, Relation = R>>(subject: &'a S) -> Self {
         Self {
-            object: SerializedObjectRef::from_object(subject.object()),
+            object: subject.object(),
             optional_relation: subject.relation(),
         }
+    }
+}
+
+fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    let opt = Option::<String>::deserialize(de)?;
+    match opt.as_deref() {
+        None | Some("") => Ok(None),
+        Some(s) => T::deserialize(s.into_deserializer()).map(Some),
     }
 }
 
@@ -80,10 +95,11 @@ impl<'a, O: Object + 'a, R> SerializedSubjectRef<'a, O, R> {
 struct SerializedSubject<O, R> {
     #[serde(with = "object")]
     object: O,
+    #[serde(deserialize_with = "empty_string_as_none")]
     optional_relation: Option<R>,
 }
 
-pub mod subject {
+pub(crate) mod subject {
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
     use crate::{
@@ -91,15 +107,16 @@ pub mod subject {
         zanzibar::types::{object::Object, subject::Subject},
     };
 
-    pub fn serialize<T, S>(subject: &T, serializer: S) -> Result<S::Ok, S::Error>
+    #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
+    pub(crate) fn serialize<T, S>(subject: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize>,
         S: Serializer,
     {
-        SerializedSubjectRef::from_subject(subject).serialize(serializer)
+        SerializedSubjectRef::from_subject(*subject).serialize(serializer)
     }
 
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: Subject<
                 Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
@@ -119,20 +136,22 @@ pub mod subject {
              Object<Namespace: Serialize, Id: Serialize>, S::Relation: Serialize"
 )]
 struct SerializedRelationshipRef<'a, O: Object, R, S: Subject> {
-    resource: SerializedObjectRef<'a, O::Namespace, O::Id>,
+    #[serde(with = "object")]
+    resource: &'a O,
     relation: &'a R,
-    subject: SerializedSubjectRef<'a, S::Object, S::Relation>,
+    #[serde(with = "subject")]
+    subject: &'a S,
 }
 
 impl<'a, O: Object + 'a, R, S: Subject + 'a> SerializedRelationshipRef<'a, O, R, S> {
     #[must_use]
-    pub fn from_relationship<T: Relationship<Object = O, Relation = R, Subject = S>>(
+    pub(crate) fn from_relationship<T: Relationship<Object = O, Relation = R, Subject = S>>(
         relationship: &'a T,
     ) -> Self {
         Self {
-            resource: SerializedObjectRef::from_object(relationship.object()),
+            resource: relationship.object(),
             relation: relationship.relation(),
-            subject: SerializedSubjectRef::from_subject(relationship.subject()),
+            subject: relationship.subject(),
         }
     }
 }
@@ -152,7 +171,7 @@ struct SerializedRelationship<O, R, S> {
     subject: S,
 }
 
-pub mod relationship {
+pub(crate) mod relationship {
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
     use crate::{
@@ -160,7 +179,7 @@ pub mod relationship {
         zanzibar::types::{object::Object, relationship::Relationship, subject::Subject},
     };
 
-    pub fn serialize<T, S>(relationship: &T, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<T, S>(relationship: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -175,7 +194,7 @@ pub mod relationship {
         SerializedRelationshipRef::from_relationship(relationship).serialize(serializer)
     }
 
-    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: Relationship<
                 Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
@@ -200,13 +219,32 @@ pub mod relationship {
     }
 }
 
-pub mod relationship_filter {
-    use serde::{ser::SerializeStruct, Serialize, Serializer};
+pub(crate) mod relationship_ref {
+    use serde::{Serialize, Serializer};
 
-    use crate::{
-        backend::spicedb::serde::SerializedRelationshipRef,
-        zanzibar::types::relationship::RelationshipFilter,
-    };
+    use crate::zanzibar::types::{object::Object, relationship::Relationship, subject::Subject};
+
+    #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
+    pub(crate) fn serialize<T, S>(relationship: &&T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Subject<
+                    Object: Object<Namespace: Serialize, Id: Serialize>,
+                    Relation: Serialize,
+                >,
+            >,
+        S: Serializer,
+    {
+        super::relationship::serialize(*relationship, serializer)
+    }
+}
+
+pub(crate) mod relationship_filter {
+    use serde::{Serialize, Serializer};
+
+    use crate::zanzibar::types::relationship::RelationshipFilter;
 
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -236,8 +274,8 @@ pub mod relationship_filter {
         optional_subject_filter: Option<SerializedSubjectFilter<'a, SN, SI, SR>>,
     }
 
-    pub fn serialize<ON, OI, R, SN, SI, SR, S>(
-        relationship: RelationshipFilter<'_, ON, OI, R, SN, SI, SR>,
+    pub(crate) fn serialize<ON, OI, R, SN, SI, SR, S>(
+        relationship: &RelationshipFilter<'_, ON, OI, R, SN, SI, SR>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where

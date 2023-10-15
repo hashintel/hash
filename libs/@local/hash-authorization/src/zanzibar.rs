@@ -2,9 +2,7 @@
 
 pub use self::{
     api::ZanzibarClient,
-    types::{
-        Affiliation, Consistency, Permission, Relation, Resource, Tuple, UntypedTuple, Zookie,
-    },
+    types::{Affiliation, Consistency, Permission, Relation, Zookie},
 };
 
 mod api;

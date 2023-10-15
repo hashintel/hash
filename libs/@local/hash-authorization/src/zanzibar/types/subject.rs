@@ -1,10 +1,15 @@
 use std::error::Error;
 
-use crate::zanzibar::types::object::{Object, ObjectFilter};
+use serde::Serialize;
+
+use crate::zanzibar::{
+    types::object::{Object, ObjectFilter},
+    Affiliation,
+};
 
 pub trait Subject: Sized + Send + Sync {
     type Object: Object;
-    type Relation;
+    type Relation: Serialize + Affiliation<Self::Object>;
 
     fn new(object: Self::Object, relation: Option<Self::Relation>) -> Result<Self, impl Error>;
 
@@ -13,10 +18,17 @@ pub trait Subject: Sized + Send + Sync {
     fn relation(&self) -> Option<&Self::Relation>;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SubjectFilter<'a, N, I, R> {
     pub object: ObjectFilter<'a, N, I>,
     pub relation: Option<&'a R>,
+}
+
+impl<N, I, R> Copy for SubjectFilter<'_, N, I, R> {}
+impl<N, I, R> Clone for SubjectFilter<'_, N, I, R> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
 impl<'a, S> From<&'a S>
