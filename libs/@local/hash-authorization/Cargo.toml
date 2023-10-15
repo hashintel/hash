@@ -10,7 +10,7 @@ graph-types = { path = "../hash-graph-types/rust" }
 codec = { path = "../codec" }
 
 futures = { version = "0.3.28", default-features = false }
-serde = { version = "1.0.189", features = ["derive"] }
+serde = { version = "1.0.189", features = ["derive", "unstable"] }
 serde_json = { version = "1.0.107" }
 
 reqwest = { version = "0.11.22", default-features = false, features = ["json", "stream"] }

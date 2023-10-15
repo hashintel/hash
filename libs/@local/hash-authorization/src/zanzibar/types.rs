@@ -1,18 +1,22 @@
 //! General types and traits used throughout the Zanzibar authorization system.
 
+pub mod object;
+pub mod relationship;
+pub mod subject;
+
 use core::fmt;
 use std::{borrow::Cow, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
 /// The relation or permission of a [`Resource`] to another [`Resource`].
-pub trait Affiliation<R: Resource + ?Sized>: Serialize + Display {}
+pub trait Affiliation<R: ?Sized>: Serialize + Display {}
 
 /// A computed set of [`Resource`]s for another particular [`Resource`].
-pub trait Permission<R: Resource + ?Sized>: Affiliation<R> {}
+pub trait Permission<R: ?Sized>: Affiliation<R> {}
 
 /// Encapsulates the relationship between two [`Resource`]s.
-pub trait Relation<R: Resource + ?Sized>: Affiliation<R> {}
+pub trait Relation<R: ?Sized>: Affiliation<R> {}
 
 pub trait Tuple {
     fn object_namespace(&self) -> &(impl Serialize + Display + ?Sized);
