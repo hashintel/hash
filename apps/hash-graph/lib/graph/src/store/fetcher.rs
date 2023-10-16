@@ -602,6 +602,10 @@ where
             .await
     }
 
+    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
+        self.store.has_account(account_id).await
+    }
+
     async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }

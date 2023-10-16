@@ -272,11 +272,15 @@ export const createUser: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const userAccountId = params.userAccountId
-    ? params.userAccountId
-    : await graphApi
-        .createAccount(authentication.actorId)
-        .then(({ data: accountId }) => accountId as AccountId);
+  let userAccountId: AccountId;
+  if (params.userAccountId) {
+    userAccountId = params.userAccountId;
+  } else {
+    userAccountId = await graphApi
+      .createAccount(authentication.actorId)
+      .then(({ data: accountId }) => accountId as AccountId);
+    await graphApi.createWeb(userAccountId, userAccountId);
+  }
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,

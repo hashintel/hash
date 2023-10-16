@@ -75,6 +75,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
     systemUserAccountId = await graphApi
       .createAccount(publicUserAccountId)
       .then(({ data: accountId }) => accountId as AccountId);
+    await graphApi.createWeb(systemUserAccountId, systemUserAccountId);
     logger.info(`Created system user account id: ${systemUserAccountId}`);
   }
 };

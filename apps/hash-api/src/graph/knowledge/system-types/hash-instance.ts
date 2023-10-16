@@ -124,6 +124,7 @@ export const createHashInstance: ImpureGraphFunction<
   const hashInstanceAdmins = await ctx.graphApi
     .createAccountGroup(authentication.actorId)
     .then(({ data }) => data as AccountGroupId);
+  await ctx.graphApi.createWeb(authentication.actorId, hashInstanceAdmins);
 
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,

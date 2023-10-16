@@ -11,6 +11,17 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
     });
 %}
 
+### Create account web
+POST http://127.0.0.1:4000/webs/{{account_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_id", response.body.toString());
+    });
+%}
+
 ### Create account group
 POST http://127.0.0.1:4000/account_groups
 X-Authenticated-User-Actor-Id: {{account_id}}
@@ -21,6 +32,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         client.global.set("account_group_id", response.body.toString());
     });
 %}
+
+### Create account group web
+POST http://127.0.0.1:4000/webs/{{account_group_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
 
 ### Check permission for adding owner to account group
 GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_owner
