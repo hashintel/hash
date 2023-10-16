@@ -6,6 +6,11 @@ pub trait Object: Sized + Send + Sync {
     type Namespace: Serialize;
     type Id: Serialize;
 
+    /// Creates an object from a namespace and an id.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the namespace and id are not valid for the object.
     fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error>;
 
     fn namespace(&self) -> &Self::Namespace;

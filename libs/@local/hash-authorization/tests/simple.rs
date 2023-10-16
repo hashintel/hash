@@ -16,7 +16,7 @@ use crate::schema::{ALICE, BOB, ENTITY_A, ENTITY_B};
 
 #[tokio::test]
 async fn test_schema() -> Result<(), Box<dyn Error>> {
-    let mut api = api::TestApi::connect();
+    let mut api = api::connect();
 
     api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;
@@ -35,7 +35,7 @@ async fn test_schema() -> Result<(), Box<dyn Error>> {
 
 #[tokio::test]
 async fn plain_permissions() -> Result<(), Box<dyn Error>> {
-    let mut api = api::TestApi::connect();
+    let mut api = api::connect();
 
     api.import_schema(include_str!("../schemas/v1__initial_schema.zed"))
         .await?;

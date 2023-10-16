@@ -92,6 +92,11 @@ pub trait Relationship: Sized + Send + Sync {
     type Relation: Serialize + Affiliation<Self::Object>;
     type Subject: Subject;
 
+    /// Creates a relationship from an object, relation, and subject.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the object, relation, and subject are not valid for the relationship.
     fn new(
         object: Self::Object,
         relation: Self::Relation,
