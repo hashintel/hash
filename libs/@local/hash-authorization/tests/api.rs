@@ -3,13 +3,16 @@
 
 use authorization::backend::{SpiceDbOpenApi, ZanzibarBackend};
 
-/// Connect to the authorization API.
+/// Connects to the `SpiceDB` instance specified by the environment variables.
+///
+/// The following environment variables are used:
+/// - `HASH_SPICEDB_HOST`: The host to connect to. Defaults to `http://localhost`.
+/// - `HASH_SPICEDB_HTTP_PORT`: The port to connect to. Defaults to `8443`.
+/// - `HASH_SPICEDB_GRPC_PRESHARED_KEY`: The preshared key to use for authentication. Defaults to
+///   `secret`.
 ///
 /// # Panics
 ///
-/// - If the `HASH_SPICEDB_HOST` environment variable is not set.
-/// - If the `HASH_SPICEDB_HTTP_PORT` environment variable is not set.
-/// - If the `HASH_SPICEDB_GRPC_PRESHARED_KEY` environment variable is not set.
 /// - If the connection to the authorization API fails.
 #[must_use]
 pub fn connect() -> impl ZanzibarBackend {
