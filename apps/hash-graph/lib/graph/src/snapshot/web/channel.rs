@@ -26,7 +26,7 @@ use crate::snapshot::{web::WebBatch, SnapshotRestoreError, Web};
 pub struct WebSender {
     web_account_relation: Sender<(WebId, WebRelation, AccountId)>,
     web_account_group_relation:
-        Sender<(WebId, WebRelation, AccountGroupId, AccountGroupPermission)>,
+        Sender<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>,
 }
 
 impl Sink<Web> for WebSender {
@@ -68,8 +68,7 @@ impl Sink<Web> for WebSender {
                     .start_send_unpin((
                         item.id,
                         relation,
-                        account_group_id,
-                        AccountGroupPermission::Member,
+                        (account_group_id, AccountGroupPermission::Member),
                     ))
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send web account group relation owners")?,

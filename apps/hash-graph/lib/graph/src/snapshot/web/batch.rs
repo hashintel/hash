@@ -16,7 +16,7 @@ use crate::{
 
 pub enum WebBatch {
     Accounts(Vec<(WebId, WebRelation, AccountId)>),
-    AccountGroups(Vec<(WebId, WebRelation, AccountGroupId, AccountGroupPermission)>),
+    AccountGroups(Vec<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>),
 }
 
 #[async_trait]

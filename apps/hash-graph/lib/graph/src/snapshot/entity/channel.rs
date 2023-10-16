@@ -40,12 +40,15 @@ pub struct EntitySender {
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
     entity_account_relation: Sender<Vec<(EntityUuid, EntityRelation, AccountId)>>,
+    #[expect(
+        clippy::type_complexity,
+        reason = "TODO: Use a more generic subjecet instead of nested tuples"
+    )]
     entity_account_group_relation: Sender<
         Vec<(
             EntityUuid,
             EntityRelation,
-            AccountGroupId,
-            AccountGroupPermission,
+            (AccountGroupId, AccountGroupPermission),
         )>,
     >,
     entity_public_account_relation: Sender<Vec<(EntityUuid, EntityRelation)>>,
@@ -178,8 +181,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
                     .push((
                         entity.metadata.record_id.entity_id.entity_uuid,
                         relation,
-                        account_group_id,
-                        AccountGroupPermission::Member,
+                        (account_group_id, AccountGroupPermission::Member),
                     )),
                 EntitySubject::Public => public_account_relations
                     .push((entity.metadata.record_id.entity_id.entity_uuid, relation)),

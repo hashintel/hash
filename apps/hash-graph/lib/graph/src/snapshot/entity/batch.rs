@@ -29,8 +29,7 @@ pub enum EntityRowBatch {
         Vec<(
             EntityUuid,
             EntityRelation,
-            AccountGroupId,
-            AccountGroupPermission,
+            (AccountGroupId, AccountGroupPermission),
         )>,
     ),
 }

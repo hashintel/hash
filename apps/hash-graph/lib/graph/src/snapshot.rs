@@ -20,8 +20,14 @@ use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebRelation},
-    zanzibar::Consistency,
+    schema::{
+        AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebNamespace,
+        WebRelation,
+    },
+    zanzibar::{
+        types::{relationship::RelationshipFilter, ObjectFilter},
+        Consistency,
+    },
     AccountOrPublic, EntitySubject,
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
@@ -227,18 +233,14 @@ where
                 let mut owners = Vec::new();
                 let mut admins = Vec::new();
                 let mut members = Vec::new();
-                for (_group, relation, user, user_set) in authorization_api
-                    .read_relations::<AccountGroupId, AccountGroupRelation, AccountId, ()>(
-                        Some(id),
-                        None,
-                        None,
-                        None,
+                for (_group, relation, user) in authorization_api
+                    .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
+                        RelationshipFilter::from_object(&id),
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(SnapshotDumpError::Query)?
                 {
-                    assert!(user_set.is_none());
                     match relation {
                         AccountGroupRelation::DirectOwner => owners.push(user),
                         AccountGroupRelation::DirectAdmin => admins.push(user),
@@ -260,64 +262,54 @@ where
     ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
     {
         let accounts = authorization_api
-            .read_relations::<WebId, WebRelation, AccountId, ()>(
-                None,
-                None,
-                None,
-                None,
+            .read_relations::<(WebId, WebRelation, AccountId)>(
+                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web)),
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(SnapshotDumpError::Query)?
             .into_iter()
-            .map(|(id, relation, account_id, account_relation)| {
-                assert!(account_relation.is_none());
-                match relation {
-                    WebRelation::DirectOwner => Ok(Web {
-                        id,
-                        owners: vec![OwnerId::Account(account_id)],
-                        editors: Vec::new(),
-                    }),
-                    WebRelation::DirectEditor => Ok(Web {
-                        id,
-                        owners: Vec::new(),
-                        editors: vec![OwnerId::Account(account_id)],
-                    }),
-                }
+            .map(|(id, relation, account_id)| match relation {
+                WebRelation::DirectOwner => Ok(Web {
+                    id,
+                    owners: vec![OwnerId::Account(account_id)],
+                    editors: Vec::new(),
+                }),
+                WebRelation::DirectEditor => Ok(Web {
+                    id,
+                    owners: Vec::new(),
+                    editors: vec![OwnerId::Account(account_id)],
+                }),
             });
 
         let account_groups = authorization_api
-            .read_relations::<WebId, WebRelation, AccountGroupId, AccountGroupPermission>(
-                None,
-                None,
-                None,
-                None,
+            .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
+                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web)),
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(SnapshotDumpError::Query)?
             .into_iter()
-            .map(|(id, relation, account_group, account_group_permission)| {
-                assert_eq!(
-                    account_group_permission,
-                    Some(AccountGroupPermission::Member)
-                );
-                // TODO: Partition web ids so a single web holds multiple owners/editors per
-                //       snapshot line. For the restoring logic this has no effect, but it would
-                //       make the snapshot file smaller and more readable.
-                match relation {
-                    WebRelation::DirectOwner => Ok(Web {
-                        id,
-                        owners: vec![OwnerId::AccountGroupMembers(account_group)],
-                        editors: Vec::new(),
-                    }),
-                    WebRelation::DirectEditor => Ok(Web {
-                        id,
-                        owners: Vec::new(),
-                        editors: vec![OwnerId::AccountGroupMembers(account_group)],
-                    }),
-                }
-            });
+            .map(
+                |(id, relation, (account_group, account_group_permission))| {
+                    assert_eq!(account_group_permission, AccountGroupPermission::Member);
+                    // TODO: Partition web ids so a single web holds multiple owners/editors per
+                    //       snapshot line. For the restoring logic this has no effect, but it would
+                    //       make the snapshot file smaller and more readable.
+                    match relation {
+                        WebRelation::DirectOwner => Ok(Web {
+                            id,
+                            owners: vec![OwnerId::AccountGroupMembers(account_group)],
+                            editors: Vec::new(),
+                        }),
+                        WebRelation::DirectEditor => Ok(Web {
+                            id,
+                            owners: Vec::new(),
+                            editors: vec![OwnerId::AccountGroupMembers(account_group)],
+                        }),
+                    }
+                },
+            );
 
         Ok(stream::iter(accounts.chain(account_groups)))
     }
@@ -429,12 +421,9 @@ where
                         let mut editors = Vec::new();
                         let mut viewers = Vec::new();
 
-                        for (_group, relation, account, _account_relation) in authorization_api
-                            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
-                                Some(id),
-                                None,
-                                None,
-                                None,
+                        for (_group, relation, account) in authorization_api
+                            .read_relations::<(EntityUuid, EntityRelation, AccountOrPublic)>(
+                                RelationshipFilter::from_object(&id),
                                 Consistency::FullyConsistent,
                             )
                             .await
@@ -453,27 +442,35 @@ where
                             }
                         }
 
-                        for (_group, relation, account_group, account_group_permission) in authorization_api
-                            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
-                                Some(id),
-                                None,
-                                None,
-                                None,
-                                Consistency::FullyConsistent,
-                            )
-                            .await
-                            .change_context(SnapshotDumpError::Query)?
+                        for (_group, relation, (account_group, account_group_permission)) in
+                            authorization_api
+                                .read_relations::<(
+                                    EntityUuid,
+                                    EntityRelation,
+                                    (AccountGroupId, AccountGroupPermission),
+                                )>(
+                                    RelationshipFilter::from_object(&id),
+                                    Consistency::FullyConsistent,
+                                )
+                                .await
+                                .change_context(SnapshotDumpError::Query)?
                         {
-                            if account_group_permission == Some(AccountGroupPermission::Member){
+                            if account_group_permission == AccountGroupPermission::Member {
                                 match relation {
                                     EntityRelation::DirectOwner => {
-                                        owners.push(EntitySubject::AccountGroupMembers(account_group));
+                                        owners.push(EntitySubject::AccountGroupMembers(
+                                            account_group,
+                                        ));
                                     }
                                     EntityRelation::DirectEditor => {
-                                        editors.push(EntitySubject::AccountGroupMembers(account_group));
+                                        editors.push(EntitySubject::AccountGroupMembers(
+                                            account_group,
+                                        ));
                                     }
                                     EntityRelation::DirectViewer => {
-                                        viewers.push(EntitySubject::AccountGroupMembers(account_group));
+                                        viewers.push(EntitySubject::AccountGroupMembers(
+                                            account_group,
+                                        ));
                                     }
                                 }
                             } else {
