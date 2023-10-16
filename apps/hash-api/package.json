@@ -6,11 +6,12 @@
   "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
-    "dev": "NODE_ENV=development node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch ./src/index.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
+    "start-test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "test:unit": "jest"
   },
   "dependencies": {
@@ -81,6 +82,7 @@
     "oembed-providers": "1.0.20220105",
     "pluralize": "8.0.0",
     "ts-node": "10.9.1",
+    "tsx": "3.13.0",
     "typescript": "5.1.6"
   },
   "devDependencies": {
