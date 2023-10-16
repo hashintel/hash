@@ -77,18 +77,16 @@ pub trait ZanzibarBackend {
     where
         R: Relationship + Send + Sync;
 
-    /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
-    /// [`Resource`].
+    /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
+    /// to an [`Object`].
     ///
     /// # Errors
     ///
     /// Returns an error if the check could not be performed.
     ///
-    /// Note, that this will not fail if the subject does not have the specified permission or
-    /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
+    /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
+    /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
     fn check<R>(
         &self,
         relationship: &R,
@@ -287,23 +285,19 @@ impl Error for DeleteRelationError {}
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
-    /// If the subject has the specified permission or relation to an [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
+    /// If the subject has the specified permission or relation to an [`Object`].
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
 }
 
 impl CheckResponse {
-    /// Asserts that the subject has the specified permission or relation to an [`Resource`].
+    /// Asserts that the subject has the specified permission or relation to an [`Object`].
     ///
     /// # Errors
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
-    /// [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
+    /// [`Object`].
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)
