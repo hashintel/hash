@@ -419,6 +419,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
 
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Install turbo
         run: yarn global add turbo
 
@@ -500,13 +503,14 @@ jobs:
 
       - name: Launch HASH-API
         run: |
-          turbo run dev --filter "@apps/hash-api" &
+          turbo run build --filter "@apps/hash-api"
+          yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log & 
           yarn wait-on --timeout 120000 http://0.0.0.0:5001
 
       - name: Launch frontend
         run: |
           turbo run build --filter "@apps/hash-frontend"
-          yarn workspace @apps/hash-frontend start &
+          yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log &
           yarn wait-on --timeout 30000 http://0.0.0.0:3000
 
       - name: Show disk usage
@@ -519,9 +523,35 @@ jobs:
       - name: Show disk usage
         run: df -h
 
+      - name: Show backend logs
+        if: ${{ success() || failure() }}
+        run: cat var/logs/backend.log
+
+      - name: Show frontend logs
+        if: ${{ success() || failure() }}
+        run: cat var/logs/frontend.log
+
       - name: Show container logs
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+
+      - name: Upload artifact playwright-report
+        if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        with:
+          name: playwright-report
+          path: tests/hash-playwright/playwright-report
+
+      - name: Upload artifact playwright-var
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+        if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
+        with:
+          name: playwright-var
+          path: |
+            var/api
+            var/logs
+          ## Getting permission denied for docker volumes (e.g. postgres data)
+          ## https://github.com/actions/upload-artifact/issues/192
 
   publish:
     name: Publish

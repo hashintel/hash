@@ -12,10 +12,10 @@
     }
   },
   "scripts": {
-    "build:docker": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_AUTHORIZATION=yes --tag hash-graph --file docker/Dockerfile ../../",
-    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_AUTHORIZATION=yes --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
+    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
     "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../",
-    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_AUTHORIZATION=yes --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
+    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
     "exe": "ts-node",
     "fix:clippy": "just clippy --fix",
