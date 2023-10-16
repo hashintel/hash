@@ -817,6 +817,7 @@ class CreateEntityRequest(BaseModel):
     entity_uuid: EntityUuid | None = Field(None, alias="entityUuid")
     link_data: LinkData | None = Field(None, alias="linkData")
     owned_by_id: OwnedById = Field(..., alias="ownedById")
+    owner: OwnedById
     properties: EntityProperties
 
 

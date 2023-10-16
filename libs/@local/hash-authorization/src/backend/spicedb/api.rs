@@ -67,12 +67,14 @@ impl SpiceDbOpenApi {
         path: &'static str,
         body: &(impl Serialize + Sync),
     ) -> Result<Response, Report<InvocationError>> {
+        let url = format!("{}{}", self.base_path, path);
         let request = self
             .client
-            .post(format!("{}{}", self.base_path, path))
+            .post(&url)
             .json(&body)
             .build()
-            .change_context(InvocationError::Request)?;
+            .change_context(InvocationError::Request)
+            .attach_printable(url)?;
 
         let response = self
             .client

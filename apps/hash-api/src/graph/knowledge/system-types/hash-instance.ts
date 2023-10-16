@@ -9,7 +9,6 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import {
-  AccountGroupId,
   Entity,
   EntityRootType,
   extractOwnedByIdFromEntityId,
@@ -26,6 +25,7 @@ import {
   createEntity,
   CreateEntityParams,
 } from "../primitive/entity";
+import { createAccountGroup, createWeb } from "./account.fields";
 import { User } from "./user";
 
 export type HashInstance = {
@@ -121,9 +121,8 @@ export const createHashInstance: ImpureGraphFunction<
     throw new Error("Hash instance entity already exists.");
   }
 
-  const hashInstanceAdmins = await ctx.graphApi
-    .createAccountGroup(authentication.actorId)
-    .then(({ data }) => data as AccountGroupId);
+  const hashInstanceAdmins = await createAccountGroup(ctx, authentication, {});
+  await createWeb(ctx, authentication, { owner: hashInstanceAdmins });
 
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,

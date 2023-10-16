@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::{schema::OwnerId, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::AccountId,
@@ -38,6 +38,7 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: OwnerId,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

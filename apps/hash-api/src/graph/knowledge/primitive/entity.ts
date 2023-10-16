@@ -45,6 +45,7 @@ export type CreateEntityParams = {
   properties: EntityPropertiesObject;
   entityTypeId: VersionedUrl;
   entityUuid?: EntityUuid;
+  owner?: AccountId | AccountGroupId;
 };
 
 /** @todo: potentially directly export this from the subgraph package */
@@ -75,6 +76,7 @@ export const createEntity: ImpureGraphFunction<
     entityTypeId,
     properties,
     entityUuid: overrideEntityUuid,
+    owner: params.owner ?? ownedById,
   });
 
   return {

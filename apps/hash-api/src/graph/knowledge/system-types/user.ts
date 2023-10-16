@@ -35,6 +35,8 @@ import {
   getLatestEntityById,
 } from "../primitive/entity";
 import {
+  createAccount,
+  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -270,13 +272,13 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
-  const { graphApi } = ctx;
-
-  const userAccountId = params.userAccountId
-    ? params.userAccountId
-    : await graphApi
-        .createAccount(authentication.actorId)
-        .then(({ data: accountId }) => accountId as AccountId);
+  let userAccountId: AccountId;
+  if (params.userAccountId) {
+    userAccountId = params.userAccountId;
+  } else {
+    userAccountId = await createAccount(ctx, authentication, {});
+    await createWeb(ctx, { actorId: userAccountId }, { owner: userAccountId });
+  }
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,

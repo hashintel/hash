@@ -32,3 +32,9 @@ variable "pg_temporal_user_password_hash" {
   sensitive   = true
   description = "Hashed form of the 'temporal' user Postgres password."
 }
+
+variable "pg_spicedb_user_password_hash" {
+  type        = string
+  sensitive   = true
+  description = "Hashed form of the 'spicedb' user Postgres password."
+}

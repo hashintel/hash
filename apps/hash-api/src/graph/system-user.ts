@@ -21,6 +21,10 @@ import { publicUserAccountId } from "../graphql/context";
 import { getRequiredEnv } from "../util";
 import { ImpureGraphContext } from "./index";
 import {
+  createAccount,
+  createWeb,
+} from "./knowledge/system-types/account.fields";
+import {
   createUser,
   getUserByShortname,
   User,
@@ -72,9 +76,16 @@ export const ensureSystemUserAccountIdExists = async (params: {
     );
   } else {
     // The account id generated here is the very origin on all `AccountId` instances.
-    systemUserAccountId = await graphApi
-      .createAccount(publicUserAccountId)
-      .then(({ data: accountId }) => accountId as AccountId);
+    systemUserAccountId = await createAccount(
+      params.context,
+      { actorId: publicUserAccountId },
+      {},
+    );
+    await createWeb(
+      params.context,
+      { actorId: systemUserAccountId },
+      { owner: systemUserAccountId },
+    );
     logger.info(`Created system user account id: ${systemUserAccountId}`);
   }
 };

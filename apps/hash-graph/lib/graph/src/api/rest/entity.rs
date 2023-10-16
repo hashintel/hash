@@ -5,9 +5,8 @@
 use std::{iter::once, sync::Arc};
 
 use authorization::{
-    schema::{EntityRelation, OwnerId},
-    zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool, EntitySubject,
+    schema::EntityRelation, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool,
+    EntitySubject,
 };
 use axum::{
     extract::Path,
@@ -139,6 +138,7 @@ struct CreateEntityRequest {
     #[schema(value_type = SHARED_VersionedUrl)]
     entity_type_id: VersionedUrl,
     owned_by_id: OwnedById,
+    owner: OwnedById,
     #[schema(nullable = false)]
     entity_uuid: Option<EntityUuid>,
     // TODO: this could break invariants if we don't move to fractional indexing
@@ -178,6 +178,7 @@ where
     let Json(CreateEntityRequest {
         properties,
         entity_type_id,
+        owner,
         owned_by_id,
         entity_uuid,
         link_data,
@@ -198,6 +199,10 @@ where
             actor_id,
             &mut authorization_api,
             owned_by_id,
+            store.identify_owned_by_id(owner).await.map_err(|report| {
+                tracing::error!(error=?report, "Could not identify account or account group");
+                StatusCode::NOT_FOUND
+            })?,
             entity_uuid,
             None,
             false,
@@ -570,18 +575,16 @@ where
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    let scope = OwnerId::from(
-        store
-            .identify_owned_by_id(owned_by_id)
-            .await
-            .map_err(|report| {
-                tracing::error!(error=?report, "Could not identify account or account group");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?,
-    );
+    let owner_id = store
+        .identify_owned_by_id(owned_by_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     authorization_api
-        .add_entity_owner(scope, entity_id)
+        .add_entity_owner(owner_id, entity_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity owner");
@@ -642,18 +645,16 @@ where
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    let scope = OwnerId::from(
-        store
-            .identify_owned_by_id(owned_by_id)
-            .await
-            .map_err(|report| {
-                tracing::error!(error=?report, "Could not identify account or account group");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?,
-    );
+    let owner_id = store
+        .identify_owned_by_id(owned_by_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not identify account or account group");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     authorization_api
-        .remove_entity_owner(scope, entity_id)
+        .remove_entity_owner(owner_id, entity_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity owner");
@@ -711,13 +712,13 @@ where
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    let scope = OwnerId::from(store.identify_owned_by_id(editor).await.map_err(|report| {
+    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
         tracing::error!(error=?report, "Could not identify account or account group");
         StatusCode::INTERNAL_SERVER_ERROR
-    })?);
+    })?;
 
     authorization_api
-        .add_entity_editor(scope, entity_id)
+        .add_entity_editor(editor_id, entity_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity editor");
@@ -778,13 +779,13 @@ where
         tracing::error!(error=?report, "Could not acquire store");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
-    let scope = OwnerId::from(store.identify_owned_by_id(editor).await.map_err(|report| {
+    let editor_id = store.identify_owned_by_id(editor).await.map_err(|report| {
         tracing::error!(error=?report, "Could not identify account or account group");
         StatusCode::INTERNAL_SERVER_ERROR
-    })?);
+    })?;
 
     authorization_api
-        .remove_entity_editor(scope, entity_id)
+        .remove_entity_editor(editor_id, entity_id)
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity editor");

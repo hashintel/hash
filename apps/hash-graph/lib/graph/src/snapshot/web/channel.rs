@@ -63,7 +63,7 @@ impl Sink<Web> for WebSender {
                     .start_send_unpin((item.id, relation, account_id))
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send web account relation owner")?,
-                OwnerId::AccountGroup(account_group_id) => self
+                OwnerId::AccountGroupMembers(account_group_id) => self
                     .web_account_group_relation
                     .start_send_unpin((
                         item.id,

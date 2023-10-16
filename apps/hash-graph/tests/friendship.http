@@ -11,6 +11,48 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
     });
 %}
 
+### Create account web
+POST http://127.0.0.1:4000/webs/{{account_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Create account group
+POST http://127.0.0.1:4000/account_groups
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.global.set("account_group_id", response.body.toString());
+    });
+%}
+
+### Create account group web
+POST http://127.0.0.1:4000/webs/{{account_group_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
+### Check permission for adding owner to account group
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_owner
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.has_permission, "Account group can not add new owners");
+    });
+%}
+
 ### Get all data types
 POST http://127.0.0.1:4000/data-types/query
 Content-Type: application/json
@@ -1137,6 +1179,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
+  "owner": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
@@ -1265,6 +1308,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
+  "owner": "{{account_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
 }
 
@@ -1349,6 +1393,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "ownedById": "{{account_id}}",
   "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "owner": "{{account_id}}",
   "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"

@@ -3,6 +3,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+import { buildStamp } from "./buildstamp";
 import {
   SENTRY_DSN,
   SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
@@ -14,6 +15,7 @@ Sentry.init({
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV,
   integrations: [new Sentry.Replay({ stickySession: true })],
+  release: buildStamp,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: parseFloat(
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",

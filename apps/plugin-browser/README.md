@@ -1,5 +1,21 @@
 # HASH Browser Plugin
 
+## Download
+
+We will provide download links and instructions for getting set up in the following browsers here, upon the public beta release:
+
+- Chrome
+- Firefox
+- Safari
+- Edge
+- Arc Browser
+
+We also intend to support iOS Safari in the future.
+
+## User Guide
+
+We will add a link to the user guide for the plugin here, when it is available.
+
 ## Development
 
 1. Install dependencies: `yarn`

@@ -51,6 +51,7 @@ locals {
     volumesFrom = []
     dependsOn   = [
       { condition = "HEALTHY", containerName = local.type_fetcher_service_container_def.name },
+      { condition = "HEALTHY", containerName = local.spicedb_service_container_def.name },
       { condition = "SUCCESS", containerName = local.graph_migration_container_def.name },
     ]
     command     = ["server"]

@@ -56,7 +56,6 @@ import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
-import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
@@ -179,10 +178,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   },
 
   JSONObject: JSONObjectResolver,
-
-  LinkedAggregation: {
-    results: linkedAggregationResults,
-  },
 
   Page: {
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
