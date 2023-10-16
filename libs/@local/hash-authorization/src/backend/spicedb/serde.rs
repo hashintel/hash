@@ -219,28 +219,6 @@ pub(crate) mod relationship {
     }
 }
 
-pub(crate) mod relationship_ref {
-    use serde::{Serialize, Serializer};
-
-    use crate::zanzibar::types::{object::Object, relationship::Relationship, subject::Subject};
-
-    #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
-    pub(crate) fn serialize<T, S>(relationship: &&T, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Serialize,
-                Subject: Subject<
-                    Object: Object<Namespace: Serialize, Id: Serialize>,
-                    Relation: Serialize,
-                >,
-            >,
-        S: Serializer,
-    {
-        super::relationship::serialize(*relationship, serializer)
-    }
-}
-
 pub(crate) mod relationship_filter {
     use serde::{Serialize, Serializer};
 

@@ -306,14 +306,17 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        R: Relationship + Sync,
+        R: Relationship<Object: Sync, Relation: Sync, Subject: Sync>,
     {
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase", bound = "")]
         struct RequestBody<'t, R: Relationship> {
             consistency: model::Consistency<'t>,
-            #[serde(flatten, with = "super::serde::relationship_ref")]
-            relationship: &'t R,
+            #[serde(with = "super::serde::object")]
+            resource: &'t R::Object,
+            permission: &'t R::Relation,
+            #[serde(with = "super::serde::subject")]
+            subject: &'t R::Subject,
         }
 
         #[derive(Deserialize)]
@@ -333,9 +336,11 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             permissionship: Permissionship,
         }
 
-        let request = RequestBody {
+        let request = RequestBody::<R> {
             consistency: consistency.into(),
-            relationship,
+            resource: relationship.object(),
+            permission: relationship.relation(),
+            subject: relationship.subject(),
         };
 
         let response: RequestResponse = self

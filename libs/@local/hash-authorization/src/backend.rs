@@ -99,7 +99,7 @@ pub trait ZanzibarBackend {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        R: Relationship + Sync;
+        R: Relationship<Object: Sync, Relation: Sync, Subject: Sync>;
 
     /// Returns the list of all relations matching the filter.
     ///
