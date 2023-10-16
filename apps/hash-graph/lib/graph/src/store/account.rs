@@ -35,6 +35,13 @@ pub trait AccountStore {
         account_group_id: AccountGroupId,
     ) -> Result<(), InsertionError>;
 
+    /// Returns if the [`AccountId`] exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - if querying failed
+    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError>;
+
     /// Returns either an [`AccountId`] or an [`AccountGroupId`] for the specified [`OwnedById`].
     ///
     /// # Errors
