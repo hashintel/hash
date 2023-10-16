@@ -39,9 +39,6 @@ import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button, MenuItem } from "../../../../shared/ui";
 
 const PrivacyStatusMenuItem = styled(MenuItem)(({ theme }) => ({
-  [`&.${menuItemClasses.disabled}`]: {
-    opacity: 1,
-  },
   [`&.${menuItemClasses.selected}`]: {
     backgroundColor: theme.palette.gray[20],
     [`& .${listItemIconClasses.root}`]: {
@@ -152,7 +149,7 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
             label: "Shared with others",
             status: "shared-with-others" as const,
             description: "You, people invited and anyone with a share link",
-            disabled: loading || authorizationStatus === "shared-with-others",
+            disabled: loading,
             onClick: removePublicViewer,
           }
         : [],
@@ -160,13 +157,12 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
         label: "Public",
         status: "public" as const,
         description: "Discoverable and accessible by anyone",
-        disabled: loading || authorizationStatus === "public",
+        disabled: loading,
         onClick: addPublicViewer,
       },
     ].flat();
   }, [
     isSharedWithOthers,
-    authorizationStatus,
     loading,
     removePublicViewer,
     addPublicViewer,
