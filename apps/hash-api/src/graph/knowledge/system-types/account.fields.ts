@@ -1,13 +1,9 @@
+import { AccountGroupId, AccountId } from "@local/hash-subgraph";
+
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { RESTRICTED_SHORTNAMES } from "../../util";
 import { getOrgByShortname } from "./org";
 import { getUserByShortname } from "./user";
-import {
-  AccountGroupId,
-  AccountId,
-  EntityId,
-  OwnedById,
-} from "@local/hash-subgraph";
 
 // Validations for shortnames
 /**

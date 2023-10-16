@@ -21,15 +21,14 @@ import { publicUserAccountId } from "../graphql/context";
 import { getRequiredEnv } from "../util";
 import { ImpureGraphContext } from "./index";
 import {
+  createAccount,
+  createWeb,
+} from "./knowledge/system-types/account.fields";
+import {
   createUser,
   getUserByShortname,
   User,
 } from "./knowledge/system-types/user";
-import {
-  createAccount,
-  createAccountGroup,
-  createWeb,
-} from "./knowledge/system-types/account.fields";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemUserAccountId: AccountId;

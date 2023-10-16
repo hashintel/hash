@@ -9,7 +9,6 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import {
-  AccountGroupId,
   Entity,
   EntityRootType,
   extractOwnedByIdFromEntityId,
@@ -26,10 +25,8 @@ import {
   createEntity,
   CreateEntityParams,
 } from "../primitive/entity";
+import { createAccountGroup, createWeb } from "./account.fields";
 import { User } from "./user";
-import { createAccount, createAccountGroup, createWeb } from "./account.fields";
-import { publicUserAccountId } from "../../../graphql/context";
-import { systemUserAccountId } from "../../system-user";
 
 export type HashInstance = {
   entity: Entity;

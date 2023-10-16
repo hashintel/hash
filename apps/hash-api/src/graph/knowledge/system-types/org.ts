@@ -6,7 +6,6 @@ import {
 import {
   AccountGroupEntityId,
   AccountGroupId,
-  AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -122,8 +121,6 @@ export const createOrg: ImpureGraphFunction<
       `An account or an account group with shortname "${shortname}" already exists.`,
     );
   }
-
-  const { graphApi } = ctx;
 
   let orgAccountGroupId: AccountGroupId;
   if (params.orgAccountGroupId) {
