@@ -193,17 +193,15 @@ impl SpiceDbOpenApi {
                 Err(report) => match report.current_context() {
                     InvocationError::Api(RpcError { code: 2, .. }) => {
                         if attempt == max_attempts {
-                            return Err(report);
+                            break Err(report);
                         }
 
                         attempt += 1;
                         // TODO: Use a more customizable backoff
                         //       current: 10ms, 40ms, 90ms
                         sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
-
-                        continue;
                     }
-                    _ => return Err(report),
+                    _ => break Err(report),
                 },
             }
         }
