@@ -187,6 +187,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   },
 
   BlockCollection: {
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: blockCollectionContents,
   },
 

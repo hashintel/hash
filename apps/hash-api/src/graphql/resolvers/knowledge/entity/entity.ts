@@ -38,7 +38,9 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
+import { createWeb } from "../../../../graph/knowledge/system-types/account.fields";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
   AuthorizationSubjectKind,
@@ -276,7 +278,7 @@ export const updateEntityResolver: ResolverFn<
     rightToLeftOrder,
     entityTypeId,
   },
-  { dataSources, authentication: uncheckedAuthenticationContext, user },
+  { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
@@ -290,17 +292,6 @@ export const updateEntityResolver: ResolverFn<
       "You must complete the sign-up process to perform this action.",
     );
   }
-
-  /*
-   * We default incomplete users to acting as an unauthenticated user when creating the authentication context.
-   * They are allowed to perform this mutation, so we need to restore their actorId.
-   */
-  const authentication = isIncompleteUser
-    ? {
-        ...uncheckedAuthenticationContext,
-        actorId: user.accountId,
-      }
-    : uncheckedAuthenticationContext;
 
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
@@ -317,6 +308,21 @@ export const updateEntityResolver: ResolverFn<
   }
 
   let updatedEntity: Entity;
+
+  if (
+    isIncompleteUser &&
+    updatedProperties[
+      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
+    ] &&
+    updatedProperties[
+      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
+    ]
+  ) {
+    // Now that the user has completed signup, we can create their web, allowing them to create/edit entities
+    await createWeb(context, authentication, {
+      owner: user.accountId,
+    });
+  }
 
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {

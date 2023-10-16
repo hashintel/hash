@@ -64,16 +64,7 @@ export const createApolloServer = ({
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       authentication: {
-        /**
-         * Users who haven't completed signup are only permitted to set a name and shortname.
-         * For all other purposes they are treated as an anonymous user, and so we default them to one here.
-         *
-         * We have middleware which also checks this, but this default ensures that forgetting to apply
-         * the middleware to a new route doesn't give an incomplete user permissions they shouldn't have.
-         */
-        actorId: ctx.req.user?.isAccountSignupComplete
-          ? ctx.req.user.accountId
-          : publicUserAccountId,
+        actorId: ctx.req.user?.accountId ?? publicUserAccountId,
       },
       user: ctx.req.user,
       emailTransporter,
