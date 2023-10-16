@@ -9,11 +9,7 @@ use serde::{Deserialize, Serialize};
 pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
     zanzibar::{
-        types::{
-            object::Object,
-            relationship::{Relationship, RelationshipFilter},
-            subject::Subject,
-        },
+        types::{Object, Relationship, RelationshipFilter, Subject},
         Consistency, Zookie,
     },
     NoAuthorization,

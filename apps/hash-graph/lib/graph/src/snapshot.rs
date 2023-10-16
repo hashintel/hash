@@ -25,7 +25,7 @@ use authorization::{
         WebRelation,
     },
     zanzibar::{
-        types::{relationship::RelationshipFilter, ObjectFilter},
+        types::{ObjectFilter, RelationshipFilter},
         Consistency,
     },
     AccountOrPublic, EntitySubject,

@@ -4,7 +4,7 @@ use graph_types::account::AccountId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    zanzibar::types::{object::Object, subject::Subject},
+    zanzibar::types::{Object, Subject},
     AccountOrPublic,
 };
 

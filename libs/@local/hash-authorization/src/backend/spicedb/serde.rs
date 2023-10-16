@@ -1,6 +1,6 @@
 use serde::{de::IntoDeserializer, Deserialize, Deserializer, Serialize};
 
-use crate::zanzibar::types::{object::Object, relationship::Relationship, subject::Subject};
+use crate::zanzibar::types::{Object, Relationship, Subject};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +31,7 @@ pub(crate) mod object {
 
     use crate::{
         backend::spicedb::serde::{SerializedObject, SerializedObjectRef},
-        zanzibar::types::object::Object,
+        zanzibar::types::Object,
     };
 
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
@@ -104,7 +104,7 @@ pub(crate) mod subject {
 
     use crate::{
         backend::spicedb::serde::{SerializedSubject, SerializedSubjectRef},
-        zanzibar::types::{object::Object, subject::Subject},
+        zanzibar::types::{Object, Subject},
     };
 
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
@@ -176,7 +176,7 @@ pub(crate) mod relationship {
 
     use crate::{
         backend::spicedb::serde::{SerializedRelationship, SerializedRelationshipRef},
-        zanzibar::types::{object::Object, relationship::Relationship, subject::Subject},
+        zanzibar::types::{Object, Relationship, Subject},
     };
 
     pub(crate) fn serialize<T, S>(relationship: &T, serializer: S) -> Result<S::Ok, S::Error>
@@ -222,7 +222,7 @@ pub(crate) mod relationship {
 pub(crate) mod relationship_filter {
     use serde::{Serialize, Serializer};
 
-    use crate::zanzibar::types::relationship::RelationshipFilter;
+    use crate::zanzibar::types::RelationshipFilter;
 
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]

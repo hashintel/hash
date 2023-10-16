@@ -6,7 +6,7 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::{types::object::Object, Affiliation, Permission, Relation};
+use crate::zanzibar::{types::Object, Affiliation, Permission, Relation};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WebNamespace {

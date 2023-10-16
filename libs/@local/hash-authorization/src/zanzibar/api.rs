@@ -11,7 +11,7 @@ use crate::{
         AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
         PublicAccess, WebPermission, WebRelation,
     },
-    zanzibar::{types::relationship::RelationshipFilter, Consistency, Zookie},
+    zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AccountOrPublic, AuthorizationApi, EntitySubject,
 };
 

@@ -4,7 +4,7 @@ use graph_types::account::AccountGroupId;
 use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::{
-    types::{object::Object, subject::Subject},
+    types::{Object, Subject},
     Affiliation, Permission, Relation,
 };
 
