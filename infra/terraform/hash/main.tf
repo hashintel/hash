@@ -233,7 +233,7 @@ module "application" {
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
-    { name = "HASH_SPICEDB_HOST", secret = false, value = "127.0.0.1" },
+    { name = "HASH_SPICEDB_HOST", secret = false, value = "http://127.0.0.1" },
     { name = "HASH_SPICEDB_HTTP_PORT", secret = false, value = "8443" },
     { name = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"]) },
   ])
