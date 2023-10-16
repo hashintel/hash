@@ -6,11 +6,13 @@ import {
   DataEditorProps,
   DataEditorRef,
   GridCell,
+  GridCellKind,
   GridColumn,
   GridMouseEventArgs,
   GridSelection,
   Item,
   SizedGridColumn,
+  TextCell,
   Theme,
 } from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
@@ -44,7 +46,7 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   enableCheckboxSelection?: boolean;
   selectedRows?: T[];
   onSelectedRowsChange?: (selectedRows: T[]) => void;
-  rows: T[];
+  rows?: T[];
   resizable?: boolean;
   sortable?: boolean;
   initialColumnSort?: ColumnSort<string>;
@@ -118,18 +120,19 @@ export const Grid = <T extends Row & { rowId: string }>({
     ? createHandleHeaderClicked(columns, columnSort, setColumnSort)
     : undefined;
 
-  const sortedRows = useMemo<T[]>(() => {
-    if (!sortable) {
-      return rows;
+  const sortedRows = useMemo<T[] | undefined>(() => {
+    if (rows) {
+      if (!sortable) {
+        return rows;
+      }
+      const sortRowFn = sortRows ?? defaultSortRows;
+
+      return sortRowFn(rows, columnSort);
     }
-
-    const sortRowFn = sortRows ?? defaultSortRows;
-
-    return sortRowFn(rows, columnSort);
   }, [sortable, rows, columnSort, sortRows]);
 
   const gridSelection = useMemo(() => {
-    if (selectedRows) {
+    if (sortedRows && selectedRows) {
       let mergedRowSelection = CompactSelection.empty();
 
       for (const selectedRow of selectedRows) {
@@ -243,15 +246,30 @@ export const Grid = <T extends Row & { rowId: string }>({
     [],
   );
 
-  const resizedColumns = useMemo<GridColumn[]>(() => {
+  const resizedColumns = useMemo<(GridColumn & { width: number })[]>(() => {
     return columns.map((col) => {
       return { ...col, width: columnSizes[col.id] ?? col.width };
     });
   }, [columns, columnSizes]);
 
+  const getSkeletonCellContent = useCallback(
+    ([colIndex]: Item): TextCell => ({
+      kind: GridCellKind.Text,
+      displayData: colIndex === 0 ? "Loading..." : "",
+      data: colIndex === 0 ? "Loading..." : "",
+      allowOverlay: false,
+      themeOverride: {
+        cellHorizontalPadding: 15,
+      },
+      style: "faded",
+    }),
+    [],
+  );
+
   return (
     <Box
       sx={{
+        position: "relative",
         borderBottomLeftRadius: "6px",
         borderBottomRightRadius: "6px",
         overflow: "hidden",
@@ -280,9 +298,11 @@ export const Grid = <T extends Row & { rowId: string }>({
         columns={resizedColumns}
         drawHeader={drawHeader ?? defaultDrawHeader}
         onHeaderClicked={handleHeaderClicked}
-        getCellContent={createGetCellContent(sortedRows)}
-        onCellEdited={createOnCellEdited?.(sortedRows)}
-        rows={sortedRows.length}
+        getCellContent={
+          sortedRows ? createGetCellContent(sortedRows) : getSkeletonCellContent
+        }
+        onCellEdited={sortedRows ? createOnCellEdited?.(sortedRows) : undefined}
+        rows={sortedRows ? sortedRows.length : 1}
         maxColumnWidth={1000}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
@@ -306,6 +326,10 @@ export const Grid = <T extends Row & { rowId: string }>({
               onGridSelectionChange: onSelectedRowsChange
                 ? (updatedGridSelection) => {
                     updatedGridSelection.rows.toArray();
+
+                    if (!sortedRows) {
+                      return;
+                    }
 
                     const updatedSelectedRows = sortedRows.filter(
                       (_, rowIndex) =>
