@@ -27,6 +27,9 @@ import {
   CreateEntityParams,
 } from "../primitive/entity";
 import { User } from "./user";
+import { createAccount, createAccountGroup, createWeb } from "./account.fields";
+import { publicUserAccountId } from "../../../graphql/context";
+import { systemUserAccountId } from "../../system-user";
 
 export type HashInstance = {
   entity: Entity;
@@ -121,10 +124,8 @@ export const createHashInstance: ImpureGraphFunction<
     throw new Error("Hash instance entity already exists.");
   }
 
-  const hashInstanceAdmins = await ctx.graphApi
-    .createAccountGroup(authentication.actorId)
-    .then(({ data }) => data as AccountGroupId);
-  await ctx.graphApi.createWeb(authentication.actorId, hashInstanceAdmins);
+  const hashInstanceAdmins = await createAccountGroup(ctx, authentication, {});
+  await createWeb(ctx, authentication, { owner: hashInstanceAdmins });
 
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,

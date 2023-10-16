@@ -25,6 +25,11 @@ import {
   getUserByShortname,
   User,
 } from "./knowledge/system-types/user";
+import {
+  createAccount,
+  createAccountGroup,
+  createWeb,
+} from "./knowledge/system-types/account.fields";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemUserAccountId: AccountId;
@@ -72,10 +77,16 @@ export const ensureSystemUserAccountIdExists = async (params: {
     );
   } else {
     // The account id generated here is the very origin on all `AccountId` instances.
-    systemUserAccountId = await graphApi
-      .createAccount(publicUserAccountId)
-      .then(({ data: accountId }) => accountId as AccountId);
-    await graphApi.createWeb(systemUserAccountId, systemUserAccountId);
+    systemUserAccountId = await createAccount(
+      params.context,
+      { actorId: publicUserAccountId },
+      {},
+    );
+    await createWeb(
+      params.context,
+      { actorId: systemUserAccountId },
+      { owner: systemUserAccountId },
+    );
     logger.info(`Created system user account id: ${systemUserAccountId}`);
   }
 };

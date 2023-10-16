@@ -13,7 +13,7 @@ use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{json::Json, AuthenticatedUserHeader},
+    api::rest::AuthenticatedUserHeader,
     store::{AccountStore, StorePool},
 };
 
@@ -48,7 +48,7 @@ impl RoutedResource for WebResource {
         ("web_id" = OwnedById, Path, description = "The ID of the account group to add the owner to"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web id of the created web", body = OwnedById),
+        (status = 204, content_type = "application/json", description = "The web was created successfully"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -59,7 +59,7 @@ async fn create_web<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
     Path(web_id): Path<OwnedById>,
-) -> Result<Json<OwnedById>, StatusCode>
+) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -108,5 +108,5 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    Ok(Json(OwnedById::new(actor_id.into_uuid())))
+    Ok(StatusCode::NO_CONTENT)
 }

@@ -2178,15 +2178,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "The web id of the created web",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OwnedById"
-                }
-              }
-            }
+          "204": {
+            "description": "The web was created successfully"
           },
           "500": {
             "description": "Store error occurred"

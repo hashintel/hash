@@ -29,6 +29,8 @@ import {
   updateEntityProperty,
 } from "../primitive/entity";
 import {
+  createAccountGroup,
+  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -127,10 +129,8 @@ export const createOrg: ImpureGraphFunction<
   if (params.orgAccountGroupId) {
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
-    orgAccountGroupId = await graphApi
-      .createAccountGroup(authentication.actorId)
-      .then(({ data: accountGroupId }) => accountGroupId as AccountGroupId);
-    await graphApi.createWeb(authentication.actorId, orgAccountGroupId);
+    orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+    await createWeb(ctx, authentication, { owner: orgAccountGroupId });
   }
 
   const properties: EntityPropertiesObject = {
