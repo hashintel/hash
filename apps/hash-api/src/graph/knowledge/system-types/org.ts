@@ -6,7 +6,6 @@ import {
 import {
   AccountGroupEntityId,
   AccountGroupId,
-  AccountId,
   Entity,
   EntityId,
   EntityPropertiesObject,
@@ -29,6 +28,8 @@ import {
   updateEntityProperty,
 } from "../primitive/entity";
 import {
+  createAccountGroup,
+  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -101,7 +102,7 @@ export const createOrg: ImpureGraphFunction<
     shortname: string;
     name: string;
     providedInfo?: OrgProvidedInfo;
-    orgAccountId?: AccountId;
+    orgAccountGroupId?: AccountGroupId;
     website?: string | null;
   },
   Promise<Org>
@@ -121,13 +122,13 @@ export const createOrg: ImpureGraphFunction<
     );
   }
 
-  const { graphApi } = ctx;
-
-  const orgAccountGroupId =
-    params.orgAccountId ??
-    (await graphApi
-      .createAccountGroup(authentication.actorId)
-      .then(({ data: accountGroupId }) => accountGroupId as AccountGroupId));
+  let orgAccountGroupId: AccountGroupId;
+  if (params.orgAccountGroupId) {
+    orgAccountGroupId = params.orgAccountGroupId;
+  } else {
+    orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
+    await createWeb(ctx, authentication, { owner: orgAccountGroupId });
+  }
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,

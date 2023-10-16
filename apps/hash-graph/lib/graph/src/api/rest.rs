@@ -17,6 +17,7 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod property_type;
+mod web;
 
 use std::{borrow::Cow, fs, io, str::FromStr, sync::Arc};
 
@@ -173,6 +174,7 @@ where
         property_type::PropertyTypeResource::routes::<S, A>(),
         entity_type::EntityTypeResource::routes::<S, A>(),
         entity::EntityResource::routes::<S, A>(),
+        web::WebResource::routes::<S, A>(),
     ]
 }
 
@@ -183,6 +185,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
+        web::WebResource::documentation(),
     ]
 }
 

@@ -1,10 +1,8 @@
 #![feature(
     associated_type_bounds,
-    async_fn_in_trait,
     impl_trait_in_assoc_type,
     lint_reasons,
-    never_type,
-    return_position_impl_trait_in_trait
+    never_type
 )]
 
 pub mod backend;

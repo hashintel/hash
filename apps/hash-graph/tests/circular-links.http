@@ -11,6 +11,16 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
   client.global.set("account_id", response.body.toString());
 %}
 
+### Create account web
+POST http://127.0.0.1:4000/webs/{{account_id}}
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
 ### Insert entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json

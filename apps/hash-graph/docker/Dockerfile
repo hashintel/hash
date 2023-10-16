@@ -44,7 +44,7 @@ WORKDIR /usr/local/src/apps/hash-graph
 
 ARG PROFILE=production
 ARG ENABLE_TEST_SERVER=no
-ARG ENABLE_AUTHORIZATION=no
+ARG ENABLE_AUTHORIZATION=yes
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \

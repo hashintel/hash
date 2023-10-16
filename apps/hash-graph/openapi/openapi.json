@@ -2149,6 +2149,43 @@
           }
         }
       }
+    },
+    "/webs/{web_id}": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "create_web",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The ID of the account group to add the owner to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The web was created successfully"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4208,6 +4245,10 @@
     {
       "name": "Entity",
       "description": "entity management API"
+    },
+    {
+      "name": "Web",
+      "description": "Web management API"
     }
   ]
 }

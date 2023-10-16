@@ -1,4 +1,4 @@
-#![feature(async_fn_in_trait, associated_type_bounds)]
+#![feature(associated_type_bounds)]
 #![allow(clippy::too_many_lines)]
 
 mod api;
