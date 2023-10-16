@@ -17,8 +17,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.global.set("account_id", response.body.toString());
+        client.assert(response.status === 204, "Response status is not 204");
     });
 %}
 
@@ -36,6 +35,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 ### Create account group web
 POST http://127.0.0.1:4000/webs/{{account_group_id}}
 X-Authenticated-User-Actor-Id: {{account_id}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
 
 ### Check permission for adding owner to account group
 GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_owner
