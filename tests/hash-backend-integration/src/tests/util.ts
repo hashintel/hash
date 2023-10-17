@@ -94,6 +94,7 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
       kratosIdentityId,
       shortname,
+      preferredName: shortname,
     },
   ).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);

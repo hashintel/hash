@@ -11,7 +11,7 @@ import {
 } from "../graphql-mapping";
 
 export const blockCollectionContents: ResolverFn<
-  Promise<{ linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[]>,
+  { linkEntity: Entity; rightEntity: UnresolvedBlockGQL }[],
   Entity,
   LoggedInGraphQLContext,
   {}

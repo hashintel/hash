@@ -2,13 +2,13 @@ import { Entity } from "@local/hash-subgraph";
 
 import { getHashInstance } from "../../../../graph/knowledge/system-types/hash-instance";
 import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import { GraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 
 export const hashInstanceEntityResolver: ResolverFn<
   Promise<Entity>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   {}
 > = async (_, __, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
