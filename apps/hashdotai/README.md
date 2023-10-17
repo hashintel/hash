@@ -26,4 +26,4 @@ There is currently an issue with code blocks inside of Custom MDX components, eg
 
 ## Future plans
 
-The written contents of this directory will be moved out to a dedicated `content` or `docs` folder. Eventually this directory will be removed, with all of its contents having been migrated elsewhere or otherwise replaced.
+The written contents of this directory will be moved out to a dedicated `content` or `docs` folder, while all new public website code will be added to the [`hashdotai-new` directory](https://github.com/hashintel/hash/tree/main/apps/hashdotai-new). Eventually this directory will be removed, with all of its contents having been migrated elsewhere or otherwise replaced.
