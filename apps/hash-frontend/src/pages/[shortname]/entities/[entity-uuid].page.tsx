@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -19,7 +20,6 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntityQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { generateEntityLabel } from "../../../lib/entities";
 import {
   getLayoutWithSidebar,
@@ -51,6 +51,9 @@ const Page: NextPageWithLayout = () => {
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
   const [isReadonly, setIsReadonly] = useState(true);
+
+  const entityFromDb =
+    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -99,7 +102,6 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
               setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
               setIsReadonly(
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
                 !data.getEntity.permissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
