@@ -27,7 +27,10 @@ export const getEntityQuery = gql`
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
     ) {
-      ...SubgraphFields
+      permissionsOnEntities @include(if: $includePermissions)
+      subgraph {
+        ...SubgraphFields
+      }
     }
   }
   ${subgraphFieldsFragment}
