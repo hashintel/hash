@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
@@ -9,6 +10,12 @@ import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/bloc
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
+import {
+  AddEntityViewerMutation,
+  AddEntityViewerMutationVariables,
+  AuthorizationSubjectKind,
+} from "../../../../graphql/api-types.gen";
+import { addEntityViewerMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Org } from "../../../../lib/user-and-org";
 import { Button } from "../../../../shared/ui/button";
 import { useAuthInfo } from "../../../shared/auth-info-context";
@@ -102,23 +109,17 @@ export const OrgForm = ({
 
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
-  const {
-    control,
-    formState: { errors, isDirty, isValid, touchedFields },
-    handleSubmit,
-    register,
-    reset,
-    watch,
-  } = useForm<OrgFormData>({
-    mode: "all",
-    defaultValues: {
-      description: initialOrg?.description ?? "",
-      name: initialOrg?.name ?? "",
-      location: initialOrg?.location ?? "",
-      shortname: initialOrg?.shortname ?? "",
-      website: initialOrg?.website ?? "",
-    },
-  });
+  const { control, formState, handleSubmit, register, reset, watch } =
+    useForm<OrgFormData>({
+      mode: "all",
+      defaultValues: {
+        description: initialOrg?.description ?? "",
+        name: initialOrg?.name ?? "",
+        location: initialOrg?.location ?? "",
+        shortname: initialOrg?.shortname ?? "",
+        website: initialOrg?.website ?? "",
+      },
+    });
 
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
@@ -126,8 +127,8 @@ export const OrgForm = ({
   const shortnameWatcher = watch("shortname");
 
   const shortnameError = getShortnameError(
-    errors.shortname?.message,
-    !!touchedFields.shortname,
+    formState.errors.shortname?.message,
+    !!formState.touchedFields.shortname,
   );
 
   const nameWatcher = watch("name");
@@ -138,6 +139,11 @@ export const OrgForm = ({
     existingImageEntity?.properties[
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
+
+  const [addEntityViewer] = useMutation<
+    AddEntityViewerMutation,
+    AddEntityViewerMutationVariables
+  >(addEntityViewerMutation);
 
   const setAvatar = async (file: File) => {
     if (!initialOrg?.entity) {
@@ -172,6 +178,14 @@ export const OrgForm = ({
       );
     }
 
+    /** @todo: make entity public as part of `createEntity` query once this is supported */
+    await addEntityViewer({
+      variables: {
+        entityId: fileUploadData.metadata.recordId.entityId as EntityId,
+        viewer: { kind: AuthorizationSubjectKind.Public },
+      },
+    });
+
     if (initialOrg.hasAvatar) {
       // Delete the existing hasAvatar link, if any
       await archiveEntity({
@@ -182,7 +196,7 @@ export const OrgForm = ({
     }
 
     // Create a new hasAvatar link from the org to the new file entity
-    await createEntity({
+    const hasAvatarLinkEntity = await createEntity({
       data: {
         entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
         linkData: {
@@ -191,6 +205,21 @@ export const OrgForm = ({
         },
         properties: {},
       },
+    }).then(({ data, errors }) => {
+      if (!data || errors) {
+        throw new Error(
+          `Error creating hasAvatar link: ${errors?.[0]?.message}`,
+        );
+      }
+      return data;
+    });
+
+    /** @todo: make entity public as part of `createEntity` query once this is supported */
+    await addEntityViewer({
+      variables: {
+        entityId: hasAvatarLinkEntity.metadata.recordId.entityId,
+        viewer: { kind: AuthorizationSubjectKind.Public },
+      },
     });
 
     // Refetch the authenticated user and their orgs so that avatar changes are reflected immediately in the UI
@@ -198,7 +227,9 @@ export const OrgForm = ({
   };
 
   const nameError =
-    touchedFields.name && !nameWatcher ? "Display name is required" : "";
+    formState.touchedFields.name && !nameWatcher
+      ? "Display name is required"
+      : "";
 
   const innerSubmit = handleSubmit(async (data) => {
     try {
@@ -213,7 +244,7 @@ export const OrgForm = ({
     }
   });
 
-  const isSubmitEnabled = isValid && !loading && isDirty;
+  const isSubmitEnabled = formState.isValid && !loading && formState.isDirty;
 
   return (
     <Box component="form" onSubmit={innerSubmit} sx={{ px: 5, py: 4 }}>
@@ -363,7 +394,7 @@ export const OrgForm = ({
           </Button>
           {initialOrg && (
             <Button
-              disabled={!isDirty}
+              disabled={!formState.isDirty}
               onClick={() => reset(initialOrg)}
               type="button"
               variant="tertiary"
