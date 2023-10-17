@@ -529,6 +529,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     { entityId },
   );
 
+  // TODO: Align definitions with the ones in the API
   return relationships.map(({ object, relation, subject }) => ({
     objectEntityId: object,
     relation:
