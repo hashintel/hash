@@ -3,8 +3,8 @@ import {
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
-import { validate as validateUuid } from "uuid";
 import { EntityRelationSubject } from "@local/hash-graph-client";
+import { validate as validateUuid } from "uuid";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 

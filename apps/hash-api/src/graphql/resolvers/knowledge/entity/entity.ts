@@ -23,10 +23,10 @@ import {
   addEntityOwner,
   addEntityViewer,
   archiveEntity,
+  checkEntityPermission,
   createEntityWithLinks,
   getEntities,
   getLatestEntityById,
-  isEntityPublic,
   removeEntityEditor,
   removeEntityOwner,
   removeEntityViewer,
@@ -62,7 +62,11 @@ import {
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import {
+  GraphQLContext,
+  LoggedInGraphQLContext,
+  publicUserAccountId,
+} from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
@@ -500,10 +504,9 @@ export const isEntityPublicResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  return await isEntityPublic(context, authentication, {
-    entityId,
-  });
-};
+> = async (_, { entityId }, { dataSources }) =>
+  checkEntityPermission(
+    dataSourcesToImpureGraphContext(dataSources),
+    { actorId: publicUserAccountId },
+    { entityId, permission: "view" },
+  );

@@ -35,7 +35,6 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
@@ -709,31 +708,6 @@ export const checkEntityPermission: ImpureGraphFunction<
   graphApi
     .checkEntityPermission(actorId, params.entityId, params.permission)
     .then(({ data }) => data.has_permission);
-
-export const canViewEntity: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async (ctx, authentication, params) =>
-  checkEntityPermission(ctx, authentication, { permission: "view", ...params });
-
-export const canUpdateEntity: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async (ctx, authentication, params) =>
-  checkEntityPermission(ctx, authentication, {
-    permission: "update",
-    ...params,
-  });
-
-export const isEntityPublic: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async (ctx, _, params) =>
-  checkEntityPermission(
-    ctx,
-    { actorId: publicUserAccountId },
-    { permission: "view", ...params },
-  );
 
 export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },
