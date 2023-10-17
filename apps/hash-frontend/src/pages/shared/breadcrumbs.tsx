@@ -131,6 +131,7 @@ export const Breadcrumbs = ({
                 size="xs"
                 startIcon={item.icon ?? defaultIcon}
                 sx={({ palette }) => ({
+                  background: "transparent",
                   "&:disabled": {
                     background: palette.common.white,
                     borderColor: palette.common.white,

@@ -1,15 +1,7 @@
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { ProfileBioProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  EntityId,
-  EntityRootType,
-  OwnedById,
-  Subgraph,
-} from "@local/hash-subgraph/.";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+import { OwnedById } from "@local/hash-subgraph/.";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {
@@ -30,74 +22,8 @@ import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { BlockCollection } from "../shared/block-collection/block-collection";
-
-const getProfileBioContents = (params: {
-  profileBioSubgraph: Subgraph<EntityRootType>;
-  profileBioEntityId: EntityId;
-}): BlockCollectionContentItem[] => {
-  const { profileBioEntityId, profileBioSubgraph } = params;
-  const outgoingContentLinks = getOutgoingLinkAndTargetEntities(
-    profileBioSubgraph,
-    profileBioEntityId,
-  )
-    .filter(
-      ({ linkEntity: linkEntityRevisions }) =>
-        linkEntityRevisions[0] &&
-        linkEntityRevisions[0].metadata.entityTypeId ===
-          types.linkEntityType.contains.linkEntityTypeId,
-    )
-    .sort((a, b) => {
-      const aLinkEntity = a.linkEntity[0]!;
-      const bLinkEntity = b.linkEntity[0]!;
-
-      return (
-        (aLinkEntity.linkData?.leftToRightOrder ?? 0) -
-          (bLinkEntity.linkData?.leftToRightOrder ?? 0) ||
-        aLinkEntity.metadata.recordId.entityId.localeCompare(
-          bLinkEntity.metadata.recordId.entityId,
-        ) ||
-        aLinkEntity.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-          bLinkEntity.metadata.temporalVersioning.decisionTime.start.limit,
-        )
-      );
-    });
-
-  return outgoingContentLinks.map<BlockCollectionContentItem>(
-    ({
-      linkEntity: containsLinkEntityRevisions,
-      rightEntity: rightEntityRevisions,
-    }) => {
-      const rightEntity = rightEntityRevisions[0]!;
-
-      const componentId = rightEntity.properties[
-        extractBaseUrl(types.propertyType.componentId.propertyTypeId)
-      ] as string;
-
-      const blockChildEntity = getOutgoingLinkAndTargetEntities(
-        profileBioSubgraph,
-        rightEntity.metadata.recordId.entityId,
-      ).find(
-        ({ linkEntity: linkEntityRevisions }) =>
-          linkEntityRevisions[0] &&
-          linkEntityRevisions[0].metadata.entityTypeId ===
-            types.linkEntityType.blockData.linkEntityTypeId,
-      )?.rightEntity[0];
-
-      if (!blockChildEntity) {
-        throw new Error("Error fetching block data");
-      }
-
-      return {
-        linkEntity: containsLinkEntityRevisions[0]!,
-        rightEntity: {
-          ...rightEntity,
-          blockChildEntity,
-          componentId,
-        },
-      };
-    },
-  );
-};
+import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
+import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 
 export const ProfileBio: FunctionComponent<{
   profile: User | Org;
@@ -139,9 +65,9 @@ export const ProfileBio: FunctionComponent<{
       throw new Error("Error fetching profile bio subgraph");
     }
 
-    const contents = getProfileBioContents({
-      profileBioSubgraph,
-      profileBioEntityId,
+    const contents = getBlockCollectionContents({
+      blockCollectionSubgraph: profileBioSubgraph,
+      blockCollectionEntityId: profileBioEntityId,
     });
 
     setProfileBioContents(contents);
@@ -154,92 +80,32 @@ export const ProfileBio: FunctionComponent<{
   }, [profile, profileBioContents, fetchProfileBioContents]);
 
   const { createEntity } = useBlockProtocolCreateEntity(ownedById);
+  const { createBlockCollectionEntity } = useCreateBlockCollection({
+    ownedById,
+  });
 
   const createProfileBioEntity = useCallback(async () => {
     if (profile.hasBio) {
       return;
     }
 
-    const [profileBioEntity, blockEntity, textEntity] = await Promise.all([
-      createEntity({
-        data: {
-          entityTypeId: types.entityType.profileBio.entityTypeId,
-          properties: {} satisfies ProfileBioProperties,
-        },
-      }).then(({ data }) => {
-        if (!data) {
-          throw new Error("Error creating profile bio entity");
-        }
+    const profileBioEntity = await createBlockCollectionEntity({
+      kind: "profileBio",
+    });
 
-        return data;
-      }),
-      createEntity({
-        data: {
-          entityTypeId: types.entityType.block.entityTypeId,
-          properties: {
-            [extractBaseUrl(types.propertyType.componentId.propertyTypeId)]:
-              paragraphBlockComponentId,
-          },
+    await createEntity({
+      data: {
+        entityTypeId: types.linkEntityType.hasBio.linkEntityTypeId,
+        linkData: {
+          leftEntityId: profile.entity.metadata.recordId.entityId,
+          rightEntityId: profileBioEntity.metadata.recordId.entityId,
         },
-      }).then(({ data }) => {
-        if (!data) {
-          throw new Error("Error creating block entity");
-        }
-
-        return data;
-      }),
-      createEntity({
-        data: {
-          entityTypeId: types.entityType.text.entityTypeId,
-          properties: {
-            [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
-          },
-        },
-      }).then(({ data }) => {
-        if (!data) {
-          throw new Error("Error creating block entity");
-        }
-
-        return data;
-      }),
-    ]);
-
-    await Promise.all([
-      createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.hasBio.linkEntityTypeId,
-          linkData: {
-            leftEntityId: profile.entity.metadata.recordId.entityId,
-            rightEntityId: profileBioEntity.metadata.recordId.entityId,
-          },
-          properties: {},
-        },
-      }),
-      createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.contains.linkEntityTypeId,
-          linkData: {
-            leftEntityId: profileBioEntity.metadata.recordId.entityId,
-            rightEntityId: blockEntity.metadata.recordId.entityId,
-            leftToRightOrder: 0,
-          },
-          properties: {},
-        },
-      }),
-      createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.blockData.linkEntityTypeId,
-          linkData: {
-            leftEntityId: blockEntity.metadata.recordId.entityId,
-            rightEntityId: textEntity.metadata.recordId.entityId,
-          },
-          properties: {},
-        },
-      }),
-    ]);
+        properties: {},
+      },
+    });
 
     await refetchProfile();
-  }, [createEntity, refetchProfile, profile]);
+  }, [createBlockCollectionEntity, createEntity, refetchProfile, profile]);
 
   const toggleEdit = useCallback(async () => {
     setIsTogglingEdit(true);

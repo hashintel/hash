@@ -505,6 +505,17 @@ export const save = async (
     >({
       variables: { entityId: blockCollectionEntityId, actions },
       mutation: updateBlockCollectionContents,
+      refetchQueries: [
+        {
+          query: getEntityQuery,
+          variables: {
+            entityId: blockCollectionEntityId,
+            ...zeroedGraphResolveDepths,
+            hasLeftEntity: { incoming: 2, outgoing: 2 },
+            hasRightEntity: { incoming: 2, outgoing: 2 },
+          },
+        },
+      ],
     });
 
     if (!res.data) {
