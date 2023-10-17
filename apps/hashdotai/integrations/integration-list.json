@@ -1,0 +1,131 @@
+[
+  {
+    "name": "Linear",
+    "logoUrl": "https://dummyimage.com/160x160/000/fff&text=Linear",
+    "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
+    "connectUrl": "/integrations/linear/connect",
+    "aboutParas": ["two-way sync", "jointly maintained"],
+    "availability": "Available",
+    "frequency": "Real-time",
+    "supportedTypes": [
+      {
+        "title": "Linear Project",
+        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Project",
+        "properties": [
+          {
+            "title": "Logo",
+            "description": "The workspace logo (square)",
+            "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Logo",
+            "type": "image",
+            "sync": "one-way"
+          },
+          {
+            "title": "Name",
+            "description": "The workspace name shown to users",
+            "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Name",
+            "type": "text",
+            "sync": "one-way"
+          }
+        ]
+      },
+      {
+        "title": "Linear User",
+        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=User",
+        "properties": [
+          {
+            "title": "Avatar",
+            "description": "The user's avatar (square)",
+            "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Avatar",
+            "type": "image",
+            "sync": "two-way"
+          },
+          {
+            "title": "Name",
+            "description": "The user's name in Linear",
+            "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Name",
+            "type": "text",
+            "sync": "two-way"
+          },
+          {
+            "title": "Email",
+            "description": "A user's email address",
+            "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Email",
+            "type": "text",
+            "sync": "one-way"
+          }
+        ]
+      }
+    ],
+    "unsupportedTypes": [
+      {
+        "title": "Linear Insights Report",
+        "status": "not-yet-planned",
+        "feasibility": "blocked",
+        "explanation": "Dashboard reports showing Linear’s “Insights” graphs are not exposed via Linear’s API, so cannot (yet) be synced with HASH.",
+        "additionalInfo": {
+          "header": "Did you know?",
+          "copyHtml": "<div>Comparable live-updating <a href='/dashboards'>dashboards</a> can already be created in HASH by using existing supported Linear data. <a href='https://example.com' target='_blank'>Read the tutorial</a></div>"
+        },
+        "votes": 5812
+      },
+      {
+        "title": "Linear Something Else",
+        "status": "planned",
+        "feasibility": "unblocked",
+        "explanation": "Something else, and an explanation why unsupported.",
+        "votes": 701
+      }
+    ],
+    "examples": [
+      {
+        "header": "Public <-> Private Product Management for OSS",
+        "copy": "Attach private information to tickets, while publishing them in part to public issue trackers like GitHub.",
+        "button": {
+          "href": "/integrations/linear/examples/oss",
+          "text": "Open Tutorial"
+        }
+      },
+      {
+        "header": "Team Velocity Dashboards",
+        "copy": "Use imported data from Linear to create realtime dashboards measuring individual and team productivity.",
+        "button": {
+          "href": "/integrations/linear/examples/velocity",
+          "text": "Open Tutorial"
+        }
+      },
+      {
+        "header": "Better Product Requirement Docs",
+        "copy": "@mention Linear tickets inline directly within PRDs, as well as their property values.",
+        "button": {
+          "href": "/integrations/linear/examples/prd",
+          "text": "Open Tutorial"
+        }
+      }
+    ],
+    "howItWorks": [
+      {
+        "header": "Authenticate as yourself",
+        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=User",
+        "copyHtml": "When you click the ‘Connect Integration button above, you’ll be asked to log in to Linear, and select the Linear workspace you want to link to HASH"
+      },
+      {
+        "header": "Choose what to sync, where",
+        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=Sync",
+        "copyHtml": "<ul><li>Sync from specific Linear Teams, keeping private information private with ease</li><li>Alternatively, sync the entire contents of a Linear Workspace which is visible to you</li></ul>"
+      }
+    ],
+    "faq": [
+      {
+        "question": "One or more of the supported entity types appears to be missing.",
+        "answerHtml": "<p>If you can’t see Linear data you’re expecting, follow the steps below:</p><ol><li>Check to ensure the entity type you’re looking for is on the list of <a href='/integrations/linear/types'>supported entity types</a> for this integration.</li><li>Ensure that the Linear workspace you’re syncing from contains at least one entity of the type you’re looking for.</li><li>Ensure that the account tier (subscription level) of your Linear Workspace supports the kind of data you’re looking for. Certain entity types such as Linear SLAs and Linear Audit Log items require Linear’s paid “Plus” plan.</li></ol>"
+      }
+    ]
+  },
+  {
+    "name": "Slack",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg",
+    "summaryHtml": "<div><strong>In HASH:</strong> see messages and teammates</div><div><strong>In Slack:</strong> create/find entities and types</div>",
+    "availability": "Considered",
+    "votes": 15320
+  }
+]
