@@ -277,7 +277,18 @@ export const createUser: ImpureGraphFunction<
     userAccountId = params.userAccountId;
   } else {
     userAccountId = await createAccount(ctx, authentication, {});
-    await createWeb(ctx, { actorId: userAccountId }, { owner: userAccountId });
+
+    if (shortname && preferredName) {
+      /**
+       * Creating a web allows users to create further entities in it
+       * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
+       */
+      await createWeb(
+        ctx,
+        { actorId: userAccountId },
+        { owner: userAccountId },
+      );
+    }
   }
 
   const properties: EntityPropertiesObject = {

@@ -8,7 +8,7 @@ use crate::zanzibar;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RpcError {
-    code: i32,
+    pub(crate) code: i32,
     message: String,
     #[serde(default)]
     #[expect(

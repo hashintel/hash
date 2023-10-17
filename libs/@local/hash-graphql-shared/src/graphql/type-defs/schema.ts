@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
-import { deprecatedTypedef } from "./deprecated.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { linearTypedef } from "./integration/linear.typedef";
 import { blockTypedef } from "./knowledge/block.typedef";
@@ -28,19 +27,9 @@ const baseSchema = gql`
   scalar AccountGroupId
   scalar AuthorizationSubjectId
 
-  """
-  The queries available in this schema
-  """
-  type Query {
-    healthCheck: Boolean!
-  }
+  type Query
 
-  """
-  The mutation operations available in this schema
-  """
-  type Mutation {
-    setHealth: Boolean!
-  }
+  type Mutation
 `;
 
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
@@ -63,7 +52,6 @@ export const schema = [
   baseSchema,
   blockprotocolTypedef,
   embedTypeDef,
-  deprecatedTypedef,
   ...ontology,
   ...knowledge,
   linearTypedef,

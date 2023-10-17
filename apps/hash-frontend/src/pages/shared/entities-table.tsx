@@ -98,16 +98,15 @@ export const EntitiesTable: FunctionComponent<{
     [entities, filterState, activeWorkspaceOwnedById],
   );
 
-  const { columns, rows } =
-    useEntitiesTable({
-      entities: filteredEntities,
-      entityTypes,
-      propertyTypes,
-      subgraph,
-      hideEntityTypeVersionColumn,
-      hidePropertiesColumns,
-      isViewingPages,
-    }) ?? {};
+  const { columns, rows } = useEntitiesTable({
+    entities: filteredEntities,
+    entityTypes,
+    propertyTypes,
+    subgraph,
+    hideEntityTypeVersionColumn,
+    hidePropertiesColumns,
+    isViewingPages,
+  });
 
   const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
 
@@ -118,7 +117,7 @@ export const EntitiesTable: FunctionComponent<{
         | TextCell
         | BlankCell
         | CustomCell => {
-        const columnId = columns?.[colIndex]?.id;
+        const columnId = columns[colIndex]?.id;
         if (columnId) {
           const row = entityRows[rowIndex];
 
@@ -231,36 +230,34 @@ export const EntitiesTable: FunctionComponent<{
         toggleSearch={() => setShowSearch(true)}
         onBulkActionCompleted={() => setSelectedRows([])}
       />
-      {columns && rows ? (
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={columns}
-          rows={rows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          firstColumnLeftPadding={16}
-          height={`
+      <Grid
+        showSearch={showSearch}
+        onSearchClose={() => setShowSearch(false)}
+        columns={columns}
+        rows={rows}
+        enableCheckboxSelection
+        selectedRows={selectedRows}
+        onSelectedRowsChange={(updatedSelectedRows) =>
+          setSelectedRows(updatedSelectedRows)
+        }
+        firstColumnLeftPadding={16}
+        height={`
             min(
               calc(100vh - (${
                 HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
               }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
              calc(
               ${gridHeaderHeightWithBorder}px +
-              (${rows.length} * ${gridRowHeight}px) +
+              (${rows ? rows.length : 1} * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px)
             )`}
-          createGetCellContent={createGetCellContent}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-        />
-      ) : null}
+        createGetCellContent={createGetCellContent}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+          renderChipCell,
+        ]}
+        freezeColumns={1}
+      />
     </Box>
   );
 };

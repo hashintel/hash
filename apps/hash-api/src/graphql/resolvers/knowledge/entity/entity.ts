@@ -38,7 +38,9 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
+import { createWeb } from "../../../../graph/knowledge/system-types/account.fields";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
   AuthorizationSubjectKind,
@@ -122,7 +124,7 @@ export const createEntityResolver: ResolverFn<
 };
 
 export const queryEntitiesResolver: Extract<
-  QueryResolvers<LoggedInGraphQLContext>["queryEntities"],
+  QueryResolvers<GraphQLContext>["queryEntities"],
   Function
 > = async (
   _,
@@ -191,7 +193,7 @@ export const structuralQueryEntitiesResolver: ResolverFn<
 export const getEntityResolver: ResolverFn<
   Promise<Subgraph>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetEntityArgs
 > = async (
   _,
@@ -280,11 +282,12 @@ export const updateEntityResolver: ResolverFn<
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  // The user needs to be signed up if they aren't updating their own user entity
-  if (
-    entityId !== user.entity.metadata.recordId.entityId &&
-    !user.isAccountSignupComplete
-  ) {
+  const isIncompleteUser = !user.isAccountSignupComplete;
+  const isUpdatingOwnEntity =
+    entityId === user.entity.metadata.recordId.entityId;
+
+  // The user needs to have completed signup if they aren't updating their own user entity
+  if (isIncompleteUser && !isUpdatingOwnEntity) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
@@ -305,6 +308,21 @@ export const updateEntityResolver: ResolverFn<
   }
 
   let updatedEntity: Entity;
+
+  if (
+    isIncompleteUser &&
+    updatedProperties[
+      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
+    ] &&
+    updatedProperties[
+      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
+    ]
+  ) {
+    // Now that the user has completed signup, we can create their web, allowing them to create/edit entities
+    await createWeb(context, authentication, {
+      owner: user.accountId,
+    });
+  }
 
   if (isEntityLinkEntity(entity)) {
     updatedEntity = await updateLinkEntity(context, authentication, {

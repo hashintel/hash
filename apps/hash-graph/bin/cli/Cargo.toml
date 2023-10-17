@@ -21,7 +21,7 @@ axum = "0.6.20"
 clap = { version = "4.4.6", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.4.3"
 futures = { version = "0.3.28" }
-regex = "1.10.1"
+regex = "1.10.2"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.20", default-features = false }
 sentry = { version = "0.31.7", features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls"], default-features = false }

@@ -69,7 +69,7 @@ type TypesTableRow = {
 };
 
 export const TypesTable: FunctionComponent<{
-  types: (
+  types?: (
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
@@ -130,10 +130,10 @@ export const TypesTable: FunctionComponent<{
     [users, orgs],
   );
 
-  const filteredRows = useMemo<TypesTableRow[]>(
+  const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
       types
-        .map((type) => {
+        ?.map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
             : type.metadata.custom.ownedById !== activeWorkspaceOwnedById;
@@ -254,7 +254,7 @@ export const TypesTable: FunctionComponent<{
         items={types}
         filterState={filterState}
         setFilterState={setFilterState}
-        selectedItems={types.filter((type) =>
+        selectedItems={types?.filter((type) =>
           selectedRows.some(({ typeId }) => type.schema.$id === typeId),
         )}
         onBulkActionCompleted={() => setSelectedRows([])}
@@ -280,7 +280,7 @@ export const TypesTable: FunctionComponent<{
             }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
             calc(
               ${gridHeaderHeightWithBorder}px +
-              (${filteredRows.length} * ${gridRowHeight}px) +
+              (${filteredRows ? filteredRows.length : 1} * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
