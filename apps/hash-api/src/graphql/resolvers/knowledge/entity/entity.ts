@@ -494,7 +494,7 @@ export const isEntityPublicResolver: ResolverFn<
 };
 
 export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
-  Promise<EntityAuthorizationRelationship[]>,
+  EntityAuthorizationRelationship[],
   {},
   LoggedInGraphQLContext,
   QueryIsEntityPublicArgs
