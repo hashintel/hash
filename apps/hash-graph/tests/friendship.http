@@ -1657,12 +1657,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 
 ### Get all archived entities
-POST http://127.0.0.1:4000/entities/000000da-0001-0000-0000-000000000000/
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
-
-
-### Get all archived entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
