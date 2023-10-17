@@ -27,8 +27,6 @@ enum InvalidSubject {
 
 #[derive(Debug, Error)]
 enum InvalidRelationship {
-    #[error("missing relation for namespace")]
-    Missing,
     #[error("unexpected subject for namespace")]
     Subject {
         relation: EntityObjectRelation,
@@ -370,7 +368,7 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
                     EntityDirectOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectOwnerSubject::AccountGroup {
                         id,
-                        relation: relation,
+                        relation: ,
                     } => (EntitySubject::AccountGroup(id), Some(relation)),
                 },
             ),
@@ -380,7 +378,7 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
                     EntityDirectEditorSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectEditorSubject::AccountGroup {
                         id,
-                        relation: relation,
+                        relation,
                     } => (EntitySubject::AccountGroup(id), Some(relation)),
                 },
             ),
@@ -390,7 +388,7 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
                     EntityDirectViewerSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectViewerSubject::AccountGroup {
                         id,
-                        relation: relation,
+                        relation,
                     } => (EntitySubject::AccountGroup(id), Some(relation)),
                     EntityDirectViewerSubject::Public => (EntitySubject::Public, None),
                 },
