@@ -540,7 +540,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
       subject.namespace === "accountGroup"
         ? { accountGroupId: subject.id }
         : subject.namespace === "account"
-        ? { accountId: subject.id as AccountId }
+        ? { accountId: subject.id }
         : { public: true },
   }));
 };
