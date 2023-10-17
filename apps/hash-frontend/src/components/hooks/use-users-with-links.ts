@@ -17,7 +17,7 @@ import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queri
 import { constructUser, User } from "../../lib/user-and-org";
 
 /**
- * Retrieves a specific set of useranizations, with their avatars and members populated
+ * Retrieves a specific set of users, with their avatars populated
  */
 export const useUsersWithLinks = ({
   userAccountIds,
