@@ -10,7 +10,7 @@ pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
     zanzibar::{
         types::{Object, Relationship, RelationshipFilter, Subject},
-        Consistency, Zookie,
+        Affiliation, Consistency, Zookie,
     },
     NoAuthorization,
 };
@@ -50,7 +50,13 @@ pub trait ZanzibarBackend {
         tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
     where
-        R: Relationship + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
     /// Creates a new relation specified by the [`Relationship`] but does not error if it already
     /// exists.
@@ -63,7 +69,13 @@ pub trait ZanzibarBackend {
         tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
     where
-        R: Relationship + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
     /// Deletes the relation specified by the [`Relationship`].
     ///
@@ -75,7 +87,13 @@ pub trait ZanzibarBackend {
         tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<DeleteRelationResponse, Report<DeleteRelationError>>> + Send
     where
-        R: Relationship + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
     /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
     /// to an [`Object`].
@@ -87,13 +105,17 @@ pub trait ZanzibarBackend {
     /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
     /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    fn check<R>(
+    fn check<O, R, S>(
         &self,
-        relationship: &R,
+        resource: &O,
+        permission: &R,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        R: Relationship<Object: Sync, Relation: Sync, Subject: Sync>;
+        O: Object<Namespace: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Affiliation<O> + Sync,
+        S: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
@@ -103,7 +125,6 @@ pub trait ZanzibarBackend {
     fn read_relations<R>(
         &self,
         filter: RelationshipFilter<
-            '_,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
@@ -117,11 +138,9 @@ pub trait ZanzibarBackend {
         for<'de> R: Relationship<
                 Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Subject<
-                    Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
-                    Relation: Deserialize<'de>,
-                >,
-            >;
+                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send;
 }
 
 impl ZanzibarBackend for NoAuthorization {
@@ -172,13 +191,17 @@ impl ZanzibarBackend for NoAuthorization {
         })
     }
 
-    async fn check<T>(
+    async fn check<O, R, S>(
         &self,
-        _tuple: &T,
+        _resource: &O,
+        _permission: &R,
+        _subject: &S,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        T: Sync,
+        O: Sync,
+        R: Sync,
+        S: Sync,
     {
         Ok(CheckResponse {
             checked_at: Zookie::empty(),
@@ -189,7 +212,6 @@ impl ZanzibarBackend for NoAuthorization {
     async fn read_relations<R>(
         &self,
         _filter: RelationshipFilter<
-            '_,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,

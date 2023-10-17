@@ -5,8 +5,12 @@
 use std::{iter::once, sync::Arc};
 
 use authorization::{
-    schema::EntityRelation, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool,
-    EntitySubject,
+    schema::{
+        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
+        EntityObjectRelation, EntityRelation, EntitySubjectSet,
+    },
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool, EntitySubject,
 };
 use axum::{
     extract::Path,
@@ -66,8 +70,13 @@ use crate::{
             EntityQueryToken,
             EntityStructuralQuery,
 
+            EntityObjectRelation,
             EntityRelation,
             EntitySubject,
+            EntitySubjectSet,
+            EntityDirectOwnerSubject,
+            EntityDirectEditorSubject,
+            EntityDirectViewerSubject,
             EntityAuthorizationRelationship,
 
             Entity,
@@ -478,7 +487,7 @@ impl<'s> ToSchema<'s> for Viewer {
 
 #[derive(Serialize, ToSchema)]
 struct EntityAuthorizationRelationship {
-    relation: EntityRelation,
+    relation: EntityObjectRelation,
     subject: EntitySubject,
 }
 

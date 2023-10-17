@@ -10,12 +10,12 @@ mod object;
 mod relationship;
 mod subject;
 
-use std::{borrow::Cow, fmt::Display};
+use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
 /// The relation or permission of a [`Subject`] to another [`Object`].
-pub trait Affiliation<O: Object>: Serialize + Display {}
+pub trait Affiliation<O: Object> {}
 
 impl<O: Object> Affiliation<O> for ! {}
 

@@ -1,13 +1,7 @@
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{AccountGroupPermission, EntityRelation, PublicAccess},
-};
+use authorization::{backend::ZanzibarBackend, schema::EntityRelation};
 use error_stack::{Result, ResultExt};
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityUuid,
-};
+use graph_types::knowledge::entity::EntityUuid;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -23,15 +17,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    AccountRelations(Vec<(EntityUuid, EntityRelation, AccountId)>),
-    PublicAccountRelations(Vec<(EntityUuid, EntityRelation)>),
-    AccountGroupRelations(
-        Vec<(
-            EntityUuid,
-            EntityRelation,
-            (AccountGroupId, AccountGroupPermission),
-        )>,
-    ),
+    Relations(Vec<(EntityUuid, EntityRelation)>),
 }
 
 #[async_trait]
@@ -153,26 +139,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity links", rows.len());
                 }
             }
-            Self::AccountRelations(accounts) => {
+            Self::Relations(relations) => {
                 authorization_api
-                    .touch_relations(accounts.iter().copied())
-                    .await
-                    .change_context(InsertionError)?;
-            }
-            Self::PublicAccountRelations(accounts) => {
-                authorization_api
-                    .touch_relations(
-                        accounts
-                            .iter()
-                            .copied()
-                            .map(|(account, relation)| (account, relation, PublicAccess::Public)),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-            Self::AccountGroupRelations(account_groups) => {
-                authorization_api
-                    .touch_relations(account_groups.iter().copied())
+                    .touch_relations(relations.iter().copied())
                     .await
                     .change_context(InsertionError)?;
             }

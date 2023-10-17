@@ -1,59 +1,52 @@
 use std::error::Error;
 
-use serde::Serialize;
-
 use crate::zanzibar::{
-    types::object::{Object, ObjectFilter},
+    types::{object::ObjectFilter, Object},
     Affiliation,
 };
 
-pub trait Subject: Sized + Send + Sync {
+pub trait Subject: Sized {
     type Object: Object;
-    type Relation: Serialize + Affiliation<Self::Object>;
+    type Relation: Affiliation<Self::Object>;
 
     /// Creates a subject from an object and relation.
     ///
     /// # Errors
     ///
     /// Returns an error if the object and relation are not valid for the subject.
-    fn new(object: Self::Object, relation: Option<Self::Relation>) -> Result<Self, impl Error>;
+    fn from_parts(
+        object: Self::Object,
+        relation: Option<Self::Relation>,
+    ) -> Result<Self, impl Error>;
 
-    fn object(&self) -> &Self::Object;
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>);
 
-    fn relation(&self) -> Option<&Self::Relation>;
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>);
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct SubjectFilter<'a, N, I, R> {
-    pub object: ObjectFilter<'a, N, I>,
-    pub relation: Option<&'a R>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SubjectFilter<N, I, R> {
+    pub object: ObjectFilter<N, I>,
+    pub relation: Option<R>,
 }
 
-impl<N, I, R> Copy for SubjectFilter<'_, N, I, R> {}
-impl<N, I, R> Clone for SubjectFilter<'_, N, I, R> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, S> From<&'a S>
-    for SubjectFilter<'a, <S::Object as Object>::Namespace, <S::Object as Object>::Id, S::Relation>
+impl<S> From<S>
+    for SubjectFilter<<S::Object as Object>::Namespace, <S::Object as Object>::Id, S::Relation>
 where
     S: Subject,
 {
-    fn from(subject: &'a S) -> Self {
-        SubjectFilter {
-            object: ObjectFilter::from(subject.object()),
-            relation: subject.relation(),
+    fn from(subject: S) -> Self {
+        let (object, relation) = subject.into_parts();
+        Self {
+            object: ObjectFilter::from(object),
+            relation,
         }
     }
 }
 
-impl<'a> SubjectFilter<'a, !, !, !> {
+impl SubjectFilter<!, !, !> {
     #[must_use]
-    pub fn from_object<N, I>(
-        object: impl Into<ObjectFilter<'a, N, I>>,
-    ) -> SubjectFilter<'a, N, I, !> {
+    pub fn from_object<N, I>(object: impl Into<ObjectFilter<N, I>>) -> SubjectFilter<N, I, !> {
         let object = object.into();
         SubjectFilter {
             object,
@@ -62,9 +55,9 @@ impl<'a> SubjectFilter<'a, !, !, !> {
     }
 }
 
-impl<'a, N, I> SubjectFilter<'a, N, I, !> {
+impl<N, I> SubjectFilter<N, I, !> {
     #[must_use]
-    pub const fn with_relation<R>(self, relation: &'a R) -> SubjectFilter<'a, N, I, R> {
+    pub fn with_relation<R>(self, relation: R) -> SubjectFilter<N, I, R> {
         SubjectFilter {
             object: self.object,
             relation: Some(relation),

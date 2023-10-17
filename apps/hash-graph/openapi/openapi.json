@@ -2560,11 +2560,166 @@
         ],
         "properties": {
           "relation": {
-            "$ref": "#/components/schemas/EntityRelation"
+            "$ref": "#/components/schemas/EntityObjectRelation"
           },
           "subject": {
             "$ref": "#/components/schemas/EntitySubject"
           }
+        }
+      },
+      "EntityDirectEditorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "relation",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "EntityDirectOwnerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "relation",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "EntityDirectViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountId"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "id",
+              "relation",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
         }
       },
       "EntityEditionId": {
@@ -2636,6 +2791,14 @@
           }
         }
       },
+      "EntityObjectRelation": {
+        "type": "string",
+        "enum": [
+          "direct_owner",
+          "direct_editor",
+          "direct_viewer"
+        ]
+      },
       "EntityProperties": {
         "type": "object",
         "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
@@ -2675,12 +2838,74 @@
         }
       },
       "EntityRelation": {
-        "type": "string",
-        "enum": [
-          "direct_owner",
-          "direct_editor",
-          "direct_viewer"
-        ]
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityDirectOwnerSubject"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "relation"
+                ],
+                "properties": {
+                  "relation": {
+                    "type": "string",
+                    "enum": [
+                      "directOwner"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityDirectEditorSubject"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "relation"
+                ],
+                "properties": {
+                  "relation": {
+                    "type": "string",
+                    "enum": [
+                      "directEditor"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityDirectViewerSubject"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "relation"
+                ],
+                "properties": {
+                  "relation": {
+                    "type": "string",
+                    "enum": [
+                      "directViewer"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "discriminator": {
+          "propertyName": "relation"
+        }
       },
       "EntityStructuralQuery": {
         "type": "object",
@@ -2760,6 +2985,12 @@
         "discriminator": {
           "propertyName": "type"
         }
+      },
+      "EntitySubjectSet": {
+        "type": "string",
+        "enum": [
+          "member"
+        ]
       },
       "EntityTemporalMetadata": {
         "type": "object",

@@ -22,7 +22,7 @@ use graph_types::{
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
-    schema::{EntityRelation, OwnerId},
+    schema::{EntityObjectRelation, OwnerId},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -270,7 +270,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _entity: EntityId,
         _consistency: Consistency<'static>,
-    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
+    ) -> Result<Vec<(EntitySubject, EntityObjectRelation)>, ReadError> {
         Ok(Vec::new())
     }
 }

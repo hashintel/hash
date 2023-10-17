@@ -15,7 +15,7 @@ use crate::{
     },
     zanzibar::{
         types::{Object, Relationship, RelationshipFilter, Subject},
-        Consistency, Zookie,
+        Affiliation, Consistency, Zookie,
     },
 };
 
@@ -152,10 +152,24 @@ impl SpiceDbOpenApi {
         + Send,
     ) -> Result<Zookie<'static>, Report<InvocationError>>
     where
-        R: Relationship + Send + Sync,
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
     {
         #[derive(Serialize)]
-        #[serde(bound = "R: Relationship")]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize
+            >"
+        )]
         struct RelationshipUpdate<R> {
             operation: model::RelationshipUpdateOperation,
             #[serde(with = "super::serde::relationship")]
@@ -163,7 +177,15 @@ impl SpiceDbOpenApi {
         }
 
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "R: Relationship")]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize
+            >"
+        )]
         struct RequestBody<R> {
             updates: Vec<RelationshipUpdate<R>>,
         }
@@ -247,12 +269,18 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relations<T>(
+    async fn create_relations<R>(
         &mut self,
-        relationships: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Relationship + Send + Sync,
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
     {
         self.modify_relations(repeat(model::RelationshipUpdateOperation::Create).zip(relationships))
             .await
@@ -264,12 +292,18 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn touch_relations<T>(
+    async fn touch_relations<R>(
         &mut self,
-        relationships: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
     where
-        T: Relationship + Send + Sync,
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
     {
         self.modify_relations(repeat(model::RelationshipUpdateOperation::Touch).zip(relationships))
             .await
@@ -281,12 +315,18 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn delete_relations<T>(
+    async fn delete_relations<R>(
         &mut self,
-        relationships: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
     where
-        T: Relationship + Send + Sync,
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
     {
         self.modify_relations(repeat(model::RelationshipUpdateOperation::Delete).zip(relationships))
             .await
@@ -298,23 +338,34 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn check<R>(
+    async fn check<O, R, S>(
         &self,
-        relationship: &R,
+        resource: &O,
+        permission: &R,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        R: Relationship<Object: Sync, Relation: Sync, Subject: Sync>,
+        O: Object<Namespace: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Affiliation<O> + Sync,
+        S: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize> + Sync,
     {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'t, R: Relationship> {
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Object<Namespace: Serialize, Id: Serialize>,
+                R: Serialize + Affiliation<O>,
+                S: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: \
+                     Serialize>"
+        )]
+        struct RequestBody<'t, O, R, S> {
             consistency: model::Consistency<'t>,
-            #[serde(with = "super::serde::object")]
-            resource: &'t R::Object,
-            permission: &'t R::Relation,
-            #[serde(with = "super::serde::subject")]
-            subject: &'t R::Subject,
+            #[serde(with = "super::serde::object_ref")]
+            resource: &'t O,
+            permission: &'t R,
+            #[serde(with = "super::serde::subject_ref")]
+            subject: &'t S,
         }
 
         #[derive(Deserialize)]
@@ -334,11 +385,11 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             permissionship: Permissionship,
         }
 
-        let request = RequestBody::<R> {
+        let request = RequestBody::<O, R, S> {
             consistency: consistency.into(),
-            resource: relationship.object(),
-            permission: relationship.relation(),
-            subject: relationship.subject(),
+            resource,
+            permission,
+            subject,
         };
 
         let response: RequestResponse = self
@@ -367,7 +418,6 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     async fn read_relations<R>(
         &self,
         filter: RelationshipFilter<
-            '_,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
             impl Serialize + Send + Sync,
@@ -381,22 +431,21 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         for<'de> R: Relationship<
                 Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Subject<
-                    Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
-                    Relation: Deserialize<'de>,
-                >,
-            >,
+                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send,
     {
         #[derive(Serialize)]
         #[serde(
             rename_all = "camelCase",
-            bound = "ON: Serialize, OI: Serialize, R: Serialize, SN: Serialize, SI: Serialize, \
-                     SR: Serialize"
+            bound = "
+                ON: Serialize, OI: Serialize, R: Serialize,
+                SN: Serialize, SI: Serialize, SR: Serialize"
         )]
         struct ReadRelationshipsRequest<'a, ON, OI, R, SN, SI, SR> {
             consistency: model::Consistency<'a>,
             #[serde(with = "super::serde::relationship_filter")]
-            relationship_filter: RelationshipFilter<'a, ON, OI, R, SN, SI, SR>,
+            relationship_filter: RelationshipFilter<ON, OI, R, SN, SI, SR>,
         }
 
         #[derive(Deserialize)]
@@ -405,10 +454,8 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             bound = "R: Relationship<
                 Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Subject<
-                    Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
-                    Relation: Deserialize<'de>,
-                >
+                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
             >"
         )]
         struct ReadRelationshipsResponse<R> {

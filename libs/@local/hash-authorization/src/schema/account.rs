@@ -18,18 +18,18 @@ impl Object for AccountId {
     type Id = Self;
     type Namespace = AccountNamespace;
 
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
         match namespace {
             AccountNamespace::Account => Ok::<_, !>(id),
         }
     }
 
-    fn namespace(&self) -> &Self::Namespace {
-        &AccountNamespace::Account
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (AccountNamespace::Account, self)
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
     }
 }
 
@@ -37,20 +37,20 @@ impl Subject for AccountId {
     type Object = Self;
     type Relation = !;
 
-    fn new(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
+    fn from_parts(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
         Ok::<_, !>(object)
     }
 
-    fn object(&self) -> &Self::Object {
-        self
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+        (self, None)
     }
 
-    fn relation(&self) -> Option<&Self::Relation> {
-        None
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+        Subject::into_parts(*self)
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicAccess {
     #[serde(rename = "*")]
     Public,
@@ -60,18 +60,18 @@ impl Object for PublicAccess {
     type Id = Self;
     type Namespace = AccountNamespace;
 
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
         match namespace {
             AccountNamespace::Account => Ok::<_, !>(id),
         }
     }
 
-    fn namespace(&self) -> &Self::Namespace {
-        &AccountNamespace::Account
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (AccountNamespace::Account, self)
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
     }
 }
 
@@ -79,16 +79,16 @@ impl Subject for PublicAccess {
     type Object = Self;
     type Relation = !;
 
-    fn new(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
+    fn from_parts(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
         Ok::<_, !>(object)
     }
 
-    fn object(&self) -> &Self::Object {
-        self
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+        (self, None)
     }
 
-    fn relation(&self) -> Option<&Self::Relation> {
-        None
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+        Subject::into_parts(*self)
     }
 }
 
@@ -96,18 +96,18 @@ impl Object for AccountOrPublic {
     type Id = Self;
     type Namespace = AccountNamespace;
 
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
         match namespace {
             AccountNamespace::Account => Ok::<_, !>(id),
         }
     }
 
-    fn namespace(&self) -> &Self::Namespace {
-        &AccountNamespace::Account
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (AccountNamespace::Account, self)
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
     }
 }
 
@@ -115,15 +115,15 @@ impl Subject for AccountOrPublic {
     type Object = Self;
     type Relation = !;
 
-    fn new(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
+    fn from_parts(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
         Ok::<_, !>(object)
     }
 
-    fn object(&self) -> &Self::Object {
-        self
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+        (self, None)
     }
 
-    fn relation(&self) -> Option<&Self::Relation> {
-        None
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+        Subject::into_parts(*self)
     }
 }

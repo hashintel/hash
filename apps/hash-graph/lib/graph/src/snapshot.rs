@@ -1,6 +1,8 @@
 pub mod entity;
 pub mod owner;
 
+use authorization::schema::AccountNamespace;
+
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
@@ -21,14 +23,13 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebNamespace,
-        WebRelation,
+        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation, EntityRelation,
+        OwnerId, WebNamespace, WebRelation,
     },
     zanzibar::{
-        types::{ObjectFilter, RelationshipFilter},
+        types::{ObjectFilter, RelationshipFilter, SubjectFilter},
         Consistency,
     },
-    AccountOrPublic, EntitySubject,
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -235,7 +236,7 @@ where
                 let mut members = Vec::new();
                 for (_group, relation, user) in authorization_api
                     .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
-                        RelationshipFilter::from_object(&id),
+                        RelationshipFilter::from_object(id),
                         Consistency::FullyConsistent,
                     )
                     .await
@@ -263,7 +264,10 @@ where
     {
         let accounts = authorization_api
             .read_relations::<(WebId, WebRelation, AccountId)>(
-                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web)),
+                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web))
+                    .with_subject(SubjectFilter::from_object(ObjectFilter::from_namespace(
+                        AccountNamespace::Account,
+                    ))),
                 Consistency::FullyConsistent,
             )
             .await
@@ -284,7 +288,10 @@ where
 
         let account_groups = authorization_api
             .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
-                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web)),
+                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web))
+                    .with_subject(SubjectFilter::from_object(ObjectFilter::from_namespace(
+                        AccountGroupNamespace::AccountGroup,
+                    ))),
                 Consistency::FullyConsistent,
             )
             .await
@@ -344,7 +351,6 @@ where
     ///
     /// - If reading a record from the datastore fails
     /// - If writing a record into the sink fails
-    #[expect(clippy::too_many_lines, reason = "TODO: Refactor")]
     pub fn dump_snapshot(
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
@@ -416,68 +422,6 @@ where
                 self.create_dump_stream::<Entity>()
                     .try_flatten_stream()
                     .and_then(move |entity| async move {
-                        let id = entity.metadata.record_id().entity_id.entity_uuid;
-                        let mut owners = Vec::new();
-                        let mut editors = Vec::new();
-                        let mut viewers = Vec::new();
-
-                        for (_group, relation, account) in authorization_api
-                            .read_relations::<(EntityUuid, EntityRelation, AccountOrPublic)>(
-                                RelationshipFilter::from_object(&id),
-                                Consistency::FullyConsistent,
-                            )
-                            .await
-                            .change_context(SnapshotDumpError::Query)?
-                        {
-                            match relation {
-                                EntityRelation::DirectOwner => {
-                                    owners.push(EntitySubject::from(account));
-                                }
-                                EntityRelation::DirectEditor => {
-                                    editors.push(EntitySubject::from(account));
-                                }
-                                EntityRelation::DirectViewer => {
-                                    viewers.push(EntitySubject::from(account));
-                                }
-                            }
-                        }
-
-                        for (_group, relation, (account_group, account_group_permission)) in
-                            authorization_api
-                                .read_relations::<(
-                                    EntityUuid,
-                                    EntityRelation,
-                                    (AccountGroupId, AccountGroupPermission),
-                                )>(
-                                    RelationshipFilter::from_object(&id),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                        {
-                            if account_group_permission == AccountGroupPermission::Member {
-                                match relation {
-                                    EntityRelation::DirectOwner => {
-                                        owners.push(EntitySubject::AccountGroupMembers(
-                                            account_group,
-                                        ));
-                                    }
-                                    EntityRelation::DirectEditor => {
-                                        editors.push(EntitySubject::AccountGroupMembers(
-                                            account_group,
-                                        ));
-                                    }
-                                    EntityRelation::DirectViewer => {
-                                        viewers.push(EntitySubject::AccountGroupMembers(
-                                            account_group,
-                                        ));
-                                    }
-                                }
-                            } else {
-                                unreachable!("unexpected account group permission")
-                            }
-                        }
-
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
                             metadata: EntityMetadata {
@@ -492,9 +436,18 @@ where
                                 },
                             },
                             link_data: entity.link_data,
-                            owners,
-                            editors,
-                            viewers,
+                            relations: authorization_api
+                                .read_relations::<(EntityUuid, EntityRelation)>(
+                                    RelationshipFilter::from_object(
+                                        entity.metadata.record_id().entity_id.entity_uuid,
+                                    ),
+                                    Consistency::FullyConsistent,
+                                )
+                                .await
+                                .change_context(SnapshotDumpError::Query)?
+                                .into_iter()
+                                .map(|(_, relation)| relation)
+                                .collect(),
                         }))
                     })
                     .forward(snapshot_record_tx),

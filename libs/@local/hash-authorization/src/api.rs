@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
-    schema::{EntityRelation, OwnerId, PublicAccess},
+    schema::{EntityObjectRelation, OwnerId, PublicAccess},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -252,7 +252,7 @@ pub trait AuthorizationApi {
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<(EntitySubject, EntityRelation)>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<(EntitySubject, EntityObjectRelation)>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

@@ -1,51 +1,43 @@
 use std::error::Error;
 
-use serde::Serialize;
-
-pub trait Object: Sized + Send + Sync {
-    type Namespace: Serialize;
-    type Id: Serialize;
+pub trait Object: Sized {
+    type Namespace;
+    type Id;
 
     /// Creates an object from a namespace and an id.
     ///
     /// # Errors
     ///
     /// Returns an error if the namespace and id are not valid for the object.
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error>;
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error>;
 
-    fn namespace(&self) -> &Self::Namespace;
+    fn to_parts(&self) -> (Self::Namespace, Self::Id);
 
-    fn id(&self) -> &Self::Id;
+    fn into_parts(self) -> (Self::Namespace, Self::Id);
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct ObjectFilter<'a, N, I> {
-    pub namespace: &'a N,
-    pub id: Option<&'a I>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ObjectFilter<N, I> {
+    pub namespace: N,
+    pub id: Option<I>,
 }
 
-impl<N, I> Copy for ObjectFilter<'_, N, I> {}
-impl<N, I> Clone for ObjectFilter<'_, N, I> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, O> From<&'a O> for ObjectFilter<'a, O::Namespace, O::Id>
+impl<O> From<O> for ObjectFilter<O::Namespace, O::Id>
 where
     O: Object,
 {
-    fn from(object: &'a O) -> Self {
+    fn from(object: O) -> Self {
+        let (namespace, id) = object.into_parts();
         Self {
-            namespace: object.namespace(),
-            id: Some(object.id()),
+            namespace,
+            id: Some(id),
         }
     }
 }
 
-impl<'a> ObjectFilter<'a, !, !> {
+impl ObjectFilter<!, !> {
     #[must_use]
-    pub const fn from_namespace<N>(namespace: &'a N) -> ObjectFilter<'a, N, !> {
+    pub const fn from_namespace<N>(namespace: N) -> ObjectFilter<N, !> {
         ObjectFilter {
             namespace,
             id: None,
@@ -53,9 +45,9 @@ impl<'a> ObjectFilter<'a, !, !> {
     }
 }
 
-impl<'a, N> ObjectFilter<'a, N, !> {
+impl<N> ObjectFilter<N, !> {
     #[must_use]
-    pub const fn with_id<I>(self, id: &'a I) -> ObjectFilter<'a, N, I> {
+    pub fn with_id<I>(self, id: I) -> ObjectFilter<N, I> {
         ObjectFilter {
             namespace: self.namespace,
             id: Some(id),

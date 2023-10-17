@@ -50,6 +50,29 @@ class EdgeResolveDepths(BaseModel):
     outgoing: int = Field(..., ge=0)
 
 
+class EntityDirectEditorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountId
+    type: Literal["account"]
+
+
+class EntityDirectOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountId
+    type: Literal["account"]
+
+
+class EntityDirectViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    type: Literal["public"]
+
+
+class EntityDirectViewerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountId
+    type: Literal["account"]
+
+
 class EntityEditionId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
@@ -58,6 +81,12 @@ class EntityEditionId(RootModel[UUID]):
 class EntityId(RootModel[str]):
     model_config = ConfigDict(populate_by_name=True)
     root: str
+
+
+class EntityObjectRelation(Enum):
+    direct_owner = "direct_owner"
+    direct_editor = "direct_editor"
+    direct_viewer = "direct_viewer"
 
 
 class EntityProperties(BaseModel):
@@ -96,12 +125,6 @@ class EntityRecordId(BaseModel):
     entity_id: EntityId = Field(..., alias="entityId")
 
 
-class EntityRelation(Enum):
-    direct_owner = "direct_owner"
-    direct_editor = "direct_editor"
-    direct_viewer = "direct_viewer"
-
-
 class PublicSubject(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     type: Literal["public"]
@@ -126,6 +149,11 @@ class EntitySubject(
     root: PublicSubject | AccountSubject | AccountGroupMembersSubject = Field(
         ..., discriminator="type"
     )
+
+
+class EntitySubjectSet(RootModel[Literal["member"]]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: Literal["member"]
 
 
 class EntityTypeQueryToken(Enum):
@@ -573,14 +601,90 @@ class DataTypeVertexId(BaseModel):
 
 class EntityAuthorizationRelationship(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: EntityRelation
+    relation: EntityObjectRelation
     subject: EntitySubject
+
+
+class EntityDirectEditorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountGroupId
+    relation: EntitySubjectSet
+    type: Literal["accountGroup"]
+
+
+class EntityDirectEditorSubject(
+    RootModel[EntityDirectEditorSubjectItem | EntityDirectEditorSubjectItem1]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityDirectEditorSubjectItem | EntityDirectEditorSubjectItem1 = Field(
+        ..., discriminator="type"
+    )
+
+
+class EntityDirectOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountGroupId
+    relation: EntitySubjectSet
+    type: Literal["accountGroup"]
+
+
+class EntityDirectOwnerSubject(
+    RootModel[EntityDirectOwnerSubjectItem | EntityDirectOwnerSubjectItem1]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityDirectOwnerSubjectItem | EntityDirectOwnerSubjectItem1 = Field(
+        ..., discriminator="type"
+    )
+
+
+class EntityDirectViewerSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: AccountGroupId
+    relation: EntitySubjectSet
+    type: Literal["accountGroup"]
+
+
+class EntityDirectViewerSubject(
+    RootModel[
+        EntityDirectViewerSubjectItem
+        | EntityDirectViewerSubjectItem1
+        | EntityDirectViewerSubjectItem2
+    ]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityDirectViewerSubjectItem | EntityDirectViewerSubjectItem1 | EntityDirectViewerSubjectItem2 = Field(
+        ..., discriminator="type"
+    )
 
 
 class EntityLinkOrder(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     left_to_right_order: LinkOrder | None = Field(None, alias="leftToRightOrder")
     right_to_left_order: LinkOrder | None = Field(None, alias="rightToLeftOrder")
+
+
+class EntityRelationItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal["directOwner"]
+
+
+class EntityRelationItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal["directEditor"]
+
+
+class EntityRelationItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal["directViewer"]
+
+
+class EntityRelation(
+    RootModel[EntityRelationItem | EntityRelationItem1 | EntityRelationItem2]
+):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityRelationItem | EntityRelationItem1 | EntityRelationItem2 = Field(
+        ..., discriminator="relation"
+    )
 
 
 class EntityTypeVertexId(BaseModel):

@@ -18,18 +18,18 @@ impl Object for AccountGroupId {
     type Id = Self;
     type Namespace = AccountGroupNamespace;
 
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
         match namespace {
             AccountGroupNamespace::AccountGroup => Ok::<_, !>(id),
         }
     }
 
-    fn namespace(&self) -> &Self::Namespace {
-        &AccountGroupNamespace::AccountGroup
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (AccountGroupNamespace::AccountGroup, self)
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
     }
 }
 
@@ -72,23 +72,25 @@ impl fmt::Display for AccountGroupPermission {
 impl Affiliation<AccountGroupId> for AccountGroupPermission {}
 impl Permission<AccountGroupId> for AccountGroupPermission {}
 
-impl Subject for (AccountGroupId, Option<AccountGroupRelation>) {
+impl Subject for (AccountGroupId, AccountGroupRelation) {
     type Object = AccountGroupId;
     type Relation = AccountGroupRelation;
 
-    fn new(
+    fn from_parts(
         object: Self::Object,
-        relation: Option<AccountGroupRelation>,
+        relation: Option<Self::Relation>,
     ) -> Result<Self, impl Error> {
-        Ok::<_, !>((object, relation))
+        relation.map(|relation| (object, relation)).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
+        })
     }
 
-    fn object(&self) -> &Self::Object {
-        &self.0
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+        (self.0, Some(self.1))
     }
 
-    fn relation(&self) -> Option<&Self::Relation> {
-        self.1.as_ref()
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+        Subject::into_parts(*self)
     }
 }
 
@@ -96,25 +98,20 @@ impl Subject for (AccountGroupId, AccountGroupPermission) {
     type Object = AccountGroupId;
     type Relation = AccountGroupPermission;
 
-    fn new(
+    fn from_parts(
         object: Self::Object,
-        relation: Option<AccountGroupPermission>,
+        relation: Option<Self::Relation>,
     ) -> Result<Self, impl Error> {
-        if let Some(relation) = relation {
-            return Ok((object, relation));
-        }
-        // TODO: This should be a real error type
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Permission not specified",
-        ))
+        relation.map(|relation| (object, relation)).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
+        })
     }
 
-    fn object(&self) -> &Self::Object {
-        &self.0
+    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+        (self.0, Some(self.1))
     }
 
-    fn relation(&self) -> Option<&Self::Relation> {
-        Some(&self.1)
+    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+        Subject::into_parts(*self)
     }
 }

@@ -1,7 +1,5 @@
 use std::error::Error;
 
-use serde::Serialize;
-
 use crate::zanzibar::{
     types::{
         object::{Object, ObjectFilter},
@@ -10,47 +8,18 @@ use crate::zanzibar::{
     Affiliation,
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct RelationshipFilter<'a, ON, OI, R, SN, SI, SR> {
-    pub object: ObjectFilter<'a, ON, OI>,
-    pub relation: Option<&'a R>,
-    pub subject: Option<SubjectFilter<'a, SN, SI, SR>>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct RelationshipFilter<ON, OI, R, SN, SI, SR> {
+    pub object: ObjectFilter<ON, OI>,
+    pub relation: Option<R>,
+    pub subject: Option<SubjectFilter<SN, SI, SR>>,
 }
 
-impl<ON, OI, R, SN, SI, SR> Copy for RelationshipFilter<'_, ON, OI, R, SN, SI, SR> {}
-impl<ON, OI, R, SN, SI, SR> Clone for RelationshipFilter<'_, ON, OI, R, SN, SI, SR> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, R> From<&'a R>
-    for RelationshipFilter<
-        'a,
-        <R::Object as Object>::Namespace,
-        <R::Object as Object>::Id,
-        R::Relation,
-        <<R::Subject as Subject>::Object as Object>::Namespace,
-        <<R::Subject as Subject>::Object as Object>::Id,
-        <R::Subject as Subject>::Relation,
-    >
-where
-    R: Relationship,
-{
-    fn from(relationship: &'a R) -> Self {
-        RelationshipFilter {
-            object: ObjectFilter::from(relationship.object()),
-            relation: Some(relationship.relation()),
-            subject: Some(SubjectFilter::from(relationship.subject())),
-        }
-    }
-}
-
-impl<'a> RelationshipFilter<'a, !, !, !, !, !, !> {
+impl RelationshipFilter<!, !, !, !, !, !> {
     #[must_use]
     pub fn from_object<N, I>(
-        object: impl Into<ObjectFilter<'a, N, I>>,
-    ) -> RelationshipFilter<'a, N, I, !, !, !, !> {
+        object: impl Into<ObjectFilter<N, I>>,
+    ) -> RelationshipFilter<N, I, !, !, !, !> {
         RelationshipFilter {
             object: object.into(),
             relation: None,
@@ -59,12 +28,9 @@ impl<'a> RelationshipFilter<'a, !, !, !, !, !, !> {
     }
 }
 
-impl<'a, ON, OI, SN, SI, SR> RelationshipFilter<'a, ON, OI, !, SN, SI, SR> {
+impl<ON, OI, SN, SI, SR> RelationshipFilter<ON, OI, !, SN, SI, SR> {
     #[must_use]
-    pub const fn with_relation<R>(
-        self,
-        relation: &'a R,
-    ) -> RelationshipFilter<'a, ON, OI, R, SN, SI, SR> {
+    pub fn with_relation<R>(self, relation: R) -> RelationshipFilter<ON, OI, R, SN, SI, SR> {
         RelationshipFilter {
             object: self.object,
             relation: Some(relation),
@@ -73,12 +39,12 @@ impl<'a, ON, OI, SN, SI, SR> RelationshipFilter<'a, ON, OI, !, SN, SI, SR> {
     }
 }
 
-impl<'a, ON, OI, R> RelationshipFilter<'a, ON, OI, R, !, !, !> {
+impl<ON, OI, R> RelationshipFilter<ON, OI, R, !, !, !> {
     #[must_use]
     pub fn with_subject<SN, SI, SR>(
         self,
-        subject: impl Into<SubjectFilter<'a, SN, SI, SR>>,
-    ) -> RelationshipFilter<'a, ON, OI, R, SN, SI, SR> {
+        subject: impl Into<SubjectFilter<SN, SI, SR>>,
+    ) -> RelationshipFilter<ON, OI, R, SN, SI, SR> {
         RelationshipFilter {
             object: self.object,
             relation: self.relation,
@@ -87,56 +53,79 @@ impl<'a, ON, OI, R> RelationshipFilter<'a, ON, OI, R, !, !, !> {
     }
 }
 
-pub trait Relationship: Sized + Send + Sync {
+pub trait Relationship: Sized {
     type Object: Object;
-    type Relation: Serialize + Affiliation<Self::Object>;
-    type Subject: Subject;
+    type Relation: Affiliation<Self::Object>;
+    type Subject: Object;
+    type SubjectSet: Affiliation<Self::Subject>;
 
-    /// Creates a relationship from an object, relation, and subject.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the object, relation, and subject are not valid for the relationship.
-    fn new(
+    fn from_parts(
         object: Self::Object,
         relation: Self::Relation,
         subject: Self::Subject,
+        subject_set: Option<Self::SubjectSet>,
     ) -> Result<Self, impl Error>;
 
-    fn object(&self) -> &Self::Object;
+    fn to_parts(
+        &self,
+    ) -> (
+        Self::Object,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    );
 
-    fn relation(&self) -> &Self::Relation;
-
-    fn subject(&self) -> &Self::Subject;
+    fn into_parts(
+        self,
+    ) -> (
+        Self::Object,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    );
 }
 
 impl<O, R, S> Relationship for (O, R, S)
 where
-    O: Object,
-    R: Send + Sync + Serialize + Affiliation<O>,
-    S: Subject,
+    O: Object + Copy,
+    R: Affiliation<O> + Copy,
+    S: Subject + Copy,
 {
     type Object = O;
     type Relation = R;
-    type Subject = S;
+    type Subject = S::Object;
+    type SubjectSet = S::Relation;
 
-    fn new(
+    fn from_parts(
         object: Self::Object,
         relation: Self::Relation,
         subject: Self::Subject,
+        subject_set: Option<Self::SubjectSet>,
     ) -> Result<Self, impl Error> {
-        Ok::<_, !>((object, relation, subject))
+        S::from_parts(subject, subject_set).map(|subject| (object, relation, subject))
     }
 
-    fn object(&self) -> &Self::Object {
-        &self.0
+    fn to_parts(
+        &self,
+    ) -> (
+        Self::Object,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    ) {
+        Relationship::into_parts(*self)
     }
 
-    fn relation(&self) -> &Self::Relation {
-        &self.1
-    }
-
-    fn subject(&self) -> &Self::Subject {
-        &self.2
+    fn into_parts(
+        self,
+    ) -> (
+        Self::Object,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    ) {
+        let (object, relation, subject) = self;
+        let (subject, subject_set) = Subject::into_parts(subject);
+        (object, relation, subject, subject_set)
     }
 }

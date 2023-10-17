@@ -8,8 +8,8 @@ use graph_types::{
 use crate::{
     backend::{CheckError, CheckResponse, ModifyRelationError, ReadError, ZanzibarBackend},
     schema::{
-        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
-        PublicAccess, WebPermission, WebRelation,
+        AccountGroupPermission, AccountGroupRelation, EntityObjectRelation, EntityPermission,
+        OwnerId, PublicAccess, WebPermission, WebRelation,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AccountOrPublic, AuthorizationApi, EntitySubject,
@@ -38,7 +38,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::AddOwner, actor),
+                &account_group,
+                &AccountGroupPermission::AddOwner,
+                &actor,
                 consistency,
             )
             .await
@@ -65,7 +67,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::RemoveOwner, actor),
+                &account_group,
+                &AccountGroupPermission::RemoveOwner,
+                &actor,
                 consistency,
             )
             .await
@@ -192,7 +196,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::AddAdmin, actor),
+                &account_group,
+                &AccountGroupPermission::AddAdmin,
+                &actor,
                 consistency,
             )
             .await
@@ -219,7 +225,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::RemoveAdmin, actor),
+                &account_group,
+                &AccountGroupPermission::RemoveAdmin,
+                &actor,
                 consistency,
             )
             .await
@@ -246,7 +254,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::AddMember, actor),
+                &account_group,
+                &AccountGroupPermission::AddMember,
+                &actor,
                 consistency,
             )
             .await
@@ -273,7 +283,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(account_group, AccountGroupPermission::RemoveMember, actor),
+                &account_group,
+                &AccountGroupPermission::RemoveMember,
+                &actor,
                 consistency,
             )
             .await
@@ -300,14 +312,18 @@ where
         Ok(match scope {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectOwner,
+                        account,
+                    )])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectOwner,
+                        EntityObjectRelation::DirectOwner,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -325,14 +341,18 @@ where
         Ok(match scope {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectOwner,
+                        account,
+                    )])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectOwner,
+                        EntityObjectRelation::DirectOwner,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -350,14 +370,18 @@ where
         Ok(match scope {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectEditor,
+                        account,
+                    )])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectEditor,
+                        EntityObjectRelation::DirectEditor,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -375,14 +399,18 @@ where
         Ok(match scope {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectEditor,
+                        account,
+                    )])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectEditor,
+                        EntityObjectRelation::DirectEditor,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -402,21 +430,25 @@ where
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectViewer,
+                        EntityObjectRelation::DirectViewer,
                         PublicAccess::Public,
                     )])
                     .await
             }
             EntitySubject::Account(account) => {
                 self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
+                    .create_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectViewer,
+                        account,
+                    )])
                     .await
             }
             EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .create_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectViewer,
+                        EntityObjectRelation::DirectViewer,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -436,21 +468,25 @@ where
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectViewer,
+                        EntityObjectRelation::DirectViewer,
                         PublicAccess::Public,
                     )])
                     .await
             }
             EntitySubject::Account(account) => {
                 self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
+                    .delete_relations([(
+                        entity.entity_uuid,
+                        EntityObjectRelation::DirectViewer,
+                        account,
+                    )])
                     .await
             }
             EntitySubject::AccountGroupMembers(account_group) => {
                 self.backend
                     .delete_relations([(
                         entity.entity_uuid,
-                        EntityRelation::DirectViewer,
+                        EntityObjectRelation::DirectViewer,
                         (account_group, AccountGroupPermission::Member),
                     )])
                     .await
@@ -468,7 +504,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(web.into(), WebPermission::CreateEntity, actor),
+                &web.into(),
+                &WebPermission::CreateEntity,
+                &actor,
                 consistency,
             )
             .await
@@ -482,7 +520,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(entity.entity_uuid, EntityPermission::Update, actor),
+                &entity.entity_uuid,
+                &EntityPermission::Update,
+                &actor,
                 consistency,
             )
             .await
@@ -496,7 +536,9 @@ where
     ) -> Result<CheckResponse, CheckError> {
         self.backend
             .check(
-                &(entity.entity_uuid, EntityPermission::View, actor),
+                &entity.entity_uuid,
+                &EntityPermission::View,
+                &actor,
                 consistency,
             )
             .await
@@ -506,11 +548,11 @@ where
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
+    ) -> Result<Vec<(EntitySubject, EntityObjectRelation)>, ReadError> {
         let accounts = self
             .backend
-            .read_relations::<(EntityUuid, EntityRelation, AccountOrPublic)>(
-                RelationshipFilter::from_object(&entity.entity_uuid),
+            .read_relations::<(EntityUuid, EntityObjectRelation, AccountOrPublic)>(
+                RelationshipFilter::from_object(entity.entity_uuid),
                 consistency,
             )
             .await
@@ -525,10 +567,10 @@ where
             .backend
             .read_relations::<(
                 EntityUuid,
-                EntityRelation,
+                EntityObjectRelation,
                 (AccountGroupId, AccountGroupPermission),
             )>(
-                RelationshipFilter::from_object(&entity.entity_uuid),
+                RelationshipFilter::from_object(entity.entity_uuid),
                 consistency,
             )
             .await

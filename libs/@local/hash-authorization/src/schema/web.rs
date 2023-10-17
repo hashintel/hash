@@ -18,18 +18,18 @@ impl Object for WebId {
     type Id = Self;
     type Namespace = WebNamespace;
 
-    fn new(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
         match namespace {
             WebNamespace::Web => Ok::<_, !>(id),
         }
     }
 
-    fn namespace(&self) -> &Self::Namespace {
-        &WebNamespace::Web
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (WebNamespace::Web, self)
     }
 
-    fn id(&self) -> &Self::Id {
-        self
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
     }
 }
 
