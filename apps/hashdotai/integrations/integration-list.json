@@ -4,18 +4,7 @@
     "logoUrl": "https://dummyimage.com/160x160/000/fff&text=Linear",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "connectUrl": "/integrations/linear/connect",
-    "aboutParas": [
-      {
-        "header": "Realtime two-way sync",
-        "copyHtml": "Create, update or delete data in either Linear or HASH while keeping them in sync.",
-        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=two-way"
-      },
-      {
-        "header": "Jointly maintained by Linear & HASH",
-        "copyHtml": "<div><strong>This integration is officially supported by both Linear and HASH.</strong></div><div>It is jointly maintained to ensure robust, reliable and realtime operation.</div>",
-        "iconUrl": "https://dummyimage.com/160x160/ddd/000000&text=double-tick"
-      }
-    ],
+    "aboutParas": ["two-way sync", "jointly maintained"],
     "availability": "Available",
     "frequency": "Real-time",
     "supportedTypes": [
