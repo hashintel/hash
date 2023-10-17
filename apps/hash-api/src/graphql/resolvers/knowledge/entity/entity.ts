@@ -44,6 +44,7 @@ import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-t
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
+  AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
   EntityAuthorizationRelation,
@@ -63,7 +64,6 @@ import {
   QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryStructuralQueryEntitiesArgs,
-  AccountGroupAuthorizationSubjectRelation,
   ResolverFn,
 } from "../../../api-types.gen";
 import {

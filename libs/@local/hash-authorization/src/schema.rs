@@ -9,7 +9,7 @@ pub use self::{
     entity::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
         EntityObjectRelation, EntityPermission, EntityRelationSubject, EntitySubject,
-        EntitySubjectId, EntitySubjectSet,
+        EntitySubjectId, EntitySubjectRelation, EntitySubjectSet,
     },
     web::{OwnerId, WebNamespace, WebPermission, WebRelation},
 };

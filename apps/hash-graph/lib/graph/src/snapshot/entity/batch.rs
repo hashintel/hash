@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::EntityRelationSubject};
 use error_stack::{Result, ResultExt};
@@ -17,7 +19,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    Relations(Vec<(EntityUuid, EntityRelationSubject)>),
+    Relations(HashMap<EntityUuid, EntityRelationSubject>),
 }
 
 #[async_trait]
@@ -67,7 +69,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -82,7 +84,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[ids],
+                        &[&ids],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -99,7 +101,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[editions],
+                        &[&editions],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -115,7 +117,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             SELECT * FROM UNNEST($1::entity_temporal_metadata[])
                             RETURNING 1;
                         ",
-                        &[temporal_metadata],
+                        &[&temporal_metadata],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -131,7 +133,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::entity_link_edges_tmp[])
                             RETURNING 1;
                         ",
-                        &[links],
+                        &[&links],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -141,7 +143,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             }
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relations(relations.iter().copied())
+                    .touch_relations(relations)
                     .await
                     .change_context(InsertionError)?;
             }

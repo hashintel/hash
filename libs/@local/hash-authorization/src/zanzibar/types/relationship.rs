@@ -59,6 +59,12 @@ pub trait Relationship: Sized {
     type Subject: Object;
     type SubjectSet: Affiliation<Self::Subject>;
 
+    /// Creates a relationship from an object, relation, subject, and subject set.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the object, relation, subject, and subject set are not valid for the
+    /// relationship.
     fn from_parts(
         object: Self::Object,
         relation: Self::Relation,

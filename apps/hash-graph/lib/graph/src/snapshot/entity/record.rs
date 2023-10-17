@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 use type_system::url::VersionedUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CustomEntityMetadata {
     pub provenance: ProvenanceMetadata,
     pub archived: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityMetadata {
     pub record_id: EntityRecordId,
     pub entity_type_id: VersionedUrl,
@@ -27,7 +27,7 @@ pub struct EntityMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntitySnapshotRecord {
     pub properties: EntityProperties,
     pub metadata: EntityMetadata,

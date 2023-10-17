@@ -84,7 +84,7 @@ pub struct Web {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "type")]
+#[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
     Account(Account),
@@ -164,7 +164,7 @@ impl SnapshotEntry {
 trait WriteBatch<C> {
     async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError>;

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     pin::Pin,
     task::{ready, Context, Poll},
 };
@@ -242,7 +243,7 @@ pub fn channel(chunk_size: usize) -> (EntitySender, EntityReceiver) {
                     .boxed(),
                 relation_rx
                     .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::Relations)
+                    .map(|relations| EntityRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
             ]),
         },
