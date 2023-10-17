@@ -534,7 +534,7 @@ export const App: BlockComponent<BlockEntity> = ({
                       }}
                     >
                       <Box sx={{ display: "flex", gap: 1.5 }}>
-                        <Autocomplete
+                        <Autocomplete<AutofillSuggestion, false, true>
                           onFocus={() => setAutocompleteFocused(true)}
                           onBlur={() => setAutocompleteFocused(false)}
                           getOptionLabel={getOptionLabel}

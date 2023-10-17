@@ -1,6 +1,7 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
+  EntityAuthorizationSubject,
   MutationResolvers,
   QueryResolvers,
   ResolverFn,
@@ -30,6 +31,7 @@ import {
   addEntityViewerResolver,
   archiveEntityResolver,
   createEntityResolver,
+  getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
   inferEntitiesResolver,
   isEntityPublicResolver,
@@ -111,6 +113,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntity: getEntityResolver,
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
+    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
+      getEntityAuthorizationRelationshipsResolver,
+    ),
     structuralQueryEntities: structuralQueryEntitiesResolver,
     hashInstanceEntity: hashInstanceEntityResolver,
     // Integration
@@ -202,5 +207,17 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
   Block: {
     blockChildEntity: blockChildEntityResolver,
+  },
+
+  EntityAuthorizationSubject: {
+    __resolveType(object: EntityAuthorizationSubject) {
+      if ("accountGroupId" in object) {
+        return "AccountGroupAuthorizationSubject";
+      } else if ("accountId" in object) {
+        return "AccountAuthorizationSubject";
+      } else {
+        return "PublicAuthorizationSubject";
+      }
+    },
   },
 };

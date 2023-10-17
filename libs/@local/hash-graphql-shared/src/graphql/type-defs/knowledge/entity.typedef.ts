@@ -108,6 +108,35 @@ export const entityTypedef = gql`
     NONE
   }
 
+  enum EntityAuthorizationRelation {
+    Owner
+    Editor
+    Viewer
+  }
+
+  type AccountGroupAuthorizationSubject {
+    accountGroupId: AccountGroupId!
+  }
+
+  type AccountAuthorizationSubject {
+    accountId: AccountId!
+  }
+
+  type PublicAuthorizationSubject {
+    public: Boolean!
+  }
+
+  union EntityAuthorizationSubject =
+      AccountGroupAuthorizationSubject
+    | AccountAuthorizationSubject
+    | PublicAuthorizationSubject
+
+  type EntityAuthorizationRelationship {
+    objectEntityId: EntityId!
+    relation: EntityAuthorizationRelation!
+    subject: EntityAuthorizationSubject!
+  }
+
   extend type Query {
     """
     Implementation of the Block Protocol queryEntities hook
@@ -152,6 +181,10 @@ export const entityTypedef = gql`
     ): Subgraph!
 
     isEntityPublic(entityId: EntityId!): Boolean!
+
+    getEntityAuthorizationRelationships(
+      entityId: EntityId!
+    ): [EntityAuthorizationRelationship!]!
   }
 
   enum AuthorizationSubjectKind {
