@@ -51,10 +51,9 @@ export const useUsersWithLinks = ({
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
       // These depths are chosen to cover the following:
-      // 1. the user's avatar (user -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
-      // 2. the user's user memberships (user <- [hasLeftEntity outgoing 1] userMembership [hasRightEntity incoming 1] <- user)
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
+      // - the user's avatar (user -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+      hasLeftEntity: { incoming: 1, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 1 },
     },
     fetchPolicy: "cache-and-network",
     skip: !userAccountIds || !userAccountIds.length,
