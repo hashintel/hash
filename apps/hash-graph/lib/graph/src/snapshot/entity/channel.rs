@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     pin::Pin,
     task::{ready, Context, Poll},
 };
