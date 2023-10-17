@@ -16,7 +16,7 @@ mod postgres;
 use async_trait::async_trait;
 
 pub use self::{
-    account::{AccountOrAccountGroup, AccountStore},
+    account::AccountStore,
     config::{DatabaseConnectionInfo, DatabaseType},
     error::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,

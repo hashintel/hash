@@ -1,11 +1,10 @@
 use async_trait::async_trait;
-use authorization::{schema::OwnerId, AuthorizationApi, EntitySubject};
+use authorization::{schema::OwnerId, AuthorizationApi};
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     provenance::OwnedById,
 };
-use serde::Serialize;
 
 use crate::store::{InsertionError, QueryError};
 
@@ -36,43 +35,18 @@ pub trait AccountStore {
         account_group_id: AccountGroupId,
     ) -> Result<(), InsertionError>;
 
+    /// Returns if the [`AccountId`] exists in the database.
+    ///
+    /// # Errors
+    ///
+    /// - if querying failed
+    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError>;
+
     /// Returns either an [`AccountId`] or an [`AccountGroupId`] for the specified [`OwnedById`].
     ///
     /// # Errors
     ///
     /// - if the [`OwnedById`] does not exist
     /// - if the [`OwnedById`] exists but is both, an [`AccountId`] and an [`AccountGroupId`]
-    async fn identify_owned_by_id(
-        &self,
-        owned_by_id: OwnedById,
-    ) -> Result<AccountOrAccountGroup, QueryError>;
-}
-
-#[derive(Debug, Copy, Clone, Serialize)]
-#[serde(untagged)]
-pub enum AccountOrAccountGroup {
-    Account(AccountId),
-    AccountGroup(AccountGroupId),
-}
-
-impl From<AccountOrAccountGroup> for EntitySubject {
-    fn from(id: AccountOrAccountGroup) -> Self {
-        match id {
-            AccountOrAccountGroup::Account(account_id) => Self::Account(account_id),
-            AccountOrAccountGroup::AccountGroup(account_group_id) => {
-                Self::AccountGroupMembers(account_group_id)
-            }
-        }
-    }
-}
-
-impl From<AccountOrAccountGroup> for OwnerId {
-    fn from(id: AccountOrAccountGroup) -> Self {
-        match id {
-            AccountOrAccountGroup::Account(account_id) => Self::Account(account_id),
-            AccountOrAccountGroup::AccountGroup(account_group_id) => {
-                Self::AccountGroup(account_group_id)
-            }
-        }
-    }
+    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError>;
 }

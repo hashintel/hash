@@ -21,7 +21,7 @@ serde = { workspace = true, features = ["derive"] }
 utoipa = { workspace = true, features = ["uuid"] }
 tracing = { workspace = true }
 
-async-trait = "0.1.73"
+async-trait = "0.1.74"
 async-scoped = { version = "0.7.1", features = ["use-tokio"] }
 axum = "0.6.20"
 bb8-postgres = "0.8.1"
@@ -36,7 +36,7 @@ mime = "0.3.17"
 opentelemetry = { version = "0.20.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.13.0"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
-regex = "1.10.0"
+regex = "1.10.2"
 semver = { version = "1.0.20", default-features = false, features = ["serde"] }
 sentry = { version = "0.31.7", features = ["tracing", "tower", "tower-http"], default-features = false }
 serde_json = { workspace = true }

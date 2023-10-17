@@ -12,19 +12,7 @@ use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum OwnerId {
     Account(AccountId),
-    AccountGroup(AccountGroupId),
-}
-
-impl From<AccountId> for OwnerId {
-    fn from(account_id: AccountId) -> Self {
-        Self::Account(account_id)
-    }
-}
-
-impl From<AccountGroupId> for OwnerId {
-    fn from(account_group_id: AccountGroupId) -> Self {
-        Self::AccountGroup(account_group_id)
-    }
+    AccountGroupMembers(AccountGroupId),
 }
 
 impl Resource for WebId {

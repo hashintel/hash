@@ -52,11 +52,6 @@ import { updatePageResolver } from "./knowledge/page/update-page";
 import { createUserResolver } from "./knowledge/user/create-user";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
-import { createLinkedAggregation } from "./linked-aggregation/create-linked-aggregation";
-import { deleteLinkedAggregation } from "./linked-aggregation/delete-linked-aggregation";
-import { getLinkedAggregation } from "./linked-aggregation/get-linked-aggregation";
-import { linkedAggregationResults } from "./linked-aggregation/linked-aggregation-results";
-import { updateLinkedAggregationOperation } from "./linked-aggregation/update-linked-aggregation-operation";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
 import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
@@ -83,7 +78,6 @@ export const resolvers = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
-    getLinkedAggregation: loggedInAndSignedUpMiddleware(getLinkedAggregation),
     // Logged in users only
     me: loggedInMiddleware(meResolver),
     // Any user
@@ -119,15 +113,6 @@ export const resolvers = {
 
   Mutation: {
     // Logged in and signed up users only
-    createLinkedAggregation: loggedInAndSignedUpMiddleware(
-      createLinkedAggregation,
-    ),
-    updateLinkedAggregationOperation: loggedInAndSignedUpMiddleware(
-      updateLinkedAggregationOperation,
-    ),
-    deleteLinkedAggregation: loggedInAndSignedUpMiddleware(
-      deleteLinkedAggregation,
-    ),
     updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
       updateBlockCollectionContents,
     ),
@@ -188,10 +173,6 @@ export const resolvers = {
   },
 
   JSONObject: JSONObjectResolver,
-
-  LinkedAggregation: {
-    results: linkedAggregationResults,
-  },
 
   // New knowledge field resolvers
   Page: {

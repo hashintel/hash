@@ -1,7 +1,7 @@
 use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
+use authorization::{schema::OwnerId, AuthorizationApi};
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -32,9 +32,8 @@ use crate::{
     store::{
         crud::Read,
         query::{Filter, OntologyQueryPath},
-        AccountOrAccountGroup, AccountStore, ConflictBehavior, DataTypeStore, EntityStore,
-        EntityTypeStore, InsertionError, PropertyTypeStore, QueryError, Record, StoreError,
-        StorePool, UpdateError,
+        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
+        InsertionError, PropertyTypeStore, QueryError, Record, StoreError, StorePool, UpdateError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -603,10 +602,11 @@ where
             .await
     }
 
-    async fn identify_owned_by_id(
-        &self,
-        owned_by_id: OwnedById,
-    ) -> Result<AccountOrAccountGroup, QueryError> {
+    async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
+        self.store.has_account(account_id).await
+    }
+
+    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }
@@ -865,6 +865,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
+        owner: OwnerId,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -887,6 +888,7 @@ where
                 actor_id,
                 authorization_api,
                 owned_by_id,
+                owner,
                 entity_uuid,
                 decision_time,
                 archived,

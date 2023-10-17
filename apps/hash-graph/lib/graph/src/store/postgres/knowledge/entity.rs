@@ -10,7 +10,7 @@ use authorization::{
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
-    account::{AccountGroupId, AccountId},
+    account::AccountId,
     knowledge::{
         entity::{
             Entity, EntityEditionId, EntityId, EntityMetadata, EntityProperties, EntityRecordId,
@@ -266,6 +266,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: OwnerId,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -289,33 +290,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let is_account_group: bool = transaction
+        transaction
             .as_client()
-            .query_one(
+            .query(
                 "
-                    WITH inserted_owners AS (
-                        INSERT INTO entity_ids (owned_by_id, entity_uuid)
-                        VALUES ($1, $2)
-                        RETURNING owned_by_id
-                    )
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM account_groups
-                        JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
-                    );
+                    INSERT INTO entity_ids (owned_by_id, entity_uuid)
+                    VALUES ($1, $2);
                 ",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
             .await
-            .change_context(InsertionError)?
-            .get(0);
-
-        let owned_by_uuid = owned_by_id.into_uuid();
-        let visibility_scope = if is_account_group {
-            OwnerId::AccountGroup(AccountGroupId::new(owned_by_uuid))
-        } else {
-            OwnerId::Account(AccountId::new(owned_by_uuid))
-        };
+            .change_context(InsertionError)?;
 
         let link_order = if let Some(link_data) = link_data {
             transaction
@@ -432,13 +417,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .add_entity_owner(visibility_scope, entity_id)
+            .add_entity_owner(owner, entity_id)
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_owner(visibility_scope, entity_id)
+                .remove_entity_owner(owner, entity_id)
                 .await
                 .change_context(InsertionError)
             {

@@ -5,7 +5,7 @@ import { createKratosIdentity } from "../auth/ory-kratos";
 import { ImpureGraphContext } from "../graph";
 import { createUser, User } from "../graph/knowledge/system-types/user";
 import { systemUserAccountId } from "../graph/system-user";
-import { isDevEnv } from "../lib/env-config";
+import { isDevEnv, isTestEnv } from "../lib/env-config";
 
 type SeededUser = {
   email: string;
@@ -46,7 +46,7 @@ export const ensureUsersAreSeeded = async ({
   const authentication = { actorId: systemUserAccountId };
 
   // Only use `devUsers` if we are in a dev environment
-  let usersToSeed = isDevEnv ? devUsers : [];
+  let usersToSeed = isDevEnv || isTestEnv ? devUsers : [];
 
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {

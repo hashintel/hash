@@ -6,11 +6,11 @@ publish = false
 
 [dependencies]
 bytes = { version = "1.5.0", optional = true }
-serde = { version = "1.0.188", features = ["derive"] }
+serde = { version = "1.0.189", features = ["derive"] }
 utoipa = { version = "4.0.0", optional = true }
 postgres-types = { version = "0.2.6", default-features = false, features = ["with-time-0_3"], optional = true }
-time = { version = "0.3.29", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
-tracing = { version = "0.1.37", optional = true }
+time = { version = "0.3.30", default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
+tracing = { version = "0.1.39", optional = true }
 
 derivative = "2.2.0"
 postgres-protocol = { version = "0.6.6", default-features = false, optional = true }

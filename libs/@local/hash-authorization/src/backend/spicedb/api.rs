@@ -4,6 +4,7 @@ use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::Response;
 use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use tokio::time::sleep;
 use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
@@ -67,12 +68,14 @@ impl SpiceDbOpenApi {
         path: &'static str,
         body: &(impl Serialize + Sync),
     ) -> Result<Response, Report<InvocationError>> {
+        let url = format!("{}{}", self.base_path, path);
         let request = self
             .client
-            .post(format!("{}{}", self.base_path, path))
+            .post(&url)
             .json(&body)
             .build()
-            .change_context(InvocationError::Request)?;
+            .change_context(InvocationError::Request)
+            .attach_printable(url)?;
 
         let response = self
             .client
@@ -168,22 +171,40 @@ impl SpiceDbOpenApi {
             written_at: model::ZedToken,
         }
 
-        let response = self
-            .call::<RequestResponse>(
-                "/v1/relationships/write",
-                &RequestBody {
-                    updates: operations
-                        .into_iter()
-                        .map(|(operation, tuple)| RelationshipUpdate::<T> {
-                            operation,
-                            relationship: model::Relationship(tuple),
-                        })
-                        .collect(),
-                },
-            )
-            .await?;
+        let request_body = RequestBody {
+            updates: operations
+                .into_iter()
+                .map(|(operation, tuple)| RelationshipUpdate::<T> {
+                    operation,
+                    relationship: model::Relationship(tuple),
+                })
+                .collect(),
+        };
 
-        Ok(response.written_at.into())
+        let max_attempts = 3_u32;
+        let mut attempt = 0;
+        loop {
+            let invocation = self
+                .call::<RequestResponse>("/v1/relationships/write", &request_body)
+                .await;
+
+            match invocation {
+                Ok(response) => return Ok(response.written_at.into()),
+                Err(report) => match report.current_context() {
+                    InvocationError::Api(RpcError { code: 2, .. }) => {
+                        if attempt == max_attempts {
+                            break Err(report);
+                        }
+
+                        attempt += 1;
+                        // TODO: Use a more customizable backoff
+                        //       current: 10ms, 40ms, 90ms
+                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+                    }
+                    _ => break Err(report),
+                },
+            }
+        }
     }
 }
 
