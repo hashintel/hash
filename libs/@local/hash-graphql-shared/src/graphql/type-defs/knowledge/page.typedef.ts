@@ -38,6 +38,10 @@ export const pageTypedef = gql`
     Properties of entity.
     """
     properties: EntityPropertiesObject!
+    """
+    Whether or not the requesting user can edit this page
+    """
+    canUserEdit: Boolean!
   }
 
   extend type Query {

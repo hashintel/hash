@@ -5,7 +5,7 @@ import { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import { GraphQLContext } from "../../context";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
-  Promise<BlockProtocolBlock[]>,
+  BlockProtocolBlock[],
   {},
   GraphQLContext,
   {}

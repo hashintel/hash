@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { User } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-export const canUserEditResource = (resourceOwnerId: OwnedById, user: User) =>
+export const canUserEditType = (resourceOwnerId: OwnedById, user: User) =>
   resourceOwnerId === user.accountId ||
   user.memberOf.find(({ org }) => resourceOwnerId === org.accountGroupId);
 
@@ -18,7 +18,7 @@ export const useIsReadonlyModeForApp = () => {
   return isReadonlyMode;
 };
 
-export const useIsReadonlyModeForResource = (resourceOwnerId?: OwnedById) => {
+export const useIsReadonlyModeForType = (resourceOwnerId?: OwnedById) => {
   const { authenticatedUser } = useAuthInfo();
 
   const appIsReadOnly = useIsReadonlyModeForApp();
@@ -30,6 +30,6 @@ export const useIsReadonlyModeForResource = (resourceOwnerId?: OwnedById) => {
   return (
     !resourceOwnerId ||
     appIsReadOnly ||
-    !canUserEditResource(resourceOwnerId, authenticatedUser)
+    !canUserEditType(resourceOwnerId, authenticatedUser)
   );
 };

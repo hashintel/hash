@@ -11,7 +11,7 @@ import {
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;
 
-export type ExternalPageResolversGQL = "contents";
+export type ExternalPageResolversGQL = "contents" | "canUserEdit";
 export type UnresolvedPageGQL = Omit<GQLPage, ExternalPageResolversGQL>;
 
 export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
@@ -24,6 +24,7 @@ export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
 });
 
 export type ExternalCommentResolversGQL =
+  | "canUserEdit"
   | "hasText"
   | "textUpdatedAt"
   | "parent"

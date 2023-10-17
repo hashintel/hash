@@ -46,6 +46,10 @@ export const commentTypedef = gql`
     Properties of entity.
     """
     properties: EntityPropertiesObject!
+    """
+    Whether or not the requesting user can edit this comment
+    """
+    canUserEdit: Boolean!
   }
 
   extend type Mutation {

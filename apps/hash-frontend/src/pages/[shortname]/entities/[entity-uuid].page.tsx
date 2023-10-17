@@ -5,7 +5,6 @@ import {
   EntityPropertiesObject,
   EntityRootType,
   EntityUuid,
-  extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
@@ -26,7 +25,6 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { useIsReadonlyModeForResource } from "../../../shared/readonly-mode";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 import { QUERY_ENTITY_TYPE_ID } from "./[entity-uuid].page/create-entity-page";
@@ -52,24 +50,16 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
-
-  const entityFromDb =
-    entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
-
-  const entityOwnedById =
-    entityFromDb &&
-    extractOwnedByIdFromEntityId(entityFromDb.metadata.recordId.entityId);
-
-  const readonly = useIsReadonlyModeForResource(entityOwnedById);
+  const [isReadonly, setIsReadonly] = useState(true);
 
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const getEntity = useCallback(
-    (accountId: OwnedById) =>
+    (entityId: EntityId) =>
       lazyGetEntity({
         variables: {
-          entityId: entityIdFromOwnedByIdAndEntityUuid(accountId, entityUuid),
+          entityId,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
@@ -81,7 +71,7 @@ const Page: NextPageWithLayout = () => {
           hasRightEntity: { outgoing: 1, incoming: 1 },
         },
       }),
-    [entityUuid, lazyGetEntity],
+    [lazyGetEntity],
   );
 
   const [
@@ -95,9 +85,12 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const { data } = await getEntity(
+          const entityId = entityIdFromOwnedByIdAndEntityUuid(
             routeNamespace.accountId as OwnedById,
+            entityUuid,
           );
+
+          const { data } = await getEntity(entityId);
 
           const subgraph = data?.getEntity.subgraph;
 
@@ -105,9 +98,14 @@ const Page: NextPageWithLayout = () => {
             try {
               setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
               setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
+              setIsReadonly(
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
+                !data.getEntity.permissionsOnEntities?.[entityId]?.edit,
+              );
             } catch {
               setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
+              setIsReadonly(true);
             }
           }
         } finally {
@@ -124,7 +122,12 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const { data } = await getEntity(routeNamespace.accountId as OwnedById);
+    const entityId = entityIdFromOwnedByIdAndEntityUuid(
+      routeNamespace.accountId as OwnedById,
+      entityUuid,
+    );
+
+    const { data } = await getEntity(entityId);
 
     const subgraph = data?.getEntity.subgraph;
 
@@ -231,7 +234,7 @@ const Page: NextPageWithLayout = () => {
       draftLinksToArchive={draftLinksToArchive}
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
-      readonly={readonly}
+      readonly={isReadonly}
       replaceWithLatestDbVersion={refetch}
       setEntity={(changedEntity) => {
         setIsDirty(true);

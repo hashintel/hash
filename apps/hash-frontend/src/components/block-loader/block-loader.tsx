@@ -80,18 +80,28 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     readonly,
   );
 
-  const { setBlockSubgraph, blockSubgraph } = useBlockContext();
+  const {
+    setBlockSubgraph,
+    blockSubgraph,
+    userPermissions,
+    setUserPermissions,
+  } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   useEffect(() => {
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) => {
-        setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
-        );
+        setBlockSubgraph(newBlockSubgraph.subgraph);
+        setUserPermissions(newBlockSubgraph.permissionsOnEntities);
       },
     );
-  }, [fetchBlockSubgraph, blockEntityId, blockEntityTypeId, setBlockSubgraph]);
+  }, [
+    fetchBlockSubgraph,
+    blockEntityId,
+    blockEntityTypeId,
+    setBlockSubgraph,
+    setUserPermissions,
+  ]);
 
   const functions = useMemo(
     () => ({
@@ -125,9 +135,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
           blockEntityId,
         );
 
-        setBlockSubgraph(
-          newBlockSubgraph as unknown as Subgraph<EntityRootType>,
-        );
+        setBlockSubgraph(newBlockSubgraph.subgraph);
+        setUserPermissions(newBlockSubgraph.permissionsOnEntities);
 
         return res;
       },
@@ -136,6 +145,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       queryEntities,
       setBlockSubgraph,
       fetchBlockSubgraph,
+      setUserPermissions,
       createEntity,
       deleteEntity,
       getEntity,
@@ -178,8 +188,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     () =>
       blockSubgraph
         ? {
-            readonly,
-            blockEntitySubgraph: blockSubgraph,
+            readonly:
+              readonly || // is the entire page readonly?
+              !blockEntityId ||
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
+              !userPermissions?.[blockEntityId]?.edit, // does the user lack edit permissions on the block entity?
+            blockEntitySubgraph:
+              blockSubgraph as unknown as Subgraph<EntityRootType>,
           }
         : null,
     [blockSubgraph, readonly],

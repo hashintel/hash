@@ -20,7 +20,7 @@ import { useBlockProtocolUpdateEntityType } from "../../../../../../components/h
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-update-property-type";
 import { useFetchEntityTypes } from "../../../../../../shared/entity-types-context/hooks";
 import { useRefetchPropertyTypes } from "../../../../../../shared/property-types-context";
-import { canUserEditResource } from "../../../../../../shared/readonly-mode";
+import { canUserEditType } from "../../../../../../shared/readonly-mode";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../../../../shared/use-generate-type-urls-for-user";
 
@@ -155,7 +155,7 @@ export const useEditorOntologyFunctions = (
         resourceMetadata.custom.ownedById;
 
       return resourceAccountId &&
-        canUserEditResource(resourceAccountId, authenticatedUser)
+        canUserEditType(resourceAccountId, authenticatedUser)
         ? {
             allowed: true,
             message: "ok",

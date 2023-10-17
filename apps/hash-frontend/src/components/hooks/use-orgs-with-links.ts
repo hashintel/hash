@@ -1,11 +1,6 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import {
-  AccountGroupId,
-  Entity,
-  EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { AccountGroupId, Entity } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -60,20 +55,20 @@ export const useOrgsWithLinks = ({
     skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraphAndPermissions } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph) {
+    if (!subgraphAndPermissions) {
       return undefined;
     }
 
-    return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
+    return getRoots(subgraphAndPermissions.subgraph).map((orgEntity) =>
       constructOrg({
-        subgraph,
+        subgraph: subgraphAndPermissions.subgraph,
         orgEntity: orgEntity as Entity<OrgProperties>,
       }),
     );
-  }, [subgraph]);
+  }, [subgraphAndPermissions]);
 
   return {
     loading,

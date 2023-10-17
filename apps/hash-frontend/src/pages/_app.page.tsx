@@ -223,7 +223,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         query: meQuery,
         context: { headers: { cookie } },
       })
-      .then(({ data }) => data.me as Subgraph<EntityRootType>)
+      .then(({ data }) => data.me.subgraph as Subgraph<EntityRootType>)
       .catch(() => undefined),
     fetchKratosSession(cookie),
   ]);

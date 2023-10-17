@@ -146,7 +146,6 @@ export class SearchLoader {
 
       if (!entityType) {
         logger.error(
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `Could not find entity type with entityTypeVersionId "${entity.entityTypeVersionId}"`,
         );
         return;

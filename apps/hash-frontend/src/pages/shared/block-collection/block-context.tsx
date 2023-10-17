@@ -1,4 +1,5 @@
-import { EntityRootType, Subgraph } from "@blockprotocol/graph/temporal";
+import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   createContext,
   Dispatch,
@@ -16,6 +17,8 @@ export type BlockContextType = {
   setBlockSubgraph: Dispatch<
     SetStateAction<Subgraph<EntityRootType> | undefined>
   >;
+  userPermissions: UserPermissionsOnEntities | undefined;
+  setUserPermissions: (permissions: UserPermissionsOnEntities) => void;
 };
 
 export const BlockContext = createContext<BlockContextType | null>(null);
@@ -35,6 +38,9 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
   const [blockSubgraph, setBlockSubgraph] = useState<
     Subgraph<EntityRootType> | undefined
   >();
+  const [userPermissions, setUserPermissions] = useState<
+    UserPermissionsOnEntities | undefined
+  >();
 
   const context = useMemo<BlockContextType>(
     () => ({
@@ -42,8 +48,17 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
       setError,
       blockSubgraph,
       setBlockSubgraph,
+      userPermissions,
+      setUserPermissions,
     }),
-    [error, setError, blockSubgraph, setBlockSubgraph],
+    [
+      error,
+      setError,
+      blockSubgraph,
+      setBlockSubgraph,
+      userPermissions,
+      setUserPermissions,
+    ],
   );
 
   return (

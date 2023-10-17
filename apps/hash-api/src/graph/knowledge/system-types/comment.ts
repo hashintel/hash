@@ -10,11 +10,14 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
+  addEntityOwner,
+  addEntityViewer,
   createEntity,
   CreateEntityParams,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  removeEntityOwner,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -148,7 +151,7 @@ export const createComment: ImpureGraphFunction<
     }),
   ]);
 
-  await Promise.all([
+  const linkEntities = await Promise.all([
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
       leftEntityId: commentEntity.metadata.recordId.entityId,
@@ -168,6 +171,37 @@ export const createComment: ImpureGraphFunction<
       ownedById,
     }),
   ]);
+
+  if (author.accountId !== ownedById) {
+    /**
+     * If this is a comment on an org's entity, we want the comment to belong to the org's web,
+     * represented by the ownedById (to be renamed to webId for clarity, see H-1063).
+     *
+     * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
+     * to be viewers only, so that they cannot edit each other's comments.
+     *
+     * Once H-1064 is complete we can specify the comment owner on creation, distinct from the webId/ownedById,
+     * which means that this can be reduced to only adding viewer permissions for the ownedById.
+     */
+    await Promise.all(
+      [textEntity, commentEntity, ...linkEntities].map(async (entity) => {
+        await Promise.all([
+          addEntityOwner(ctx, authentication, {
+            entityId: entity.metadata.recordId.entityId,
+            owner: author.accountId,
+          }),
+          await removeEntityOwner(ctx, authentication, {
+            entityId: entity.metadata.recordId.entityId,
+            owner: ownedById,
+          }),
+          await addEntityViewer(ctx, authentication, {
+            entityId: entity.metadata.recordId.entityId,
+            viewer: ownedById,
+          }),
+        ]);
+      }),
+    );
+  }
 
   return getCommentFromEntity({ entity: commentEntity });
 };

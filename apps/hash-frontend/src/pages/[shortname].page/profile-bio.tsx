@@ -332,7 +332,7 @@ export const ProfileBio: FunctionComponent<{
                   entityId={
                     profile.hasBio.profileBioEntity.metadata.recordId.entityId
                   }
-                  readonly={!isEditable || !isEditing}
+                  isReadOnly={!isEditable || !isEditing}
                   sx={{
                     ".ProseMirror": {
                       paddingLeft: isEditing ? 1 : 0,

@@ -81,4 +81,6 @@ export type Permissions = {
   edit: boolean;
 };
 
-export type UserPermissionsOnEntities = Record<EntityId, Permissions>;
+export type UserPermissionsOnEntities = {
+  [key: EntityId]: Permissions | undefined;
+};

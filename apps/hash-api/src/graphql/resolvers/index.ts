@@ -1,13 +1,6 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import {
-  EntityAuthorizationSubject,
-  MutationResolvers,
-  QueryResolvers,
-  ResolverFn,
-  Resolvers,
-} from "../api-types.gen";
-import { GraphQLContext } from "../context";
+import { EntityAuthorizationSubject, Resolvers } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -56,6 +49,7 @@ import {
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
+import { canUserEdit } from "./knowledge/shared/can-user-edit";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
 import { loggedInMiddleware } from "./middlewares/logged-in";
@@ -78,16 +72,7 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
-export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
-  Query: Record<
-    keyof QueryResolvers,
-    ResolverFn<any, any, GraphQLContext, any>
-  >;
-  Mutation: Record<
-    keyof MutationResolvers,
-    ResolverFn<any, any, GraphQLContext, any>
-  >;
-} = {
+export const resolvers: Resolvers = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
@@ -106,6 +91,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypes: loggedInAndSignedUpMiddleware(queryEntityTypesResolver),
     getEntityType: getEntityTypeResolver,
     // Knowledge
+    // @ts-expect-error –– canUserEdit and contents are resolved separately
     page: pageResolver,
     pages: loggedInAndSignedUpMiddleware(pagesResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
@@ -185,6 +171,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   JSONObject: JSONObjectResolver,
 
   Page: {
+    canUserEdit,
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
     // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver
@@ -197,6 +184,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   },
 
   Comment: {
+    canUserEdit,
     hasText: commentHasTextResolver,
     textUpdatedAt: commentTextUpdatedAtResolver,
     parent: commentParentResolver,

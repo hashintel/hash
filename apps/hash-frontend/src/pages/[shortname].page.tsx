@@ -33,11 +33,9 @@ import {
   parseProfilePageUrlQueryParams,
   ProfilePageTab,
 } from "./[shortname].page/util";
-import { useAuthenticatedUser } from "./shared/auth-info-context";
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { authenticatedUser } = useAuthenticatedUser();
   const { entityTypes } = useEntityTypesContextRequired();
 
   const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
@@ -47,25 +45,27 @@ const ProfilePage: NextPageWithLayout = () => {
   const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] =
     useState(false);
 
-  const { userOrOrg, userOrOrgSubgraph, loading, refetch } = useUserOrOrg({
-    shortname: profileShortname,
-    graphResolveDepths: {
-      // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
-    },
-    /**
-     * We need to obtain all revisions of the user or org entity
-     * to determine when the user joined or the org was created.
-     */
-    temporalAxes: {
-      pinned: { axis: "transactionTime", timestamp: null },
-      variable: {
-        axis: "decisionTime",
-        interval: { start: { kind: "unbounded" }, end: null },
+  const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
+    useUserOrOrg({
+      shortname: profileShortname,
+      graphResolveDepths: {
+        // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
+        hasLeftEntity: { incoming: 1, outgoing: 1 },
+        hasRightEntity: { incoming: 1, outgoing: 1 },
       },
-    },
-  });
+      includePermissions: true,
+      /**
+       * We need to obtain all revisions of the user or org entity
+       * to determine when the user joined or the org was created.
+       */
+      temporalAxes: {
+        pinned: { axis: "transactionTime", timestamp: null },
+        variable: {
+          axis: "decisionTime",
+          interval: { start: { kind: "unbounded" }, end: null },
+        },
+      },
+    });
 
   const profile = useMemo(() => {
     if (!userOrOrgSubgraph || !userOrOrg) {
@@ -86,18 +86,6 @@ const ProfilePage: NextPageWithLayout = () => {
       subgraph: userOrOrgSubgraph,
     });
   }, [userOrOrgSubgraph, userOrOrg]);
-
-  const isEditable = useMemo(
-    () =>
-      profile
-        ? profile.kind === "user"
-          ? profile.accountId === authenticatedUser.accountId
-          : profile.memberships.some(
-              ({ user }) => user.accountId === authenticatedUser.accountId,
-            )
-        : false,
-    [profile, authenticatedUser],
-  );
 
   const profileNotFound = !profile && !loading;
 
@@ -255,7 +243,7 @@ const ProfilePage: NextPageWithLayout = () => {
     <>
       <ProfilePageHeader
         profile={profile}
-        isEditable={isEditable}
+        isEditable={canUserEdit}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         tabs={tabsWithEntities}
         currentTab={currentTab}
@@ -263,7 +251,7 @@ const ProfilePage: NextPageWithLayout = () => {
       />
       <ProfilePageContent
         profile={profile}
-        isEditable={isEditable}
+        isEditable={canUserEdit}
         refetchProfile={refetchProfile}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}

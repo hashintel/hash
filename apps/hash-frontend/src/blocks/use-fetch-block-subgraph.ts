@@ -1,8 +1,11 @@
+import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   EntityId,
   EntityRevisionId,
+  EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   RecordCreatedById,
@@ -11,10 +14,27 @@ import {
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import { useBlockProtocolGetEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+  SubgraphAndPermissions,
+} from "../graphql/api-types.gen";
+import { getEntityQuery } from "../graphql/queries/knowledge/entity.queries";
 
-export const useFetchBlockSubgraph = () => {
-  const { getEntity } = useBlockProtocolGetEntity();
+export const useFetchBlockSubgraph = (): ((
+  blockEntityTypeId: VersionedUrl,
+  blockEntityId?: EntityId,
+) => Promise<
+  Omit<SubgraphAndPermissions, "subgraph"> & {
+    subgraph: Subgraph<EntityRootType>;
+  }
+>) => {
+  const [getEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
   const fetchBlockSubgraph = useCallback(
     async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
@@ -118,22 +138,35 @@ export const useFetchBlockSubgraph = () => {
           },
         };
 
-        return blockEntitySubgraph;
+        return {
+          subgraph: blockEntitySubgraph as Subgraph<EntityRootType>,
+          permissionsOnEntities: {},
+        } satisfies SubgraphAndPermissions;
       }
 
       return getEntity({
-        data: { entityId: blockEntityId },
+        variables: {
+          entityId: blockEntityId,
+          includePermissions: true,
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+        },
       })
-        .then(({ data, errors }) => {
+        .then(({ data, error }) => {
           if (!data) {
             throw new Error(
-              `Could not get entity ${blockEntityId} ${
-                errors ? JSON.stringify(errors, null, 2) : ""
+              `Could not get entity ${blockEntityId}: ${
+                error ? error.message : "unknown error"
               }`,
             );
           }
 
-          return data;
+          return {
+            subgraph: data.getEntity.subgraph as Subgraph<EntityRootType>,
+            permissionsOnEntities: data.getEntity.permissionsOnEntities!,
+          } satisfies SubgraphAndPermissions;
         })
         .catch((err) => {
           // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors

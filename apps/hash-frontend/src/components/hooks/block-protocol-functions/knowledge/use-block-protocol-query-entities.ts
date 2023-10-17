@@ -67,8 +67,7 @@ export const useBlockProtocolQueryEntities = (): {
       }
 
       return {
-        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.queryEntities as Subgraph<EntityRootType>,
+        data: response.queryEntities.subgraph as Subgraph<EntityRootType>,
       };
     },
     [queryFn],

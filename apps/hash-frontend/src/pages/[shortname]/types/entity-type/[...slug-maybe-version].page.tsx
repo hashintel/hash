@@ -32,7 +32,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
-import { useIsReadonlyModeForResource } from "../../../../shared/readonly-mode";
+import { useIsReadonlyModeForType } from "../../../../shared/readonly-mode";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { ArchiveMenuItem } from "../../shared/archive-menu-item";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
@@ -131,7 +131,7 @@ const Page: NextPageWithLayout = () => {
     $id: entityType?.$id,
   });
 
-  const userUnauthorized = useIsReadonlyModeForResource(
+  const userUnauthorized = useIsReadonlyModeForType(
     routeNamespace?.accountId as OwnedById,
   );
 

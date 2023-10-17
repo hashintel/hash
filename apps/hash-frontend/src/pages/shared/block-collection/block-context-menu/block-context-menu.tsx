@@ -1,8 +1,4 @@
 import {
-  EntityRootType as EntityRootTypeBp,
-  Subgraph as SubgraphBp,
-} from "@blockprotocol/graph/temporal";
-import {
   faCopy,
   faMessage,
   faPenToSquare,
@@ -20,7 +16,6 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
@@ -206,9 +201,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
       recordId.entityId,
     );
 
-    setBlockSubgraph(
-      newBlockSubgraph as unknown as SubgraphBp<EntityRootTypeBp>,
-    );
+    setBlockSubgraph(newBlockSubgraph.subgraph);
     setEntityEditorOpen(false);
   };
 
@@ -220,7 +213,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
           onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
-            blockSubgraph as unknown as Subgraph<EntityRootType>
+            blockSubgraph
           }
           onSubmit={handleEntityModalSubmit}
         />

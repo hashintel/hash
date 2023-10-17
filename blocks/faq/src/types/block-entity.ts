@@ -12,7 +12,7 @@ export type AnswerPropertyValue = Text;
 /**
  * Defines whether or not toggles should be displayed on questions to show/hide their respective answer.
  */
-export type AnswerVisibilityIsConfigurablePropertyValue = Boolean;
+export type AnswerVisibilityIsConfigurablePropertyValue = boolean;
 
 export type BlockEntity = FAQBlock;
 
@@ -92,7 +92,7 @@ export type QuestionPropertyValue = Text;
 /**
  * Defines whether or not sections should be numbered.
  */
-export type SectionsShouldBeNumberedPropertyValue = Boolean;
+export type SectionsShouldBeNumberedPropertyValue = boolean;
 
 /**
  * An ordered sequence of characters

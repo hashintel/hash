@@ -80,7 +80,6 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
     throw err;
   });

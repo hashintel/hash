@@ -10,7 +10,7 @@ export const MdxVideo: FunctionComponent<{
     title,
     style: {
       height: "100%",
-      position: "absolute" as "absolute",
+      position: "absolute" as const,
       top: 0,
       left: 0,
       width: "100%",

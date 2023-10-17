@@ -85,7 +85,9 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const user = getRoots(data.queryEntities as Subgraph<EntityRootType>)[0];
+    const user = getRoots(
+      data.queryEntities.subgraph as Subgraph<EntityRootType>,
+    )[0];
 
     if (!user) {
       setError("User not found");

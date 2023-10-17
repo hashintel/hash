@@ -394,7 +394,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity: Entity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
-      value: PropertyValue | undefined | undefined;
+      value: PropertyValue | undefined;
     }[];
   },
   Promise<Entity>
