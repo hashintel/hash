@@ -63,6 +63,7 @@ import {
   QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryStructuralQueryEntitiesArgs,
+  AccountGroupAuthorizationSubjectRelation,
   ResolverFn,
 } from "../../../api-types.gen";
 import {
@@ -538,7 +539,10 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
         : EntityAuthorizationRelation.Viewer,
     subject:
       subject.namespace === "accountGroup"
-        ? { accountGroupId: subject.id }
+        ? {
+            accountGroupId: subject.id,
+            relation: AccountGroupAuthorizationSubjectRelation.Member,
+          }
         : subject.namespace === "account"
         ? { accountId: subject.id }
         : { public: true },
