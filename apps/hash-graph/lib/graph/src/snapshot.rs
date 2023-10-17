@@ -23,7 +23,7 @@ use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation, EntityRelation,
+        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation, EntityRelationSubject,
         OwnerId, WebNamespace, WebRelation,
     },
     zanzibar::{
@@ -437,7 +437,7 @@ where
                             },
                             link_data: entity.link_data,
                             relations: authorization_api
-                                .read_relations::<(EntityUuid, EntityRelation)>(
+                                .read_relations::<(EntityUuid, EntityRelationSubject)>(
                                     RelationshipFilter::from_object(
                                         entity.metadata.record_id().entity_id.entity_uuid,
                                     ),

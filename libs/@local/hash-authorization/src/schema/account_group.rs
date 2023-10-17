@@ -51,6 +51,7 @@ impl Affiliation<AccountGroupId> for AccountGroupRelation {}
 impl Relation<AccountGroupId> for AccountGroupRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
     AddOwner,

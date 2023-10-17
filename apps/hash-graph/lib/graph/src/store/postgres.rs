@@ -5,9 +5,11 @@ mod migration;
 mod pool;
 mod query;
 mod traversal_context;
-
 use async_trait::async_trait;
-use authorization::{schema::OwnerId, AuthorizationApi, EntitySubject};
+use authorization::{
+    schema::{EntitySubject, OwnerId},
+    AuthorizationApi,
+};
 use error_stack::{Report, Result, ResultExt};
 #[cfg(hash_graph_test_environment)]
 use graph_types::knowledge::{
@@ -361,7 +363,7 @@ where
 
         let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
-            Ok(EntitySubject::AccountGroupMembers(AccountGroupId::new(
+            Ok(EntitySubject::AccountGroup(AccountGroupId::new(
                 owned_by_uuid,
             )))
         } else {

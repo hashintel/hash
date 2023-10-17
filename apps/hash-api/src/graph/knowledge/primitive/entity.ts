@@ -1,5 +1,6 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityPermission,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
@@ -701,27 +702,38 @@ export const removeEntityViewer: ImpureGraphFunction<
   await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
 };
 
-export const canViewEntity: ImpureGraphFunction<
-  { entityId: EntityId },
+export const checkEntityPermission: ImpureGraphFunction<
+  { entityId: EntityId; permission: EntityPermission },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .canViewEntity(actorId, params.entityId)
+    .checkEntityPermission(actorId, params.entityId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const canViewEntity: ImpureGraphFunction<
+  { entityId: EntityId },
+  Promise<boolean>
+> = async (ctx, authentication, params) =>
+  checkEntityPermission(ctx, authentication, { permission: "view", ...params });
 
 export const canUpdateEntity: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .canUpdateEntity(actorId, params.entityId)
-    .then(({ data }) => data.has_permission);
+> = async (ctx, authentication, params) =>
+  checkEntityPermission(ctx, authentication, {
+    permission: "update",
+    ...params,
+  });
 
 export const isEntityPublic: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<boolean>
 > = async (ctx, _, params) =>
-  canViewEntity(ctx, { actorId: publicUserAccountId }, params);
+  checkEntityPermission(
+    ctx,
+    { actorId: publicUserAccountId },
+    { permission: "view", ...params },
+  );
 
 export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },
@@ -730,8 +742,11 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityAuthorizationRelationships(actorId, params.entityId)
     .then(({ data }) =>
-      data.map((relationship) => ({
-        object: params.entityId,
-        ...relationship,
-      })),
+      data.map(
+        (relationship) =>
+          ({
+            object: params.entityId,
+            ...relationship.relationSubject,
+          }) as EntityAuthorizationRelationship,
+      ),
     );

@@ -332,101 +332,13 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/permissions/add_admin": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "can_add_group_admin",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to add the admin to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can add an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/account_groups/{account_group_id}/permissions/add_member": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "can_add_group_member",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to add the member to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can add an member",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
     "/account_groups/{account_group_id}/permissions/add_owner": {
       "get": {
         "tags": [
           "Graph",
           "Account Group"
         ],
-        "operationId": "can_add_group_owner",
+        "operationId": "check_account_group_permission",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -440,148 +352,25 @@
           {
             "name": "account_group_id",
             "in": "path",
-            "description": "The ID of the account group to add the owner to",
+            "description": "The ID of the account group to check if the actor has the permission",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/AccountGroupId"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "path",
+            "description": "The permission to check for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityPermission"
             }
           }
         ],
         "responses": {
           "200": {
             "description": "Information if the actor can add an owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/account_groups/{account_group_id}/permissions/remove_admin": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "can_remove_group_admin",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to remove the admin from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can remove an admin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/account_groups/{account_group_id}/permissions/remove_member": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "can_remove_group_member",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to remove the member from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can remove an member",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/account_groups/{account_group_id}/permissions/remove_owner": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Account Group"
-        ],
-        "operationId": "can_remove_group_owner",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "account_group_id",
-            "in": "path",
-            "description": "The ID of the account group to remove the owner from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can remove an owner",
             "content": {
               "application/json": {
                 "schema": {
@@ -1269,13 +1058,13 @@
         }
       }
     },
-    "/entities/{entity_id}/permissions/update": {
+    "/entities/{entity_id}/permissions/{permission}": {
       "get": {
         "tags": [
           "Graph",
           "Entity"
         ],
-        "operationId": "can_update_entity",
+        "operationId": "check_entity_permission",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1289,60 +1078,25 @@
           {
             "name": "entity_id",
             "in": "path",
-            "description": "The entity ID to check if the actor can update",
+            "description": "The entity ID to check if the actor has the permission",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/EntityId"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can update the entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/permissions/view": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "can_view_entity",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
           },
           {
-            "name": "entity_id",
+            "name": "permission",
             "in": "path",
-            "description": "The entity ID to check if the actor can view",
+            "description": "The permission to check for",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/EntityId"
+              "$ref": "#/components/schemas/EntityPermission"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Information if the actor can view the entity",
+            "description": "Information if the actor has the permission for the entity",
             "content": {
               "application/json": {
                 "schema": {
@@ -2186,6 +1940,59 @@
           }
         }
       }
+    },
+    "/webs/{web_id}/permissions/{permission}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "check_web_permission",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The web ID to check if the actor has the permission",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "path",
+            "description": "The permission to check for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityPermission"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information if the actor has the permission for the web",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2193,6 +2000,18 @@
       "AccountGroupId": {
         "type": "string",
         "format": "uuid"
+      },
+      "AccountGroupPermission": {
+        "type": "string",
+        "enum": [
+          "add_owner",
+          "remove_owner",
+          "add_admin",
+          "remove_admin",
+          "add_member",
+          "remove_member",
+          "member"
+        ]
       },
       "AccountId": {
         "type": "string",
@@ -2555,15 +2374,11 @@
       "EntityAuthorizationRelationship": {
         "type": "object",
         "required": [
-          "relation",
-          "subject"
+          "relationSubject"
         ],
         "properties": {
-          "relation": {
-            "$ref": "#/components/schemas/EntityObjectRelation"
-          },
-          "subject": {
-            "$ref": "#/components/schemas/EntitySubject"
+          "relationSubject": {
+            "$ref": "#/components/schemas/EntityRelationSubject"
           }
         }
       },
@@ -2571,15 +2386,16 @@
         "oneOf": [
           {
             "type": "object",
+            "title": "EntityDirectEditorSubjectAccount",
             "required": [
               "id",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2589,44 +2405,46 @@
           },
           {
             "type": "object",
+            "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
               "id",
               "relation",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "type"
+          "propertyName": "namespace"
         }
       },
       "EntityDirectOwnerSubject": {
         "oneOf": [
           {
             "type": "object",
+            "title": "EntityDirectOwnerSubjectAccount",
             "required": [
               "id",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2636,40 +2454,42 @@
           },
           {
             "type": "object",
+            "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
               "id",
               "relation",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "type"
+          "propertyName": "namespace"
         }
       },
       "EntityDirectViewerSubject": {
         "oneOf": [
           {
             "type": "object",
+            "title": "EntityDirectViewerSubjectPublic",
             "required": [
-              "type"
+              "namespace"
             ],
             "properties": {
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "public"
@@ -2679,15 +2499,16 @@
           },
           {
             "type": "object",
+            "title": "EntityDirectViewerSubjectAccount",
             "required": [
               "id",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2697,29 +2518,30 @@
           },
           {
             "type": "object",
+            "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
               "id",
               "relation",
-              "type"
+              "namespace"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              },
-              "type": {
+              "namespace": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "relation": {
+                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "type"
+          "propertyName": "namespace"
         }
       },
       "EntityEditionId": {
@@ -2799,6 +2621,13 @@
           "direct_viewer"
         ]
       },
+      "EntityPermission": {
+        "type": "string",
+        "enum": [
+          "update",
+          "view"
+        ]
+      },
       "EntityProperties": {
         "type": "object",
         "description": "The properties of an entity.\n\nWhen expressed as JSON, this should validate against its respective entity type(s)."
@@ -2837,70 +2666,64 @@
           }
         }
       },
-      "EntityRelation": {
+      "EntityRelationSubject": {
         "oneOf": [
           {
-            "allOf": [
-              {
+            "type": "object",
+            "title": "EntityRelationDirectOwner",
+            "required": [
+              "relation",
+              "subject"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "directOwner"
+                ]
+              },
+              "subject": {
                 "$ref": "#/components/schemas/EntityDirectOwnerSubject"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "relation"
-                ],
-                "properties": {
-                  "relation": {
-                    "type": "string",
-                    "enum": [
-                      "directOwner"
-                    ]
-                  }
-                }
               }
-            ]
+            }
           },
           {
-            "allOf": [
-              {
+            "type": "object",
+            "title": "EntityRelationDirectEditor",
+            "required": [
+              "relation",
+              "subject"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "directEditor"
+                ]
+              },
+              "subject": {
                 "$ref": "#/components/schemas/EntityDirectEditorSubject"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "relation"
-                ],
-                "properties": {
-                  "relation": {
-                    "type": "string",
-                    "enum": [
-                      "directEditor"
-                    ]
-                  }
-                }
               }
-            ]
+            }
           },
           {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityDirectViewerSubject"
+            "type": "object",
+            "title": "EntityRelationDirectViewer",
+            "required": [
+              "relation",
+              "subject"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "directViewer"
+                ]
               },
-              {
-                "type": "object",
-                "required": [
-                  "relation"
-                ],
-                "properties": {
-                  "relation": {
-                    "type": "string",
-                    "enum": [
-                      "directViewer"
-                    ]
-                  }
-                }
+              "subject": {
+                "$ref": "#/components/schemas/EntityDirectViewerSubject"
               }
-            ]
+            }
           }
         ],
         "discriminator": {
@@ -2930,7 +2753,7 @@
         "oneOf": [
           {
             "type": "object",
-            "title": "PublicSubject",
+            "title": "EntitySubjectPublic",
             "required": [
               "type"
             ],
@@ -2945,7 +2768,7 @@
           },
           {
             "type": "object",
-            "title": "AccountSubject",
+            "title": "EntitySubjectAccount",
             "required": [
               "type",
               "id"
@@ -2964,7 +2787,7 @@
           },
           {
             "type": "object",
-            "title": "AccountGroupMembersSubject",
+            "title": "EntitySubjectAccountGroup",
             "required": [
               "type",
               "id"
@@ -2976,7 +2799,7 @@
               "type": {
                 "type": "string",
                 "enum": [
-                  "accountGroupMembers"
+                  "accountGroup"
                 ]
               }
             }
@@ -4448,6 +4271,12 @@
           {
             "$ref": "#/components/schemas/OwnedById"
           }
+        ]
+      },
+      "WebPermission": {
+        "type": "string",
+        "enum": [
+          "create_entity"
         ]
       }
     }

@@ -3,8 +3,8 @@ import {
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
-import { EntityRelation, EntitySubject } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
+import { EntityRelationSubject } from "@local/hash-graph-client";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
 
@@ -94,14 +94,20 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
 ) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
 
-export type AuthorizationRelationship<O, R, S> = {
-  object: O;
-  relation: R;
-  subject: S;
-};
+/** Replaces the `id` field of a subject with `AccountId` or `AccountGroupId` if `namespace` is `account` or `accountGroup` */
+type BrandAccounts<T> = T extends Extract<T, { namespace: "account" }>
+  ? Omit<Extract<T, { namespace: "account" }>, "id"> & { id: AccountId }
+  : T extends Extract<T, { namespace: "accountGroup" }>
+  ? Omit<Extract<T, { namespace: "accountGroup" }>, "id"> & {
+      id: AccountGroupId;
+    }
+  : T;
 
-export type EntityAuthorizationRelationship = AuthorizationRelationship<
-  EntityId,
-  EntityRelation,
-  EntitySubject
->;
+/** Wrapper for `Subject` types that adds a `subject` field of type `Account` or `AccountGroup` */
+type BrandSubject<T extends { subject: {} }> = {
+  subject: BrandAccounts<T["subject"]>;
+} & Omit<T, "subject">;
+
+export type EntityAuthorizationRelationship = {
+  object: EntityId;
+} & BrandSubject<EntityRelationSubject>;
