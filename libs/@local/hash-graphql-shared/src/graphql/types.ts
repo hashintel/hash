@@ -78,7 +78,10 @@ export type ConstructEntityTypeParams = Omit<
 
 export type Permissions = {
   view: boolean;
+  viewPermissions: boolean;
   edit: boolean;
+  editMembers: boolean | null;
+  editPermissions: boolean;
 };
 
 export type UserPermissionsOnEntities = {

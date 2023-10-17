@@ -40,6 +40,7 @@ import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
+import { SYSTEM_TYPES } from "../../system-types";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
@@ -725,23 +726,40 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 > = async (graphContext, { actorId }, params) => {
   const { subgraph } = params;
 
-  const entityIds: EntityId[] = [];
+  const entities: { entityId: EntityId; isAccountGroup: boolean }[] = [];
   for (const vertex of Object.values(subgraph.vertices)) {
     const sampleEdition = Object.values(vertex)[0];
     if (isEntityVertex(sampleEdition)) {
-      entityIds.push(sampleEdition.inner.metadata.recordId.entityId);
+      const isAccountGroup =
+        sampleEdition.inner.metadata.entityTypeId ===
+        SYSTEM_TYPES.entityType.org.schema.$id;
+      entities.push({
+        entityId: sampleEdition.inner.metadata.recordId.entityId,
+        isAccountGroup,
+      });
     }
   }
 
   const permissionsOnEntities: UserPermissionsOnEntities = {};
   await Promise.all(
-    entityIds.map(async (entityId) => {
+    entities.map(async ({ entityId, isAccountGroup }) => {
       const editable =
         actorId === publicUserAccountId
           ? // Don't bother slowing down the request if this is an unauthenticated user
             false
           : await canUpdateEntity(graphContext, { actorId }, { entityId });
-      permissionsOnEntities[entityId] = { edit: editable, view: true };
+
+      permissionsOnEntities[entityId] = {
+        edit: editable,
+        view: true,
+        editPermissions: editable,
+        viewPermissions: editable,
+        editMembers: isAccountGroup
+          ? await graphContext.graphApi
+              .canAddGroupMember(actorId, entityId)
+              .then(({ data }) => data.has_permission)
+          : null,
+      };
     }),
   );
 
