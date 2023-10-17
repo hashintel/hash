@@ -366,30 +366,27 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
                 EntityObjectRelation::DirectOwner,
                 match subject {
                     EntityDirectOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
-                    EntityDirectOwnerSubject::AccountGroup {
-                        id,
-                        relation: ,
-                    } => (EntitySubject::AccountGroup(id), Some(relation)),
+                    EntityDirectOwnerSubject::AccountGroup { id, relation } => {
+                        (EntitySubject::AccountGroup(id), Some(relation))
+                    }
                 },
             ),
             EntityRelationSubject::DirectEditor(subject) => (
                 EntityObjectRelation::DirectEditor,
                 match subject {
                     EntityDirectEditorSubject::Account { id } => (EntitySubject::Account(id), None),
-                    EntityDirectEditorSubject::AccountGroup {
-                        id,
-                        relation,
-                    } => (EntitySubject::AccountGroup(id), Some(relation)),
+                    EntityDirectEditorSubject::AccountGroup { id, relation } => {
+                        (EntitySubject::AccountGroup(id), Some(relation))
+                    }
                 },
             ),
             EntityRelationSubject::DirectViewer(subject) => (
                 EntityObjectRelation::DirectViewer,
                 match subject {
                     EntityDirectViewerSubject::Account { id } => (EntitySubject::Account(id), None),
-                    EntityDirectViewerSubject::AccountGroup {
-                        id,
-                        relation,
-                    } => (EntitySubject::AccountGroup(id), Some(relation)),
+                    EntityDirectViewerSubject::AccountGroup { id, relation } => {
+                        (EntitySubject::AccountGroup(id), Some(relation))
+                    }
                     EntityDirectViewerSubject::Public => (EntitySubject::Public, None),
                 },
             ),
