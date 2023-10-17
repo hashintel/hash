@@ -15,7 +15,9 @@ export const meQuery = gql`
       hasLeftEntity: { incoming: 1, outgoing: 0 }
       hasRightEntity: { incoming: 0, outgoing: 1 }
     ) {
-      ...SubgraphFields
+      subgraph {
+        ...SubgraphFields
+      }
     }
   }
   ${subgraphFieldsFragment}

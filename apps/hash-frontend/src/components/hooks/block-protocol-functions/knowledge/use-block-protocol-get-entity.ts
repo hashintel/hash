@@ -41,6 +41,7 @@ export const useBlockProtocolGetEntity = (): {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
           constrainsLinkDestinationsOn: { outgoing: 1 },
+          includePermissions: false,
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
@@ -49,9 +50,9 @@ export const useBlockProtocolGetEntity = (): {
         },
       });
 
-      const { getEntity: entitySubgraph } = response ?? {};
+      const { getEntity: subgraphAndPermissions } = response ?? {};
 
-      if (!entitySubgraph) {
+      if (!subgraphAndPermissions) {
         return {
           errors: [
             {
@@ -64,7 +65,7 @@ export const useBlockProtocolGetEntity = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: entitySubgraph as Subgraph<EntityRootType>,
+        data: subgraphAndPermissions.subgraph as Subgraph<EntityRootType>,
       };
     },
     [getEntityFn],

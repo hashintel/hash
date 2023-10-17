@@ -1,3 +1,4 @@
+import { useLazyQuery } from "@apollo/client";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
@@ -10,12 +11,16 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { useBlockProtocolGetEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolUpdateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "../../../graphql/api-types.gen";
+import { getEntityQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { generateEntityLabel } from "../../../lib/entities";
 import {
   getLayoutWithSidebar,
@@ -35,7 +40,9 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
   const { routeNamespace } = useRouteNamespace();
-  const { getEntity } = useBlockProtocolGetEntity();
+  const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+  );
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
@@ -58,6 +65,25 @@ const Page: NextPageWithLayout = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const getEntity = useCallback(
+    (accountId: OwnedById) =>
+      lazyGetEntity({
+        variables: {
+          entityId: entityIdFromOwnedByIdAndEntityUuid(accountId, entityUuid),
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
+          includePermissions: true,
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
+        },
+      }),
+    [entityUuid, lazyGetEntity],
+  );
+
   const [
     draftLinksToCreate,
     setDraftLinksToCreate,
@@ -69,19 +95,16 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const { data: subgraph } = await getEntity({
-            data: {
-              entityId: entityIdFromOwnedByIdAndEntityUuid(
-                routeNamespace.accountId as OwnedById,
-                entityUuid,
-              ),
-            },
-          });
+          const { data } = await getEntity(
+            routeNamespace.accountId as OwnedById,
+          );
 
-          if (subgraph) {
+          const subgraph = data?.getEntity.subgraph;
+
+          if (data?.getEntity) {
             try {
-              setEntitySubgraphFromDb(subgraph);
-              setDraftEntitySubgraph(subgraph);
+              setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
+              setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
             } catch {
               setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
@@ -101,21 +124,16 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const { data: subgraph } = await getEntity({
-      data: {
-        entityId: entityIdFromOwnedByIdAndEntityUuid(
-          routeNamespace.accountId as OwnedById,
-          entityUuid,
-        ),
-      },
-    });
+    const { data } = await getEntity(routeNamespace.accountId as OwnedById);
+
+    const subgraph = data?.getEntity.subgraph;
 
     if (!subgraph) {
       return;
     }
 
-    setEntitySubgraphFromDb(subgraph);
-    setDraftEntitySubgraph(subgraph);
+    setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
+    setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
   };
 
   const resetDraftState = () => {
