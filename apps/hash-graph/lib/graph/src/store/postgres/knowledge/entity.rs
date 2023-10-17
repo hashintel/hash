@@ -427,11 +427,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         let subject = match owner {
-            OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
-            OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
-                id,
-                relation: EntitySubjectSet::Member,
-            },
+            OwnerId::Account(account_id) => EntityDirectOwnerSubject::Account { account_id },
+            OwnerId::AccountGroupMembers(account_group_id) => {
+                EntityDirectOwnerSubject::AccountGroup {
+                    account_group_id,
+                    relation: EntitySubjectSet::Member,
+                }
+            }
         };
 
         authorization_api

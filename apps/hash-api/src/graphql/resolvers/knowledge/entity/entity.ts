@@ -541,11 +541,11 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     subject:
       subject.namespace === "accountGroup"
         ? {
-            accountGroupId: subject.id,
+            accountGroupId: subject.accountGroupId,
             relation: AccountGroupAuthorizationSubjectRelation.Member,
           }
         : subject.namespace === "account"
-        ? { accountId: subject.id }
+        ? { accountId: subject.accountId }
         : { public: true },
   }));
 };

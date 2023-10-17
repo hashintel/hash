@@ -96,10 +96,12 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
 
 /** Replaces the `id` field of a subject with `AccountId` or `AccountGroupId` if `namespace` is `account` or `accountGroup` */
 type BrandAccounts<T> = T extends Extract<T, { namespace: "account" }>
-  ? Omit<Extract<T, { namespace: "account" }>, "id"> & { id: AccountId }
+  ? Omit<Extract<T, { namespace: "account" }>, "accountId"> & {
+      accountId: AccountId;
+    }
   : T extends Extract<T, { namespace: "accountGroup" }>
-  ? Omit<Extract<T, { namespace: "accountGroup" }>, "id"> & {
-      id: AccountGroupId;
+  ? Omit<Extract<T, { namespace: "accountGroup" }>, "accountGroupId"> & {
+      accountGroupId: AccountGroupId;
     }
   : T;
 

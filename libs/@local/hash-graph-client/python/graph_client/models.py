@@ -62,13 +62,13 @@ class EdgeResolveDepths(BaseModel):
 
 class EntityDirectEditorSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
+    account_id: AccountId = Field(..., alias="accountId")
     namespace: Literal["account"]
 
 
 class EntityDirectOwnerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
+    account_id: AccountId = Field(..., alias="accountId")
     namespace: Literal["account"]
 
 
@@ -79,7 +79,7 @@ class EntityDirectViewerSubjectPublic(BaseModel):
 
 class EntityDirectViewerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
+    account_id: AccountId = Field(..., alias="accountId")
     namespace: Literal["account"]
 
 
@@ -621,7 +621,7 @@ class DataTypeVertexId(BaseModel):
 
 class EntityDirectEditorSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
+    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
     namespace: Literal["accountGroup"]
     relation: EntitySubjectSet
 
@@ -637,7 +637,7 @@ class EntityDirectEditorSubject(
 
 class EntityDirectOwnerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
+    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
     namespace: Literal["accountGroup"]
     relation: EntitySubjectSet
 
@@ -653,7 +653,7 @@ class EntityDirectOwnerSubject(
 
 class EntityDirectViewerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
+    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
     namespace: Literal["accountGroup"]
     relation: EntitySubjectSet
 

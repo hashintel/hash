@@ -2388,11 +2388,11 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccount",
             "required": [
-              "id",
+              "accountId",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountId": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2407,12 +2407,12 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
-              "id",
+              "accountGroupId",
               "relation",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountGroupId": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
@@ -2437,11 +2437,11 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccount",
             "required": [
-              "id",
+              "accountId",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountId": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2456,12 +2456,12 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
-              "id",
+              "accountGroupId",
               "relation",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountGroupId": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
@@ -2501,11 +2501,11 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccount",
             "required": [
-              "id",
+              "accountId",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountId": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2520,12 +2520,12 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
-              "id",
+              "accountGroupId",
               "relation",
               "namespace"
             ],
             "properties": {
-              "id": {
+              "accountGroupId": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
