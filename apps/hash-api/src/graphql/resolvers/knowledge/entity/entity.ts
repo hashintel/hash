@@ -531,15 +531,15 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   return relationships.map(({ object, relation, subject }) => ({
     objectEntityId: object,
     relation:
-      relation === "direct_editor"
+      relation === "directEditor"
         ? EntityAuthorizationRelation.Editor
-        : relation === "direct_owner"
+        : relation === "directOwner"
         ? EntityAuthorizationRelation.Owner
         : EntityAuthorizationRelation.Viewer,
     subject:
-      subject.type === "accountGroupMembers"
-        ? { accountGroupId: subject.id as AccountGroupId }
-        : subject.type === "account"
+      subject.namespace === "accountGroup"
+        ? { accountGroupId: subject.id }
+        : subject.namespace === "account"
         ? { accountId: subject.id as AccountId }
         : { public: true },
   }));
