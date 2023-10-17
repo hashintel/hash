@@ -1,5 +1,12 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  MutationResolvers,
+  QueryResolvers,
+  ResolverFn,
+  Resolvers,
+} from "../api-types.gen";
+import { GraphQLContext } from "../context";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -47,12 +54,10 @@ import {
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
-import { createUserResolver } from "./knowledge/user/create-user";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
 import { loggedInMiddleware } from "./middlewares/logged-in";
 import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { loggedInAndSignedUpHashInstanceAdminMiddleware } from "./middlewares/logged-in-and-signed-up-hash-instance-admin";
 import { getDataType, queryDataTypes } from "./ontology/data-type";
 import {
   archiveEntityTypeResolver,
@@ -71,8 +76,16 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
-/** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
-export const resolvers = {
+export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
+  Query: Record<
+    keyof QueryResolvers,
+    ResolverFn<any, any, GraphQLContext, any>
+  >;
+  Mutation: Record<
+    keyof MutationResolvers,
+    ResolverFn<any, any, GraphQLContext, any>
+  >;
+} = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
@@ -158,9 +171,6 @@ export const resolvers = {
       removeEntityViewerResolver,
     ),
 
-    // HASH instance admin mutations
-    createUser:
-      loggedInAndSignedUpHashInstanceAdminMiddleware(createUserResolver),
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
@@ -169,13 +179,15 @@ export const resolvers = {
 
   JSONObject: JSONObjectResolver,
 
-  // New knowledge field resolvers
   Page: {
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
+    // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver
     parentPage: parentPageResolver,
   },
 
   BlockCollection: {
+    // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: blockCollectionContents,
   },
 
@@ -184,6 +196,7 @@ export const resolvers = {
     textUpdatedAt: commentTextUpdatedAtResolver,
     parent: commentParentResolver,
     author: commentAuthorResolver,
+    // @ts-expect-error –– the type requires all comment fields returned, but many are dealt with in field resolvers above
     replies: commentRepliesResolver,
   },
 
