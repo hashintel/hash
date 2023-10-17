@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { useCallback, useState } from "react";
@@ -5,6 +6,12 @@ import { useCallback, useState } from "react";
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolFileUpload } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import {
+  AddEntityViewerMutation,
+  AddEntityViewerMutationVariables,
+  AuthorizationSubjectKind,
+} from "../../../graphql/api-types.gen";
+import { addEntityViewerMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { Org, User } from "../../../lib/user-and-org";
 import { useAuthInfo } from "../../shared/auth-info-context";
 
@@ -25,6 +32,11 @@ export const useUpdateProfileAvatar = (props: {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { uploadFile } = useBlockProtocolFileUpload(ownedById);
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
+
+  const [addEntityViewer] = useMutation<
+    AddEntityViewerMutation,
+    AddEntityViewerMutationVariables
+  >(addEntityViewerMutation);
 
   const updateProfileAvatar = useCallback(
     async (file: File) => {
@@ -65,6 +77,14 @@ export const useUpdateProfileAvatar = (props: {
         );
       }
 
+      /** @todo: make entity public as part of `createEntity` query once this is supported */
+      await addEntityViewer({
+        variables: {
+          entityId: fileUploadData.metadata.recordId.entityId as EntityId,
+          viewer: { kind: AuthorizationSubjectKind.Public },
+        },
+      });
+
       if (profile.hasAvatar) {
         // Delete the existing hasAvatar link, if any
         await archiveEntity({
@@ -75,7 +95,7 @@ export const useUpdateProfileAvatar = (props: {
       }
 
       // Create a new hasAvatar link from the org to the new file entity
-      await createEntity({
+      const hasAvatarLinkEntity = await createEntity({
         data: {
           entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
           linkData: {
@@ -84,6 +104,21 @@ export const useUpdateProfileAvatar = (props: {
               .entityId as EntityId,
           },
           properties: {},
+        },
+      }).then(({ data, errors }) => {
+        if (!data || errors) {
+          throw new Error(
+            `Error creating hasAvatar link: ${errors?.[0]?.message}`,
+          );
+        }
+        return data;
+      });
+
+      /** @todo: make entity public as part of `createEntity` query once this is supported */
+      await addEntityViewer({
+        variables: {
+          entityId: hasAvatarLinkEntity.metadata.recordId.entityId,
+          viewer: { kind: AuthorizationSubjectKind.Public },
         },
       });
 
@@ -94,6 +129,7 @@ export const useUpdateProfileAvatar = (props: {
       setNewAvatarImageUploading(false);
     },
     [
+      addEntityViewer,
       archiveEntity,
       createEntity,
       existingAvatarImageEntity,

@@ -26,6 +26,7 @@ import {
   checkEntityPermission,
   createEntityWithLinks,
   getEntities,
+  getEntityAuthorizationRelationships,
   getLatestEntityById,
   removeEntityEditor,
   removeEntityOwner,
@@ -45,6 +46,8 @@ import { genId } from "../../../../util";
 import {
   AuthorizationSubjectKind,
   AuthorizationViewerInput,
+  EntityAuthorizationRelation,
+  EntityAuthorizationRelationship,
   Mutation,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
@@ -510,3 +513,34 @@ export const isEntityPublicResolver: ResolverFn<
     { actorId: publicUserAccountId },
     { entityId, permission: "view" },
   );
+
+export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
+  EntityAuthorizationRelationship[],
+  {},
+  LoggedInGraphQLContext,
+  QueryIsEntityPublicArgs
+> = async (_, { entityId }, { dataSources, authentication }) => {
+  const context = dataSourcesToImpureGraphContext(dataSources);
+
+  const relationships = await getEntityAuthorizationRelationships(
+    context,
+    authentication,
+    { entityId },
+  );
+
+  return relationships.map(({ object, relation, subject }) => ({
+    objectEntityId: object,
+    relation:
+      relation === "direct_editor"
+        ? EntityAuthorizationRelation.Editor
+        : relation === "direct_owner"
+        ? EntityAuthorizationRelation.Owner
+        : EntityAuthorizationRelation.Viewer,
+    subject:
+      subject.type === "accountGroupMembers"
+        ? { accountGroupId: subject.id as AccountGroupId }
+        : subject.type === "account"
+        ? { accountId: subject.id as AccountId }
+        : { public: true },
+  }));
+};
