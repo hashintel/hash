@@ -63,6 +63,7 @@
     "express-http-proxy": "2.0.0",
     "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
+    "graphql-parse-resolve-info": "4.13.0",
     "graphql-scalars": "1.17.0",
     "helmet": "4.6.0",
     "hot-shots": "8.5.0",

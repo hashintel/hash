@@ -32,6 +32,9 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
+  UserPermissionsOnEntities:
+    "@local/hash-graphql-shared/graphql/types#UserPermissionsOnEntities",
+
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",
   Vertices: "@local/hash-subgraph#Vertices",

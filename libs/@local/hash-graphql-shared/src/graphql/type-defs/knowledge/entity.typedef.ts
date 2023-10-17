@@ -9,6 +9,12 @@ export const entityTypedef = gql`
   scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
+  scalar UserPermissionsOnEntities
+
+  type SubgraphAndPermissions {
+    permissionsOnEntities: UserPermissionsOnEntities!
+    subgraph: Subgraph!
+  }
 
   input LinkedEntityDefinition {
     destinationAccountId: AccountId!
@@ -154,9 +160,11 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
-    ): Subgraph!
+    ): SubgraphAndPermissions!
 
-    structuralQueryEntities(query: EntityStructuralQuery!): Subgraph!
+    structuralQueryEntities(
+      query: EntityStructuralQuery!
+    ): SubgraphAndPermissions!
 
     """
     Get a subgraph rooted at an entity resolved by its id.
@@ -178,7 +186,7 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
-    ): Subgraph!
+    ): SubgraphAndPermissions!
 
     isEntityPublic(entityId: EntityId!): Boolean!
 

@@ -4,6 +4,7 @@ import {
   Filter,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
+import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -22,6 +23,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  isEntityVertex,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -716,6 +718,35 @@ export const canUpdateEntity: ImpureGraphFunction<
   graphApi
     .canUpdateEntity(actorId, params.entityId)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
+  { subgraph: Subgraph },
+  Promise<UserPermissionsOnEntities>
+> = async (graphContext, { actorId }, params) => {
+  const { subgraph } = params;
+
+  const entityIds: EntityId[] = [];
+  for (const vertex of Object.values(subgraph.vertices)) {
+    const sampleEdition = Object.values(vertex)[0];
+    if (isEntityVertex(sampleEdition)) {
+      entityIds.push(sampleEdition.inner.metadata.recordId.entityId);
+    }
+  }
+
+  const permissionsOnEntities: UserPermissionsOnEntities = {};
+  await Promise.all(
+    entityIds.map(async (entityId) => {
+      const editable =
+        actorId === publicUserAccountId
+          ? // Don't bother slowing down the request if this is an unauthenticated user
+            false
+          : await canUpdateEntity(graphContext, { actorId }, { entityId });
+      permissionsOnEntities[entityId] = { edit: editable, view: true };
+    }),
+  );
+
+  return permissionsOnEntities;
+};
 
 export const isEntityPublic: ImpureGraphFunction<
   { entityId: EntityId },

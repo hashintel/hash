@@ -75,3 +75,10 @@ export type ConstructEntityTypeParams = Omit<
   EntityType,
   SystemDefinedProperties
 >;
+
+export type Permissions = {
+  view: boolean;
+  edit: boolean;
+};
+
+export type UserPermissionsOnEntities = Record<EntityId, Permissions>;
