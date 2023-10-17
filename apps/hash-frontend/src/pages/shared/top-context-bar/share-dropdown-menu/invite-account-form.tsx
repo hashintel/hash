@@ -25,9 +25,9 @@ export const InviteAccountForm: FunctionComponent<{
   excludeAccountIds?: (AccountId | AccountGroupId)[];
   onInviteAccount: (account: MinimalOrg | MinimalUser) => void;
 }> = ({ onInviteAccount, excludeAccountIds }) => {
-  const [selectedAccount, setSelectedAccount] = useState<User | Org | null>(
-    null,
-  );
+  const [selectedAccount, setSelectedAccount] = useState<
+    User | MinimalUser | Org | MinimalOrg | null
+  >(null);
 
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -44,7 +44,7 @@ export const InviteAccountForm: FunctionComponent<{
 
   const options = useMemo(
     () =>
-      [...(users ?? []), ...(orgs ?? [])].filter(
+      [...(users ?? minimalUsers ?? []), ...(orgs ?? minimalOrgs ?? [])].filter(
         (account) =>
           !excludeAccountIds ||
           !excludeAccountIds.includes(
@@ -53,7 +53,7 @@ export const InviteAccountForm: FunctionComponent<{
               : account.accountGroupId,
           ),
       ),
-    [excludeAccountIds, orgs, users],
+    [excludeAccountIds, orgs, minimalOrgs, users, minimalUsers],
   );
 
   const handleSubmit = useCallback(
@@ -76,7 +76,7 @@ export const InviteAccountForm: FunctionComponent<{
       columnGap={0.75}
       onSubmit={handleSubmit}
     >
-      <Autocomplete<User | Org | null, false, false>
+      <Autocomplete<User | MinimalUser | Org | MinimalOrg | null, false, false>
         inputProps={{
           endAdornment: null,
         }}
@@ -105,11 +105,12 @@ export const InviteAccountForm: FunctionComponent<{
             return null;
           }
 
-          const avatarSrc = option.hasAvatar
-            ? getImageUrlFromEntityProperties(
-                option.hasAvatar.imageEntity.properties,
-              )
-            : undefined;
+          const avatarSrc =
+            "hasAvatar" in option && option.hasAvatar
+              ? getImageUrlFromEntityProperties(
+                  option.hasAvatar.imageEntity.properties,
+                )
+              : undefined;
 
           return (
             <Box component="li" {...props}>
