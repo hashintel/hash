@@ -136,12 +136,12 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
       currentTab === "all"
         ? allTypes
         : currentTab === "entity-type"
-        ? latestNonLinkEntityTypes ?? []
+        ? latestNonLinkEntityTypes
         : currentTab === "link-type"
-        ? latestLinkEntityTypes ?? []
+        ? latestLinkEntityTypes
         : currentTab === "property-type"
-        ? latestPropertyTypes ?? []
-        : latestDataTypes ?? [],
+        ? latestPropertyTypes
+        : latestDataTypes,
     [
       currentTab,
       allTypes,
@@ -210,7 +210,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         </Container>
       </Box>
       <Container sx={{ paddingTop: 5, maxWidth: { lg: contentMaxWidth } }}>
-        <TypesTable kind={currentTab} types={currentTypes ?? []} />
+        <TypesTable kind={currentTab} types={currentTypes} />
       </Container>
     </>
   );

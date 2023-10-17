@@ -71,12 +71,8 @@ export const useEntitiesTable = (params: {
   );
 
   return useMemo(() => {
-    if (!entities || !entityTypes || !propertyTypes || !subgraph) {
-      return;
-    }
-
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
+
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
         const propertyTypeBaseUrl = extractBaseUrl(propertyType.$id);
@@ -95,8 +91,8 @@ export const useEntitiesTable = (params: {
     const columns: SizedGridColumn[] = [
       {
         title: entitiesHaveSameType
-          ? entityTypes.find(
-              ({ $id }) => $id === entities[0]?.metadata.entityTypeId,
+          ? entityTypes?.find(
+              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
             )?.title ?? "Entity"
           : "Entity",
         id: "entity",
@@ -145,68 +141,72 @@ export const useEntitiesTable = (params: {
       ...(hidePropertiesColumns ? [] : propertyColumns),
     ];
 
-    const rows: TypeEntitiesRow[] =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-      entities.map((entity) => {
-        const entityLabel = generateEntityLabel(subgraph, entity);
+    const rows: TypeEntitiesRow[] | undefined =
+      subgraph && entityTypes
+        ? entities?.map((entity) => {
+            const entityLabel = generateEntityLabel(subgraph, entity);
 
-        const entityType = entityTypes.find(
-          (type) => type.$id === entity.metadata.entityTypeId,
-        );
+            const entityType = entityTypes.find(
+              (type) => type.$id === entity.metadata.entityTypeId,
+            );
 
-        const { shortname: entityNamespace } = getOwnerForEntity(entity);
+            const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
-        const entityId = entity.metadata.recordId.entityId;
+            const entityId = entity.metadata.recordId.entityId;
 
-        const isPage =
-          entity.metadata.entityTypeId === types.entityType.page.entityTypeId;
+            const isPage =
+              entity.metadata.entityTypeId ===
+              types.entityType.page.entityTypeId;
 
-        /**
-         * @todo: consider displaying handling this differently for pages, where
-         * updates on nested blocks/text entities may be a better indicator of
-         * when a page has been last edited.
-         */
-        const lastEdited = format(
-          new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
-          "yyyy-MM-dd HH:mm",
-        );
+            /**
+             * @todo: consider displaying handling this differently for pages, where
+             * updates on nested blocks/text entities may be a better indicator of
+             * when a page has been last edited.
+             */
+            const lastEdited = format(
+              new Date(
+                entity.metadata.temporalVersioning.decisionTime.start.limit,
+              ),
+              "yyyy-MM-dd HH:mm",
+            );
 
-        const lastEditedBy = users?.find(
-          ({ accountId }) =>
-            accountId === entity.metadata.provenance.recordCreatedById,
-        );
+            const lastEditedBy = users?.find(
+              ({ accountId }) =>
+                accountId === entity.metadata.provenance.recordCreatedById,
+            );
 
-        return {
-          rowId: entityId,
-          entityId,
-          entity: entityLabel,
-          entityTypeVersion: entityType
-            ? `v${extractVersion(entityType.$id)} ${entityType.title}`
-            : "",
-          namespace: `@${entityNamespace}`,
-          archived: isPage
-            ? (entity.properties[
-                extractBaseUrl(types.propertyType.archived.propertyTypeId)
-              ] as boolean)
-            : undefined,
-          lastEdited,
-          lastEditedBy,
-          /** @todo: uncomment this when we have additional types for entities */
-          // additionalTypes: "",
-          properties: propertyColumns.reduce((fields, column) => {
-            if (column.id) {
-              const propertyValue = entity.properties[column.id as BaseUrl];
+            return {
+              rowId: entityId,
+              entityId,
+              entity: entityLabel,
+              entityTypeVersion: entityType
+                ? `v${extractVersion(entityType.$id)} ${entityType.title}`
+                : "",
+              namespace: `@${entityNamespace}`,
+              archived: isPage
+                ? (entity.properties[
+                    extractBaseUrl(types.propertyType.archived.propertyTypeId)
+                  ] as boolean)
+                : undefined,
+              lastEdited,
+              lastEditedBy,
+              /** @todo: uncomment this when we have additional types for entities */
+              // additionalTypes: "",
+              properties: propertyColumns.reduce((fields, column) => {
+                if (column.id) {
+                  const propertyValue = entity.properties[column.id as BaseUrl];
 
-              const value = Array.isArray(propertyValue)
-                ? propertyValue.join(", ")
-                : propertyValue;
-              return { ...fields, [column.id]: value };
-            }
+                  const value = Array.isArray(propertyValue)
+                    ? propertyValue.join(", ")
+                    : propertyValue;
+                  return { ...fields, [column.id]: value };
+                }
 
-            return fields;
-          }, {}),
-        };
-      }) ?? {};
+                return fields;
+              }, {}),
+            };
+          })
+        : undefined;
 
     return { columns, rows };
   }, [

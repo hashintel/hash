@@ -102,13 +102,13 @@ export type FilterState = {
 
 type TableHeaderProps = {
   itemLabelPlural: "entities" | "pages" | "types";
-  items: (
+  items?: (
     | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
-  selectedItems: (
+  selectedItems?: (
     | Entity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
@@ -150,7 +150,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
   const numberOfUserWebItems = useMemo(
     () =>
-      items.filter(({ metadata }) =>
+      items?.filter(({ metadata }) =>
         "entityTypeId" in metadata
           ? userWebIds.includes(
               extractOwnedByIdFromEntityId(metadata.recordId.entityId),
@@ -162,7 +162,10 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
     [items, userWebIds],
   );
 
-  const numberOfGlobalItems = items.length - numberOfUserWebItems;
+  const numberOfGlobalItems =
+    items && typeof numberOfUserWebItems !== "undefined"
+      ? items.length - numberOfUserWebItems
+      : undefined;
 
   return (
     <Box
@@ -182,7 +185,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
       }}
     >
       <Box display="flex" gap={1.5} alignItems="center">
-        {selectedItems.length ? (
+        {selectedItems && selectedItems.length ? (
           <BulkActionsDropdown
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
