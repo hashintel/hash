@@ -43,7 +43,7 @@ export const useUserOrOrg = (
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
-      includePermissions: params.includePermissions,
+      includePermissions: params.includePermissions ?? false,
       query: {
         filter: {
           all: [

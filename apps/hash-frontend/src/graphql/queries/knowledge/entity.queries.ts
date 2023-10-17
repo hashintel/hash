@@ -25,7 +25,7 @@ export const queryEntitiesQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-    $includePermissions: Boolean = false
+    $includePermissions: Boolean! = false
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!
@@ -54,7 +54,7 @@ export const queryEntitiesQuery = gql`
 export const structuralQueryEntitiesQuery = gql`
   query structuralQueryEntities(
     $query: EntityStructuralQuery!
-    $includePermissions: Boolean = false
+    $includePermissions: Boolean! = false
   ) {
     structuralQueryEntities(query: $query) {
       permissionsOnEntities @include(if: $includePermissions)

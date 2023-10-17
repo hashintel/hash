@@ -167,7 +167,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspaceSubgraph = (await apolloClient
+  const workspaceSubgraph = await apolloClient
     .query<StructuralQueryEntitiesQuery, StructuralQueryEntitiesQueryVariables>(
       {
         context: { headers: { cookie } },
@@ -209,11 +209,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         },
       },
     )
-    .then(
-      ({ data }) => data.structuralQueryEntities,
-    )) as Subgraph<EntityRootType>;
+    .then(({ data }) => data.structuralQueryEntities);
 
-  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
+  const pageWorkspaceEntity = getRoots(
+    workspaceSubgraph.subgraph as Subgraph<EntityRootType>,
+  )[0];
 
   if (!pageWorkspaceEntity) {
     throw new Error(

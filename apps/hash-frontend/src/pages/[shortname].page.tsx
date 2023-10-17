@@ -130,6 +130,7 @@ const ProfilePage: NextPageWithLayout = () => {
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       query: {
         filter: {
           all: [

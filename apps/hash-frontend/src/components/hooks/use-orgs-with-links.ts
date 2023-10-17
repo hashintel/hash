@@ -43,6 +43,7 @@ export const useOrgsWithLinks = ({
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
       constrainsLinkDestinationsOn: { outgoing: 0 },
+      includePermissions: false,
       inheritsFrom: { outgoing: 0 },
       isOfType: { outgoing: 0 },
       // These depths are chosen to cover the following:
