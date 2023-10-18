@@ -19,7 +19,7 @@ setuptools = "^68.2.2"
 datamodel-code-generator = "^0.22.1"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.9.1"
+black = "^23.10.0"
 ruff = "^0.1.0"
 mypy = "^1.6.0"
 
