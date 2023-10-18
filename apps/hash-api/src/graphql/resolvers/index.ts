@@ -1,6 +1,15 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { EntityAuthorizationSubject, Resolvers } from "../api-types.gen";
+import {
+  addAccountGroupMember,
+  removeAccountGroupMember,
+} from "../../graph/account-groups";
+import {
+  EntityAuthorizationSubject,
+  MutationResolvers,
+  QueryResolvers,
+  Resolvers,
+} from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -75,7 +84,10 @@ import {
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
 
-export const resolvers: Resolvers = {
+export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
+  Query: Required<QueryResolvers>;
+  Mutation: Required<MutationResolvers>;
+} = {
   Query: {
     // Logged in and signed up users only,
     getBlockProtocolBlocks: getBlockProtocolBlocksResolver,
@@ -166,6 +178,17 @@ export const resolvers: Resolvers = {
     removeEntityViewer: loggedInAndSignedUpMiddleware(
       removeEntityViewerResolver,
     ),
+
+    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      addAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
+    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      removeAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
 
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(

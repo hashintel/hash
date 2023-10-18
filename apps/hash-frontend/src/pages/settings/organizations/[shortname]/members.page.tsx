@@ -57,7 +57,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
 
   if (!org) {
     // @todo show a 404 page
-    void router.push("/");
+    void router.push("/settings/organizations");
     return null;
   }
 
@@ -86,6 +86,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
               )
               .map((membership) => (
                 <MemberRow
+                  accountGroupId={org.accountGroupId}
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
                   self={

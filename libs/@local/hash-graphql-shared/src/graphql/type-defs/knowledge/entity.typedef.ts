@@ -337,5 +337,15 @@ export const entityTypedef = gql`
       entityId: EntityId!
       viewer: AuthorizationViewerInput!
     ): Boolean!
+
+    addAccountGroupMember(
+      accountGroupId: AccountGroupId!
+      accountId: AccountId!
+    ): Boolean!
+
+    removeAccountGroupMember(
+      accountGroupId: AccountGroupId!
+      accountId: AccountId!
+    ): Boolean!
   }
 `;

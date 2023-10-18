@@ -4,7 +4,7 @@ import {
   CheckUserPermissionsOnEntityQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { checkUserPermissionsOnEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
-import { Entity } from "@local/hash-subgraph";
+import { Entity, EntityMetadata } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 export const useUserPermissionsOnEntity = (
@@ -15,7 +15,7 @@ export const useUserPermissionsOnEntity = (
     CheckUserPermissionsOnEntityQueryVariables
   >(checkUserPermissionsOnEntityQuery, {
     variables: {
-      metadata: entity!.metadata, // query will not be called if there is no entity
+      metadata: entity?.metadata as EntityMetadata, // query will not be called if there is no entity
     },
     skip: !entity,
   });

@@ -80,7 +80,7 @@ export const createLinkEntity: ImpureGraphFunction<
       linkData,
       entityTypeId: linkEntityType.schema.$id,
       properties,
-      owner: params.owner ?? authentication.actorId,
+      owner: params.owner ?? ownedById,
     },
   );
 
