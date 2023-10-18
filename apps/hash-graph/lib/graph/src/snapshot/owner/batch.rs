@@ -83,7 +83,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             }
             Self::AccountGroupAccountRelations(relations) => {
                 authorization_api
-                    .touch_relations(relations)
+                    .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
             }

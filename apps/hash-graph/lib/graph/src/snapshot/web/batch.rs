@@ -33,13 +33,13 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
         match self {
             Self::Accounts(accounts) => {
                 authorization_api
-                    .touch_relations(accounts)
+                    .touch_relationships(accounts)
                     .await
                     .change_context(InsertionError)?;
             }
             Self::AccountGroups(account_groups) => {
                 authorization_api
-                    .touch_relations(account_groups)
+                    .touch_relationships(account_groups)
                     .await
                     .change_context(InsertionError)?;
             }
