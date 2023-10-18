@@ -20,7 +20,7 @@ import {
   format,
   isYesterday,
 } from "date-fns";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
@@ -40,6 +40,8 @@ import { TopContextBar } from "./shared/top-context-bar";
 
 const NotesPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
   const { data: quickNotesAllVersionsData, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
@@ -229,10 +231,7 @@ const NotesPage: NextPageWithLayout = () => {
       | undefined;
 
   const quickNotesEntitiesCreatedToday = useMemo(
-    () =>
-      latestQuickNoteEntitiesByDay?.[format(new Date(), "yyyy-MM-dd")]?.map(
-        ({ quickNoteEntity }) => quickNoteEntity,
-      ),
+    () => latestQuickNoteEntitiesByDay?.[format(new Date(), "yyyy-MM-dd")],
     [latestQuickNoteEntitiesByDay],
   );
 
@@ -260,20 +259,53 @@ const NotesPage: NextPageWithLayout = () => {
         <BlockLoadedProvider>
           <UserBlocksProvider value={{}}>
             <TodaySection
+              ref={(element) => {
+                if (element) {
+                  sectionRefs.current[0] = element;
+                }
+              }}
               quickNoteEntities={quickNotesEntitiesCreatedToday}
               quickNotesSubgraph={quickNotesWithContentsSubgraph}
               refetchQuickNotes={refetchQuickNotes}
+              navigateDown={() => {
+                sectionRefs.current[1]?.scrollIntoView({
+                  behavior: "smooth",
+                });
+              }}
             />
             {latestQuickNoteEntitiesByDay
               ? Object.entries(latestQuickNoteEntitiesByDay).map(
-                  ([dayTimestamp, quickNoteEntitiesWithCreatedAt]) => (
+                  (
+                    [dayTimestamp, quickNoteEntitiesWithCreatedAt],
+                    index,
+                    all,
+                  ) => (
                     <NotesSection
                       key={dayTimestamp}
+                      ref={(element) => {
+                        if (element) {
+                          sectionRefs.current[index + 1] = element;
+                        }
+                      }}
                       dayTimestamp={dayTimestamp}
                       heading={dayTimestampToHeadings?.[dayTimestamp]}
                       quickNoteEntities={quickNoteEntitiesWithCreatedAt}
                       quickNotesSubgraph={quickNotesWithContentsSubgraph}
                       refetchQuickNotes={refetchQuickNotes}
+                      navigateUp={() => {
+                        sectionRefs.current[index]?.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                      }}
+                      navigateDown={
+                        index < all.length - 1
+                          ? () => {
+                              sectionRefs.current[index + 2]?.scrollIntoView({
+                                behavior: "smooth",
+                              });
+                            }
+                          : undefined
+                      }
                     />
                   ),
                 )
