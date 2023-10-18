@@ -4,17 +4,17 @@ import { URL } from "node:url";
 
 import appRoot from "app-root-path";
 import express, { Express } from "express";
-import multer, { Multer, StorageEngine } from "multer";
 
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPutUpload,
-  StorageProvider,
+  PresignedStorageRequest,
   StorageType,
+  UploadableStorageProvider,
 } from "./storage-provider";
 
-const UPLOAD_BASE_URL = "/local-file-storage-upload";
+export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";
 
 export interface LocalFileSystemStorageProviderConstructorArgs {
@@ -28,11 +28,11 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
  * NOTE: NOT MEANT TO BE USED IN PRODUCTION
  * This storage provider is given as an easy to setup alternative to S3 file uploads for simple setups.
  */
-export class LocalFileSystemStorageProvider implements StorageProvider {
+export class LocalFileSystemStorageProvider
+  implements UploadableStorageProvider
+{
   public storageType: StorageType = StorageType.LocalFileSystem;
 
-  private storage: StorageEngine;
-  private upload: Multer;
   private fileUploadPath: string;
   private apiOrigin: string;
 
@@ -46,20 +46,15 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
     if (!fs.existsSync(this.fileUploadPath)) {
       fs.mkdirSync(this.fileUploadPath, { recursive: true });
     }
-    this.storage = multer.diskStorage({
-      destination: (_req, _file, cb) => {
-        cb(null, this.fileUploadPath);
-      },
-      filename: (req, file, cb) => this.getFilenameForUpload(req, file, cb),
-    });
-    this.upload = multer({ storage: this.storage });
 
     this.setupExpressRoutes(app);
   }
 
-  async presignUpload(): Promise<PresignedPutUpload> {
+  async presignUpload({
+    key,
+  }: PresignedStorageRequest): Promise<PresignedPutUpload> {
     const presignedPut = {
-      url: new URL(UPLOAD_BASE_URL, this.apiOrigin).href,
+      url: `${new URL(UPLOAD_BASE_URL, this.apiOrigin).href}?key=${key}`,
     };
     return presignedPut;
   }
@@ -85,28 +80,31 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
 
   /** Sets up express routes required for uploading and downloading files */
   setupExpressRoutes(app: Express) {
-    app.post(
-      UPLOAD_BASE_URL,
-      this.upload.single("file"),
-      (_req, res, _next) => {
-        res.status(200).send();
-      },
-    );
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    app.put(UPLOAD_BASE_URL, async (req, res, _next) => {
+      await new Promise<void>((resolve, reject) => {
+        const fileData: Uint8Array[] = [];
+        req.on("data", (chunk) => {
+          fileData.push(chunk);
+        });
+        req.on("end", () => {
+          const file = Buffer.concat(fileData);
+          fs.writeFile(
+            path.join(this.fileUploadPath, req.query.key as string),
+            file,
+            (err) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            },
+          );
+        });
+      });
+      res.status(200).send();
+    });
 
     app.use(DOWNLOAD_BASE_URL, express.static(this.fileUploadPath));
-  }
-
-  /** Uses the `key` generated in the previous upload request to know where to store the file */
-  getFilenameForUpload(
-    req: express.Request,
-    _file: any,
-    cb: (error: Error | null, destination: string) => void,
-  ) {
-    const key = req.body.key;
-    if (!key) {
-      cb(new Error(`Parameter 'key' is missing from the upload request'`), "");
-    } else {
-      cb(null, req.body.key);
-    }
   }
 }
