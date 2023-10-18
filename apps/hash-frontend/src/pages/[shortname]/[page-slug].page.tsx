@@ -435,7 +435,6 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
-            userPermissions={userPermissions}
             scrollToTop={scrollToTop}
           />
         </Box>
