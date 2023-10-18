@@ -55,9 +55,12 @@ export const useUpdateAuthenticatedUser = () => {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const latestUserEntitySubgraph = (await getMe()
-          .then(({ data }) => data?.me)
-          .catch(() => undefined)) as Subgraph<EntityRootType> | undefined;
+        const latestUserEntitySubgraph = await getMe()
+          .then(
+            ({ data }) =>
+              data?.me.subgraph as Subgraph<EntityRootType> | undefined,
+          )
+          .catch(() => undefined);
 
         if (!latestUserEntitySubgraph) {
           throw new Error(

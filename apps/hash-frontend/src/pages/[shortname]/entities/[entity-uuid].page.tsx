@@ -10,6 +10,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
@@ -202,13 +203,17 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
+  const draftEntity = getRoots(draftEntitySubgraph)[0];
+  if (!draftEntity) {
+    return <NextErrorComponent statusCode={404} />;
+  }
+
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
   const showEditBar =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
-  const draftEntity = getRoots(draftEntitySubgraph)[0];
   const isQueryEntity =
-    draftEntity?.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
+    draftEntity.metadata.entityTypeId === QUERY_ENTITY_TYPE_ID;
 
   return (
     <EntityEditorPage

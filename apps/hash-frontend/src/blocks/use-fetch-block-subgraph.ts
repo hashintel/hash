@@ -1,7 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
   EntityId,
@@ -39,12 +38,12 @@ export const useFetchBlockSubgraph = (): ((
   const fetchBlockSubgraph = useCallback(
     async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
       const depths: GraphResolveDepths = {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 1 },
+        constrainsLinkDestinationsOn: { outgoing: 1 },
+        inheritsFrom: { outgoing: 255 },
+        isOfType: { outgoing: 1 },
         hasRightEntity: {
           incoming: 2,
           outgoing: 2,
@@ -148,10 +147,7 @@ export const useFetchBlockSubgraph = (): ((
         variables: {
           entityId: blockEntityId,
           includePermissions: true,
-          ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
+          ...depths,
         },
       })
         .then(({ data, error }) => {

@@ -59,7 +59,9 @@ export const useUsersWithLinks = ({
     skip: !userAccountIds || !userAccountIds.length,
   });
 
-  const subgraph = data?.queryEntities as Subgraph<EntityRootType> | undefined;
+  const subgraph = data?.queryEntities.subgraph as
+    | Subgraph<EntityRootType>
+    | undefined;
 
   const users = useMemo(() => {
     if (!subgraph) {
