@@ -5,7 +5,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
@@ -56,13 +56,26 @@ export const CreateQuickNote: FunctionComponent = () => {
     await createQuickNote();
   }, [createQuickNote]);
 
+  const quickNoteEntityWithCreatedAt = useMemo(
+    () =>
+      quickNoteEntity
+        ? {
+            quickNoteEntity,
+            createdAt: new Date(
+              quickNoteEntity.metadata.temporalVersioning.decisionTime.start.limit,
+            ),
+          }
+        : undefined,
+    [quickNoteEntity],
+  );
+
   return (
     <Box sx={{ width: "100%" }} onClick={handleClick}>
-      {quickNoteEntity && quickNoteSubgraph ? (
+      {quickNoteEntityWithCreatedAt && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
             displayActionButtons={false}
-            quickNoteEntity={quickNoteEntity}
+            quickNoteEntityWithCreatedAt={quickNoteEntityWithCreatedAt}
             quickNoteSubgraph={quickNoteSubgraph}
           />
           <Box

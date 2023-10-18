@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
@@ -6,15 +6,18 @@ import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  Entity,
   EntityRootType,
+  extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Fade, Skeleton, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
+import { format } from "date-fns";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
+import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useAccountPages } from "../../components/hooks/use-account-pages";
 import {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
@@ -22,12 +25,19 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
+import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
+import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
+import { FileExportRegularIcon } from "../../shared/icons/file-export-regular-icon";
 import { NoteStickyRegularIcon } from "../../shared/icons/note-sticky-regular-icon";
+import { UndoRegularIcon } from "../../shared/icons/undo-regular-icon";
+import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
+import { QuickNoteEntityWithCreatedAt } from "./types";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,
@@ -71,13 +81,13 @@ const parseTextFromTextBlock = ({
 export const EditableQuickNote: FunctionComponent<{
   displayLabel?: boolean;
   displayActionButtons?: boolean;
-  quickNoteEntity: Entity;
+  quickNoteEntityWithCreatedAt: QuickNoteEntityWithCreatedAt;
   quickNoteSubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes?: () => Promise<void>;
 }> = ({
   displayLabel = true,
   displayActionButtons = true,
-  quickNoteEntity,
+  quickNoteEntityWithCreatedAt,
   quickNoteSubgraph,
   refetchQuickNotes,
 }) => {
@@ -87,6 +97,19 @@ export const EditableQuickNote: FunctionComponent<{
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
   >(archiveEntityMutation, { onCompleted: refetchQuickNotes });
+
+  const [convertedToPage, setConvertedToPage] = useState(false);
+  const [isConvertingPage, setIsConvertingPage] = useState(false);
+
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const apolloClient = useApolloClient();
+
+  const refetchPageTree = useCallback(async () => {
+    await apolloClient.refetchQueries({ include: [getAccountPagesTree] });
+  }, [apolloClient]);
+
+  const { quickNoteEntity, createdAt } = quickNoteEntityWithCreatedAt;
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
@@ -169,6 +192,53 @@ export const EditableQuickNote: FunctionComponent<{
     await archiveEntity({ variables: { entityId: blockCollectionEntityId } });
   }, [archiveEntity, blockCollectionEntityId]);
 
+  const { lastRootPageIndex } = useAccountPages(
+    authenticatedUser.accountId as OwnedById,
+  );
+
+  const handleConvertToPage = useCallback(async () => {
+    setIsConvertingPage(true);
+    await updateEntity({
+      data: {
+        entityId: blockCollectionEntityId,
+        entityTypeId: types.entityType.page.entityTypeId,
+        properties: {
+          [extractBaseUrl(
+            types.propertyType.title.propertyTypeId,
+          )]: `Quick Note - ${format(createdAt, "yyyy-MM-dd")})}`,
+          [extractBaseUrl(types.propertyType.index.propertyTypeId)]:
+            lastRootPageIndex,
+        },
+      },
+    });
+    await refetchPageTree();
+    setIsConvertingPage(false);
+    setConvertedToPage(true);
+  }, [
+    blockCollectionEntityId,
+    updateEntity,
+    lastRootPageIndex,
+    createdAt,
+    refetchPageTree,
+  ]);
+
+  const handleRevertToQuickNote = useCallback(async () => {
+    if (!convertedToPage) {
+      return;
+    }
+    setIsConvertingPage(true);
+    await updateEntity({
+      data: {
+        entityId: blockCollectionEntityId,
+        entityTypeId: types.entityType.quickNote.entityTypeId,
+        properties: {},
+      },
+    });
+    await refetchPageTree();
+    setIsConvertingPage(false);
+    setConvertedToPage(false);
+  }, [blockCollectionEntityId, updateEntity, convertedToPage, refetchPageTree]);
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between">
@@ -210,10 +280,54 @@ export const EditableQuickNote: FunctionComponent<{
           </Fade>
         </Box>
         {displayActionButtons ? (
-          <Box>
-            <IconButton onClick={handleArchive}>
-              <ArchiveRegularIcon />
-            </IconButton>
+          <Box display="flex" marginRight={-1} marginTop={-1} columnGap={1}>
+            {convertedToPage ? (
+              <>
+                <IconButton
+                  disabled={isConvertingPage}
+                  onClick={handleRevertToQuickNote}
+                >
+                  <UndoRegularIcon />
+                </IconButton>
+                {isConvertingPage ? (
+                  <IconButton disabled>
+                    <ArrowUpRightRegularIcon />
+                  </IconButton>
+                ) : (
+                  <Link
+                    href={constructPageRelativeUrl({
+                      workspaceShortname: authenticatedUser.shortname!,
+                      pageEntityUuid: extractEntityUuidFromEntityId(
+                        blockCollectionEntityId,
+                      ),
+                    })}
+                  >
+                    <IconButton>
+                      <ArrowUpRightRegularIcon />
+                    </IconButton>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Tooltip title="Archive Note" placement="top">
+                  <IconButton
+                    disabled={isConvertingPage}
+                    onClick={handleArchive}
+                  >
+                    <ArchiveRegularIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Convert to page" placement="top">
+                  <IconButton
+                    disabled={isConvertingPage}
+                    onClick={handleConvertToPage}
+                  >
+                    <FileExportRegularIcon />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
           </Box>
         ) : null}
       </Box>
