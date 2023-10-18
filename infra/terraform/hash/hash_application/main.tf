@@ -365,7 +365,7 @@ resource "aws_iam_role" "task_role" {
 }
 
 resource "aws_ecs_task_definition" "task" {
-  family                   = "${local.prefix}taskdef"
+  family                   = "${local.prefix}-app-taskdef"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.cpu
   memory                   = var.memory
@@ -377,7 +377,7 @@ resource "aws_ecs_task_definition" "task" {
 }
 
 resource "aws_ecs_task_definition" "worker_task" {
-  family                   = "${local.prefix}taskdef"
+  family                   = "${local.prefix}-worker-taskdef"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.worker_cpu
   memory                   = var.worker_memory
