@@ -11,7 +11,10 @@ import {
 
 export const mapEntityToGQL = (entity: Entity): Entity => entity;
 
-export type ExternalPageResolversGQL = "contents" | "canUserEdit";
+export type ExternalPageResolversGQL =
+  | "contents"
+  | "canUserEdit"
+  | "userPermissions";
 export type UnresolvedPageGQL = Omit<GQLPage, ExternalPageResolversGQL>;
 
 export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
