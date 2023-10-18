@@ -49,7 +49,6 @@ const ProfilePage: NextPageWithLayout = () => {
     useUserOrOrg({
       shortname: profileShortname,
       graphResolveDepths: {
-        // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
         hasLeftEntity: { incoming: 1, outgoing: 1 },
         hasRightEntity: { incoming: 1, outgoing: 1 },
       },
