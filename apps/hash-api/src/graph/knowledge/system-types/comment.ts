@@ -5,14 +5,12 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityOwner,
   addEntityViewer,
   createEntity,
   CreateEntityParams,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-  removeEntityOwner,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -134,11 +132,13 @@ export const createComment: ImpureGraphFunction<
   const [commentEntity, textEntity] = await Promise.all([
     createEntity(ctx, authentication, {
       ownedById,
+      owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
       properties: {},
       entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
     }),
     createEntity(ctx, authentication, {
       ownedById,
+      owner: author.accountId,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
       },
@@ -152,18 +152,21 @@ export const createComment: ImpureGraphFunction<
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: textEntity.metadata.recordId.entityId,
       ownedById,
+      owner: author.accountId,
     }),
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: parentEntityId,
       ownedById,
+      owner: author.accountId,
     }),
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.author,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: author.entity.metadata.recordId.entityId,
       ownedById,
+      owner: author.accountId,
     }),
   ]);
 
@@ -174,21 +177,10 @@ export const createComment: ImpureGraphFunction<
      *
      * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
      * to be viewers only, so that they cannot edit each other's comments.
-     *
-     * Once H-1064 is complete we can specify the comment owner on creation, distinct from the webId/ownedById,
-     * which means that this can be reduced to only adding viewer permissions for the ownedById.
      */
     await Promise.all(
       [textEntity, commentEntity, ...linkEntities].map(async (entity) => {
         await Promise.all([
-          addEntityOwner(ctx, authentication, {
-            entityId: entity.metadata.recordId.entityId,
-            owner: author.accountId,
-          }),
-          await removeEntityOwner(ctx, authentication, {
-            entityId: entity.metadata.recordId.entityId,
-            owner: ownedById,
-          }),
           await addEntityViewer(ctx, authentication, {
             entityId: entity.metadata.recordId.entityId,
             viewer: ownedById,
