@@ -135,7 +135,7 @@ export const createEditorView = (params: {
   ownedById: OwnedById;
   pageEntityId: EntityId;
   blocks: () => ComponentIdHashBlockMap;
-  isReadOnly: boolean;
+  readonly: boolean;
   pageTitleRef?: RefObject<HTMLTextAreaElement>;
   getLastSavedValue: () => BlockEntity[];
   client: ApolloClient<unknown>;
@@ -147,7 +147,7 @@ export const createEditorView = (params: {
     ownedById,
     pageEntityId,
     blocks,
-    isReadOnly,
+    readonly,
     pageTitleRef,
     getLastSavedValue,
     client,
@@ -158,7 +158,7 @@ export const createEditorView = (params: {
 
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
-  const plugins: Plugin<unknown>[] = isReadOnly
+  const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
         ...createFormatPlugins(renderPortal),
@@ -191,7 +191,7 @@ export const createEditorView = (params: {
             renderPortal,
             manager,
             renderNode,
-            isReadOnly,
+            readonly,
             isCommentingEnabled,
           );
         },
@@ -199,7 +199,7 @@ export const createEditorView = (params: {
           return new LoadingView(currentNode, renderPortal);
         },
       },
-      editable: () => !isReadOnly,
+      editable: () => !readonly,
     },
   );
 
@@ -221,7 +221,7 @@ export const createEditorView = (params: {
         renderPortal,
         block,
         manager,
-        isReadOnly,
+        readonly,
         isInitialPageTitleEmpty,
       );
     },

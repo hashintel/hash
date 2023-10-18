@@ -552,7 +552,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                     contents={contents}
                     enableCommenting
                     entityId={pageEntityId}
-                    isReadOnly={!canUserEdit}
+                    readonly={!canUserEdit}
                     sx={{
                       /**
                        * to handle margin-clicking, prosemirror should take full width, and give padding to it's content

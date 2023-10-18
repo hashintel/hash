@@ -94,7 +94,7 @@ export class AsyncRedisClient extends DataSource {
       this.logger.error({
         message: "Redis connection lost",
 
-        errorMessage: `${error.name}: ${error.message}`,
+        errorMessage: `${(error as Error).name}: ${(error as Error).message}`,
       });
     });
     // Keeping this one commented out because it sends too many messages

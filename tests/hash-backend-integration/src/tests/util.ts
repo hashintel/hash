@@ -80,7 +80,11 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
-    logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
+    logger.error(
+      `Error when creating Kratos Identity, ${shortname}: ${
+        (err as Error).message
+      }`,
+    );
     throw err;
   });
 

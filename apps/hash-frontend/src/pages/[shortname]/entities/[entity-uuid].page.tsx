@@ -50,7 +50,7 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<EntityRootType>>();
   const [draftEntitySubgraph, setDraftEntitySubgraph] =
     useState<Subgraph<EntityRootType>>();
-  const [isReadonly, setIsReadonly] = useState(true);
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   const entityFromDb =
     entitySubgraphFromDb && getRoots(entitySubgraphFromDb)[0];
@@ -101,13 +101,13 @@ const Page: NextPageWithLayout = () => {
             try {
               setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
               setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
-              setIsReadonly(
+              setIsReadOnly(
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
               setEntitySubgraphFromDb(undefined);
               setDraftEntitySubgraph(undefined);
-              setIsReadonly(true);
+              setIsReadOnly(true);
             }
           }
         } finally {
@@ -236,7 +236,7 @@ const Page: NextPageWithLayout = () => {
       draftLinksToArchive={draftLinksToArchive}
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
-      readonly={isReadonly}
+      readonly={isReadOnly}
       replaceWithLatestDbVersion={refetch}
       setEntity={(changedEntity) => {
         setIsDirty(true);
