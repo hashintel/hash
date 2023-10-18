@@ -1,4 +1,3 @@
-import { useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
@@ -6,17 +5,9 @@ import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolFileUpload } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
-import {
-  AddEntityViewerMutation,
-  AddEntityViewerMutationVariables,
-  AuthorizationSubjectKind,
-} from "../../../../graphql/api-types.gen";
-import { addEntityViewerMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Org } from "../../../../lib/user-and-org";
+import { useFileUploads } from "../../../../shared/file-upload-context";
 import { Button } from "../../../../shared/ui/button";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { ImageField } from "../../shared/image-field";
@@ -99,14 +90,6 @@ export const OrgForm = ({
   const [submissionError, setSubmissionError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    (initialOrg?.accountGroupId as OwnedById | undefined) ?? null,
-  );
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(
-    initialOrg?.accountGroupId as OwnedById | undefined,
-  );
-
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const { control, formState, handleSubmit, register, reset, watch } =
@@ -140,86 +123,41 @@ export const OrgForm = ({
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
     ];
 
-  const [addEntityViewer] = useMutation<
-    AddEntityViewerMutation,
-    AddEntityViewerMutationVariables
-  >(addEntityViewerMutation);
+  const { uploadFile } = useFileUploads();
 
   const setAvatar = async (file: File) => {
     if (!initialOrg?.entity) {
       throw new Error("Cannot set org avatar without the org's entity");
     }
 
-    // Upload the file and get a file entity which describes it
-    const { data: fileUploadData, errors: fileUploadErrors } = await uploadFile(
-      {
-        data: {
-          description: `The avatar for the ${nameWatcher} organization in HASH`,
-          name: `${nameWatcher}'s avatar`,
-          file,
-          ...(existingImageEntity
-            ? {
-                fileEntityUpdateInput: {
-                  existingFileEntityId: existingImageEntity.metadata.recordId
-                    .entityId as EntityId,
-                },
-              }
-            : {
-                fileEntityCreationInput: {
-                  entityTypeId: types.entityType.imageFile.entityTypeId,
-                },
-              }),
-        },
+    await uploadFile({
+      ownedById: initialOrg.accountGroupId as OwnedById,
+      makePublic: true,
+      fileData: {
+        description: `The avatar for the ${nameWatcher} organization in HASH`,
+        file,
+        name: `${nameWatcher}'s avatar`,
+        ...(existingImageEntity
+          ? {
+              fileEntityUpdateInput: {
+                existingFileEntityId: existingImageEntity.metadata.recordId
+                  .entityId as EntityId,
+              },
+            }
+          : {
+              fileEntityCreationInput: {
+                entityTypeId: types.entityType.imageFile.entityTypeId,
+              },
+            }),
       },
-    );
-    if (fileUploadErrors || !fileUploadData) {
-      throw new Error(
-        fileUploadErrors?.[0]?.message ?? "Unknown error uploading file",
-      );
-    }
-
-    /** @todo: make entity public as part of `createEntity` query once this is supported */
-    await addEntityViewer({
-      variables: {
-        entityId: fileUploadData.metadata.recordId.entityId as EntityId,
-        viewer: { kind: AuthorizationSubjectKind.Public },
-      },
-    });
-
-    if (initialOrg.hasAvatar) {
-      // Delete the existing hasAvatar link, if any
-      await archiveEntity({
-        data: {
-          entityId: initialOrg.hasAvatar.linkEntity.metadata.recordId.entityId,
-        },
-      });
-    }
-
-    // Create a new hasAvatar link from the org to the new file entity
-    const hasAvatarLinkEntity = await createEntity({
-      data: {
-        entityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
-        linkData: {
-          leftEntityId: initialOrg.entity.metadata.recordId.entityId,
-          rightEntityId: fileUploadData.metadata.recordId.entityId as EntityId,
-        },
-        properties: {},
-      },
-    }).then(({ data, errors }) => {
-      if (!data || errors) {
-        throw new Error(
-          `Error creating hasAvatar link: ${errors?.[0]?.message}`,
-        );
-      }
-      return data;
-    });
-
-    /** @todo: make entity public as part of `createEntity` query once this is supported */
-    await addEntityViewer({
-      variables: {
-        entityId: hasAvatarLinkEntity.metadata.recordId.entityId,
-        viewer: { kind: AuthorizationSubjectKind.Public },
-      },
+      ...(initialOrg.hasAvatar
+        ? {}
+        : {
+            linkedEntityData: {
+              linkedEntityId: initialOrg.entity.metadata.recordId.entityId,
+              linkEntityTypeId: types.linkEntityType.hasAvatar.linkEntityTypeId,
+            },
+          }),
     });
 
     // Refetch the authenticated user and their orgs so that avatar changes are reflected immediately in the UI

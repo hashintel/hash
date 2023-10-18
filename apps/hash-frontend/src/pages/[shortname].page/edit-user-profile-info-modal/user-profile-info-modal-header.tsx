@@ -18,9 +18,8 @@ import {
 } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolFileUpload } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
 import { User } from "../../../lib/user-and-org";
+import { useFileUploads } from "../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, ButtonProps } from "../../../shared/ui";
@@ -88,14 +87,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
 
   const existingCoverImageEntity = userProfile.hasCoverImage?.imageEntity;
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    (userProfile.accountId as OwnedById | undefined) ?? null,
-  );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(
-    userProfile.accountId as OwnedById | undefined,
-  );
-
+  const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const coverImageSrc = userProfile.hasCoverImage
@@ -149,58 +142,36 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
 
       setNewCoverImageUploading(true);
 
-      // Upload the file and get a file entity which describes it
-      const { data: fileUploadData, errors: fileUploadErrors } =
-        await uploadFile({
-          data: {
-            description: `The cover image for the ${userProfile.preferredName} user in HASH`,
-            name: `${userProfile.preferredName}'s cover image`,
-            file,
-            ...(existingCoverImageEntity
-              ? {
-                  fileEntityUpdateInput: {
-                    existingFileEntityId: existingCoverImageEntity.metadata
-                      .recordId.entityId as EntityId,
-                  },
-                }
-              : {
-                  fileEntityCreationInput: {
-                    entityTypeId: types.entityType.imageFile.entityTypeId,
-                  },
-                }),
-          },
-        });
-
-      if (fileUploadErrors || !fileUploadData) {
-        throw new Error(
-          fileUploadErrors?.[0]?.message ?? "Unknown error uploading file",
-        );
-      }
-
-      if (userProfile.hasCoverImage) {
-        // Delete the existing hasCoverImage link, if any
-        await archiveEntity({
-          data: {
-            entityId:
-              userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
-          },
-        });
-      }
-
-      // Create a new hasCoverImage link from the org to the new file entity
-      await createEntity({
-        data: {
-          entityTypeId: types.linkEntityType.hasCoverImage.linkEntityTypeId,
-          linkData: {
-            leftEntityId: userProfile.entity.metadata.recordId.entityId,
-            rightEntityId: fileUploadData.metadata.recordId
-              .entityId as EntityId,
-          },
-          properties: {},
+      await uploadFile({
+        ownedById: userProfile.accountId as OwnedById,
+        makePublic: true,
+        fileData: {
+          description: `The cover image for the ${userProfile.preferredName} user in HASH`,
+          name: `${userProfile.preferredName}'s cover image`,
+          file,
+          ...(existingCoverImageEntity
+            ? {
+                fileEntityUpdateInput: {
+                  existingFileEntityId: existingCoverImageEntity.metadata
+                    .recordId.entityId as EntityId,
+                },
+              }
+            : {
+                fileEntityCreationInput: {
+                  entityTypeId: types.entityType.imageFile.entityTypeId,
+                },
+              }),
         },
+        ...(userProfile.hasCoverImage
+          ? {}
+          : {
+              linkedEntityData: {
+                linkedEntityId: userProfile.entity.metadata.recordId.entityId,
+                linkEntityTypeId:
+                  types.linkEntityType.hasCoverImage.linkEntityTypeId,
+              },
+            }),
       });
-
-      /** @todo: error handling */
 
       void refetchUserProfile();
       void refetchUserAndOrgs();
@@ -208,8 +179,6 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       setNewCoverImageUploading(false);
     },
     [
-      archiveEntity,
-      createEntity,
       existingCoverImageEntity,
       refetchUserAndOrgs,
       uploadFile,
@@ -220,7 +189,6 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
 
   const handleRemoveCoverImage = useCallback(async () => {
     if (userProfile.hasCoverImage) {
-      // Delete the existing hasCoverImage link, if any
       await archiveEntity({
         data: {
           entityId:

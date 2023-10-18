@@ -19,8 +19,11 @@ import { v4 as uuid } from "uuid";
 
 import { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import {
+  AddEntityViewerMutation,
+  AddEntityViewerMutationVariables,
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
+  AuthorizationSubjectKind,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
@@ -30,6 +33,7 @@ import {
   RequestFileUploadMutationVariables,
 } from "../graphql/api-types.gen";
 import {
+  addEntityViewerMutation,
   archiveEntityMutation,
   createEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
@@ -63,6 +67,8 @@ type FileLinkData = {
 type FileUploadRequestData = {
   fileData: UploadFileRequestData;
   linkedEntityData?: FileLinkData;
+  // whether or not to make the created file entity and any link entities public
+  makePublic: boolean;
   ownedById: OwnedById;
   // Pass if retrying an earlier request
   requestId?: string;
@@ -152,7 +158,10 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     {},
   );
 
-  // @todo ellipsis or break for entity name
+  const [addEntityViewer] = useMutation<
+    AddEntityViewerMutation,
+    AddEntityViewerMutationVariables
+  >(addEntityViewerMutation);
 
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
@@ -184,7 +193,13 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
   );
 
   const uploadFile: FileUploadsContextValue["uploadFile"] = useCallback(
-    async ({ fileData, linkedEntityData, ownedById, requestId }) => {
+    async ({
+      fileData,
+      linkedEntityData,
+      makePublic,
+      ownedById,
+      requestId,
+    }) => {
       const existingUpload = requestId
         ? uploads.find((upload) => upload.requestId === requestId)
         : null;
@@ -208,6 +223,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             createdEntities: existingUpload.createdEntities,
             fileData: existingUpload.fileData,
             linkedEntityData: existingUpload.linkedEntityData,
+            makePublic: existingUpload.makePublic,
             requestId,
             ownedById: existingUpload.ownedById,
             status: existingUpload.failedStep,
@@ -215,6 +231,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
         : ({
             fileData,
             linkedEntityData,
+            makePublic,
             ownedById,
             requestId: newRequestId!,
             status: "creating-file-entity",
@@ -258,6 +275,16 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           }
 
           fileEntity = data.createFileFromUrl as unknown as FileEntityType;
+
+          if (makePublic) {
+            /** @todo: make entity public as part of `createEntity` query once this is supported */
+            await addEntityViewer({
+              variables: {
+                entityId: fileEntity.metadata.recordId.entityId as EntityId,
+                viewer: { kind: AuthorizationSubjectKind.Public },
+              },
+            });
+          }
         } catch (err) {
           // createFileFromUrlFn might itself throw rather than return errors, thus this catch
 
@@ -311,6 +338,16 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
             fileEntity = data.requestFileUpload
               .entity as unknown as FileEntityType;
+
+            if (makePublic) {
+              /** @todo: make entity public as part of `createEntity` query once this is supported */
+              await addEntityViewer({
+                variables: {
+                  entityId: fileEntity.metadata.recordId.entityId as EntityId,
+                  viewer: { kind: AuthorizationSubjectKind.Public },
+                },
+              });
+            }
 
             presignedPut = data.requestFileUpload.presignedPut;
 
@@ -452,12 +489,24 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
           throw new Error(errors?.[0]?.message ?? "unknown error");
         }
 
+        const linkEntity = data.createEntity as LinkEntity;
+
+        if (makePublic) {
+          /** @todo: make entity public as part of `createEntity` query once this is supported */
+          await addEntityViewer({
+            variables: {
+              entityId: linkEntity.metadata.recordId.entityId,
+              viewer: { kind: AuthorizationSubjectKind.Public },
+            },
+          });
+        }
+
         const updatedUpload: FileUpload = {
           ...upload,
           status: "complete",
           createdEntities: {
             fileEntity,
-            linkEntity: data.createEntity as LinkEntity,
+            linkEntity,
           },
         };
         updateUpload(updatedUpload);
@@ -480,6 +529,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       }
     },
     [
+      addEntityViewer,
       archiveEntity,
       createEntity,
       createFileFromUrlFn,
