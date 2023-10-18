@@ -56,6 +56,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
         },
         file,
       },
+      makePublic: false,
       ownedById: activeWorkspaceOwnedById!,
     });
     setShowUploadForm(false);
