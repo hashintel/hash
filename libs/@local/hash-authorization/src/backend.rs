@@ -17,6 +17,7 @@ use crate::{
 
 /// Used for mutating a single relationship within the service.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ModifyRelationshipOperation {
     /// Upsert the relationship, and will not error if it already exists.
@@ -52,10 +53,10 @@ pub trait ZanzibarBackend {
         &self,
     ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
-    fn update_relationships<R>(
+    fn modify_relationships<R>(
         &mut self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -68,7 +69,7 @@ pub trait ZanzibarBackend {
     /// Creates a new relation specified by the [`Relationship`] but does not error if it already
     /// exists.
     ///
-    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
     /// [`ModifyRelationshipOperation::Touch`].
     ///
     /// # Errors
@@ -77,7 +78,7 @@ pub trait ZanzibarBackend {
     fn touch_relationships<R>(
         &mut self,
         relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -87,12 +88,12 @@ pub trait ZanzibarBackend {
             > + Send
             + Sync,
     {
-        self.update_relationships(repeat(ModifyRelationshipOperation::Touch).zip(relationships))
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Touch).zip(relationships))
     }
 
     /// Creates a new relation specified by the [`Relationship`].
     ///
-    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
     /// [`ModifyRelationshipOperation::Create`].
     ///
     /// # Errors
@@ -101,7 +102,7 @@ pub trait ZanzibarBackend {
     fn create_relationships<R>(
         &mut self,
         relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -111,12 +112,12 @@ pub trait ZanzibarBackend {
             > + Send
             + Sync,
     {
-        self.update_relationships(repeat(ModifyRelationshipOperation::Create).zip(relationships))
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Create).zip(relationships))
     }
 
     /// Deletes the relation specified by the [`Relationship`].
     ///
-    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
     /// [`ModifyRelationshipOperation::Delete`].
     ///
     /// # Errors
@@ -125,7 +126,7 @@ pub trait ZanzibarBackend {
     fn delete_relationships<R>(
         &mut self,
         relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -135,7 +136,7 @@ pub trait ZanzibarBackend {
             > + Send
             + Sync,
     {
-        self.update_relationships(repeat(ModifyRelationshipOperation::Delete).zip(relationships))
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Delete).zip(relationships))
     }
 
     /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
@@ -198,14 +199,14 @@ impl ZanzibarBackend for NoAuthorization {
         unimplemented!()
     }
 
-    async fn update_relationships<T>(
+    async fn modify_relationships<T>(
         &mut self,
         _tuples: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
-    ) -> Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         T: Sync,
     {
-        Ok(UpdateRelationshipResponse {
+        Ok(ModifyRelationshipResponse {
             written_at: Zookie::empty(),
         })
     }
@@ -286,22 +287,22 @@ impl Error for ExportSchemaError {}
 
 /// Return value for [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct UpdateRelationshipResponse {
+pub struct ModifyRelationshipResponse {
     /// A token to determine the time at which the relation was created.
     pub written_at: Zookie<'static>,
 }
 
 /// Error returned from [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct UpdateRelationshipError;
+pub struct ModifyRelationshipError;
 
-impl fmt::Display for UpdateRelationshipError {
+impl fmt::Display for ModifyRelationshipError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("failed to modify relations")
     }
 }
 
-impl Error for UpdateRelationshipError {}
+impl Error for ModifyRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]

@@ -8,7 +8,9 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    backend::{
+        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
+    },
     schema::{
         AccountGroupPermission, EntityPermission, EntityRelationSubject, OwnerId, WebPermission,
     },
@@ -109,15 +111,12 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn add_entity_relation(
+    fn modify_entity_relations(
         &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-    fn remove_entity_relation(
-        &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
+        relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, EntityId, EntityRelationSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn check_entities_permission(

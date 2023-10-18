@@ -27,12 +27,12 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityViewer,
   checkEntityPermission,
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   createAccount,
@@ -319,10 +319,21 @@ export const createUser: ImpureGraphFunction<
       entityUuid: userAccountId as string as EntityUuid,
     },
   );
-  await addEntityViewer(
+  await modifyEntityAuthorizationRelationships(
     ctx,
     { actorId: userAccountId },
-    { entityId: entity.metadata.recordId.entityId, viewer: "public" },
+    [
+      {
+        operation: "create",
+        relationship: {
+          subject: {
+            namespace: "public",
+          },
+          relation: "directViewer",
+          object: entity.metadata.recordId.entityId,
+        },
+      },
+    ],
   );
 
   const user = getUserFromEntity({ entity });

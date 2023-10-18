@@ -5,6 +5,7 @@
 use std::{iter::once, sync::Arc};
 
 use authorization::{
+    backend::ModifyRelationshipOperation,
     schema::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
         EntityObjectRelation, EntityPermission, EntityRelationSubject, EntitySubject,
@@ -55,6 +56,7 @@ use crate::{
         update_entity,
 
         get_entity_authorization_relationships,
+        modify_entity_authorization_relationships,
 
         add_entity_owner,
         remove_entity_owner,
@@ -79,6 +81,8 @@ use crate::{
             EntityDirectEditorSubject,
             EntityDirectViewerSubject,
             EntityAuthorizationRelationship,
+            ModifyEntityAuthorizationRelationship,
+            ModifyRelationshipOperation,
 
             Entity,
             EntityUuid,
@@ -114,6 +118,10 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
+                .route(
+                    "/relationships",
+                    post(modify_entity_authorization_relationships::<A>),
+                )
                 .nest(
                     "/:entity_id",
                     Router::new()
@@ -451,7 +459,7 @@ impl<'s> ToSchema<'s> for Viewer {
     }
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct EntityAuthorizationRelationship {
     relation_subject: EntityRelationSubject,
@@ -499,6 +507,97 @@ where
             })
             .collect(),
     ))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ModifyEntityAuthorizationRelationship {
+    operation: ModifyRelationshipOperation,
+    object: EntityId,
+    relation_subject: EntityRelationSubject,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/relationships",
+    tag = "Entity",
+    request_body = [ModifyEntityAuthorizationRelationship],
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, description = "The relationship was modified for the entity"),
+
+        (status = 403, description = "Permission denied"),
+)
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn modify_entity_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    relationships: Json<Vec<ModifyEntityAuthorizationRelationship>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let (entities, operations): (Vec<_>, Vec<_>) = relationships
+        .0
+        .into_iter()
+        .map(|request| {
+            (
+                request.object,
+                (request.operation, request.object, request.relation_subject),
+            )
+        })
+        .unzip();
+
+    let (permissions, _zookie) = authorization_api
+        .check_entities_permission(
+            actor_id,
+            EntityPermission::Update,
+            entities,
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if relationship can be modified for entity"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut failed = false;
+    // TODO: Change interface for `check_entities_permission` to avoid this loop
+    for (entity_id, has_permission) in permissions {
+        if !has_permission {
+            tracing::error!(
+                "Insufficient permissions to modify relationship for entity `{entity_id}`"
+            );
+            failed = true;
+        }
+    }
+
+    if failed {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // for request in relationships.0 {
+    authorization_api
+        .modify_entity_relations(operations)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add entity relationship");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    // }
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -571,7 +670,11 @@ where
     };
 
     authorization_api
-        .add_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationSubject::DirectOwner(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity owner");
@@ -654,7 +757,11 @@ where
     };
 
     authorization_api
-        .remove_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Delete,
+            entity_id,
+            EntityRelationSubject::DirectOwner(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity owner");
@@ -731,7 +838,11 @@ where
     };
 
     authorization_api
-        .add_entity_relation(entity_id, EntityRelationSubject::DirectEditor(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationSubject::DirectEditor(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity editor");
@@ -811,7 +922,11 @@ where
     };
 
     authorization_api
-        .remove_entity_relation(entity_id, EntityRelationSubject::DirectEditor(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Delete,
+            entity_id,
+            EntityRelationSubject::DirectEditor(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity editor");
@@ -897,7 +1012,11 @@ where
     };
 
     authorization_api
-        .add_entity_relation(entity_id, EntityRelationSubject::DirectViewer(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationSubject::DirectViewer(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity viewer");
@@ -986,7 +1105,11 @@ where
     };
 
     authorization_api
-        .remove_entity_relation(entity_id, EntityRelationSubject::DirectViewer(subject))
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Delete,
+            entity_id,
+            EntityRelationSubject::DirectViewer(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity viewer");

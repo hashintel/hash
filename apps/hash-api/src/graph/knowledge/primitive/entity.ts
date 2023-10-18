@@ -4,6 +4,7 @@ import {
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
+  ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -657,6 +658,23 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     },
   });
+};
+
+export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: EntityAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyEntityAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      object: relationship.object,
+      relationSubject: relationship,
+    })),
+  );
 };
 
 export const addEntityOwner: ImpureGraphFunction<

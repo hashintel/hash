@@ -878,6 +878,47 @@
         }
       }
     },
+    "/entities/relationships": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "modify_entity_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ModifyEntityAuthorizationRelationship"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The relationship was modified for the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/editors/{editor}": {
       "post": {
         "tags": [
@@ -3415,6 +3456,34 @@
               "$ref": "#/components/schemas/OntologyElementMetadata"
             }
           }
+        ]
+      },
+      "ModifyEntityAuthorizationRelationship": {
+        "type": "object",
+        "required": [
+          "operation",
+          "object",
+          "relationSubject"
+        ],
+        "properties": {
+          "object": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/ModifyRelationshipOperation"
+          },
+          "relationSubject": {
+            "$ref": "#/components/schemas/EntityRelationSubject"
+          }
+        }
+      },
+      "ModifyRelationshipOperation": {
+        "type": "string",
+        "description": "Used for mutating a single relationship within the service.",
+        "enum": [
+          "touch",
+          "create",
+          "delete"
         ]
       },
       "NullableTimestamp": {

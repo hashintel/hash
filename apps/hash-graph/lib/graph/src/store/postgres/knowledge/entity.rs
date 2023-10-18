@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
+    backend::ModifyRelationshipOperation,
     schema::{
         EntityDirectOwnerSubject, EntityPermission, EntityRelationSubject, EntitySubjectSet,
         OwnerId, WebPermission,
@@ -437,13 +438,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .add_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+            .modify_entity_relations([(
+                ModifyRelationshipOperation::Create,
+                entity_id,
+                EntityRelationSubject::DirectOwner(subject),
+            )])
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+                .modify_entity_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    entity_id,
+                    EntityRelationSubject::DirectOwner(subject),
+                )])
                 .await
                 .change_context(InsertionError)
             {

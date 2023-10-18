@@ -239,12 +239,7 @@ pub enum EntityDirectViewerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    tag = "relation",
-    content = "subject",
-    deny_unknown_fields
-)]
+#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum EntityRelationSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityRelationDirectOwner"))]
     DirectOwner(EntityDirectOwnerSubject),

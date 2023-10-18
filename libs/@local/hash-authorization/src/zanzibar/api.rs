@@ -6,7 +6,10 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError, ZanzibarBackend},
+    backend::{
+        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
+        ZanzibarBackend,
+    },
     schema::{
         AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelationSubject,
         OwnerId, WebPermission, WebRelation,
@@ -238,27 +241,18 @@ where
         .written_at)
     }
 
-    async fn add_entity_relation(
+    async fn modify_entity_relations(
         &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
+        relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, EntityId, EntityRelationSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relationships([(entity.entity_uuid, relationship)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn remove_entity_relation(
-        &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .delete_relationships([(entity.entity_uuid, relationship)])
+            .modify_relationships(relationships.into_iter().map(
+                |(operation, entity_id, relation)| (operation, (entity_id.entity_uuid, relation)),
+            ))
             .await
             .change_context(ModifyRelationError)?
             .written_at)

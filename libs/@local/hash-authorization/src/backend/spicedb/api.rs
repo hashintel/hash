@@ -11,8 +11,8 @@ use crate::{
     backend::{
         spicedb::model::{self, RpcError},
         CheckError, CheckResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
-        ImportSchemaResponse, ModifyRelationshipOperation, ReadError, SpiceDbOpenApi,
-        UpdateRelationshipError, UpdateRelationshipResponse, ZanzibarBackend,
+        ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
+        ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
     zanzibar::{
         types::{Object, Relationship, RelationshipFilter, Subject},
@@ -200,10 +200,10 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn update_relationships<T>(
+    async fn modify_relationships<T>(
         &mut self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
-    ) -> Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         T: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -268,7 +268,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
 
             match invocation {
                 Ok(response) => {
-                    return Ok(UpdateRelationshipResponse {
+                    return Ok(ModifyRelationshipResponse {
                         written_at: response.written_at.into(),
                     });
                 }
@@ -287,7 +287,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                 },
             }
         }
-        .change_context(UpdateRelationshipError)
+        .change_context(ModifyRelationshipError)
     }
 
     #[expect(
