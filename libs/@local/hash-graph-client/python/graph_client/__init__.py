@@ -1,4 +1,5 @@
 """Client for the HASH API."""
+
 from typing import Literal, TypeAlias, TypeVar
 from uuid import UUID
 

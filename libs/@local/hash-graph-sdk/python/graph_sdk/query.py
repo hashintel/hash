@@ -14,6 +14,7 @@ and `BaseFilter.not_equal()` respectively.
 To create a filter that will always match use `BaseFilter.always()`.
 Use `BaseFilter.never()` to create a filter that will never match.
 """
+
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from enum import Enum

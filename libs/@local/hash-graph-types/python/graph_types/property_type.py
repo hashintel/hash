@@ -1,4 +1,5 @@
 """A property type schema as defined by the Block Protocol."""
+
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -48,9 +49,11 @@ class PropertyTypeReference(Schema):
 
 
 class PropertyValue(RootModel, Schema):
-    root: DataTypeReference | Object[
-        PropertyTypeReference | Array[PropertyTypeReference]
-    ] | Array[OneOf["PropertyValue"]]
+    root: (
+        DataTypeReference
+        | Object[PropertyTypeReference | Array[PropertyTypeReference]]
+        | Array[OneOf["PropertyValue"]]
+    )
 
     async def create_model(
         self,

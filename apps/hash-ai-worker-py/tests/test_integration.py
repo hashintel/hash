@@ -1,4 +1,5 @@
 """Test integration."""
+
 #  ruff: noqa: S101
 
 

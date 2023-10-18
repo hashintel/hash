@@ -1,4 +1,5 @@
 """Replicates the Block Protocol type system for use in Python."""
+
 from typing import Protocol
 from uuid import UUID
 

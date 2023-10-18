@@ -1,4 +1,5 @@
 """Basic activities to interact with the graph API."""
+
 from datetime import timedelta
 from typing import Any
 from uuid import UUID
