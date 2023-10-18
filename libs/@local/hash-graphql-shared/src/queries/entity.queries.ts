@@ -28,7 +28,7 @@ export const getEntityQuery = gql`
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
     ) {
-      permissionsOnEntities @include(if: $includePermissions)
+      userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
       }

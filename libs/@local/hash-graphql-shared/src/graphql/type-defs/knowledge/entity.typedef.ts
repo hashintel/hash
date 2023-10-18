@@ -9,10 +9,11 @@ export const entityTypedef = gql`
   scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
+  scalar UserPermissions
   scalar UserPermissionsOnEntities
 
   type SubgraphAndPermissions {
-    permissionsOnEntities: UserPermissionsOnEntities!
+    userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: Subgraph!
   }
 

@@ -1,0 +1,31 @@
+import { UserPermissions } from "@local/hash-graphql-shared/graphql/types";
+import { Entity } from "@local/hash-subgraph";
+
+import {
+  canUpdateEntity,
+  checkPermissionsOnEntity,
+} from "../../../../graph/knowledge/primitive/entity";
+import { ResolverFn } from "../../../api-types.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+
+export const userPermissions: ResolverFn<
+  UserPermissions,
+  Pick<Entity, "metadata">,
+  LoggedInGraphQLContext,
+  {}
+> = async (entity, _, context) => {
+  return checkPermissionsOnEntity(context.dataSources, context.authentication, {
+    entity,
+  });
+};
+
+export const canUserEdit: ResolverFn<
+  boolean,
+  Pick<Entity, "metadata">,
+  LoggedInGraphQLContext,
+  {}
+> = async (entity, _, context) => {
+  return canUpdateEntity(context.dataSources, context.authentication, {
+    entityId: entity.metadata.recordId.entityId,
+  });
+};

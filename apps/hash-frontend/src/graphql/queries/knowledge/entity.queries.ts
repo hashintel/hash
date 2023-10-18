@@ -42,7 +42,7 @@ export const queryEntitiesQuery = gql`
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
     ) {
-      permissionsOnEntities @include(if: $includePermissions)
+      userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
       }
@@ -57,7 +57,7 @@ export const structuralQueryEntitiesQuery = gql`
     $includePermissions: Boolean! = false
   ) {
     structuralQueryEntities(query: $query) {
-      permissionsOnEntities @include(if: $includePermissions)
+      userPermissionsOnEntities @include(if: $includePermissions)
       subgraph {
         ...SubgraphFields
       }

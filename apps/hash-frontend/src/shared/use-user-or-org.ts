@@ -122,7 +122,7 @@ export const useUserOrOrg = (
     return {
       canUserEdit: !!(
         rootEntity &&
-        data?.structuralQueryEntities.permissionsOnEntities?.[
+        data?.structuralQueryEntities.userPermissionsOnEntities?.[
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),

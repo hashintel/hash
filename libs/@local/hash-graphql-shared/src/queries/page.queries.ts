@@ -13,7 +13,6 @@ const blockFieldsFragment = gql`
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     archived
-    canUserEdit
     title
     icon
     summary
@@ -25,6 +24,7 @@ const pageFieldsFragment = gql`
     }
     metadata
     properties
+    userPermissions
     __typename
   }
   ${blockFieldsFragment}

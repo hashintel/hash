@@ -4,7 +4,10 @@ import {
   Filter,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
-import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import {
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -720,50 +723,66 @@ export const canUpdateEntity: ImpureGraphFunction<
     .canUpdateEntity(actorId, params.entityId)
     .then(({ data }) => data.has_permission);
 
+export const checkPermissionsOnEntity: ImpureGraphFunction<
+  { entity: Pick<Entity, "metadata"> },
+  Promise<UserPermissions>
+> = async (graphContext, { actorId }, params) => {
+  const { entity } = params;
+
+  const { entityId } = entity.metadata.recordId;
+
+  const isAccountGroup =
+    entity.metadata.entityTypeId === SYSTEM_TYPES.entityType.org.schema.$id;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [entityEditable, membersEditable] = await Promise.all([
+    isPublicUser
+      ? false
+      : await canUpdateEntity(graphContext, { actorId }, { entityId }),
+    isAccountGroup
+      ? isPublicUser
+        ? false
+        : await graphContext.graphApi
+            .canAddGroupMember(actorId, entityId)
+            .then(({ data }) => data.has_permission)
+      : null,
+  ]);
+
+  return {
+    edit: entityEditable,
+    view: true,
+    editPermissions: entityEditable,
+    viewPermissions: entityEditable,
+    editMembers: membersEditable,
+  };
+};
+
 export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
   { subgraph: Subgraph },
   Promise<UserPermissionsOnEntities>
-> = async (graphContext, { actorId }, params) => {
+> = async (graphContext, authentication, params) => {
   const { subgraph } = params;
 
-  const entities: { entityId: EntityId; isAccountGroup: boolean }[] = [];
-  for (const vertex of Object.values(subgraph.vertices)) {
-    const sampleEdition = Object.values(vertex)[0];
-    if (isEntityVertex(sampleEdition)) {
-      const isAccountGroup =
-        sampleEdition.inner.metadata.entityTypeId ===
-        SYSTEM_TYPES.entityType.org.schema.$id;
-      entities.push({
-        entityId: sampleEdition.inner.metadata.recordId.entityId,
-        isAccountGroup,
-      });
+  const entities: Entity[] = [];
+  for (const editionMap of Object.values(subgraph.vertices)) {
+    const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
+    // @ts-expect-error -- subgraph needs revamping to make typing less annoying
+    const latestEdition = editionMap[latestEditionTimestamp];
+
+    if (isEntityVertex(latestEdition)) {
+      entities.push(latestEdition.inner);
     }
   }
 
-  const permissionsOnEntities: UserPermissionsOnEntities = {};
+  const userPermissionsOnEntities: UserPermissionsOnEntities = {};
   await Promise.all(
-    entities.map(async ({ entityId, isAccountGroup }) => {
-      const editable =
-        actorId === publicUserAccountId
-          ? // Don't bother slowing down the request if this is an unauthenticated user
-            false
-          : await canUpdateEntity(graphContext, { actorId }, { entityId });
-
-      permissionsOnEntities[entityId] = {
-        edit: editable,
-        view: true,
-        editPermissions: editable,
-        viewPermissions: editable,
-        editMembers: isAccountGroup
-          ? await graphContext.graphApi
-              .canAddGroupMember(actorId, entityId)
-              .then(({ data }) => data.has_permission)
-          : null,
-      };
-    }),
+    entities.map(async (entity) =>
+      checkPermissionsOnEntity(graphContext, authentication, { entity }),
+    ),
   );
 
-  return permissionsOnEntities;
+  return userPermissionsOnEntities;
 };
 
 export const isEntityPublic: ImpureGraphFunction<

@@ -102,7 +102,7 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
               setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
               setIsReadonly(
-                !data.getEntity.permissionsOnEntities?.[entityId]?.edit,
+                !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
               );
             } catch {
               setEntitySubgraphFromDb(undefined);

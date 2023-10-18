@@ -34,6 +34,7 @@ export const scalars = {
 
   UserPermissionsOnEntities:
     "@local/hash-graphql-shared/graphql/types#UserPermissionsOnEntities",
+  Permissions: "@local/hash-graphql-shared/graphql/types#Permissions",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",

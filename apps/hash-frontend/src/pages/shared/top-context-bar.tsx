@@ -4,6 +4,7 @@ import {
   faPencilRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { UserPermissions } from "@local/hash-graphql-shared/graphql/types";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   Box,
@@ -117,6 +118,7 @@ type TopContextBarProps = {
   defaultCrumbIcon?: ReactNode;
   scrollToTop: () => void;
   sx?: SxProps<Theme>;
+  userPermissions: UserPermissions;
 };
 
 export const TopContextBar = ({
@@ -124,6 +126,7 @@ export const TopContextBar = ({
   crumbs,
   item,
   defaultCrumbIcon = <FontAwesomeIcon icon={faFile} />,
+  userPermissions,
   scrollToTop = () => {},
   sx = [],
 }: TopContextBarProps) => {
@@ -195,7 +198,9 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemEntityType(item) ? (
+          {item &&
+          !isItemEntityType(item) &&
+          userPermissions.viewPermissions ? (
             <ShareDropdownMenu entity={item} />
           ) : null}
 

@@ -22,7 +22,7 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
         keyof SubgraphAndPermissions,
         ResolveTree
       >
-    ).permissionsOnEntities,
+    ).userPermissionsOnEntities,
   };
 };
 
@@ -33,7 +33,8 @@ export const createSubgraphAndPermissionsReturn = async (
 ): Promise<SubgraphAndPermissions> => {
   const { authentication, dataSources } = context;
 
-  const permissionsOnEntities = werePermissionsRequested(resolveInfo).entities
+  const userPermissionsOnEntities = werePermissionsRequested(resolveInfo)
+    .entities
     ? await checkPermissionsOnEntitiesInSubgraph(dataSources, authentication, {
         subgraph,
       })
@@ -46,6 +47,6 @@ export const createSubgraphAndPermissionsReturn = async (
 
   return {
     subgraph,
-    permissionsOnEntities,
+    userPermissionsOnEntities,
   };
 };

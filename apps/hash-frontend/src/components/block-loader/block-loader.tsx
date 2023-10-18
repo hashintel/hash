@@ -92,7 +92,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
       (newBlockSubgraph) => {
         setBlockSubgraph(newBlockSubgraph.subgraph);
-        setUserPermissions(newBlockSubgraph.permissionsOnEntities);
+        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
       },
     );
   }, [
@@ -136,7 +136,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         );
 
         setBlockSubgraph(newBlockSubgraph.subgraph);
-        setUserPermissions(newBlockSubgraph.permissionsOnEntities);
+        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
 
         return res;
       },

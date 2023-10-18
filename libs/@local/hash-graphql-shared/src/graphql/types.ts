@@ -76,7 +76,7 @@ export type ConstructEntityTypeParams = Omit<
   SystemDefinedProperties
 >;
 
-export type Permissions = {
+export type UserPermissions = {
   view: boolean;
   viewPermissions: boolean;
   edit: boolean;
@@ -85,5 +85,5 @@ export type Permissions = {
 };
 
 export type UserPermissionsOnEntities = {
-  [key: EntityId]: Permissions | undefined;
+  [key: EntityId]: UserPermissions | undefined;
 };

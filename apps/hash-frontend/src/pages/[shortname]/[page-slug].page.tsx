@@ -385,7 +385,8 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  const { title, icon, contents, canUserEdit } = data.page;
+  const { title, icon, contents, userPermissions } = data.page;
+  const canUserEdit = userPermissions.edit;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -434,6 +435,7 @@ const Page: NextPageWithLayout<PageProps> = ({
               pageEntityId: data.page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
+            userPermissions={userPermissions}
             scrollToTop={scrollToTop}
           />
         </Box>

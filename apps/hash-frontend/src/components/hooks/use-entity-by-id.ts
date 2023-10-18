@@ -46,7 +46,7 @@ export const useEntityById = ({
       entitySubgraph: data?.getEntity.subgraph as
         | Subgraph<EntityRootType>
         | undefined,
-      permissions: data?.getEntity.permissionsOnEntities,
+      permissions: data?.getEntity.userPermissionsOnEntities,
     }),
     [loading, data],
   );

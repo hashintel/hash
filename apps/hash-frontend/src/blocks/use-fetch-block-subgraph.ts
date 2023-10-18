@@ -140,7 +140,7 @@ export const useFetchBlockSubgraph = (): ((
 
         return {
           subgraph: blockEntitySubgraph as Subgraph<EntityRootType>,
-          permissionsOnEntities: {},
+          userPermissionsOnEntities: {},
         } satisfies SubgraphAndPermissions;
       }
 
@@ -165,7 +165,8 @@ export const useFetchBlockSubgraph = (): ((
 
           return {
             subgraph: data.getEntity.subgraph as Subgraph<EntityRootType>,
-            permissionsOnEntities: data.getEntity.permissionsOnEntities!,
+            userPermissionsOnEntities:
+              data.getEntity.userPermissionsOnEntities!,
           } satisfies SubgraphAndPermissions;
         })
         .catch((err) => {
