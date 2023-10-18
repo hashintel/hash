@@ -1,4 +1,5 @@
 """A data type schema as defined by the Block Protocol."""
+
 from typing import (
     TYPE_CHECKING,
     Any,

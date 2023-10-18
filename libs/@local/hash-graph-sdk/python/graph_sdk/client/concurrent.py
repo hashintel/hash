@@ -1,4 +1,5 @@
 """Concurrent (async) client for the HASH API."""
+
 from typing import TypeVar
 from uuid import UUID
 

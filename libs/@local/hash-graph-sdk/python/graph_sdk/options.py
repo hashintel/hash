@@ -1,4 +1,5 @@
 """Ergonomic API to configure options for structural queries."""
+
 from datetime import datetime
 from typing import Protocol
 

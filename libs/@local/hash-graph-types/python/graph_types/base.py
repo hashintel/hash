@@ -2,6 +2,7 @@
 
 These classes are primarily used as markers
 """
+
 from abc import ABC
 from typing import ClassVar
 
