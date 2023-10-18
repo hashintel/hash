@@ -51,7 +51,7 @@ import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
 import {
   canUserEdit,
-  userPermissions,
+  checkUserPermissionsOnEntity,
 } from "./knowledge/shared/check-permissions";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
@@ -111,6 +111,8 @@ export const resolvers: Resolvers = {
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
+    checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
+      checkUserPermissionsOnEntity({ metadata }, _, context, info),
   },
 
   Mutation: {
@@ -174,7 +176,7 @@ export const resolvers: Resolvers = {
   JSONObject: JSONObjectResolver,
 
   Page: {
-    userPermissions,
+    userPermissions: checkUserPermissionsOnEntity,
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
     // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver

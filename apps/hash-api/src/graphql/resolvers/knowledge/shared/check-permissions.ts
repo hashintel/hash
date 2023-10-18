@@ -6,12 +6,12 @@ import {
   checkPermissionsOnEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { ResolverFn } from "../../../api-types.gen";
-import { LoggedInGraphQLContext } from "../../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 
-export const userPermissions: ResolverFn<
+export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,
   Pick<Entity, "metadata">,
-  LoggedInGraphQLContext,
+  GraphQLContext,
   {}
 > = async (entity, _, context) => {
   return checkPermissionsOnEntity(context.dataSources, context.authentication, {

@@ -36,3 +36,9 @@ export const getEntityQuery = gql`
   }
   ${subgraphFieldsFragment}
 `;
+
+export const checkUserPermissionsOnEntityQuery = gql`
+  query checkUserPermissionsOnEntity($metadata: EntityMetadata!) {
+    checkUserPermissionsOnEntity(metadata: $metadata)
+  }
+`;

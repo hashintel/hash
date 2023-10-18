@@ -38,7 +38,7 @@ export const parseProfilePageUrlQueryParams = (
   const currentTabTitle =
     typeof paramsCurrentTabTitle === "string"
       ? paramsCurrentTabTitle
-      : undefined;
+      : "Profile";
 
   return { profileShortname, currentTabTitle };
 };

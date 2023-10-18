@@ -9,9 +9,11 @@ import { MemberContextMenu } from "./member-row/member-context-menu";
 
 export const MemberRow = ({
   membership,
+  readonly,
   self,
 }: {
   membership: Org["memberships"][0];
+  readonly: boolean;
   self: boolean;
 }) => {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
@@ -54,7 +56,9 @@ export const MemberRow = ({
         </Typography>
       </TableCell>
       <TableCell>
-        <MemberContextMenu removeFromOrg={removeFromOrg} self={self} />
+        {!readonly && (
+          <MemberContextMenu removeFromOrg={removeFromOrg} self={self} />
+        )}
       </TableCell>
     </TableRow>
   );

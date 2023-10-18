@@ -87,11 +87,13 @@ type OrgFormProps = {
    * Without an existing org, some fields will be hidden from the user.
    */
   org?: OrgFormData;
+  readonly: boolean;
   submitLabel: string;
 };
 
 export const OrgForm = ({
   autoFocusDisplayName = false,
+  readonly,
   onSubmit,
   org: initialOrg,
   submitLabel,
@@ -257,6 +259,7 @@ export const OrgForm = ({
         />
         <TextField
           autoFocus={autoFocusDisplayName}
+          disabled={readonly}
           error={!!nameError}
           id="name"
           helperText={nameError}
@@ -283,7 +286,7 @@ export const OrgForm = ({
               <TextField
                 autoComplete="off"
                 defaultValue={initialOrg?.shortname ?? ""}
-                disabled={!!initialOrg}
+                disabled={readonly || !!initialOrg}
                 error={!!shortnameError}
                 helperText={shortnameError}
                 id="shortname"
@@ -337,7 +340,11 @@ export const OrgForm = ({
           <InputGroup>
             <Label label="Avatar" htmlFor="" />
             <Box width={210} height={210}>
-              <ImageField imageUrl={avatarUrl} onFileProvided={setAvatar} />
+              <ImageField
+                readonly={readonly}
+                imageUrl={avatarUrl}
+                onFileProvided={setAvatar}
+              />
             </Box>
           </InputGroup>
           <InputGroup>
@@ -348,6 +355,7 @@ export const OrgForm = ({
             />
             <TextField
               id="description"
+              disabled={readonly}
               sx={{ width: 400 }}
               {...register("description", { required: false })}
             />
@@ -362,6 +370,7 @@ export const OrgForm = ({
         />
         <TextField
           id="website"
+          disabled={readonly}
           placeholder="https://acme.com"
           sx={{ width: 400 }}
           inputProps={{
@@ -382,38 +391,41 @@ export const OrgForm = ({
           />
           <TextField
             id="location"
+            disabled={readonly}
             sx={{ width: 400 }}
             {...register("location", { required: false })}
           />
         </InputGroup>
       )}
-      <Box mt={3}>
-        <Stack direction="row" spacing={2}>
-          <Button disabled={!isSubmitEnabled} type="submit">
-            {submitLabel}
-          </Button>
-          {initialOrg && (
-            <Button
-              disabled={!formState.isDirty}
-              onClick={() => reset(initialOrg)}
-              type="button"
-              variant="tertiary"
-            >
-              Discard changes
+      {!readonly && (
+        <Box mt={3}>
+          <Stack direction="row" spacing={2}>
+            <Button disabled={!isSubmitEnabled} type="submit">
+              {submitLabel}
             </Button>
+            {initialOrg && (
+              <Button
+                disabled={!formState.isDirty}
+                onClick={() => reset(initialOrg)}
+                type="button"
+                variant="tertiary"
+              >
+                Discard changes
+              </Button>
+            )}
+          </Stack>
+          {submissionError && (
+            <Typography
+              sx={{
+                color: "red.60",
+                mt: 1,
+              }}
+            >
+              {submissionError}
+            </Typography>
           )}
-        </Stack>
-        {submissionError && (
-          <Typography
-            sx={{
-              color: "red.60",
-              mt: 1,
-            }}
-          >
-            {submissionError}
-          </Typography>
-        )}
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 };

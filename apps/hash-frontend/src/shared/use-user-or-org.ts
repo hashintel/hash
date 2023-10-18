@@ -126,7 +126,7 @@ export const useUserOrOrg = (
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),
-      userOrOrgSubgraph: data?.structuralQueryEntities as
+      userOrOrgSubgraph: data?.structuralQueryEntities.subgraph as
         | Subgraph<EntityRootType>
         | undefined,
       userOrOrg: rootEntity,

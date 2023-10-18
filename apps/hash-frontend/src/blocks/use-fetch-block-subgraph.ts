@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Entity,
@@ -19,7 +20,6 @@ import {
   GetEntityQueryVariables,
   SubgraphAndPermissions,
 } from "../graphql/api-types.gen";
-import { getEntityQuery } from "../graphql/queries/knowledge/entity.queries";
 
 export const useFetchBlockSubgraph = (): ((
   blockEntityTypeId: VersionedUrl,

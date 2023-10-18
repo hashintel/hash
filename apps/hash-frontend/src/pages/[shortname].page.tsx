@@ -170,9 +170,8 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profile || !includeEntityTypeIds,
   });
 
-  const entitiesSubgraph = pinnedEntityTypesData?.structuralQueryEntities as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const entitiesSubgraph = pinnedEntityTypesData?.structuralQueryEntities
+    .subgraph as Subgraph<EntityRootType> | undefined;
 
   const allPinnedEntities = useMemo(
     () => (entitiesSubgraph ? getRoots(entitiesSubgraph) : undefined),

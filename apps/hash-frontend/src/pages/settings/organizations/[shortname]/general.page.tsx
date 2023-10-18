@@ -8,6 +8,7 @@ import { useRef } from "react";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useOrgs } from "../../../../components/hooks/use-orgs";
 import { NextPageWithLayout } from "../../../../shared/layout";
+import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { OrgForm, OrgFormData } from "../shared/org-form";
@@ -28,6 +29,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const org = authenticatedUser.memberOf.find(
     ({ org: orgOption }) => orgOption.shortname === shortname,
   )?.org;
+
+  const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
 
   if (!org) {
     // @todo show a 404 page
@@ -96,6 +99,7 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
           key={org.entity.metadata.recordId.entityId}
           org={org}
           onSubmit={updateOrg}
+          readonly={!userPermissions?.edit}
           submitLabel="Update organization profile"
         />
       </OrgSettingsContainer>

@@ -194,6 +194,8 @@ export const entityTypedef = gql`
     getEntityAuthorizationRelationships(
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!
+
+    checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
   }
 
   enum AuthorizationSubjectKind {

@@ -744,7 +744,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
       ? isPublicUser
         ? false
         : await graphContext.graphApi
-            .canAddGroupMember(actorId, entityId)
+            .canAddGroupMember(actorId, extractEntityUuidFromEntityId(entityId))
             .then(({ data }) => data.has_permission)
       : null,
   ]);
@@ -777,9 +777,15 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 
   const userPermissionsOnEntities: UserPermissionsOnEntities = {};
   await Promise.all(
-    entities.map(async (entity) =>
-      checkPermissionsOnEntity(graphContext, authentication, { entity }),
-    ),
+    entities.map(async (entity) => {
+      const permissions = await checkPermissionsOnEntity(
+        graphContext,
+        authentication,
+        { entity },
+      );
+      userPermissionsOnEntities[entity.metadata.recordId.entityId] =
+        permissions;
+    }),
   );
 
   return userPermissionsOnEntities;

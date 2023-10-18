@@ -36,7 +36,7 @@
     "image-size": "1.0.1",
     "md5": "2.3.0",
     "mock-block-dock": "0.0.21",
-    "next": "13.5.5-canary.4",
+    "next": "13.5.5",
     "next-mdx-remote": "4.0.3",
     "next-seo": "5.14.1",
     "nextjs-progressbar": "0.0.16",

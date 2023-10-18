@@ -197,7 +197,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               blockSubgraph as unknown as Subgraph<EntityRootType>,
           }
         : null,
-    [blockSubgraph, readonly],
+    [blockEntityId, blockSubgraph, readonly, userPermissions],
   );
 
   // The paragraph block needs updating to 0.3 and publishing – this ensures it doesn't crash
