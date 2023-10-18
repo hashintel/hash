@@ -41,6 +41,7 @@ const Page: NextPageWithLayout = () => {
   const { routeNamespace } = useRouteNamespace();
   const [lazyGetEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
     getEntityQuery,
+    { fetchPolicy: "cache-and-network" },
   );
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntity } = useBlockProtocolUpdateEntity();
