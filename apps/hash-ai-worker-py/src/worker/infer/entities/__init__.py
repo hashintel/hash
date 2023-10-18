@@ -1,4 +1,5 @@
 """Entity inference based on text."""
+
 import enum
 from typing import Any
 

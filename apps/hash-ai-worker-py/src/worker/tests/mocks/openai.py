@@ -1,6 +1,5 @@
 """Mocks to use in OpenAI tests."""
 
-
 import os
 
 import pytest

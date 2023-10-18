@@ -1,4 +1,5 @@
 """A Python Temporal.io worker."""
+
 from uuid import UUID
 
 from pydantic import BaseModel, Field

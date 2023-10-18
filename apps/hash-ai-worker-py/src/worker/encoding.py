@@ -1,6 +1,5 @@
 """Conversion utilities for Pydantic."""
 
-
 # Inspired by https://github.com/temporalio/samples-python/blob/main/pydantic_converter/converter.py
 
 import json
