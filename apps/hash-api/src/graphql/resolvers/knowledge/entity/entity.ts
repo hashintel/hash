@@ -21,16 +21,15 @@ import {
 import {
   addEntityEditor,
   addEntityOwner,
-  addEntityViewer,
   archiveEntity,
   checkEntityPermission,
   createEntityWithLinks,
   getEntities,
   getEntityAuthorizationRelationships,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
   removeEntityEditor,
   removeEntityOwner,
-  removeEntityViewer,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import { bpMultiFilterToGraphFilter } from "../../../../graph/knowledge/primitive/entity/query";
@@ -455,19 +454,23 @@ export const removeEntityEditorResolver: ResolverFn<
 const parseGqlAuthorizationViewerInput = ({
   kind,
   viewer,
-}: AuthorizationViewerInput): AccountId | AccountGroupId | "public" => {
+}: AuthorizationViewerInput) => {
   if (kind === AuthorizationSubjectKind.Public) {
-    return "public" as const;
+    return { namespace: "public" } as const;
   } else if (kind === AuthorizationSubjectKind.Account) {
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return viewer;
+    return { namespace: "account", accountId: viewer as AccountId } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
-    return viewer;
+    return {
+      namespace: "accountGroup",
+      accountGroupId: viewer as AccountGroupId,
+      relation: "member",
+    } as const;
   }
 };
 
@@ -479,10 +482,16 @@ export const addEntityViewerResolver: ResolverFn<
 > = async (_, { entityId, viewer }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await addEntityViewer(context, authentication, {
-    entityId,
-    viewer: parseGqlAuthorizationViewerInput(viewer),
-  });
+  await modifyEntityAuthorizationRelationships(context, authentication, [
+    {
+      operation: "create",
+      relationship: {
+        object: entityId,
+        relation: "directViewer",
+        subject: parseGqlAuthorizationViewerInput(viewer),
+      },
+    },
+  ]);
 
   return true;
 };
@@ -495,10 +504,16 @@ export const removeEntityViewerResolver: ResolverFn<
 > = async (_, { entityId, viewer }, { dataSources, authentication }) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
-  await removeEntityViewer(context, authentication, {
-    entityId,
-    viewer: parseGqlAuthorizationViewerInput(viewer),
-  });
+  await modifyEntityAuthorizationRelationships(context, authentication, [
+    {
+      operation: "delete",
+      relationship: {
+        object: entityId,
+        relation: "directViewer",
+        subject: parseGqlAuthorizationViewerInput(viewer),
+      },
+    },
+  ]);
 
   return true;
 };

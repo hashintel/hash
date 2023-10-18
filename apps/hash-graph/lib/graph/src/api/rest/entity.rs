@@ -62,8 +62,6 @@ use crate::{
         remove_entity_owner,
         add_entity_editor,
         remove_entity_editor,
-        add_entity_viewer,
-        remove_entity_viewer,
     ),
     components(
         schemas(
@@ -136,10 +134,6 @@ impl RoutedResource for EntityResource {
                         .route(
                             "/editors/:editor",
                             post(add_entity_editor::<A, S>).delete(remove_entity_editor::<A, S>),
-                        )
-                        .route(
-                            "/viewers/:viewer",
-                            post(add_entity_viewer::<A, S>).delete(remove_entity_viewer::<A, S>),
                         )
                         .route(
                             "/permissions/:permission",
@@ -930,189 +924,6 @@ where
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity editor");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    post,
-    path = "/entities/{entity_id}/viewers/{viewer}",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to add the viewer to"),
-        ("viewer" = Viewer, Path, description = "The viewer to add to the entity"),
-    ),
-    responses(
-        (status = 204, description = "The viewer was added to the entity"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn add_entity_viewer<A, S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, viewer)): Path<(EntityId, Viewer)>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .check_entity_permission(
-            actor_id,
-            EntityPermission::Update,
-            entity_id,
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not check if viewer can be added to entity");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let subject = match viewer {
-        Viewer::Public(_) => EntityDirectViewerSubject::Public,
-        Viewer::Owner(owned_by_id) => {
-            let store = store_pool.acquire().await.map_err(|report| {
-                tracing::error!(error=?report, "Could not acquire store");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            let owner = store
-                .identify_owned_by_id(owned_by_id)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, "Could not identify account or account group");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-            match owner {
-                OwnerId::Account(account_id) => EntityDirectViewerSubject::Account { account_id },
-                OwnerId::AccountGroupMembers(account_group_id) => {
-                    EntityDirectViewerSubject::AccountGroup {
-                        account_group_id,
-                        relation: EntitySubjectSet::Member,
-                    }
-                }
-            }
-        }
-    };
-
-    authorization_api
-        .modify_entity_relations([(
-            ModifyRelationshipOperation::Create,
-            entity_id,
-            EntityRelationSubject::DirectViewer(subject),
-        )])
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not remove entity viewer");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    delete,
-    path = "/entities/{entity_id}/viewers/{viewer}",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to remove the viewer from"),
-        ("viewer" = Viewer, Path, description = "The viewer to remove from the entity"),
-    ),
-    responses(
-        (status = 204, description = "The viewer was removed from the entity"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn remove_entity_viewer<A, S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, viewer)): Path<(EntityId, Viewer)>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .check_entity_permission(
-            actor_id,
-            EntityPermission::Update,
-            entity_id,
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(|error| {
-            tracing::error!(
-                ?error,
-                "Could not check if viewer can be removed from entity"
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let subject = match viewer {
-        Viewer::Public(_) => EntityDirectViewerSubject::Public,
-        Viewer::Owner(owned_by_id) => {
-            let store = store_pool.acquire().await.map_err(|report| {
-                tracing::error!(error=?report, "Could not acquire store");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            let owner = store
-                .identify_owned_by_id(owned_by_id)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, "Could not identify account or account group");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-            match owner {
-                OwnerId::Account(account_id) => EntityDirectViewerSubject::Account { account_id },
-                OwnerId::AccountGroupMembers(account_group_id) => {
-                    EntityDirectViewerSubject::AccountGroup {
-                        account_group_id,
-                        relation: EntitySubjectSet::Member,
-                    }
-                }
-            }
-        }
-    };
-
-    authorization_api
-        .modify_entity_relations([(
-            ModifyRelationshipOperation::Delete,
-            entity_id,
-            EntityRelationSubject::DirectViewer(subject),
-        )])
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not remove entity viewer");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
