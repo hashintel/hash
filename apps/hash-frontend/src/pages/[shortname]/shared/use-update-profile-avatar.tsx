@@ -64,6 +64,8 @@ export const useUpdateProfileAvatar = (props: {
             }),
       });
 
+      /** @todo: error handling */
+
       void refetchUserAndOrgs();
 
       setNewAvatarImageUploading(false);

@@ -173,6 +173,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
             }),
       });
 
+      /** @todo: error handling */
+
       void refetchUserProfile();
       void refetchUserAndOrgs();
 
