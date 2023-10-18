@@ -13,7 +13,13 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Container } from "@mui/material";
-import { format } from "date-fns";
+import {
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
+  format,
+  isYesterday,
+} from "date-fns";
 import { useCallback, useMemo } from "react";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
@@ -28,13 +34,9 @@ import { QuickNoteIcon } from "../shared/icons/quick-note-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
+import { QuickNoteEntityWithCreatedAt } from "./notes.page/types";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { TopContextBar } from "./shared/top-context-bar";
-
-type QuickNoteEntityWithCreatedAt = {
-  quickNoteEntity: Entity;
-  createdAt: Date;
-};
 
 const NotesPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
@@ -141,6 +143,52 @@ const NotesPage: NextPageWithLayout = () => {
     [latestQuickNoteEntitiesWithCreatedAt],
   );
 
+  const dayTimestampToHeadings = useMemo(() => {
+    if (!latestQuickNoteEntitiesByDay) {
+      return;
+    }
+    const sortedDates = Object.keys(latestQuickNoteEntitiesByDay)
+      .map((timestamp) => new Date(timestamp))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    const today = new Date();
+
+    return sortedDates.reduce<Record<string, string>>((prev, currentDate) => {
+      const key = format(currentDate, "yyyy-MM-dd");
+
+      const updated = { ...prev };
+
+      const existingHeadings = Object.values(updated);
+
+      if (isYesterday(currentDate)) {
+        updated[key] = "Yesterday";
+      } else if (differenceInDays(today, currentDate) < 7) {
+        updated[key] = format(currentDate, "EEEE");
+      } else if (differenceInDays(today, currentDate) === 7) {
+        updated[key] = `Last ${format(currentDate, "EEEE")}`;
+      } else if (
+        differenceInDays(today, currentDate) < 14 &&
+        !existingHeadings.includes("Over a week ago")
+      ) {
+        updated[key] = "Over a week ago";
+      } else if (
+        differenceInWeeks(today, currentDate) < 4 &&
+        !existingHeadings.includes("Over 2 weeks ago")
+      ) {
+        updated[key] = "Over 2 weeks ago";
+      } else if (
+        differenceInMonths(today, currentDate) < 12 &&
+        !existingHeadings.includes("Over a month ago")
+      ) {
+        updated[key] = "Over a month ago";
+      } else if (!existingHeadings.includes("Over a year ago")) {
+        updated[key] = "Over a year ago";
+      }
+
+      return updated;
+    }, {});
+  }, [latestQuickNoteEntitiesByDay]);
+
   const { data: quickNotesWithContentsData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
@@ -222,9 +270,8 @@ const NotesPage: NextPageWithLayout = () => {
                     <NotesSection
                       key={dayTimestamp}
                       dayTimestamp={dayTimestamp}
-                      quickNoteEntities={quickNoteEntitiesWithCreatedAt.map(
-                        ({ quickNoteEntity }) => quickNoteEntity,
-                      )}
+                      heading={dayTimestampToHeadings?.[dayTimestamp]}
+                      quickNoteEntities={quickNoteEntitiesWithCreatedAt}
                       quickNotesSubgraph={quickNotesWithContentsSubgraph}
                       refetchQuickNotes={refetchQuickNotes}
                     />
