@@ -1,117 +1,197 @@
-import { Chip } from "@hashintel/design-system";
-import { Box, Container, Divider, Typography } from "@mui/material";
-import { styled } from "@mui/system";
+import { useQuery } from "@apollo/client";
 import {
-  differenceInDays,
-  differenceInMonths,
-  differenceInWeeks,
-  format,
-  isThisWeek,
-  isThisYear,
-  isToday,
-  isYesterday,
-  startOfWeek,
-  subWeeks,
-} from "date-fns";
-import { FunctionComponent, useMemo } from "react";
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  Entity,
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import { Container } from "@mui/material";
+import { format } from "date-fns";
+import { useCallback, useMemo } from "react";
 
+import { BlockLoadedProvider } from "../blocks/on-block-loaded";
+import { UserBlocksProvider } from "../blocks/user-blocks";
+import {
+  StructuralQueryEntitiesQuery,
+  StructuralQueryEntitiesQueryVariables,
+} from "../graphql/api-types.gen";
+import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
 import { QuickNoteIcon } from "../shared/icons/quick-note-icon";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
-import { CreateQuickNote } from "./notes.page/create-quick-note";
+import { NotesSection } from "./notes.page/notes-section";
+import { TodaySection } from "./notes.page/today-section";
+import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
-const CreateChip = styled(Chip)(({ theme }) => ({
-  background: theme.palette.common.white,
-  color: theme.palette.common.black,
-  "&:hover": {
-    color: theme.palette.common.black,
-  },
-}));
-
-const timestampColumnWidth = 150;
-
-const isLastWeek = (date: Date) => {
-  const startOfThisWeek = startOfWeek(new Date());
-  const startOfLastWeek = subWeeks(startOfThisWeek, 1);
-  return date >= startOfLastWeek && date < startOfThisWeek;
+type QuickNoteEntityWithCreatedAt = {
+  quickNoteEntity: Entity;
+  createdAt: Date;
 };
-
-const TimestampCollectionHeading: FunctionComponent<{ date: Date }> = ({
-  date,
-}) => {
-  const heading = useMemo(() => {
-    const today = new Date();
-
-    if (isToday(date)) {
-      return "Today";
-    }
-    if (isYesterday(date)) {
-      return "Yesterday";
-    }
-    if (isThisWeek(date)) {
-      return format(date, "EEEE");
-    } // EEEE is the format string for day of the week
-    if (isLastWeek(date)) {
-      return `Last ${format(date, "EEEE")}`;
-    }
-    if (differenceInDays(today, date) <= 14) {
-      return "More than a week ago";
-    }
-    if (differenceInWeeks(today, date) <= 4) {
-      return "More than 2 weeks ago";
-    }
-    if (differenceInMonths(today, date) <= 12) {
-      return "More than a month ago";
-    }
-    if (!isThisYear(date)) {
-      return "More than a year ago";
-    }
-
-    return "Date not recognized";
-  }, [date]);
-
-  return (
-    <Typography
-      sx={{
-        color: ({ palette }) => palette.gray[90],
-        fontSize: 15,
-        fontWeight: 600,
-      }}
-    >
-      {heading}
-    </Typography>
-  );
-};
-
-const TimestampCollectionSubheading: FunctionComponent<{ date: Date }> = ({
-  date,
-}) => {
-  const subheading = useMemo(() => format(date, "yyyy-MM-dd"), [date]);
-
-  return (
-    <Typography
-      sx={{
-        color: ({ palette }) => palette.gray[70],
-        fontSize: 15,
-        fontWeight: 500,
-      }}
-    >
-      {subheading}
-    </Typography>
-  );
-};
-
-const NotesSectionWrapper = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3.25, 4.5),
-  borderRadius: 8,
-  borderColor: theme.palette.gray[30],
-  borderWidth: 1,
-  borderStyle: "solid",
-  backgroundColor: theme.palette.common.white,
-}));
 
 const NotesPage: NextPageWithLayout = () => {
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const { data: quickNotesAllVersionsData, refetch } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              types.entityType.quickNote.entityTypeId,
+            ),
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: authenticatedUser.accountId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+        },
+        /**
+         * We need to obtain all revisions of the quick note entities
+         * to determine when they were created.
+         */
+        temporalAxes: {
+          pinned: { axis: "transactionTime", timestamp: null },
+          variable: {
+            axis: "decisionTime",
+            interval: { start: { kind: "unbounded" }, end: null },
+          },
+        },
+      },
+    },
+    fetchPolicy: "cache-and-network",
+  });
+
+  const quickNotesAllVersionsSubgraph =
+    quickNotesAllVersionsData?.structuralQueryEntities as
+      | Subgraph<EntityRootType>
+      | undefined;
+
+  const latestQuickNoteEntitiesWithCreatedAt = useMemo<
+    QuickNoteEntityWithCreatedAt[] | undefined
+  >(() => {
+    if (!quickNotesAllVersionsSubgraph) {
+      return undefined;
+    }
+    const latestQuickNoteEntities = getRoots(
+      quickNotesAllVersionsSubgraph,
+    ).reduce<Entity[]>((prev, current) => {
+      const previousEntityIndex = prev.findIndex(
+        (entity) =>
+          entity.metadata.recordId.entityId ===
+          current.metadata.recordId.entityId,
+      );
+
+      const previousEntity = prev[previousEntityIndex];
+
+      if (!previousEntity) {
+        return [...prev, current];
+      }
+
+      const updatedPrev = [...prev];
+
+      if (
+        previousEntity.metadata.temporalVersioning.decisionTime.start.limit <
+        current.metadata.temporalVersioning.decisionTime.start.limit
+      ) {
+        updatedPrev[previousEntityIndex] = current;
+      }
+      return updatedPrev;
+    }, []);
+
+    return latestQuickNoteEntities.map((quickNoteEntity) => ({
+      quickNoteEntity,
+      createdAt: getFirstRevisionCreatedAt(
+        quickNotesAllVersionsSubgraph,
+        quickNoteEntity.metadata.recordId.entityId,
+      ),
+    }));
+  }, [quickNotesAllVersionsSubgraph]);
+
+  const latestQuickNoteEntitiesByDay = useMemo(
+    () =>
+      latestQuickNoteEntitiesWithCreatedAt?.reduce<
+        Record<string, QuickNoteEntityWithCreatedAt[]>
+      >((acc, quickNoteEntityWithCreatedAt) => {
+        const key = format(
+          quickNoteEntityWithCreatedAt.createdAt,
+          "yyyy-MM-dd",
+        ); // Format date to "YYYY-MM-DD" in local time
+
+        acc[key] = [...(acc[key] ?? []), quickNoteEntityWithCreatedAt];
+
+        return acc;
+      }, {}),
+    [latestQuickNoteEntitiesWithCreatedAt],
+  );
+
+  const { data: quickNotesWithContentsData } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          any: (latestQuickNoteEntitiesWithCreatedAt ?? []).map(
+            ({ quickNoteEntity }) => ({
+              equal: [
+                { path: ["uuid"] },
+                {
+                  parameter: extractEntityUuidFromEntityId(
+                    quickNoteEntity.metadata.recordId.entityId,
+                  ),
+                },
+              ],
+            }),
+          ),
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: { incoming: 2, outgoing: 2 },
+          hasRightEntity: { incoming: 2, outgoing: 2 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+    skip:
+      !latestQuickNoteEntitiesWithCreatedAt ||
+      latestQuickNoteEntitiesWithCreatedAt.length === 0,
+  });
+
+  const quickNotesWithContentsSubgraph =
+    quickNotesWithContentsData?.structuralQueryEntities as
+      | Subgraph<EntityRootType>
+      | undefined;
+
+  const quickNotesEntitiesCreatedToday = useMemo(
+    () =>
+      latestQuickNoteEntitiesByDay?.[format(new Date(), "yyyy-MM-dd")]?.map(
+        ({ quickNoteEntity }) => quickNoteEntity,
+      ),
+    [latestQuickNoteEntitiesByDay],
+  );
+
+  const refetchQuickNotes = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   return (
     <>
       <TopContextBar
@@ -129,51 +209,30 @@ const NotesPage: NextPageWithLayout = () => {
         }}
       />
       <Container>
-        <Box display="flex" columnGap={7.5}>
-          <Box
-            sx={{
-              width: timestampColumnWidth,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-            }}
-          >
-            <TimestampCollectionHeading date={new Date()} />
-            <TimestampCollectionSubheading date={new Date()} />
-          </Box>
-          <NotesSectionWrapper>
-            <CreateQuickNote />
-            <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
-            <Box display="flex" marginTop={2.25}>
-              <Box display="flex" alignItems="center" gap={1.5}>
-                <Typography
-                  sx={{
-                    color: ({ palette }) => palette.gray[90],
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Create new
-                </Typography>
-                <CreateChip
-                  variant="outlined"
-                  href="/new/entity"
-                  component="a"
-                  label="Entity"
-                  clickable
-                />
-                <CreateChip
-                  variant="outlined"
-                  href="/new/types/entity-type"
-                  component="a"
-                  label="Type"
-                  clickable
-                />
-              </Box>
-            </Box>
-          </NotesSectionWrapper>
-        </Box>
+        <BlockLoadedProvider>
+          <UserBlocksProvider value={{}}>
+            <TodaySection
+              quickNoteEntities={quickNotesEntitiesCreatedToday}
+              quickNotesSubgraph={quickNotesWithContentsSubgraph}
+              refetchQuickNotes={refetchQuickNotes}
+            />
+            {latestQuickNoteEntitiesByDay
+              ? Object.entries(latestQuickNoteEntitiesByDay).map(
+                  ([dayTimestamp, quickNoteEntitiesWithCreatedAt]) => (
+                    <NotesSection
+                      key={dayTimestamp}
+                      dayTimestamp={dayTimestamp}
+                      quickNoteEntities={quickNoteEntitiesWithCreatedAt.map(
+                        ({ quickNoteEntity }) => quickNoteEntity,
+                      )}
+                      quickNotesSubgraph={quickNotesWithContentsSubgraph}
+                      refetchQuickNotes={refetchQuickNotes}
+                    />
+                  ),
+                )
+              : null}
+          </UserBlocksProvider>
+        </BlockLoadedProvider>
       </Container>
     </>
   );

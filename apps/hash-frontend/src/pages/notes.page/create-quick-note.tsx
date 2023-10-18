@@ -61,6 +61,7 @@ export const CreateQuickNote: FunctionComponent = () => {
       {quickNoteEntity && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
+            displayActionButtons={false}
             quickNoteEntity={quickNoteEntity}
             quickNoteSubgraph={quickNoteSubgraph}
           />

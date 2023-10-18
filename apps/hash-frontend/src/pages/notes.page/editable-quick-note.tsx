@@ -1,4 +1,5 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
+import { IconButton } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -11,16 +12,19 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { Box, Fade, Typography } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import { Box, Fade, Skeleton, Typography } from "@mui/material";
+import { FunctionComponent, useCallback, useMemo } from "react";
 
-import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
-import { UserBlocksProvider } from "../../blocks/user-blocks";
 import {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
   BlockCollectionContentItem,
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
+import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
+import { NoteStickyRegularIcon } from "../../shared/icons/note-sticky-regular-icon";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
@@ -39,6 +43,7 @@ const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
     }}
   >
     <Box component="span">{amount}</Box> {unit}
+    {!amount || amount === 0 || amount > 1 ? "s" : ""}
   </Typography>
 );
 
@@ -64,10 +69,24 @@ const parseTextFromTextBlock = ({
 };
 
 export const EditableQuickNote: FunctionComponent<{
+  displayLabel?: boolean;
+  displayActionButtons?: boolean;
   quickNoteEntity: Entity;
-  quickNoteSubgraph: Subgraph<EntityRootType>;
-}> = ({ quickNoteEntity, quickNoteSubgraph }) => {
+  quickNoteSubgraph?: Subgraph<EntityRootType>;
+  refetchQuickNotes?: () => Promise<void>;
+}> = ({
+  displayLabel = true,
+  displayActionButtons = true,
+  quickNoteEntity,
+  quickNoteSubgraph,
+  refetchQuickNotes,
+}) => {
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation, { onCompleted: refetchQuickNotes });
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
@@ -97,10 +116,12 @@ export const EditableQuickNote: FunctionComponent<{
 
   const contents = useMemo(
     () =>
-      getBlockCollectionContents({
-        blockCollectionEntityId,
-        blockCollectionSubgraph: quickNoteSubgraph,
-      }),
+      quickNoteSubgraph
+        ? getBlockCollectionContents({
+            blockCollectionEntityId,
+            blockCollectionSubgraph: quickNoteSubgraph,
+          })
+        : undefined,
     [blockCollectionEntityId, quickNoteSubgraph],
   );
 
@@ -144,38 +165,69 @@ export const EditableQuickNote: FunctionComponent<{
     return noWhitespace.length - surrogatePairs.length;
   }, [text]);
 
+  const handleArchive = useCallback(async () => {
+    await archiveEntity({ variables: { entityId: blockCollectionEntityId } });
+  }, [archiveEntity, blockCollectionEntityId]);
+
   return (
     <Box>
-      <Box display="flex" columnGap={2.25}>
-        <Fade in={typeof numberOfBlocks !== "undefined"}>
+      <Box display="flex" justifyContent="space-between">
+        <Box display="flex" columnGap={2.25}>
+          {displayLabel ? (
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            >
+              <NoteStickyRegularIcon
+                sx={{
+                  fontSize: 12,
+                  marginRight: 0.75,
+                  position: "relative",
+                  top: 2,
+                }}
+              />
+              Note
+            </Typography>
+          ) : null}
+          <Fade in={typeof numberOfBlocks !== "undefined"}>
+            <Box>
+              <Statistic amount={numberOfBlocks} unit="block" />
+            </Box>
+          </Fade>
+          <Fade in={typeof numberOfWords !== "undefined"}>
+            <Box>
+              <Statistic amount={numberOfWords} unit="word" />
+            </Box>
+          </Fade>
+          <Fade in={typeof numberOfCharacters !== "undefined"}>
+            <Box>
+              <Statistic amount={numberOfCharacters} unit="character" />
+            </Box>
+          </Fade>
+        </Box>
+        {displayActionButtons ? (
           <Box>
-            <Statistic amount={numberOfBlocks} unit="blocks" />
+            <IconButton onClick={handleArchive}>
+              <ArchiveRegularIcon />
+            </IconButton>
           </Box>
-        </Fade>
-        <Fade in={typeof numberOfWords !== "undefined"}>
-          <Box>
-            <Statistic amount={numberOfWords} unit="words" />
-          </Box>
-        </Fade>
-        <Fade in={typeof numberOfCharacters !== "undefined"}>
-          <Box>
-            <Statistic amount={numberOfCharacters} unit="characters" />
-          </Box>
-        </Fade>
+        ) : null}
       </Box>
-      <BlockLoadedProvider>
-        <UserBlocksProvider value={{}}>
-          <BlockCollection
-            ownedById={authenticatedUser.accountId as OwnedById}
-            entityId={quickNoteEntity.metadata.recordId.entityId}
-            contents={contents}
-            readonly={false}
-            sx={{
-              paddingY: 3,
-            }}
-          />
-        </UserBlocksProvider>
-      </BlockLoadedProvider>
+      {contents ? (
+        <BlockCollection
+          ownedById={authenticatedUser.accountId as OwnedById}
+          entityId={quickNoteEntity.metadata.recordId.entityId}
+          contents={contents}
+          readonly={false}
+          sx={{ paddingY: 3 }}
+        />
+      ) : (
+        <Skeleton />
+      )}
     </Box>
   );
 };

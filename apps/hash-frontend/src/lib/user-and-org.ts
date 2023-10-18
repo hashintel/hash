@@ -15,7 +15,6 @@ import {
   AccountId,
   BaseUrl,
   Entity,
-  EntityId,
   EntityRootType,
   extractAccountGroupId,
   extractAccountId,
@@ -24,7 +23,6 @@ import {
   Timestamp,
 } from "@local/hash-subgraph";
 import {
-  getEntityRevisionsByEntityId,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -34,6 +32,8 @@ import {
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+
+import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrgProperties>;
@@ -100,20 +100,6 @@ export const constructMinimalUser = (params: {
     ...simpleProperties,
   };
 };
-
-const getFirstRevisionCreatedAt = (subgraph: Subgraph, entityId: EntityId) =>
-  getEntityRevisionsByEntityId(subgraph, entityId).reduce<Date>(
-    (earliestCreatedAt, current) => {
-      const currentCreatedAt = new Date(
-        current.metadata.temporalVersioning.decisionTime.start.limit,
-      );
-
-      return earliestCreatedAt < currentCreatedAt
-        ? earliestCreatedAt
-        : currentCreatedAt;
-    },
-    new Date(),
-  );
 
 export type Org = MinimalOrg & {
   createdAt: Date;
