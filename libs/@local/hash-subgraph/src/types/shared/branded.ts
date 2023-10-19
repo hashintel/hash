@@ -112,8 +112,8 @@ type BrandRelationship<T extends { subject: object }> = {
 };
 
 export type EntityAuthorizationRelationship = {
-  object: {
+  resource: {
     kind: "entity";
-    objectId: EntityId;
+    resourceId: EntityId;
   };
 } & BrandRelationship<EntityRelationAndSubject>;

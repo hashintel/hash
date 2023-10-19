@@ -3,7 +3,7 @@ use std::error::Error;
 use graph_types::account::AccountId;
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::types::{Object, Subject};
+use crate::zanzibar::types::{Resource, Subject};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccountNamespace {
@@ -11,7 +11,7 @@ pub enum AccountNamespace {
     Account,
 }
 
-impl Object for AccountId {
+impl Resource for AccountId {
     type Id = Self;
     type Namespace = AccountNamespace;
 
@@ -26,23 +26,23 @@ impl Object for AccountId {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 
 impl Subject for AccountId {
-    type Object = Self;
     type Relation = !;
+    type Resource = Self;
 
-    fn from_parts(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
-        Ok::<_, !>(object)
+    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, impl Error> {
+        Ok::<_, !>(resource)
     }
 
-    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+    fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
         (self, None)
     }
 
-    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+    fn to_parts(&self) -> (Self::Resource, Option<Self::Relation>) {
         Subject::into_parts(*self)
     }
 }
@@ -53,7 +53,7 @@ pub enum PublicAccess {
     Public,
 }
 
-impl Object for PublicAccess {
+impl Resource for PublicAccess {
     type Id = Self;
     type Namespace = AccountNamespace;
 
@@ -68,23 +68,23 @@ impl Object for PublicAccess {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 
 impl Subject for PublicAccess {
-    type Object = Self;
     type Relation = !;
+    type Resource = Self;
 
-    fn from_parts(object: Self::Object, _relation: Option<!>) -> Result<Self, impl Error> {
-        Ok::<_, !>(object)
+    fn from_parts(resource: Self::Resource, _relation: Option<!>) -> Result<Self, impl Error> {
+        Ok::<_, !>(resource)
     }
 
-    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+    fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
         (self, None)
     }
 
-    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+    fn to_parts(&self) -> (Self::Resource, Option<Self::Relation>) {
         Subject::into_parts(*self)
     }
 }

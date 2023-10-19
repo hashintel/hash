@@ -3354,18 +3354,18 @@
         "type": "object",
         "required": [
           "operation",
-          "object",
+          "resource",
           "relationSubject"
         ],
         "properties": {
-          "object": {
-            "$ref": "#/components/schemas/EntityId"
-          },
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
           },
           "relationSubject": {
             "$ref": "#/components/schemas/EntityRelationAndSubject"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/EntityId"
           }
         }
       },

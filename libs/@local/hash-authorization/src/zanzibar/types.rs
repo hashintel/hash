@@ -1,29 +1,29 @@
 //! General types and traits used throughout the Zanzibar authorization system.
 
 pub use self::{
-    object::{Object, ObjectFilter},
     relationship::{Relationship, RelationshipFilter},
+    resource::{Resource, ResourceFilter},
     subject::{Subject, SubjectFilter},
 };
 
-mod object;
 mod relationship;
+mod resource;
 mod subject;
 
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
-/// The relation or permission of a [`Subject`] to another [`Object`].
-pub trait Affiliation<O: Object> {}
+/// The relation or permission of a [`Subject`] to another [`Resource`].
+pub trait Affiliation<O: Resource> {}
 
-impl<O: Object> Affiliation<O> for ! {}
+impl<O: Resource> Affiliation<O> for ! {}
 
-/// A computed set of [`Subject`]s for another particular [`Object`].
-pub trait Permission<O: Object>: Affiliation<O> {}
+/// A computed set of [`Subject`]s for another particular [`Resource`].
+pub trait Permission<O: Resource>: Affiliation<O> {}
 
-/// Encapsulates the relationship between an [`Object`] and a [`Subject`].
-pub trait Relation<O: Object>: Affiliation<O> {}
+/// Encapsulates the relationship between an [`Resource`] and a [`Subject`].
+pub trait Relation<O: Resource>: Affiliation<O> {}
 
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -506,7 +506,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct ModifyEntityAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
-    object: EntityId,
+    resource: EntityId,
     relation_subject: EntityRelationAndSubject,
 }
 
@@ -543,8 +543,12 @@ where
         .into_iter()
         .map(|request| {
             (
-                request.object,
-                (request.operation, request.object, request.relation_subject),
+                request.resource,
+                (
+                    request.operation,
+                    request.resource,
+                    request.relation_subject,
+                ),
             )
         })
         .unzip();

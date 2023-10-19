@@ -671,7 +671,7 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
     actorId,
     params.map(({ operation, relationship }) => ({
       operation,
-      object: relationship.object.objectId,
+      resource: relationship.resource.resourceId,
       relationSubject: relationship,
     })),
   );
@@ -723,7 +723,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
       data.map(
         (relationship) =>
           ({
-            object: { kind: "entity", objectId: params.entityId },
+            resource: { kind: "entity", resourceId: params.entityId },
             ...relationship.relationAndSubject,
           }) as EntityAuthorizationRelationship,
       ),

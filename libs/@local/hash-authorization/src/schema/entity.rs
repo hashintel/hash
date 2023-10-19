@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     schema::PublicAccess,
     zanzibar::{
-        types::{Object, Relationship},
+        types::{Relationship, Resource},
         Affiliation, Permission, Relation,
     },
 };
@@ -46,7 +46,7 @@ pub enum EntityNamespace {
     Entity,
 }
 
-impl Object for EntityUuid {
+impl Resource for EntityUuid {
     type Id = Self;
     type Namespace = EntityNamespace;
 
@@ -61,7 +61,7 @@ impl Object for EntityUuid {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 
@@ -129,7 +129,7 @@ pub enum EntitySubjectId {
     Asteriks(PublicAccess),
 }
 
-impl Object for EntitySubject {
+impl Resource for EntitySubject {
     type Id = EntitySubjectId;
     type Namespace = EntitySubjectNamespace;
 
@@ -171,7 +171,7 @@ impl Object for EntitySubject {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 
@@ -379,25 +379,25 @@ pub enum EntitySubjectNamespace {
 }
 
 impl Relationship for (EntityUuid, EntityRelationAndSubject) {
-    type Object = EntityUuid;
     type Relation = EntityObjectRelation;
+    type Resource = EntityUuid;
     type Subject = EntitySubject;
     type SubjectSet = EntitySubjectSet;
 
     fn from_parts(
-        object: Self::Object,
+        resource: Self::Resource,
         relation: Self::Relation,
         subject: Self::Subject,
         subject_set: Option<Self::SubjectSet>,
     ) -> Result<Self, impl Error> {
         EntityRelationAndSubject::from_parts(relation, subject, subject_set)
-            .map(|relation_and_subject| (object, relation_and_subject))
+            .map(|relation_and_subject| (resource, relation_and_subject))
     }
 
     fn to_parts(
         &self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
@@ -408,13 +408,13 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
     fn into_parts(
         self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
     ) {
-        let (object, relationship) = self;
+        let (resource, relationship) = self;
         let (relation, subject, subject_set) = relationship.into_parts();
-        (object, relation, subject, subject_set)
+        (resource, relation, subject, subject_set)
     }
 }

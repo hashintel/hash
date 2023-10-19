@@ -1,54 +1,54 @@
 use serde::{de::IntoDeserializer, Deserialize, Deserializer, Serialize};
 
-use crate::zanzibar::types::Object;
+use crate::zanzibar::types::Resource;
 
-pub(crate) mod object {
+pub(crate) mod resource {
     use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-    use crate::zanzibar::types::Object;
+    use crate::zanzibar::types::Resource;
 
     #[derive(Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
-    struct SerializedObject<N, I> {
-        object_type: N,
-        object_id: I,
+    struct SerializedResource<N, I> {
+        resource_type: N,
+        resource_id: I,
     }
 
-    pub(crate) fn serialize<T, S>(object: &T, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<T, S>(resource: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Object<Namespace: Serialize, Id: Serialize>,
+        T: Resource<Namespace: Serialize, Id: Serialize>,
         S: Serializer,
     {
-        let (object_type, object_id) = object.to_parts();
-        SerializedObject {
-            object_type,
-            object_id,
+        let (resource_type, resource_id) = resource.to_parts();
+        SerializedResource {
+            resource_type,
+            resource_id,
         }
         .serialize(serializer)
     }
 
     pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
-        T: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+        T: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
         D: Deserializer<'de>,
     {
-        let object = SerializedObject::<T::Namespace, T::Id>::deserialize(deserializer)?;
-        T::from_parts(object.object_type, object.object_id).map_err(de::Error::custom)
+        let resource = SerializedResource::<T::Namespace, T::Id>::deserialize(deserializer)?;
+        T::from_parts(resource.resource_type, resource.resource_id).map_err(de::Error::custom)
     }
 }
 
-pub(crate) mod object_ref {
+pub(crate) mod resource_ref {
     use serde::{Serialize, Serializer};
 
-    use crate::zanzibar::types::Object;
+    use crate::zanzibar::types::Resource;
 
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
-    pub(crate) fn serialize<T, S>(object: &&T, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<T, S>(resource: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Object<Namespace: Serialize, Id: Serialize>,
+        T: Resource<Namespace: Serialize, Id: Serialize>,
         S: Serializer,
     {
-        super::object::serialize(*object, serializer)
+        super::resource::serialize(*resource, serializer)
     }
 }
 
@@ -56,14 +56,14 @@ pub(crate) mod object_ref {
 #[serde(
     rename_all = "camelCase",
     bound(
-        serialize = "O: Object<Namespace: Serialize, Id: Serialize>, R: Serialize",
-        deserialize = "O: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
+        serialize = "O: Resource<Namespace: Serialize, Id: Serialize>, R: Serialize",
+        deserialize = "O: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
                        Deserialize<'de>"
     )
 )]
 struct SerializedSubject<O, R> {
-    #[serde(with = "object")]
-    object: O,
+    #[serde(with = "resource")]
+    resource: O,
     #[serde(deserialize_with = "empty_string_as_none")]
     optional_relation: Option<R>,
 }
@@ -73,18 +73,18 @@ pub(crate) mod subject_ref {
 
     use crate::{
         backend::spicedb::serde::SerializedSubject,
-        zanzibar::types::{Object, Subject},
+        zanzibar::types::{Resource, Subject},
     };
 
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
     pub(crate) fn serialize<T, S>(subject: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize>,
+        T: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>,
         S: Serializer,
     {
-        let (object, optional_relation) = subject.to_parts();
+        let (resource, optional_relation) = subject.to_parts();
         SerializedSubject {
-            object,
+            resource,
             optional_relation,
         }
         .serialize(serializer)
@@ -109,7 +109,7 @@ pub(crate) mod relationship {
     use crate::{
         backend::spicedb::serde::SerializedSubject,
         zanzibar::{
-            types::{Object, Relationship},
+            types::{Relationship, Resource},
             Affiliation,
         },
     };
@@ -118,15 +118,15 @@ pub(crate) mod relationship {
     #[serde(
         rename_all = "camelCase",
         bound(
-            serialize = "O: Object<Namespace: Serialize, Id: Serialize>, R: Serialize, S: \
-                         Object<Namespace: Serialize, Id: Serialize>, SR: Serialize",
-            deserialize = "O: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
-                           Deserialize<'de>, S: Object<Namespace: Deserialize<'de>, Id: \
+            serialize = "O: Resource<Namespace: Serialize, Id: Serialize>, R: Serialize, S: \
+                         Resource<Namespace: Serialize, Id: Serialize>, SR: Serialize",
+            deserialize = "O: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
+                           Deserialize<'de>, S: Resource<Namespace: Deserialize<'de>, Id: \
                            Deserialize<'de>>, SR: Deserialize<'de>"
         )
     )]
     struct SerializedRelationship<O, R, S, SR> {
-        #[serde(with = "super::object")]
+        #[serde(with = "super::resource")]
         resource: O,
         relation: R,
         subject: SerializedSubject<S, SR>,
@@ -135,19 +135,19 @@ pub(crate) mod relationship {
     pub(crate) fn serialize<T, S>(relationship: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Affiliation<T::Object> + Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Affiliation<T::Resource> + Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Affiliation<T::Subject> + Serialize,
             >,
         S: Serializer,
     {
-        let (object, relation, subject, subject_set) = relationship.to_parts();
+        let (resource, relation, subject, subject_set) = relationship.to_parts();
         SerializedRelationship {
-            resource: object,
+            resource,
             relation,
             subject: SerializedSubject {
-                object: subject,
+                resource: subject,
                 optional_relation: subject_set,
             },
         }
@@ -157,9 +157,9 @@ pub(crate) mod relationship {
     pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: Relationship<
-                Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
-                Relation: Affiliation<T::Object> + Deserialize<'de>,
-                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Affiliation<T::Resource> + Deserialize<'de>,
+                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Affiliation<T::Subject> + Deserialize<'de>,
             >,
         D: Deserializer<'de>,
@@ -168,7 +168,7 @@ pub(crate) mod relationship {
         T::from_parts(
             relationship.resource,
             relationship.relation,
-            relationship.subject.object,
+            relationship.subject.resource,
             relationship.subject.optional_relation,
         )
         .map_err(de::Error::custom)
@@ -222,13 +222,13 @@ pub(crate) mod relationship_filter {
         S: Serializer,
     {
         SerializedRelationshipFilter {
-            resource_type: &relationship.object.namespace,
-            optional_resource_id: relationship.object.id.as_ref(),
+            resource_type: &relationship.resource.namespace,
+            optional_resource_id: relationship.resource.id.as_ref(),
             optional_relation: relationship.relation.as_ref(),
             optional_subject_filter: relationship.subject.as_ref().map(|subject| {
                 SerializedSubjectFilter {
-                    subject_type: &subject.object.namespace,
-                    optional_subject_id: subject.object.id.as_ref(),
+                    subject_type: &subject.resource.namespace,
+                    optional_subject_id: subject.resource.id.as_ref(),
                     optional_relation: subject
                         .relation
                         .as_ref()

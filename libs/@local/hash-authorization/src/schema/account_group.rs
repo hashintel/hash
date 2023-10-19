@@ -4,7 +4,7 @@ use graph_types::account::AccountGroupId;
 use serde::{Deserialize, Serialize};
 
 use crate::zanzibar::{
-    types::{Object, Subject},
+    types::{Resource, Subject},
     Affiliation, Permission, Relation,
 };
 
@@ -14,7 +14,7 @@ pub enum AccountGroupNamespace {
     AccountGroup,
 }
 
-impl Object for AccountGroupId {
+impl Resource for AccountGroupId {
     type Id = Self;
     type Namespace = AccountGroupNamespace;
 
@@ -29,7 +29,7 @@ impl Object for AccountGroupId {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 
@@ -74,45 +74,49 @@ impl Affiliation<AccountGroupId> for AccountGroupPermission {}
 impl Permission<AccountGroupId> for AccountGroupPermission {}
 
 impl Subject for (AccountGroupId, AccountGroupRelation) {
-    type Object = AccountGroupId;
     type Relation = AccountGroupRelation;
+    type Resource = AccountGroupId;
 
     fn from_parts(
-        object: Self::Object,
+        resource: Self::Resource,
         relation: Option<Self::Relation>,
     ) -> Result<Self, impl Error> {
-        relation.map(|relation| (object, relation)).ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
-        })
+        relation
+            .map(|relation| (resource, relation))
+            .ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
+            })
     }
 
-    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+    fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
         (self.0, Some(self.1))
     }
 
-    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+    fn to_parts(&self) -> (Self::Resource, Option<Self::Relation>) {
         Subject::into_parts(*self)
     }
 }
 
 impl Subject for (AccountGroupId, AccountGroupPermission) {
-    type Object = AccountGroupId;
     type Relation = AccountGroupPermission;
+    type Resource = AccountGroupId;
 
     fn from_parts(
-        object: Self::Object,
+        resource: Self::Resource,
         relation: Option<Self::Relation>,
     ) -> Result<Self, impl Error> {
-        relation.map(|relation| (object, relation)).ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
-        })
+        relation
+            .map(|relation| (resource, relation))
+            .ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::Other, "Permission not specified")
+            })
     }
 
-    fn into_parts(self) -> (Self::Object, Option<Self::Relation>) {
+    fn into_parts(self) -> (Self::Resource, Option<Self::Relation>) {
         (self.0, Some(self.1))
     }
 
-    fn to_parts(&self) -> (Self::Object, Option<Self::Relation>) {
+    fn to_parts(&self) -> (Self::Resource, Option<Self::Relation>) {
         Subject::into_parts(*self)
     }
 }

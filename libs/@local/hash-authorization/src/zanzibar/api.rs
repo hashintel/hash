@@ -282,7 +282,7 @@ where
         Ok(self
             .backend
             .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                RelationshipFilter::from_object(entity.entity_uuid),
+                RelationshipFilter::from_resource(entity.entity_uuid),
                 consistency,
             )
             .await

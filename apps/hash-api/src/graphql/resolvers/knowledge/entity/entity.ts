@@ -485,9 +485,9 @@ export const addEntityViewerResolver: ResolverFn<
     {
       operation: "touch",
       relationship: {
-        object: {
+        resource: {
           kind: "entity",
-          objectId: entityId,
+          resourceId: entityId,
         },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
@@ -510,9 +510,9 @@ export const removeEntityViewerResolver: ResolverFn<
     {
       operation: "delete",
       relationship: {
-        object: {
+        resource: {
           kind: "entity",
-          objectId: entityId,
+          resourceId: entityId,
         },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
@@ -550,8 +550,8 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   );
 
   // TODO: Align definitions with the ones in the API
-  return relationships.map(({ object, relation, subject }) => ({
-    objectEntityId: object.objectId,
+  return relationships.map(({ resource, relation, subject }) => ({
+    objectEntityId: resource.resourceId,
     relation:
       relation === "directEditor"
         ? EntityAuthorizationRelation.Editor

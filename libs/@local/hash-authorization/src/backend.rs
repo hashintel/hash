@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
     zanzibar::{
-        types::{Object, Relationship, RelationshipFilter, Subject},
+        types::{Relationship, RelationshipFilter, Resource, Subject},
         Affiliation, Consistency, Zookie,
     },
     NoAuthorization,
@@ -59,9 +59,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync;
@@ -81,9 +81,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -105,9 +105,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -129,9 +129,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -140,7 +140,7 @@ pub trait ZanzibarBackend {
     }
 
     /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
-    /// to an [`Object`].
+    /// to an [`Resource`].
     ///
     /// # Errors
     ///
@@ -157,9 +157,10 @@ pub trait ZanzibarBackend {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        O: Object<Namespace: Serialize, Id: Serialize> + Sync,
+        O: Resource<Namespace: Serialize, Id: Serialize> + Sync,
         R: Serialize + Affiliation<O> + Sync,
-        S: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
+        S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>
+            + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
@@ -180,9 +181,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<Vec<R>, Report<ReadError>>> + Send
     where
         for<'de> R: Relationship<
-                Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Deserialize<'de>,
             > + Send;
 }
@@ -308,19 +309,19 @@ impl Error for ModifyRelationshipError {}
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
-    /// If the subject has the specified permission or relation to an [`Object`].
+    /// If the subject has the specified permission or relation to an [`Resource`].
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
 }
 
 impl CheckResponse {
-    /// Asserts that the subject has the specified permission or relation to an [`Object`].
+    /// Asserts that the subject has the specified permission or relation to an [`Resource`].
     ///
     /// # Errors
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
-    /// [`Object`].
+    /// [`Resource`].
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)

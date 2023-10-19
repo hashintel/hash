@@ -164,7 +164,10 @@ export const createOrg: ImpureGraphFunction<
           kind: "public",
         },
         relation: "directViewer",
-        object: { kind: "entity", objectId: entity.metadata.recordId.entityId },
+        resource: {
+          kind: "entity",
+          resourceId: entity.metadata.recordId.entityId,
+        },
       },
     },
   ]);

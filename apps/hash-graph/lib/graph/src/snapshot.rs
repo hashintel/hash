@@ -27,7 +27,7 @@ use authorization::{
         EntityRelationAndSubject, OwnerId, WebNamespace, WebRelation,
     },
     zanzibar::{
-        types::{ObjectFilter, RelationshipFilter, SubjectFilter},
+        types::{RelationshipFilter, ResourceFilter, SubjectFilter},
         Consistency,
     },
 };
@@ -236,7 +236,7 @@ where
                 let mut members = Vec::new();
                 for (_group, relation, user) in authorization_api
                     .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
-                        RelationshipFilter::from_object(id),
+                        RelationshipFilter::from_resource(id),
                         Consistency::FullyConsistent,
                     )
                     .await
@@ -264,10 +264,12 @@ where
     {
         let accounts = authorization_api
             .read_relations::<(WebId, WebRelation, AccountId)>(
-                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web))
-                    .with_subject(SubjectFilter::from_object(ObjectFilter::from_namespace(
-                        AccountNamespace::Account,
-                    ))),
+                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
+                    &WebNamespace::Web,
+                ))
+                .with_subject(SubjectFilter::from_resource(
+                    ResourceFilter::from_namespace(AccountNamespace::Account),
+                )),
                 Consistency::FullyConsistent,
             )
             .await
@@ -288,10 +290,12 @@ where
 
         let account_groups = authorization_api
             .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
-                RelationshipFilter::from_object(ObjectFilter::from_namespace(&WebNamespace::Web))
-                    .with_subject(SubjectFilter::from_object(ObjectFilter::from_namespace(
-                        AccountGroupNamespace::AccountGroup,
-                    ))),
+                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
+                    &WebNamespace::Web,
+                ))
+                .with_subject(SubjectFilter::from_resource(
+                    ResourceFilter::from_namespace(AccountGroupNamespace::AccountGroup),
+                )),
                 Consistency::FullyConsistent,
             )
             .await
@@ -438,7 +442,7 @@ where
                             link_data: entity.link_data,
                             relations: authorization_api
                                 .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                                    RelationshipFilter::from_object(
+                                    RelationshipFilter::from_resource(
                                         entity.metadata.record_id().entity_id.entity_uuid,
                                     ),
                                     Consistency::FullyConsistent,
