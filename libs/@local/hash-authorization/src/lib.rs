@@ -10,7 +10,7 @@ pub mod schema;
 pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
-use crate::schema::EntityRelationSubject;
+use crate::schema::EntityRelationAndSubject;
 
 mod api;
 
@@ -155,7 +155,11 @@ impl AuthorizationApi for NoAuthorization {
     async fn modify_entity_relations(
         &mut self,
         _relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, EntityId, EntityRelationSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
@@ -166,7 +170,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _entity: EntityId,
         _consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 }

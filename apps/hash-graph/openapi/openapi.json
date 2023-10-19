@@ -2325,11 +2325,11 @@
       "EntityAuthorizationRelationship": {
         "type": "object",
         "required": [
-          "relationSubject"
+          "relationAndSubject"
         ],
         "properties": {
-          "relationSubject": {
-            "$ref": "#/components/schemas/EntityRelationSubject"
+          "relationAndSubject": {
+            "$ref": "#/components/schemas/EntityRelationAndSubject"
           }
         }
       },
@@ -2617,7 +2617,7 @@
           }
         }
       },
-      "EntityRelationSubject": {
+      "EntityRelationAndSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -3383,7 +3383,7 @@
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
           },
           "relationSubject": {
-            "$ref": "#/components/schemas/EntityRelationSubject"
+            "$ref": "#/components/schemas/EntityRelationAndSubject"
           }
         }
       },

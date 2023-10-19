@@ -3,7 +3,7 @@ import {
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
-import { EntityRelationSubject } from "@local/hash-graph-client";
+import { EntityRelationAndSubject } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
@@ -116,4 +116,4 @@ export type EntityAuthorizationRelationship = {
     namespace: "entity";
     id: EntityId;
   };
-} & BrandRelationship<EntityRelationSubject>;
+} & BrandRelationship<EntityRelationAndSubject>;

@@ -3,7 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::EntityRelationSubject;
+use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
@@ -32,7 +32,7 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     links: Sender<EntityLinkEdgeRow>,
-    relations: Sender<(EntityUuid, EntityRelationSubject)>,
+    relations: Sender<(EntityUuid, EntityRelationAndSubject)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with

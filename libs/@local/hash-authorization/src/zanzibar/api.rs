@@ -11,7 +11,7 @@ use crate::{
         ZanzibarBackend,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelationSubject,
+        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelationAndSubject,
         OwnerId, WebPermission, WebRelation,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
@@ -244,7 +244,11 @@ where
     async fn modify_entity_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, EntityId, EntityRelationSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
@@ -274,10 +278,10 @@ where
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
         Ok(self
             .backend
-            .read_relations::<(EntityUuid, EntityRelationSubject)>(
+            .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                 RelationshipFilter::from_object(entity.entity_uuid),
                 consistency,
             )

@@ -62,13 +62,13 @@ class EdgeResolveDepths(BaseModel):
 
 class EntityDirectEditorSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_id: AccountId = Field(..., alias="accountId")
+    id: AccountId
     namespace: Literal["account"]
 
 
 class EntityDirectOwnerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_id: AccountId = Field(..., alias="accountId")
+    id: AccountId
     namespace: Literal["account"]
 
 
@@ -79,7 +79,7 @@ class EntityDirectViewerSubjectPublic(BaseModel):
 
 class EntityDirectViewerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_id: AccountId = Field(..., alias="accountId")
+    id: AccountId
     namespace: Literal["account"]
 
 
@@ -631,9 +631,9 @@ class DataTypeVertexId(BaseModel):
 
 class EntityDirectEditorSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
+    id: AccountGroupId
     namespace: Literal["accountGroup"]
-    relation: EntitySubjectSet
+    set: EntitySubjectSet
 
 
 class EntityDirectEditorSubject(
@@ -647,9 +647,9 @@ class EntityDirectEditorSubject(
 
 class EntityDirectOwnerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
+    id: AccountGroupId
     namespace: Literal["accountGroup"]
-    relation: EntitySubjectSet
+    set: EntitySubjectSet
 
 
 class EntityDirectOwnerSubject(
@@ -663,9 +663,9 @@ class EntityDirectOwnerSubject(
 
 class EntityDirectViewerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    account_group_id: AccountGroupId = Field(..., alias="accountGroupId")
+    id: AccountGroupId
     namespace: Literal["accountGroup"]
-    relation: EntitySubjectSet
+    set: EntitySubjectSet
 
 
 class EntityDirectViewerSubject(
@@ -676,9 +676,11 @@ class EntityDirectViewerSubject(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityDirectViewerSubjectPublic | EntityDirectViewerSubjectAccount | EntityDirectViewerSubjectAccountGroup = Field(
-        ..., discriminator="namespace"
-    )
+    root: (
+        EntityDirectViewerSubjectPublic
+        | EntityDirectViewerSubjectAccount
+        | EntityDirectViewerSubjectAccountGroup
+    ) = Field(..., discriminator="namespace")
 
 
 class EntityLinkOrder(BaseModel):
@@ -705,7 +707,7 @@ class EntityRelationDirectViewer(BaseModel):
     subject: EntityDirectViewerSubject
 
 
-class EntityRelationSubject(
+class EntityRelationAndSubject(
     RootModel[
         EntityRelationDirectOwner
         | EntityRelationDirectEditor
@@ -713,9 +715,11 @@ class EntityRelationSubject(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityRelationDirectOwner | EntityRelationDirectEditor | EntityRelationDirectViewer = Field(
-        ..., discriminator="relation"
-    )
+    root: (
+        EntityRelationDirectOwner
+        | EntityRelationDirectEditor
+        | EntityRelationDirectViewer
+    ) = Field(..., discriminator="relation")
 
 
 class EntityTypeVertexId(BaseModel):
@@ -812,7 +816,7 @@ class ModifyEntityAuthorizationRelationship(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     object: EntityId
     operation: ModifyRelationshipOperation
-    relation_subject: EntityRelationSubject = Field(..., alias="relationSubject")
+    relation_subject: EntityRelationAndSubject = Field(..., alias="relationSubject")
 
 
 class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
@@ -973,7 +977,9 @@ class CreateEntityTypeRequest(BaseModel):
 
 class EntityAuthorizationRelationship(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation_subject: EntityRelationSubject = Field(..., alias="relationSubject")
+    relation_and_subject: EntityRelationAndSubject = Field(
+        ..., alias="relationAndSubject"
+    )
 
 
 class EqualFilter(BaseModel):
@@ -1075,7 +1081,10 @@ class QueryTemporalAxesUnresolved(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: QueryTemporalAxesUnresolvedDecisionTime | QueryTemporalAxesUnresolvedTransactionTime = Field(
+    root: (
+        QueryTemporalAxesUnresolvedDecisionTime
+        | QueryTemporalAxesUnresolvedTransactionTime
+    ) = Field(
         ...,
         description=(
             "Defines the two possible combinations of pinned/variable temporal axes"
@@ -1174,7 +1183,9 @@ class KnowledgeGraphOutwardEdge(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
+    root: (
+        KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
+    )
 
 
 class MaybeListOfEntityTypeMetadata(
@@ -1287,9 +1298,10 @@ class Edges(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: dict[
-        str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]
-    ] | None = None
+    root: (
+        dict[str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]]
+        | None
+    ) = None
 
 
 class EntityMetadata(BaseModel):
@@ -1403,7 +1415,16 @@ class Filter(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
+    root: (
+        AllFilter
+        | AnyFilter
+        | NotFilter
+        | EqualFilter
+        | NotEqualFilter
+        | StartsWithFilter
+        | EndsWithFilter
+        | ContainsSegmentFilter
+    )
 
 
 class PropertyTypeVertex(BaseModel):

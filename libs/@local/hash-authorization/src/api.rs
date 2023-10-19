@@ -12,7 +12,7 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, EntityPermission, EntityRelationSubject, OwnerId, WebPermission,
+        AccountGroupPermission, EntityPermission, EntityRelationAndSubject, OwnerId, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -114,7 +114,11 @@ pub trait AuthorizationApi {
     fn modify_entity_relations(
         &mut self,
         relationships: impl IntoIterator<
-            Item = (ModifyRelationshipOperation, EntityId, EntityRelationSubject),
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
             IntoIter: Send,
         > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
@@ -150,7 +154,7 @@ pub trait AuthorizationApi {
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<EntityRelationSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

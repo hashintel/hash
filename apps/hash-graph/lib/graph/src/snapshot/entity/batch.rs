@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::EntityRelationSubject};
+use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Result, ResultExt};
 use graph_types::knowledge::entity::EntityUuid;
 use tokio_postgres::GenericClient;
@@ -19,7 +19,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    Relations(HashMap<EntityUuid, EntityRelationSubject>),
+    Relations(HashMap<EntityUuid, EntityRelationAndSubject>),
 }
 
 #[async_trait]

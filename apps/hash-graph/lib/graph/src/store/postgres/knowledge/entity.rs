@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityDirectOwnerSubject, EntityPermission, EntityRelationSubject, EntitySubjectSet,
+        EntityDirectOwnerSubject, EntityPermission, EntityRelationAndSubject, EntitySubjectSet,
         OwnerId, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
@@ -439,7 +439,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .modify_entity_relations([(
                 ModifyRelationshipOperation::Create,
                 entity_id,
-                EntityRelationSubject::DirectOwner(subject),
+                EntityRelationAndSubject::DirectOwner(subject),
             )])
             .await
             .change_context(InsertionError)?;
@@ -449,7 +449,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .modify_entity_relations([(
                     ModifyRelationshipOperation::Delete,
                     entity_id,
-                    EntityRelationSubject::DirectOwner(subject),
+                    EntityRelationAndSubject::DirectOwner(subject),
                 )])
                 .await
                 .change_context(InsertionError)

@@ -8,7 +8,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
-        EntityObjectRelation, EntityPermission, EntityRelationSubject, EntitySubject,
+        EntityObjectRelation, EntityPermission, EntityRelationAndSubject, EntitySubject,
         EntitySubjectSet, OwnerId,
     },
     zanzibar::Consistency,
@@ -71,7 +71,7 @@ use crate::{
             EntityStructuralQuery,
 
             EntityObjectRelation,
-            EntityRelationSubject,
+            EntityRelationAndSubject,
             EntityPermission,
             EntitySubject,
             EntitySubjectSet,
@@ -456,7 +456,7 @@ impl<'s> ToSchema<'s> for Viewer {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct EntityAuthorizationRelationship {
-    relation_subject: EntityRelationSubject,
+    relation_and_subject: EntityRelationAndSubject,
 }
 
 #[utoipa::path(
@@ -497,7 +497,7 @@ where
             })?
             .into_iter()
             .map(|relation| EntityAuthorizationRelationship {
-                relation_subject: relation,
+                relation_and_subject: relation,
             })
             .collect(),
     ))
@@ -508,7 +508,7 @@ where
 struct ModifyEntityAuthorizationRelationship {
     operation: ModifyRelationshipOperation,
     object: EntityId,
-    relation_subject: EntityRelationSubject,
+    relation_subject: EntityRelationAndSubject,
 }
 
 #[utoipa::path(
@@ -667,7 +667,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationSubject::DirectOwner(subject),
+            EntityRelationAndSubject::DirectOwner(subject),
         )])
         .await
         .map_err(|error| {
@@ -754,7 +754,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationSubject::DirectOwner(subject),
+            EntityRelationAndSubject::DirectOwner(subject),
         )])
         .await
         .map_err(|error| {
@@ -835,7 +835,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationSubject::DirectEditor(subject),
+            EntityRelationAndSubject::DirectEditor(subject),
         )])
         .await
         .map_err(|error| {
@@ -919,7 +919,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationSubject::DirectEditor(subject),
+            EntityRelationAndSubject::DirectEditor(subject),
         )])
         .await
         .map_err(|error| {
