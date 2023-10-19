@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{error::Error, fmt};
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -6,25 +6,38 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::{Affiliation, Permission, Relation, Resource};
+use crate::zanzibar::{types::Object, Affiliation, Permission, Relation};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebNamespace {
+    #[serde(rename = "graph/web")]
+    Web,
+}
+
+impl Object for WebId {
+    type Id = Self;
+    type Namespace = WebNamespace;
+
+    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+        match namespace {
+            WebNamespace::Web => Ok::<_, !>(id),
+        }
+    }
+
+    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+        (WebNamespace::Web, self)
+    }
+
+    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+        Object::into_parts(*self)
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
 pub enum OwnerId {
     Account(AccountId),
     AccountGroupMembers(AccountGroupId),
-}
-
-impl Resource for WebId {
-    type Id = Self;
-
-    fn namespace() -> &'static str {
-        "graph/web"
-    }
-
-    fn id(&self) -> Self::Id {
-        *self
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +58,7 @@ impl Affiliation<WebId> for WebRelation {}
 impl Relation<WebId> for WebRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum WebPermission {
     CreateEntity,

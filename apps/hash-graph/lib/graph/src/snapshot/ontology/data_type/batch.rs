@@ -32,7 +32,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         _authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -46,7 +46,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::data_types[])
                             RETURNING 1;
                         ",
-                        &[data_types],
+                        &[&data_types],
                     )
                     .await
                     .change_context(InsertionError)?;

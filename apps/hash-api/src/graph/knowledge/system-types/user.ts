@@ -28,7 +28,7 @@ import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   addEntityViewer,
-  canUpdateEntity,
+  checkEntityPermission,
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
@@ -472,11 +472,12 @@ export const isUserHashInstanceAdmin: ImpureGraphFunction<
   Promise<boolean>
 > = async (ctx, authentication, { user }) =>
   getHashInstance(ctx, authentication, {}).then((hashInstance) =>
-    canUpdateEntity(
+    checkEntityPermission(
       ctx,
       { actorId: user.accountId },
       {
         entityId: hashInstance.entity.metadata.recordId.entityId,
+        permission: "update",
       },
     ),
   );

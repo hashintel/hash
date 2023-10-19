@@ -3,7 +3,7 @@ import {
   validateBaseUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
-import { EntityRelation, EntitySubject } from "@local/hash-graph-client";
+import { EntityRelationSubject } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
@@ -94,14 +94,18 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
 ) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
 
-export type AuthorizationRelationship<O, R, S> = {
-  object: O;
-  relation: R;
-  subject: S;
+type ReplaceType<T, K extends keyof any, V> = {
+  [P in keyof T]: P extends K ? V : T[P];
+};
+type BrandSubject<T extends object> = ReplaceType<
+  ReplaceType<T, "accountId", AccountId>,
+  "accountGroupId",
+  AccountGroupId
+>;
+type BrandRelationship<T extends { subject: object }> = {
+  [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
 
-export type EntityAuthorizationRelationship = AuthorizationRelationship<
-  EntityId,
-  EntityRelation,
-  EntitySubject
->;
+export type EntityAuthorizationRelationship = {
+  object: EntityId;
+} & BrandRelationship<EntityRelationSubject>;

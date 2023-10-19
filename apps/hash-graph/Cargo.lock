@@ -120,9 +120,11 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
  "tokio-util",
  "utoipa",
+ "uuid",
 ]
 
 [[package]]

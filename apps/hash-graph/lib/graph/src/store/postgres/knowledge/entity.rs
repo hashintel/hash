@@ -4,7 +4,10 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::OwnerId,
+    schema::{
+        EntityDirectOwnerSubject, EntityPermission, EntityRelationSubject, EntitySubjectSet,
+        OwnerId, WebPermission,
+    },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -19,6 +22,7 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    web::WebId,
 };
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
@@ -180,8 +184,9 @@ impl<C: AsClient> PostgresStore<C> {
                     }
 
                     let permissions = authorization_api
-                        .can_view_entities(
+                        .check_entities_permission(
                             actor_id,
+                            EntityPermission::View,
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
                             entity_ids.iter().copied(),
@@ -276,7 +281,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     ) -> Result<EntityMetadata, InsertionError> {
         if Some(owned_by_id.into_uuid()) != entity_uuid.map(EntityUuid::into_uuid) {
             authorization_api
-                .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
+                .check_web_permission(
+                    actor_id,
+                    WebPermission::CreateEntity,
+                    WebId::from(owned_by_id),
+                    Consistency::FullyConsistent,
+                )
                 .await
                 .change_context(InsertionError)?
                 .assert_permission()
@@ -416,14 +426,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
+        let subject = match owner {
+            OwnerId::Account(account_id) => EntityDirectOwnerSubject::Account { account_id },
+            OwnerId::AccountGroupMembers(account_group_id) => {
+                EntityDirectOwnerSubject::AccountGroup {
+                    account_group_id,
+                    relation: EntitySubjectSet::Member,
+                }
+            }
+        };
+
         authorization_api
-            .add_entity_owner(owner, entity_id)
+            .add_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_owner(owner, entity_id)
+                .remove_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
                 .await
                 .change_context(InsertionError)
             {
@@ -609,7 +629,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
-            .can_view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
+            .check_entities_permission(
+                actor_id,
+                EntityPermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -676,7 +701,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         authorization_api
-            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .check_entity_permission(
+                actor_id,
+                EntityPermission::Update,
+                entity_id,
+                Consistency::FullyConsistent,
+            )
             .await
             .change_context(UpdateError)?
             .assert_permission()

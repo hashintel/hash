@@ -5,15 +5,22 @@
 use std::sync::Arc;
 
 use authorization::{
-    schema::OwnerId, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool,
+    schema::{AccountGroupPermission, OwnerId, WebPermission},
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool,
 };
-use axum::{extract::Path, http::StatusCode, routing::post, Extension, Router};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 use graph_types::{provenance::OwnedById, web::WebId};
 use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::AuthenticatedUserHeader,
+    api::rest::{AuthenticatedUserHeader, PermissionResponse},
     store::{AccountStore, StorePool},
 };
 
@@ -21,6 +28,12 @@ use crate::{
 #[openapi(
     paths(
         create_web,
+        check_web_permission,
+    ),
+    components(
+        schemas(
+            WebPermission,
+        ),
     ),
     tags(
         (name = "Web", description = "Web management API")
@@ -35,7 +48,12 @@ impl RoutedResource for WebResource {
         S: StorePool + Send + Sync + 'static,
         A: AuthorizationApiPool + Send + Sync + 'static,
     {
-        Router::new().route("/webs/:web_id", post(create_web::<S, A>))
+        Router::new().nest(
+            "/webs/:web_id",
+            Router::new()
+                .route("/", post(create_web::<S, A>))
+                .route("/permissions/:permission", get(check_web_permission::<A>)),
+        )
     }
 }
 
@@ -87,7 +105,12 @@ where
         }
         OwnerId::AccountGroupMembers(account_group_id) => {
             let permission_response = authorization_api
-                .can_add_group_owner(actor_id, account_group_id, Consistency::FullyConsistent)
+                .check_account_group_permission(
+                    actor_id,
+                    AccountGroupPermission::AddOwner,
+                    account_group_id,
+                    Consistency::FullyConsistent,
+                )
                 .await
                 .map_err(|error| {
                     tracing::error!(?error, "Could not check permissions");
@@ -109,4 +132,50 @@ where
         })?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/webs/{web_id}/permissions/{permission}",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("web_id" = EntityId, Path, description = "The web ID to check if the actor has the permission"),
+        ("permission" = EntityPermission, Path, description = "The permission to check for"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the web"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn check_web_permission<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((web_id, permission)): Path<(WebId, WebPermission)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(|error| {
+                tracing::error!(?error, "Could not acquire access to the authorization API");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .check_web_permission(actor_id, permission, web_id, Consistency::FullyConsistent)
+            .await
+            .map_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if {permission} permission on web is granted to the \
+                     specified actor"
+                );
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .has_permission,
+    }))
 }

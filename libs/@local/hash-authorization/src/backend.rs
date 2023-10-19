@@ -4,11 +4,14 @@ use core::fmt;
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
-    zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie},
+    zanzibar::{
+        types::{Object, Relationship, RelationshipFilter, Subject},
+        Affiliation, Consistency, Zookie,
+    },
     NoAuthorization,
 };
 
@@ -37,82 +40,107 @@ pub trait ZanzibarBackend {
         &self,
     ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
-    /// Creates a new relation specified by the [`Tuple`].
+    /// Creates a new relation specified by the [`Relationship`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation already exists or could not be created.
-    fn create_relations<T>(
+    fn create_relations<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
-    /// Creates a new relation specified by the [`Tuple`] but does not error if it already exists.
+    /// Creates a new relation specified by the [`Relationship`] but does not error if it already
+    /// exists.
     ///
     /// # Errors
     ///
     /// Returns an error if the relation could not be created.
-    fn touch_relations<T>(
+    fn touch_relations<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
-    /// Deletes the relation specified by the [`Tuple`].
+    /// Deletes the relation specified by the [`Relationship`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    fn delete_relations<T>(
+    fn delete_relations<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
+        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<DeleteRelationResponse, Report<DeleteRelationError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
-    /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
-    /// [`Resource`].
+    /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
+    /// to an [`Object`].
     ///
     /// # Errors
     ///
     /// Returns an error if the check could not be performed.
     ///
-    /// Note, that this will not fail if the subject does not have the specified permission or
-    /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
+    /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
+    /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
-    fn check<T>(
+    fn check<O, R, S>(
         &self,
-        tuple: &T,
+        resource: &O,
+        permission: &R,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        T: Tuple + Sync;
+        O: Object<Namespace: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Affiliation<O> + Sync,
+        S: Subject<Object: Object<Namespace: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
     /// # Errors
     ///
     /// Returns an error if the reading could not be performed.
-    fn read_relations<O, R, U, S>(
+    fn read_relations<R>(
         &self,
-        object: Option<O>,
-        relation: Option<R>,
-        user: Option<U>,
-        user_set: Option<S>,
-        consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>> + Send
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<R>, Report<ReadError>>> + Send
     where
-        O: Resource + From<O::Id> + Send + Sync,
-        O::Id: DeserializeOwned,
-        R: Relation<O> + Send + Sync + DeserializeOwned,
-        U: Resource + From<U::Id> + Send + Sync,
-        U::Id: DeserializeOwned,
-        S: Serialize + Send + Sync + DeserializeOwned;
+        for<'de> R: Relationship<
+                Object: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Object<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send;
 }
 
 impl ZanzibarBackend for NoAuthorization {
@@ -163,13 +191,17 @@ impl ZanzibarBackend for NoAuthorization {
         })
     }
 
-    async fn check<T>(
+    async fn check<O, R, S>(
         &self,
-        _tuple: &T,
+        _resource: &O,
+        _permission: &R,
+        _subject: &S,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        T: Sync,
+        O: Sync,
+        R: Sync,
+        S: Sync,
     {
         Ok(CheckResponse {
             checked_at: Zookie::empty(),
@@ -177,20 +209,18 @@ impl ZanzibarBackend for NoAuthorization {
         })
     }
 
-    async fn read_relations<O, R, U, S>(
+    async fn read_relations<R>(
         &self,
-        _object: Option<O>,
-        _relation: Option<R>,
-        _user: Option<U>,
-        _user_set: Option<S>,
-        _consistency: Consistency<'static>,
-    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
-    where
-        O: Send,
-        R: Send,
-        U: Send,
-        S: Send,
-    {
+        _filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        _consistency: Consistency<'_>,
+    ) -> Result<Vec<R>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }
@@ -277,23 +307,19 @@ impl Error for DeleteRelationError {}
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
-    /// If the subject has the specified permission or relation to an [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
+    /// If the subject has the specified permission or relation to an [`Object`].
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
 }
 
 impl CheckResponse {
-    /// Asserts that the subject has the specified permission or relation to an [`Resource`].
+    /// Asserts that the subject has the specified permission or relation to an [`Object`].
     ///
     /// # Errors
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
-    /// [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
+    /// [`Object`].
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)
@@ -305,13 +331,11 @@ impl CheckResponse {
 
 /// Error returned from [`ZanzibarBackend::check`].
 #[derive(Debug)]
-pub struct CheckError {
-    pub tuple: UntypedTuple<'static>,
-}
+pub struct CheckError;
 
 impl fmt::Display for CheckError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "failed to check permission: `{}`", self.tuple)
+        fmt.write_str("failed to check permission")
     }
 }
 
