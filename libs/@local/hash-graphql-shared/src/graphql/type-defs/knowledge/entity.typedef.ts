@@ -121,8 +121,13 @@ export const entityTypedef = gql`
     Viewer
   }
 
+  enum AccountGroupAuthorizationSubjectRelation {
+    Member
+  }
+
   type AccountGroupAuthorizationSubject {
     accountGroupId: AccountGroupId!
+    relation: AccountGroupAuthorizationSubjectRelation
   }
 
   type AccountAuthorizationSubject {

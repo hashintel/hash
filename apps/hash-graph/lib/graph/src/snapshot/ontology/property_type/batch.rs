@@ -52,7 +52,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         _authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -66,7 +66,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::property_types[])
                             RETURNING 1;
                         ",
-                        &[property_types],
+                        &[&property_types],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -83,7 +83,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                          UNNEST($1::property_type_constrains_values_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[values],
+                        &[&values],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -100,7 +100,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                          UNNEST($1::property_type_constrains_properties_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[properties],
+                        &[&properties],
                     )
                     .await
                     .change_context(InsertionError)?;

@@ -1,16 +1,32 @@
 mod spicedb;
 
-use core::fmt;
+use core::{fmt, iter::repeat};
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
-    zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie},
+    zanzibar::{
+        types::{Relationship, RelationshipFilter, Resource, Subject},
+        Affiliation, Consistency, Zookie,
+    },
     NoAuthorization,
 };
+
+/// Used for mutating a single relationship within the service.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum ModifyRelationshipOperation {
+    /// Upsert the relationship, and will not error if it already exists.
+    Touch,
+    /// Create the relationship only if it doesn't exist, and error otherwise.
+    Create,
+    /// Delete the relationship. If the relationship does not exist, this operation will no-op.
+    Delete,
+}
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait ZanzibarBackend {
@@ -37,82 +53,139 @@ pub trait ZanzibarBackend {
         &self,
     ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
-    /// Creates a new relation specified by the [`Tuple`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the relation already exists or could not be created.
-    fn create_relations<T>(
+    fn modify_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync;
 
-    /// Creates a new relation specified by the [`Tuple`] but does not error if it already exists.
+    /// Creates a new relation specified by the [`Relationship`] but does not error if it already
+    /// exists.
+    ///
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
+    /// [`ModifyRelationshipOperation::Touch`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation could not be created.
-    fn touch_relations<T>(
+    fn touch_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Touch).zip(relationships))
+    }
 
-    /// Deletes the relation specified by the [`Tuple`].
+    /// Creates a new relation specified by the [`Relationship`].
+    ///
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
+    /// [`ModifyRelationshipOperation::Create`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relation already exists or could not be created.
+    fn create_relationships<R>(
+        &mut self,
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
+    where
+        R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Create).zip(relationships))
+    }
+
+    /// Deletes the relation specified by the [`Relationship`].
+    ///
+    /// This is the same behavior as [`ZanzibarBackend::modify_relationships`] with
+    /// [`ModifyRelationshipOperation::Delete`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    fn delete_relations<T>(
+    fn delete_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<DeleteRelationResponse, Report<DeleteRelationError>>> + Send
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
-        T: Tuple + Send + Sync;
+        R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        self.modify_relationships(repeat(ModifyRelationshipOperation::Delete).zip(relationships))
+    }
 
-    /// Returns if the subject of the [`Tuple`] has the specified permission or relation to an
-    /// [`Resource`].
+    /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
+    /// to an [`Resource`].
     ///
     /// # Errors
     ///
     /// Returns an error if the check could not be performed.
     ///
-    /// Note, that this will not fail if the subject does not have the specified permission or
-    /// relation to the [`Resource`]. Instead, the [`CheckResponse::has_permission`] field will be
+    /// Note, that this will not fail if the [`Subject`] does not have the specified permission or
+    /// relation to the [`Subject`]. Instead, the [`CheckResponse::has_permission`] field will be
     /// set to `false`.
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
-    fn check<T>(
+    fn check<O, R, S>(
         &self,
-        tuple: &T,
+        resource: &O,
+        permission: &R,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        T: Tuple + Sync;
+        O: Resource<Namespace: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Affiliation<O> + Sync,
+        S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>
+            + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
     /// # Errors
     ///
     /// Returns an error if the reading could not be performed.
-    fn read_relations<O, R, U, S>(
+    fn read_relations<R>(
         &self,
-        object: Option<O>,
-        relation: Option<R>,
-        user: Option<U>,
-        user_set: Option<S>,
-        consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>> + Send
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<Vec<R>, Report<ReadError>>> + Send
     where
-        O: Resource + From<O::Id> + Send + Sync,
-        O::Id: DeserializeOwned,
-        R: Relation<O> + Send + Sync + DeserializeOwned,
-        U: Resource + From<U::Id> + Send + Sync,
-        U::Id: DeserializeOwned,
-        S: Serialize + Send + Sync + DeserializeOwned;
+        for<'de> R: Relationship<
+                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send;
 }
 
 impl ZanzibarBackend for NoAuthorization {
@@ -127,49 +200,29 @@ impl ZanzibarBackend for NoAuthorization {
         unimplemented!()
     }
 
-    async fn create_relations<T>(
+    async fn modify_relationships<T>(
         &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+        _tuples: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         T: Sync,
     {
-        Ok(CreateRelationResponse {
+        Ok(ModifyRelationshipResponse {
             written_at: Zookie::empty(),
         })
     }
 
-    async fn touch_relations<T>(
-        &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        T: Sync,
-    {
-        Ok(CreateRelationResponse {
-            written_at: Zookie::empty(),
-        })
-    }
-
-    async fn delete_relations<T>(
-        &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        T: Sync,
-    {
-        Ok(DeleteRelationResponse {
-            deleted_at: Zookie::empty(),
-        })
-    }
-
-    async fn check<T>(
+    async fn check<O, R, S>(
         &self,
-        _tuple: &T,
+        _resource: &O,
+        _permission: &R,
+        _subject: &S,
         _consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        T: Sync,
+        O: Sync,
+        R: Sync,
+        S: Sync,
     {
         Ok(CheckResponse {
             checked_at: Zookie::empty(),
@@ -177,20 +230,18 @@ impl ZanzibarBackend for NoAuthorization {
         })
     }
 
-    async fn read_relations<O, R, U, S>(
+    async fn read_relations<R>(
         &self,
-        _object: Option<O>,
-        _relation: Option<R>,
-        _user: Option<U>,
-        _user_set: Option<S>,
-        _consistency: Consistency<'static>,
-    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
-    where
-        O: Send,
-        R: Send,
-        U: Send,
-        S: Send,
-    {
+        _filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        _consistency: Consistency<'_>,
+    ) -> Result<Vec<R>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }
@@ -235,51 +286,30 @@ impl fmt::Display for ExportSchemaError {
 
 impl Error for ExportSchemaError {}
 
-/// Return value for [`ZanzibarBackend::create_relations`].
+/// Return value for [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct CreateRelationResponse {
+pub struct ModifyRelationshipResponse {
     /// A token to determine the time at which the relation was created.
     pub written_at: Zookie<'static>,
 }
 
-/// Error returned from [`ZanzibarBackend::create_relations`].
+/// Error returned from [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct CreateRelationError;
+pub struct ModifyRelationshipError;
 
-impl fmt::Display for CreateRelationError {
+impl fmt::Display for ModifyRelationshipError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to create relations")
+        fmt.write_str("failed to modify relations")
     }
 }
 
-impl Error for CreateRelationError {}
-
-/// Return value for [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationResponse {
-    /// A token to determine the time at which the relation was deleted.
-    pub deleted_at: Zookie<'static>,
-}
-
-/// Error returned from [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationError;
-
-impl fmt::Display for DeleteRelationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to delete relation")
-    }
-}
-
-impl Error for DeleteRelationError {}
+impl Error for ModifyRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]
 #[must_use]
 pub struct CheckResponse {
     /// If the subject has the specified permission or relation to an [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
     pub has_permission: bool,
     /// A token to determine the time at which the check was performed.
     pub checked_at: Zookie<'static>,
@@ -292,8 +322,6 @@ impl CheckResponse {
     ///
     /// Returns an error if the subject does not have the specified permission or relation to the
     /// [`Resource`].
-    ///
-    /// [`Resource`]: crate::zanzibar::Resource
     pub fn assert_permission(self) -> Result<Zookie<'static>, PermissionAssertion> {
         if self.has_permission {
             Ok(self.checked_at)
@@ -305,13 +333,11 @@ impl CheckResponse {
 
 /// Error returned from [`ZanzibarBackend::check`].
 #[derive(Debug)]
-pub struct CheckError {
-    pub tuple: UntypedTuple<'static>,
-}
+pub struct CheckError;
 
 impl fmt::Display for CheckError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "failed to check permission: `{}`", self.tuple)
+        fmt.write_str("failed to check permission")
     }
 }
 

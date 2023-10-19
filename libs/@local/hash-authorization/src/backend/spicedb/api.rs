@@ -1,26 +1,29 @@
-use std::{error::Error, fmt, io, iter::repeat};
+use std::{error::Error, fmt, io};
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::Response;
-use serde::{de::DeserializeOwned, ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::time::sleep;
 use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
     backend::{
         spicedb::model::{self, RpcError},
-        CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
-        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
-        ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        CheckError, CheckResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
+        ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
+        ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
-    zanzibar::{Consistency, Relation, Resource, Tuple, UntypedTuple, Zookie},
+    zanzibar::{
+        types::{Relationship, RelationshipFilter, Resource, Subject},
+        Affiliation, Consistency,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 #[expect(
     clippy::empty_structs_with_brackets,
-    reason = "Used for serializing and deserializing an empty object `{}`"
+    reason = "Used for serializing and deserializing an empty resource `{}`"
 )]
 struct Empty {}
 
@@ -141,71 +144,6 @@ impl SpiceDbOpenApi {
         Ok(framed_stream
             .map(|io_result| Result::from(io_result.change_context(StreamError::Parse)?)))
     }
-
-    // TODO: Expose batch-version
-    //   see https://linear.app/hash/issue/H-642
-    async fn modify_relations<T>(
-        &self,
-        operations: impl IntoIterator<Item = (model::RelationshipUpdateOperation, T), IntoIter: Send>
-        + Send,
-    ) -> Result<Zookie<'static>, Report<InvocationError>>
-    where
-        T: Tuple + Send + Sync,
-    {
-        #[derive(Serialize)]
-        #[serde(bound = "T: Tuple")]
-        struct RelationshipUpdate<T> {
-            operation: model::RelationshipUpdateOperation,
-            relationship: model::Relationship<T>,
-        }
-
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "T: Tuple")]
-        struct RequestBody<T> {
-            updates: Vec<RelationshipUpdate<T>>,
-        }
-
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RequestResponse {
-            written_at: model::ZedToken,
-        }
-
-        let request_body = RequestBody {
-            updates: operations
-                .into_iter()
-                .map(|(operation, tuple)| RelationshipUpdate::<T> {
-                    operation,
-                    relationship: model::Relationship(tuple),
-                })
-                .collect(),
-        };
-
-        let max_attempts = 3_u32;
-        let mut attempt = 0;
-        loop {
-            let invocation = self
-                .call::<RequestResponse>("/v1/relationships/write", &request_body)
-                .await;
-
-            match invocation {
-                Ok(response) => return Ok(response.written_at.into()),
-                Err(report) => match report.current_context() {
-                    InvocationError::Api(RpcError { code: 2, .. }) => {
-                        if attempt == max_attempts {
-                            break Err(report);
-                        }
-
-                        attempt += 1;
-                        // TODO: Use a more customizable backoff
-                        //       current: 10ms, 40ms, 90ms
-                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
-                    }
-                    _ => break Err(report),
-                },
-            }
-        }
-    }
 }
 
 impl ZanzibarBackend for SpiceDbOpenApi {
@@ -262,72 +200,129 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relations<T>(
+    async fn modify_relationships<T>(
         &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
+    ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
-        T: Tuple + Send + Sync,
+        T: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
     {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Create).zip(tuples))
-            .await
-            .map(|written_at| CreateRelationResponse { written_at })
-            .change_context(CreateRelationError)
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize
+            >"
+        )]
+        struct RelationshipUpdate<R> {
+            operation: model::RelationshipUpdateOperation,
+            #[serde(with = "super::serde::relationship")]
+            relationship: R,
+        }
+
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
+                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize
+            >"
+        )]
+        struct RequestBody<R> {
+            updates: Vec<RelationshipUpdate<R>>,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestResponse {
+            written_at: model::ZedToken,
+        }
+
+        let request_body = RequestBody {
+            updates: relationships
+                .into_iter()
+                .map(|(operation, relationship)| RelationshipUpdate::<T> {
+                    operation: operation.into(),
+                    relationship,
+                })
+                .collect(),
+        };
+
+        let max_attempts = 3_u32;
+        let mut attempt = 0;
+        loop {
+            let invocation = self
+                .call::<RequestResponse>("/v1/relationships/write", &request_body)
+                .await;
+
+            match invocation {
+                Ok(response) => {
+                    return Ok(ModifyRelationshipResponse {
+                        written_at: response.written_at.into(),
+                    });
+                }
+                Err(report) => match report.current_context() {
+                    InvocationError::Api(RpcError { code: 2, .. }) => {
+                        if attempt == max_attempts {
+                            break Err(report);
+                        }
+
+                        attempt += 1;
+                        // TODO: Use a more customizable backoff
+                        //       current: 10ms, 40ms, 90ms
+                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+                    }
+                    _ => break Err(report),
+                },
+            }
+        }
+        .change_context(ModifyRelationshipError)
     }
 
     #[expect(
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn touch_relations<T>(
-        &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        T: Tuple + Send + Sync,
-    {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Touch).zip(tuples))
-            .await
-            .map(|written_at| CreateRelationResponse { written_at })
-            .change_context(CreateRelationError)
-    }
-
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
-    async fn delete_relations<T>(
-        &mut self,
-        tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        T: Tuple + Send + Sync,
-    {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Delete).zip(tuples))
-            .await
-            .map(|deleted_at| DeleteRelationResponse { deleted_at })
-            .change_context(DeleteRelationError)
-    }
-
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
-    async fn check<T>(
+    async fn check<O, R, S>(
         &self,
-        tuple: &T,
+        resource: &O,
+        permission: &R,
+        subject: &S,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        T: Tuple + Sync,
+        O: Resource<Namespace: Serialize, Id: Serialize> + Sync,
+        R: Serialize + Affiliation<O> + Sync,
+        S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>
+            + Sync,
     {
         #[derive(Serialize)]
-        #[serde(rename_all = "camelCase", bound = "")]
-        struct RequestBody<'t, T: Tuple> {
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                O: Resource<Namespace: Serialize, Id: Serialize>,
+                R: Serialize + Affiliation<O>,
+                S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: \
+                     Serialize>"
+        )]
+        struct RequestBody<'t, O, R, S> {
             consistency: model::Consistency<'t>,
-            resource: model::ObjectReference<T>,
-            permission: model::RelationReference<T>,
-            subject: model::SubjectReference<T>,
+            #[serde(with = "super::serde::resource_ref")]
+            resource: &'t O,
+            permission: &'t R,
+            #[serde(with = "super::serde::subject_ref")]
+            subject: &'t S,
         }
 
         #[derive(Deserialize)]
@@ -347,19 +342,17 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             permissionship: Permissionship,
         }
 
-        let request = RequestBody {
+        let request = RequestBody::<O, R, S> {
             consistency: consistency.into(),
-            resource: model::ObjectReference(tuple),
-            permission: model::RelationReference(tuple),
-            subject: model::SubjectReference(tuple),
+            resource,
+            permission,
+            subject,
         };
 
         let response: RequestResponse = self
             .call("/v1/permissions/check", &request)
             .await
-            .change_context_lazy(|| CheckError {
-                tuple: UntypedTuple::from_tuple(tuple).into_owned(),
-            })?;
+            .change_context(CheckError)?;
 
         let has_permission = match response.permissionship {
             Permissionship::HasPermission => true,
@@ -379,125 +372,64 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn read_relations<O, R, U, S>(
+    async fn read_relations<R>(
         &self,
-        object: Option<O>,
-        relation: Option<R>,
-        user: Option<U>,
-        user_set: Option<S>,
-        consistency: Consistency<'static>,
-    ) -> Result<Vec<(O, R, U, Option<S>)>, Report<ReadError>>
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+        consistency: Consistency<'_>,
+    ) -> Result<Vec<R>, Report<ReadError>>
     where
-        O: Resource + From<O::Id> + Send + Sync,
-        O::Id: DeserializeOwned,
-        R: Relation<O> + Send + Sync + DeserializeOwned,
-        U: Resource + From<U::Id> + Send + Sync,
-        U::Id: DeserializeOwned,
-        S: Serialize + Send + Sync + DeserializeOwned,
+        for<'de> R: Relationship<
+                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            > + Send,
     {
         #[derive(Serialize)]
         #[serde(
             rename_all = "camelCase",
-            bound = "O: Resource, R: Serialize, U: Resource, S: Serialize"
+            bound = "
+                ON: Serialize, OI: Serialize, R: Serialize,
+                SN: Serialize, SI: Serialize, SR: Serialize"
         )]
-        struct ReadRelationshipsRequest<O, R, U, S> {
-            consistency: model::Consistency<'static>,
-            relationship_filter: RelationshipFilter<O, R, U, S>,
-        }
-
-        struct SubjectFilter<U, S> {
-            user: Option<U>,
-            user_set: Option<S>,
-        }
-
-        impl<U: Resource, R: Serialize> Serialize for SubjectFilter<U, R> {
-            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-            where
-                S: Serializer,
-            {
-                let mut ser = serializer.serialize_struct("SubjectFilter", 3)?;
-                ser.serialize_field("subjectType", U::namespace())?;
-                if let Some(user) = &self.user {
-                    ser.serialize_field("optionalSubjectId", &user.id())?;
-                }
-                if let Some(relation) = &self.user_set {
-                    ser.serialize_field("optionalRelation", relation)?;
-                }
-
-                ser.end()
-            }
-        }
-
-        struct RelationshipFilter<O, R, U, S> {
-            object: Option<O>,
-            relation: Option<R>,
-            subject: SubjectFilter<U, S>,
-        }
-
-        impl<O: Resource, R: Serialize, U: Resource, S: Serialize> Serialize
-            for RelationshipFilter<O, R, U, S>
-        {
-            fn serialize<Ser>(&self, serializer: Ser) -> Result<Ser::Ok, Ser::Error>
-            where
-                Ser: Serializer,
-            {
-                let mut ser = serializer.serialize_struct("RelationshipFilter", 4)?;
-                ser.serialize_field("resourceType", O::namespace())?;
-                if let Some(object) = &self.object {
-                    ser.serialize_field("optionalResourceId", &object.id())?;
-                }
-                if let Some(relation) = &self.relation {
-                    ser.serialize_field("optionalRelation", relation)?;
-                }
-                ser.serialize_field("optionalSubjectFilter", &self.subject)?;
-
-                ser.end()
-            }
+        struct ReadRelationshipsRequest<'a, ON, OI, R, SN, SI, SR> {
+            consistency: model::Consistency<'a>,
+            #[serde(with = "super::serde::relationship_filter")]
+            relationship_filter: RelationshipFilter<ON, OI, R, SN, SI, SR>,
         }
 
         #[derive(Deserialize)]
         #[serde(
             rename_all = "camelCase",
-            bound = "O: Resource + From<O::Id>, O::Id: Deserialize<'de>, R: Deserialize<'de>, U: \
-                     Resource + From<U::Id>, U::Id: Deserialize<'de>, S: Deserialize<'de>"
+            bound = "R: Relationship<
+                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Relation: Deserialize<'de>,
+                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                SubjectSet: Deserialize<'de>,
+            >"
         )]
-        struct ReadRelationshipsResponse<O, R, U, S> {
-            relationship: Relationship<O, R, U, S>,
+        struct ReadRelationshipsResponse<R> {
+            #[serde(with = "super::serde::relationship")]
+            relationship: R,
         }
 
-        #[derive(Deserialize)]
-        #[serde(
-            rename_all = "camelCase",
-            bound = "O: Resource + From<O::Id>, O::Id: Deserialize<'de>, R: Deserialize<'de>, U: \
-                     Resource + From<U::Id>, U::Id: Deserialize<'de>, S: Deserialize<'de>"
-        )]
-        struct Relationship<O, R, U, S> {
-            resource: model::ObjectReference<O>,
-            relation: R,
-            subject: model::SubjectReference<(U, Option<S>)>,
-        }
-
-        self.stream::<ReadRelationshipsResponse<O, R, U, S>>(
+        self.stream::<ReadRelationshipsResponse<R>>(
             "/v1/relationships/read",
             &ReadRelationshipsRequest {
                 consistency: model::Consistency::from(consistency),
-                relationship_filter: RelationshipFilter {
-                    object,
-                    relation,
-                    subject: SubjectFilter { user, user_set },
-                },
+                relationship_filter: filter,
             },
         )
         .await
         .change_context(ReadError)?
-        .map_ok(|response| {
-            let object = response.relationship.resource.0;
-            let relation = response.relationship.relation;
-            let user = response.relationship.subject.0.0;
-            let user_set = response.relationship.subject.0.1;
-
-            (object, relation, user, user_set)
-        })
+        .map_ok(|response| response.relationship)
         .map_err(|error| error.change_context(ReadError))
         .try_collect::<Vec<_>>()
         .await

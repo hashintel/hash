@@ -1,8 +1,10 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityPermission,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
+  ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
   UserPermissions,
@@ -39,12 +41,12 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../system-types";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
+import { publicUserAccountId } from "../../../graphql/context";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
@@ -665,6 +667,23 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   });
 };
 
+export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: EntityAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyEntityAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationSubject: relationship,
+    })),
+  );
+};
+
 export const addEntityOwner: ImpureGraphFunction<
   { entityId: EntityId; owner: AccountId | AccountGroupId },
   Promise<void>
@@ -693,34 +712,12 @@ export const removeEntityEditor: ImpureGraphFunction<
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
 };
 
-export const addEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityViewer(actorId, params.entityId, params.viewer);
-};
-
-export const removeEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
-};
-
-export const canViewEntity: ImpureGraphFunction<
-  { entityId: EntityId },
+export const checkEntityPermission: ImpureGraphFunction<
+  { entityId: EntityId; permission: EntityPermission },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .canViewEntity(actorId, params.entityId)
-    .then(({ data }) => data.has_permission);
-
-export const canUpdateEntity: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .canUpdateEntity(actorId, params.entityId)
+    .checkEntityPermission(actorId, params.entityId, params.permission)
     .then(({ data }) => data.has_permission);
 
 export const checkPermissionsOnEntity: ImpureGraphFunction<
@@ -739,7 +736,11 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
   const [entityEditable, membersEditable] = await Promise.all([
     isPublicUser
       ? false
-      : await canUpdateEntity(graphContext, { actorId }, { entityId }),
+      : await checkEntityPermission(
+          graphContext,
+          { actorId },
+          { entityId, permission: "update" },
+        ),
     isAccountGroup
       ? isPublicUser
         ? false
@@ -791,12 +792,6 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
   return userPermissionsOnEntities;
 };
 
-export const isEntityPublic: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async (ctx, _, params) =>
-  canViewEntity(ctx, { actorId: publicUserAccountId }, params);
-
 export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },
   Promise<EntityAuthorizationRelationship[]>
@@ -804,8 +799,11 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityAuthorizationRelationships(actorId, params.entityId)
     .then(({ data }) =>
-      data.map((relationship) => ({
-        object: params.entityId,
-        ...relationship,
-      })),
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "entity", resourceId: params.entityId },
+            ...relationship.relationAndSubject,
+          }) as EntityAuthorizationRelationship,
+      ),
     );

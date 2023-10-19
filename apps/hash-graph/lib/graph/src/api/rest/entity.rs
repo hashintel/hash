@@ -5,8 +5,14 @@
 use std::{iter::once, sync::Arc};
 
 use authorization::{
-    schema::EntityRelation, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool,
-    EntitySubject,
+    backend::ModifyRelationshipOperation,
+    schema::{
+        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
+        EntityObjectRelation, EntityPermission, EntityRelationAndSubject, EntitySubject,
+        EntitySubjectSet, OwnerId,
+    },
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
     extract::Path,
@@ -45,19 +51,17 @@ use crate::{
 #[openapi(
     paths(
         create_entity,
+        check_entity_permission,
         get_entities_by_query,
-        can_view_entity,
-        can_update_entity,
         update_entity,
 
         get_entity_authorization_relationships,
+        modify_entity_authorization_relationships,
 
         add_entity_owner,
         remove_entity_owner,
         add_entity_editor,
         remove_entity_editor,
-        add_entity_viewer,
-        remove_entity_viewer,
     ),
     components(
         schemas(
@@ -66,9 +70,16 @@ use crate::{
             EntityQueryToken,
             EntityStructuralQuery,
 
-            EntityRelation,
+            EntityObjectRelation,
+            EntityRelationAndSubject,
+            EntityPermission,
             EntitySubject,
+            EntityDirectOwnerSubject,
+            EntityDirectEditorSubject,
+            EntityDirectViewerSubject,
             EntityAuthorizationRelationship,
+            ModifyEntityAuthorizationRelationship,
+            ModifyRelationshipOperation,
 
             Entity,
             EntityUuid,
@@ -104,6 +115,10 @@ impl RoutedResource for EntityResource {
             "/entities",
             Router::new()
                 .route("/", post(create_entity::<S, A>).put(update_entity::<S, A>))
+                .route(
+                    "/relationships",
+                    post(modify_entity_authorization_relationships::<A>),
+                )
                 .nest(
                     "/:entity_id",
                     Router::new()
@@ -120,11 +135,9 @@ impl RoutedResource for EntityResource {
                             post(add_entity_editor::<A, S>).delete(remove_entity_editor::<A, S>),
                         )
                         .route(
-                            "/viewers/:viewer",
-                            post(add_entity_viewer::<A, S>).delete(remove_entity_viewer::<A, S>),
-                        )
-                        .route("/permissions/view", get(can_view_entity::<A>))
-                        .route("/permissions/update", get(can_update_entity::<A>)),
+                            "/permissions/:permission",
+                            get(check_entity_permission::<A>),
+                        ),
                 )
                 .route("/query", post(get_entities_by_query::<S, A>)),
         )
@@ -221,6 +234,57 @@ where
 }
 
 #[utoipa::path(
+    get,
+    path = "/entities/{entity_id}/permissions/{permission}",
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor has the permission"),
+        ("permission" = EntityPermission, Path, description = "The permission to check for"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the entity"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn check_entity_permission<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((entity_id, permission)): Path<(EntityId, EntityPermission)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(|error| {
+                tracing::error!(?error, "Could not acquire access to the authorization API");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .check_entity_permission(
+                actor_id,
+                permission,
+                entity_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .map_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if {permission} permission on entity is granted to the \
+                     specified actor"
+                );
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?
+            .has_permission,
+    }))
+}
+
+#[utoipa::path(
     post,
     path = "/entities/query",
     request_body = EntityStructuralQuery,
@@ -272,94 +336,6 @@ where
         })?;
 
     Ok(Json(subgraph.into()))
-}
-
-#[utoipa::path(
-    get,
-    path = "/entities/{entity_id}/permissions/view",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor can view"),
-    ),
-    responses(
-        (status = 200, body = PermissionResponse, description = "Information if the actor can view the entity"),
-
-        (status = 500, description = "Internal error occurred"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn can_view_entity<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(entity_id): Path<EntityId>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<PermissionResponse>, StatusCode>
-where
-    A: AuthorizationApiPool + Send + Sync,
-{
-    Ok(Json(PermissionResponse {
-        has_permission: authorization_api_pool
-            .acquire()
-            .await
-            .map_err(|error| {
-                tracing::error!(?error, "Could not acquire access to the authorization API");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
-            .can_view_entity(actor_id, entity_id, Consistency::FullyConsistent)
-            .await
-            .map_err(|error| {
-                tracing::error!(
-                    ?error,
-                    "Could not check if entity can be viewed by the specified actor"
-                );
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
-            .has_permission,
-    }))
-}
-
-#[utoipa::path(
-    get,
-    path = "/entities/{entity_id}/permissions/update",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor can update"),
-    ),
-    responses(
-        (status = 200, body = PermissionResponse, description = "Information if the actor can update the entity"),
-
-        (status = 500, description = "Internal error occurred"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn can_update_entity<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(entity_id): Path<EntityId>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<PermissionResponse>, StatusCode>
-where
-    A: AuthorizationApiPool + Send + Sync,
-{
-    Ok(Json(PermissionResponse {
-        has_permission: authorization_api_pool
-            .acquire()
-            .await
-            .map_err(|error| {
-                tracing::error!(?error, "Could not acquire access to the authorization API");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
-            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
-            .await
-            .map_err(|error| {
-                tracing::error!(
-                    ?error,
-                    "Could not check if entity can be updated by the specified actor"
-                );
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?
-            .has_permission,
-    }))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -476,10 +452,10 @@ impl<'s> ToSchema<'s> for Viewer {
     }
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 struct EntityAuthorizationRelationship {
-    relation: EntityRelation,
-    subject: EntitySubject,
+    relation_and_subject: EntityRelationAndSubject,
 }
 
 #[utoipa::path(
@@ -519,12 +495,106 @@ where
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
             .into_iter()
-            .map(|(scope, relation)| EntityAuthorizationRelationship {
-                relation,
-                subject: scope,
+            .map(|relation| EntityAuthorizationRelationship {
+                relation_and_subject: relation,
             })
             .collect(),
     ))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ModifyEntityAuthorizationRelationship {
+    operation: ModifyRelationshipOperation,
+    resource: EntityId,
+    relation_subject: EntityRelationAndSubject,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/relationships",
+    tag = "Entity",
+    request_body = [ModifyEntityAuthorizationRelationship],
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, description = "The relationship was modified for the entity"),
+
+        (status = 403, description = "Permission denied"),
+)
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn modify_entity_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    relationships: Json<Vec<ModifyEntityAuthorizationRelationship>>,
+) -> Result<StatusCode, StatusCode>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
+        tracing::error!(?error, "Could not acquire access to the authorization API");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let (entities, operations): (Vec<_>, Vec<_>) = relationships
+        .0
+        .into_iter()
+        .map(|request| {
+            (
+                request.resource,
+                (
+                    request.operation,
+                    request.resource,
+                    request.relation_subject,
+                ),
+            )
+        })
+        .unzip();
+
+    let (permissions, _zookie) = authorization_api
+        .check_entities_permission(
+            actor_id,
+            EntityPermission::Update,
+            entities,
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(|error| {
+            tracing::error!(
+                ?error,
+                "Could not check if relationship can be modified for entity"
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut failed = false;
+    // TODO: Change interface for `check_entities_permission` to avoid this loop
+    for (entity_id, has_permission) in permissions {
+        if !has_permission {
+            tracing::error!(
+                "Insufficient permissions to modify relationship for entity `{entity_id}`"
+            );
+            failed = true;
+        }
+    }
+
+    if failed {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // for request in relationships.0 {
+    authorization_api
+        .modify_entity_relations(operations)
+        .await
+        .map_err(|error| {
+            tracing::error!(?error, "Could not add entity relationship");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    // }
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -559,7 +629,12 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .check_entity_permission(
+            actor_id,
+            EntityPermission::Update,
+            entity_id,
+            Consistency::FullyConsistent,
+        )
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not check if owner can be added to entity");
@@ -583,8 +658,20 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    let subject = match owner_id {
+        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
     authorization_api
-        .add_entity_owner(owner_id, entity_id)
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationAndSubject::DirectOwner(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity owner");
@@ -626,7 +713,12 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .check_entity_permission(
+            actor_id,
+            EntityPermission::Update,
+            entity_id,
+            Consistency::FullyConsistent,
+        )
         .await
         .map_err(|error| {
             tracing::error!(
@@ -653,8 +745,20 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    let subject = match owner_id {
+        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
     authorization_api
-        .remove_entity_owner(owner_id, entity_id)
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Delete,
+            entity_id,
+            EntityRelationAndSubject::DirectOwner(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity owner");
@@ -696,7 +800,12 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .check_entity_permission(
+            actor_id,
+            EntityPermission::Update,
+            entity_id,
+            Consistency::FullyConsistent,
+        )
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not check if editor can be added to entity");
@@ -717,8 +826,20 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let subject = match editor_id {
+        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
     authorization_api
-        .add_entity_editor(editor_id, entity_id)
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Create,
+            entity_id,
+            EntityRelationAndSubject::DirectEditor(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add entity editor");
@@ -760,7 +881,12 @@ where
     })?;
 
     let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+        .check_entity_permission(
+            actor_id,
+            EntityPermission::Update,
+            entity_id,
+            Consistency::FullyConsistent,
+        )
         .await
         .map_err(|error| {
             tracing::error!(
@@ -784,160 +910,23 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let subject = match editor_id {
+        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
     authorization_api
-        .remove_entity_editor(editor_id, entity_id)
+        .modify_entity_relations([(
+            ModifyRelationshipOperation::Delete,
+            entity_id,
+            EntityRelationAndSubject::DirectEditor(subject),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove entity editor");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    post,
-    path = "/entities/{entity_id}/viewers/{viewer}",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to add the viewer to"),
-        ("viewer" = Viewer, Path, description = "The viewer to add to the entity"),
-    ),
-    responses(
-        (status = 204, description = "The viewer was added to the entity"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn add_entity_viewer<A, S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, viewer)): Path<(EntityId, Viewer)>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not check if viewer can be added to entity");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let scope = match viewer {
-        Viewer::Public(_) => EntitySubject::Public,
-        Viewer::Owner(owned_by_id) => {
-            let store = store_pool.acquire().await.map_err(|report| {
-                tracing::error!(error=?report, "Could not acquire store");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            store
-                .identify_owned_by_id(owned_by_id)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, "Could not identify account or account group");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?
-                .into()
-        }
-    };
-
-    authorization_api
-        .add_entity_viewer(scope, entity_id)
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not add entity viewer");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    delete,
-    path = "/entities/{entity_id}/viewers/{viewer}",
-    tag = "Entity",
-    params(
-        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The Entity to remove the viewer from"),
-        ("viewer" = Viewer, Path, description = "The viewer to remove from the entity"),
-    ),
-    responses(
-        (status = 204, description = "The viewer was removed from the entity"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(store_pool, authorization_api_pool))]
-async fn remove_entity_viewer<A, S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, viewer)): Path<(EntityId, Viewer)>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<StatusCode, StatusCode>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let has_permission = authorization_api
-        .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
-        .await
-        .map_err(|error| {
-            tracing::error!(
-                ?error,
-                "Could not check if viewer can be removed from entity"
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .has_permission;
-
-    if !has_permission {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let scope = match viewer {
-        Viewer::Public(_) => EntitySubject::Public,
-        Viewer::Owner(owned_by_id) => {
-            let store = store_pool.acquire().await.map_err(|report| {
-                tracing::error!(error=?report, "Could not acquire store");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?;
-            store
-                .identify_owned_by_id(owned_by_id)
-                .await
-                .map_err(|report| {
-                    tracing::error!(error=?report, "Could not identify account or account group");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?
-                .into()
-        }
-    };
-
-    authorization_api
-        .remove_entity_viewer(scope, entity_id)
-        .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not remove entity viewer");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 

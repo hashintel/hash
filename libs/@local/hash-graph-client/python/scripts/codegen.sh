@@ -54,4 +54,3 @@ poetry run datamodel-codegen \
   --aliases "$DIR/aliases.json"
 
 poetry run python "$DIR/rebase.py"
-poetry run black graph_client/models.py

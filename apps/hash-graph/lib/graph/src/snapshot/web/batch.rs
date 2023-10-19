@@ -16,7 +16,7 @@ use crate::{
 
 pub enum WebBatch {
     Accounts(Vec<(WebId, WebRelation, AccountId)>),
-    AccountGroups(Vec<(WebId, WebRelation, AccountGroupId, AccountGroupPermission)>),
+    AccountGroups(Vec<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>),
 }
 
 #[async_trait]
@@ -26,20 +26,20 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
     }
 
     async fn write(
-        &self,
+        self,
         _postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
         match self {
             Self::Accounts(accounts) => {
                 authorization_api
-                    .touch_relations(accounts.iter().copied())
+                    .touch_relationships(accounts)
                     .await
                     .change_context(InsertionError)?;
             }
             Self::AccountGroups(account_groups) => {
                 authorization_api
-                    .touch_relations(account_groups.iter().copied())
+                    .touch_relationships(account_groups)
                     .await
                     .change_context(InsertionError)?;
             }

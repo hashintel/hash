@@ -4,8 +4,12 @@ mod entity;
 mod web;
 
 pub use self::{
-    account::PublicAccess,
-    account_group::{AccountGroupPermission, AccountGroupRelation},
-    entity::{EntityPermission, EntityRelation},
-    web::{OwnerId, WebPermission, WebRelation},
+    account::{AccountNamespace, PublicAccess},
+    account_group::{AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation},
+    entity::{
+        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
+        EntityObjectRelation, EntityPermission, EntityRelationAndSubject, EntitySubject,
+        EntitySubjectId, EntitySubjectRelation, EntitySubjectSet,
+    },
+    web::{OwnerId, WebNamespace, WebPermission, WebRelation},
 };

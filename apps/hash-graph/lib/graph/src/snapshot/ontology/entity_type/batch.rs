@@ -66,7 +66,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         _authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -80,7 +80,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::entity_types[])
                             RETURNING 1;
                         ",
-                        &[entity_types],
+                        &[&entity_types],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -96,7 +96,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::entity_type_inherits_from_tmp[])
                             RETURNING 1;
                         ",
-                        &[entity_types],
+                        &[&entity_types],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -113,7 +113,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                          UNNEST($1::entity_type_constrains_properties_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[properties],
+                        &[&properties],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -130,7 +130,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                          UNNEST($1::entity_type_constrains_links_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[links],
+                        &[&links],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -147,7 +147,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                          UNNEST($1::entity_type_constrains_link_destinations_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[links],
+                        &[&links],
                     )
                     .await
                     .change_context(InsertionError)?;

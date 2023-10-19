@@ -1,5 +1,6 @@
 mod api;
 mod model;
+pub(crate) mod serde;
 use std::fmt;
 
 use error_stack::Result;

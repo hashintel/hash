@@ -1,6 +1,8 @@
 pub mod entity;
 pub mod owner;
 
+use authorization::schema::AccountNamespace;
+
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
@@ -20,9 +22,14 @@ use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{AccountGroupPermission, AccountGroupRelation, EntityRelation, OwnerId, WebRelation},
-    zanzibar::Consistency,
-    AccountOrPublic, EntitySubject,
+    schema::{
+        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation,
+        EntityRelationAndSubject, OwnerId, WebNamespace, WebRelation,
+    },
+    zanzibar::{
+        types::{RelationshipFilter, ResourceFilter, SubjectFilter},
+        Consistency,
+    },
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -77,7 +84,7 @@ pub struct Web {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "type")]
+#[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
     Account(Account),
@@ -157,7 +164,7 @@ impl SnapshotEntry {
 trait WriteBatch<C> {
     async fn begin(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError>;
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError>;
@@ -227,18 +234,14 @@ where
                 let mut owners = Vec::new();
                 let mut admins = Vec::new();
                 let mut members = Vec::new();
-                for (_group, relation, user, user_set) in authorization_api
-                    .read_relations::<AccountGroupId, AccountGroupRelation, AccountId, ()>(
-                        Some(id),
-                        None,
-                        None,
-                        None,
+                for (_group, relation, user) in authorization_api
+                    .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
+                        RelationshipFilter::from_resource(id),
                         Consistency::FullyConsistent,
                     )
                     .await
                     .change_context(SnapshotDumpError::Query)?
                 {
-                    assert!(user_set.is_none());
                     match relation {
                         AccountGroupRelation::DirectOwner => owners.push(user),
                         AccountGroupRelation::DirectAdmin => admins.push(user),
@@ -260,64 +263,64 @@ where
     ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
     {
         let accounts = authorization_api
-            .read_relations::<WebId, WebRelation, AccountId, ()>(
-                None,
-                None,
-                None,
-                None,
+            .read_relations::<(WebId, WebRelation, AccountId)>(
+                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
+                    &WebNamespace::Web,
+                ))
+                .with_subject(SubjectFilter::from_resource(
+                    ResourceFilter::from_namespace(AccountNamespace::Account),
+                )),
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(SnapshotDumpError::Query)?
             .into_iter()
-            .map(|(id, relation, account_id, account_relation)| {
-                assert!(account_relation.is_none());
-                match relation {
-                    WebRelation::DirectOwner => Ok(Web {
-                        id,
-                        owners: vec![OwnerId::Account(account_id)],
-                        editors: Vec::new(),
-                    }),
-                    WebRelation::DirectEditor => Ok(Web {
-                        id,
-                        owners: Vec::new(),
-                        editors: vec![OwnerId::Account(account_id)],
-                    }),
-                }
+            .map(|(id, relation, account_id)| match relation {
+                WebRelation::DirectOwner => Ok(Web {
+                    id,
+                    owners: vec![OwnerId::Account(account_id)],
+                    editors: Vec::new(),
+                }),
+                WebRelation::DirectEditor => Ok(Web {
+                    id,
+                    owners: Vec::new(),
+                    editors: vec![OwnerId::Account(account_id)],
+                }),
             });
 
         let account_groups = authorization_api
-            .read_relations::<WebId, WebRelation, AccountGroupId, AccountGroupPermission>(
-                None,
-                None,
-                None,
-                None,
+            .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
+                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
+                    &WebNamespace::Web,
+                ))
+                .with_subject(SubjectFilter::from_resource(
+                    ResourceFilter::from_namespace(AccountGroupNamespace::AccountGroup),
+                )),
                 Consistency::FullyConsistent,
             )
             .await
             .change_context(SnapshotDumpError::Query)?
             .into_iter()
-            .map(|(id, relation, account_group, account_group_permission)| {
-                assert_eq!(
-                    account_group_permission,
-                    Some(AccountGroupPermission::Member)
-                );
-                // TODO: Partition web ids so a single web holds multiple owners/editors per
-                //       snapshot line. For the restoring logic this has no effect, but it would
-                //       make the snapshot file smaller and more readable.
-                match relation {
-                    WebRelation::DirectOwner => Ok(Web {
-                        id,
-                        owners: vec![OwnerId::AccountGroupMembers(account_group)],
-                        editors: Vec::new(),
-                    }),
-                    WebRelation::DirectEditor => Ok(Web {
-                        id,
-                        owners: Vec::new(),
-                        editors: vec![OwnerId::AccountGroupMembers(account_group)],
-                    }),
-                }
-            });
+            .map(
+                |(id, relation, (account_group, account_group_permission))| {
+                    assert_eq!(account_group_permission, AccountGroupPermission::Member);
+                    // TODO: Partition web ids so a single web holds multiple owners/editors per
+                    //       snapshot line. For the restoring logic this has no effect, but it would
+                    //       make the snapshot file smaller and more readable.
+                    match relation {
+                        WebRelation::DirectOwner => Ok(Web {
+                            id,
+                            owners: vec![OwnerId::AccountGroupMembers(account_group)],
+                            editors: Vec::new(),
+                        }),
+                        WebRelation::DirectEditor => Ok(Web {
+                            id,
+                            owners: Vec::new(),
+                            editors: vec![OwnerId::AccountGroupMembers(account_group)],
+                        }),
+                    }
+                },
+            );
 
         Ok(stream::iter(accounts.chain(account_groups)))
     }
@@ -352,7 +355,6 @@ where
     ///
     /// - If reading a record from the datastore fails
     /// - If writing a record into the sink fails
-    #[expect(clippy::too_many_lines, reason = "TODO: Refactor")]
     pub fn dump_snapshot(
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
@@ -424,63 +426,6 @@ where
                 self.create_dump_stream::<Entity>()
                     .try_flatten_stream()
                     .and_then(move |entity| async move {
-                        let id = entity.metadata.record_id().entity_id.entity_uuid;
-                        let mut owners = Vec::new();
-                        let mut editors = Vec::new();
-                        let mut viewers = Vec::new();
-
-                        for (_group, relation, account, _account_relation) in authorization_api
-                            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
-                                Some(id),
-                                None,
-                                None,
-                                None,
-                                Consistency::FullyConsistent,
-                            )
-                            .await
-                            .change_context(SnapshotDumpError::Query)?
-                        {
-                            match relation {
-                                EntityRelation::DirectOwner => {
-                                    owners.push(EntitySubject::from(account));
-                                }
-                                EntityRelation::DirectEditor => {
-                                    editors.push(EntitySubject::from(account));
-                                }
-                                EntityRelation::DirectViewer => {
-                                    viewers.push(EntitySubject::from(account));
-                                }
-                            }
-                        }
-
-                        for (_group, relation, account_group, account_group_permission) in authorization_api
-                            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
-                                Some(id),
-                                None,
-                                None,
-                                None,
-                                Consistency::FullyConsistent,
-                            )
-                            .await
-                            .change_context(SnapshotDumpError::Query)?
-                        {
-                            if account_group_permission == Some(AccountGroupPermission::Member){
-                                match relation {
-                                    EntityRelation::DirectOwner => {
-                                        owners.push(EntitySubject::AccountGroupMembers(account_group));
-                                    }
-                                    EntityRelation::DirectEditor => {
-                                        editors.push(EntitySubject::AccountGroupMembers(account_group));
-                                    }
-                                    EntityRelation::DirectViewer => {
-                                        viewers.push(EntitySubject::AccountGroupMembers(account_group));
-                                    }
-                                }
-                            } else {
-                                unreachable!("unexpected account group permission")
-                            }
-                        }
-
                         Ok(SnapshotEntry::Entity(EntitySnapshotRecord {
                             properties: entity.properties,
                             metadata: EntityMetadata {
@@ -495,9 +440,18 @@ where
                                 },
                             },
                             link_data: entity.link_data,
-                            owners,
-                            editors,
-                            viewers,
+                            relations: authorization_api
+                                .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
+                                    RelationshipFilter::from_resource(
+                                        entity.metadata.record_id().entity_id.entity_uuid,
+                                    ),
+                                    Consistency::FullyConsistent,
+                                )
+                                .await
+                                .change_context(SnapshotDumpError::Query)?
+                                .into_iter()
+                                .map(|(_, relation)| relation)
+                                .collect(),
                         }))
                     })
                     .forward(snapshot_record_tx),
