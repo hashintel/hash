@@ -62,14 +62,14 @@ class EdgeResolveDepths(BaseModel):
 
 class EntityDirectEditorSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
     kind: Literal["account"]
+    subject_id: AccountId = Field(..., alias="subjectId")
 
 
 class EntityDirectEditorSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
     kind: Literal["accountGroup"]
+    subject_id: AccountGroupId = Field(..., alias="subjectId")
 
 
 class EntityDirectEditorSubject(
@@ -83,14 +83,14 @@ class EntityDirectEditorSubject(
 
 class EntityDirectOwnerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
     kind: Literal["account"]
+    subject_id: AccountId = Field(..., alias="subjectId")
 
 
 class EntityDirectOwnerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
     kind: Literal["accountGroup"]
+    subject_id: AccountGroupId = Field(..., alias="subjectId")
 
 
 class EntityDirectOwnerSubject(
@@ -109,14 +109,14 @@ class EntityDirectViewerSubjectPublic(BaseModel):
 
 class EntityDirectViewerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
     kind: Literal["account"]
+    subject_id: AccountId = Field(..., alias="subjectId")
 
 
 class EntityDirectViewerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
     kind: Literal["accountGroup"]
+    subject_id: AccountGroupId = Field(..., alias="subjectId")
 
 
 class EntityDirectViewerSubject(

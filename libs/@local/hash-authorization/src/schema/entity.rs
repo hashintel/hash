@@ -187,14 +187,16 @@ pub enum EntitySubjectRelation {
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectOwnerSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectOwnerSubjectAccount"))]
-    #[serde(rename_all = "camelCase")]
-    Account { id: AccountId },
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectOwnerSubjectAccountGroup")
     )]
-    #[serde(rename_all = "camelCase")]
     AccountGroup {
+        #[serde(rename = "subjectId")]
         id: AccountGroupId,
         #[serde(skip)]
         set: EntitySubjectSet,
@@ -206,14 +208,16 @@ pub enum EntityDirectOwnerSubject {
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectEditorSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectEditorSubjectAccount"))]
-    #[serde(rename_all = "camelCase")]
-    Account { id: AccountId },
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectEditorSubjectAccountGroup")
     )]
-    #[serde(rename_all = "camelCase")]
     AccountGroup {
+        #[serde(rename = "subjectId")]
         id: AccountGroupId,
         #[serde(skip)]
         set: EntitySubjectSet,
@@ -227,14 +231,16 @@ pub enum EntityDirectViewerSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectPublic"))]
     Public,
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectAccount"))]
-    #[serde(rename_all = "camelCase")]
-    Account { id: AccountId },
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectViewerSubjectAccountGroup")
     )]
-    #[serde(rename_all = "camelCase")]
     AccountGroup {
+        #[serde(rename = "subjectId")]
         id: AccountGroupId,
         #[serde(skip)]
         set: EntitySubjectSet,

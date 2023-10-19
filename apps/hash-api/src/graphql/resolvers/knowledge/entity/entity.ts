@@ -461,14 +461,14 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { kind: "account", id: viewer as AccountId } as const;
+    return { kind: "account", subjectId: viewer as AccountId } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
       kind: "accountGroup",
-      id: viewer as AccountGroupId,
+      subjectId: viewer as AccountGroupId,
     } as const;
   }
 };
@@ -487,7 +487,7 @@ export const addEntityViewerResolver: ResolverFn<
       relationship: {
         object: {
           kind: "entity",
-          id: entityId,
+          objectId: entityId,
         },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
@@ -512,7 +512,7 @@ export const removeEntityViewerResolver: ResolverFn<
       relationship: {
         object: {
           kind: "entity",
-          id: entityId,
+          objectId: entityId,
         },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
@@ -551,7 +551,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
 
   // TODO: Align definitions with the ones in the API
   return relationships.map(({ object, relation, subject }) => ({
-    objectEntityId: object.id,
+    objectEntityId: object.objectId,
     relation:
       relation === "directEditor"
         ? EntityAuthorizationRelation.Editor
@@ -561,11 +561,11 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     subject:
       subject.kind === "accountGroup"
         ? {
-            accountGroupId: subject.id,
+            accountGroupId: subject.subjectId,
             relation: AccountGroupAuthorizationSubjectRelation.Member,
           }
         : subject.kind === "account"
-        ? { accountId: subject.id }
+        ? { accountId: subject.subjectId }
         : { public: true },
   }));
 };

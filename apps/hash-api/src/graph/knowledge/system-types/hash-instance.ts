@@ -148,7 +148,7 @@ export const createHashInstance: ImpureGraphFunction<
         relation: "directViewer",
         object: {
           kind: "entity",
-          id: entity.metadata.recordId.entityId,
+          objectId: entity.metadata.recordId.entityId,
         },
       },
     },

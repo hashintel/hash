@@ -2339,18 +2339,18 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccount",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2358,18 +2358,18 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
@@ -2384,18 +2384,18 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccount",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2403,18 +2403,18 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
@@ -2444,18 +2444,18 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccount",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2463,18 +2463,18 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
-              "id",
+              "subjectId",
               "kind"
             ],
             "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }

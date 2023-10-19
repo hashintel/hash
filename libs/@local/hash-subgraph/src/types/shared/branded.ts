@@ -95,10 +95,10 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
 ) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
 
 type ReplaceAccount<T extends { kind: "account" }> = {
-  [P in keyof T]: P extends "id" ? AccountId : T[P];
+  [P in keyof T]: P extends "subjectId" ? AccountId : T[P];
 };
 type ReplaceAccountGroup<T extends { kind: "accountGroup" }> = {
-  [P in keyof T]: P extends "id" ? AccountGroupId : T[P];
+  [P in keyof T]: P extends "subjectId" ? AccountGroupId : T[P];
 };
 
 type BrandSubject<T extends object> = T extends { kind: "account" }
@@ -114,6 +114,6 @@ type BrandRelationship<T extends { subject: object }> = {
 export type EntityAuthorizationRelationship = {
   object: {
     kind: "entity";
-    id: EntityId;
+    objectId: EntityId;
   };
 } & BrandRelationship<EntityRelationAndSubject>;
