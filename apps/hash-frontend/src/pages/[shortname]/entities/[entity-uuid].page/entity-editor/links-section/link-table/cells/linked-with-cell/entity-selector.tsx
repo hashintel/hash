@@ -158,6 +158,7 @@ export const EntitySelector = ({
             entityTypeId: expectedEntityTypes[0]?.schema.$id,
           },
         },
+        makePublic: false,
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
