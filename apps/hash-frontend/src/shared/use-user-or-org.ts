@@ -30,6 +30,7 @@ import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entit
 
 export const useUserOrOrg = (
   params: {
+    includePermissions?: boolean;
     graphResolveDepths?: Partial<GraphResolveDepths>;
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
@@ -42,6 +43,7 @@ export const useUserOrOrg = (
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: params.includePermissions ?? false,
       query: {
         filter: {
           all: [
@@ -94,7 +96,7 @@ export const useUserOrOrg = (
   return useMemo(() => {
     const rootEntity = data
       ? getRoots(
-          data.structuralQueryEntities as Subgraph<EntityRootType>,
+          data.structuralQueryEntities.subgraph as Subgraph<EntityRootType>,
         ).reduce<Entity<OrgProperties> | Entity<UserProperties> | undefined>(
           (prev, current) => {
             const currentUserOrOrgEntity = current as
@@ -118,7 +120,13 @@ export const useUserOrOrg = (
       : undefined;
 
     return {
-      userOrOrgSubgraph: data?.structuralQueryEntities as
+      canUserEdit: !!(
+        rootEntity &&
+        data?.structuralQueryEntities.userPermissionsOnEntities?.[
+          rootEntity.metadata.recordId.entityId
+        ]?.edit
+      ),
+      userOrOrgSubgraph: data?.structuralQueryEntities.subgraph as
         | Subgraph<EntityRootType>
         | undefined,
       userOrOrg: rootEntity,

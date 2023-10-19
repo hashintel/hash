@@ -195,9 +195,9 @@ export const TopContextBar = ({
           ) : null}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemEntityType(item) ? (
+          {item && !isItemEntityType(item) && (
             <ShareDropdownMenu entity={item} />
-          ) : null}
+          )}
 
           {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>

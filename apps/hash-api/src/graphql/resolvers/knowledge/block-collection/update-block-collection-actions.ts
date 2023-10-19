@@ -225,7 +225,7 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await createBlock(context, authentication, {
         blockData,
-        ownedById: user.accountId as OwnedById,
+        ownedById: blockOwnedById,
         componentId: blockComponentId,
       });
     } else {

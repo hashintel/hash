@@ -1,6 +1,12 @@
+import { useMutation } from "@apollo/client";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import {
+  RemoveAccountGroupMemberMutation,
+  RemoveAccountGroupMemberMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { removeAccountGroupMemberMutation } from "../../../../graphql/queries/account-group.queries";
 import { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
@@ -11,6 +17,11 @@ export const OrgRow = ({ org }: { org: Org }) => {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { authenticatedUser, refetch } = useAuthenticatedUser();
 
+  const [removeMemberPermission] = useMutation<
+    RemoveAccountGroupMemberMutation,
+    RemoveAccountGroupMemberMutationVariables
+  >(removeAccountGroupMemberMutation);
+
   const leaveOrg = async () => {
     const membership = org.memberships.find(
       (option) => option.user.accountId === authenticatedUser.accountId,
@@ -20,11 +31,20 @@ export const OrgRow = ({ org }: { org: Org }) => {
       throw new Error("Membership not found");
     }
 
-    await archiveEntity({
-      data: {
-        entityId: membership.linkEntity.metadata.recordId.entityId,
-      },
-    });
+    await Promise.all([
+      archiveEntity({
+        data: {
+          entityId: membership.linkEntity.metadata.recordId.entityId,
+        },
+      }),
+      removeMemberPermission({
+        variables: {
+          accountGroupId: org.accountGroupId,
+          accountId: membership.user.accountId,
+        },
+      }),
+    ]);
+
     void refetch();
   };
 

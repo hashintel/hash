@@ -64,7 +64,6 @@ import {
 } from "../../lib/user-and-org";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { useIsReadonlyModeForResource } from "../../shared/readonly-mode";
 import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
@@ -168,7 +167,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   const { cookie } = req.headers ?? {};
 
-  const workspaceSubgraph = (await apolloClient
+  const workspaceSubgraph = await apolloClient
     .query<StructuralQueryEntitiesQuery, StructuralQueryEntitiesQueryVariables>(
       {
         context: { headers: { cookie } },
@@ -210,11 +209,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         },
       },
     )
-    .then(
-      ({ data }) => data.structuralQueryEntities,
-    )) as Subgraph<EntityRootType>;
+    .then(({ data }) => data.structuralQueryEntities);
 
-  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
+  const pageWorkspaceEntity = getRoots(
+    workspaceSubgraph.subgraph as Subgraph<EntityRootType>,
+  )[0];
 
   if (!pageWorkspaceEntity) {
     throw new Error(
@@ -320,7 +319,6 @@ const Page: NextPageWithLayout<PageProps> = ({
   >(getPageQuery, { variables: { entityId: pageEntityId } });
 
   const pageHeaderRef = useRef<HTMLElement>();
-  const isReadonlyMode = useIsReadonlyModeForResource(pageOwnedById);
 
   // Collab position tracking is disabled.
   // const collabPositions = useCollabPositions(accountId, pageEntityId);
@@ -350,14 +348,14 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
-  const PageSectionContainerProps: PageSectionContainerProps = {
+  const pageSectionContainerProps: PageSectionContainerProps = {
     pageComments,
-    readonly: isReadonlyMode,
+    readonly: true,
   };
 
   if (pageState === "transferring") {
     return (
-      <PageSectionContainer {...PageSectionContainerProps}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>Transferring you to the new page...</h1>
       </PageSectionContainer>
     );
@@ -365,7 +363,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (loading) {
     return (
-      <PageSectionContainer {...PageSectionContainerProps}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <PageLoadingState />
       </PageSectionContainer>
     );
@@ -373,7 +371,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (error) {
     return (
-      <PageSectionContainer {...PageSectionContainerProps}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>Error: {error.message}</h1>
       </PageSectionContainer>
     );
@@ -381,13 +379,14 @@ const Page: NextPageWithLayout<PageProps> = ({
 
   if (!data) {
     return (
-      <PageSectionContainer {...PageSectionContainerProps}>
+      <PageSectionContainer {...pageSectionContainerProps}>
         <h1>No data loaded.</h1>
       </PageSectionContainer>
     );
   }
 
-  const { title, icon, contents } = data.page;
+  const { title, icon, contents, userPermissions } = data.page;
+  const canUserEdit = userPermissions.edit;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -441,12 +440,15 @@ const Page: NextPageWithLayout<PageProps> = ({
         </Box>
 
         {!canvasPage && (
-          <PageSectionContainer {...PageSectionContainerProps}>
+          <PageSectionContainer
+            {...pageSectionContainerProps}
+            readonly={!canUserEdit}
+          >
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
                 icon={icon}
-                readonly={isReadonlyMode}
+                readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({
                   mb: 2,
                   [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
@@ -469,7 +471,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <PageTitle
                   value={title}
                   pageEntityId={pageEntityId}
-                  readonly={isReadonlyMode}
+                  readonly={!canUserEdit}
                 />
                 {/*
             Commented out Version Dropdown and Transfer Page buttons.
@@ -512,10 +514,10 @@ const Page: NextPageWithLayout<PageProps> = ({
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <Box marginTop={5}>
-                  {!isReadonlyMode && pageComments.length > 0 ? (
+                  {!!canUserEdit && pageComments.length > 0 ? (
                     <PageSectionContainer
                       pageComments={pageComments}
-                      readonly={isReadonlyMode}
+                      readonly={!canUserEdit}
                       sx={{
                         position: "absolute",
                         top: 0,
@@ -549,7 +551,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                     contents={contents}
                     enableCommenting
                     entityId={pageEntityId}
-                    readonly={isReadonlyMode}
+                    readonly={!canUserEdit}
                     sx={{
                       /**
                        * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
@@ -558,7 +560,7 @@ const Page: NextPageWithLayout<PageProps> = ({
                       ".ProseMirror": {
                         ...getPageSectionContainerStyles({
                           pageComments,
-                          readonly: isReadonlyMode,
+                          readonly: !canUserEdit,
                         }),
                       },
                     }}

@@ -24,6 +24,7 @@ const pageFieldsFragment = gql`
     }
     metadata
     properties
+    userPermissions
     __typename
   }
   ${blockFieldsFragment}

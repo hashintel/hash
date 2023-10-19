@@ -1,3 +1,4 @@
+import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -34,7 +35,15 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mention,
 }) => {
   const { entityId } = mention;
-  const { entitySubgraph, loading } = useEntityById(entityId);
+  const { entitySubgraph, loading } = useEntityById({
+    entityId,
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      isOfType: { outgoing: 1 },
+      hasLeftEntity: { incoming: 1, outgoing: 0 },
+      hasRightEntity: { incoming: 0, outgoing: 1 },
+    },
+  });
   const contentRef = useRef<HTMLDivElement>(null);
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
   const { entityTypes } = useEntityTypesContextRequired();

@@ -1,12 +1,11 @@
-import { Subgraph } from "@local/hash-subgraph";
-
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import { QueryMeArgs, ResolverFn } from "../../../api-types.gen";
+import { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
+import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 
 export const meResolver: ResolverFn<
-  Subgraph,
+  Query["me"],
   {},
   LoggedInGraphQLContext,
   QueryMeArgs
@@ -14,8 +13,9 @@ export const meResolver: ResolverFn<
   _,
   { hasLeftEntity, hasRightEntity },
   { dataSources, authentication, user },
-) =>
-  getLatestEntityRootedSubgraph(
+  info,
+) => {
+  const userSubgraph = await getLatestEntityRootedSubgraph(
     dataSourcesToImpureGraphContext(dataSources),
     authentication,
     {
@@ -26,3 +26,10 @@ export const meResolver: ResolverFn<
       },
     },
   );
+
+  return createSubgraphAndPermissionsReturn(
+    { dataSources, authentication },
+    info,
+    userSubgraph,
+  );
+};

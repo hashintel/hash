@@ -19,9 +19,9 @@ import { usePageContextOptional } from "./page-context";
 type BlockCollectionProps = {
   contents: BlockCollectionContentItem[];
   enableCommenting?: boolean;
+  readonly: boolean;
   ownedById: OwnedById;
   entityId: EntityId;
-  readonly: boolean;
   sx?: BoxProps["sx"];
 };
 
@@ -33,10 +33,10 @@ type BlockCollectionProps = {
  */
 export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
+  readonly,
   enableCommenting = false,
   ownedById,
   entityId,
-  readonly,
   sx,
 }) => {
   const root = useRef<HTMLDivElement>(null);

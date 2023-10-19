@@ -196,7 +196,7 @@ const main = async () => {
 
   // Create an email transporter
   const emailTransporter =
-    (isTestEnv || isDevEnv) && process.env.HASH_EMAIL_TRANSPORTER === "dummy"
+    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
           copyCodesOrLinksToClipboard:
             process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",

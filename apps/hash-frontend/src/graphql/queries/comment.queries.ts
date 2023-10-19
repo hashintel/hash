@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 
 export const commentFieldsFragment = gql`
   fragment CommentFields on Comment {
+    canUserEdit
     hasText
     textUpdatedAt
     author

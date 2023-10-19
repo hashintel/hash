@@ -7,6 +7,10 @@ import {
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-graphql-shared/graphql/types";
+import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -24,6 +28,7 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  isEntityVertex,
   OwnedById,
   splitEntityId,
   Subgraph,
@@ -36,9 +41,11 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
+import { SYSTEM_TYPES } from "../../system-types";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
@@ -393,7 +400,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity: Entity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
-      value: PropertyValue | undefined | undefined;
+      value: PropertyValue | undefined;
     }[];
   },
   Promise<Entity>
@@ -712,6 +719,82 @@ export const checkEntityPermission: ImpureGraphFunction<
   graphApi
     .checkEntityPermission(actorId, params.entityId, params.permission)
     .then(({ data }) => data.has_permission);
+
+export const checkPermissionsOnEntity: ImpureGraphFunction<
+  { entity: Pick<Entity, "metadata"> },
+  Promise<UserPermissions>
+> = async (graphContext, { actorId }, params) => {
+  const { entity } = params;
+
+  const { entityId } = entity.metadata.recordId;
+
+  const isAccountGroup =
+    entity.metadata.entityTypeId === SYSTEM_TYPES.entityType.org.schema.$id;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [entityEditable, membersEditable] = await Promise.all([
+    isPublicUser
+      ? false
+      : await checkEntityPermission(
+          graphContext,
+          { actorId },
+          { entityId, permission: "update" },
+        ),
+    isAccountGroup
+      ? isPublicUser
+        ? false
+        : await graphContext.graphApi
+            .checkAccountGroupPermission(
+              actorId,
+              extractEntityUuidFromEntityId(entityId),
+              "add_member",
+            )
+            .then(({ data }) => data.has_permission)
+      : null,
+  ]);
+
+  return {
+    edit: entityEditable,
+    view: true,
+    editPermissions: entityEditable,
+    viewPermissions: entityEditable,
+    editMembers: membersEditable,
+  };
+};
+
+export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
+  { subgraph: Subgraph },
+  Promise<UserPermissionsOnEntities>
+> = async (graphContext, authentication, params) => {
+  const { subgraph } = params;
+
+  const entities: Entity[] = [];
+  for (const editionMap of Object.values(subgraph.vertices)) {
+    const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
+    // @ts-expect-error -- subgraph needs revamping to make typing less annoying
+    const latestEdition = editionMap[latestEditionTimestamp];
+
+    if (isEntityVertex(latestEdition)) {
+      entities.push(latestEdition.inner);
+    }
+  }
+
+  const userPermissionsOnEntities: UserPermissionsOnEntities = {};
+  await Promise.all(
+    entities.map(async (entity) => {
+      const permissions = await checkPermissionsOnEntity(
+        graphContext,
+        authentication,
+        { entity },
+      );
+      userPermissionsOnEntities[entity.metadata.recordId.entityId] =
+        permissions;
+    }),
+  );
+
+  return userPermissionsOnEntities;
+};
 
 export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },

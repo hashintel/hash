@@ -442,7 +442,7 @@ export const save = async (
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = data.getEntity as Subgraph<EntityRootType>;
+      const subgraph = data.getEntity.subgraph as Subgraph<EntityRootType>;
 
       const [blockCollectionEntity] = getRoots(subgraph);
 

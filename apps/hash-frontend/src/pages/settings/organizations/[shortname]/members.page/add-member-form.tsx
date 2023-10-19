@@ -1,18 +1,27 @@
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, OwnedById, Subgraph } from "@local/hash-subgraph";
+import {
+  AccountEntityId,
+  EntityRootType,
+  extractAccountId,
+  OwnedById,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import {
+  AddAccountGroupMemberMutation,
+  AddAccountGroupMemberMutationVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
+import { addAccountGroupMemberMutation } from "../../../../../graphql/queries/account-group.queries";
 import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
@@ -29,6 +38,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { refetch } = useAuthenticatedUser();
+
+  const [addMemberPermission] = useMutation<
+    AddAccountGroupMemberMutation,
+    AddAccountGroupMemberMutationVariables
+  >(addAccountGroupMemberMutation);
 
   const { createEntity } = useBlockProtocolCreateEntity(
     org.accountGroupId as OwnedById,
@@ -85,7 +99,9 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const user = getRoots(data.queryEntities as Subgraph<EntityRootType>)[0];
+    const user = getRoots(
+      data.queryEntities.subgraph as Subgraph<EntityRootType>,
+    )[0];
 
     if (!user) {
       setError("User not found");
@@ -93,16 +109,26 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    await createEntity({
-      data: {
-        entityTypeId: types.linkEntityType.orgMembership.linkEntityTypeId,
-        properties: {},
-        linkData: {
-          leftEntityId: user.metadata.recordId.entityId,
-          rightEntityId: org.entity.metadata.recordId.entityId,
+    await Promise.all([
+      createEntity({
+        data: {
+          entityTypeId: types.linkEntityType.orgMembership.linkEntityTypeId,
+          properties: {},
+          linkData: {
+            leftEntityId: user.metadata.recordId.entityId,
+            rightEntityId: org.entity.metadata.recordId.entityId,
+          },
         },
-      },
-    });
+      }),
+      addMemberPermission({
+        variables: {
+          accountGroupId: org.accountGroupId,
+          accountId: extractAccountId(
+            user.metadata.recordId.entityId as AccountEntityId,
+          ),
+        },
+      }),
+    ]);
 
     void refetch();
 

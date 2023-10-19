@@ -9,7 +9,6 @@ import {
   Entity,
   OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -59,6 +58,7 @@ import {
   MutationRemoveEntityOwnerArgs,
   MutationRemoveEntityViewerArgs,
   MutationUpdateEntityArgs,
+  Query,
   QueryGetEntityArgs,
   QueryIsEntityPublicArgs,
   QueryResolvers,
@@ -72,6 +72,7 @@ import {
 } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
+import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 export const createEntityResolver: ResolverFn<
@@ -147,7 +148,7 @@ export const queryEntitiesResolver: Extract<
     hasRightEntity,
   },
   { logger, dataSources, authentication },
-  __,
+  info,
 ) => {
   if (operation.multiSort !== undefined && operation.multiSort !== null) {
     throw new ApolloError(
@@ -183,22 +184,32 @@ export const queryEntitiesResolver: Extract<
     },
   });
 
-  return entitySubgraph;
+  return createSubgraphAndPermissionsReturn(
+    { dataSources, authentication },
+    info,
+    entitySubgraph,
+  );
 };
 
 export const structuralQueryEntitiesResolver: ResolverFn<
-  Promise<Subgraph>,
+  Query["structuralQueryEntities"],
   {},
   GraphQLContext,
   QueryStructuralQueryEntitiesArgs
-> = async (_, { query }, context) => {
-  return getEntities(context.dataSources, context.authentication, {
-    query,
-  });
+> = async (_, { query }, context, info) => {
+  const subgraph = await getEntities(
+    context.dataSources,
+    context.authentication,
+    {
+      query,
+    },
+  );
+
+  return createSubgraphAndPermissionsReturn(context, info, subgraph);
 };
 
 export const getEntityResolver: ResolverFn<
-  Promise<Subgraph>,
+  Query["getEntity"],
   {},
   GraphQLContext,
   QueryGetEntityArgs
@@ -217,7 +228,7 @@ export const getEntityResolver: ResolverFn<
     hasRightEntity,
   },
   { dataSources, authentication },
-  __,
+  info,
 ) => {
   const [ownedById, entityUuid] = splitEntityId(entityId);
 
@@ -268,7 +279,11 @@ export const getEntityResolver: ResolverFn<
     },
   });
 
-  return entitySubgraph;
+  return createSubgraphAndPermissionsReturn(
+    { dataSources, authentication },
+    info,
+    entitySubgraph,
+  );
 };
 
 export const updateEntityResolver: ResolverFn<

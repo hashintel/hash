@@ -117,7 +117,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     useCallback<RefetchAuthInfoFunction>(async () => {
       const [subgraph, kratosSession] = await Promise.all([
         getMe()
-          .then(({ data }) => data?.me as Subgraph<EntityRootType>)
+          .then(({ data }) => data?.me.subgraph as Subgraph<EntityRootType>)
           .catch(() => undefined),
         fetchKratosSession(),
       ]);

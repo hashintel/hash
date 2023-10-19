@@ -38,6 +38,10 @@ export const pageTypedef = gql`
     Properties of entity.
     """
     properties: EntityPropertiesObject!
+    """
+    The permissions the requesting user has on the page
+    """
+    userPermissions: UserPermissions!
   }
 
   extend type Query {

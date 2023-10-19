@@ -12,6 +12,7 @@ import { NextSeo } from "next-seo";
 import { useEffect, useRef, useState } from "react";
 
 import { NextPageWithLayout } from "../../../../shared/layout";
+import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { Cell } from "../shared/cell";
@@ -51,9 +52,12 @@ const OrgMembersPage: NextPageWithLayout = () => {
     }
   }, [router]);
 
+  const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
+  const readonly = !userPermissions?.editMembers;
+
   if (!org) {
     // @todo show a 404 page
-    void router.push("/");
+    void router.push("/settings/organizations");
     return null;
   }
 
@@ -82,11 +86,13 @@ const OrgMembersPage: NextPageWithLayout = () => {
               )
               .map((membership) => (
                 <MemberRow
+                  accountGroupId={org.accountGroupId}
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
                   self={
                     membership.user.accountId === authenticatedUser.accountId
                   }
+                  readonly={readonly}
                 />
               ))}
           </TableBody>
@@ -96,22 +102,24 @@ const OrgMembersPage: NextPageWithLayout = () => {
                 {showAddMemberForm ? (
                   <AddMemberForm org={org} />
                 ) : (
-                  <InviteNewButton>
-                    <Typography
-                      variant="smallTextLabels"
-                      color="gray.60"
-                      fontWeight={600}
-                      onClick={() => setShowAddMemberForm(true)}
-                      sx={({ transitions }) => ({
-                        "&:hover": {
-                          color: "black",
-                        },
-                        transition: transitions.create("color"),
-                      })}
-                    >
-                      Invite new member...
-                    </Typography>
-                  </InviteNewButton>
+                  !readonly && (
+                    <InviteNewButton>
+                      <Typography
+                        variant="smallTextLabels"
+                        color="gray.60"
+                        fontWeight={600}
+                        onClick={() => setShowAddMemberForm(true)}
+                        sx={({ transitions }) => ({
+                          "&:hover": {
+                            color: "black",
+                          },
+                          transition: transitions.create("color"),
+                        })}
+                      >
+                        Invite new member...
+                      </Typography>
+                    </InviteNewButton>
+                  )
                 )}
               </TableCell>
             </TableRow>

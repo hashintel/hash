@@ -64,7 +64,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.org.schema.$id,
       entity.metadata.entityTypeId,
     );
   }

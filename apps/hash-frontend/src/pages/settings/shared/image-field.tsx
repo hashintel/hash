@@ -9,11 +9,13 @@ import { FileUploadDropzone } from "./file-upload-dropzone";
 type ImageFieldProps = {
   imageUrl?: string;
   onFileProvided: (file: File) => Promise<void>;
+  readonly: boolean;
 };
 
 export const ImageField = ({
   imageUrl: imageUrlFromProps,
   onFileProvided,
+  readonly,
 }: ImageFieldProps) => {
   const [newImageUploading, setNewImageUploading] = useState(false);
   const [editingImage, setEditingImage] = useState(!imageUrlFromProps);
@@ -67,19 +69,23 @@ export const ImageField = ({
               </GrayToBlueIconButton>{" "}
             </Box>
           ) : null}
-          <FileUploadDropzone image onFileProvided={setNewImage} />
+          {!readonly && (
+            <FileUploadDropzone image onFileProvided={setNewImage} />
+          )}
         </>
       ) : (
         <>
-          <Box sx={{ position: "absolute", top: 5, right: 5 }}>
-            {newImageUploading ? (
-              <LoadingSpinner color="gray.40" />
-            ) : (
-              <GrayToBlueIconButton onClick={() => setEditingImage(true)}>
-                <PenIcon sx={{ width: 13, height: 13 }} />
-              </GrayToBlueIconButton>
-            )}
-          </Box>
+          {!readonly && (
+            <Box sx={{ position: "absolute", top: 5, right: 5 }}>
+              {newImageUploading ? (
+                <LoadingSpinner color="gray.40" />
+              ) : (
+                <GrayToBlueIconButton onClick={() => setEditingImage(true)}>
+                  <PenIcon sx={{ width: 13, height: 13 }} />
+                </GrayToBlueIconButton>
+              )}
+            </Box>
+          )}
           <Box
             component="img"
             src={imageUrl}

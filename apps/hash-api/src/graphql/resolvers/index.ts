@@ -1,13 +1,15 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
+  addAccountGroupMember,
+  removeAccountGroupMember,
+} from "../../graph/account-groups";
+import {
   EntityAuthorizationSubject,
   MutationResolvers,
   QueryResolvers,
-  ResolverFn,
   Resolvers,
 } from "../api-types.gen";
-import { GraphQLContext } from "../context";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -56,6 +58,10 @@ import {
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
+import {
+  canUserEdit,
+  checkUserPermissionsOnEntity,
+} from "./knowledge/shared/check-permissions";
 import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
 import { meResolver } from "./knowledge/user/me";
 import { loggedInMiddleware } from "./middlewares/logged-in";
@@ -79,14 +85,8 @@ import {
 } from "./ontology/property-type";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
-  Query: Record<
-    keyof QueryResolvers,
-    ResolverFn<any, any, GraphQLContext, any>
-  >;
-  Mutation: Record<
-    keyof MutationResolvers,
-    ResolverFn<any, any, GraphQLContext, any>
-  >;
+  Query: Required<QueryResolvers>;
+  Mutation: Required<MutationResolvers>;
 } = {
   Query: {
     // Logged in and signed up users only,
@@ -106,6 +106,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypes: loggedInAndSignedUpMiddleware(queryEntityTypesResolver),
     getEntityType: getEntityTypeResolver,
     // Knowledge
+    // @ts-expect-error –– canUserEdit and contents are resolved separately
     page: pageResolver,
     pages: loggedInAndSignedUpMiddleware(pagesResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
@@ -122,6 +123,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
     ),
+    checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
+      checkUserPermissionsOnEntity({ metadata }, _, context, info),
   },
 
   Mutation: {
@@ -176,6 +179,17 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       removeEntityViewerResolver,
     ),
 
+    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      addAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
+    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
+      removeAccountGroupMember(context.dataSources, context.authentication, {
+        accountId,
+        accountGroupId,
+      }),
+
     // Integration
     syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWorkspacesMutation,
@@ -185,6 +199,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   JSONObject: JSONObjectResolver,
 
   Page: {
+    userPermissions: checkUserPermissionsOnEntity,
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
     // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver
@@ -197,6 +212,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   },
 
   Comment: {
+    canUserEdit,
     hasText: commentHasTextResolver,
     textUpdatedAt: commentTextUpdatedAtResolver,
     parent: commentParentResolver,
