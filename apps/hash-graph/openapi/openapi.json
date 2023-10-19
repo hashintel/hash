@@ -364,7 +364,7 @@
             "description": "The permission to check for",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/EntityPermission"
+              "$ref": "#/components/schemas/AccountGroupPermission"
             }
           }
         ],
@@ -1924,7 +1924,7 @@
             "description": "The permission to check for",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/EntityPermission"
+              "$ref": "#/components/schemas/WebPermission"
             }
           }
         ],
