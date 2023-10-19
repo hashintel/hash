@@ -95,7 +95,11 @@ export const CreateQuickNote: FunctionComponent = () => {
         </>
       ) : (
         <Box>
-          <Typography>Click here to create a new note...</Typography>
+          <Typography
+            sx={{ color: ({ palette }) => palette.gray[60], paddingY: 3 }}
+          >
+            Click here to create a new note...
+          </Typography>
         </Box>
       )}
     </Box>
