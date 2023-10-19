@@ -130,18 +130,21 @@ const NotesPage: NextPageWithLayout = () => {
 
   const latestQuickNoteEntitiesByDay = useMemo(
     () =>
-      latestQuickNoteEntitiesWithCreatedAt?.reduce<
-        Record<string, QuickNoteEntityWithCreatedAt[]>
-      >((acc, quickNoteEntityWithCreatedAt) => {
-        const key = format(
-          quickNoteEntityWithCreatedAt.createdAt,
-          "yyyy-MM-dd",
-        ); // Format date to "YYYY-MM-DD" in local time
+      latestQuickNoteEntitiesWithCreatedAt
+        ?.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .reduce<Record<string, QuickNoteEntityWithCreatedAt[]>>(
+          (acc, quickNoteEntityWithCreatedAt) => {
+            const key = format(
+              quickNoteEntityWithCreatedAt.createdAt,
+              "yyyy-MM-dd",
+            );
 
-        acc[key] = [...(acc[key] ?? []), quickNoteEntityWithCreatedAt];
+            acc[key] = [...(acc[key] ?? []), quickNoteEntityWithCreatedAt];
 
-        return acc;
-      }, {}),
+            return acc;
+          },
+          {},
+        ),
     [latestQuickNoteEntitiesWithCreatedAt],
   );
 
