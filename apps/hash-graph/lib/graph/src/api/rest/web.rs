@@ -141,7 +141,7 @@ where
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("web_id" = EntityId, Path, description = "The web ID to check if the actor has the permission"),
-        ("permission" = EntityPermission, Path, description = "The permission to check for"),
+        ("permission" = WebPermission, Path, description = "The permission to check for"),
     ),
     responses(
         (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the web"),
