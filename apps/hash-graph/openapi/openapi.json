@@ -2359,7 +2359,6 @@
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
               "id",
-              "set",
               "namespace"
             ],
             "properties": {
@@ -2371,9 +2370,6 @@
                 "enum": [
                   "accountGroup"
                 ]
-              },
-              "set": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -2408,7 +2404,6 @@
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
               "id",
-              "set",
               "namespace"
             ],
             "properties": {
@@ -2420,9 +2415,6 @@
                 "enum": [
                   "accountGroup"
                 ]
-              },
-              "set": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -2472,7 +2464,6 @@
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
               "id",
-              "set",
               "namespace"
             ],
             "properties": {
@@ -2484,9 +2475,6 @@
                 "enum": [
                   "accountGroup"
                 ]
-              },
-              "set": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
           }
@@ -2759,12 +2747,6 @@
         "discriminator": {
           "propertyName": "type"
         }
-      },
-      "EntitySubjectSet": {
-        "type": "string",
-        "enum": [
-          "member"
-        ]
       },
       "EntityTemporalMetadata": {
         "type": "object",

@@ -74,7 +74,6 @@ use crate::{
             EntityRelationAndSubject,
             EntityPermission,
             EntitySubject,
-            EntitySubjectSet,
             EntityDirectOwnerSubject,
             EntityDirectEditorSubject,
             EntityDirectViewerSubject,

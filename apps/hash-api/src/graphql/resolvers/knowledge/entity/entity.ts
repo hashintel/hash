@@ -469,7 +469,6 @@ const parseGqlAuthorizationViewerInput = ({
     return {
       namespace: "accountGroup",
       id: viewer as AccountGroupId,
-      set: "member",
     } as const;
   }
 };

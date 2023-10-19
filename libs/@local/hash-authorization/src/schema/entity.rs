@@ -100,10 +100,11 @@ impl fmt::Display for EntityPermission {
 impl Affiliation<EntityUuid> for EntityPermission {}
 impl Permission<EntityUuid> for EntityPermission {}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EntitySubjectSet {
+    #[default]
     Member,
 }
 
@@ -195,6 +196,7 @@ pub enum EntityDirectOwnerSubject {
     #[serde(rename_all = "camelCase")]
     AccountGroup {
         id: AccountGroupId,
+        #[serde(skip)]
         set: EntitySubjectSet,
     },
 }
@@ -213,6 +215,7 @@ pub enum EntityDirectEditorSubject {
     #[serde(rename_all = "camelCase")]
     AccountGroup {
         id: AccountGroupId,
+        #[serde(skip)]
         set: EntitySubjectSet,
     },
 }
@@ -233,6 +236,7 @@ pub enum EntityDirectViewerSubject {
     #[serde(rename_all = "camelCase")]
     AccountGroup {
         id: AccountGroupId,
+        #[serde(skip)]
         set: EntitySubjectSet,
     },
 }
