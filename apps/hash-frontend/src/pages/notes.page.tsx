@@ -12,6 +12,7 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -119,13 +120,20 @@ const NotesPage: NextPageWithLayout = () => {
       return updatedPrev;
     }, []);
 
-    return latestQuickNoteEntities.map((quickNoteEntity) => ({
-      quickNoteEntity,
-      createdAt: getFirstRevisionCreatedAt(
-        quickNotesAllVersionsSubgraph,
-        quickNoteEntity.metadata.recordId.entityId,
-      ),
-    }));
+    return latestQuickNoteEntities
+      .filter(
+        ({ properties }) =>
+          !properties[
+            extractBaseUrl(types.propertyType.archived.propertyTypeId)
+          ],
+      )
+      .map((quickNoteEntity) => ({
+        quickNoteEntity,
+        createdAt: getFirstRevisionCreatedAt(
+          quickNotesAllVersionsSubgraph,
+          quickNoteEntity.metadata.recordId.entityId,
+        ),
+      }));
   }, [quickNotesAllVersionsSubgraph]);
 
   const latestQuickNoteEntitiesByDay = useMemo(

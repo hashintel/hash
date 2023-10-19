@@ -831,11 +831,15 @@ const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const blockCollectionEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
 
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     ...types.entityType.quickNote,
     allOf: [blockCollectionEntityType.schema.$id],
+    properties: [{ propertyType: archivedPropertyType }],
   })(context);
 };
 

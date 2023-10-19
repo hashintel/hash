@@ -98,7 +98,7 @@ export const EditableQuickNote: FunctionComponent<{
   const [archiveEntity] = useMutation<
     ArchiveEntityMutation,
     ArchiveEntityMutationVariables
-  >(archiveEntityMutation, { onCompleted: refetchQuickNotes });
+  >(archiveEntityMutation);
 
   const [convertedPage, setConvertedPage] = useState<PageWithParentLink>();
   const [isConvertingPage, setIsConvertingPage] = useState(false);
@@ -194,8 +194,18 @@ export const EditableQuickNote: FunctionComponent<{
   }, [text]);
 
   const handleArchive = useCallback(async () => {
-    await archiveEntity({ variables: { entityId: blockCollectionEntityId } });
-  }, [archiveEntity, blockCollectionEntityId]);
+    await updateEntity({
+      data: {
+        entityId: quickNoteEntity.metadata.recordId.entityId,
+        entityTypeId: types.entityType.quickNote.entityTypeId,
+        properties: {
+          ...quickNoteEntity.properties,
+          [extractBaseUrl(types.propertyType.archived.propertyTypeId)]: true,
+        },
+      },
+    });
+    await refetchQuickNotes?.();
+  }, [updateEntity, quickNoteEntity, refetchQuickNotes]);
 
   const handleRevertToQuickNote = useCallback(async () => {
     if (!convertedPage) {
