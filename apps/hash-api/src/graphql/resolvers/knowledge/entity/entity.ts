@@ -484,7 +484,7 @@ export const addEntityViewerResolver: ResolverFn<
 
   await modifyEntityAuthorizationRelationships(context, authentication, [
     {
-      operation: "create",
+      operation: "touch",
       relationship: {
         object: {
           namespace: "entity",
