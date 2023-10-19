@@ -13,11 +13,9 @@ import {
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
-import { format } from "date-fns";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { useAccountPages } from "../../components/hooks/use-account-pages";
 import {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
@@ -37,6 +35,10 @@ import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
+import {
+  ConvertQuickNoteToPageModal,
+  PageWithParentLink,
+} from "./convert-quick-note-to-page-modal";
 import { QuickNoteEntityWithCreatedAt } from "./types";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
@@ -98,10 +100,13 @@ export const EditableQuickNote: FunctionComponent<{
     ArchiveEntityMutationVariables
   >(archiveEntityMutation, { onCompleted: refetchQuickNotes });
 
-  const [convertedToPage, setConvertedToPage] = useState(false);
+  const [convertedPage, setConvertedPage] = useState<PageWithParentLink>();
   const [isConvertingPage, setIsConvertingPage] = useState(false);
 
   const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] =
+    useState(false);
 
   const apolloClient = useApolloClient();
 
@@ -109,7 +114,7 @@ export const EditableQuickNote: FunctionComponent<{
     await apolloClient.refetchQueries({ include: [getAccountPagesTree] });
   }, [apolloClient]);
 
-  const { quickNoteEntity, createdAt } = quickNoteEntityWithCreatedAt;
+  const { quickNoteEntity } = quickNoteEntityWithCreatedAt;
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
@@ -192,41 +197,20 @@ export const EditableQuickNote: FunctionComponent<{
     await archiveEntity({ variables: { entityId: blockCollectionEntityId } });
   }, [archiveEntity, blockCollectionEntityId]);
 
-  const { lastRootPageIndex } = useAccountPages(
-    authenticatedUser.accountId as OwnedById,
-  );
-
-  const handleConvertToPage = useCallback(async () => {
-    setIsConvertingPage(true);
-    await updateEntity({
-      data: {
-        entityId: blockCollectionEntityId,
-        entityTypeId: types.entityType.page.entityTypeId,
-        properties: {
-          [extractBaseUrl(
-            types.propertyType.title.propertyTypeId,
-          )]: `Quick Note - ${format(createdAt, "yyyy-MM-dd")})}`,
-          [extractBaseUrl(types.propertyType.index.propertyTypeId)]:
-            lastRootPageIndex,
-        },
-      },
-    });
-    await refetchPageTree();
-    setIsConvertingPage(false);
-    setConvertedToPage(true);
-  }, [
-    blockCollectionEntityId,
-    updateEntity,
-    lastRootPageIndex,
-    createdAt,
-    refetchPageTree,
-  ]);
-
   const handleRevertToQuickNote = useCallback(async () => {
-    if (!convertedToPage) {
+    if (!convertedPage) {
       return;
     }
     setIsConvertingPage(true);
+
+    if (convertedPage.parentLinkEntity) {
+      await archiveEntity({
+        variables: {
+          entityId: convertedPage.parentLinkEntity.metadata.recordId.entityId,
+        },
+      });
+    }
+
     await updateEntity({
       data: {
         entityId: blockCollectionEntityId,
@@ -234,10 +218,25 @@ export const EditableQuickNote: FunctionComponent<{
         properties: {},
       },
     });
+
     await refetchPageTree();
     setIsConvertingPage(false);
-    setConvertedToPage(false);
-  }, [blockCollectionEntityId, updateEntity, convertedToPage, refetchPageTree]);
+    setConvertedPage(undefined);
+  }, [
+    blockCollectionEntityId,
+    updateEntity,
+    convertedPage,
+    archiveEntity,
+    refetchPageTree,
+  ]);
+
+  const handleConvertedToPage = useCallback(
+    (page: PageWithParentLink) => {
+      setConvertedPage(page);
+      void refetchPageTree();
+    },
+    [refetchPageTree],
+  );
 
   return (
     <Box>
@@ -281,7 +280,7 @@ export const EditableQuickNote: FunctionComponent<{
         </Box>
         {displayActionButtons ? (
           <Box display="flex" marginRight={-1} marginTop={-1} columnGap={1}>
-            {convertedToPage ? (
+            {convertedPage ? (
               <>
                 <IconButton
                   disabled={isConvertingPage}
@@ -320,12 +319,18 @@ export const EditableQuickNote: FunctionComponent<{
                 </Tooltip>
                 <Tooltip title="Convert to page" placement="top">
                   <IconButton
-                    disabled={isConvertingPage}
-                    onClick={handleConvertToPage}
+                    disabled={isConvertToPageModalOpen}
+                    onClick={() => setIsConvertToPageModalOpen(true)}
                   >
                     <FileExportRegularIcon />
                   </IconButton>
                 </Tooltip>
+                <ConvertQuickNoteToPageModal
+                  open={isConvertToPageModalOpen}
+                  quickNoteEntityWithCreatedAt={quickNoteEntityWithCreatedAt}
+                  onConvertedToPage={handleConvertedToPage}
+                  onClose={() => setIsConvertToPageModalOpen(false)}
+                />
               </>
             )}
           </Box>
