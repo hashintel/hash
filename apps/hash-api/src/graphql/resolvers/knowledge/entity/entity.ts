@@ -461,15 +461,15 @@ const parseGqlAuthorizationViewerInput = ({
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { namespace: "account", accountId: viewer as AccountId } as const;
+    return { namespace: "account", id: viewer as AccountId } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
       namespace: "accountGroup",
-      accountGroupId: viewer as AccountGroupId,
-      relation: "member",
+      id: viewer as AccountGroupId,
+      set: "member",
     } as const;
   }
 };
@@ -486,7 +486,10 @@ export const addEntityViewerResolver: ResolverFn<
     {
       operation: "create",
       relationship: {
-        object: entityId,
+        object: {
+          namespace: "entity",
+          id: entityId,
+        },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
@@ -508,7 +511,10 @@ export const removeEntityViewerResolver: ResolverFn<
     {
       operation: "delete",
       relationship: {
-        object: entityId,
+        object: {
+          namespace: "entity",
+          id: entityId,
+        },
         relation: "directViewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
@@ -546,7 +552,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
 
   // TODO: Align definitions with the ones in the API
   return relationships.map(({ object, relation, subject }) => ({
-    objectEntityId: object,
+    objectEntityId: object.id,
     relation:
       relation === "directEditor"
         ? EntityAuthorizationRelation.Editor
@@ -556,11 +562,11 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
     subject:
       subject.namespace === "accountGroup"
         ? {
-            accountGroupId: subject.accountGroupId,
+            accountGroupId: subject.id,
             relation: AccountGroupAuthorizationSubjectRelation.Member,
           }
         : subject.namespace === "account"
-        ? { accountId: subject.accountId }
+        ? { accountId: subject.id }
         : { public: true },
   }));
 };

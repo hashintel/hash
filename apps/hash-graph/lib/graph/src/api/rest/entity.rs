@@ -656,10 +656,10 @@ where
         })?;
 
     let subject = match owner_id {
-        OwnerId::Account(account_id) => EntityDirectOwnerSubject::Account { account_id },
-        OwnerId::AccountGroupMembers(account_group_id) => EntityDirectOwnerSubject::AccountGroup {
-            account_group_id,
-            relation: EntitySubjectSet::Member,
+        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
         },
     };
 
@@ -743,10 +743,10 @@ where
         })?;
 
     let subject = match owner_id {
-        OwnerId::Account(account_id) => EntityDirectOwnerSubject::Account { account_id },
-        OwnerId::AccountGroupMembers(account_group_id) => EntityDirectOwnerSubject::AccountGroup {
-            account_group_id,
-            relation: EntitySubjectSet::Member,
+        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
         },
     };
 
@@ -824,10 +824,10 @@ where
     })?;
 
     let subject = match editor_id {
-        OwnerId::Account(account_id) => EntityDirectEditorSubject::Account { account_id },
-        OwnerId::AccountGroupMembers(account_group_id) => EntityDirectEditorSubject::AccountGroup {
-            account_group_id,
-            relation: EntitySubjectSet::Member,
+        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
         },
     };
 
@@ -908,10 +908,10 @@ where
     })?;
 
     let subject = match editor_id {
-        OwnerId::Account(account_id) => EntityDirectEditorSubject::Account { account_id },
-        OwnerId::AccountGroupMembers(account_group_id) => EntityDirectEditorSubject::AccountGroup {
-            account_group_id,
-            relation: EntitySubjectSet::Member,
+        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
+        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
         },
     };
 

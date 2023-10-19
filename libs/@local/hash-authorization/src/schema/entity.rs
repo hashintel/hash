@@ -187,15 +187,15 @@ pub enum EntitySubjectRelation {
 pub enum EntityDirectOwnerSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectOwnerSubjectAccount"))]
     #[serde(rename_all = "camelCase")]
-    Account { account_id: AccountId },
+    Account { id: AccountId },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectOwnerSubjectAccountGroup")
     )]
     #[serde(rename_all = "camelCase")]
     AccountGroup {
-        account_group_id: AccountGroupId,
-        relation: EntitySubjectSet,
+        id: AccountGroupId,
+        set: EntitySubjectSet,
     },
 }
 
@@ -205,15 +205,15 @@ pub enum EntityDirectOwnerSubject {
 pub enum EntityDirectEditorSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectEditorSubjectAccount"))]
     #[serde(rename_all = "camelCase")]
-    Account { account_id: AccountId },
+    Account { id: AccountId },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectEditorSubjectAccountGroup")
     )]
     #[serde(rename_all = "camelCase")]
     AccountGroup {
-        account_group_id: AccountGroupId,
-        relation: EntitySubjectSet,
+        id: AccountGroupId,
+        set: EntitySubjectSet,
     },
 }
 
@@ -225,15 +225,15 @@ pub enum EntityDirectViewerSubject {
     Public,
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectAccount"))]
     #[serde(rename_all = "camelCase")]
-    Account { account_id: AccountId },
+    Account { id: AccountId },
     #[cfg_attr(
         feature = "utoipa",
         schema(title = "EntityDirectViewerSubjectAccountGroup")
     )]
     #[serde(rename_all = "camelCase")]
     AccountGroup {
-        account_group_id: AccountGroupId,
-        relation: EntitySubjectSet,
+        id: AccountGroupId,
+        set: EntitySubjectSet,
     },
 }
 
@@ -274,15 +274,13 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
             object,
             match relation {
                 EntityObjectRelation::DirectOwner => match (subject, subject_set) {
-                    (EntitySubject::Account(account_id), None) => {
-                        EntityRelationSubject::DirectOwner(EntityDirectOwnerSubject::Account {
-                            account_id,
-                        })
+                    (EntitySubject::Account(id), None) => {
+                        EntityRelationSubject::DirectOwner(EntityDirectOwnerSubject::Account { id })
                     }
-                    (EntitySubject::AccountGroup(account_group_id), Some(relation)) => {
+                    (EntitySubject::AccountGroup(id), Some(set)) => {
                         EntityRelationSubject::DirectOwner(EntityDirectOwnerSubject::AccountGroup {
-                            account_group_id,
-                            relation,
+                            id,
+                            set,
                         })
                     }
                     (EntitySubject::Public, _) => {
@@ -296,61 +294,55 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
                         });
                     }
                 },
-                EntityObjectRelation::DirectEditor => match (subject, subject_set) {
-                    (EntitySubject::Account(account_id), None) => {
-                        EntityRelationSubject::DirectEditor(EntityDirectEditorSubject::Account {
-                            account_id,
-                        })
-                    }
-                    (EntitySubject::AccountGroup(account_group_id), Some(relation)) => {
-                        EntityRelationSubject::DirectEditor(
-                            EntityDirectEditorSubject::AccountGroup {
-                                account_group_id,
+                EntityObjectRelation::DirectEditor => {
+                    match (subject, subject_set) {
+                        (EntitySubject::Account(id), None) => EntityRelationSubject::DirectEditor(
+                            EntityDirectEditorSubject::Account { id },
+                        ),
+                        (EntitySubject::AccountGroup(id), Some(set)) => {
+                            EntityRelationSubject::DirectEditor(
+                                EntityDirectEditorSubject::AccountGroup { id, set },
+                            )
+                        }
+                        (EntitySubject::Public, _) => {
+                            return Err(InvalidRelationship::Subject { relation, subject });
+                        }
+                        (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _) => {
+                            return Err(InvalidRelationship::SubjectSet {
                                 relation,
-                            },
-                        )
+                                subject,
+                                subject_set,
+                            });
+                        }
                     }
-                    (EntitySubject::Public, _) => {
-                        return Err(InvalidRelationship::Subject { relation, subject });
-                    }
-                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _) => {
-                        return Err(InvalidRelationship::SubjectSet {
-                            relation,
-                            subject,
-                            subject_set,
-                        });
-                    }
-                },
-                EntityObjectRelation::DirectViewer => match (subject, subject_set) {
-                    (EntitySubject::Public, None) => {
-                        EntityRelationSubject::DirectViewer(EntityDirectViewerSubject::Public)
-                    }
-                    (EntitySubject::Account(account_id), None) => {
-                        EntityRelationSubject::DirectViewer(EntityDirectViewerSubject::Account {
-                            account_id,
-                        })
-                    }
-                    (EntitySubject::AccountGroup(account_group_id), Some(relation)) => {
-                        EntityRelationSubject::DirectViewer(
-                            EntityDirectViewerSubject::AccountGroup {
-                                account_group_id,
+                }
+                EntityObjectRelation::DirectViewer => {
+                    match (subject, subject_set) {
+                        (EntitySubject::Public, None) => {
+                            EntityRelationSubject::DirectViewer(EntityDirectViewerSubject::Public)
+                        }
+                        (EntitySubject::Account(id), None) => EntityRelationSubject::DirectViewer(
+                            EntityDirectViewerSubject::Account { id },
+                        ),
+                        (EntitySubject::AccountGroup(id), Some(set)) => {
+                            EntityRelationSubject::DirectViewer(
+                                EntityDirectViewerSubject::AccountGroup { id, set },
+                            )
+                        }
+                        (
+                            EntitySubject::Account(_)
+                            | EntitySubject::AccountGroup(_)
+                            | EntitySubject::Public,
+                            _,
+                        ) => {
+                            return Err(InvalidRelationship::SubjectSet {
                                 relation,
-                            },
-                        )
+                                subject,
+                                subject_set,
+                            });
+                        }
                     }
-                    (
-                        EntitySubject::Account(_)
-                        | EntitySubject::AccountGroup(_)
-                        | EntitySubject::Public,
-                        _,
-                    ) => {
-                        return Err(InvalidRelationship::SubjectSet {
-                            relation,
-                            subject,
-                            subject_set,
-                        });
-                    }
-                },
+                }
             },
         ))
     }
@@ -379,46 +371,28 @@ impl Relationship for (EntityUuid, EntityRelationSubject) {
             EntityRelationSubject::DirectOwner(subject) => (
                 EntityObjectRelation::DirectOwner,
                 match subject {
-                    EntityDirectOwnerSubject::Account { account_id } => {
-                        (EntitySubject::Account(account_id), None)
+                    EntityDirectOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityDirectOwnerSubject::AccountGroup { id, set } => {
+                        (EntitySubject::AccountGroup(id), Some(set))
                     }
-                    EntityDirectOwnerSubject::AccountGroup {
-                        account_group_id,
-                        relation,
-                    } => (
-                        EntitySubject::AccountGroup(account_group_id),
-                        Some(relation),
-                    ),
                 },
             ),
             EntityRelationSubject::DirectEditor(subject) => (
                 EntityObjectRelation::DirectEditor,
                 match subject {
-                    EntityDirectEditorSubject::Account { account_id } => {
-                        (EntitySubject::Account(account_id), None)
+                    EntityDirectEditorSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityDirectEditorSubject::AccountGroup { id, set } => {
+                        (EntitySubject::AccountGroup(id), Some(set))
                     }
-                    EntityDirectEditorSubject::AccountGroup {
-                        account_group_id,
-                        relation,
-                    } => (
-                        EntitySubject::AccountGroup(account_group_id),
-                        Some(relation),
-                    ),
                 },
             ),
             EntityRelationSubject::DirectViewer(subject) => (
                 EntityObjectRelation::DirectViewer,
                 match subject {
-                    EntityDirectViewerSubject::Account { account_id } => {
-                        (EntitySubject::Account(account_id), None)
+                    EntityDirectViewerSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityDirectViewerSubject::AccountGroup { id, set } => {
+                        (EntitySubject::AccountGroup(id), Some(set))
                     }
-                    EntityDirectViewerSubject::AccountGroup {
-                        account_group_id,
-                        relation,
-                    } => (
-                        EntitySubject::AccountGroup(account_group_id),
-                        Some(relation),
-                    ),
                     EntityDirectViewerSubject::Public => (EntitySubject::Public, None),
                 },
             ),

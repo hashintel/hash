@@ -2339,11 +2339,11 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccount",
             "required": [
-              "accountId",
+              "id",
               "namespace"
             ],
             "properties": {
-              "accountId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2358,12 +2358,12 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
+              "id",
+              "set",
               "namespace"
             ],
             "properties": {
-              "accountGroupId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
@@ -2372,7 +2372,7 @@
                   "accountGroup"
                 ]
               },
-              "relation": {
+              "set": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
@@ -2388,11 +2388,11 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccount",
             "required": [
-              "accountId",
+              "id",
               "namespace"
             ],
             "properties": {
-              "accountId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2407,12 +2407,12 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
+              "id",
+              "set",
               "namespace"
             ],
             "properties": {
-              "accountGroupId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
@@ -2421,7 +2421,7 @@
                   "accountGroup"
                 ]
               },
-              "relation": {
+              "set": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }
@@ -2452,11 +2452,11 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccount",
             "required": [
-              "accountId",
+              "id",
               "namespace"
             ],
             "properties": {
-              "accountId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
               "namespace": {
@@ -2471,12 +2471,12 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
+              "id",
+              "set",
               "namespace"
             ],
             "properties": {
-              "accountGroupId": {
+              "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
               "namespace": {
@@ -2485,7 +2485,7 @@
                   "accountGroup"
                 ]
               },
-              "relation": {
+              "set": {
                 "$ref": "#/components/schemas/EntitySubjectSet"
               }
             }

@@ -164,7 +164,7 @@ export const createOrg: ImpureGraphFunction<
           namespace: "public",
         },
         relation: "directViewer",
-        object: entity.metadata.recordId.entityId,
+        object: { namespace: "entity", id: entity.metadata.recordId.entityId },
       },
     },
   ]);

@@ -94,18 +94,26 @@ export const extractAccountGroupId = extractEntityUuidFromEntityId as (
   // The type cannot be cast directly to `AccountGroupId`, so we do it over two casts, but without `unknown`
 ) => string as (entityId: AccountGroupEntityId) => AccountGroupId;
 
-type ReplaceType<T, K extends keyof any, V> = {
-  [P in keyof T]: P extends K ? V : T[P];
+type ReplaceAccount<T extends { namespace: "account" }> = {
+  [P in keyof T]: P extends "id" ? AccountId : T[P];
 };
-type BrandSubject<T extends object> = ReplaceType<
-  ReplaceType<T, "accountId", AccountId>,
-  "accountGroupId",
-  AccountGroupId
->;
+type ReplaceAccountGroup<T extends { namespace: "accountGroup" }> = {
+  [P in keyof T]: P extends "id" ? AccountGroupId : T[P];
+};
+
+type BrandSubject<T extends object> = T extends { namespace: "account" }
+  ? ReplaceAccount<T>
+  : T extends { namespace: "accountGroup" }
+  ? ReplaceAccountGroup<T>
+  : T;
+
 type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
 
 export type EntityAuthorizationRelationship = {
-  object: EntityId;
+  object: {
+    namespace: "entity";
+    id: EntityId;
+  };
 } & BrandRelationship<EntityRelationSubject>;
