@@ -610,7 +610,7 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, integration-tests, system-tests, publish]
+    needs: [setup, unit-tests, build, integration-tests, system-tests, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -620,6 +620,9 @@ jobs:
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
+      - name: Check builds
+        run: |
+          [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration tests
         run: |
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
