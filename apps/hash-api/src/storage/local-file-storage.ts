@@ -24,6 +24,7 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
   /** Base URL of the API for generating upload/download URLs */
   apiOrigin: string;
 }
+
 /** Implementation of the storage provider for local file storage.
  * NOTE: NOT MEANT TO BE USED IN PRODUCTION
  * This storage provider is given as an easy to setup alternative to S3 file uploads for simple setups.
@@ -88,18 +89,29 @@ export class LocalFileSystemStorageProvider
           fileData.push(chunk);
         });
         req.on("end", () => {
-          const file = Buffer.concat(fileData);
-          fs.writeFile(
-            path.join(this.fileUploadPath, req.query.key as string),
-            file,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve();
-              }
-            },
+          if (typeof req.query.key !== "string") {
+            res.status(400).send("Missing key query parameter");
+            return;
+          }
+
+          const fileWritePath = path.join(
+            this.fileUploadPath,
+            path.normalize(req.query.key),
           );
+
+          if (!fileWritePath.startsWith(this.fileUploadPath)) {
+            res.status(400).send("Invalid key query parameter");
+            return;
+          }
+
+          const file = Buffer.concat(fileData);
+          fs.writeFile(fileWritePath, file, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
         });
       });
       res.status(200).send();
