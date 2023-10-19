@@ -209,7 +209,7 @@ where
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
         ("account_group_id" = AccountGroupId, Path, description = "The ID of the account group to check if the actor has the permission"),
-        ("permission" = EntityPermission, Path, description = "The permission to check for"),
+        ("permission" = AccountGroupPermission, Path, description = "The permission to check for"),
     ),
     responses(
         (status = 200, body = PermissionResponse, description = "Information if the actor can add an owner"),
