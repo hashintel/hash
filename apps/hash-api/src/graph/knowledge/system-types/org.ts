@@ -161,10 +161,10 @@ export const createOrg: ImpureGraphFunction<
       operation: "create",
       relationship: {
         subject: {
-          namespace: "public",
+          kind: "public",
         },
         relation: "directViewer",
-        object: { namespace: "entity", id: entity.metadata.recordId.entityId },
+        object: { kind: "entity", id: entity.metadata.recordId.entityId },
       },
     },
   ]);

@@ -63,13 +63,13 @@ class EdgeResolveDepths(BaseModel):
 class EntityDirectEditorSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountId
-    namespace: Literal["account"]
+    kind: Literal["account"]
 
 
 class EntityDirectEditorSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountGroupId
-    namespace: Literal["accountGroup"]
+    kind: Literal["accountGroup"]
 
 
 class EntityDirectEditorSubject(
@@ -77,20 +77,20 @@ class EntityDirectEditorSubject(
 ):
     model_config = ConfigDict(populate_by_name=True)
     root: EntityDirectEditorSubjectAccount | EntityDirectEditorSubjectAccountGroup = (
-        Field(..., discriminator="namespace")
+        Field(..., discriminator="kind")
     )
 
 
 class EntityDirectOwnerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountId
-    namespace: Literal["account"]
+    kind: Literal["account"]
 
 
 class EntityDirectOwnerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountGroupId
-    namespace: Literal["accountGroup"]
+    kind: Literal["accountGroup"]
 
 
 class EntityDirectOwnerSubject(
@@ -98,25 +98,25 @@ class EntityDirectOwnerSubject(
 ):
     model_config = ConfigDict(populate_by_name=True)
     root: EntityDirectOwnerSubjectAccount | EntityDirectOwnerSubjectAccountGroup = (
-        Field(..., discriminator="namespace")
+        Field(..., discriminator="kind")
     )
 
 
 class EntityDirectViewerSubjectPublic(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    namespace: Literal["public"]
+    kind: Literal["public"]
 
 
 class EntityDirectViewerSubjectAccount(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountId
-    namespace: Literal["account"]
+    kind: Literal["account"]
 
 
 class EntityDirectViewerSubjectAccountGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id: AccountGroupId
-    namespace: Literal["accountGroup"]
+    kind: Literal["accountGroup"]
 
 
 class EntityDirectViewerSubject(
@@ -131,7 +131,7 @@ class EntityDirectViewerSubject(
         EntityDirectViewerSubjectPublic
         | EntityDirectViewerSubjectAccount
         | EntityDirectViewerSubjectAccountGroup
-    ) = Field(..., discriminator="namespace")
+    ) = Field(..., discriminator="kind")
 
 
 class EntityEditionId(RootModel[UUID]):

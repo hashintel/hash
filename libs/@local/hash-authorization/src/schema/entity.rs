@@ -184,7 +184,7 @@ pub enum EntitySubjectRelation {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "namespace", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectOwnerSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectOwnerSubjectAccount"))]
     #[serde(rename_all = "camelCase")]
@@ -203,7 +203,7 @@ pub enum EntityDirectOwnerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "namespace", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectEditorSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectEditorSubjectAccount"))]
     #[serde(rename_all = "camelCase")]
@@ -222,7 +222,7 @@ pub enum EntityDirectEditorSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "namespace", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectViewerSubject {
     #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectPublic"))]
     Public,
@@ -322,7 +322,7 @@ impl EntityRelationAndSubject {
         })
     }
 
-    fn into_parts(
+    const fn into_parts(
         self,
     ) -> (
         EntityObjectRelation,

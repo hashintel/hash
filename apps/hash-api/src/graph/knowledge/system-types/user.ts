@@ -327,11 +327,11 @@ export const createUser: ImpureGraphFunction<
         operation: "create",
         relationship: {
           subject: {
-            namespace: "public",
+            kind: "public",
           },
           relation: "directViewer",
           object: {
-            namespace: "entity",
+            kind: "entity",
             id: entity.metadata.recordId.entityId,
           },
         },

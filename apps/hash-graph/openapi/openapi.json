@@ -2340,13 +2340,13 @@
             "title": "EntityDirectEditorSubjectAccount",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2359,13 +2359,13 @@
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
@@ -2375,7 +2375,7 @@
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityDirectOwnerSubject": {
@@ -2385,13 +2385,13 @@
             "title": "EntityDirectOwnerSubjectAccount",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2404,13 +2404,13 @@
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
@@ -2420,7 +2420,7 @@
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityDirectViewerSubject": {
@@ -2429,10 +2429,10 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectPublic",
             "required": [
-              "namespace"
+              "kind"
             ],
             "properties": {
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "public"
@@ -2445,13 +2445,13 @@
             "title": "EntityDirectViewerSubjectAccount",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
@@ -2464,13 +2464,13 @@
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
               "id",
-              "namespace"
+              "kind"
             ],
             "properties": {
               "id": {
                 "$ref": "#/components/schemas/AccountGroupId"
               },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
@@ -2480,7 +2480,7 @@
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityEditionId": {

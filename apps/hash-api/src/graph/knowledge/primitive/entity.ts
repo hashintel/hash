@@ -723,7 +723,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
       data.map(
         (relationship) =>
           ({
-            object: { namespace: "entity", id: params.entityId },
+            object: { kind: "entity", id: params.entityId },
             ...relationship.relationAndSubject,
           }) as EntityAuthorizationRelationship,
       ),

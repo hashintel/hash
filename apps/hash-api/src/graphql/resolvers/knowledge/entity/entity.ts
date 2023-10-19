@@ -456,18 +456,18 @@ const parseGqlAuthorizationViewerInput = ({
   viewer,
 }: AuthorizationViewerInput) => {
   if (kind === AuthorizationSubjectKind.Public) {
-    return { namespace: "public" } as const;
+    return { kind: "public" } as const;
   } else if (kind === AuthorizationSubjectKind.Account) {
     if (!viewer) {
       throw new UserInputError("Viewer Account ID must be specified");
     }
-    return { namespace: "account", id: viewer as AccountId } as const;
+    return { kind: "account", id: viewer as AccountId } as const;
   } else {
     if (!viewer) {
       throw new UserInputError("Viewer Account Group ID must be specified");
     }
     return {
-      namespace: "accountGroup",
+      kind: "accountGroup",
       id: viewer as AccountGroupId,
     } as const;
   }
@@ -486,7 +486,7 @@ export const addEntityViewerResolver: ResolverFn<
       operation: "touch",
       relationship: {
         object: {
-          namespace: "entity",
+          kind: "entity",
           id: entityId,
         },
         relation: "directViewer",
@@ -511,7 +511,7 @@ export const removeEntityViewerResolver: ResolverFn<
       operation: "delete",
       relationship: {
         object: {
-          namespace: "entity",
+          kind: "entity",
           id: entityId,
         },
         relation: "directViewer",
@@ -559,12 +559,12 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
         ? EntityAuthorizationRelation.Owner
         : EntityAuthorizationRelation.Viewer,
     subject:
-      subject.namespace === "accountGroup"
+      subject.kind === "accountGroup"
         ? {
             accountGroupId: subject.id,
             relation: AccountGroupAuthorizationSubjectRelation.Member,
           }
-        : subject.namespace === "account"
+        : subject.kind === "account"
         ? { accountId: subject.id }
         : { public: true },
   }));
