@@ -230,9 +230,11 @@ const NotesPage: NextPageWithLayout = () => {
       | Subgraph<EntityRootType>
       | undefined;
 
+  const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
+
   const quickNotesEntitiesCreatedToday = useMemo(
-    () => latestQuickNoteEntitiesByDay?.[format(new Date(), "yyyy-MM-dd")],
-    [latestQuickNoteEntitiesByDay],
+    () => latestQuickNoteEntitiesByDay?.[todayTimestamp],
+    [latestQuickNoteEntitiesByDay, todayTimestamp],
   );
 
   const refetchQuickNotes = useCallback(async () => {
@@ -274,41 +276,43 @@ const NotesPage: NextPageWithLayout = () => {
               }}
             />
             {latestQuickNoteEntitiesByDay
-              ? Object.entries(latestQuickNoteEntitiesByDay).map(
-                  (
-                    [dayTimestamp, quickNoteEntitiesWithCreatedAt],
-                    index,
-                    all,
-                  ) => (
-                    <NotesSection
-                      key={dayTimestamp}
-                      ref={(element) => {
-                        if (element) {
-                          sectionRefs.current[index + 1] = element;
+              ? Object.entries(latestQuickNoteEntitiesByDay)
+                  .filter(([dayTimestamp]) => dayTimestamp !== todayTimestamp)
+                  .map(
+                    (
+                      [dayTimestamp, quickNoteEntitiesWithCreatedAt],
+                      index,
+                      all,
+                    ) => (
+                      <NotesSection
+                        key={dayTimestamp}
+                        ref={(element) => {
+                          if (element) {
+                            sectionRefs.current[index + 1] = element;
+                          }
+                        }}
+                        dayTimestamp={dayTimestamp}
+                        heading={dayTimestampToHeadings?.[dayTimestamp]}
+                        quickNoteEntities={quickNoteEntitiesWithCreatedAt}
+                        quickNotesSubgraph={quickNotesWithContentsSubgraph}
+                        refetchQuickNotes={refetchQuickNotes}
+                        navigateUp={() => {
+                          sectionRefs.current[index]?.scrollIntoView({
+                            behavior: "smooth",
+                          });
+                        }}
+                        navigateDown={
+                          index < all.length - 1
+                            ? () => {
+                                sectionRefs.current[index + 2]?.scrollIntoView({
+                                  behavior: "smooth",
+                                });
+                              }
+                            : undefined
                         }
-                      }}
-                      dayTimestamp={dayTimestamp}
-                      heading={dayTimestampToHeadings?.[dayTimestamp]}
-                      quickNoteEntities={quickNoteEntitiesWithCreatedAt}
-                      quickNotesSubgraph={quickNotesWithContentsSubgraph}
-                      refetchQuickNotes={refetchQuickNotes}
-                      navigateUp={() => {
-                        sectionRefs.current[index]?.scrollIntoView({
-                          behavior: "smooth",
-                        });
-                      }}
-                      navigateDown={
-                        index < all.length - 1
-                          ? () => {
-                              sectionRefs.current[index + 2]?.scrollIntoView({
-                                behavior: "smooth",
-                              });
-                            }
-                          : undefined
-                      }
-                    />
-                  ),
-                )
+                      />
+                    ),
+                  )
               : null}
           </UserBlocksProvider>
         </BlockLoadedProvider>
