@@ -1,4 +1,4 @@
-use authorization::schema::EntityRelationSubject;
+use authorization::schema::EntityRelationAndSubject;
 use graph_types::{
     knowledge::{
         entity::{EntityProperties, EntityRecordId, EntityTemporalMetadata},
@@ -34,5 +34,5 @@ pub struct EntitySnapshotRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub link_data: Option<LinkData>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub relations: Vec<EntityRelationSubject>,
+    pub relations: Vec<EntityRelationAndSubject>,
 }

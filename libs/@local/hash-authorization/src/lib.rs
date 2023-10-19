@@ -10,7 +10,7 @@ pub mod schema;
 pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
-use crate::schema::EntityRelationSubject;
+use crate::schema::EntityRelationAndSubject;
 
 mod api;
 
@@ -22,7 +22,9 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    backend::{
+        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
+    },
     schema::{AccountGroupPermission, EntityPermission, OwnerId, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
@@ -150,18 +152,16 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
-    async fn add_entity_relation(
+    async fn modify_entity_relations(
         &mut self,
-        _entity: EntityId,
-        _relationship: EntityRelationSubject,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_entity_relation(
-        &mut self,
-        _entity: EntityId,
-        _relationship: EntityRelationSubject,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -170,7 +170,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _entity: EntityId,
         _consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationSubject>, ReadError> {
+    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 }

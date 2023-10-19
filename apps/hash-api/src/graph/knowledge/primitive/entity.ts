@@ -4,6 +4,7 @@ import {
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
+  ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -659,6 +660,23 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   });
 };
 
+export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: EntityAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyEntityAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationSubject: relationship,
+    })),
+  );
+};
+
 export const addEntityOwner: ImpureGraphFunction<
   { entityId: EntityId; owner: AccountId | AccountGroupId },
   Promise<void>
@@ -687,20 +705,6 @@ export const removeEntityEditor: ImpureGraphFunction<
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
 };
 
-export const addEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityViewer(actorId, params.entityId, params.viewer);
-};
-
-export const removeEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
-};
-
 export const checkEntityPermission: ImpureGraphFunction<
   { entityId: EntityId; permission: EntityPermission },
   Promise<boolean>
@@ -719,8 +723,8 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
       data.map(
         (relationship) =>
           ({
-            object: params.entityId,
-            ...relationship.relationSubject,
+            resource: { kind: "entity", resourceId: params.entityId },
+            ...relationship.relationAndSubject,
           }) as EntityAuthorizationRelationship,
       ),
     );

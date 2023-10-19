@@ -8,9 +8,11 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError},
+    backend::{
+        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
+    },
     schema::{
-        AccountGroupPermission, EntityPermission, EntityRelationSubject, OwnerId, WebPermission,
+        AccountGroupPermission, EntityPermission, EntityRelationAndSubject, OwnerId, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -109,15 +111,16 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn add_entity_relation(
+    fn modify_entity_relations(
         &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-    fn remove_entity_relation(
-        &mut self,
-        entity: EntityId,
-        relationship: EntityRelationSubject,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     fn check_entities_permission(
@@ -151,7 +154,7 @@ pub trait AuthorizationApi {
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<EntityRelationSubject>, ReadError>> + Send;
+    ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

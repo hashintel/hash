@@ -6,7 +6,7 @@ use graph_types::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::zanzibar::{types::Object, Affiliation, Permission, Relation};
+use crate::zanzibar::{types::Resource, Affiliation, Permission, Relation};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WebNamespace {
@@ -14,7 +14,7 @@ pub enum WebNamespace {
     Web,
 }
 
-impl Object for WebId {
+impl Resource for WebId {
     type Id = Self;
     type Namespace = WebNamespace;
 
@@ -29,7 +29,7 @@ impl Object for WebId {
     }
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id) {
-        Object::into_parts(*self)
+        Resource::into_parts(*self)
     }
 }
 

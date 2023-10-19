@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::zanzibar::{
     types::{
-        object::{Object, ObjectFilter},
+        resource::{Resource, ResourceFilter},
         subject::{Subject, SubjectFilter},
     },
     Affiliation,
@@ -10,18 +10,18 @@ use crate::zanzibar::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RelationshipFilter<ON, OI, R, SN, SI, SR> {
-    pub object: ObjectFilter<ON, OI>,
+    pub resource: ResourceFilter<ON, OI>,
     pub relation: Option<R>,
     pub subject: Option<SubjectFilter<SN, SI, SR>>,
 }
 
 impl RelationshipFilter<!, !, !, !, !, !> {
     #[must_use]
-    pub fn from_object<N, I>(
-        object: impl Into<ObjectFilter<N, I>>,
+    pub fn from_resource<N, I>(
+        resource: impl Into<ResourceFilter<N, I>>,
     ) -> RelationshipFilter<N, I, !, !, !, !> {
         RelationshipFilter {
-            object: object.into(),
+            resource: resource.into(),
             relation: None,
             subject: None,
         }
@@ -32,7 +32,7 @@ impl<ON, OI, SN, SI, SR> RelationshipFilter<ON, OI, !, SN, SI, SR> {
     #[must_use]
     pub fn with_relation<R>(self, relation: R) -> RelationshipFilter<ON, OI, R, SN, SI, SR> {
         RelationshipFilter {
-            object: self.object,
+            resource: self.resource,
             relation: Some(relation),
             subject: self.subject,
         }
@@ -46,7 +46,7 @@ impl<ON, OI, R> RelationshipFilter<ON, OI, R, !, !, !> {
         subject: impl Into<SubjectFilter<SN, SI, SR>>,
     ) -> RelationshipFilter<ON, OI, R, SN, SI, SR> {
         RelationshipFilter {
-            object: self.object,
+            resource: self.resource,
             relation: self.relation,
             subject: Some(subject.into()),
         }
@@ -54,19 +54,19 @@ impl<ON, OI, R> RelationshipFilter<ON, OI, R, !, !, !> {
 }
 
 pub trait Relationship: Sized {
-    type Object: Object;
-    type Relation: Affiliation<Self::Object>;
-    type Subject: Object;
+    type Resource: Resource;
+    type Relation: Affiliation<Self::Resource>;
+    type Subject: Resource;
     type SubjectSet: Affiliation<Self::Subject>;
 
-    /// Creates a relationship from an object, relation, subject, and subject set.
+    /// Creates a relationship from an resource, relation, subject, and subject set.
     ///
     /// # Errors
     ///
-    /// Returns an error if the object, relation, subject, and subject set are not valid for the
+    /// Returns an error if the resource, relation, subject, and subject set are not valid for the
     /// relationship.
     fn from_parts(
-        object: Self::Object,
+        resource: Self::Resource,
         relation: Self::Relation,
         subject: Self::Subject,
         subject_set: Option<Self::SubjectSet>,
@@ -75,7 +75,7 @@ pub trait Relationship: Sized {
     fn to_parts(
         &self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
@@ -84,7 +84,7 @@ pub trait Relationship: Sized {
     fn into_parts(
         self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
@@ -93,28 +93,28 @@ pub trait Relationship: Sized {
 
 impl<O, R, S> Relationship for (O, R, S)
 where
-    O: Object + Copy,
+    O: Resource + Copy,
     R: Affiliation<O> + Copy,
     S: Subject + Copy,
 {
-    type Object = O;
     type Relation = R;
-    type Subject = S::Object;
+    type Resource = O;
+    type Subject = S::Resource;
     type SubjectSet = S::Relation;
 
     fn from_parts(
-        object: Self::Object,
+        resource: Self::Resource,
         relation: Self::Relation,
         subject: Self::Subject,
         subject_set: Option<Self::SubjectSet>,
     ) -> Result<Self, impl Error> {
-        S::from_parts(subject, subject_set).map(|subject| (object, relation, subject))
+        S::from_parts(subject, subject_set).map(|subject| (resource, relation, subject))
     }
 
     fn to_parts(
         &self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
@@ -125,13 +125,13 @@ where
     fn into_parts(
         self,
     ) -> (
-        Self::Object,
+        Self::Resource,
         Self::Relation,
         Self::Subject,
         Option<Self::SubjectSet>,
     ) {
-        let (object, relation, subject) = self;
+        let (resource, relation, subject) = self;
         let (subject, subject_set) = Subject::into_parts(subject);
-        (object, relation, subject, subject_set)
+        (resource, relation, subject, subject_set)
     }
 }

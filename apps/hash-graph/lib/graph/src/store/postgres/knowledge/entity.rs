@@ -4,8 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
+    backend::ModifyRelationshipOperation,
     schema::{
-        EntityDirectOwnerSubject, EntityPermission, EntityRelationSubject, EntitySubjectSet,
+        EntityDirectOwnerSubject, EntityPermission, EntityRelationAndSubject, EntitySubjectSet,
         OwnerId, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
@@ -427,23 +428,29 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         let subject = match owner {
-            OwnerId::Account(account_id) => EntityDirectOwnerSubject::Account { account_id },
-            OwnerId::AccountGroupMembers(account_group_id) => {
-                EntityDirectOwnerSubject::AccountGroup {
-                    account_group_id,
-                    relation: EntitySubjectSet::Member,
-                }
-            }
+            OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
+            OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+                id,
+                set: EntitySubjectSet::Member,
+            },
         };
 
         authorization_api
-            .add_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+            .modify_entity_relations([(
+                ModifyRelationshipOperation::Create,
+                entity_id,
+                EntityRelationAndSubject::DirectOwner(subject),
+            )])
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_relation(entity_id, EntityRelationSubject::DirectOwner(subject))
+                .modify_entity_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    entity_id,
+                    EntityRelationAndSubject::DirectOwner(subject),
+                )])
                 .await
                 .change_context(InsertionError)
             {

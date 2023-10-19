@@ -1,14 +1,14 @@
 use std::error::Error;
 
-pub trait Object: Sized {
+pub trait Resource: Sized {
     type Namespace;
     type Id;
 
-    /// Creates an object from a namespace and an id.
+    /// Creates a resource from a namespace and an id.
     ///
     /// # Errors
     ///
-    /// Returns an error if the namespace and id are not valid for the object.
+    /// Returns an error if the namespace and id are not valid for the resource.
     fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error>;
 
     fn to_parts(&self) -> (Self::Namespace, Self::Id);
@@ -17,17 +17,17 @@ pub trait Object: Sized {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ObjectFilter<N, I> {
+pub struct ResourceFilter<N, I> {
     pub namespace: N,
     pub id: Option<I>,
 }
 
-impl<O> From<O> for ObjectFilter<O::Namespace, O::Id>
+impl<O> From<O> for ResourceFilter<O::Namespace, O::Id>
 where
-    O: Object,
+    O: Resource,
 {
-    fn from(object: O) -> Self {
-        let (namespace, id) = object.into_parts();
+    fn from(resource: O) -> Self {
+        let (namespace, id) = resource.into_parts();
         Self {
             namespace,
             id: Some(id),
@@ -35,20 +35,20 @@ where
     }
 }
 
-impl ObjectFilter<!, !> {
+impl ResourceFilter<!, !> {
     #[must_use]
-    pub const fn from_namespace<N>(namespace: N) -> ObjectFilter<N, !> {
-        ObjectFilter {
+    pub const fn from_namespace<N>(namespace: N) -> ResourceFilter<N, !> {
+        ResourceFilter {
             namespace,
             id: None,
         }
     }
 }
 
-impl<N> ObjectFilter<N, !> {
+impl<N> ResourceFilter<N, !> {
     #[must_use]
-    pub fn with_id<I>(self, id: I) -> ObjectFilter<N, I> {
-        ObjectFilter {
+    pub fn with_id<I>(self, id: I) -> ResourceFilter<N, I> {
+        ResourceFilter {
             namespace: self.namespace,
             id: Some(id),
         }

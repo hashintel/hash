@@ -878,6 +878,47 @@
         }
       }
     },
+    "/entities/relationships": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "modify_entity_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ModifyEntityAuthorizationRelationship"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The relationship was modified for the entity"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
     "/entities/{entity_id}/editors/{editor}": {
       "post": {
         "tags": [
@@ -1151,96 +1192,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/viewers/{viewer}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "add_entity_viewer",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to add the viewer to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "viewer",
-            "in": "path",
-            "description": "The viewer to add to the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/Viewer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The viewer was added to the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "remove_entity_viewer",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountId"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to remove the viewer from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "viewer",
-            "in": "path",
-            "description": "The viewer to remove from the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/Viewer"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The viewer was removed from the entity"
           },
           "403": {
             "description": "Permission denied"
@@ -2374,11 +2325,11 @@
       "EntityAuthorizationRelationship": {
         "type": "object",
         "required": [
-          "relationSubject"
+          "relationAndSubject"
         ],
         "properties": {
-          "relationSubject": {
-            "$ref": "#/components/schemas/EntityRelationSubject"
+          "relationAndSubject": {
+            "$ref": "#/components/schemas/EntityRelationAndSubject"
           }
         }
       },
@@ -2388,18 +2339,18 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccount",
             "required": [
-              "accountId",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountId": {
-                "$ref": "#/components/schemas/AccountId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2407,28 +2358,24 @@
             "type": "object",
             "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountGroupId": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityDirectOwnerSubject": {
@@ -2437,18 +2384,18 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccount",
             "required": [
-              "accountId",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountId": {
-                "$ref": "#/components/schemas/AccountId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2456,28 +2403,24 @@
             "type": "object",
             "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountGroupId": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityDirectViewerSubject": {
@@ -2486,10 +2429,10 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectPublic",
             "required": [
-              "namespace"
+              "kind"
             ],
             "properties": {
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "public"
@@ -2501,18 +2444,18 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccount",
             "required": [
-              "accountId",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountId": {
-                "$ref": "#/components/schemas/AccountId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "account"
                 ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
               }
             }
           },
@@ -2520,28 +2463,24 @@
             "type": "object",
             "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
-              "accountGroupId",
-              "relation",
-              "namespace"
+              "subjectId",
+              "kind"
             ],
             "properties": {
-              "accountGroupId": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
-              "namespace": {
+              "kind": {
                 "type": "string",
                 "enum": [
                   "accountGroup"
                 ]
               },
-              "relation": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
               }
             }
           }
         ],
         "discriminator": {
-          "propertyName": "namespace"
+          "propertyName": "kind"
         }
       },
       "EntityEditionId": {
@@ -2666,7 +2605,7 @@
           }
         }
       },
-      "EntityRelationSubject": {
+      "EntityRelationAndSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -2808,12 +2747,6 @@
         "discriminator": {
           "propertyName": "type"
         }
-      },
-      "EntitySubjectSet": {
-        "type": "string",
-        "enum": [
-          "member"
-        ]
       },
       "EntityTemporalMetadata": {
         "type": "object",
@@ -3415,6 +3348,34 @@
               "$ref": "#/components/schemas/OntologyElementMetadata"
             }
           }
+        ]
+      },
+      "ModifyEntityAuthorizationRelationship": {
+        "type": "object",
+        "required": [
+          "operation",
+          "resource",
+          "relationSubject"
+        ],
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/ModifyRelationshipOperation"
+          },
+          "relationSubject": {
+            "$ref": "#/components/schemas/EntityRelationAndSubject"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/EntityId"
+          }
+        }
+      },
+      "ModifyRelationshipOperation": {
+        "type": "string",
+        "description": "Used for mutating a single relationship within the service.",
+        "enum": [
+          "touch",
+          "create",
+          "delete"
         ]
       },
       "NullableTimestamp": {
