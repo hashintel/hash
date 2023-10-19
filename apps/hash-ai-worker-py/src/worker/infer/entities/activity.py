@@ -1,4 +1,5 @@
 """Activity for inferring entities from a prompt."""
+
 import enum
 import json
 import os

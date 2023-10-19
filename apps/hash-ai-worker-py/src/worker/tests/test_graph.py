@@ -1,4 +1,5 @@
 """Test unit."""
+
 #  ruff: noqa: S101
 
 from datetime import timedelta

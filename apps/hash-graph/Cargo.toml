@@ -31,13 +31,13 @@ error-stack = { version = "0.4.1", features = ["spantrace"] }
 tokio-util = { version = "0.7.9", default-features = false }
 bytes = "1.5.0"
 utoipa = "4.0.0"
-uuid = { version = "1.4.1", default-features = false }
+uuid = { version = "1.5.0", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
 serde = "1.0.189"
 serde_json = "1.0.107"
 tokio = { version = "1.33.0", default-features = false }
 time = { version = "0.3.30", default-features = false }
-tracing = "0.1.39"
+tracing = "0.1.40"
 futures = { version = "0.3.28", default-features = false }
 
 [profile.production]

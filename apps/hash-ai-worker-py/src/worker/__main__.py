@@ -1,4 +1,5 @@
 """Executes a Python Temporal.io worker with a health check HTTP server."""
+
 import asyncio
 import os
 

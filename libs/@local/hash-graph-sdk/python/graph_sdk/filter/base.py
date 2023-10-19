@@ -1,4 +1,5 @@
 """Base and generic classes for query paths."""
+
 from abc import ABC
 from typing import Generic, Self, TypeVar
 

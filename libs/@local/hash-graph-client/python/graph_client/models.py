@@ -1058,7 +1058,10 @@ class QueryTemporalAxesUnresolved(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: QueryTemporalAxesUnresolvedDecisionTime | QueryTemporalAxesUnresolvedTransactionTime = Field(
+    root: (
+        QueryTemporalAxesUnresolvedDecisionTime
+        | QueryTemporalAxesUnresolvedTransactionTime
+    ) = Field(
         ...,
         description=(
             "Defines the two possible combinations of pinned/variable temporal axes"
@@ -1157,7 +1160,9 @@ class KnowledgeGraphOutwardEdge(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
+    root: (
+        KnowledgeGraphToKnowledgeGraphOutwardEdge | KnowledgeGraphToOntologyOutwardEdge
+    )
 
 
 class MaybeListOfEntityTypeMetadata(
@@ -1270,9 +1275,10 @@ class Edges(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: dict[
-        str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]
-    ] | None = None
+    root: (
+        dict[str, dict[str, list[OntologyOutwardEdge | KnowledgeGraphOutwardEdge]]]
+        | None
+    ) = None
 
 
 class EntityMetadata(BaseModel):
@@ -1386,7 +1392,16 @@ class Filter(
     ]
 ):
     model_config = ConfigDict(populate_by_name=True)
-    root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
+    root: (
+        AllFilter
+        | AnyFilter
+        | NotFilter
+        | EqualFilter
+        | NotEqualFilter
+        | StartsWithFilter
+        | EndsWithFilter
+        | ContainsSegmentFilter
+    )
 
 
 class PropertyTypeVertex(BaseModel):

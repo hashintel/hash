@@ -1,4 +1,5 @@
 """Create dynamic types from entity, property, and data types via pydantic."""
+
 from uuid import UUID
 
 from graph_types import (
