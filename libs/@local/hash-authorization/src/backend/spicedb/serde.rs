@@ -10,8 +10,8 @@ pub(crate) mod resource {
     #[derive(Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     struct SerializedResource<N, I> {
-        resource_type: N,
-        resource_id: I,
+        object_type: N,
+        object_id: I,
     }
 
     pub(crate) fn serialize<T, S>(resource: &T, serializer: S) -> Result<S::Ok, S::Error>
@@ -21,8 +21,8 @@ pub(crate) mod resource {
     {
         let (resource_type, resource_id) = resource.to_parts();
         SerializedResource {
-            resource_type,
-            resource_id,
+            object_type: resource_type,
+            object_id: resource_id,
         }
         .serialize(serializer)
     }
@@ -33,7 +33,7 @@ pub(crate) mod resource {
         D: Deserializer<'de>,
     {
         let resource = SerializedResource::<T::Namespace, T::Id>::deserialize(deserializer)?;
-        T::from_parts(resource.resource_type, resource.resource_id).map_err(de::Error::custom)
+        T::from_parts(resource.object_type, resource.object_id).map_err(de::Error::custom)
     }
 }
 
@@ -63,7 +63,7 @@ pub(crate) mod resource_ref {
 )]
 struct SerializedSubject<O, R> {
     #[serde(with = "resource")]
-    resource: O,
+    object: O,
     #[serde(deserialize_with = "empty_string_as_none")]
     optional_relation: Option<R>,
 }
@@ -84,7 +84,7 @@ pub(crate) mod subject_ref {
     {
         let (resource, optional_relation) = subject.to_parts();
         SerializedSubject {
-            resource,
+            object: resource,
             optional_relation,
         }
         .serialize(serializer)
@@ -147,7 +147,7 @@ pub(crate) mod relationship {
             resource,
             relation,
             subject: SerializedSubject {
-                resource: subject,
+                object: subject,
                 optional_relation: subject_set,
             },
         }
@@ -168,7 +168,7 @@ pub(crate) mod relationship {
         T::from_parts(
             relationship.resource,
             relationship.relation,
-            relationship.subject.resource,
+            relationship.subject.object,
             relationship.subject.optional_relation,
         )
         .map_err(de::Error::custom)
