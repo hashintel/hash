@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, io, iter::repeat};
+use std::{error::Error, fmt, io};
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
@@ -10,13 +10,13 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 use crate::{
     backend::{
         spicedb::model::{self, RpcError},
-        CheckError, CheckResponse, CreateRelationError, CreateRelationResponse,
-        DeleteRelationError, DeleteRelationResponse, ExportSchemaError, ExportSchemaResponse,
-        ImportSchemaError, ImportSchemaResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        CheckError, CheckResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
+        ImportSchemaResponse, ModifyRelationshipOperation, ReadError, SpiceDbOpenApi,
+        UpdateRelationshipError, UpdateRelationshipResponse, ZanzibarBackend,
     },
     zanzibar::{
         types::{Object, Relationship, RelationshipFilter, Subject},
-        Affiliation, Consistency, Zookie,
+        Affiliation, Consistency,
     },
 };
 
@@ -144,94 +144,6 @@ impl SpiceDbOpenApi {
         Ok(framed_stream
             .map(|io_result| Result::from(io_result.change_context(StreamError::Parse)?)))
     }
-
-    // TODO: Expose batch-version
-    //   see https://linear.app/hash/issue/H-642
-    async fn modify_relations<R>(
-        &self,
-        operations: impl IntoIterator<Item = (model::RelationshipUpdateOperation, R), IntoIter: Send>
-        + Send,
-    ) -> Result<Zookie<'static>, Report<InvocationError>>
-    where
-        R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
-                SubjectSet: Serialize,
-            > + Send
-            + Sync,
-    {
-        #[derive(Serialize)]
-        #[serde(
-            rename_all = "camelCase",
-            bound = "R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
-                SubjectSet: Serialize
-            >"
-        )]
-        struct RelationshipUpdate<R> {
-            operation: model::RelationshipUpdateOperation,
-            #[serde(with = "super::serde::relationship")]
-            relationship: R,
-        }
-
-        #[derive(Serialize)]
-        #[serde(
-            rename_all = "camelCase",
-            bound = "R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
-                SubjectSet: Serialize
-            >"
-        )]
-        struct RequestBody<R> {
-            updates: Vec<RelationshipUpdate<R>>,
-        }
-
-        #[derive(Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        struct RequestResponse {
-            written_at: model::ZedToken,
-        }
-
-        let request_body = RequestBody {
-            updates: operations
-                .into_iter()
-                .map(|(operation, relationship)| RelationshipUpdate::<R> {
-                    operation,
-                    relationship,
-                })
-                .collect(),
-        };
-
-        let max_attempts = 3_u32;
-        let mut attempt = 0;
-        loop {
-            let invocation = self
-                .call::<RequestResponse>("/v1/relationships/write", &request_body)
-                .await;
-
-            match invocation {
-                Ok(response) => return Ok(response.written_at.into()),
-                Err(report) => match report.current_context() {
-                    InvocationError::Api(RpcError { code: 2, .. }) => {
-                        if attempt == max_attempts {
-                            break Err(report);
-                        }
-
-                        attempt += 1;
-                        // TODO: Use a more customizable backoff
-                        //       current: 10ms, 40ms, 90ms
-                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
-                    }
-                    _ => break Err(report),
-                },
-            }
-        }
-    }
 }
 
 impl ZanzibarBackend for SpiceDbOpenApi {
@@ -288,12 +200,12 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         clippy::missing_errors_doc,
         reason = "False positive, documented on trait"
     )]
-    async fn create_relations<R>(
+    async fn update_relationships<T>(
         &mut self,
-        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
+    ) -> Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>
     where
-        R: Relationship<
+        T: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
                 Subject: Object<Namespace: Serialize, Id: Serialize>,
@@ -301,56 +213,81 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             > + Send
             + Sync,
     {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Create).zip(relationships))
-            .await
-            .map(|written_at| CreateRelationResponse { written_at })
-            .change_context(CreateRelationError)
-    }
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize
+            >"
+        )]
+        struct RelationshipUpdate<R> {
+            operation: model::RelationshipUpdateOperation,
+            #[serde(with = "super::serde::relationship")]
+            relationship: R,
+        }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
-    async fn touch_relations<R>(
-        &mut self,
-        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        R: Relationship<
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
                 Relation: Serialize,
                 Subject: Object<Namespace: Serialize, Id: Serialize>,
-                SubjectSet: Serialize,
-            > + Send
-            + Sync,
-    {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Touch).zip(relationships))
-            .await
-            .map(|written_at| CreateRelationResponse { written_at })
-            .change_context(CreateRelationError)
-    }
+                SubjectSet: Serialize
+            >"
+        )]
+        struct RequestBody<R> {
+            updates: Vec<RelationshipUpdate<R>>,
+        }
 
-    #[expect(
-        clippy::missing_errors_doc,
-        reason = "False positive, documented on trait"
-    )]
-    async fn delete_relations<R>(
-        &mut self,
-        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        R: Relationship<
-                Object: Object<Namespace: Serialize, Id: Serialize>,
-                Relation: Serialize,
-                Subject: Object<Namespace: Serialize, Id: Serialize>,
-                SubjectSet: Serialize,
-            > + Send
-            + Sync,
-    {
-        self.modify_relations(repeat(model::RelationshipUpdateOperation::Delete).zip(relationships))
-            .await
-            .map(|deleted_at| DeleteRelationResponse { deleted_at })
-            .change_context(DeleteRelationError)
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct RequestResponse {
+            written_at: model::ZedToken,
+        }
+
+        let request_body = RequestBody {
+            updates: relationships
+                .into_iter()
+                .map(|(operation, relationship)| RelationshipUpdate::<T> {
+                    operation: operation.into(),
+                    relationship,
+                })
+                .collect(),
+        };
+
+        let max_attempts = 3_u32;
+        let mut attempt = 0;
+        loop {
+            let invocation = self
+                .call::<RequestResponse>("/v1/relationships/write", &request_body)
+                .await;
+
+            match invocation {
+                Ok(response) => {
+                    return Ok(UpdateRelationshipResponse {
+                        written_at: response.written_at.into(),
+                    });
+                }
+                Err(report) => match report.current_context() {
+                    InvocationError::Api(RpcError { code: 2, .. }) => {
+                        if attempt == max_attempts {
+                            break Err(report);
+                        }
+
+                        attempt += 1;
+                        // TODO: Use a more customizable backoff
+                        //       current: 10ms, 40ms, 90ms
+                        sleep(std::time::Duration::from_millis(10) * attempt * attempt).await;
+                    }
+                    _ => break Err(report),
+                },
+            }
+        }
+        .change_context(UpdateRelationshipError)
     }
 
     #[expect(

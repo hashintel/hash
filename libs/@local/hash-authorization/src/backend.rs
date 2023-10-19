@@ -1,6 +1,6 @@
 mod spicedb;
 
-use core::fmt;
+use core::{fmt, iter::repeat};
 use std::{error::Error, future::Future};
 
 use error_stack::Report;
@@ -14,6 +14,18 @@ use crate::{
     },
     NoAuthorization,
 };
+
+/// Used for mutating a single relationship within the service.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModifyRelationshipOperation {
+    /// Upsert the relationship, and will not error if it already exists.
+    Touch,
+    /// Create the relationship only if it doesn't exist, and error otherwise.
+    Create,
+    /// Delete the relationship. If the relationship does not exist, this operation will no-op.
+    Delete,
+}
 
 /// A backend for interacting with an authorization system based on the Zanzibar model.
 pub trait ZanzibarBackend {
@@ -40,15 +52,10 @@ pub trait ZanzibarBackend {
         &self,
     ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
-    /// Creates a new relation specified by the [`Relationship`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the relation already exists or could not be created.
-    fn create_relations<R>(
+    fn update_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
+        relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -61,13 +68,16 @@ pub trait ZanzibarBackend {
     /// Creates a new relation specified by the [`Relationship`] but does not error if it already
     /// exists.
     ///
+    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// [`ModifyRelationshipOperation::Touch`].
+    ///
     /// # Errors
     ///
     /// Returns an error if the relation could not be created.
-    fn touch_relations<R>(
+    fn touch_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<CreateRelationResponse, Report<CreateRelationError>>> + Send
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -75,17 +85,47 @@ pub trait ZanzibarBackend {
                 Subject: Object<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
-            + Sync;
+            + Sync,
+    {
+        self.update_relationships(repeat(ModifyRelationshipOperation::Touch).zip(relationships))
+    }
+
+    /// Creates a new relation specified by the [`Relationship`].
+    ///
+    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// [`ModifyRelationshipOperation::Create`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relation already exists or could not be created.
+    fn create_relationships<R>(
+        &mut self,
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
+    where
+        R: Relationship<
+                Object: Object<Namespace: Serialize, Id: Serialize>,
+                Relation: Serialize,
+                Subject: Object<Namespace: Serialize, Id: Serialize>,
+                SubjectSet: Serialize,
+            > + Send
+            + Sync,
+    {
+        self.update_relationships(repeat(ModifyRelationshipOperation::Create).zip(relationships))
+    }
 
     /// Deletes the relation specified by the [`Relationship`].
+    ///
+    /// This is the same behavior as [`ZanzibarBackend::update_relationships`] with
+    /// [`ModifyRelationshipOperation::Delete`].
     ///
     /// # Errors
     ///
     /// Returns an error if the relation does not exist or could not be deleted.
-    fn delete_relations<R>(
+    fn delete_relationships<R>(
         &mut self,
-        tuples: impl IntoIterator<Item = R, IntoIter: Send> + Send,
-    ) -> impl Future<Output = Result<DeleteRelationResponse, Report<DeleteRelationError>>> + Send
+        relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
+    ) -> impl Future<Output = Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>> + Send
     where
         R: Relationship<
                 Object: Object<Namespace: Serialize, Id: Serialize>,
@@ -93,7 +133,10 @@ pub trait ZanzibarBackend {
                 Subject: Object<Namespace: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
-            + Sync;
+            + Sync,
+    {
+        self.update_relationships(repeat(ModifyRelationshipOperation::Delete).zip(relationships))
+    }
 
     /// Returns if the [`Subject`] of the [`Relationship`] has the specified permission or relation
     /// to an [`Object`].
@@ -155,39 +198,15 @@ impl ZanzibarBackend for NoAuthorization {
         unimplemented!()
     }
 
-    async fn create_relations<T>(
+    async fn update_relationships<T>(
         &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
+        _tuples: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
+    ) -> Result<UpdateRelationshipResponse, Report<UpdateRelationshipError>>
     where
         T: Sync,
     {
-        Ok(CreateRelationResponse {
+        Ok(UpdateRelationshipResponse {
             written_at: Zookie::empty(),
-        })
-    }
-
-    async fn touch_relations<T>(
-        &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<CreateRelationResponse, Report<CreateRelationError>>
-    where
-        T: Sync,
-    {
-        Ok(CreateRelationResponse {
-            written_at: Zookie::empty(),
-        })
-    }
-
-    async fn delete_relations<T>(
-        &mut self,
-        _tuples: impl IntoIterator<Item = T, IntoIter: Send> + Send,
-    ) -> Result<DeleteRelationResponse, Report<DeleteRelationError>>
-    where
-        T: Sync,
-    {
-        Ok(DeleteRelationResponse {
-            deleted_at: Zookie::empty(),
         })
     }
 
@@ -265,43 +284,24 @@ impl fmt::Display for ExportSchemaError {
 
 impl Error for ExportSchemaError {}
 
-/// Return value for [`ZanzibarBackend::create_relations`].
+/// Return value for [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct CreateRelationResponse {
+pub struct UpdateRelationshipResponse {
     /// A token to determine the time at which the relation was created.
     pub written_at: Zookie<'static>,
 }
 
-/// Error returned from [`ZanzibarBackend::create_relations`].
+/// Error returned from [`ZanzibarBackend::create_relationships`].
 #[derive(Debug)]
-pub struct CreateRelationError;
+pub struct UpdateRelationshipError;
 
-impl fmt::Display for CreateRelationError {
+impl fmt::Display for UpdateRelationshipError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to create relations")
+        fmt.write_str("failed to modify relations")
     }
 }
 
-impl Error for CreateRelationError {}
-
-/// Return value for [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationResponse {
-    /// A token to determine the time at which the relation was deleted.
-    pub deleted_at: Zookie<'static>,
-}
-
-/// Error returned from [`ZanzibarBackend::delete_relations`].
-#[derive(Debug)]
-pub struct DeleteRelationError;
-
-impl fmt::Display for DeleteRelationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to delete relation")
-    }
-}
-
-impl Error for DeleteRelationError {}
+impl Error for UpdateRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]

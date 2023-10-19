@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt};
 
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
-use crate::zanzibar;
+use crate::{backend::ModifyRelationshipOperation, zanzibar};
 
 /// Error response returned from the API
 #[derive(Debug, Deserialize)]
@@ -72,18 +72,24 @@ impl From<ZedToken> for zanzibar::Zookie<'static> {
     }
 }
 
-/// Used for mutating a single relationship within the service.
 #[derive(Debug, Copy, Clone, Serialize)]
 pub(crate) enum RelationshipUpdateOperation {
-    /// Create the relationship only if it doesn't exist, and error otherwise.
     #[serde(rename = "OPERATION_CREATE")]
     Create,
-    /// Upsert the relationship, and will not error if it already exists.
     #[serde(rename = "OPERATION_TOUCH")]
     Touch,
-    /// Delete the relationship. If the relationship does not exist, this operation will no-op.
     #[serde(rename = "OPERATION_DELETE")]
     Delete,
+}
+
+impl From<ModifyRelationshipOperation> for RelationshipUpdateOperation {
+    fn from(operation: ModifyRelationshipOperation) -> Self {
+        match operation {
+            ModifyRelationshipOperation::Create => Self::Create,
+            ModifyRelationshipOperation::Touch => Self::Touch,
+            ModifyRelationshipOperation::Delete => Self::Delete,
+        }
+    }
 }
 
 /// Represents a reference to a caveat to be used by caveated relationships.

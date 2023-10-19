@@ -52,7 +52,7 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectOwner, member)])
+            .create_relationships([(account_group, AccountGroupRelation::DirectOwner, member)])
             .await
             .change_context(ModifyRelationError)?
             .written_at)
@@ -65,10 +65,10 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectOwner, member)])
+            .delete_relationships([(account_group, AccountGroupRelation::DirectOwner, member)])
             .await
             .change_context(ModifyRelationError)?
-            .deleted_at)
+            .written_at)
     }
 
     async fn add_account_group_admin(
@@ -78,7 +78,7 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
+            .create_relationships([(account_group, AccountGroupRelation::DirectAdmin, member)])
             .await
             .change_context(ModifyRelationError)?
             .written_at)
@@ -91,10 +91,10 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
+            .delete_relationships([(account_group, AccountGroupRelation::DirectAdmin, member)])
             .await
             .change_context(ModifyRelationError)?
-            .deleted_at)
+            .written_at)
     }
 
     async fn add_account_group_member(
@@ -104,7 +104,7 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectMember, member)])
+            .create_relationships([(account_group, AccountGroupRelation::DirectMember, member)])
             .await
             .change_context(ModifyRelationError)?
             .written_at)
@@ -117,10 +117,10 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectMember, member)])
+            .delete_relationships([(account_group, AccountGroupRelation::DirectMember, member)])
             .await
             .change_context(ModifyRelationError)?
-            .deleted_at)
+            .written_at)
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -146,12 +146,12 @@ where
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(web, WebRelation::DirectOwner, account)])
+                    .create_relationships([(web, WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
-                    .create_relations([(
+                    .create_relationships([(
                         web,
                         WebRelation::DirectOwner,
                         (account_group, AccountGroupPermission::Member),
@@ -171,12 +171,12 @@ where
         Ok(match owner {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(web, WebRelation::DirectOwner, account)])
+                    .delete_relationships([(web, WebRelation::DirectOwner, account)])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
-                    .delete_relations([(
+                    .delete_relationships([(
                         web,
                         WebRelation::DirectOwner,
                         (account_group, AccountGroupPermission::Member),
@@ -185,7 +185,7 @@ where
             }
         }
         .change_context(ModifyRelationError)?
-        .deleted_at)
+        .written_at)
     }
 
     async fn add_web_editor(
@@ -196,12 +196,12 @@ where
         Ok(match editor {
             OwnerId::Account(account) => {
                 self.backend
-                    .create_relations([(web, WebRelation::DirectEditor, account)])
+                    .create_relationships([(web, WebRelation::DirectEditor, account)])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
-                    .create_relations([(
+                    .create_relationships([(
                         web,
                         WebRelation::DirectEditor,
                         (account_group, AccountGroupPermission::Member),
@@ -221,12 +221,12 @@ where
         Ok(match editor {
             OwnerId::Account(account) => {
                 self.backend
-                    .delete_relations([(web, WebRelation::DirectEditor, account)])
+                    .delete_relationships([(web, WebRelation::DirectEditor, account)])
                     .await
             }
             OwnerId::AccountGroupMembers(account_group) => {
                 self.backend
-                    .delete_relations([(
+                    .delete_relationships([(
                         web,
                         WebRelation::DirectEditor,
                         (account_group, AccountGroupPermission::Member),
@@ -235,7 +235,7 @@ where
             }
         }
         .change_context(ModifyRelationError)?
-        .deleted_at)
+        .written_at)
     }
 
     async fn add_entity_relation(
@@ -245,7 +245,7 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relations([(entity.entity_uuid, relationship)])
+            .create_relationships([(entity.entity_uuid, relationship)])
             .await
             .change_context(ModifyRelationError)?
             .written_at)
@@ -258,10 +258,10 @@ where
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(entity.entity_uuid, relationship)])
+            .delete_relationships([(entity.entity_uuid, relationship)])
             .await
             .change_context(ModifyRelationError)?
-            .deleted_at)
+            .written_at)
     }
 
     async fn check_entity_permission(

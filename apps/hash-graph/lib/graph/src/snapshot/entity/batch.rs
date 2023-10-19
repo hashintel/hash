@@ -143,7 +143,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
             }
             Self::Relations(relations) => {
                 authorization_api
-                    .touch_relations(relations)
+                    .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
             }
