@@ -41,12 +41,12 @@ import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../system-types";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
-import { publicUserAccountId } from "../../../graphql/context";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
@@ -745,7 +745,11 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
       ? isPublicUser
         ? false
         : await graphContext.graphApi
-            .canAddGroupMember(actorId, extractEntityUuidFromEntityId(entityId))
+            .checkAccountGroupPermission(
+              actorId,
+              extractEntityUuidFromEntityId(entityId),
+              "add_member",
+            )
             .then(({ data }) => data.has_permission)
       : null,
   ]);

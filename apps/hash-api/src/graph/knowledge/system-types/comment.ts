@@ -1,16 +1,16 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { Entity, EntityId } from "@local/hash-subgraph";
+import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityViewer,
   createEntity,
   CreateEntityParams,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -178,15 +178,23 @@ export const createComment: ImpureGraphFunction<
      * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
      * to be viewers only, so that they cannot edit each other's comments.
      */
-    await Promise.all(
-      [textEntity, commentEntity, ...linkEntities].map(async (entity) => {
-        await Promise.all([
-          await addEntityViewer(ctx, authentication, {
-            entityId: entity.metadata.recordId.entityId,
-            viewer: ownedById,
-          }),
-        ]);
-      }),
+    await modifyEntityAuthorizationRelationships(
+      ctx,
+      authentication,
+      [textEntity, commentEntity, ...linkEntities].map((entity) => ({
+        operation: "create",
+        relationship: {
+          subject: {
+            subjectId: ownedById as AccountGroupId,
+            kind: "accountGroup",
+          },
+          relation: "directViewer",
+          resource: {
+            kind: "entity",
+            resourceId: entity.metadata.recordId.entityId,
+          },
+        },
+      })),
     );
   }
 
