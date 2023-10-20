@@ -44,7 +44,6 @@ impl Resource for WebId {
 #[serde(rename_all = "snake_case")]
 pub enum WebResourceRelation {
     DirectOwner,
-    DirectEditor,
 }
 
 impl Affiliation<WebId> for WebResourceRelation {}
@@ -141,26 +140,9 @@ pub enum WebDirectOwnerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum WebDirectEditorSubject {
-    Account {
-        #[serde(rename = "subjectId")]
-        id: AccountId,
-    },
-    AccountGroup {
-        #[serde(rename = "subjectId")]
-        id: AccountGroupId,
-        #[serde(skip)]
-        set: WebSubjectSet,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum WebRelationAndSubject {
     DirectOwner(WebDirectOwnerSubject),
-    DirectEditor(WebDirectEditorSubject),
 }
 
 impl Relationship for (WebId, WebRelationAndSubject) {
@@ -184,25 +166,6 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                     }
                     (WebSubject::AccountGroup(id), Some(set)) => {
                         WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::AccountGroup {
-                            id,
-                            set,
-                        })
-                    }
-                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
-                    }
-                },
-                WebResourceRelation::DirectEditor => match (subject, subject_set) {
-                    (WebSubject::Account(id), None) => {
-                        WebRelationAndSubject::DirectEditor(WebDirectEditorSubject::Account { id })
-                    }
-                    (WebSubject::AccountGroup(id), Some(set)) => {
-                        WebRelationAndSubject::DirectEditor(WebDirectEditorSubject::AccountGroup {
                             id,
                             set,
                         })
@@ -245,15 +208,6 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                 match subject {
                     WebDirectOwnerSubject::Account { id } => (WebSubject::Account(id), None),
                     WebDirectOwnerSubject::AccountGroup { id, set } => {
-                        (WebSubject::AccountGroup(id), Some(set))
-                    }
-                },
-            ),
-            WebRelationAndSubject::DirectEditor(subject) => (
-                WebResourceRelation::DirectEditor,
-                match subject {
-                    WebDirectEditorSubject::Account { id } => (WebSubject::Account(id), None),
-                    WebDirectEditorSubject::AccountGroup { id, set } => {
                         (WebSubject::AccountGroup(id), Some(set))
                     }
                 },

@@ -21,7 +21,6 @@ definition graph/entity {
 
 definition graph/web {
 	relation direct_owner: graph/account | graph/account_group#member
-	relation direct_editor: graph/account | graph/account_group#member
 
-	permission create_entity = direct_owner + direct_editor
+	permission create_entity = direct_owner
 }

@@ -17,7 +17,7 @@ pub use self::{
         EntitySubjectId, EntitySubjectSet,
     },
     web::{
-        WebDirectEditorSubject, WebDirectOwnerSubject, WebNamespace, WebPermission,
-        WebRelationAndSubject, WebResourceRelation, WebSubject, WebSubjectId, WebSubjectSet,
+        WebDirectOwnerSubject, WebNamespace, WebPermission, WebRelationAndSubject,
+        WebResourceRelation, WebSubject, WebSubjectId, WebSubjectSet,
     },
 };
