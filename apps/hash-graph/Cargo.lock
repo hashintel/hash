@@ -114,13 +114,13 @@ name = "authorization"
 version = "0.0.0"
 dependencies = [
  "codec",
+ "derive-where",
  "error-stack 0.4.1",
  "futures",
  "graph-types",
  "reqwest",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
  "tokio-util",
  "utoipa",

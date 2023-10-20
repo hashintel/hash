@@ -1,6 +1,7 @@
 mod account;
 mod account_group;
 mod entity;
+mod error;
 mod web;
 
 pub use self::{

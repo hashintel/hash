@@ -5,40 +5,18 @@ use graph_types::{
     knowledge::entity::EntityUuid,
 };
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use uuid::Uuid;
 
 use crate::{
-    schema::PublicAccess,
+    schema::{
+        error::{InvalidRelationship, InvalidResource},
+        PublicAccess,
+    },
     zanzibar::{
         types::{Relationship, Resource},
         Affiliation, Permission, Relation,
     },
 };
-
-#[derive(Debug, Error)]
-enum InvalidSubject {
-    #[error("unexpected subject for namespace")]
-    Id {
-        namespace: EntitySubjectNamespace,
-        id: EntitySubjectId,
-    },
-}
-
-#[derive(Debug, Error)]
-enum InvalidRelationship {
-    #[error("unexpected subject for namespace")]
-    Subject {
-        relation: EntityObjectRelation,
-        subject: EntitySubject,
-    },
-    #[error("unexpected relation for namespace")]
-    SubjectSet {
-        relation: EntityObjectRelation,
-        subject: EntitySubject,
-        subject_set: Option<EntitySubjectSet>,
-    },
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityNamespace {
@@ -133,8 +111,8 @@ impl Resource for EntitySubject {
     type Id = EntitySubjectId;
     type Namespace = EntitySubjectNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        Ok(match (namespace, id) {
+    fn from_parts(kind: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+        Ok(match (kind, id) {
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
             }
@@ -148,7 +126,7 @@ impl Resource for EntitySubject {
                 EntitySubjectNamespace::AccountGroup,
                 EntitySubjectId::Asteriks(PublicAccess::Public),
             ) => {
-                return Err(InvalidSubject::Id { namespace, id });
+                return Err(InvalidResource::<Self>::invalid_id(kind, id));
             }
         })
     }
@@ -261,71 +239,92 @@ pub enum EntityRelationAndSubject {
 
 impl EntityRelationAndSubject {
     fn from_parts(
+        resource: EntityUuid,
         relation: EntityObjectRelation,
         subject: EntitySubject,
         subject_set: Option<EntitySubjectSet>,
-    ) -> Result<Self, impl Error> {
-        Ok(match relation {
-            EntityObjectRelation::DirectOwner => match (subject, subject_set) {
-                (EntitySubject::Account(id), None) => {
-                    Self::DirectOwner(EntityDirectOwnerSubject::Account { id })
-                }
-                (EntitySubject::AccountGroup(id), Some(set)) => {
-                    Self::DirectOwner(EntityDirectOwnerSubject::AccountGroup { id, set })
-                }
-                (EntitySubject::Public, _) => {
-                    return Err(InvalidRelationship::Subject { relation, subject });
-                }
-                (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _) => {
-                    return Err(InvalidRelationship::SubjectSet {
-                        relation,
-                        subject,
+    ) -> Result<(EntityUuid, Self), impl Error> {
+        Ok((
+            resource,
+            match relation {
+                EntityObjectRelation::DirectOwner => match (subject, subject_set) {
+                    (EntitySubject::Account(id), None) => {
+                        Self::DirectOwner(EntityDirectOwnerSubject::Account { id })
+                    }
+                    (EntitySubject::AccountGroup(id), Some(set)) => {
+                        Self::DirectOwner(EntityDirectOwnerSubject::AccountGroup { id, set })
+                    }
+                    (EntitySubject::Public, subject_set) => {
+                        return Err(InvalidRelationship::<(EntityUuid, Self)>::invalid_subject(
+                            resource,
+                            relation,
+                            subject,
+                            subject_set,
+                        ));
+                    }
+                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), subject_set) => {
+                        return Err(
+                            InvalidRelationship::<(EntityUuid, Self)>::invalid_subject_set(
+                                resource,
+                                relation,
+                                subject,
+                                subject_set,
+                            ),
+                        );
+                    }
+                },
+                EntityObjectRelation::DirectEditor => match (subject, subject_set) {
+                    (EntitySubject::Account(id), None) => {
+                        Self::DirectEditor(EntityDirectEditorSubject::Account { id })
+                    }
+                    (EntitySubject::AccountGroup(id), Some(set)) => {
+                        Self::DirectEditor(EntityDirectEditorSubject::AccountGroup { id, set })
+                    }
+                    (EntitySubject::Public, subject_set) => {
+                        return Err(InvalidRelationship::<(EntityUuid, Self)>::invalid_subject(
+                            resource,
+                            relation,
+                            subject,
+                            subject_set,
+                        ));
+                    }
+                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), subject_set) => {
+                        return Err(
+                            InvalidRelationship::<(EntityUuid, Self)>::invalid_subject_set(
+                                resource,
+                                relation,
+                                subject,
+                                subject_set,
+                            ),
+                        );
+                    }
+                },
+                EntityObjectRelation::DirectViewer => match (subject, subject_set) {
+                    (EntitySubject::Public, None) => {
+                        Self::DirectViewer(EntityDirectViewerSubject::Public)
+                    }
+                    (EntitySubject::Account(id), None) => {
+                        Self::DirectViewer(EntityDirectViewerSubject::Account { id })
+                    }
+                    (EntitySubject::AccountGroup(id), Some(set)) => {
+                        Self::DirectViewer(EntityDirectViewerSubject::AccountGroup { id, set })
+                    }
+                    (
+                        EntitySubject::Account(_)
+                        | EntitySubject::AccountGroup(_)
+                        | EntitySubject::Public,
                         subject_set,
-                    });
-                }
+                    ) => {
+                        return Err(InvalidRelationship::invalid_subject_set(
+                            resource,
+                            relation,
+                            subject,
+                            subject_set,
+                        ));
+                    }
+                },
             },
-            EntityObjectRelation::DirectEditor => match (subject, subject_set) {
-                (EntitySubject::Account(id), None) => {
-                    Self::DirectEditor(EntityDirectEditorSubject::Account { id })
-                }
-                (EntitySubject::AccountGroup(id), Some(set)) => {
-                    Self::DirectEditor(EntityDirectEditorSubject::AccountGroup { id, set })
-                }
-                (EntitySubject::Public, _) => {
-                    return Err(InvalidRelationship::Subject { relation, subject });
-                }
-                (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _) => {
-                    return Err(InvalidRelationship::SubjectSet {
-                        relation,
-                        subject,
-                        subject_set,
-                    });
-                }
-            },
-            EntityObjectRelation::DirectViewer => match (subject, subject_set) {
-                (EntitySubject::Public, None) => {
-                    Self::DirectViewer(EntityDirectViewerSubject::Public)
-                }
-                (EntitySubject::Account(id), None) => {
-                    Self::DirectViewer(EntityDirectViewerSubject::Account { id })
-                }
-                (EntitySubject::AccountGroup(id), Some(set)) => {
-                    Self::DirectViewer(EntityDirectViewerSubject::AccountGroup { id, set })
-                }
-                (
-                    EntitySubject::Account(_)
-                    | EntitySubject::AccountGroup(_)
-                    | EntitySubject::Public,
-                    _,
-                ) => {
-                    return Err(InvalidRelationship::SubjectSet {
-                        relation,
-                        subject,
-                        subject_set,
-                    });
-                }
-            },
-        })
+        ))
     }
 
     const fn into_parts(
@@ -390,8 +389,7 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
         subject: Self::Subject,
         subject_set: Option<Self::SubjectSet>,
     ) -> Result<Self, impl Error> {
-        EntityRelationAndSubject::from_parts(relation, subject, subject_set)
-            .map(|relation_and_subject| (resource, relation_and_subject))
+        EntityRelationAndSubject::from_parts(resource, relation, subject, subject_set)
     }
 
     fn to_parts(
