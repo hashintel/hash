@@ -8,8 +8,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
-        EntityObjectRelation, EntityPermission, EntityRelationAndSubject, EntitySubject,
-        EntitySubjectSet, OwnerId,
+        EntityPermission, EntityRelationAndSubject, EntitySubjectSet, OwnerId,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -70,10 +69,8 @@ use crate::{
             EntityQueryToken,
             EntityStructuralQuery,
 
-            EntityObjectRelation,
             EntityRelationAndSubject,
             EntityPermission,
-            EntitySubject,
             EntityDirectOwnerSubject,
             EntityDirectEditorSubject,
             EntityDirectViewerSubject,

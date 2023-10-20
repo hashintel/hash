@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -44,18 +44,11 @@ impl Resource for EntityUuid {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EntityObjectRelation {
     DirectOwner,
     DirectEditor,
     DirectViewer,
-}
-
-impl fmt::Display for EntityObjectRelation {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
 }
 
 impl Affiliation<EntityUuid> for EntityObjectRelation {}
@@ -69,14 +62,16 @@ pub enum EntityPermission {
     View,
 }
 
-impl fmt::Display for EntityPermission {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
-
 impl Affiliation<EntityUuid> for EntityPermission {}
 impl Permission<EntityUuid> for EntityPermission {}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "id")]
+pub enum EntitySubject {
+    Public,
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
+}
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -87,18 +82,7 @@ pub enum EntitySubjectSet {
 }
 
 impl Affiliation<EntitySubject> for EntitySubjectSet {}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "type", content = "id")]
-pub enum EntitySubject {
-    #[cfg_attr(feature = "utoipa", schema(title = "EntitySubjectPublic"))]
-    Public,
-    #[cfg_attr(feature = "utoipa", schema(title = "EntitySubjectAccount"))]
-    Account(AccountId),
-    #[cfg_attr(feature = "utoipa", schema(title = "EntitySubjectAccountGroup"))]
-    AccountGroup(AccountGroupId),
-}
+impl Relation<EntitySubject> for EntitySubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -155,24 +139,12 @@ impl Resource for EntitySubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "relation")]
-pub enum EntitySubjectRelation {
-    Member,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectOwnerSubject {
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectOwnerSubjectAccount"))]
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
     },
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(title = "EntityDirectOwnerSubjectAccountGroup")
-    )]
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
@@ -185,15 +157,10 @@ pub enum EntityDirectOwnerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectEditorSubject {
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectEditorSubjectAccount"))]
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
     },
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(title = "EntityDirectEditorSubjectAccountGroup")
-    )]
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
@@ -206,17 +173,11 @@ pub enum EntityDirectEditorSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum EntityDirectViewerSubject {
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectPublic"))]
     Public,
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityDirectViewerSubjectAccount"))]
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
     },
-    #[cfg_attr(
-        feature = "utoipa",
-        schema(title = "EntityDirectViewerSubjectAccountGroup")
-    )]
     AccountGroup {
         #[serde(rename = "subjectId")]
         id: AccountGroupId,
@@ -229,16 +190,12 @@ pub enum EntityDirectViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum EntityRelationAndSubject {
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityRelationDirectOwner"))]
     DirectOwner(EntityDirectOwnerSubject),
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityRelationDirectEditor"))]
     DirectEditor(EntityDirectEditorSubject),
-    #[cfg_attr(feature = "utoipa", schema(title = "EntityRelationDirectViewer"))]
     DirectViewer(EntityDirectViewerSubject),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum EntitySubjectNamespace {
     #[serde(rename = "graph/account")]
     Account,

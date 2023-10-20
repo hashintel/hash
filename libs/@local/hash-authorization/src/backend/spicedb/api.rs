@@ -311,7 +311,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             rename_all = "camelCase",
             bound = "
                 O: Resource<Kind: Serialize, Id: Serialize>,
-                R: Serialize + Affiliation<O>,
+                R: Serialize,
                 S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: \
                      Serialize>"
         )]
