@@ -16,19 +16,19 @@ pub enum AccountGroupNamespace {
 
 impl Resource for AccountGroupId {
     type Id = Self;
-    type Namespace = AccountGroupNamespace;
+    type Kind = AccountGroupNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        match namespace {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        match kind {
             AccountGroupNamespace::AccountGroup => Ok::<_, !>(id),
         }
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         (AccountGroupNamespace::AccountGroup, self)
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }

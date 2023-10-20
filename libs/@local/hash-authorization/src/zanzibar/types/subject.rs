@@ -31,11 +31,7 @@ pub struct SubjectFilter<N, I, R> {
 }
 
 impl<S> From<S>
-    for SubjectFilter<
-        <S::Resource as Resource>::Namespace,
-        <S::Resource as Resource>::Id,
-        S::Relation,
-    >
+    for SubjectFilter<<S::Resource as Resource>::Kind, <S::Resource as Resource>::Id, S::Relation>
 where
     S: Subject,
 {

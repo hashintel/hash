@@ -11,15 +11,15 @@ enum InvalidResourceKind {
     InvalidId,
 }
 
-#[derive_where(Debug; R::Namespace, R::Id)]
+#[derive_where(Debug; R::Kind, R::Id)]
 pub(crate) struct InvalidResource<R: Resource> {
-    kind: R::Namespace,
+    kind: R::Kind,
     id: R::Id,
     error: InvalidResourceKind,
 }
 
 impl<R: Resource> InvalidResource<R> {
-    pub(crate) const fn invalid_id(kind: R::Namespace, id: R::Id) -> Self {
+    pub(crate) const fn invalid_id(kind: R::Kind, id: R::Id) -> Self {
         Self {
             kind,
             id,
@@ -30,7 +30,7 @@ impl<R: Resource> InvalidResource<R> {
 
 impl<R> fmt::Display for InvalidResource<R>
 where
-    R: Resource<Namespace: Serialize, Id: Serialize>,
+    R: Resource<Kind: Serialize, Id: Serialize>,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.error {
@@ -46,7 +46,7 @@ where
 }
 
 impl<R> Error for InvalidResource<R> where
-    R: Resource<Namespace: Debug + Serialize, Id: Debug + Serialize>
+    R: Resource<Kind: Debug + Serialize, Id: Debug + Serialize>
 {
 }
 
@@ -99,7 +99,7 @@ impl<R: Relationship> InvalidRelationship<R> {
 struct ResourceDebugger<'t, S>(&'t S);
 impl<S> Debug for ResourceDebugger<'_, S>
 where
-    S: Resource<Namespace: Serialize, Id: Serialize>,
+    S: Resource<Kind: Serialize, Id: Serialize>,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (kind, id) = self.0.to_parts();
@@ -123,7 +123,7 @@ struct SubjectSetDebugger<'t, S, R>(&'t S, Option<&'t R>);
 
 impl<S, R> Debug for SubjectSetDebugger<'_, S, R>
 where
-    S: Resource<Namespace: Serialize, Id: Serialize>,
+    S: Resource<Kind: Serialize, Id: Serialize>,
     R: Serialize,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -139,9 +139,9 @@ where
 impl<R> fmt::Debug for InvalidRelationship<R>
 where
     R: Relationship<
-            Resource: Resource<Namespace: Serialize, Id: Serialize>,
+            Resource: Resource<Kind: Serialize, Id: Serialize>,
             Relation: Serialize,
-            Subject: Resource<Namespace: Serialize, Id: Serialize>,
+            Subject: Resource<Kind: Serialize, Id: Serialize>,
             SubjectSet: Serialize,
         >,
 {
@@ -168,9 +168,9 @@ where
 impl<R> fmt::Display for InvalidRelationship<R>
 where
     R: Relationship<
-            Resource: Resource<Namespace: Serialize, Id: Serialize>,
+            Resource: Resource<Kind: Serialize, Id: Serialize>,
             Relation: Serialize,
-            Subject: Resource<Namespace: Serialize, Id: Serialize>,
+            Subject: Resource<Kind: Serialize, Id: Serialize>,
             SubjectSet: Serialize,
         >,
 {
@@ -204,9 +204,9 @@ where
 }
 impl<R> Error for InvalidRelationship<R> where
     R: Relationship<
-            Resource: Resource<Namespace: Debug + Serialize, Id: Debug + Serialize>,
+            Resource: Resource<Kind: Debug + Serialize, Id: Debug + Serialize>,
             Relation: Debug + Serialize,
-            Subject: Resource<Namespace: Debug + Serialize, Id: Debug + Serialize>,
+            Subject: Resource<Kind: Debug + Serialize, Id: Debug + Serialize>,
             SubjectSet: Debug + Serialize,
         >
 {

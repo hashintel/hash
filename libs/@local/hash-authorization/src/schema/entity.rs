@@ -26,19 +26,19 @@ pub enum EntityNamespace {
 
 impl Resource for EntityUuid {
     type Id = Self;
-    type Namespace = EntityNamespace;
+    type Kind = EntityNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        match namespace {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        match kind {
             EntityNamespace::Entity => Ok::<_, !>(id),
         }
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         (EntityNamespace::Entity, self)
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }
@@ -109,9 +109,9 @@ pub enum EntitySubjectId {
 
 impl Resource for EntitySubject {
     type Id = EntitySubjectId;
-    type Namespace = EntitySubjectNamespace;
+    type Kind = EntitySubjectNamespace;
 
-    fn from_parts(kind: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
         Ok(match (kind, id) {
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
@@ -131,7 +131,7 @@ impl Resource for EntitySubject {
         })
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         match self {
             Self::Public => (
                 EntitySubjectNamespace::Account,
@@ -148,7 +148,7 @@ impl Resource for EntitySubject {
         }
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }

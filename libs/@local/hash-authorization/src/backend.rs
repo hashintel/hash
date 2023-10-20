@@ -59,9 +59,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync;
@@ -81,9 +81,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -105,9 +105,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -129,9 +129,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
         R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -157,10 +157,9 @@ pub trait ZanzibarBackend {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
-        O: Resource<Namespace: Serialize, Id: Serialize> + Sync,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
         R: Serialize + Affiliation<O> + Sync,
-        S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>
-            + Sync;
+        S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
 
     /// Returns the list of all relations matching the filter.
     ///
@@ -181,9 +180,9 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<Vec<R>, Report<ReadError>>> + Send
     where
         for<'de> R: Relationship<
-                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Deserialize<'de>,
             > + Send;
 }

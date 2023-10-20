@@ -264,12 +264,10 @@ where
     {
         let accounts = authorization_api
             .read_relations::<(WebId, WebRelation, AccountId)>(
-                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
-                    &WebNamespace::Web,
-                ))
-                .with_subject(SubjectFilter::from_resource(
-                    ResourceFilter::from_namespace(AccountNamespace::Account),
-                )),
+                RelationshipFilter::from_resource(ResourceFilter::from_kind(&WebNamespace::Web))
+                    .with_subject(SubjectFilter::from_resource(ResourceFilter::from_kind(
+                        AccountNamespace::Account,
+                    ))),
                 Consistency::FullyConsistent,
             )
             .await
@@ -290,12 +288,10 @@ where
 
         let account_groups = authorization_api
             .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
-                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
-                    &WebNamespace::Web,
-                ))
-                .with_subject(SubjectFilter::from_resource(
-                    ResourceFilter::from_namespace(AccountGroupNamespace::AccountGroup),
-                )),
+                RelationshipFilter::from_resource(ResourceFilter::from_kind(&WebNamespace::Web))
+                    .with_subject(SubjectFilter::from_resource(ResourceFilter::from_kind(
+                        AccountGroupNamespace::AccountGroup,
+                    ))),
                 Consistency::FullyConsistent,
             )
             .await

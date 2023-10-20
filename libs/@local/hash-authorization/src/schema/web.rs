@@ -16,19 +16,19 @@ pub enum WebNamespace {
 
 impl Resource for WebId {
     type Id = Self;
-    type Namespace = WebNamespace;
+    type Kind = WebNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        match namespace {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        match kind {
             WebNamespace::Web => Ok::<_, !>(id),
         }
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         (WebNamespace::Web, self)
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }
