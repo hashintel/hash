@@ -2,17 +2,12 @@ definition graph/account {}
 
 definition graph/account_group {
 	relation direct_owner: graph/account
-	relation direct_admin: graph/account
 	relation direct_member: graph/account
 
-	permission add_owner = direct_owner
-	permission remove_owner = direct_owner
-	permission add_admin = direct_admin + add_owner
-	permission remove_admin = direct_admin + remove_owner
-	permission add_member = add_admin
-	permission remove_member = remove_admin
+	permission add_member = direct_owner
+	permission remove_member = direct_owner
 
-	permission member = direct_owner + direct_admin + direct_member
+	permission member = direct_owner + direct_member
 }
 
 definition graph/entity {

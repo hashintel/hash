@@ -7,10 +7,9 @@ mod web;
 pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
-        AccountGroupDirectAdminSubject, AccountGroupDirectMemberSubject,
-        AccountGroupDirectOwnerSubject, AccountGroupNamespace, AccountGroupPermission,
-        AccountGroupRelationAndSubject, AccountGroupResourceRelation, AccountGroupSubject,
-        AccountGroupSubjectId,
+        AccountGroupDirectMemberSubject, AccountGroupDirectOwnerSubject, AccountGroupNamespace,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupResourceRelation,
+        AccountGroupSubject, AccountGroupSubjectId,
     },
     entity::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,

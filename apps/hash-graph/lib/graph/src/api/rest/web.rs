@@ -7,8 +7,7 @@ use std::sync::Arc;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupPermission, WebDirectOwnerSubject, WebPermission, WebRelationAndSubject,
-        WebSubject, WebSubjectSet,
+        WebDirectOwnerSubject, WebPermission, WebRelationAndSubject, WebSubject, WebSubjectSet,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -102,36 +101,15 @@ where
     })?;
 
     let owner = match owner_id {
-        WebSubject::Account(account_id) => {
-            if account_id != actor_id {
-                return Err(StatusCode::FORBIDDEN);
-            }
-            WebDirectOwnerSubject::Account { id: account_id }
-        }
-        WebSubject::AccountGroup(account_group_id) => {
-            let permission_response = authorization_api
-                .check_account_group_permission(
-                    actor_id,
-                    AccountGroupPermission::AddOwner,
-                    account_group_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .map_err(|error| {
-                    tracing::error!(?error, "Could not check permissions");
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
-
-            if !permission_response.has_permission {
-                return Err(StatusCode::FORBIDDEN);
-            }
-            WebDirectOwnerSubject::AccountGroup {
-                id: account_group_id,
-                set: WebSubjectSet::Member,
-            }
-        }
+        WebSubject::Account(account_id) => WebDirectOwnerSubject::Account { id: account_id },
+        WebSubject::AccountGroup(account_group_id) => WebDirectOwnerSubject::AccountGroup {
+            id: account_group_id,
+            set: WebSubjectSet::Member,
+        },
     };
 
+    // We don't need to check for permissions as the web is created with the same id as the account
+    // or account group id. That will also be the owner of the web.
     authorization_api
         .modify_web_relations([(
             ModifyRelationshipOperation::Create,
