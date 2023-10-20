@@ -11,10 +11,6 @@ class AccountGroupId(RootModel[UUID]):
     root: UUID
 
 class AccountGroupPermission(Enum):
-    add_owner = 'add_owner'
-    remove_owner = 'remove_owner'
-    add_admin = 'add_admin'
-    remove_admin = 'remove_admin'
     add_member = 'add_member'
     remove_member = 'remove_member'
 
