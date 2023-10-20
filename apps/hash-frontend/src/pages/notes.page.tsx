@@ -21,7 +21,7 @@ import {
   format,
   isYesterday,
 } from "date-fns";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
@@ -202,6 +202,11 @@ const NotesPage: NextPageWithLayout = () => {
     }, {});
   }, [latestQuickNoteEntitiesByDay]);
 
+  const [
+    previouslyFetchedQuickNotesWithContentsData,
+    setPreviouslyFetchedQuickNotesWithContentsData,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
   const { data: quickNotesWithContentsData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
@@ -231,15 +236,15 @@ const NotesPage: NextPageWithLayout = () => {
       },
     },
     fetchPolicy: "cache-and-network",
+    onCompleted: (data) => setPreviouslyFetchedQuickNotesWithContentsData(data),
     skip:
       !latestQuickNoteEntitiesWithCreatedAt ||
       latestQuickNoteEntitiesWithCreatedAt.length === 0,
   });
 
-  const quickNotesWithContentsSubgraph =
-    quickNotesWithContentsData?.structuralQueryEntities as
-      | Subgraph<EntityRootType>
-      | undefined;
+  const quickNotesWithContentsSubgraph = (
+    quickNotesWithContentsData ?? previouslyFetchedQuickNotesWithContentsData
+  )?.structuralQueryEntities as Subgraph<EntityRootType> | undefined;
 
   const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
 
