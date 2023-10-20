@@ -42,13 +42,13 @@ impl Resource for WebId {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WebObjectRelation {
+pub enum WebResourceRelation {
     DirectOwner,
     DirectEditor,
 }
 
-impl Affiliation<WebId> for WebObjectRelation {}
-impl Relation<WebId> for WebObjectRelation {}
+impl Affiliation<WebId> for WebResourceRelation {}
+impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -164,7 +164,7 @@ pub enum WebRelationAndSubject {
 }
 
 impl Relationship for (WebId, WebRelationAndSubject) {
-    type Relation = WebObjectRelation;
+    type Relation = WebResourceRelation;
     type Resource = WebId;
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
@@ -178,7 +178,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
         Ok((
             resource,
             match relation {
-                WebObjectRelation::DirectOwner => match (subject, subject_set) {
+                WebResourceRelation::DirectOwner => match (subject, subject_set) {
                     (WebSubject::Account(id), None) => {
                         WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::Account { id })
                     }
@@ -197,7 +197,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                         ));
                     }
                 },
-                WebObjectRelation::DirectEditor => match (subject, subject_set) {
+                WebResourceRelation::DirectEditor => match (subject, subject_set) {
                     (WebSubject::Account(id), None) => {
                         WebRelationAndSubject::DirectEditor(WebDirectEditorSubject::Account { id })
                     }
@@ -241,7 +241,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
     ) {
         let (relation, (subject, subject_set)) = match self.1 {
             WebRelationAndSubject::DirectOwner(subject) => (
-                WebObjectRelation::DirectOwner,
+                WebResourceRelation::DirectOwner,
                 match subject {
                     WebDirectOwnerSubject::Account { id } => (WebSubject::Account(id), None),
                     WebDirectOwnerSubject::AccountGroup { id, set } => {
@@ -250,7 +250,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                 },
             ),
             WebRelationAndSubject::DirectEditor(subject) => (
-                WebObjectRelation::DirectEditor,
+                WebResourceRelation::DirectEditor,
                 match subject {
                     WebDirectEditorSubject::Account { id } => (WebSubject::Account(id), None),
                     WebDirectEditorSubject::AccountGroup { id, set } => {

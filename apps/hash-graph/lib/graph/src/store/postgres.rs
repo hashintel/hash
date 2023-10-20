@@ -7,7 +7,10 @@ mod query;
 mod traversal_context;
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntitySubject, WebSubject},
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupDirectOwnerSubject, AccountGroupRelationAndSubject, EntitySubject, WebSubject,
+    },
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -1301,13 +1304,25 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .attach_printable(account_group_id)?;
 
         authorization_api
-            .add_account_group_owner(actor_id, account_group_id)
+            .modify_account_group_relations([(
+                ModifyRelationshipOperation::Create,
+                account_group_id,
+                AccountGroupRelationAndSubject::DirectOwner(
+                    AccountGroupDirectOwnerSubject::Account { id: actor_id },
+                ),
+            )])
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_account_group_owner(actor_id, account_group_id)
+                .modify_account_group_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    account_group_id,
+                    AccountGroupRelationAndSubject::DirectOwner(
+                        AccountGroupDirectOwnerSubject::Account { id: actor_id },
+                    ),
+                )])
                 .await
                 .change_context(InsertionError)
             {

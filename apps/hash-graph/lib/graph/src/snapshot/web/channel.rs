@@ -43,7 +43,7 @@ impl Sink<Web> for WebSender {
             self.relations
                 .start_send_unpin((item.id, relation_and_subject))
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send web relations")?
+                .attach_printable("could not send web relations")?;
         }
         Ok(())
     }

@@ -12,8 +12,8 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, EntityPermission, EntityRelationAndSubject, WebPermission,
-        WebRelationAndSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
+        EntityRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -30,40 +30,16 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn add_account_group_owner(
+    fn modify_account_group_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_owner(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn add_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn add_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                AccountGroupId,
+                AccountGroupRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////

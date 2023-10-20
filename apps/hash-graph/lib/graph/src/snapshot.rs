@@ -1,7 +1,7 @@
 pub mod entity;
 pub mod owner;
 
-use authorization::schema::WebRelationAndSubject;
+use authorization::schema::{AccountGroupRelationAndSubject, WebRelationAndSubject};
 
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
@@ -22,7 +22,7 @@ use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{AccountGroupRelation, EntityRelationAndSubject, WebNamespace},
+    schema::{EntityRelationAndSubject, WebNamespace},
     zanzibar::{
         types::{RelationshipFilter, ResourceFilter},
         Consistency,
@@ -66,9 +66,7 @@ pub struct Account {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
     id: AccountGroupId,
-    owners: Vec<AccountId>,
-    admins: Vec<AccountId>,
-    members: Vec<AccountId>,
+    relations: Vec<AccountGroupRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -226,28 +224,18 @@ where
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
                 let id: AccountGroupId = row.get(0);
-                let mut owners = Vec::new();
-                let mut admins = Vec::new();
-                let mut members = Vec::new();
-                for (_group, relation, user) in authorization_api
-                    .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
-                        RelationshipFilter::from_resource(id),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(SnapshotDumpError::Query)?
-                {
-                    match relation {
-                        AccountGroupRelation::DirectOwner => owners.push(user),
-                        AccountGroupRelation::DirectAdmin => admins.push(user),
-                        AccountGroupRelation::DirectMember => members.push(user),
-                    }
-                }
                 Ok(AccountGroup {
                     id,
-                    owners,
-                    admins,
-                    members,
+                    relations: authorization_api
+                        .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+                            RelationshipFilter::from_resource(id),
+                            Consistency::FullyConsistent,
+                        )
+                        .await
+                        .change_context(SnapshotDumpError::Query)?
+                        .into_iter()
+                        .map(|(_group, relation)| relation)
+                        .collect(),
                 })
             }))
     }

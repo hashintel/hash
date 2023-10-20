@@ -5,7 +5,12 @@
 use std::sync::Arc;
 
 use authorization::{
-    schema::{AccountGroupPermission, WebSubject},
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupDirectAdminSubject, AccountGroupDirectMemberSubject,
+        AccountGroupDirectOwnerSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        WebSubject,
+    },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -244,8 +249,8 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if {permission} permission on the account group is granted \
-                     to the specified actor"
+                    "Could not check if permission on the account group is granted to the \
+                     specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
@@ -305,7 +310,13 @@ where
     }
 
     authorization_api
-        .add_account_group_owner(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Create,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectOwner(AccountGroupDirectOwnerSubject::Account {
+                id: account_id,
+            }),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add account group owner");
@@ -367,7 +378,13 @@ where
     }
 
     authorization_api
-        .remove_account_group_owner(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Delete,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectOwner(AccountGroupDirectOwnerSubject::Account {
+                id: account_id,
+            }),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove account group owner");
@@ -429,7 +446,13 @@ where
     }
 
     authorization_api
-        .add_account_group_admin(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Create,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectAdmin(AccountGroupDirectAdminSubject::Account {
+                id: account_id,
+            }),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add account group admin");
@@ -491,7 +514,13 @@ where
     }
 
     authorization_api
-        .remove_account_group_admin(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Delete,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectAdmin(AccountGroupDirectAdminSubject::Account {
+                id: account_id,
+            }),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove account group admin");
@@ -553,7 +582,13 @@ where
     }
 
     authorization_api
-        .add_account_group_member(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Create,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectMember(
+                AccountGroupDirectMemberSubject::Account { id: account_id },
+            ),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add account group member");
@@ -615,7 +650,13 @@ where
     }
 
     authorization_api
-        .remove_account_group_member(account_id, account_group_id)
+        .modify_account_group_relations([(
+            ModifyRelationshipOperation::Delete,
+            account_group_id,
+            AccountGroupRelationAndSubject::DirectMember(
+                AccountGroupDirectMemberSubject::Account { id: account_id },
+            ),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not remove account group member");

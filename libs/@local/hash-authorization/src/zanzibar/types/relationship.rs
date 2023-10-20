@@ -3,7 +3,7 @@ use std::error::Error;
 use crate::zanzibar::{
     types::{
         resource::{Resource, ResourceFilter},
-        subject::{Subject, SubjectFilter},
+        subject::SubjectFilter,
     },
     Affiliation,
 };
@@ -89,49 +89,4 @@ pub trait Relationship: Sized {
         Self::Subject,
         Option<Self::SubjectSet>,
     );
-}
-
-impl<O, R, S> Relationship for (O, R, S)
-where
-    O: Resource + Copy,
-    R: Affiliation<O> + Copy,
-    S: Subject + Copy,
-{
-    type Relation = R;
-    type Resource = O;
-    type Subject = S::Resource;
-    type SubjectSet = S::Relation;
-
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error> {
-        S::from_parts(subject, subject_set).map(|subject| (resource, relation, subject))
-    }
-
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
-        Relationship::into_parts(*self)
-    }
-
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
-        let (resource, relation, subject) = self;
-        let (subject, subject_set) = Subject::into_parts(subject);
-        (resource, relation, subject, subject_set)
-    }
 }
