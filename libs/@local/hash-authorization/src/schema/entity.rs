@@ -74,7 +74,6 @@ pub enum EntitySubject {
 }
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EntitySubjectSet {
     #[default]
@@ -83,6 +82,14 @@ pub enum EntitySubjectSet {
 
 impl Affiliation<EntitySubject> for EntitySubjectSet {}
 impl Relation<EntitySubject> for EntitySubjectSet {}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EntitySubjectNamespace {
+    #[serde(rename = "graph/account")]
+    Account,
+    #[serde(rename = "graph/account_group")]
+    AccountGroup,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -193,14 +200,6 @@ pub enum EntityRelationAndSubject {
     DirectOwner(EntityDirectOwnerSubject),
     DirectEditor(EntityDirectEditorSubject),
     DirectViewer(EntityDirectViewerSubject),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EntitySubjectNamespace {
-    #[serde(rename = "graph/account")]
-    Account,
-    #[serde(rename = "graph/account_group")]
-    AccountGroup,
 }
 
 impl Relationship for (EntityUuid, EntityRelationAndSubject) {

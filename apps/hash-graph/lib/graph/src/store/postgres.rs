@@ -7,7 +7,7 @@ mod query;
 mod traversal_context;
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntitySubject, OwnerId},
+    schema::{EntitySubject, WebSubject},
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -1342,7 +1342,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError> {
+    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
         let row = self
             .as_client()
             .query_one(
@@ -1366,8 +1366,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             (false, false) => Err(Report::new(QueryError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
-            (true, false) => Ok(OwnerId::Account(AccountId::new(owned_by_id.into_uuid()))),
-            (false, true) => Ok(OwnerId::AccountGroupMembers(AccountGroupId::new(
+            (true, false) => Ok(WebSubject::Account(AccountId::new(owned_by_id.into_uuid()))),
+            (false, true) => Ok(WebSubject::AccountGroup(AccountGroupId::new(
                 owned_by_id.into_uuid(),
             ))),
             (true, true) => Err(Report::new(QueryError)

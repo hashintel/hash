@@ -8,7 +8,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
-        EntityPermission, EntityRelationAndSubject, EntitySubjectSet, OwnerId,
+        EntityPermission, EntityRelationAndSubject, EntitySubjectSet, WebSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -204,15 +204,25 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    let owner_id = store.identify_owned_by_id(owner).await.map_err(|report| {
+        tracing::error!(error=?report, "Could not identify account or account group");
+        StatusCode::NOT_FOUND
+    })?;
+
+    let owner = match owner_id {
+        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
+            id,
+            set: EntitySubjectSet::Member,
+        },
+    };
+
     store
         .create_entity(
             actor_id,
             &mut authorization_api,
             owned_by_id,
-            store.identify_owned_by_id(owner).await.map_err(|report| {
-                tracing::error!(error=?report, "Could not identify account or account group");
-                StatusCode::NOT_FOUND
-            })?,
+            owner,
             entity_uuid,
             None,
             false,
@@ -272,8 +282,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if {permission} permission on entity is granted to the \
-                     specified actor"
+                    "Could not check if permission on entity is granted to the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?
@@ -655,9 +664,9 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let subject = match owner_id {
-        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
-        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+    let owner = match owner_id {
+        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -667,7 +676,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationAndSubject::DirectOwner(subject),
+            EntityRelationAndSubject::DirectOwner(owner),
         )])
         .await
         .map_err(|error| {
@@ -743,8 +752,8 @@ where
         })?;
 
     let subject = match owner_id {
-        OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
-        OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
+        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -824,8 +833,8 @@ where
     })?;
 
     let subject = match editor_id {
-        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
-        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+        WebSubject::Account(id) => EntityDirectEditorSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityDirectEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -908,8 +917,8 @@ where
     })?;
 
     let subject = match editor_id {
-        OwnerId::Account(id) => EntityDirectEditorSubject::Account { id },
-        OwnerId::AccountGroupMembers(id) => EntityDirectEditorSubject::AccountGroup {
+        WebSubject::Account(id) => EntityDirectEditorSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityDirectEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },

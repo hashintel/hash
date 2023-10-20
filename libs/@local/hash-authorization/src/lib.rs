@@ -10,7 +10,7 @@ pub mod schema;
 pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
-use crate::schema::EntityRelationAndSubject;
+use crate::schema::{EntityRelationAndSubject, WebRelationAndSubject};
 
 mod api;
 
@@ -25,7 +25,7 @@ use crate::{
     backend::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
-    schema::{AccountGroupPermission, EntityPermission, OwnerId, WebPermission},
+    schema::{AccountGroupPermission, EntityPermission, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -107,34 +107,12 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
-    async fn add_web_owner(
+    async fn modify_web_relations(
         &mut self,
-        _owner: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_web_owner(
-        &mut self,
-        _owner: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn add_web_editor(
-        &mut self,
-        _editor: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_web_editor(
-        &mut self,
-        _editor: OwnerId,
-        _web: WebId,
+        _relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }

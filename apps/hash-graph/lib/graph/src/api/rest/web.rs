@@ -5,7 +5,11 @@
 use std::sync::Arc;
 
 use authorization::{
-    schema::{AccountGroupPermission, OwnerId, WebPermission},
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupPermission, WebDirectOwnerSubject, WebPermission, WebRelationAndSubject,
+        WebSubject, WebSubjectSet,
+    },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -97,13 +101,14 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    match owner_id {
-        OwnerId::Account(account_id) => {
+    let owner = match owner_id {
+        WebSubject::Account(account_id) => {
             if account_id != actor_id {
                 return Err(StatusCode::FORBIDDEN);
             }
+            WebDirectOwnerSubject::Account { id: account_id }
         }
-        OwnerId::AccountGroupMembers(account_group_id) => {
+        WebSubject::AccountGroup(account_group_id) => {
             let permission_response = authorization_api
                 .check_account_group_permission(
                     actor_id,
@@ -120,11 +125,19 @@ where
             if !permission_response.has_permission {
                 return Err(StatusCode::FORBIDDEN);
             }
+            WebDirectOwnerSubject::AccountGroup {
+                id: account_group_id,
+                set: WebSubjectSet::Member,
+            }
         }
-    }
+    };
 
     authorization_api
-        .add_web_owner(owner_id, WebId::from(web_id))
+        .modify_web_relations([(
+            ModifyRelationshipOperation::Create,
+            WebId::new(web_id.into_uuid()),
+            WebRelationAndSubject::DirectOwner(owner),
+        )])
         .await
         .map_err(|error| {
             tracing::error!(?error, "Could not add web owner");
@@ -171,8 +184,7 @@ where
             .map_err(|error| {
                 tracing::error!(
                     ?error,
-                    "Could not check if {permission} permission on web is granted to the \
-                     specified actor"
+                    "Could not check if permission on web is granted to the specified actor"
                 );
                 StatusCode::INTERNAL_SERVER_ERROR
             })?

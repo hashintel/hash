@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use authorization::{
-    schema::{AccountGroupPermission, OwnerId},
+    schema::{AccountGroupPermission, WebSubject},
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -178,7 +178,7 @@ where
             tracing::error!(error=?report, "Could not identify account");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    if account != OwnerId::Account(actor_id) {
+    if account != WebSubject::Account(actor_id) {
         tracing::error!("Account does not exist in the graph");
         return Err(StatusCode::NOT_FOUND);
     }

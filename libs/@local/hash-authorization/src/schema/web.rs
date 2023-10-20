@@ -1,12 +1,19 @@
-use std::{error::Error, fmt};
+use std::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
     web::WebId,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::zanzibar::{types::Resource, Affiliation, Permission, Relation};
+use crate::{
+    schema::error::InvalidRelationship,
+    zanzibar::{
+        types::{Relationship, Resource},
+        Affiliation, Permission, Relation,
+    },
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WebNamespace {
@@ -34,28 +41,14 @@ impl Resource for WebId {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "type", content = "id")]
-pub enum OwnerId {
-    Account(AccountId),
-    AccountGroupMembers(AccountGroupId),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WebRelation {
+pub enum WebObjectRelation {
     DirectOwner,
     DirectEditor,
 }
 
-impl fmt::Display for WebRelation {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
-    }
-}
-
-impl Affiliation<WebId> for WebRelation {}
-
-impl Relation<WebId> for WebRelation {}
+impl Affiliation<WebId> for WebObjectRelation {}
+impl Relation<WebId> for WebObjectRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -63,13 +56,209 @@ impl Relation<WebId> for WebRelation {}
 pub enum WebPermission {
     CreateEntity,
 }
+impl Affiliation<WebId> for WebPermission {}
+impl Permission<WebId> for WebPermission {}
 
-impl fmt::Display for WebPermission {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.serialize(fmt)
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "id")]
+pub enum WebSubject {
+    Account(AccountId),
+    AccountGroup(AccountGroupId),
+}
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WebSubjectSet {
+    #[default]
+    Member,
+}
+
+impl Affiliation<WebSubject> for WebSubjectSet {}
+impl Relation<WebSubject> for WebSubjectSet {}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WebSubjectNamespace {
+    #[serde(rename = "graph/account")]
+    Account,
+    #[serde(rename = "graph/account_group")]
+    AccountGroup,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WebSubjectId {
+    Uuid(Uuid),
+}
+
+impl Resource for WebSubject {
+    type Id = WebSubjectId;
+    type Kind = WebSubjectNamespace;
+
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        Ok::<_, !>(match (kind, id) {
+            (WebSubjectNamespace::Account, WebSubjectId::Uuid(id)) => {
+                Self::Account(AccountId::new(id))
+            }
+            (WebSubjectNamespace::AccountGroup, WebSubjectId::Uuid(id)) => {
+                Self::AccountGroup(AccountGroupId::new(id))
+            }
+        })
+    }
+
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
+        match self {
+            Self::Account(id) => (
+                WebSubjectNamespace::Account,
+                WebSubjectId::Uuid(id.into_uuid()),
+            ),
+            Self::AccountGroup(id) => (
+                WebSubjectNamespace::AccountGroup,
+                WebSubjectId::Uuid(id.into_uuid()),
+            ),
+        }
+    }
+
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
+        Resource::into_parts(*self)
     }
 }
 
-impl Affiliation<WebId> for WebPermission {}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum WebDirectOwnerSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: WebSubjectSet,
+    },
+}
 
-impl Permission<WebId> for WebPermission {}
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum WebDirectEditorSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: WebSubjectSet,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
+pub enum WebRelationAndSubject {
+    DirectOwner(WebDirectOwnerSubject),
+    DirectEditor(WebDirectEditorSubject),
+}
+
+impl Relationship for (WebId, WebRelationAndSubject) {
+    type Relation = WebObjectRelation;
+    type Resource = WebId;
+    type Subject = WebSubject;
+    type SubjectSet = WebSubjectSet;
+
+    fn from_parts(
+        resource: Self::Resource,
+        relation: Self::Relation,
+        subject: Self::Subject,
+        subject_set: Option<Self::SubjectSet>,
+    ) -> Result<Self, impl Error> {
+        Ok((
+            resource,
+            match relation {
+                WebObjectRelation::DirectOwner => match (subject, subject_set) {
+                    (WebSubject::Account(id), None) => {
+                        WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::Account { id })
+                    }
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::AccountGroup {
+                            id,
+                            set,
+                        })
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
+                            resource,
+                            relation,
+                            subject,
+                            subject_set,
+                        ));
+                    }
+                },
+                WebObjectRelation::DirectEditor => match (subject, subject_set) {
+                    (WebSubject::Account(id), None) => {
+                        WebRelationAndSubject::DirectEditor(WebDirectEditorSubject::Account { id })
+                    }
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebRelationAndSubject::DirectEditor(WebDirectEditorSubject::AccountGroup {
+                            id,
+                            set,
+                        })
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
+                            resource,
+                            relation,
+                            subject,
+                            subject_set,
+                        ));
+                    }
+                },
+            },
+        ))
+    }
+
+    fn to_parts(
+        &self,
+    ) -> (
+        Self::Resource,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    ) {
+        Self::into_parts(*self)
+    }
+
+    fn into_parts(
+        self,
+    ) -> (
+        Self::Resource,
+        Self::Relation,
+        Self::Subject,
+        Option<Self::SubjectSet>,
+    ) {
+        let (relation, (subject, subject_set)) = match self.1 {
+            WebRelationAndSubject::DirectOwner(subject) => (
+                WebObjectRelation::DirectOwner,
+                match subject {
+                    WebDirectOwnerSubject::Account { id } => (WebSubject::Account(id), None),
+                    WebDirectOwnerSubject::AccountGroup { id, set } => {
+                        (WebSubject::AccountGroup(id), Some(set))
+                    }
+                },
+            ),
+            WebRelationAndSubject::DirectEditor(subject) => (
+                WebObjectRelation::DirectEditor,
+                match subject {
+                    WebDirectEditorSubject::Account { id } => (WebSubject::Account(id), None),
+                    WebDirectEditorSubject::AccountGroup { id, set } => {
+                        (WebSubject::AccountGroup(id), Some(set))
+                    }
+                },
+            ),
+        };
+        (self.0, relation, subject, subject_set)
+    }
+}
