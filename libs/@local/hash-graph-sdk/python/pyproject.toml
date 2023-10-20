@@ -19,7 +19,7 @@ devtools = "^0.12.2"
 
 [tool.poetry.group.lint-tools.dependencies]
 black = "^23.10.0"
-ruff = "^0.1.0"
+ruff = "^0.1.1"
 mypy = "^1.6.1"
 
 hash-graph-client = { path = "../../hash-graph-client/python", develop = true }
