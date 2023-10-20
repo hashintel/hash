@@ -104,9 +104,8 @@ const NotesPage: NextPageWithLayout = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  const quickNotesSubgraph = quickNotesData?.structuralQueryEntities as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const quickNotesSubgraph = quickNotesData?.structuralQueryEntities
+    .subgraph as Subgraph<EntityRootType> | undefined;
 
   const quickNoteEntities = useMemo(
     () => (quickNotesSubgraph ? getRoots(quickNotesSubgraph) : undefined),
@@ -159,7 +158,7 @@ const NotesPage: NextPageWithLayout = () => {
 
   const quickNotesAllVersionsSubgraph = (
     quickNotesAllVersionsData ?? previouslyFetchedQuickNotesAllVersionsData
-  )?.structuralQueryEntities as Subgraph<EntityRootType> | undefined;
+  )?.structuralQueryEntities.subgraph as Subgraph<EntityRootType> | undefined;
 
   const latestQuickNoteEntitiesWithCreatedAt = useMemo<
     QuickNoteEntityWithCreatedAt[] | undefined
@@ -310,7 +309,7 @@ const NotesPage: NextPageWithLayout = () => {
 
   const quickNotesWithContentsSubgraph = (
     quickNotesWithContentsData ?? previouslyFetchedQuickNotesWithContentsData
-  )?.structuralQueryEntities as Subgraph<EntityRootType> | undefined;
+  )?.structuralQueryEntities.subgraph as Subgraph<EntityRootType> | undefined;
 
   const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
 

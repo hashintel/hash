@@ -136,7 +136,8 @@ export const EditableQuickNote: FunctionComponent<{
       data?.getEntity
         ? getBlockCollectionContents({
             blockCollectionEntityId,
-            blockCollectionSubgraph: data.getEntity as Subgraph<EntityRootType>,
+            blockCollectionSubgraph: data.getEntity
+              .subgraph as Subgraph<EntityRootType>,
           })
         : undefined,
     [blockCollectionEntityId, data],
