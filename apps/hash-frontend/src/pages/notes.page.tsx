@@ -44,7 +44,7 @@ const NotesPage: NextPageWithLayout = () => {
 
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
-  const { data: quickNotesAllVersionsData, refetch } = useQuery<
+  const { data: quickNotesData, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -61,7 +61,80 @@ const NotesPage: NextPageWithLayout = () => {
                 { parameter: authenticatedUser.accountId },
               ],
             },
+            {
+              any: [
+                {
+                  equal: [
+                    {
+                      path: [
+                        "properties",
+                        extractBaseUrl(
+                          types.propertyType.archived.propertyTypeId,
+                        ),
+                      ],
+                    },
+                    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                    null,
+                  ],
+                },
+                {
+                  equal: [
+                    {
+                      path: [
+                        "properties",
+                        extractBaseUrl(
+                          types.propertyType.archived.propertyTypeId,
+                        ),
+                      ],
+                    },
+                    { parameter: false },
+                  ],
+                },
+              ],
+            },
           ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    },
+    fetchPolicy: "cache-and-network",
+  });
+
+  const quickNotesSubgraph = quickNotesData?.structuralQueryEntities as
+    | Subgraph<EntityRootType>
+    | undefined;
+
+  const quickNoteEntities = useMemo(
+    () => (quickNotesSubgraph ? getRoots(quickNotesSubgraph) : undefined),
+    [quickNotesSubgraph],
+  );
+
+  const [
+    previouslyFetchedQuickNotesAllVersionsData,
+    setPreviouslyFetchedQuickNotesAllVersionsData,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
+  const { data: quickNotesAllVersionsData } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    variables: {
+      query: {
+        filter: {
+          any: (quickNoteEntities ?? []).map((quickNoteEntity) => ({
+            equal: [
+              { path: ["uuid"] },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  quickNoteEntity.metadata.recordId.entityId,
+                ),
+              },
+            ],
+          })),
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
@@ -80,13 +153,13 @@ const NotesPage: NextPageWithLayout = () => {
         },
       },
     },
+    onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
     fetchPolicy: "cache-and-network",
   });
 
-  const quickNotesAllVersionsSubgraph =
-    quickNotesAllVersionsData?.structuralQueryEntities as
-      | Subgraph<EntityRootType>
-      | undefined;
+  const quickNotesAllVersionsSubgraph = (
+    quickNotesAllVersionsData ?? previouslyFetchedQuickNotesAllVersionsData
+  )?.structuralQueryEntities as Subgraph<EntityRootType> | undefined;
 
   const latestQuickNoteEntitiesWithCreatedAt = useMemo<
     QuickNoteEntityWithCreatedAt[] | undefined
@@ -120,20 +193,13 @@ const NotesPage: NextPageWithLayout = () => {
       return updatedPrev;
     }, []);
 
-    return latestQuickNoteEntities
-      .filter(
-        ({ properties }) =>
-          !properties[
-            extractBaseUrl(types.propertyType.archived.propertyTypeId)
-          ],
-      )
-      .map((quickNoteEntity) => ({
-        quickNoteEntity,
-        createdAt: getFirstRevisionCreatedAt(
-          quickNotesAllVersionsSubgraph,
-          quickNoteEntity.metadata.recordId.entityId,
-        ),
-      }));
+    return latestQuickNoteEntities.map((quickNoteEntity) => ({
+      quickNoteEntity,
+      createdAt: getFirstRevisionCreatedAt(
+        quickNotesAllVersionsSubgraph,
+        quickNoteEntity.metadata.recordId.entityId,
+      ),
+    }));
   }, [quickNotesAllVersionsSubgraph]);
 
   const latestQuickNoteEntitiesByDay = useMemo(
