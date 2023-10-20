@@ -219,6 +219,10 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
                 )}
                 inputHeight={48}
                 sx={{
+                  [`&.${autocompleteClasses.hasClearIcon} .${outlinedInputClasses.root}`]:
+                    {
+                      paddingRight: 1,
+                    },
                   [`.${outlinedInputClasses.root}`]: {
                     height: "unset",
                     paddingY: 1.5,
