@@ -148,6 +148,12 @@ export const constructOrg = (params: {
 }): Org => {
   const { subgraph, orgEntity } = params;
 
+  if (orgEntity.metadata.entityTypeId !== types.entityType.org.entityTypeId) {
+    throw new Error(
+      `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+    );
+  }
+
   const minimalOrg = constructMinimalOrg({
     orgEntity,
   });
@@ -302,6 +308,12 @@ export const constructUser = (params: {
   userEntity: Entity<UserProperties>;
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
+
+  if (userEntity.metadata.entityTypeId !== types.entityType.user.entityTypeId) {
+    throw new Error(
+      `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+    );
+  }
 
   const { email } = simplifyProperties(userEntity.properties);
 
