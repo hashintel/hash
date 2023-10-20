@@ -31,8 +31,6 @@ export const CreateQuickNote: FunctionComponent = () => {
       kind: "quickNote",
     });
 
-    setQuickNoteEntity(createdQuickNoteEntity);
-
     const { data } = await getEntity({
       data: {
         entityId: createdQuickNoteEntity.metadata.recordId.entityId,
@@ -43,6 +41,7 @@ export const CreateQuickNote: FunctionComponent = () => {
       },
     });
 
+    setQuickNoteEntity(createdQuickNoteEntity);
     setQuickNoteSubgraph(data);
   }, [createBlockCollectionEntity, getEntity]);
 

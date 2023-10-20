@@ -194,8 +194,11 @@ const calculateSaveActions = (
       store.draft,
       block.metadata.recordId.entityId,
     );
+
     if (!draftEntity) {
-      throw new Error("Draft entity missing");
+      throw new Error(
+        `Draft entity missing: ${block.metadata.recordId.entityId}`,
+      );
     }
 
     return draftEntity.draftId;
