@@ -17,7 +17,6 @@ class AccountGroupPermission(Enum):
     remove_admin = 'remove_admin'
     add_member = 'add_member'
     remove_member = 'remove_member'
-    member = 'member'
 
 class AccountId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)

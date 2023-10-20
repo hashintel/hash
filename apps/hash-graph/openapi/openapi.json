@@ -1960,8 +1960,7 @@
           "add_admin",
           "remove_admin",
           "add_member",
-          "remove_member",
-          "member"
+          "remove_member"
         ]
       },
       "AccountId": {
