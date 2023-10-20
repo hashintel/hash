@@ -1,9 +1,9 @@
 import { Chip } from "@hashintel/design-system";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider, Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { format } from "date-fns";
-import { forwardRef, useState } from "react";
+import { forwardRef, useMemo, useState } from "react";
 
 import { CreateQuickNote } from "./create-quick-note";
 import { EditableQuickNote } from "./editable-quick-note";
@@ -34,6 +34,18 @@ export const TodaySection = forwardRef<
     ref,
   ) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [creatingQuickNote, setCreatingQuickNote] = useState<Entity>();
+
+    const displayedQuickNoteEntities = useMemo(
+      () =>
+        quickNoteEntities?.filter(
+          ({ quickNoteEntity }) =>
+            !creatingQuickNote ||
+            quickNoteEntity.metadata.recordId.entityId !==
+              creatingQuickNote.metadata.recordId.entityId,
+        ),
+      [quickNoteEntities, creatingQuickNote],
+    );
 
     return (
       <NotesSectionWrapper ref={ref}>
@@ -46,7 +58,10 @@ export const TodaySection = forwardRef<
         />
         <Box flexGrow={1}>
           <NotesWrapper>
-            <CreateQuickNote />
+            <CreateQuickNote
+              refetchQuickNotes={refetchQuickNotes}
+              onCreatingQuickNote={setCreatingQuickNote}
+            />
             <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
             <Box display="flex" marginTop={2.25}>
               <Box display="flex" alignItems="center" gap={1.5}>
@@ -78,24 +93,27 @@ export const TodaySection = forwardRef<
             </Box>
           </NotesWrapper>
           <Collapse in={!isCollapsed}>
-            {quickNoteEntities && quickNoteEntities.length > 0 ? (
+            {displayedQuickNoteEntities &&
+            displayedQuickNoteEntities.length > 0 ? (
               <NotesWrapper marginTop={3}>
-                {quickNoteEntities.map((quickNoteEntityWithCreatedAt) => (
-                  <Box
-                    key={
-                      quickNoteEntityWithCreatedAt.quickNoteEntity.metadata
-                        .recordId.entityId
-                    }
-                  >
-                    <EditableQuickNote
-                      quickNoteEntityWithCreatedAt={
-                        quickNoteEntityWithCreatedAt
+                {displayedQuickNoteEntities.map(
+                  (quickNoteEntityWithCreatedAt) => (
+                    <Box
+                      key={
+                        quickNoteEntityWithCreatedAt.quickNoteEntity.metadata
+                          .recordId.entityId
                       }
-                      quickNoteSubgraph={quickNotesSubgraph}
-                      refetchQuickNotes={refetchQuickNotes}
-                    />
-                  </Box>
-                ))}
+                    >
+                      <EditableQuickNote
+                        quickNoteEntityWithCreatedAt={
+                          quickNoteEntityWithCreatedAt
+                        }
+                        quickNoteSubgraph={quickNotesSubgraph}
+                        refetchQuickNotes={refetchQuickNotes}
+                      />
+                    </Box>
+                  ),
+                )}
               </NotesWrapper>
             ) : null}
           </Collapse>

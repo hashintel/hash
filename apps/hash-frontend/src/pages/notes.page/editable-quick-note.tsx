@@ -346,7 +346,7 @@ export const EditableQuickNote: FunctionComponent<{
           </Box>
         ) : null}
       </Box>
-      {contents ? (
+      {contents && contents.length > 0 ? (
         <BlockCollection
           ownedById={authenticatedUser.accountId as OwnedById}
           entityId={quickNoteEntity.metadata.recordId.entityId}

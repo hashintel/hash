@@ -14,7 +14,10 @@ import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 import { EditableQuickNote } from "./editable-quick-note";
 
-export const CreateQuickNote: FunctionComponent = () => {
+export const CreateQuickNote: FunctionComponent<{
+  refetchQuickNotes: () => Promise<void>;
+  onCreatingQuickNote: (quickNoteEntity: Entity) => void;
+}> = ({ onCreatingQuickNote, refetchQuickNotes }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [quickNoteEntity, setQuickNoteEntity] = useState<Entity>();
@@ -41,9 +44,10 @@ export const CreateQuickNote: FunctionComponent = () => {
       },
     });
 
+    onCreatingQuickNote(createdQuickNoteEntity);
     setQuickNoteEntity(createdQuickNoteEntity);
     setQuickNoteSubgraph(data);
-  }, [createBlockCollectionEntity, getEntity]);
+  }, [onCreatingQuickNote, createBlockCollectionEntity, getEntity]);
 
   const handleClick = useCallback(async () => {
     if (!quickNoteEntity) {
@@ -53,7 +57,8 @@ export const CreateQuickNote: FunctionComponent = () => {
 
   const handleCreateNew = useCallback(async () => {
     await createQuickNote();
-  }, [createQuickNote]);
+    await refetchQuickNotes();
+  }, [createQuickNote, refetchQuickNotes]);
 
   const quickNoteEntityWithCreatedAt = useMemo(
     () =>
