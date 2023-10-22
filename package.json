@@ -110,7 +110,7 @@
     "prettier-plugin-sh": "0.13.1",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.15",
+    "turbo": "1.10.16",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   }
