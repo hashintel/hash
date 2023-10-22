@@ -47,7 +47,7 @@ export const useUsersWithLinks = ({
                   {
                     any: userAccountIds.map((accountId) => ({
                       equal: [
-                        { path: ["metadata", "recordId", "uuid"] },
+                        { path: ["uuid"] },
                         {
                           parameter: accountId,
                         },

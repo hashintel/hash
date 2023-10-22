@@ -42,7 +42,7 @@ export const useOrgsWithLinks = ({
                   {
                     any: orgAccountGroupIds.map((accountGroupId) => ({
                       equal: [
-                        { path: ["metadata", "recordId", "uuid"] },
+                        { path: ["uuid"] },
                         {
                           parameter: accountGroupId,
                         },
