@@ -178,7 +178,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@78f94f416b0a5d85b2292e3a2220f625d9cbfc62 # v2.20.13
+        uses: taiki-e/install-action@995577ee34ef3eec8f1efd48d4711c6a5c0ff439 # v2.20.14
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -324,7 +324,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@78f94f416b0a5d85b2292e3a2220f625d9cbfc62 # v2.20.13
+        uses: taiki-e/install-action@995577ee34ef3eec8f1efd48d4711c6a5c0ff439 # v2.20.14
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -462,7 +462,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@78f94f416b0a5d85b2292e3a2220f625d9cbfc62 # v2.20.13
+        uses: taiki-e/install-action@995577ee34ef3eec8f1efd48d4711c6a5c0ff439 # v2.20.14
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,cargo-nextest@0.9.37,cargo-llvm-cov@0.5.9
 
@@ -584,7 +584,7 @@ jobs:
 
       - name: Install tools
         if: always() && steps.publish.outputs.has-rust == 'true' && github.event_name == 'pull_request' || github.event_name == 'merge_group'
-        uses: taiki-e/install-action@78f94f416b0a5d85b2292e3a2220f625d9cbfc62 # v2.20.13
+        uses: taiki-e/install-action@995577ee34ef3eec8f1efd48d4711c6a5c0ff439 # v2.20.14
         with:
           tool: cargo-semver-checks
 
