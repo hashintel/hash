@@ -298,7 +298,7 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Create,
             account_group_id,
-            AccountGroupRelationAndSubject::DirectMember(
+            AccountGroupRelationAndSubject::GeneralMember(
                 AccountGroupDirectMemberSubject::Account { id: account_id },
             ),
         )])
@@ -366,7 +366,7 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Delete,
             account_group_id,
-            AccountGroupRelationAndSubject::DirectMember(
+            AccountGroupRelationAndSubject::GeneralMember(
                 AccountGroupDirectMemberSubject::Account { id: account_id },
             ),
         )])

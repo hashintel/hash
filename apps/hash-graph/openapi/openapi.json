@@ -2405,7 +2405,7 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "directOwner"
+                  "owner"
                 ]
               },
               "subject": {
@@ -2423,7 +2423,7 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "directEditor"
+                  "generalEditor"
                 ]
               },
               "subject": {
@@ -2441,7 +2441,7 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "directViewer"
+                  "generalViewer"
                 ]
               },
               "subject": {

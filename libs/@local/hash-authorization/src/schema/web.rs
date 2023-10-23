@@ -43,7 +43,7 @@ impl Resource for WebId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebResourceRelation {
-    DirectOwner,
+    Owner,
 }
 
 impl Affiliation<WebId> for WebResourceRelation {}
@@ -160,7 +160,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
         Ok((
             resource,
             match relation {
-                WebResourceRelation::DirectOwner => match (subject, subject_set) {
+                WebResourceRelation::Owner => match (subject, subject_set) {
                     (WebSubject::Account(id), None) => {
                         WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::Account { id })
                     }
@@ -204,7 +204,7 @@ impl Relationship for (WebId, WebRelationAndSubject) {
     ) {
         let (relation, (subject, subject_set)) = match self.1 {
             WebRelationAndSubject::DirectOwner(subject) => (
-                WebResourceRelation::DirectOwner,
+                WebResourceRelation::Owner,
                 match subject {
                     WebDirectOwnerSubject::Account { id } => (WebSubject::Account(id), None),
                     WebDirectOwnerSubject::AccountGroup { id, set } => {

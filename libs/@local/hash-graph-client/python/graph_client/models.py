@@ -132,17 +132,17 @@ class EntityRecordId(BaseModel):
 
 class EntityRelationAndSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['directOwner']
+    relation: Literal['owner']
     subject: EntityDirectOwnerSubject
 
 class EntityRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['directEditor']
+    relation: Literal['generalEditor']
     subject: EntityDirectEditorSubject
 
 class EntityRelationAndSubjectItem2(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['directViewer']
+    relation: Literal['generalViewer']
     subject: EntityDirectViewerSubject
 
 class EntityRelationAndSubject(RootModel[EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2]):

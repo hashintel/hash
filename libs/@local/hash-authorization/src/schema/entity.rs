@@ -46,9 +46,9 @@ impl Resource for EntityUuid {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EntityResourceRelation {
-    DirectOwner,
-    DirectEditor,
-    DirectViewer,
+    Owner,
+    GeneralEditor,
+    GeneralViewer,
 }
 
 impl Affiliation<EntityUuid> for EntityResourceRelation {}
@@ -197,9 +197,9 @@ pub enum EntityDirectViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum EntityRelationAndSubject {
-    DirectOwner(EntityDirectOwnerSubject),
-    DirectEditor(EntityDirectEditorSubject),
-    DirectViewer(EntityDirectViewerSubject),
+    Owner(EntityDirectOwnerSubject),
+    GeneralEditor(EntityDirectEditorSubject),
+    GeneralViewer(EntityDirectViewerSubject),
 }
 
 impl Relationship for (EntityUuid, EntityRelationAndSubject) {
@@ -217,16 +217,15 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
         Ok((
             resource,
             match relation {
-                EntityResourceRelation::DirectOwner => match (subject, subject_set) {
+                EntityResourceRelation::Owner => match (subject, subject_set) {
                     (EntitySubject::Account(id), None) => {
-                        EntityRelationAndSubject::DirectOwner(EntityDirectOwnerSubject::Account {
-                            id,
-                        })
+                        EntityRelationAndSubject::Owner(EntityDirectOwnerSubject::Account { id })
                     }
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::DirectOwner(
-                            EntityDirectOwnerSubject::AccountGroup { id, set },
-                        )
+                        EntityRelationAndSubject::Owner(EntityDirectOwnerSubject::AccountGroup {
+                            id,
+                            set,
+                        })
                     }
                     (EntitySubject::Public, subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject(
@@ -245,14 +244,12 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                         ));
                     }
                 },
-                EntityResourceRelation::DirectEditor => match (subject, subject_set) {
-                    (EntitySubject::Account(id), None) => {
-                        EntityRelationAndSubject::DirectEditor(EntityDirectEditorSubject::Account {
-                            id,
-                        })
-                    }
+                EntityResourceRelation::GeneralEditor => match (subject, subject_set) {
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralEditor(
+                        EntityDirectEditorSubject::Account { id },
+                    ),
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::DirectEditor(
+                        EntityRelationAndSubject::GeneralEditor(
                             EntityDirectEditorSubject::AccountGroup { id, set },
                         )
                     }
@@ -273,17 +270,15 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                         ));
                     }
                 },
-                EntityResourceRelation::DirectViewer => match (subject, subject_set) {
+                EntityResourceRelation::GeneralViewer => match (subject, subject_set) {
                     (EntitySubject::Public, None) => {
-                        EntityRelationAndSubject::DirectViewer(EntityDirectViewerSubject::Public)
+                        EntityRelationAndSubject::GeneralViewer(EntityDirectViewerSubject::Public)
                     }
-                    (EntitySubject::Account(id), None) => {
-                        EntityRelationAndSubject::DirectViewer(EntityDirectViewerSubject::Account {
-                            id,
-                        })
-                    }
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralViewer(
+                        EntityDirectViewerSubject::Account { id },
+                    ),
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::DirectViewer(
+                        EntityRelationAndSubject::GeneralViewer(
                             EntityDirectViewerSubject::AccountGroup { id, set },
                         )
                     }
@@ -325,8 +320,8 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
         Option<Self::SubjectSet>,
     ) {
         let (relation, (subject, subject_set)) = match self.1 {
-            EntityRelationAndSubject::DirectOwner(subject) => (
-                EntityResourceRelation::DirectOwner,
+            EntityRelationAndSubject::Owner(subject) => (
+                EntityResourceRelation::Owner,
                 match subject {
                     EntityDirectOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectOwnerSubject::AccountGroup { id, set } => {
@@ -334,8 +329,8 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
             ),
-            EntityRelationAndSubject::DirectEditor(subject) => (
-                EntityResourceRelation::DirectEditor,
+            EntityRelationAndSubject::GeneralEditor(subject) => (
+                EntityResourceRelation::GeneralEditor,
                 match subject {
                     EntityDirectEditorSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectEditorSubject::AccountGroup { id, set } => {
@@ -343,8 +338,8 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
             ),
-            EntityRelationAndSubject::DirectViewer(subject) => (
-                EntityResourceRelation::DirectViewer,
+            EntityRelationAndSubject::GeneralViewer(subject) => (
+                EntityResourceRelation::GeneralViewer,
                 match subject {
                     EntityDirectViewerSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityDirectViewerSubject::AccountGroup { id, set } => {
