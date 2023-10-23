@@ -1,7 +1,6 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity } from "@local/hash-subgraph";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,7 +9,11 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/user-and-org";
+import {
+  constructMinimalOrg,
+  isEntityOrgEntity,
+  MinimalOrg,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
@@ -55,11 +58,16 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    return getRoots(subgraphAndPermissions.subgraph).map((orgEntity) =>
-      constructMinimalOrg({
-        orgEntity: orgEntity as Entity<OrgProperties>,
-      }),
-    );
+    return getRoots(
+      subgraphAndPermissions.subgraph as Subgraph<EntityRootType>,
+    ).map((orgEntity) => {
+      if (!isEntityOrgEntity(orgEntity)) {
+        throw new Error(
+          `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+        );
+      }
+      return constructMinimalOrg({ orgEntity });
+    });
   }, [subgraphAndPermissions]);
 
   return {

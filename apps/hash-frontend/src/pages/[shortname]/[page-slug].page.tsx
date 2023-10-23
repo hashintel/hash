@@ -12,13 +12,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  OrgProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
-  Entity,
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
   EntityRootType,
@@ -59,6 +54,8 @@ import {
   constructMinimalOrg,
   constructMinimalUser,
   extractOwnedById,
+  isEntityOrgEntity,
+  isEntityUserEntity,
   MinimalOrg,
   MinimalUser,
 } from "../../lib/user-and-org";
@@ -221,15 +218,21 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     );
   }
 
-  const pageWorkspace =
-    pageWorkspaceEntity.metadata.entityTypeId ===
-    types.entityType.user.entityTypeId
-      ? constructMinimalUser({
-          userEntity: pageWorkspaceEntity as Entity<UserProperties>,
-        })
-      : constructMinimalOrg({
-          orgEntity: pageWorkspaceEntity as Entity<OrgProperties>,
-        });
+  const pageWorkspace = isEntityUserEntity(pageWorkspaceEntity)
+    ? constructMinimalUser({
+        userEntity: pageWorkspaceEntity,
+      })
+    : isEntityOrgEntity(pageWorkspaceEntity)
+    ? constructMinimalOrg({
+        orgEntity: pageWorkspaceEntity,
+      })
+    : undefined;
+
+  if (!pageWorkspace) {
+    throw new Error(
+      `Entity with type ${pageWorkspaceEntity.metadata.entityTypeId} is not a user or an org entity`,
+    );
+  }
 
   const pageOwnedById = extractOwnedById(pageWorkspace);
 

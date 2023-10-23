@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity } from "@local/hash-subgraph";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,7 +9,11 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructMinimalUser, MinimalUser } from "../../lib/user-and-org";
+import {
+  constructMinimalUser,
+  isEntityUserEntity,
+  MinimalUser,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 export const useUsers = (): {
@@ -46,19 +49,25 @@ export const useUsers = (): {
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const { queryEntities: queryEntitiesData } = data ?? {};
 
   const users = useMemo(() => {
-    if (!subgraph) {
+    if (!queryEntitiesData) {
       return undefined;
     }
 
-    return getRoots(subgraph.subgraph).map((userEntity) =>
-      constructMinimalUser({
-        userEntity: userEntity as Entity<UserProperties>,
-      }),
+    return getRoots(queryEntitiesData.subgraph as Subgraph<EntityRootType>).map(
+      (userEntity) => {
+        if (!isEntityUserEntity(userEntity)) {
+          throw new Error(
+            `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+          );
+        }
+
+        return constructMinimalUser({ userEntity });
+      },
     );
-  }, [subgraph]);
+  }, [queryEntitiesData]);
 
   return {
     loading,

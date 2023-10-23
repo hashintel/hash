@@ -462,9 +462,12 @@ export const save = async (
             rightEntityRevisions[0].metadata.entityTypeId ===
               types.entityType.block.entityTypeId,
         )
-        .map(
-          ({ rightEntity: rightEntityRevisions }) =>
-            rightEntityRevisions[0] as Entity<BlockProperties>,
+        .map(({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0])
+        .filter(
+          (blockEntity): blockEntity is Entity<BlockProperties> =>
+            !blockEntity ||
+            blockEntity.metadata.entityTypeId ===
+              types.entityType.block.entityTypeId,
         );
 
       return blockEntities.map((blockEntity) =>
