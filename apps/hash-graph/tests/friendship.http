@@ -42,8 +42,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   });
 %}
 
-### Check permission for adding owner to account group
-GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_owner
+### Check permission for adding member to account group
+GET http://127.0.0.1:4000/account_groups/{{account_group_id}}/permissions/add_member
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
