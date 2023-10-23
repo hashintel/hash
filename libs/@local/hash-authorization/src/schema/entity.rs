@@ -332,7 +332,9 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
             EntityRelationAndSubject::GeneralEditor(subject) => (
                 EntityResourceRelation::GeneralEditor,
                 match subject {
-                    EntityGeneralEditorSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityGeneralEditorSubject::Account { id } => {
+                        (EntitySubject::Account(id), None)
+                    }
                     EntityGeneralEditorSubject::AccountGroup { id, set } => {
                         (EntitySubject::AccountGroup(id), Some(set))
                     }
@@ -341,7 +343,9 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
             EntityRelationAndSubject::GeneralViewer(subject) => (
                 EntityResourceRelation::GeneralViewer,
                 match subject {
-                    EntityGeneralViewerSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityGeneralViewerSubject::Account { id } => {
+                        (EntitySubject::Account(id), None)
+                    }
                     EntityGeneralViewerSubject::AccountGroup { id, set } => {
                         (EntitySubject::AccountGroup(id), Some(set))
                     }

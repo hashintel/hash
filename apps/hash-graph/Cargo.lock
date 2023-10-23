@@ -123,7 +123,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-util",
- "type-system",
  "utoipa",
  "uuid",
 ]

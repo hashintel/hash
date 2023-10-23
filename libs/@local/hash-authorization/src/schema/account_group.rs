@@ -147,9 +147,9 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
             match relation {
                 AccountGroupResourceRelation::Owner => match (subject, subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::Owner(
-                            AccountGroupOwnerSubject::Account { id },
-                        )
+                        AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
+                            id,
+                        })
                     }
                     (AccountGroupSubject::Account(_), subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(
