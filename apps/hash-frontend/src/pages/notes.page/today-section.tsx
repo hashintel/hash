@@ -3,7 +3,7 @@ import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider, Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { format } from "date-fns";
-import { forwardRef, useMemo, useState } from "react";
+import { forwardRef, Fragment, useMemo, useState } from "react";
 
 import {
   getBlockCollectionContents,
@@ -92,7 +92,7 @@ export const TodaySection = forwardRef<
           navigateDown={navigateDown}
         />
         <Box flexGrow={1}>
-          <NotesWrapper>
+          <NotesWrapper sx={{ padding: ({ spacing }) => spacing(3.25, 4.5) }}>
             {/* 
             If the last created quick note is empty, we re-use it to populate the
             create quick note form. This prevents the quick notes page from creating
@@ -148,21 +148,30 @@ export const TodaySection = forwardRef<
             displayedQuickNoteEntities.length > 0 ? (
               <NotesWrapper marginTop={3}>
                 {displayedQuickNoteEntities.map(
-                  (quickNoteEntityWithCreatedAt) => (
-                    <Box
+                  (quickNoteEntityWithCreatedAt, index) => (
+                    <Fragment
                       key={
                         quickNoteEntityWithCreatedAt.quickNoteEntity.metadata
                           .recordId.entityId
                       }
                     >
-                      <EditableQuickNote
-                        quickNoteEntityWithCreatedAt={
-                          quickNoteEntityWithCreatedAt
-                        }
-                        quickNoteSubgraph={quickNotesSubgraph ?? undefined}
-                        refetchQuickNotes={refetchQuickNotes}
-                      />
-                    </Box>
+                      {index !== 0 ? (
+                        <Divider
+                          sx={{
+                            backgroundColor: ({ palette }) => palette.gray[30],
+                          }}
+                        />
+                      ) : null}
+                      <Box paddingY={3.25} paddingX={4.5}>
+                        <EditableQuickNote
+                          quickNoteEntityWithCreatedAt={
+                            quickNoteEntityWithCreatedAt
+                          }
+                          quickNoteSubgraph={quickNotesSubgraph ?? undefined}
+                          refetchQuickNotes={refetchQuickNotes}
+                        />
+                      </Box>
+                    </Fragment>
                   ),
                 )}
               </NotesWrapper>

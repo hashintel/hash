@@ -47,7 +47,7 @@ export const NotesSection = forwardRef<
         <Box flexGrow={1}>
           <Collapse in={!isCollapsed}>
             {quickNoteEntities.length > 0 ? (
-              <NotesWrapper sx={{ padding: 0 }}>
+              <NotesWrapper>
                 {quickNoteEntities.map(
                   (quickNoteEntityWithCreatedAt, index) => (
                     <Fragment
