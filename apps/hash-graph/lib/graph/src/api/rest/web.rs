@@ -6,9 +6,7 @@ use std::sync::Arc;
 
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{
-        WebDirectOwnerSubject, WebPermission, WebRelationAndSubject, WebSubject, WebSubjectSet,
-    },
+    schema::{WebOwnerSubject, WebPermission, WebRelationAndSubject, WebSubject, WebSubjectSet},
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
 };
@@ -101,8 +99,8 @@ where
     })?;
 
     let owner = match owner_id {
-        WebSubject::Account(account_id) => WebDirectOwnerSubject::Account { id: account_id },
-        WebSubject::AccountGroup(account_group_id) => WebDirectOwnerSubject::AccountGroup {
+        WebSubject::Account(account_id) => WebOwnerSubject::Account { id: account_id },
+        WebSubject::AccountGroup(account_group_id) => WebOwnerSubject::AccountGroup {
             id: account_group_id,
             set: WebSubjectSet::Member,
         },
@@ -114,7 +112,7 @@ where
         .modify_web_relations([(
             ModifyRelationshipOperation::Create,
             WebId::new(web_id.into_uuid()),
-            WebRelationAndSubject::DirectOwner(owner),
+            WebRelationAndSubject::Owner(owner),
         )])
         .await
         .map_err(|error| {

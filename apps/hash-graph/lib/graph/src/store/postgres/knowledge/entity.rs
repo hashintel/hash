@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{EntityDirectOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
+    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -269,7 +269,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: EntityDirectOwnerSubject,
+        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

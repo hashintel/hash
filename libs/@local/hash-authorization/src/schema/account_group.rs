@@ -105,7 +105,7 @@ impl Resource for AccountGroupSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupDirectOwnerSubject {
+pub enum AccountGroupOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -115,7 +115,7 @@ pub enum AccountGroupDirectOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupDirectMemberSubject {
+pub enum AccountGroupGeneralMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -126,8 +126,8 @@ pub enum AccountGroupDirectMemberSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum AccountGroupRelationAndSubject {
-    Owner(AccountGroupDirectOwnerSubject),
-    GeneralMember(AccountGroupDirectMemberSubject),
+    Owner(AccountGroupOwnerSubject),
+    GeneralMember(AccountGroupGeneralMemberSubject),
 }
 
 impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
@@ -148,7 +148,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                 AccountGroupResourceRelation::Owner => match (subject, subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
                         AccountGroupRelationAndSubject::Owner(
-                            AccountGroupDirectOwnerSubject::Account { id },
+                            AccountGroupOwnerSubject::Account { id },
                         )
                     }
                     (AccountGroupSubject::Account(_), subject_set) => {
@@ -163,7 +163,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                 AccountGroupResourceRelation::GeneralMember => match (subject, subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
                         AccountGroupRelationAndSubject::GeneralMember(
-                            AccountGroupDirectMemberSubject::Account { id },
+                            AccountGroupGeneralMemberSubject::Account { id },
                         )
                     }
                     (AccountGroupSubject::Account(_), subject_set) => {
@@ -202,7 +202,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
             AccountGroupRelationAndSubject::Owner(subject) => (
                 AccountGroupResourceRelation::Owner,
                 match subject {
-                    AccountGroupDirectOwnerSubject::Account { id } => {
+                    AccountGroupOwnerSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },
@@ -210,7 +210,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
             AccountGroupRelationAndSubject::GeneralMember(subject) => (
                 AccountGroupResourceRelation::GeneralMember,
                 match subject {
-                    AccountGroupDirectMemberSubject::Account { id } => {
+                    AccountGroupGeneralMemberSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },

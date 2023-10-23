@@ -9,7 +9,7 @@ use std::error::Error;
 use authorization::{
     backend::ZanzibarBackend,
     schema::{
-        EntityDirectOwnerSubject, EntityDirectViewerSubject, EntityPermission,
+        EntityOwnerSubject, EntityGeneralViewerSubject, EntityPermission,
         EntityRelationAndSubject, EntityResourceRelation,
     },
     zanzibar::Consistency,
@@ -47,17 +47,17 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .touch_relationships([
             (
                 ENTITY_A,
-                EntityRelationAndSubject::Owner(EntityDirectOwnerSubject::Account { id: ALICE }),
+                EntityRelationAndSubject::Owner(EntityOwnerSubject::Account { id: ALICE }),
             ),
             (
                 ENTITY_A,
-                EntityRelationAndSubject::GeneralViewer(EntityDirectViewerSubject::Account {
+                EntityRelationAndSubject::GeneralViewer(EntityGeneralViewerSubject::Account {
                     id: BOB,
                 }),
             ),
             (
                 ENTITY_B,
-                EntityRelationAndSubject::Owner(EntityDirectOwnerSubject::Account { id: BOB }),
+                EntityRelationAndSubject::Owner(EntityOwnerSubject::Account { id: BOB }),
             ),
         ])
         .await?
@@ -180,7 +180,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let token = api
         .delete_relationships([(
             ENTITY_A,
-            EntityRelationAndSubject::GeneralViewer(EntityDirectViewerSubject::Account { id: BOB }),
+            EntityRelationAndSubject::GeneralViewer(EntityGeneralViewerSubject::Account { id: BOB }),
         )])
         .await?
         .written_at;

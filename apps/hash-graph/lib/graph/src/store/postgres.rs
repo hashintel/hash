@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupDirectOwnerSubject, AccountGroupRelationAndSubject, EntitySubject, WebSubject,
+        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, EntitySubject, WebSubject,
     },
     AuthorizationApi,
 };
@@ -1307,7 +1307,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 account_group_id,
-                AccountGroupRelationAndSubject::Owner(AccountGroupDirectOwnerSubject::Account {
+                AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
                     id: actor_id,
                 }),
             )])
@@ -1320,7 +1320,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     ModifyRelationshipOperation::Delete,
                     account_group_id,
                     AccountGroupRelationAndSubject::Owner(
-                        AccountGroupDirectOwnerSubject::Account { id: actor_id },
+                        AccountGroupOwnerSubject::Account { id: actor_id },
                     ),
                 )])
                 .await

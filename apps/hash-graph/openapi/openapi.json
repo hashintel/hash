@@ -2136,7 +2136,11 @@
           }
         }
       },
-      "EntityDirectEditorSubject": {
+      "EntityEditionId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "EntityGeneralEditorSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -2179,50 +2183,7 @@
           "propertyName": "kind"
         }
       },
-      "EntityDirectOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "EntityDirectViewerSubject": {
+      "EntityGeneralViewerSubject": {
         "oneOf": [
           {
             "type": "object",
@@ -2278,10 +2239,6 @@
         "discriminator": {
           "propertyName": "kind"
         }
-      },
-      "EntityEditionId": {
-        "type": "string",
-        "format": "uuid"
       },
       "EntityId": {
         "type": "string"
@@ -2348,6 +2305,49 @@
           }
         }
       },
+      "EntityOwnerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "EntityPermission": {
         "type": "string",
         "enum": [
@@ -2409,7 +2409,7 @@
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityDirectOwnerSubject"
+                "$ref": "#/components/schemas/EntityOwnerSubject"
               }
             }
           },
@@ -2427,7 +2427,7 @@
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityDirectEditorSubject"
+                "$ref": "#/components/schemas/EntityGeneralEditorSubject"
               }
             }
           },
@@ -2445,7 +2445,7 @@
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityDirectViewerSubject"
+                "$ref": "#/components/schemas/EntityGeneralViewerSubject"
               }
             }
           }

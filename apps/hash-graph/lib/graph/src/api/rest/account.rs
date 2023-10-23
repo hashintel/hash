@@ -7,7 +7,7 @@ use std::sync::Arc;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupDirectMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        AccountGroupGeneralMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
         WebSubject,
     },
     zanzibar::Consistency,
@@ -299,7 +299,7 @@ where
             ModifyRelationshipOperation::Create,
             account_group_id,
             AccountGroupRelationAndSubject::GeneralMember(
-                AccountGroupDirectMemberSubject::Account { id: account_id },
+                AccountGroupGeneralMemberSubject::Account { id: account_id },
             ),
         )])
         .await
@@ -367,7 +367,7 @@ where
             ModifyRelationshipOperation::Delete,
             account_group_id,
             AccountGroupRelationAndSubject::GeneralMember(
-                AccountGroupDirectMemberSubject::Account { id: account_id },
+                AccountGroupGeneralMemberSubject::Account { id: account_id },
             ),
         )])
         .await

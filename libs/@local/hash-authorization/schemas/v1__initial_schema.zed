@@ -24,3 +24,25 @@ definition graph/web {
 
 	permission create_entity = owner
 }
+
+definition graph/entity-type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/property-type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/data-type {
+	relation general_viewer: graph/account:*
+
+	permission view = general_viewer
+}
