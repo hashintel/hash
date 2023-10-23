@@ -8,11 +8,10 @@ mod subcommand;
 
 use std::sync::Arc;
 
-use error_stack::{ensure, Report, Result};
+use error_stack::Result;
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
-use crate::error::SentryError;
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
