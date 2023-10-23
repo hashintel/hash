@@ -1,7 +1,6 @@
 mod account;
 mod account_group;
 mod entity;
-mod entity_type;
 mod error;
 mod web;
 

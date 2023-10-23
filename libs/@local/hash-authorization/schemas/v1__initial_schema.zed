@@ -4,8 +4,8 @@ definition graph/account_group {
 	relation owner: graph/account
 	relation general_member: graph/account
 
-	permission add_member = general_owner
-	permission remove_member = general_owner
+	permission add_member = owner
+	permission remove_member = owner
 
 	permission member = owner + general_member
 }
@@ -23,26 +23,4 @@ definition graph/web {
 	relation owner: graph/account | graph/account_group#member
 
 	permission create_entity = owner
-}
-
-definition graph/entity-type {
-	relation owner: graph/account | graph/account_group#member
-	relation general_viewer: graph/account:*
-
-	permission update = owner
-	permission view = general_viewer + update
-}
-
-definition graph/property-type {
-	relation owner: graph/account | graph/account_group#member
-	relation general_viewer: graph/account:*
-
-	permission update = owner
-	permission view = general_viewer + update
-}
-
-definition graph/data-type {
-	relation general_viewer: graph/account:*
-
-	permission view = general_viewer
 }
