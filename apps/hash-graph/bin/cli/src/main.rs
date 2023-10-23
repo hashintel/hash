@@ -22,17 +22,6 @@ fn main() -> Result<(), GraphError> {
         subcommand,
     } = Args::parse_args();
 
-    if let Some(dsn) = &sentry_dsn {
-        let client = sentry::Client::from_config(dsn);
-
-        ensure!(
-            client.is_enabled(),
-            Report::new(SentryError::InvalidDsn)
-                .attach_printable(dsn.clone())
-                .change_context(GraphError)
-        );
-    }
-
     // Initialize Sentry
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
     // flushed. This means we need to keep the guard around for the entire lifetime of the program.
