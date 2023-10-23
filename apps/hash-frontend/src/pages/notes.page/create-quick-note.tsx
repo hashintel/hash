@@ -4,8 +4,14 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { Box, Typography } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import { Box, Skeleton } from "@mui/material";
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
@@ -15,14 +21,26 @@ import { useCreateBlockCollection } from "../shared/use-create-block-collection"
 import { EditableQuickNote } from "./editable-quick-note";
 
 export const CreateQuickNote: FunctionComponent<{
+  initialQuickNoteEntity?: Entity | null;
+  initialQuickNoteEntitySubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes: () => Promise<void>;
   onCreatingQuickNote: (quickNoteEntity: Entity) => void;
-}> = ({ onCreatingQuickNote, refetchQuickNotes }) => {
+}> = ({
+  initialQuickNoteEntity,
+  initialQuickNoteEntitySubgraph,
+  onCreatingQuickNote,
+  refetchQuickNotes,
+}) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [quickNoteEntity, setQuickNoteEntity] = useState<Entity>();
+
   const [quickNoteSubgraph, setQuickNoteSubgraph] =
     useState<Subgraph<EntityRootType>>();
+
+  if (!quickNoteSubgraph && initialQuickNoteEntitySubgraph) {
+    setQuickNoteSubgraph(initialQuickNoteEntitySubgraph);
+  }
 
   const { createBlockCollectionEntity } = useCreateBlockCollection({
     ownedById: authenticatedUser.accountId as OwnedById,
@@ -48,6 +66,16 @@ export const CreateQuickNote: FunctionComponent<{
     setQuickNoteEntity(createdQuickNoteEntity);
     setQuickNoteSubgraph(data);
   }, [onCreatingQuickNote, createBlockCollectionEntity, getEntity]);
+
+  useEffect(() => {
+    if (!quickNoteEntity) {
+      if (initialQuickNoteEntity) {
+        setQuickNoteEntity(initialQuickNoteEntity);
+      } else if (initialQuickNoteEntity === null) {
+        void createQuickNote();
+      }
+    }
+  }, [initialQuickNoteEntity, createQuickNote, quickNoteEntity]);
 
   const handleClick = useCallback(async () => {
     if (!quickNoteEntity) {
@@ -98,13 +126,7 @@ export const CreateQuickNote: FunctionComponent<{
           </Box>
         </>
       ) : (
-        <Box>
-          <Typography
-            sx={{ color: ({ palette }) => palette.gray[60], paddingY: 3 }}
-          >
-            Click here to create a new note...
-          </Typography>
-        </Box>
+        <Skeleton />
       )}
     </Box>
   );

@@ -1,9 +1,33 @@
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../graphql/api-types.gen";
+
+export const isBlockCollectionContentsEmpty = (params: {
+  contents: BlockCollectionContentItem[];
+}) => {
+  const { contents } = params;
+  if (contents.length === 0) {
+    return true;
+  }
+
+  if (
+    contents.length === 1 &&
+    contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeId ===
+      types.entityType.text.entityTypeId
+  ) {
+    const tokens = contents[0]!.rightEntity.blockChildEntity.properties[
+      extractBaseUrl(types.propertyType.tokens.propertyTypeId)
+    ] as TextToken[];
+
+    return tokens.length === 0;
+  }
+
+  return false;
+};
 
 export const getBlockCollectionContents = (params: {
   blockCollectionSubgraph: Subgraph<EntityRootType>;

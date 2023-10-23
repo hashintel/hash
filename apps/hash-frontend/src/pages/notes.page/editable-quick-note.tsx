@@ -34,7 +34,7 @@ import { UndoRegularIcon } from "../../shared/icons/undo-regular-icon";
 import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
-import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
+import { getBlockCollectionContents } from "../../lib/block-collection";
 import {
   ConvertQuickNoteToPageModal,
   PageWithParentLink,

@@ -152,6 +152,7 @@ const NotesPage: NextPageWithLayout = () => {
         },
       },
     },
+    skip: !quickNoteEntities,
     onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
     fetchPolicy: "cache-and-network",
   });
@@ -314,7 +315,10 @@ const NotesPage: NextPageWithLayout = () => {
   const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
 
   const quickNotesEntitiesCreatedToday = useMemo(
-    () => latestQuickNoteEntitiesByDay?.[todayTimestamp],
+    () =>
+      latestQuickNoteEntitiesByDay
+        ? latestQuickNoteEntitiesByDay[todayTimestamp] ?? []
+        : undefined,
     [latestQuickNoteEntitiesByDay, todayTimestamp],
   );
 
@@ -348,7 +352,12 @@ const NotesPage: NextPageWithLayout = () => {
                 }
               }}
               quickNoteEntities={quickNotesEntitiesCreatedToday}
-              quickNotesSubgraph={quickNotesWithContentsSubgraph}
+              quickNotesSubgraph={
+                quickNotesEntitiesCreatedToday &&
+                quickNotesEntitiesCreatedToday.length === 0
+                  ? null
+                  : quickNotesWithContentsSubgraph
+              }
               refetchQuickNotes={refetchQuickNotes}
               navigateDown={() => {
                 sectionRefs.current[1]?.scrollIntoView({

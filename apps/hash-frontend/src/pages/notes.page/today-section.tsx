@@ -5,6 +5,10 @@ import { styled } from "@mui/system";
 import { format } from "date-fns";
 import { forwardRef, useMemo, useState } from "react";
 
+import {
+  getBlockCollectionContents,
+  isBlockCollectionContentsEmpty,
+} from "../../lib/block-collection";
 import { CreateQuickNote } from "./create-quick-note";
 import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";
@@ -24,7 +28,7 @@ export const TodaySection = forwardRef<
   HTMLDivElement,
   {
     quickNoteEntities?: QuickNoteEntityWithCreatedAt[];
-    quickNotesSubgraph?: Subgraph<EntityRootType>;
+    quickNotesSubgraph?: Subgraph<EntityRootType> | null;
     refetchQuickNotes: () => Promise<void>;
     navigateDown: () => void;
   }
@@ -36,15 +40,46 @@ export const TodaySection = forwardRef<
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [creatingQuickNote, setCreatingQuickNote] = useState<Entity>();
 
+    const latestQuickNoteEntityWithEmptyContents = useMemo(() => {
+      if (!quickNoteEntities || typeof quickNotesSubgraph === "undefined") {
+        return undefined;
+      }
+
+      const { quickNoteEntity: latestQuickNoteEntity } =
+        quickNoteEntities[0] ?? {};
+
+      if (!latestQuickNoteEntity || !quickNotesSubgraph) {
+        return null;
+      }
+
+      const contents = getBlockCollectionContents({
+        blockCollectionEntityId:
+          latestQuickNoteEntity.metadata.recordId.entityId,
+        blockCollectionSubgraph: quickNotesSubgraph,
+      });
+
+      if (isBlockCollectionContentsEmpty({ contents })) {
+        return latestQuickNoteEntity;
+      }
+      return null;
+    }, [quickNoteEntities, quickNotesSubgraph]);
+
     const displayedQuickNoteEntities = useMemo(
       () =>
         quickNoteEntities?.filter(
           ({ quickNoteEntity }) =>
-            !creatingQuickNote ||
-            quickNoteEntity.metadata.recordId.entityId !==
-              creatingQuickNote.metadata.recordId.entityId,
+            (!creatingQuickNote ||
+              quickNoteEntity.metadata.recordId.entityId !==
+                creatingQuickNote.metadata.recordId.entityId) &&
+            (!latestQuickNoteEntityWithEmptyContents ||
+              latestQuickNoteEntityWithEmptyContents.metadata.recordId
+                .entityId !== quickNoteEntity.metadata.recordId.entityId),
         ),
-      [quickNoteEntities, creatingQuickNote],
+      [
+        quickNoteEntities,
+        creatingQuickNote,
+        latestQuickNoteEntityWithEmptyContents,
+      ],
     );
 
     return (
@@ -59,6 +94,12 @@ export const TodaySection = forwardRef<
         <Box flexGrow={1}>
           <NotesWrapper>
             <CreateQuickNote
+              initialQuickNoteEntity={latestQuickNoteEntityWithEmptyContents}
+              initialQuickNoteEntitySubgraph={
+                latestQuickNoteEntityWithEmptyContents && quickNotesSubgraph
+                  ? quickNotesSubgraph
+                  : undefined
+              }
               refetchQuickNotes={refetchQuickNotes}
               onCreatingQuickNote={setCreatingQuickNote}
             />
@@ -108,7 +149,7 @@ export const TodaySection = forwardRef<
                         quickNoteEntityWithCreatedAt={
                           quickNoteEntityWithCreatedAt
                         }
-                        quickNoteSubgraph={quickNotesSubgraph}
+                        quickNoteSubgraph={quickNotesSubgraph ?? undefined}
                         refetchQuickNotes={refetchQuickNotes}
                       />
                     </Box>

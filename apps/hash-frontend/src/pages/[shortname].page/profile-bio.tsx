@@ -1,8 +1,6 @@
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph/.";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {
   FunctionComponent,
@@ -17,12 +15,15 @@ import { UserBlocksProvider } from "../../blocks/user-blocks";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
+import {
+  getBlockCollectionContents,
+  isBlockCollectionContentsEmpty,
+} from "../../lib/block-collection";
 import { Org, User } from "../../lib/user-and-org";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { BlockCollection } from "../shared/block-collection/block-collection";
-import { getBlockCollectionContents } from "../shared/get-block-collection-contents";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 
 export const ProfileBio: FunctionComponent<{
@@ -122,28 +123,11 @@ export const ProfileBio: FunctionComponent<{
   }, [profile, createProfileBioEntity, fetchProfileBioContents, isEditing]);
 
   const isBioEmpty = useMemo(() => {
-    if (!profile.hasBio) {
+    if (!profile.hasBio || !profileBioContents) {
       return true;
     }
 
-    if (!profileBioContents || profileBioContents.length === 0) {
-      return true;
-    }
-
-    if (
-      profileBioContents.length === 1 &&
-      profileBioContents[0]!.rightEntity.blockChildEntity.metadata
-        .entityTypeId === types.entityType.text.entityTypeId
-    ) {
-      const tokens = profileBioContents[0]!.rightEntity.blockChildEntity
-        .properties[
-        extractBaseUrl(types.propertyType.tokens.propertyTypeId)
-      ] as TextToken[];
-
-      return tokens.length === 0;
-    }
-
-    return false;
+    return isBlockCollectionContentsEmpty({ contents: profileBioContents });
   }, [profile, profileBioContents]);
 
   return (
