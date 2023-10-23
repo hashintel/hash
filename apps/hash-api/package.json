@@ -61,7 +61,7 @@
     "dedent": "0.7.0",
     "express": "4.17.3",
     "express-http-proxy": "2.0.0",
-    "fractional-indexing": "2.1.0",
+    "fractional-indexing": "3.2.0",
     "graphql": "16.8.1",
     "graphql-parse-resolve-info": "4.13.0",
     "graphql-scalars": "1.17.0",
