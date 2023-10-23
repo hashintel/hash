@@ -10,8 +10,10 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { useKeys } from "rooks";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
@@ -31,7 +33,32 @@ export const CreateQuickNote: FunctionComponent<{
   onCreatingQuickNote,
   refetchQuickNotes,
 }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    const handleFocus = (event: FocusEvent) =>
+      setIsFocused(
+        !!wrapperRef.current &&
+          event.target instanceof Node &&
+          wrapperRef.current.contains(event.target),
+      );
+
+    const handleBlur = () => setIsFocused(false);
+
+    document.addEventListener("focus", handleFocus, true);
+    document.addEventListener("blur", handleBlur, true);
+
+    return () => {
+      document.removeEventListener("focus", handleFocus, true);
+      document.removeEventListener("blur", handleBlur, true);
+    };
+  }, []);
+
+  const [creatingNewQuickNote, setCreatingNewQuickNote] = useState(false);
 
   const [quickNoteEntity, setQuickNoteEntity] = useState<Entity>();
 
@@ -84,9 +111,20 @@ export const CreateQuickNote: FunctionComponent<{
   }, [quickNoteEntity, createQuickNote]);
 
   const handleCreateNew = useCallback(async () => {
+    setCreatingNewQuickNote(true);
     await createQuickNote();
     await refetchQuickNotes();
+    setCreatingNewQuickNote(false);
   }, [createQuickNote, refetchQuickNotes]);
+
+  const handleCommandEnter = useCallback(() => {
+    if (isFocused && !creatingNewQuickNote) {
+      void handleCreateNew();
+    }
+  }, [isFocused, handleCreateNew, creatingNewQuickNote]);
+
+  useKeys(["Meta", "Enter"], handleCommandEnter);
+  useKeys(["Control", "Enter"], handleCommandEnter);
 
   const quickNoteEntityWithCreatedAt = useMemo(
     () =>
@@ -102,7 +140,7 @@ export const CreateQuickNote: FunctionComponent<{
   );
 
   return (
-    <Box sx={{ width: "100%" }} onClick={handleClick}>
+    <Box sx={{ width: "100%" }} onClick={handleClick} ref={wrapperRef}>
       {quickNoteEntityWithCreatedAt && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
@@ -120,6 +158,7 @@ export const CreateQuickNote: FunctionComponent<{
               variant="tertiary_quiet"
               size="xs"
               endIcon={<ArrowTurnDownLeftRegularIcon />}
+              disabled={creatingNewQuickNote}
             >
               Create
             </Button>
