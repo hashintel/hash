@@ -11,7 +11,7 @@ definition graph/account_group {
 }
 
 definition graph/entity {
-	relation general_owner: graph/account | graph/account_group#member
+	relation owner: graph/account | graph/account_group#member
 	relation general_editor: graph/account | graph/account_group#member
 	relation general_viewer: graph/account | graph/account_group#member | graph/account:*
 
@@ -20,7 +20,7 @@ definition graph/entity {
 }
 
 definition graph/web {
-	relation general_owner: graph/account | graph/account_group#member
+	relation owner: graph/account | graph/account_group#member
 
 	permission create_entity = owner
 }
