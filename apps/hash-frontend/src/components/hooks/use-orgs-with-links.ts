@@ -4,8 +4,7 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { AccountGroupId, Entity } from "@local/hash-subgraph";
+import { AccountGroupId, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -14,7 +13,7 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructOrg, Org } from "../../lib/user-and-org";
+import { constructOrg, isEntityOrgEntity, Org } from "../../lib/user-and-org";
 
 /**
  * Retrieves a specific set of organizations, with their avatars and members populated
@@ -84,12 +83,19 @@ export const useOrgsWithLinks = ({
       return undefined;
     }
 
-    return getRoots(subgraphAndPermissions.subgraph).map((orgEntity) =>
-      constructOrg({
+    return getRoots(
+      subgraphAndPermissions.subgraph as Subgraph<EntityRootType>,
+    ).map((orgEntity) => {
+      if (!isEntityOrgEntity(orgEntity)) {
+        throw new Error(
+          `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+        );
+      }
+      return constructOrg({
         subgraph: subgraphAndPermissions.subgraph,
-        orgEntity: orgEntity as Entity<OrgProperties>,
-      }),
-    );
+        orgEntity,
+      });
+    });
   }, [subgraphAndPermissions]);
 
   return {

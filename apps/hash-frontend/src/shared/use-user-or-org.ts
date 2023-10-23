@@ -27,6 +27,7 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 
 export const useUserOrOrg = (
   params: {
@@ -98,20 +99,25 @@ export const useUserOrOrg = (
       ? getRoots(
           data.structuralQueryEntities.subgraph as Subgraph<EntityRootType>,
         ).reduce<Entity<OrgProperties> | Entity<UserProperties> | undefined>(
-          (prev, current) => {
-            const currentUserOrOrgEntity = current as
-              | Entity<OrgProperties>
-              | Entity<UserProperties>;
+          (prev, currentEntity) => {
+            if (
+              !isEntityUserEntity(currentEntity) ||
+              isEntityOrgEntity(currentEntity)
+            ) {
+              throw new Error(
+                `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
+              );
+            }
 
             if (!prev) {
-              return currentUserOrOrgEntity;
+              return currentEntity;
             }
 
             if (
               prev.metadata.temporalVersioning.decisionTime.start.limit <
-              current.metadata.temporalVersioning.decisionTime.start.limit
+              currentEntity.metadata.temporalVersioning.decisionTime.start.limit
             ) {
-              return currentUserOrOrgEntity;
+              return currentEntity;
             }
             return prev;
           },

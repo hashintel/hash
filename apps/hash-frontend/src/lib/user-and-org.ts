@@ -5,7 +5,6 @@ import {
   OrgMembershipProperties,
   OrgProperties,
   ProfileBioProperties,
-  ServiceAccountProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -33,7 +32,10 @@ import {
   intervalCompareWithInterval,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrgProperties>;
@@ -71,6 +73,11 @@ export type MinimalUser = {
   location?: string;
   website?: string;
 };
+
+export const isEntityUserEntity = (
+  entity: Entity,
+): entity is Entity<UserProperties> =>
+  entity.metadata.entityTypeId === types.entityType.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
   userEntity: Entity<UserProperties>;
@@ -131,6 +138,11 @@ export type Org = MinimalOrg & {
   }[];
 };
 
+export const isEntityOrgEntity = (
+  entity: Entity,
+): entity is Entity<OrgProperties> =>
+  entity.metadata.entityTypeId === types.entityType.org.entityTypeId;
+
 /**
  * Constructs a simplified org object from a subgraph.
  *
@@ -147,12 +159,6 @@ export const constructOrg = (params: {
   orgEntity: Entity<OrgProperties>;
 }): Org => {
   const { subgraph, orgEntity } = params;
-
-  if (orgEntity.metadata.entityTypeId !== types.entityType.org.entityTypeId) {
-    throw new Error(
-      `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
-    );
-  }
 
   const minimalOrg = constructMinimalOrg({
     orgEntity,
@@ -200,10 +206,10 @@ export const constructOrg = (params: {
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
-    (linkEntity) =>
+    (linkEntity): linkEntity is Entity<OrgMembershipProperties> =>
       linkEntity.metadata.entityTypeId ===
       types.linkEntityType.orgMembership.linkEntityTypeId,
-  ) as Entity<OrgMembershipProperties>[];
+  );
 
   const memberships = orgMemberships.map((linkEntity) => {
     const { linkData, metadata } = linkEntity;
@@ -215,7 +221,7 @@ export const constructOrg = (params: {
       subgraph,
       metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    ) as Entity<UserProperties>[] | undefined;
+    );
 
     if (!userEntityRevisions || userEntityRevisions.length === 0) {
       throw new Error(
@@ -232,10 +238,14 @@ export const constructOrg = (params: {
     );
     const userEntity = userEntityRevisions.at(-1)!;
 
+    if (!isEntityUserEntity(userEntity)) {
+      throw new Error(
+        `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+      );
+    }
+
     return {
-      user: constructMinimalUser({
-        userEntity,
-      }),
+      user: constructMinimalUser({ userEntity }),
       linkEntity,
     };
   });
@@ -309,12 +319,6 @@ export const constructUser = (params: {
 }): User => {
   const { orgMembershipLinks, resolvedOrgs, subgraph, userEntity } = params;
 
-  if (userEntity.metadata.entityTypeId !== types.entityType.user.entityTypeId) {
-    throw new Error(
-      `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
-    );
-  }
-
   const { email } = simplifyProperties(userEntity.properties);
 
   const primaryEmailAddress = email[0];
@@ -360,7 +364,7 @@ export const constructUser = (params: {
       subgraph,
       metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
-    ) as Entity<OrgProperties>[] | undefined;
+    );
 
     if (!orgEntityRevisions || orgEntityRevisions.length === 0) {
       throw new Error(
@@ -377,12 +381,15 @@ export const constructUser = (params: {
     );
     const orgEntity = orgEntityRevisions.at(-1)!;
 
+    if (!isEntityOrgEntity(orgEntity)) {
+      throw new Error(
+        `Entity with type ${orgEntity.metadata.entityTypeId} is not a user entity`,
+      );
+    }
+
     return {
       linkEntity,
-      org: constructOrg({
-        subgraph,
-        orgEntity,
-      }),
+      org: constructOrg({ subgraph, orgEntity }),
     };
   });
 
@@ -453,12 +460,18 @@ export const constructUser = (params: {
         types.linkEntityType.hasServiceAccount.linkEntityTypeId,
     )
     .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
-      const serviceAccountEntity =
-        rightEntity[0] as unknown as Entity<ServiceAccountProperties>;
+      const serviceAccountEntity = rightEntity[0]!;
 
-      const { profileUrl } = simplifyProperties(
-        serviceAccountEntity.properties,
-      );
+      const profileUrl =
+        serviceAccountEntity.properties[
+          extractBaseUrl(types.propertyType.profileUrl.propertyTypeId)
+        ];
+
+      if (!profileUrl || typeof profileUrl !== "string") {
+        throw new Error(
+          `Service account entity with ID ${serviceAccountEntity.metadata.recordId.entityId} is missing a profile URL`,
+        );
+      }
 
       const kind = Object.entries(types.entityType).find(
         ([_, type]) =>

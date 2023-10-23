@@ -5,11 +5,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  OrgProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
@@ -22,7 +18,11 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
-import { constructOrg, constructUser } from "../lib/user-and-org";
+import {
+  constructOrg,
+  constructUser,
+  isEntityUserEntity,
+} from "../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
@@ -72,19 +72,17 @@ const ProfilePage: NextPageWithLayout = () => {
       return undefined;
     }
 
-    if (
-      userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId
-    ) {
+    if (isEntityUserEntity(userOrOrg)) {
       return constructUser({
         subgraph: userOrOrgSubgraph,
-        userEntity: userOrOrg as Entity<UserProperties>,
+        userEntity: userOrOrg,
+      });
+    } else {
+      return constructOrg({
+        orgEntity: userOrOrg,
+        subgraph: userOrOrgSubgraph,
       });
     }
-
-    return constructOrg({
-      orgEntity: userOrOrg as Entity<OrgProperties>,
-      subgraph: userOrOrgSubgraph,
-    });
   }, [userOrOrgSubgraph, userOrOrg]);
 
   const profileNotFound = !profile && !loading;
