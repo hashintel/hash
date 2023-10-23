@@ -45,6 +45,7 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { publicUserAccountId } from "../../../graphql/context";
+import { beforeUpdateEntityHooks } from "../../../graphql/resolvers/knowledge/entity/before-update-entity-hooks";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
@@ -343,13 +344,25 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: Pick<Entity, "metadata">;
+    entity: Entity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
   },
   Promise<Entity>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, { actorId }, params) => {
   const { entity, properties, entityTypeId } = params;
+
+  for (const beforeUpdateHook of beforeUpdateEntityHooks) {
+    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+      await beforeUpdateHook.callback({
+        context,
+        entity,
+        updatedProperties: properties,
+      });
+    }
+  }
+
+  const { graphApi } = context;
 
   const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
