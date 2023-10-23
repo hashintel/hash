@@ -93,6 +93,16 @@ export const TodaySection = forwardRef<
         />
         <Box flexGrow={1}>
           <NotesWrapper>
+            {/* 
+            If the last created quick note is empty, we re-use it to populate the
+            create quick note form. This prevents the quick notes page from creating
+            a new quick note on every page load.
+
+            @todo: when we have draft entities, we could use a draft quick note to
+            populate this input instead. Alternatively, we could refactor the
+            `BlockCollection` component to support rendering the input without
+            a block collection entity having been persisted yet.
+            */}
             <CreateQuickNote
               initialQuickNoteEntity={latestQuickNoteEntityWithEmptyContents}
               initialQuickNoteEntitySubgraph={
