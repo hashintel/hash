@@ -1,10 +1,5 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  AccountId,
-  Entity,
-  EntityPropertiesObject,
-} from "@local/hash-subgraph";
+import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../../graph";
@@ -20,6 +15,10 @@ import {
   updateUserKratosIdentityTraits,
 } from "../../../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import {
+  UpdateEntityHook,
+  UpdateEntityHookCallback,
+} from "./update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
@@ -54,13 +53,7 @@ const validateAccountShortname = async (
   }
 };
 
-type BeforeUpdateEntityHookCallback = (params: {
-  context: ImpureGraphContext;
-  entity: Entity;
-  updatedProperties: EntityPropertiesObject;
-}) => Promise<void>;
-
-const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
+const userEntityHookCallback: UpdateEntityHookCallback = async ({
   entity,
   updatedProperties,
   context,
@@ -120,12 +113,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   }
 };
 
-type BeforeUpdateEntityHook = {
-  entityTypeId: VersionedUrl;
-  callback: BeforeUpdateEntityHookCallback;
-};
-
-export const beforeUpdateEntityHooks: BeforeUpdateEntityHook[] = [
+export const beforeUpdateEntityHooks: UpdateEntityHook[] = [
   {
     entityTypeId: types.entityType.user.entityTypeId,
     callback: userEntityHookCallback,
