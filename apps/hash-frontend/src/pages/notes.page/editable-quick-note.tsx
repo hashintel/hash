@@ -25,6 +25,7 @@ import {
 } from "../../graphql/api-types.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { getBlockCollectionContents } from "../../lib/block-collection";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -34,7 +35,6 @@ import { UndoRegularIcon } from "../../shared/icons/undo-regular-icon";
 import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
-import { getBlockCollectionContents } from "../../lib/block-collection";
 import {
   ConvertQuickNoteToPageModal,
   PageWithParentLink,
@@ -145,13 +145,14 @@ export const EditableQuickNote: FunctionComponent<{
 
   const contents = useMemo(
     () =>
-      quickNoteSubgraph
+      mostRecentContents ??
+      (quickNoteSubgraph
         ? getBlockCollectionContents({
             blockCollectionEntityId,
             blockCollectionSubgraph: quickNoteSubgraph,
           })
-        : undefined,
-    [blockCollectionEntityId, quickNoteSubgraph],
+        : undefined),
+    [blockCollectionEntityId, quickNoteSubgraph, mostRecentContents],
   );
 
   const numberOfBlocks = useMemo(
