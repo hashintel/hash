@@ -144,6 +144,7 @@ export const CreateQuickNote: FunctionComponent<{
       {quickNoteEntityWithCreatedAt && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
+            autofocus
             displayActionButtons={false}
             quickNoteEntityWithCreatedAt={quickNoteEntityWithCreatedAt}
             quickNoteSubgraph={quickNoteSubgraph}

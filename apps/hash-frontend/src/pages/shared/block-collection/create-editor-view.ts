@@ -140,6 +140,7 @@ export const createEditorView = (params: {
   getLastSavedValue: () => BlockEntity[];
   client: ApolloClient<unknown>;
   isCommentingEnabled: boolean;
+  autofocus: boolean;
 }) => {
   const {
     renderNode,
@@ -152,6 +153,7 @@ export const createEditorView = (params: {
     getLastSavedValue,
     client,
     isCommentingEnabled,
+    autofocus,
   } = params;
 
   let manager: ProsemirrorManager;
@@ -212,8 +214,6 @@ export const createEditorView = (params: {
         throw new Error("Invalid config for nodeview");
       }
 
-      const isInitialPageTitleEmpty = pageTitleRef?.current?.value === "";
-
       return new ComponentView(
         node,
         editorView,
@@ -222,7 +222,7 @@ export const createEditorView = (params: {
         block,
         manager,
         readonly,
-        isInitialPageTitleEmpty,
+        autofocus,
       );
     },
   );
