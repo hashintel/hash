@@ -45,6 +45,7 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { publicUserAccountId } from "../../../graphql/context";
+import { afterUpdateEntityHooks } from "../../../graphql/resolvers/knowledge/entity/after-update-entity-hooks";
 import { beforeUpdateEntityHooks } from "../../../graphql/resolvers/knowledge/entity/before-update-entity-hooks";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
@@ -375,6 +376,16 @@ export const updateEntity: ImpureGraphFunction<
     archived: entity.metadata.archived,
     properties,
   });
+
+  for (const afterUpdateHook of afterUpdateEntityHooks) {
+    if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+      void afterUpdateHook.callback({
+        context,
+        entity,
+        updatedProperties: properties,
+      });
+    }
+  }
 
   return {
     ...entity,
