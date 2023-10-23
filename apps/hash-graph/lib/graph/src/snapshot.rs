@@ -1,12 +1,13 @@
 pub mod entity;
 pub mod owner;
 
-use authorization::schema::{AccountGroupRelationAndSubject, WebRelationAndSubject};
-
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
-    ontology::OntologyTypeSnapshotRecord,
+    ontology::{
+        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        PropertyTypeSnapshotRecord,
+    },
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
 
@@ -22,7 +23,10 @@ use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{EntityRelationAndSubject, WebNamespace},
+    schema::{
+        AccountGroupRelationAndSubject, EntityRelationAndSubject, EntityTypeId,
+        EntityTypeRelationAndSubject, WebNamespace, WebRelationAndSubject,
+    },
     zanzibar::{
         types::{RelationshipFilter, ResourceFilter},
         Consistency,
@@ -45,7 +49,7 @@ use tokio_postgres::{
     tls::{MakeTlsConnect, TlsConnect},
     Socket,
 };
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::url::VersionedUrl;
 
 use crate::{
     snapshot::{
@@ -83,9 +87,9 @@ pub enum SnapshotEntry {
     Account(Account),
     AccountGroup(AccountGroup),
     Web(Web),
-    DataType(OntologyTypeSnapshotRecord<DataType>),
-    PropertyType(OntologyTypeSnapshotRecord<PropertyType>),
-    EntityType(OntologyTypeSnapshotRecord<EntityType>),
+    DataType(DataTypeSnapshotRecord),
+    PropertyType(PropertyTypeSnapshotRecord),
+    EntityType(EntityTypeSnapshotRecord),
     Entity(EntitySnapshotRecord),
 }
 
@@ -299,6 +303,7 @@ where
     ///
     /// - If reading a record from the datastore fails
     /// - If writing a record into the sink fails
+    #[expect(clippy::too_many_lines)]
     pub fn dump_snapshot(
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
@@ -346,23 +351,40 @@ where
             );
 
             scope.spawn(
-                self.create_dump_stream::<OntologyTypeSnapshotRecord<DataType>>()
+                self.create_dump_stream::<DataTypeSnapshotRecord>()
                     .try_flatten_stream()
                     .map_ok(SnapshotEntry::DataType)
                     .forward(snapshot_record_tx.clone()),
             );
 
             scope.spawn(
-                self.create_dump_stream::<OntologyTypeSnapshotRecord<PropertyType>>()
+                self.create_dump_stream::<PropertyTypeSnapshotRecord>()
                     .try_flatten_stream()
                     .map_ok(SnapshotEntry::PropertyType)
                     .forward(snapshot_record_tx.clone()),
             );
 
             scope.spawn(
-                self.create_dump_stream::<OntologyTypeSnapshotRecord<EntityType>>()
+                self.create_dump_stream::<EntityTypeSnapshotRecord>()
                     .try_flatten_stream()
-                    .map_ok(SnapshotEntry::EntityType)
+                    .and_then(move |record| async move {
+                        Ok(SnapshotEntry::EntityType(EntityTypeSnapshotRecord {
+                            schema: record.schema,
+                            relations: authorization_api
+                                .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
+                                    RelationshipFilter::from_resource(EntityTypeId::from_url(
+                                        &VersionedUrl::from(record.metadata.record_id.clone()),
+                                    )),
+                                    Consistency::FullyConsistent,
+                                )
+                                .await
+                                .change_context(SnapshotDumpError::Query)?
+                                .into_iter()
+                                .map(|(_, relation)| relation)
+                                .collect(),
+                            metadata: record.metadata,
+                        }))
+                    })
                     .forward(snapshot_record_tx.clone()),
             );
 

@@ -15,12 +15,13 @@ use uuid::Uuid;
 
 use crate::snapshot::{
     ontology::{
-        data_type::batch::DataTypeRowBatch, table::DataTypeRow, OntologyTypeMetadataSender,
+        data_type::batch::DataTypeRowBatch, table::DataTypeRow, DataTypeSnapshotRecord,
+        OntologyTypeMetadataSender,
     },
-    OntologyTypeSnapshotRecord, SnapshotRestoreError,
+    SnapshotRestoreError,
 };
 
-/// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`DataType`].
+/// A sink to insert [`DataTypeSnapshotRecord`]s.
 ///
 /// An `DataTypeSender` with the corresponding [`DataTypeReceiver`] are created using the
 /// [`data_type_channel`] function.
@@ -32,7 +33,7 @@ pub struct DataTypeSender {
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
 // `OntologyTypeMetadataSender` with error-handling added to make it easier to use.
-impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
+impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -47,7 +48,7 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        data_type: OntologyTypeSnapshotRecord<DataType>,
+        data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
         let schema = DataType::try_from(data_type.schema)
             .change_context(SnapshotRestoreError::Read)

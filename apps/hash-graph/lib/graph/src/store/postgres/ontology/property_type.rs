@@ -87,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         ReferenceTable::PropertyTypeConstrainsValuesOn,
                     )
                     .await?
-                    .flat_map(|edge| {
+                    .flat_map(|(_, edge)| {
                         subgraph.insert_edge(
                             &edge.left_endpoint,
                             OntologyEdgeKind::ConstrainsValuesOn,
@@ -113,7 +113,7 @@ impl<C: AsClient> PostgresStore<C> {
                         ReferenceTable::PropertyTypeConstrainsPropertiesOn,
                     )
                     .await?
-                    .flat_map(|edge| {
+                    .flat_map(|(_, edge)| {
                         subgraph.insert_edge(
                             &edge.left_endpoint,
                             OntologyEdgeKind::ConstrainsPropertiesOn,

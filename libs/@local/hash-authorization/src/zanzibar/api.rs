@@ -12,7 +12,8 @@ use crate::{
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
-        EntityRelationAndSubject, WebPermission, WebRelationAndSubject,
+        EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
+        WebPermission, WebRelationAndSubject,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AuthorizationApi,
@@ -145,6 +146,59 @@ where
             .backend
             .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity.entity_uuid),
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(_, relation)| relation)
+            .collect())
+    }
+
+    async fn modify_entity_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityTypeId,
+                EntityTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
+            .backend
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, entity_type, relation)| (operation, (entity_type, relation))),
+            )
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
+    async fn check_entity_type_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        self.backend
+            .check(&entity_type, &permission, &actor, consistency)
+            .await
+    }
+
+    async fn get_entity_type_relations(
+        &self,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+        Ok(self
+            .backend
+            .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
+                RelationshipFilter::from_resource(entity_type),
                 consistency,
             )
             .await

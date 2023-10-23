@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{AccountGroupNamespace, EntityNamespace, WebNamespace},
+    schema::{AccountGroupNamespace, EntityNamespace, EntityTypeNamespace, WebNamespace},
     zanzibar::types::{RelationshipFilter, ResourceFilter},
     NoAuthorization,
 };
@@ -236,12 +236,22 @@ where
     A: ZanzibarBackend + Send + Sync + Clone,
 {
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
-    let mut _authorization_api = (**authorization_api).clone();
+    let mut authorization_api = (**authorization_api).clone();
 
     store.delete_entity_types().await.map_err(|report| {
         tracing::error!(error=?report, "Could not delete entity types");
         report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
     })?;
+
+    authorization_api
+        .delete_relations(RelationshipFilter::from_resource(
+            ResourceFilter::from_kind(EntityTypeNamespace::EntityType),
+        ))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete entity type relationships");
+            report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
+        })?;
 
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,

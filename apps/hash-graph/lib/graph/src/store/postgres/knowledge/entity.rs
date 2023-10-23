@@ -67,7 +67,7 @@ impl<C: AsClient> PostgresStore<C> {
         traversal_context: &mut TraversalContext,
         actor_id: AccountId,
         authorization_api: &A,
-        zookie: Zookie<'static>,
+        zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError>
     where
@@ -149,22 +149,27 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
                 entity_type_queue.extend(
-                    self.read_shared_edges(&traversal_data, Some(0))
-                        .await?
-                        .flat_map(|edge| {
-                            subgraph.insert_edge(
-                                &edge.left_endpoint,
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                                edge.right_endpoint.clone(),
-                            );
+                    Self::filter_entity_types_by_permission(
+                        self.read_shared_edges(&traversal_data, Some(0)).await?,
+                        actor_id,
+                        authorization_api,
+                        zookie,
+                    )
+                    .await?
+                    .flat_map(|edge| {
+                        subgraph.insert_edge(
+                            &edge.left_endpoint,
+                            SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
+                            edge.right_endpoint.clone(),
+                        );
 
-                            traversal_context.add_entity_type_id(
-                                edge.right_endpoint_ontology_id,
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                        }),
+                        traversal_context.add_entity_type_id(
+                            edge.right_endpoint_ontology_id,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
+                    }),
                 );
             }
 
@@ -188,7 +193,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
                             entity_ids.iter().copied(),
-                            Consistency::AtExactSnapshot(&zookie),
+                            Consistency::AtExactSnapshot(zookie),
                         )
                         .await
                         .change_context(QueryError)?
@@ -233,8 +238,15 @@ impl<C: AsClient> PostgresStore<C> {
             }
         }
 
-        self.traverse_entity_types(entity_type_queue, traversal_context, subgraph)
-            .await?;
+        self.traverse_entity_types(
+            entity_type_queue,
+            traversal_context,
+            actor_id,
+            authorization_api,
+            zookie,
+            subgraph,
+        )
+        .await?;
 
         Ok(())
     }
@@ -672,7 +684,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             &mut traversal_context,
             actor_id,
             authorization_api,
-            zookie,
+            &zookie,
             &mut subgraph,
         )
         .await?;
