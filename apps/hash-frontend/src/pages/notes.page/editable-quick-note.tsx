@@ -276,7 +276,12 @@ export const EditableQuickNote: FunctionComponent<{
               Note
             </Typography>
           ) : null}
-          <Fade in={typeof numberOfBlocks !== "undefined"}>
+          <Fade
+            in={
+              typeof numberOfBlocks !== "undefined" &&
+              (typeof numberOfCharacters !== "undefined" || numberOfBlocks > 1)
+            }
+          >
             <Box>
               <Statistic amount={numberOfBlocks} unit="block" />
             </Box>
