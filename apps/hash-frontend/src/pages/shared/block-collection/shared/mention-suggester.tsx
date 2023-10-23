@@ -171,7 +171,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     fetchPolicy: "cache-and-network",
   });
 
-  const entitiesSubgraph = data?.structuralQueryEntities as
+  const entitiesSubgraph = data?.structuralQueryEntities.subgraph as
     | Subgraph<EntityRootType>
     | undefined;
 
