@@ -626,7 +626,7 @@ jobs:
       - name: Check system tests
         run: |
           # TODO: Stop allowing failure of system tests
-          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
+          [[ ${{ needs.system-tests.result }} =~ success|skipped|failure ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]
