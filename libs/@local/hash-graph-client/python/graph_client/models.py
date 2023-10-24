@@ -17,7 +17,6 @@ class AccountGroupPermission(Enum):
     remove_admin = 'remove_admin'
     add_member = 'add_member'
     remove_member = 'remove_member'
-    member = 'member'
 
 class AccountId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
@@ -46,51 +45,51 @@ class EdgeResolveDepths(BaseModel):
     incoming: int = Field(..., ge=0)
     outgoing: int = Field(..., ge=0)
 
-class EntityDirectEditorSubjectAccount(BaseModel):
+class EntityDirectEditorSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
     subject_id: AccountId = Field(..., alias='subjectId')
 
-class EntityDirectEditorSubjectAccountGroup(BaseModel):
+class EntityDirectEditorSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['accountGroup']
     subject_id: AccountGroupId = Field(..., alias='subjectId')
 
-class EntityDirectEditorSubject(RootModel[EntityDirectEditorSubjectAccount | EntityDirectEditorSubjectAccountGroup]):
+class EntityDirectEditorSubject(RootModel[EntityDirectEditorSubjectItem | EntityDirectEditorSubjectItem1]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityDirectEditorSubjectAccount | EntityDirectEditorSubjectAccountGroup = Field(..., discriminator='kind')
+    root: EntityDirectEditorSubjectItem | EntityDirectEditorSubjectItem1 = Field(..., discriminator='kind')
 
-class EntityDirectOwnerSubjectAccount(BaseModel):
+class EntityDirectOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
     subject_id: AccountId = Field(..., alias='subjectId')
 
-class EntityDirectOwnerSubjectAccountGroup(BaseModel):
+class EntityDirectOwnerSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['accountGroup']
     subject_id: AccountGroupId = Field(..., alias='subjectId')
 
-class EntityDirectOwnerSubject(RootModel[EntityDirectOwnerSubjectAccount | EntityDirectOwnerSubjectAccountGroup]):
+class EntityDirectOwnerSubject(RootModel[EntityDirectOwnerSubjectItem | EntityDirectOwnerSubjectItem1]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityDirectOwnerSubjectAccount | EntityDirectOwnerSubjectAccountGroup = Field(..., discriminator='kind')
+    root: EntityDirectOwnerSubjectItem | EntityDirectOwnerSubjectItem1 = Field(..., discriminator='kind')
 
-class EntityDirectViewerSubjectPublic(BaseModel):
+class EntityDirectViewerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['public']
 
-class EntityDirectViewerSubjectAccount(BaseModel):
+class EntityDirectViewerSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
     subject_id: AccountId = Field(..., alias='subjectId')
 
-class EntityDirectViewerSubjectAccountGroup(BaseModel):
+class EntityDirectViewerSubjectItem2(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['accountGroup']
     subject_id: AccountGroupId = Field(..., alias='subjectId')
 
-class EntityDirectViewerSubject(RootModel[EntityDirectViewerSubjectPublic | EntityDirectViewerSubjectAccount | EntityDirectViewerSubjectAccountGroup]):
+class EntityDirectViewerSubject(RootModel[EntityDirectViewerSubjectItem | EntityDirectViewerSubjectItem1 | EntityDirectViewerSubjectItem2]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityDirectViewerSubjectPublic | EntityDirectViewerSubjectAccount | EntityDirectViewerSubjectAccountGroup = Field(..., discriminator='kind')
+    root: EntityDirectViewerSubjectItem | EntityDirectViewerSubjectItem1 | EntityDirectViewerSubjectItem2 = Field(..., discriminator='kind')
 
 class EntityEditionId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
@@ -99,11 +98,6 @@ class EntityEditionId(RootModel[UUID]):
 class EntityId(RootModel[str]):
     model_config = ConfigDict(populate_by_name=True)
     root: str
-
-class EntityObjectRelation(Enum):
-    direct_owner = 'direct_owner'
-    direct_editor = 'direct_editor'
-    direct_viewer = 'direct_viewer'
 
 class EntityPermission(Enum):
     update = 'update'
@@ -140,42 +134,24 @@ class EntityRecordId(BaseModel):
     edition_id: EntityEditionId = Field(..., alias='editionId')
     entity_id: EntityId = Field(..., alias='entityId')
 
-class EntityRelationDirectOwner(BaseModel):
+class EntityRelationAndSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['directOwner']
     subject: EntityDirectOwnerSubject
 
-class EntityRelationDirectEditor(BaseModel):
+class EntityRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['directEditor']
     subject: EntityDirectEditorSubject
 
-class EntityRelationDirectViewer(BaseModel):
+class EntityRelationAndSubjectItem2(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['directViewer']
     subject: EntityDirectViewerSubject
 
-class EntityRelationAndSubject(RootModel[EntityRelationDirectOwner | EntityRelationDirectEditor | EntityRelationDirectViewer]):
+class EntityRelationAndSubject(RootModel[EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityRelationDirectOwner | EntityRelationDirectEditor | EntityRelationDirectViewer = Field(..., discriminator='relation')
-
-class EntitySubjectPublic(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    type: Literal['public']
-
-class EntitySubjectAccount(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: AccountId
-    type: Literal['account']
-
-class EntitySubjectAccountGroup(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: AccountGroupId
-    type: Literal['accountGroup']
-
-class EntitySubject(RootModel[EntitySubjectPublic | EntitySubjectAccount | EntitySubjectAccountGroup]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: EntitySubjectPublic | EntitySubjectAccount | EntitySubjectAccountGroup = Field(..., discriminator='type')
+    root: EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
 class EntityTypeQueryToken(Enum):
     """

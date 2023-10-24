@@ -1,13 +1,7 @@
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{AccountGroupPermission, WebRelation},
-};
+use authorization::{backend::ZanzibarBackend, schema::WebRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    web::WebId,
-};
+use graph_types::web::WebId;
 
 use crate::{
     snapshot::WriteBatch,
@@ -15,8 +9,7 @@ use crate::{
 };
 
 pub enum WebBatch {
-    Accounts(Vec<(WebId, WebRelation, AccountId)>),
-    AccountGroups(Vec<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>),
+    Relations(Vec<(WebId, WebRelationAndSubject)>),
 }
 
 #[async_trait]
@@ -31,15 +24,9 @@ impl<C: AsClient> WriteBatch<C> for WebBatch {
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
         match self {
-            Self::Accounts(accounts) => {
+            Self::Relations(relations) => {
                 authorization_api
-                    .touch_relationships(accounts)
-                    .await
-                    .change_context(InsertionError)?;
-            }
-            Self::AccountGroups(account_groups) => {
-                authorization_api
-                    .touch_relationships(account_groups)
+                    .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
             }

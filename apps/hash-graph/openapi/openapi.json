@@ -1960,8 +1960,7 @@
           "add_admin",
           "remove_admin",
           "add_member",
-          "remove_member",
-          "member"
+          "remove_member"
         ]
       },
       "AccountId": {
@@ -2337,7 +2336,6 @@
         "oneOf": [
           {
             "type": "object",
-            "title": "EntityDirectEditorSubjectAccount",
             "required": [
               "subjectId",
               "kind"
@@ -2356,7 +2354,6 @@
           },
           {
             "type": "object",
-            "title": "EntityDirectEditorSubjectAccountGroup",
             "required": [
               "subjectId",
               "kind"
@@ -2382,7 +2379,6 @@
         "oneOf": [
           {
             "type": "object",
-            "title": "EntityDirectOwnerSubjectAccount",
             "required": [
               "subjectId",
               "kind"
@@ -2401,7 +2397,6 @@
           },
           {
             "type": "object",
-            "title": "EntityDirectOwnerSubjectAccountGroup",
             "required": [
               "subjectId",
               "kind"
@@ -2427,7 +2422,6 @@
         "oneOf": [
           {
             "type": "object",
-            "title": "EntityDirectViewerSubjectPublic",
             "required": [
               "kind"
             ],
@@ -2442,7 +2436,6 @@
           },
           {
             "type": "object",
-            "title": "EntityDirectViewerSubjectAccount",
             "required": [
               "subjectId",
               "kind"
@@ -2461,7 +2454,6 @@
           },
           {
             "type": "object",
-            "title": "EntityDirectViewerSubjectAccountGroup",
             "required": [
               "subjectId",
               "kind"
@@ -2552,14 +2544,6 @@
           }
         }
       },
-      "EntityObjectRelation": {
-        "type": "string",
-        "enum": [
-          "direct_owner",
-          "direct_editor",
-          "direct_viewer"
-        ]
-      },
       "EntityPermission": {
         "type": "string",
         "enum": [
@@ -2609,7 +2593,6 @@
         "oneOf": [
           {
             "type": "object",
-            "title": "EntityRelationDirectOwner",
             "required": [
               "relation",
               "subject"
@@ -2628,7 +2611,6 @@
           },
           {
             "type": "object",
-            "title": "EntityRelationDirectEditor",
             "required": [
               "relation",
               "subject"
@@ -2647,7 +2629,6 @@
           },
           {
             "type": "object",
-            "title": "EntityRelationDirectViewer",
             "required": [
               "relation",
               "subject"
@@ -2686,66 +2667,6 @@
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
-        }
-      },
-      "EntitySubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "EntitySubjectPublic",
-            "required": [
-              "type"
-            ],
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "EntitySubjectAccount",
-            "required": [
-              "type",
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountId"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "title": "EntitySubjectAccountGroup",
-            "required": [
-              "type",
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type"
         }
       },
       "EntityTemporalMetadata": {

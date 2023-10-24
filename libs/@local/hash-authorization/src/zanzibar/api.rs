@@ -11,8 +11,8 @@ use crate::{
         ZanzibarBackend,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelationAndSubject,
-        OwnerId, WebPermission, WebRelation,
+        AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
+        EntityRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{types::RelationshipFilter, Consistency, Zookie},
     AuthorizationApi,
@@ -48,79 +48,22 @@ where
             .await
     }
 
-    async fn add_account_group_owner(
+    async fn modify_account_group_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                AccountGroupId,
+                AccountGroupRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relationships([(account_group, AccountGroupRelation::DirectOwner, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn remove_account_group_owner(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .delete_relationships([(account_group, AccountGroupRelation::DirectOwner, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn add_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .create_relationships([(account_group, AccountGroupRelation::DirectAdmin, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn remove_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .delete_relationships([(account_group, AccountGroupRelation::DirectAdmin, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn add_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .create_relationships([(account_group, AccountGroupRelation::DirectMember, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .written_at)
-    }
-
-    async fn remove_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .delete_relationships([(account_group, AccountGroupRelation::DirectMember, member)])
+            .modify_relationships(relationships.into_iter().map(
+                |(operation, account_group_id, relation)| (operation, (account_group_id, relation)),
+            ))
             .await
             .change_context(ModifyRelationError)?
             .written_at)
@@ -141,104 +84,23 @@ where
             .await
     }
 
-    async fn add_web_owner(
+    async fn modify_web_relations(
         &mut self,
-        owner: OwnerId,
-        web: WebId,
+        relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match owner {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relationships([(web, WebRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relationships([(
-                        web,
-                        WebRelation::DirectOwner,
-                        (account_group, AccountGroupPermission::Member),
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_web_owner(
-        &mut self,
-        owner: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match owner {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relationships([(web, WebRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relationships([(
-                        web,
-                        WebRelation::DirectOwner,
-                        (account_group, AccountGroupPermission::Member),
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn add_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match editor {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relationships([(web, WebRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relationships([(
-                        web,
-                        WebRelation::DirectEditor,
-                        (account_group, AccountGroupPermission::Member),
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match editor {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relationships([(web, WebRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relationships([(
-                        web,
-                        WebRelation::DirectEditor,
-                        (account_group, AccountGroupPermission::Member),
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
+        Ok(self
+            .backend
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, web_id, relation)| (operation, (web_id, relation))),
+            )
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
     }
 
     async fn modify_entity_relations(

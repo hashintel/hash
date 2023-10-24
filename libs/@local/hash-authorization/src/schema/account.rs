@@ -13,19 +13,19 @@ pub enum AccountNamespace {
 
 impl Resource for AccountId {
     type Id = Self;
-    type Namespace = AccountNamespace;
+    type Kind = AccountNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        match namespace {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        match kind {
             AccountNamespace::Account => Ok::<_, !>(id),
         }
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         (AccountNamespace::Account, self)
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }
@@ -55,19 +55,19 @@ pub enum PublicAccess {
 
 impl Resource for PublicAccess {
     type Id = Self;
-    type Namespace = AccountNamespace;
+    type Kind = AccountNamespace;
 
-    fn from_parts(namespace: Self::Namespace, id: Self::Id) -> Result<Self, impl Error> {
-        match namespace {
+    fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, impl Error> {
+        match kind {
             AccountNamespace::Account => Ok::<_, !>(id),
         }
     }
 
-    fn into_parts(self) -> (Self::Namespace, Self::Id) {
+    fn into_parts(self) -> (Self::Kind, Self::Id) {
         (AccountNamespace::Account, self)
     }
 
-    fn to_parts(&self) -> (Self::Namespace, Self::Id) {
+    fn to_parts(&self) -> (Self::Kind, Self::Id) {
         Resource::into_parts(*self)
     }
 }
