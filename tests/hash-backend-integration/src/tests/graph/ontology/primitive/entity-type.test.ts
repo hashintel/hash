@@ -8,7 +8,6 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
@@ -18,7 +17,10 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import {
+  TypeSystemInitializer,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   ConstructEntityTypeParams,
@@ -29,7 +31,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
@@ -59,7 +60,8 @@ let testUser: User;
 let testUser2: User;
 let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
-let textDataType: DataTypeWithMetadata;
+const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 let namePropertyType: PropertyTypeWithMetadata;
 let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityType: EntityTypeWithMetadata;
@@ -84,14 +86,6 @@ beforeAll(async () => {
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,
     orgEntityId: testOrg.entity.metadata.recordId.entityId,
-  });
-
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      title: "Text",
-      type: "string",
-    },
   });
 
   await Promise.all([
@@ -119,7 +113,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Favorite Book",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       favoriteBookPropertyType = val;
@@ -128,7 +122,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Name",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       namePropertyType = val;

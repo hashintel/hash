@@ -569,6 +569,9 @@ where
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }

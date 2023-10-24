@@ -16,12 +16,14 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import {
+  TypeSystemInitializer,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   currentTimeInstantTemporalAxes,
@@ -29,7 +31,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  DataTypeWithMetadata,
   Entity,
   EntityRootType,
   EntityTypeWithMetadata,
@@ -63,7 +64,8 @@ describe("Entity CRU", () => {
   let testUser: User;
   let testUser2: User;
   let entityType: EntityTypeWithMetadata;
-  let textDataType: DataTypeWithMetadata;
+  const textDataTypeId =
+    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
   let namePropertyType: PropertyTypeWithMetadata;
   let favoriteBookPropertyType: PropertyTypeWithMetadata;
   let linkEntityTypeFriend: EntityTypeWithMetadata;
@@ -88,17 +90,6 @@ describe("Entity CRU", () => {
       orgEntityId: testOrg.entity.metadata.recordId.entityId,
     });
 
-    textDataType = await createDataType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
-      schema: {
-        title: "Text",
-        type: "string",
-      },
-    }).catch((err) => {
-      logger.error("Something went wrong making Text", err);
-      throw err;
-    });
-
     await Promise.all([
       createEntityType(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
@@ -121,7 +112,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Favorite Book",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+          oneOf: [{ $ref: textDataTypeId }],
         },
       })
         .then((val) => {
@@ -135,7 +126,7 @@ describe("Entity CRU", () => {
         ownedById: testUser.accountId as OwnedById,
         schema: {
           title: "Name",
-          oneOf: [{ $ref: textDataType.schema.$id }],
+          oneOf: [{ $ref: textDataTypeId }],
         },
       })
         .then((val) => {

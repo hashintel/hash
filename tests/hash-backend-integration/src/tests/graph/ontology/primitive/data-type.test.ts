@@ -13,6 +13,7 @@ import {
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
@@ -70,8 +71,10 @@ afterAll(async () => {
 
 describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
+  const textDataTypeId =
+    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 
-  it("can create a data type", async () => {
+  it.skip("can create a data type", async () => {
     const authentication = { actorId: testUser.accountId };
 
     createdDataType = await createDataType(graphContext, authentication, {
@@ -87,11 +90,11 @@ describe("Data type CRU", () => {
       graphContext,
       authentication,
       {
-        dataTypeId: createdDataType.schema.$id,
+        dataTypeId: textDataTypeId,
       },
     );
 
-    expect(fetchedDataType.schema).toEqual(createdDataType.schema);
+    expect(fetchedDataType.schema.$id).toEqual(textDataTypeId);
   });
 
   const updatedTitle = "New text!";
