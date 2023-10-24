@@ -11,13 +11,12 @@ import {
   BaseUrl,
   Entity,
   EntityId,
-  EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
+  assertEntityRootedSubgraph,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -172,9 +171,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     fetchPolicy: "cache-and-network",
   });
 
-  const entitiesSubgraph = data?.structuralQueryEntities.subgraph as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const entitiesSubgraph = data?.structuralQueryEntities.subgraph;
+
+  if (entitiesSubgraph) {
+    assertEntityRootedSubgraph(entitiesSubgraph);
+  }
 
   const searchedEntities = useMemo(
     () =>

@@ -83,3 +83,11 @@ export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
 ): subgraph is Subgraph<EntityRootType> =>
   isEntityRootedSubgraphBp(subgraph as unknown as SubgraphBp);
+
+export const assertEntityRootedSubgraph: (
+  subgraph: Subgraph,
+) => asserts subgraph is Subgraph<EntityRootType> = (subgraph) => {
+  if (!isEntityRootedSubgraph(subgraph)) {
+    throw new Error("Expected subgraph to be an entity rooted subgraph");
+  }
+};

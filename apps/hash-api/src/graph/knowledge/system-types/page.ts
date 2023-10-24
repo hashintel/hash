@@ -9,11 +9,13 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
-  EntityRootType,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getEntities,
+} from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
@@ -266,9 +268,11 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getEntities(subgraph);
+    });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 

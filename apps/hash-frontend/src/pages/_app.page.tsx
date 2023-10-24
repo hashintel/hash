@@ -11,7 +11,10 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
 import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
@@ -223,7 +226,13 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         query: meQuery,
         context: { headers: { cookie } },
       })
-      .then(({ data }) => data.me.subgraph as Subgraph<EntityRootType>)
+      .then(({ data }) => {
+        const { subgraph } = data.me;
+
+        assertEntityRootedSubgraph(subgraph);
+
+        return subgraph;
+      })
       .catch(() => undefined),
     fetchKratosSession(cookie),
   ]);

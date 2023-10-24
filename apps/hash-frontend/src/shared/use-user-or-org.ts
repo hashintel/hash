@@ -14,12 +14,13 @@ import {
   AccountGroupId,
   AccountId,
   Entity,
-  EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -95,35 +96,44 @@ export const useUserOrOrg = (
   });
 
   return useMemo(() => {
-    const rootEntity = data
-      ? getRoots(
-          data.structuralQueryEntities.subgraph as Subgraph<EntityRootType>,
-        ).reduce<Entity<OrgProperties> | Entity<UserProperties> | undefined>(
-          (prev, currentEntity) => {
-            if (
-              !isEntityUserEntity(currentEntity) ||
-              isEntityOrgEntity(currentEntity)
-            ) {
-              throw new Error(
-                `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
-              );
-            }
+    const { subgraph } = data?.structuralQueryEntities ?? {};
 
-            if (!prev) {
-              return currentEntity;
-            }
+    if (subgraph) {
+      assertEntityRootedSubgraph(subgraph);
+    }
 
-            if (
-              prev.metadata.temporalVersioning.decisionTime.start.limit <
-              currentEntity.metadata.temporalVersioning.decisionTime.start.limit
-            ) {
-              return currentEntity;
-            }
-            return prev;
-          },
-          undefined,
-        )
+    const rootEntity = subgraph
+      ? getRoots(subgraph).reduce<
+          Entity<OrgProperties> | Entity<UserProperties> | undefined
+        >((prev, currentEntity) => {
+          if (
+            !isEntityUserEntity(currentEntity) ||
+            isEntityOrgEntity(currentEntity)
+          ) {
+            throw new Error(
+              `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
+            );
+          }
+
+          if (!prev) {
+            return currentEntity;
+          }
+
+          if (
+            prev.metadata.temporalVersioning.decisionTime.start.limit <
+            currentEntity.metadata.temporalVersioning.decisionTime.start.limit
+          ) {
+            return currentEntity;
+          }
+          return prev;
+        }, undefined)
       : undefined;
+
+    const { subgraph: userOrOrgSubgraph } = data?.structuralQueryEntities ?? {};
+
+    if (userOrOrgSubgraph) {
+      assertEntityRootedSubgraph(userOrOrgSubgraph);
+    }
 
     return {
       canUserEdit: !!(
@@ -132,9 +142,7 @@ export const useUserOrOrg = (
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),
-      userOrOrgSubgraph: data?.structuralQueryEntities.subgraph as
-        | Subgraph<EntityRootType>
-        | undefined,
+      userOrOrgSubgraph,
       userOrOrg: rootEntity,
       loading,
       refetch,

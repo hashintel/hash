@@ -9,13 +9,15 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
-  EntityRootType,
   EntityUuid,
   extractAccountGroupId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -227,9 +229,11 @@ export const getOrgByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const userEntitiesSubgraph = data as Subgraph;
+      assertEntityRootedSubgraph(userEntitiesSubgraph);
+      return getRoots(userEntitiesSubgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

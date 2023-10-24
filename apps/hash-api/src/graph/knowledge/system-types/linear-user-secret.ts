@@ -7,13 +7,15 @@ import {
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
@@ -107,7 +109,11 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -173,7 +179,11 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   const integrationEntity = linearIntegrationEntities[0];
 

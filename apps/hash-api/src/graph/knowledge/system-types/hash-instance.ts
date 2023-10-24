@@ -10,12 +10,14 @@ import {
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import {
   Entity,
-  EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -69,9 +71,13 @@ export const getHashInstance: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+
+      assertEntityRootedSubgraph(subgraph);
+
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");

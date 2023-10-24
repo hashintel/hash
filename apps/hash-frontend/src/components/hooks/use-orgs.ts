@@ -1,7 +1,9 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -59,9 +61,11 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    return getRoots(
-      subgraphAndPermissions.subgraph as Subgraph<EntityRootType>,
-    ).map((orgEntity) => {
+    const { subgraph } = subgraphAndPermissions;
+
+    assertEntityRootedSubgraph(subgraph);
+
+    return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {
         throw new Error(
           `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,

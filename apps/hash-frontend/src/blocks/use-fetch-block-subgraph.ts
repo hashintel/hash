@@ -12,6 +12,7 @@ import {
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
+import { assertEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
 import {
@@ -114,7 +115,7 @@ export const useFetchBlockSubgraph = (): ((
             },
           },
         } as const;
-        const blockEntitySubgraph: Subgraph = {
+        const blockEntitySubgraph: Subgraph<EntityRootType> = {
           depths,
           edges: {},
           roots: [
@@ -138,7 +139,7 @@ export const useFetchBlockSubgraph = (): ((
         };
 
         return {
-          subgraph: blockEntitySubgraph as Subgraph<EntityRootType>,
+          subgraph: blockEntitySubgraph,
           userPermissionsOnEntities: {},
         } satisfies SubgraphAndPermissions;
       }
@@ -159,8 +160,12 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
+          const subgraph = data.getEntity.subgraph as Subgraph;
+
+          assertEntityRootedSubgraph(subgraph);
+
           return {
-            subgraph: data.getEntity.subgraph as Subgraph<EntityRootType>,
+            subgraph,
             userPermissionsOnEntities:
               data.getEntity.userPermissionsOnEntities!,
           } satisfies SubgraphAndPermissions;

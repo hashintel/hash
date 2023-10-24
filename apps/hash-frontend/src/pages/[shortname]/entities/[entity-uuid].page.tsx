@@ -9,7 +9,10 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -99,10 +102,14 @@ const Page: NextPageWithLayout = () => {
 
           const subgraph = data?.getEntity.subgraph;
 
+          if (subgraph) {
+            assertEntityRootedSubgraph(subgraph);
+          }
+
           if (data?.getEntity) {
             try {
-              setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
-              setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
+              setEntitySubgraphFromDb(subgraph);
+              setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
@@ -140,8 +147,9 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
-    setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
+    assertEntityRootedSubgraph(subgraph);
+    setEntitySubgraphFromDb(subgraph);
+    setDraftEntitySubgraph(subgraph);
   };
 
   const resetDraftState = () => {

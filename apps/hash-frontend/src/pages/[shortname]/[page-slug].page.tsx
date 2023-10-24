@@ -16,12 +16,13 @@ import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
-  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { Box, SxProps } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -209,9 +210,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
     )
     .then(({ data }) => data.structuralQueryEntities);
 
-  const pageWorkspaceEntity = getRoots(
-    workspaceSubgraph.subgraph as Subgraph<EntityRootType>,
-  )[0];
+  assertEntityRootedSubgraph(workspaceSubgraph.subgraph);
+
+  const pageWorkspaceEntity = getRoots(workspaceSubgraph.subgraph)[0];
 
   if (!pageWorkspaceEntity) {
     throw new Error(

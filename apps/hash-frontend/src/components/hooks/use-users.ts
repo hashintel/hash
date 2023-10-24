@@ -1,7 +1,9 @@
 import { useQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -57,17 +59,19 @@ export const useUsers = (): {
       return undefined;
     }
 
-    return getRoots(queryEntitiesData.subgraph as Subgraph<EntityRootType>).map(
-      (userEntity) => {
-        if (!isEntityUserEntity(userEntity)) {
-          throw new Error(
-            `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
-          );
-        }
+    const { subgraph } = queryEntitiesData;
 
-        return constructMinimalUser({ userEntity });
-      },
-    );
+    assertEntityRootedSubgraph(subgraph);
+
+    return getRoots(subgraph).map((userEntity) => {
+      if (!isEntityUserEntity(userEntity)) {
+        throw new Error(
+          `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+        );
+      }
+
+      return constructMinimalUser({ userEntity });
+    });
   }, [queryEntitiesData]);
 
   return {

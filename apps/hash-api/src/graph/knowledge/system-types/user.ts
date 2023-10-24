@@ -9,14 +9,16 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
-  EntityRootType,
   EntityUuid,
   extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import {
   kratosIdentityApi,
@@ -154,9 +156,11 @@ export const getUserByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -201,9 +205,11 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

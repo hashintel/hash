@@ -8,6 +8,7 @@ import {
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
+import { assertEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -40,14 +41,17 @@ export const useEntityById = ({
     },
   );
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const { subgraph } = data?.getEntity ?? {};
+
+    if (subgraph) {
+      assertEntityRootedSubgraph(subgraph);
+    }
+
+    return {
       loading,
-      entitySubgraph: data?.getEntity.subgraph as
-        | Subgraph<EntityRootType>
-        | undefined,
+      entitySubgraph: subgraph,
       permissions: data?.getEntity.userPermissionsOnEntities,
-    }),
-    [loading, data],
-  );
+    };
+  }, [loading, data]);
 };

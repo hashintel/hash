@@ -5,12 +5,13 @@ import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-que
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
-  EntityRootType,
   extractAccountId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -100,9 +101,9 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const user = getRoots(
-      data.queryEntities.subgraph as Subgraph<EntityRootType>,
-    )[0];
+    assertEntityRootedSubgraph(data.queryEntities.subgraph);
+
+    const user = getRoots(data.queryEntities.subgraph)[0];
 
     if (!user) {
       setError("User not found");

@@ -10,6 +10,7 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import {
+  assertEntityRootedSubgraph,
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
@@ -127,7 +128,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     useCallback<RefetchAuthInfoFunction>(async () => {
       const [subgraph, kratosSession] = await Promise.all([
         getMe()
-          .then(({ data }) => data?.me.subgraph as Subgraph<EntityRootType>)
+          .then(({ data }) => data?.me.subgraph)
           .catch(() => undefined),
         fetchKratosSession(),
       ]);
@@ -136,6 +137,8 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         setAuthenticatedUserSubgraph(undefined);
         return {};
       }
+
+      assertEntityRootedSubgraph(subgraph);
 
       setAuthenticatedUserSubgraph(subgraph);
 

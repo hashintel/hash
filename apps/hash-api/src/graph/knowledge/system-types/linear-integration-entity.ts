@@ -7,12 +7,12 @@ import {
   AccountId,
   Entity,
   EntityId,
-  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
 import {
+  assertEntityRootedSubgraph,
   getRightEntityForLinkEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
@@ -88,7 +88,11 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -149,7 +153,9 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph<EntityRootType>;
+      const subgraph = data as Subgraph;
+
+      assertEntityRootedSubgraph(subgraph);
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -211,7 +217,13 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = data as Subgraph;
+
+      assertEntityRootedSubgraph(subgraph);
+
+      return getRoots(subgraph);
+    });
 
   if (existingLinkEntities.length > 1) {
     throw new Error(

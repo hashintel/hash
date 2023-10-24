@@ -4,8 +4,11 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { AccountId } from "@local/hash-subgraph";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -79,9 +82,11 @@ export const useUsersWithLinks = ({
     skip: !userAccountIds || !userAccountIds.length,
   });
 
-  const subgraph = data?.structuralQueryEntities.subgraph as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const { subgraph } = data?.structuralQueryEntities ?? {};
+
+  if (subgraph) {
+    assertEntityRootedSubgraph(subgraph);
+  }
 
   const users = useMemo(() => {
     if (!subgraph) {
