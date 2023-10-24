@@ -170,6 +170,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         context: { headers: { cookie } },
         query: structuralQueryEntitiesQuery,
         variables: {
+          includePermissions: false,
           query: {
             filter: {
               all: [

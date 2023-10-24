@@ -25,6 +25,7 @@ export const useUsers = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [

@@ -18,7 +18,7 @@ import {
 export const useEntityById = ({
   entityId,
   graphResolveDepths,
-  includePermissions,
+  includePermissions = false,
 }: {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
@@ -35,16 +35,7 @@ export const useEntityById = ({
         ...zeroedGraphResolveDepths,
         ...graphResolveDepths,
         entityId,
-        /**
-         * Setting `includePermissions` to `undefined` results in a "Invariant
-         * Violation: Invalid variable referenced in @include directive." runtime
-         * error in Apollo Client.
-         *
-         * @todo: consider making `includePermissions` required in the relevant queries.
-         */
-        ...(typeof includePermissions === "boolean"
-          ? { includePermissions }
-          : {}),
+        includePermissions,
       },
     },
   );

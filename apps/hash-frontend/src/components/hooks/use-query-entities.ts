@@ -17,10 +17,12 @@ export const useQueryEntities = ({
   excludeEntityTypeIds,
   includeEntityTypeIds,
   graphResolveDepths,
+  includePermissions = false,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
   includeEntityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
+  includePermissions?: boolean;
 }) => {
   if (excludeEntityTypeIds && includeEntityTypeIds) {
     throw new Error(
@@ -32,6 +34,7 @@ export const useQueryEntities = ({
     queryEntitiesQuery,
     {
       variables: {
+        includePermissions,
         operation: {
           multiFilter: {
             filters: [

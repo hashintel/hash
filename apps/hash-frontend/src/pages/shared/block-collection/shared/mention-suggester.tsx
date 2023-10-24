@@ -134,6 +134,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       query: {
         filter: {
           any: [

@@ -77,6 +77,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     const { data } = await queryEntities({
       variables: {
+        includePermissions: false,
         operation: {
           multiFilter: {
             filters: [

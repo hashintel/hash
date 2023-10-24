@@ -29,6 +29,7 @@ export const useOrgs = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [

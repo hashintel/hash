@@ -432,6 +432,7 @@ export const save = async (
     .query<GetEntityQuery, GetEntityQueryVariables>({
       query: getEntityQuery,
       variables: {
+        includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },

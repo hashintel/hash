@@ -42,6 +42,7 @@ export const useBlockProtocolQueryEntities = (): {
        */
       const { data: response } = await queryFn({
         variables: {
+          includePermissions: false,
           operation,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
