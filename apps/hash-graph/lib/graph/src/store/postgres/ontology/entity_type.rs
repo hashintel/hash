@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypePermission,
-        EntityTypeRelationAndSubject,
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
+        EntityTypeRelationAndSubject, EntityTypeSubjectSet,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -33,7 +33,7 @@ use crate::{
         postgres::{
             ontology::{read::OntologyTypeTraversalData, OntologyId},
             query::ReferenceTable,
-            TraversalContext,
+            OntologyTypeSubject, TraversalContext,
         },
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
@@ -141,7 +141,7 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Filter for entity types, which were not already added to the
                 //       subgraph to avoid unnecessary lookups.
                 property_type_queue.extend(
-                    Self::filter_entity_types_by_permission(
+                    Self::filter_property_types_by_permission(
                         self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                             traversal_data,
                             ReferenceTable::EntityTypeConstrainsPropertiesOn {
@@ -223,8 +223,15 @@ impl<C: AsClient> PostgresStore<C> {
             }
         }
 
-        self.traverse_property_types(property_type_queue, traversal_context, subgraph)
-            .await?;
+        self.traverse_property_types(
+            property_type_queue,
+            traversal_context,
+            actor_id,
+            authorization_api,
+            zookie,
+            subgraph,
+        )
+        .await?;
 
         Ok(())
     }
@@ -326,10 +333,23 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                     ),
                 ));
                 if let Some(owner) = owner {
-                    relationships.push((
-                        EntityTypeId::from(ontology_id),
-                        EntityTypeRelationAndSubject::Owner(owner),
-                    ));
+                    match owner {
+                        OntologyTypeSubject::Account { id } => relationships.push((
+                            EntityTypeId::from(ontology_id),
+                            EntityTypeRelationAndSubject::Owner(EntityTypeOwnerSubject::Account {
+                                id,
+                            }),
+                        )),
+                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
+                            EntityTypeId::from(ontology_id),
+                            EntityTypeRelationAndSubject::Owner(
+                                EntityTypeOwnerSubject::AccountGroup {
+                                    id,
+                                    set: EntityTypeSubjectSet::Member,
+                                },
+                            ),
+                        )),
+                    }
                 }
             }
         }
@@ -526,6 +546,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 )
             })
             .attach_lazy(|| entity_type.clone())?;
+
+        let owner = match owner {
+            OntologyTypeSubject::Account { id } => EntityTypeOwnerSubject::Account { id },
+            OntologyTypeSubject::AccountGroup { id } => EntityTypeOwnerSubject::AccountGroup {
+                id,
+                set: EntityTypeSubjectSet::Member,
+            },
+        };
 
         let relationships = [
             (

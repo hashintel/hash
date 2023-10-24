@@ -12,9 +12,10 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
-        EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
-        WebPermission, WebRelationAndSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
+        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -173,6 +174,118 @@ pub trait AuthorizationApi {
         entity_type: EntityTypeId,
         consistency: Consistency<'static>,
     ) -> impl Future<Output = Result<Vec<EntityTypeRelationAndSubject>, ReadError>> + Send;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Property type authorization
+    ////////////////////////////////////////////////////////////////////////////
+    fn check_property_type_permission(
+        &self,
+        actor: AccountId,
+        permission: PropertyTypePermission,
+        property_type: PropertyTypeId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn modify_property_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                PropertyTypeId,
+                PropertyTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn check_property_types_permission(
+        &self,
+        actor: AccountId,
+        permission: PropertyTypePermission,
+        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let mut zookie = Zookie::empty();
+            let mut result = HashMap::new();
+            for property_type in property_types {
+                let CheckResponse {
+                    has_permission,
+                    checked_at,
+                } = self
+                    .check_property_type_permission(actor, permission, property_type, consistency)
+                    .await?;
+                result.insert(property_type, has_permission);
+                zookie = checked_at;
+            }
+            Ok((result, zookie))
+        }
+    }
+
+    fn get_property_type_relations(
+        &self,
+        property_type: PropertyTypeId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<PropertyTypeRelationAndSubject>, ReadError>> + Send;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Data type authorization
+    ////////////////////////////////////////////////////////////////////////////
+    fn check_data_type_permission(
+        &self,
+        actor: AccountId,
+        permission: DataTypePermission,
+        data_type: DataTypeId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn modify_data_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                DataTypeId,
+                DataTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn check_data_types_permission(
+        &self,
+        actor: AccountId,
+        permission: DataTypePermission,
+        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let mut zookie = Zookie::empty();
+            let mut result = HashMap::new();
+            for data_type in data_types {
+                let CheckResponse {
+                    has_permission,
+                    checked_at,
+                } = self
+                    .check_data_type_permission(actor, permission, data_type, consistency)
+                    .await?;
+                result.insert(data_type, has_permission);
+                zookie = checked_at;
+            }
+            Ok((result, zookie))
+        }
+    }
+
+    fn get_data_type_relations(
+        &self,
+        data_type: DataTypeId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<DataTypeRelationAndSubject>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.
