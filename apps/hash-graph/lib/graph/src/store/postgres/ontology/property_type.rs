@@ -476,6 +476,22 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         authorization_api: &mut A,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
+        let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
+            base_url: property_type.id().base_url.clone(),
+            version: property_type.id().version - 1,
+        });
+        authorization_api
+            .check_property_type_permission(
+                actor_id,
+                PropertyTypePermission::Update,
+                old_ontology_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         // This clone is currently necessary because we extract the references as we insert them.

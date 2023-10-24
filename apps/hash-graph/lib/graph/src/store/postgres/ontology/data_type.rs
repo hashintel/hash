@@ -332,6 +332,22 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         authorization_api: &mut A,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
+        let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
+            base_url: data_type.id().base_url.clone(),
+            version: data_type.id().version - 1,
+        });
+        authorization_api
+            .check_data_type_permission(
+                actor_id,
+                DataTypePermission::Update,
+                old_ontology_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (ontology_id, metadata, owner) = transaction

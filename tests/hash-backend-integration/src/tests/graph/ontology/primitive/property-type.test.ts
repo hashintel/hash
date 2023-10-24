@@ -3,7 +3,11 @@ import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createPropertyType,
@@ -28,7 +32,11 @@ import {
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -40,6 +48,7 @@ const logger = new Logger({
 
 const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
 let textDataType: DataTypeWithMetadata;
@@ -53,6 +62,17 @@ beforeAll(async () => {
   testUser2 = await createTestUser(graphContext, "pt-test-2", logger);
 
   const authentication = { actorId: testUser.accountId };
+
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "propertytestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
+  });
 
   textDataType = await createDataType(graphContext, authentication, {
     ownedById: testUser.accountId as OwnedById,
@@ -97,7 +117,7 @@ describe("Property type CRU", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
       },
     );
