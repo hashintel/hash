@@ -208,6 +208,10 @@ const systemEntityTypes = {
     title: "Notification",
     description: undefined,
   },
+  pageMentionNotification: {
+    title: "Page Mention Notification",
+    description: undefined,
+  },
   notificationAction: {
     title: "Notification Action",
     description: undefined,
@@ -425,6 +429,18 @@ const systemLinkEntityTypes = {
   hasAction: {
     title: "Has Action",
     description: "Has an action.",
+  },
+  occurredInPage: {
+    title: "Occurred In Page",
+    description: "A page that something occurred in.",
+  },
+  occurredInText: {
+    title: "Occurred In Text",
+    description: "Text that something occurred in.",
+  },
+  triggeredByUser: {
+    title: "Triggered By User",
+    description: "A user that triggered something.",
   },
 } as const;
 

@@ -2,9 +2,8 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
-
 import {
+  ArchivedPropertyValue,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -25,18 +24,28 @@ import {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  IconPropertyValue,
+  IndexPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  Page,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageParentLink,
+  PageProperties,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
+  SummaryPropertyValue,
   TextDataType,
+  TitlePropertyValue,
 } from "./shared";
 
 export type {
+  ArchivedPropertyValue,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -57,59 +66,22 @@ export type {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  IconPropertyValue,
+  IndexPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  Page,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageParentLink,
+  PageProperties,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
+  SummaryPropertyValue,
   TextDataType,
+  TitlePropertyValue,
 };
-
-/**
- * Whether or not something has been archived.
- */
-export type ArchivedPropertyValue = BooleanDataType;
-
-/**
- * An emoji icon.
- */
-export type IconPropertyValue = TextDataType;
-
-/**
- * The (fractional) index indicating the current position of something.
- */
-export type IndexPropertyValue = TextDataType;
-
-export type Page = Entity<PageProperties>;
-
-export type PageOutgoingLinkAndTarget = PageParentLink;
-
-export type PageOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": PageParentLink;
-};
-
-export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
-
-export type PageProperties = PageProperties1 & PageProperties2;
-export type PageProperties1 = BlockCollectionProperties;
-
-export type PageProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
-};
-
-/**
- * The summary of the something.
- */
-export type SummaryPropertyValue = TextDataType;
-
-/**
- * The title of something.
- */
-export type TitlePropertyValue = TextDataType;

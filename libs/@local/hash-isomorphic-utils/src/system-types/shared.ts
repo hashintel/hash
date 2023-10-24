@@ -4,6 +4,11 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
+/**
+ * Whether or not something has been archived.
+ */
+export type ArchivedPropertyValue = BooleanDataType;
+
 export type Block = Entity<BlockProperties>;
 
 export type BlockBlockDataLink = { linkEntity: BlockData; rightEntity: Entity };
@@ -132,6 +137,20 @@ export type FileSizePropertyValue = NumberDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
+export type HasAction = Entity<HasActionProperties> & { linkData: LinkData };
+
+export type HasActionOutgoingLinkAndTarget = never;
+
+export type HasActionOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Has an action.
+ */
+export type HasActionProperties = HasActionProperties1 & HasActionProperties2;
+export type HasActionProperties1 = LinkProperties;
+
+export type HasActionProperties2 = {};
+
 export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
 
 export type HasAvatarOutgoingLinkAndTarget = never;
@@ -194,6 +213,11 @@ export type HasServiceAccountProperties1 = LinkProperties;
 
 export type HasServiceAccountProperties2 = {};
 
+/**
+ * An emoji icon.
+ */
+export type IconPropertyValue = TextDataType;
+
 export type Image = Entity<ImageProperties>;
 
 export type ImageOutgoingLinkAndTarget = never;
@@ -207,6 +231,11 @@ export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
 export type ImageProperties2 = {};
+
+/**
+ * The (fractional) index indicating the current position of something.
+ */
+export type IndexPropertyValue = TextDataType;
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -229,6 +258,34 @@ export type LocationPropertyValue = TextDataType;
  * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
  */
 export type MIMETypePropertyValue = TextDataType;
+
+export type Notification = Entity<NotificationProperties>;
+
+export type NotificationAction = Entity<NotificationActionProperties>;
+
+export type NotificationActionOutgoingLinkAndTarget = never;
+
+export type NotificationActionOutgoingLinksByLinkEntityTypeId = {};
+
+export type NotificationActionProperties = {
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/url/": URLPropertyValue;
+};
+
+export type NotificationHasActionLink = {
+  linkEntity: HasAction;
+  rightEntity: NotificationAction;
+};
+
+export type NotificationOutgoingLinkAndTarget = NotificationHasActionLink;
+
+export type NotificationOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/has-action/v/1": NotificationHasActionLink;
+};
+
+export type NotificationProperties = {
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+};
 
 /**
  * An arithmetical value (in the Real number system)
@@ -336,6 +393,27 @@ export type OriginalSourcePropertyValue = TextDataType;
  */
 export type OriginalURLPropertyValue = TextDataType;
 
+export type Page = Entity<PageProperties>;
+
+export type PageOutgoingLinkAndTarget = PageParentLink;
+
+export type PageOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": PageParentLink;
+};
+
+export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
+
+export type PageProperties = PageProperties1 & PageProperties2;
+export type PageProperties1 = BlockCollectionProperties;
+
+export type PageProperties2 = {
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+};
+
 export type Parent = Entity<ParentProperties> & { linkData: LinkData };
 
 export type ParentOutgoingLinkAndTarget = never;
@@ -394,6 +472,11 @@ export type ServiceAccountProperties = {
  */
 export type ShortnamePropertyValue = TextDataType;
 
+/**
+ * The summary of the something.
+ */
+export type SummaryPropertyValue = TextDataType;
+
 export type Text = Entity<TextProperties>;
 
 /**
@@ -409,7 +492,17 @@ export type TextProperties = {
   "http://localhost:3000/@system-user/types/property-type/tokens/": TokensPropertyValue[];
 };
 
+/**
+ * The title of something.
+ */
+export type TitlePropertyValue = TextDataType;
+
 export type TokensPropertyValue = ObjectDataType;
+
+/**
+ * A URL.
+ */
+export type URLPropertyValue = TextDataType;
 
 export type User = Entity<UserProperties>;
 
