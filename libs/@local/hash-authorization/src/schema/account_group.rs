@@ -41,7 +41,6 @@ impl Resource for AccountGroupId {
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupResourceRelation {
     DirectOwner,
-    DirectAdmin,
     DirectMember,
 }
 
@@ -52,10 +51,6 @@ impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupPermission {
-    AddOwner,
-    RemoveOwner,
-    AddAdmin,
-    RemoveAdmin,
     AddMember,
     RemoveMember,
 }
@@ -120,16 +115,6 @@ pub enum AccountGroupDirectOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupDirectAdminSubject {
-    Account {
-        #[serde(rename = "subjectId")]
-        id: AccountId,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum AccountGroupDirectMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
@@ -142,7 +127,6 @@ pub enum AccountGroupDirectMemberSubject {
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum AccountGroupRelationAndSubject {
     DirectOwner(AccountGroupDirectOwnerSubject),
-    DirectAdmin(AccountGroupDirectAdminSubject),
     DirectMember(AccountGroupDirectMemberSubject),
 }
 
@@ -165,21 +149,6 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                     (AccountGroupSubject::Account(id), None) => {
                         AccountGroupRelationAndSubject::DirectOwner(
                             AccountGroupDirectOwnerSubject::Account { id },
-                        )
-                    }
-                    (AccountGroupSubject::Account(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
-                    }
-                },
-                AccountGroupResourceRelation::DirectAdmin => match (subject, subject_set) {
-                    (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::DirectAdmin(
-                            AccountGroupDirectAdminSubject::Account { id },
                         )
                     }
                     (AccountGroupSubject::Account(_), subject_set) => {
@@ -234,14 +203,6 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                 AccountGroupResourceRelation::DirectOwner,
                 match subject {
                     AccountGroupDirectOwnerSubject::Account { id } => {
-                        (AccountGroupSubject::Account(id), None)
-                    }
-                },
-            ),
-            AccountGroupRelationAndSubject::DirectAdmin(subject) => (
-                AccountGroupResourceRelation::DirectAdmin,
-                match subject {
-                    AccountGroupDirectAdminSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },
