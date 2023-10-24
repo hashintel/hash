@@ -36,8 +36,8 @@ export const useUserOrOrg = (
     graphResolveDepths?: Partial<GraphResolveDepths>;
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
-    | { shortname: string }
-    | { accountOrAccountGroupId: AccountId | AccountGroupId }
+    | { shortname?: string }
+    | { accountOrAccountGroupId?: AccountId | AccountGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
@@ -49,26 +49,32 @@ export const useUserOrOrg = (
       query: {
         filter: {
           all: [
-            "shortname" in params
-              ? {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.shortname.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: params.shortname },
-                  ],
-                }
-              : {
-                  equal: [
-                    { path: ["uuid"] },
-                    { parameter: params.accountOrAccountGroupId },
-                  ],
-                },
+            ...("shortname" in params
+              ? [
+                  {
+                    equal: [
+                      {
+                        path: [
+                          "properties",
+                          extractBaseUrl(
+                            types.propertyType.shortname.propertyTypeId,
+                          ),
+                        ],
+                      },
+                      { parameter: params.shortname },
+                    ],
+                  },
+                ]
+              : "accountOrAccountGroupId" in params
+              ? [
+                  {
+                    equal: [
+                      { path: ["uuid"] },
+                      { parameter: params.accountOrAccountGroupId },
+                    ],
+                  },
+                ]
+              : []),
             {
               any: [
                 generateVersionedUrlMatchingFilter(
@@ -92,6 +98,7 @@ export const useUserOrOrg = (
           : currentTimeInstantTemporalAxes,
       },
     },
+    skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
     fetchPolicy: "network-only",
   });
 
