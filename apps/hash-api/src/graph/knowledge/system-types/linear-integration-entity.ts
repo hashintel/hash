@@ -1,4 +1,3 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -11,10 +10,10 @@ import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
+import {   assertEntityRootedSubgraph,
   getRightEntityForLinkEntity,
   getRoots,
+mapGraphApiSubgraphToSubgraph ,
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";

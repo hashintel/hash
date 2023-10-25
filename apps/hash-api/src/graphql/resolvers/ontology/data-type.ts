@@ -1,10 +1,9 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { Subgraph } from "@local/hash-subgraph";
-import { assertDataTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
+import { assertDataTypeRootedSubgraph,mapGraphApiSubgraphToSubgraph  } from "@local/hash-subgraph/stdlib";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import {

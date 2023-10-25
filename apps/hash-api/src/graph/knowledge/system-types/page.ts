@@ -1,4 +1,3 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
@@ -12,9 +11,9 @@ import {
   EntityPropertiesObject,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
+import {   assertEntityRootedSubgraph,
   getEntities,
+mapGraphApiSubgraphToSubgraph ,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";

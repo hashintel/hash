@@ -6,6 +6,7 @@ import {
   isEntityTypeRootedSubgraph as isEntityTypeRootedSubgraphBp,
   isPropertyTypeRootedSubgraph as isPropertyTypeRootedSubgraphBp,
 } from "@blockprotocol/graph/temporal/stdlib";
+import { Subgraph as GraphApiSubgraph } from "@local/hash-graph-client";
 
 import {
   DataTypeRootType,
@@ -135,3 +136,11 @@ export const assertEntityRootedSubgraph: (
     throw new Error("Expected subgraph to be an entity rooted subgraph");
   }
 };
+
+/**
+ * A mapping function that can be used to map the subgraph returned by the Graph API to the HASH `Subgraph` definition.
+ *
+ * @param subgraph
+ */
+export const mapGraphApiSubgraphToSubgraph = (subgraph: GraphApiSubgraph) =>
+  subgraph as Subgraph;

@@ -6,7 +6,6 @@ import {
   Team,
   User,
 } from "@linear/sdk";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
@@ -19,6 +18,7 @@ import {
 import {
   assertEntityRootedSubgraph,
   getRoots,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 

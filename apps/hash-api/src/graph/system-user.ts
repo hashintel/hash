@@ -1,4 +1,3 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
@@ -12,7 +11,7 @@ import {
   AccountId,
   extractAccountId,
 } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/stdlib";
+import { getEntities,mapGraphApiSubgraphToSubgraph  } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";

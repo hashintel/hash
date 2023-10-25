@@ -1,5 +1,4 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   EntityPermission,
   EntityStructuralQuery,
@@ -34,9 +33,9 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
+import {   assertEntityRootedSubgraph,
   getRoots,
+mapGraphApiSubgraphToSubgraph ,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";

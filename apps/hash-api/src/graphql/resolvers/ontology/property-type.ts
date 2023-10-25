@@ -1,4 +1,3 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,7 +8,10 @@ import {
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import { assertPropertyTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
+import {
+  assertPropertyTypeRootedSubgraph,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,

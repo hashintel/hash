@@ -1,4 +1,3 @@
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
@@ -9,9 +8,9 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
+import {   assertEntityRootedSubgraph,
   getRoots,
+mapGraphApiSubgraphToSubgraph ,
 } from "@local/hash-subgraph/stdlib";
 
 import { systemUserAccountId } from "../graph/system-user";

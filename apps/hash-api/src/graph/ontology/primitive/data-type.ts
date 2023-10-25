@@ -2,7 +2,6 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   DataTypeStructuralQuery,
   OntologyTemporalMetadata,
@@ -23,9 +22,9 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import {
-  assertDataTypeRootedSubgraph,
+import {   assertDataTypeRootedSubgraph,
   getRoots,
+mapGraphApiSubgraphToSubgraph ,
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";

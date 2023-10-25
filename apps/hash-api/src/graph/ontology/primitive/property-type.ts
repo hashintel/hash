@@ -2,7 +2,6 @@ import {
   PROPERTY_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   OntologyTemporalMetadata,
   PropertyTypeStructuralQuery,
@@ -25,8 +24,8 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  assertPropertyTypeRootedSubgraph,
   getRoots,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
@@ -94,8 +93,7 @@ export const getPropertyTypes: ImpureGraphFunction<
     .getPropertyTypesByQuery(actorId, query)
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertPropertyTypeRootedSubgraph(subgraph);
-      return subgraph;
+      return subgraph as Subgraph<PropertyTypeRootType>;
     });
 };
 
