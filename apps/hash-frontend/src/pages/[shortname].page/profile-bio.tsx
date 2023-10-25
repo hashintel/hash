@@ -1,7 +1,7 @@
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { ProfileBioProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   EntityId,
@@ -44,7 +44,7 @@ const getProfileBioContents = (params: {
       ({ linkEntity: linkEntityRevisions }) =>
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeId ===
-          types.linkEntityType.contains.linkEntityTypeId,
+          systemTypes.linkEntityType.contains.linkEntityTypeId,
     )
     .sort((a, b) => {
       const aLinkEntity = a.linkEntity[0]!;
@@ -70,7 +70,7 @@ const getProfileBioContents = (params: {
       const rightEntity = rightEntityRevisions[0]!;
 
       const componentId = rightEntity.properties[
-        extractBaseUrl(types.propertyType.componentId.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.componentId.propertyTypeId)
       ] as string;
 
       const blockChildEntity = getOutgoingLinkAndTargetEntities(
@@ -80,7 +80,7 @@ const getProfileBioContents = (params: {
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
           linkEntityRevisions[0].metadata.entityTypeId ===
-            types.linkEntityType.blockData.linkEntityTypeId,
+            systemTypes.linkEntityType.blockData.linkEntityTypeId,
       )?.rightEntity[0];
 
       if (!blockChildEntity) {
@@ -163,7 +163,7 @@ export const ProfileBio: FunctionComponent<{
     const [profileBioEntity, blockEntity, textEntity] = await Promise.all([
       createEntity({
         data: {
-          entityTypeId: types.entityType.profileBio.entityTypeId,
+          entityTypeId: systemTypes.entityType.profileBio.entityTypeId,
           properties: {} satisfies ProfileBioProperties,
         },
       }).then(({ data }) => {
@@ -175,10 +175,11 @@ export const ProfileBio: FunctionComponent<{
       }),
       createEntity({
         data: {
-          entityTypeId: types.entityType.block.entityTypeId,
+          entityTypeId: systemTypes.entityType.block.entityTypeId,
           properties: {
-            [extractBaseUrl(types.propertyType.componentId.propertyTypeId)]:
-              paragraphBlockComponentId,
+            [extractBaseUrl(
+              systemTypes.propertyType.componentId.propertyTypeId,
+            )]: paragraphBlockComponentId,
           },
         },
       }).then(({ data }) => {
@@ -190,9 +191,10 @@ export const ProfileBio: FunctionComponent<{
       }),
       createEntity({
         data: {
-          entityTypeId: types.entityType.text.entityTypeId,
+          entityTypeId: systemTypes.entityType.text.entityTypeId,
           properties: {
-            [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
+            [extractBaseUrl(systemTypes.propertyType.tokens.propertyTypeId)]:
+              [],
           },
         },
       }).then(({ data }) => {
@@ -207,7 +209,7 @@ export const ProfileBio: FunctionComponent<{
     await Promise.all([
       createEntity({
         data: {
-          entityTypeId: types.linkEntityType.hasBio.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.hasBio.linkEntityTypeId,
           linkData: {
             leftEntityId: profile.entity.metadata.recordId.entityId,
             rightEntityId: profileBioEntity.metadata.recordId.entityId,
@@ -217,7 +219,7 @@ export const ProfileBio: FunctionComponent<{
       }),
       createEntity({
         data: {
-          entityTypeId: types.linkEntityType.contains.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.contains.linkEntityTypeId,
           linkData: {
             leftEntityId: profileBioEntity.metadata.recordId.entityId,
             rightEntityId: blockEntity.metadata.recordId.entityId,
@@ -228,7 +230,7 @@ export const ProfileBio: FunctionComponent<{
       }),
       createEntity({
         data: {
-          entityTypeId: types.linkEntityType.blockData.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.blockData.linkEntityTypeId,
           linkData: {
             leftEntityId: blockEntity.metadata.recordId.entityId,
             rightEntityId: textEntity.metadata.recordId.entityId,
@@ -267,11 +269,11 @@ export const ProfileBio: FunctionComponent<{
     if (
       profileBioContents.length === 1 &&
       profileBioContents[0]!.rightEntity.blockChildEntity.metadata
-        .entityTypeId === types.entityType.text.entityTypeId
+        .entityTypeId === systemTypes.entityType.text.entityTypeId
     ) {
       const tokens = profileBioContents[0]!.rightEntity.blockChildEntity
         .properties[
-        extractBaseUrl(types.propertyType.tokens.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.tokens.propertyTypeId)
       ] as TextToken[];
 
       return tokens.length === 0;

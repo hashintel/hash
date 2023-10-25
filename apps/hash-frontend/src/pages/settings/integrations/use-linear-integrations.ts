@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity } from "@local/hash-subgraph/.";
 import {
   getOutgoingLinkAndTargetEntities,
@@ -37,7 +37,7 @@ export const useLinearIntegrations = () => {
                 {
                   field: ["metadata", "entityTypeId"],
                   operator: "EQUALS",
-                  value: types.entityType.linearIntegration.entityTypeId,
+                  value: systemTypes.entityType.linearIntegration.entityTypeId,
                 },
               ],
               operator: "AND",
@@ -66,7 +66,7 @@ export const useLinearIntegrations = () => {
 
                   return (
                     linkEntity.metadata.entityTypeId ===
-                      types.linkEntityType.syncLinearDataWith
+                      systemTypes.linkEntityType.syncLinearDataWith
                         .linkEntityTypeId && !linkEntity.metadata.archived
                   );
                 })
@@ -76,7 +76,7 @@ export const useLinearIntegrations = () => {
 
                   const linearTeamIds = linkEntity.properties[
                     extractBaseUrl(
-                      types.propertyType.linearTeamId.propertyTypeId,
+                      systemTypes.propertyType.linearTeamId.propertyTypeId,
                     )
                   ] as string[];
 

@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -84,34 +84,35 @@ export const useUpdateAuthenticatedUser = () => {
               ...(params.shortname
                 ? {
                     [extractBaseUrl(
-                      types.propertyType.shortname.propertyTypeId,
+                      systemTypes.propertyType.shortname.propertyTypeId,
                     )]: params.shortname,
                   }
                 : {}),
               ...(params.preferredName
                 ? {
                     [extractBaseUrl(
-                      types.propertyType.preferredName.propertyTypeId,
+                      systemTypes.propertyType.preferredName.propertyTypeId,
                     )]: params.preferredName,
                   }
                 : {}),
               ...(typeof params.location !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      types.propertyType.location.propertyTypeId,
+                      systemTypes.propertyType.location.propertyTypeId,
                     )]: params.location,
                   }
                 : {}),
               ...(typeof params.website !== "undefined"
                 ? {
-                    [extractBaseUrl(types.propertyType.website.propertyTypeId)]:
-                      params.website,
+                    [extractBaseUrl(
+                      systemTypes.propertyType.website.propertyTypeId,
+                    )]: params.website,
                   }
                 : {}),
               ...(typeof params.preferredPronouns !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      types.propertyType.preferredPronouns.propertyTypeId,
+                      systemTypes.propertyType.preferredPronouns.propertyTypeId,
                     )]: params.preferredPronouns,
                   }
                 : {}),

@@ -5,7 +5,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
@@ -49,7 +49,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
   const { data: existingUserEntitiesSubgraph } =
     await graphApi.getEntitiesByQuery(publicUserAccountId, {
       filter: generateVersionedUrlMatchingFilter(
-        types.entityType.user.entityTypeId,
+        systemTypes.entityType.user.entityTypeId,
         { ignoreParents: true },
       ),
       graphResolveDepths: zeroedGraphResolveDepths,
@@ -63,7 +63,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>
       properties[
-        extractBaseUrl(types.propertyType.shortname.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)
       ] === systemUserShortname,
   );
 

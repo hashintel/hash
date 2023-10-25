@@ -1,5 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   Entity,
@@ -127,7 +127,7 @@ type BeforeUpdateEntityHook = {
 
 export const beforeUpdateEntityHooks: BeforeUpdateEntityHook[] = [
   {
-    entityTypeId: types.entityType.user.entityTypeId,
+    entityTypeId: systemTypes.entityType.user.entityTypeId,
     callback: userEntityHookCallback,
   },
 ];

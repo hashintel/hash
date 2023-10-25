@@ -6,7 +6,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
   Entity,
@@ -149,11 +149,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               }),
             ),
             generateVersionedUrlMatchingFilter(
-              types.entityType.user.entityTypeId,
+              systemTypes.entityType.user.entityTypeId,
               { ignoreParents: true },
             ),
             generateVersionedUrlMatchingFilter(
-              types.entityType.org.entityTypeId,
+              systemTypes.entityType.org.entityTypeId,
               { ignoreParents: true },
             ),
           ],
@@ -288,8 +288,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             // Sort the sections to ensure page entities and user entities are displayed first
             .sort((a, b) => {
               const customOrder = {
-                [types.entityType.page.entityTypeId]: 0,
-                [types.entityType.user.entityTypeId]: 1,
+                [systemTypes.entityType.page.entityTypeId]: 0,
+                [systemTypes.entityType.user.entityTypeId]: 1,
               };
 
               return (
@@ -504,9 +504,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               propertyTypeBaseUrl,
             });
           }
-        } else if (entityTypeId === types.entityType.page.entityTypeId) {
+        } else if (entityTypeId === systemTypes.entityType.page.entityTypeId) {
           onChange({ kind: "page", entityId });
-        } else if (entityTypeId === types.entityType.user.entityTypeId) {
+        } else if (entityTypeId === systemTypes.entityType.user.entityTypeId) {
           onChange({ kind: "user", entityId });
         } else {
           onChange({ kind: "entity", entityId });

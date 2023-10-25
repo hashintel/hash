@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId, OwnedById } from "@local/hash-subgraph";
 import { useCallback, useState } from "react";
 
@@ -49,7 +49,7 @@ export const useUpdateProfileAvatar = (props: {
               }
             : {
                 fileEntityCreationInput: {
-                  entityTypeId: types.entityType.imageFile.entityTypeId,
+                  entityTypeId: systemTypes.entityType.imageFile.entityTypeId,
                 },
               }),
         },
@@ -59,7 +59,7 @@ export const useUpdateProfileAvatar = (props: {
               linkedEntityData: {
                 linkedEntityId: profile.entity.metadata.recordId.entityId,
                 linkEntityTypeId:
-                  types.linkEntityType.hasAvatar.linkEntityTypeId,
+                  systemTypes.linkEntityType.hasAvatar.linkEntityTypeId,
               },
             }),
       });

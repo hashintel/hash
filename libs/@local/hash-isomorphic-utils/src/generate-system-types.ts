@@ -10,7 +10,7 @@ import {
   blockProtocolTypes,
   EntityTypeDefinition,
   linearTypes,
-  types,
+  systemTypes,
 } from "./ontology-types";
 
 const generateTypes = async (
@@ -51,7 +51,7 @@ const generateTypes = async (
  * you cannot use these types to check the correct value of keys and values that are URLs – they might be different at runtime.
  */
 const generateSystemTypeTypes = async () => {
-  await generateTypes(types.entityType, "system");
+  await generateTypes(systemTypes.entityType, "system");
   await generateTypes(linearTypes.entityType, "linear", "linear");
   await generateTypes(blockProtocolTypes, "Block Protocol", "blockprotocol");
 };

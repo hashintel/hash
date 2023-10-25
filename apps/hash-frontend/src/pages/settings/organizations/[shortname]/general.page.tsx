@@ -1,6 +1,6 @@
 import { EntityPropertiesObject } from "@blockprotocol/graph";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
@@ -43,25 +43,26 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       // @todo this is tedious, either enable TS's exact-optional-property-types or allow 'undefined' as a value in EntityPropertiesObject
       ...(orgData.name
         ? {
-            [extractBaseUrl(types.propertyType.orgName.propertyTypeId)]:
+            [extractBaseUrl(systemTypes.propertyType.orgName.propertyTypeId)]:
               orgData.name,
           }
         : {}),
       ...(orgData.description
         ? {
-            [extractBaseUrl(types.propertyType.description.propertyTypeId)]:
-              orgData.description,
+            [extractBaseUrl(
+              systemTypes.propertyType.description.propertyTypeId,
+            )]: orgData.description,
           }
         : {}),
       ...(orgData.location
         ? {
-            [extractBaseUrl(types.propertyType.location.propertyTypeId)]:
+            [extractBaseUrl(systemTypes.propertyType.location.propertyTypeId)]:
               orgData.location,
           }
         : {}),
       ...(orgData.website
         ? {
-            [extractBaseUrl(types.propertyType.website.propertyTypeId)]:
+            [extractBaseUrl(systemTypes.propertyType.website.propertyTypeId)]:
               orgData.website,
           }
         : {}),
@@ -70,10 +71,10 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
     await updateEntity({
       data: {
         entityId: org.entity.metadata.recordId.entityId,
-        entityTypeId: types.entityType.org.entityTypeId,
+        entityTypeId: systemTypes.entityType.org.entityTypeId,
         properties: {
           // @todo allow partial property updates, or spread the existing entity's properties here
-          [extractBaseUrl(types.propertyType.shortname.propertyTypeId)]:
+          [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
             org.shortname,
           ...updatedProperties,
         },

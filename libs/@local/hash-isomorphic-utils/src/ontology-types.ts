@@ -877,7 +877,7 @@ type TypeDefinitions = {
 /**
  * The system and block protocol types that are statically available at run-time.
  */
-export const types: TypeDefinitions = {
+export const systemTypes: TypeDefinitions = {
   entityType: Object.entries(systemEntityTypes).reduce(
     (prev, [key, { title, description }]) => {
       const definition: EntityTypeDefinition = {

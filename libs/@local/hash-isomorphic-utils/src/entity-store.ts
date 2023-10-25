@@ -11,14 +11,14 @@ import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { types } from "./ontology-types";
+import { systemTypes } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
-export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
+export const TEXT_ENTITY_TYPE_ID = systemTypes.entityType.text.entityTypeId;
 // `extractBaseUrl` does not work within this context, so this is a hacky way to get the base URL.
 export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URL =
-  types.propertyType.tokens.propertyTypeId.slice(0, -3);
+  systemTypes.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {

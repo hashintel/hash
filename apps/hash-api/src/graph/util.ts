@@ -15,7 +15,7 @@ import {
 } from "@blockprotocol/type-system";
 import {
   PrimitiveDataTypeKey,
-  types,
+  systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityTypeWithMetadata,
@@ -114,7 +114,7 @@ export const generateSystemPropertyTypeSchema = (
 
       if (primitiveDataType) {
         const dataTypeReference: DataTypeReference = {
-          $ref: types.dataType[primitiveDataType].dataTypeId,
+          $ref: systemTypes.dataType[primitiveDataType].dataTypeId,
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {

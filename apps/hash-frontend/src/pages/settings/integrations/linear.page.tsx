@@ -1,5 +1,5 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Typography } from "@mui/material";
 import {
@@ -84,7 +84,7 @@ const DataAccess: FunctionComponent<{
     await Promise.all(
       linearIntegrations.map(({ entity }) => {
         const linearOrgId = entity.properties[
-          extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
+          extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
         ] as string;
 
         const linearOrganization = linearOrganizations.find(
@@ -151,7 +151,9 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
         const linearOrganizations = await Promise.all(
           linearIntegrations.map(async ({ entity }) => {
             const linearOrgId = entity.properties[
-              extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
+              extractBaseUrl(
+                systemTypes.propertyType.linearOrgId.propertyTypeId,
+              )
             ] as string;
 
             const { data } = await getLinearOrganization({

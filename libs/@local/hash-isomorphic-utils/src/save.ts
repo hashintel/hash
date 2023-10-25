@@ -39,7 +39,7 @@ import {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
-import { types } from "./ontology-types";
+import { systemTypes } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
 import { BlockProperties } from "./system-types/shared";
 
@@ -385,7 +385,9 @@ const mapEntityToGqlBlock = (
   entity: Entity<BlockProperties>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
-  if (entity.metadata.entityTypeId !== types.entityType.block.entityTypeId) {
+  if (
+    entity.metadata.entityTypeId !== systemTypes.entityType.block.entityTypeId
+  ) {
     throw new Error(
       `Entity with type ${entity.metadata.entityTypeId} is not a block`,
     );
@@ -398,7 +400,7 @@ const mapEntityToGqlBlock = (
     ({ linkEntity: linkEntityRevisions }) =>
       linkEntityRevisions[0] &&
       linkEntityRevisions[0].metadata.entityTypeId ===
-        types.linkEntityType.blockData.linkEntityTypeId,
+        systemTypes.linkEntityType.blockData.linkEntityTypeId,
   )?.rightEntity[0];
 
   if (!blockChildEntity) {
@@ -457,17 +459,17 @@ export const save = async (
           }) =>
             linkEntityRevisions[0] &&
             linkEntityRevisions[0].metadata.entityTypeId ===
-              types.linkEntityType.contains.linkEntityTypeId &&
+              systemTypes.linkEntityType.contains.linkEntityTypeId &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===
-              types.entityType.block.entityTypeId,
+              systemTypes.entityType.block.entityTypeId,
         )
         .map(({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0])
         .filter(
           (blockEntity): blockEntity is Entity<BlockProperties> =>
             !blockEntity ||
             blockEntity.metadata.entityTypeId ===
-              types.entityType.block.entityTypeId,
+              systemTypes.entityType.block.entityTypeId,
         );
 
       return blockEntities.map((blockEntity) =>

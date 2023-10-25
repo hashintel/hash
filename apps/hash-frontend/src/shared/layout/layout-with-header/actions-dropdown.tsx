@@ -4,7 +4,7 @@ import {
   FontAwesomeIcon,
   LinkIcon,
 } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {
   Box,
@@ -119,7 +119,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
         </MenuItem>
         <Divider />
         <MenuItem
-          href={`${types.entityType.file.entityTypeId}?tab=upload`}
+          href={`${systemTypes.entityType.file.entityTypeId}?tab=upload`}
           onClick={popupState.close}
         >
           <ListItemIcon>

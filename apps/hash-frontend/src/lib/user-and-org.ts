@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
@@ -77,7 +77,7 @@ export type MinimalUser = {
 export const isEntityUserEntity = (
   entity: Entity,
 ): entity is Entity<UserProperties> =>
-  entity.metadata.entityTypeId === types.entityType.user.entityTypeId;
+  entity.metadata.entityTypeId === systemTypes.entityType.user.entityTypeId;
 
 export const constructMinimalUser = (params: {
   userEntity: Entity<UserProperties>;
@@ -141,7 +141,7 @@ export type Org = MinimalOrg & {
 export const isEntityOrgEntity = (
   entity: Entity,
 ): entity is Entity<OrgProperties> =>
-  entity.metadata.entityTypeId === types.entityType.org.entityTypeId;
+  entity.metadata.entityTypeId === systemTypes.entityType.org.entityTypeId;
 
 /**
  * Constructs a simplified org object from a subgraph.
@@ -171,7 +171,7 @@ export const constructOrg = (params: {
   ).filter(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
-      types.linkEntityType.hasAvatar.linkEntityTypeId,
+      systemTypes.linkEntityType.hasAvatar.linkEntityTypeId,
   );
 
   const hasAvatar = avatarLinkAndEntities[0]
@@ -190,7 +190,7 @@ export const constructOrg = (params: {
   ).filter(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
-      types.linkEntityType.hasBio.linkEntityTypeId,
+      systemTypes.linkEntityType.hasBio.linkEntityTypeId,
   );
 
   const hasBio = hasBioLinkAndEntities[0]
@@ -208,7 +208,7 @@ export const constructOrg = (params: {
   ).filter(
     (linkEntity): linkEntity is Entity<OrgMembershipProperties> =>
       linkEntity.metadata.entityTypeId ===
-      types.linkEntityType.orgMembership.linkEntityTypeId,
+      systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
   );
 
   const memberships = orgMemberships.map((linkEntity) => {
@@ -340,7 +340,7 @@ export const constructUser = (params: {
     ).filter(
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
-        types.linkEntityType.orgMembership.linkEntityTypeId,
+        systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
     );
 
   const memberOf = orgMemberships.map((linkEntity) => {
@@ -400,7 +400,7 @@ export const constructUser = (params: {
   ).filter(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
-      types.linkEntityType.hasAvatar.linkEntityTypeId,
+      systemTypes.linkEntityType.hasAvatar.linkEntityTypeId,
   );
 
   const hasAvatar = avatarLinkAndEntities[0]
@@ -419,7 +419,7 @@ export const constructUser = (params: {
   ).filter(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
-      types.linkEntityType.hasCoverImage.linkEntityTypeId,
+      systemTypes.linkEntityType.hasCoverImage.linkEntityTypeId,
   );
 
   const hasCoverImage = coverImageLinkAndEntities[0]
@@ -438,7 +438,7 @@ export const constructUser = (params: {
   ).filter(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
-      types.linkEntityType.hasBio.linkEntityTypeId,
+      systemTypes.linkEntityType.hasBio.linkEntityTypeId,
   );
 
   const hasBio = hasBioLinkAndEntities[0]
@@ -457,14 +457,14 @@ export const constructUser = (params: {
     .filter(
       ({ linkEntity }) =>
         linkEntity[0]?.metadata.entityTypeId ===
-        types.linkEntityType.hasServiceAccount.linkEntityTypeId,
+        systemTypes.linkEntityType.hasServiceAccount.linkEntityTypeId,
     )
     .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
       const serviceAccountEntity = rightEntity[0]!;
 
       const profileUrl =
         serviceAccountEntity.properties[
-          extractBaseUrl(types.propertyType.profileUrl.propertyTypeId)
+          extractBaseUrl(systemTypes.propertyType.profileUrl.propertyTypeId)
         ];
 
       if (!profileUrl || typeof profileUrl !== "string") {
@@ -473,7 +473,7 @@ export const constructUser = (params: {
         );
       }
 
-      const kind = Object.entries(types.entityType).find(
+      const kind = Object.entries(systemTypes.entityType).find(
         ([_, type]) =>
           type.entityTypeId === serviceAccountEntity.metadata.entityTypeId,
       )?.[0] as ServiceAccountKind;

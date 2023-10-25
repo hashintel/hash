@@ -2,7 +2,7 @@ import { useLazyQuery, useMutation } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   EntityRootType,
@@ -28,7 +28,7 @@ import { Button } from "../../../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 
 const shortnameBaseUrl = extractBaseUrl(
-  types.propertyType.shortname.propertyTypeId,
+  systemTypes.propertyType.shortname.propertyTypeId,
 );
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
@@ -112,7 +112,8 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     await Promise.all([
       createEntity({
         data: {
-          entityTypeId: types.linkEntityType.orgMembership.linkEntityTypeId,
+          entityTypeId:
+            systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,

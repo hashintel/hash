@@ -11,7 +11,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
@@ -179,7 +179,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                       path: [
                         "properties",
                         extractBaseUrl(
-                          types.propertyType.shortname.propertyTypeId,
+                          systemTypes.propertyType.shortname.propertyTypeId,
                         ),
                       ],
                     },
@@ -189,11 +189,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
                 {
                   any: [
                     generateVersionedUrlMatchingFilter(
-                      types.entityType.user.entityTypeId,
+                      systemTypes.entityType.user.entityTypeId,
                       { ignoreParents: true },
                     ),
                     generateVersionedUrlMatchingFilter(
-                      types.entityType.org.entityTypeId,
+                      systemTypes.entityType.org.entityTypeId,
                       { ignoreParents: true },
                     ),
                   ],
