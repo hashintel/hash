@@ -70,7 +70,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
   const innerSubmit = handleSubmit(async (data) => {
     const { parentPage } = data;
 
-    const title = data.title ?? defaultTitle;
+    const title = !data.title || data.title === "" ? defaultTitle : data.title;
 
     const prevIndex =
       pages
