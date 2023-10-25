@@ -11,7 +11,10 @@ import {
   AccountId,
   extractAccountId,
 } from "@local/hash-subgraph";
-import { getEntities,mapGraphApiSubgraphToSubgraph  } from "@local/hash-subgraph/stdlib";
+import {
+  getEntities,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
