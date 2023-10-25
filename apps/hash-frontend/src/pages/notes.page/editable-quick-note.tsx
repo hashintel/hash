@@ -86,14 +86,14 @@ export const EditableQuickNote: FunctionComponent<{
   quickNoteEntityWithCreatedAt: QuickNoteEntityWithCreatedAt;
   quickNoteSubgraph?: Subgraph<EntityRootType>;
   refetchQuickNotes?: () => Promise<void>;
-  autofocus?: boolean;
+  autoFocus?: boolean;
 }> = ({
   displayLabel = true,
   displayActionButtons = true,
   quickNoteEntityWithCreatedAt,
   quickNoteSubgraph,
   refetchQuickNotes,
-  autofocus = false,
+  autoFocus = false,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -357,7 +357,7 @@ export const EditableQuickNote: FunctionComponent<{
       </Box>
       {contents && contents.length > 0 ? (
         <BlockCollection
-          autofocus={autofocus}
+          autoFocus={autoFocus}
           ownedById={authenticatedUser.accountId as OwnedById}
           entityId={quickNoteEntity.metadata.recordId.entityId}
           contents={contents}

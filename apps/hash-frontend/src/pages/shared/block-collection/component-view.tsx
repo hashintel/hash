@@ -92,7 +92,7 @@ export class ComponentView implements NodeView {
     private readonly block: HashBlock,
     private readonly manager: ProsemirrorManager,
     private readonly readonly: boolean,
-    private readonly autofocus: boolean,
+    private readonly autoFocus: boolean,
   ) {
     this.dom.setAttribute("data-dom", "true");
     this.contentDOM.setAttribute("data-contentDOM", "true");
@@ -102,7 +102,7 @@ export class ComponentView implements NodeView {
 
     this.dom.contentEditable = "false";
 
-    this.autofocus = autofocus;
+    this.autoFocus = autoFocus;
 
     this.store = entityStorePluginState(editorView.state).store;
     this.unsubscribe = subscribeToEntityStore(this.editorView, (store) => {
@@ -276,7 +276,7 @@ export class ComponentView implements NodeView {
     const isEmpty = this.node.content.size === 0;
 
     const shouldFocusOnLoad =
-      isParagraph && isTheOnlyChild && isEmpty && this.autofocus;
+      isParagraph && isTheOnlyChild && isEmpty && this.autoFocus;
 
     if (shouldFocusOnLoad) {
       this.editorView.focus();

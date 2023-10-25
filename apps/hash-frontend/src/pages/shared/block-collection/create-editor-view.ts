@@ -140,7 +140,7 @@ export const createEditorView = (params: {
   getLastSavedValue: () => BlockEntity[];
   client: ApolloClient<unknown>;
   isCommentingEnabled: boolean;
-  autofocus: boolean;
+  autoFocus: boolean;
 }) => {
   const {
     renderNode,
@@ -153,7 +153,7 @@ export const createEditorView = (params: {
     getLastSavedValue,
     client,
     isCommentingEnabled,
-    autofocus,
+    autoFocus,
   } = params;
 
   let manager: ProsemirrorManager;
@@ -222,7 +222,7 @@ export const createEditorView = (params: {
         block,
         manager,
         readonly,
-        autofocus,
+        autoFocus,
       );
     },
   );
