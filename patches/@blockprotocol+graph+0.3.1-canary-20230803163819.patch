@@ -1,3 +1,22 @@
+diff --git a/node_modules/@blockprotocol/graph/dist/cjs/stdlib-temporal.cjs b/node_modules/@blockprotocol/graph/dist/cjs/stdlib-temporal.cjs
+index 7cc134d..934dca9 100644
+--- a/node_modules/@blockprotocol/graph/dist/cjs/stdlib-temporal.cjs
++++ b/node_modules/@blockprotocol/graph/dist/cjs/stdlib-temporal.cjs
+@@ -142,8 +142,12 @@ const isOntologyTypeVertexId = (vertexId) => {
+         typeof vertexId.baseId === "string" &&
+         slim.validateBaseUrl(vertexId.baseId).type === "Ok" &&
+         "revisionId" in vertexId &&
+-        typeof vertexId.revisionId === "string" &&
+-        stringIsNonNegativeInteger(vertexId.revisionId));
++        (typeof vertexId.revisionId === "number"
++            ? vertexId.revisionId >= 0
++            : typeof vertexId.revisionId === "string"
++                ? stringIsNonNegativeInteger(vertexId.revisionId)
++                : false
++        ));
+ };
+ const isEntityVertexId = (vertexId) => {
+     return (vertexId != null &&
 diff --git a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js b/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
 index b911b36..bb1b719 100644
 --- a/node_modules/@blockprotocol/graph/dist/es/stdlib-temporal.js
