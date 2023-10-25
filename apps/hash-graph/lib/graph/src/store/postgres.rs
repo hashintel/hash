@@ -28,6 +28,7 @@ use graph_types::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
+use postgres_types::Json;
 #[cfg(hash_graph_test_environment)]
 use temporal_versioning::{DecisionTime, Timestamp};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -448,24 +449,25 @@ where
     async fn insert_entity_type_with_id(
         &self,
         ontology_id: OntologyId,
-        entity_type: EntityType,
+        entity_type: raw::EntityType,
+        closed_entity_type: raw::EntityType,
         label_property: Option<&BaseUrl>,
     ) -> Result<Option<OntologyId>, InsertionError> {
-        let value_repr = raw::EntityType::from(entity_type);
-        let value = serde_json::to_value(value_repr).change_context(InsertionError)?;
-
-        let label_property = label_property.map(BaseUrl::as_str);
-
         Ok(self
             .as_client()
             .query_opt(
                 "
-                    INSERT INTO entity_types (ontology_id, schema, label_property)
-                    VALUES ($1, $2, $3)
+                    INSERT INTO entity_types (ontology_id, schema, closed_schema, label_property)
+                    VALUES ($1, $2, $3, $4)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[&ontology_id, &value, &label_property],
+                &[
+                    &ontology_id,
+                    &Json(entity_type),
+                    &Json(closed_entity_type),
+                    &label_property.map(BaseUrl::as_str),
+                ],
             )
             .await
             .change_context(InsertionError)?
