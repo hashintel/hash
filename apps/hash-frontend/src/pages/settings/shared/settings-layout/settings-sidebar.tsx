@@ -111,7 +111,7 @@ const SidebarItem = ({
             }}
           />
         ) : (
-          <Box width="1rem" mr={1.2} />
+          <Box width="1rem" minWidth="1rem" mr={1.2} />
         )}
         {level === 3 && active ? (
           <Box
