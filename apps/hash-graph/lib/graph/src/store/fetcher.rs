@@ -153,6 +153,10 @@ where
 }
 
 #[derive(Default)]
+#[expect(
+    clippy::struct_field_names,
+    reason = "Removing the postfix will be more confusing"
+)]
 struct FetchedOntologyTypes {
     data_types: Vec<(DataType, PartialOntologyElementMetadata)>,
     property_types: Vec<(PropertyType, PartialOntologyElementMetadata)>,

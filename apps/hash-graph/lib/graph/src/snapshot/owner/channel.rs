@@ -26,6 +26,7 @@ use crate::snapshot::{
 /// [`AccountId`]: graph_types::account::AccountId
 /// [`AccountGroupId`]: graph_types::account::AccountGroupId
 #[derive(Debug, Clone)]
+#[expect(clippy::struct_field_names)]
 pub struct OwnerSender {
     account_id: Sender<AccountRow>,
     account_group_id: Sender<AccountGroupRow>,
