@@ -206,9 +206,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
         T: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize,
             > + Send
             + Sync,
@@ -217,9 +217,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         #[serde(
             rename_all = "camelCase",
             bound = "R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize
             >"
         )]
@@ -233,9 +233,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         #[serde(
             rename_all = "camelCase",
             bound = "R: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Serialize
             >"
         )]
@@ -302,18 +302,17 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>>
     where
-        O: Resource<Namespace: Serialize, Id: Serialize> + Sync,
+        O: Resource<Kind: Serialize, Id: Serialize> + Sync,
         R: Serialize + Affiliation<O> + Sync,
-        S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>
-            + Sync,
+        S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync,
     {
         #[derive(Serialize)]
         #[serde(
             rename_all = "camelCase",
             bound = "
-                O: Resource<Namespace: Serialize, Id: Serialize>,
-                R: Serialize + Affiliation<O>,
-                S: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: \
+                O: Resource<Kind: Serialize, Id: Serialize>,
+                R: Serialize,
+                S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: \
                      Serialize>"
         )]
         struct RequestBody<'t, O, R, S> {
@@ -386,9 +385,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     ) -> Result<Vec<R>, Report<ReadError>>
     where
         for<'de> R: Relationship<
-                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Deserialize<'de>,
             > + Send,
     {
@@ -409,9 +408,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         #[serde(
             rename_all = "camelCase",
             bound = "R: Relationship<
-                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Deserialize<'de>,
-                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Deserialize<'de>,
             >"
         )]

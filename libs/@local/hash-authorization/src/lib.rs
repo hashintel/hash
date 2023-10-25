@@ -10,7 +10,9 @@ pub mod schema;
 pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
-use crate::schema::EntityRelationAndSubject;
+use crate::schema::{
+    AccountGroupRelationAndSubject, EntityRelationAndSubject, WebRelationAndSubject,
+};
 
 mod api;
 
@@ -25,7 +27,7 @@ use crate::{
     backend::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
-    schema::{AccountGroupPermission, EntityPermission, OwnerId, WebPermission},
+    schema::{AccountGroupPermission, EntityPermission, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
 
@@ -46,50 +48,16 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
-    async fn add_account_group_owner(
+    async fn modify_account_group_relations(
         &mut self,
-        _member: AccountId,
-        _account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_account_group_owner(
-        &mut self,
-        _member: AccountId,
-        _account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn add_account_group_admin(
-        &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_account_group_admin(
-        &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn add_account_group_member(
-        &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_account_group_member(
-        &mut self,
-        _member: AccountId,
-        _group: AccountGroupId,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                AccountGroupId,
+                AccountGroupRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }
@@ -107,34 +75,12 @@ impl AuthorizationApi for NoAuthorization {
         })
     }
 
-    async fn add_web_owner(
+    async fn modify_web_relations(
         &mut self,
-        _owner: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_web_owner(
-        &mut self,
-        _owner: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn add_web_editor(
-        &mut self,
-        _editor: OwnerId,
-        _web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(Zookie::empty())
-    }
-
-    async fn remove_web_editor(
-        &mut self,
-        _editor: OwnerId,
-        _web: WebId,
+        _relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(Zookie::empty())
     }

@@ -16,7 +16,7 @@ pub(crate) mod resource {
 
     pub(crate) fn serialize<T, S>(resource: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Resource<Namespace: Serialize, Id: Serialize>,
+        T: Resource<Kind: Serialize, Id: Serialize>,
         S: Serializer,
     {
         let (resource_type, resource_id) = resource.to_parts();
@@ -29,10 +29,10 @@ pub(crate) mod resource {
 
     pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
-        T: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+        T: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
         D: Deserializer<'de>,
     {
-        let resource = SerializedResource::<T::Namespace, T::Id>::deserialize(deserializer)?;
+        let resource = SerializedResource::<T::Kind, T::Id>::deserialize(deserializer)?;
         T::from_parts(resource.object_type, resource.object_id).map_err(de::Error::custom)
     }
 }
@@ -45,7 +45,7 @@ pub(crate) mod resource_ref {
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
     pub(crate) fn serialize<T, S>(resource: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Resource<Namespace: Serialize, Id: Serialize>,
+        T: Resource<Kind: Serialize, Id: Serialize>,
         S: Serializer,
     {
         super::resource::serialize(*resource, serializer)
@@ -56,8 +56,8 @@ pub(crate) mod resource_ref {
 #[serde(
     rename_all = "camelCase",
     bound(
-        serialize = "O: Resource<Namespace: Serialize, Id: Serialize>, R: Serialize",
-        deserialize = "O: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
+        serialize = "O: Resource<Kind: Serialize, Id: Serialize>, R: Serialize",
+        deserialize = "O: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>, R: \
                        Deserialize<'de>"
     )
 )]
@@ -79,7 +79,7 @@ pub(crate) mod subject_ref {
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "Used in generic context")]
     pub(crate) fn serialize<T, S>(subject: &&T, serializer: S) -> Result<S::Ok, S::Error>
     where
-        T: Subject<Resource: Resource<Namespace: Serialize, Id: Serialize>, Relation: Serialize>,
+        T: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize>,
         S: Serializer,
     {
         let (resource, optional_relation) = subject.to_parts();
@@ -118,10 +118,10 @@ pub(crate) mod relationship {
     #[serde(
         rename_all = "camelCase",
         bound(
-            serialize = "O: Resource<Namespace: Serialize, Id: Serialize>, R: Serialize, S: \
-                         Resource<Namespace: Serialize, Id: Serialize>, SR: Serialize",
-            deserialize = "O: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>, R: \
-                           Deserialize<'de>, S: Resource<Namespace: Deserialize<'de>, Id: \
+            serialize = "O: Resource<Kind: Serialize, Id: Serialize>, R: Serialize, S: \
+                         Resource<Kind: Serialize, Id: Serialize>, SR: Serialize",
+            deserialize = "O: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>, R: \
+                           Deserialize<'de>, S: Resource<Kind: Deserialize<'de>, Id: \
                            Deserialize<'de>>, SR: Deserialize<'de>"
         )
     )]
@@ -135,9 +135,9 @@ pub(crate) mod relationship {
     pub(crate) fn serialize<T, S>(relationship: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Relationship<
-                Resource: Resource<Namespace: Serialize, Id: Serialize>,
+                Resource: Resource<Kind: Serialize, Id: Serialize>,
                 Relation: Affiliation<T::Resource> + Serialize,
-                Subject: Resource<Namespace: Serialize, Id: Serialize>,
+                Subject: Resource<Kind: Serialize, Id: Serialize>,
                 SubjectSet: Affiliation<T::Subject> + Serialize,
             >,
         S: Serializer,
@@ -157,9 +157,9 @@ pub(crate) mod relationship {
     pub(crate) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
     where
         T: Relationship<
-                Resource: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 Relation: Affiliation<T::Resource> + Deserialize<'de>,
-                Subject: Resource<Namespace: Deserialize<'de>, Id: Deserialize<'de>>,
+                Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Affiliation<T::Subject> + Deserialize<'de>,
             >,
         D: Deserializer<'de>,
@@ -222,12 +222,12 @@ pub(crate) mod relationship_filter {
         S: Serializer,
     {
         SerializedRelationshipFilter {
-            resource_type: &relationship.resource.namespace,
+            resource_type: &relationship.resource.kind,
             optional_resource_id: relationship.resource.id.as_ref(),
             optional_relation: relationship.relation.as_ref(),
             optional_subject_filter: relationship.subject.as_ref().map(|subject| {
                 SerializedSubjectFilter {
-                    subject_type: &subject.resource.namespace,
+                    subject_type: &subject.resource.kind,
                     optional_subject_id: subject.resource.id.as_ref(),
                     optional_relation: subject
                         .relation

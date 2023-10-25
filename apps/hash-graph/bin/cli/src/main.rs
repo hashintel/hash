@@ -8,11 +8,10 @@ mod subcommand;
 
 use std::sync::Arc;
 
-use error_stack::{ensure, Report, Result};
+use error_stack::Result;
 use graph::load_env;
 
 use self::{args::Args, error::GraphError};
-use crate::error::SentryError;
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
@@ -21,17 +20,6 @@ fn main() -> Result<(), GraphError> {
         sentry_dsn,
         subcommand,
     } = Args::parse_args();
-
-    if let Some(dsn) = &sentry_dsn {
-        let client = sentry::Client::from_config(dsn);
-
-        ensure!(
-            client.is_enabled(),
-            Report::new(SentryError::InvalidDsn)
-                .attach_printable(dsn.clone())
-                .change_context(GraphError)
-        );
-    }
 
     // Initialize Sentry
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are

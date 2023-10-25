@@ -4,7 +4,7 @@
   "private": true,
   "description": "A Python 'AI' worker for HASH",
   "scripts": {
-    "build:docker": "docker buildx build --tag hash-ai-worker-py --file docker/Dockerfile ../../",
+    "build:docker": "docker buildx build --tag hash-ai-worker-py --file docker/Dockerfile ../../ --load",
     "dev": "poetry run python -m worker",
     "fix:black": "poetry run black .",
     "fix:lock-files": "poetry lock --no-update",

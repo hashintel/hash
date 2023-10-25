@@ -8,7 +8,10 @@ use std::error::Error;
 
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{EntityObjectRelation, EntityPermission},
+    schema::{
+        EntityDirectOwnerSubject, EntityDirectViewerSubject, EntityPermission,
+        EntityRelationAndSubject, EntityResourceRelation,
+    },
     zanzibar::Consistency,
 };
 
@@ -42,9 +45,24 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
 
     let token = api
         .touch_relationships([
-            (ENTITY_A, EntityObjectRelation::DirectOwner, ALICE),
-            (ENTITY_A, EntityObjectRelation::DirectViewer, BOB),
-            (ENTITY_B, EntityObjectRelation::DirectOwner, BOB),
+            (
+                ENTITY_A,
+                EntityRelationAndSubject::DirectOwner(EntityDirectOwnerSubject::Account {
+                    id: ALICE,
+                }),
+            ),
+            (
+                ENTITY_A,
+                EntityRelationAndSubject::DirectViewer(EntityDirectViewerSubject::Account {
+                    id: BOB,
+                }),
+            ),
+            (
+                ENTITY_B,
+                EntityRelationAndSubject::DirectOwner(EntityDirectOwnerSubject::Account {
+                    id: BOB,
+                }),
+            ),
         ])
         .await?
         .written_at;
@@ -53,7 +71,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     assert!(
         api.check(
             &ENTITY_A,
-            &EntityObjectRelation::DirectOwner,
+            &EntityResourceRelation::DirectOwner,
             &ALICE,
             Consistency::AtLeastAsFresh(&token)
         )
@@ -63,7 +81,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     assert!(
         api.check(
             &ENTITY_A,
-            &EntityObjectRelation::DirectViewer,
+            &EntityResourceRelation::DirectViewer,
             &BOB,
             Consistency::AtLeastAsFresh(&token)
         )
@@ -73,7 +91,7 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     assert!(
         api.check(
             &ENTITY_B,
-            &EntityObjectRelation::DirectOwner,
+            &EntityResourceRelation::DirectOwner,
             &BOB,
             Consistency::AtLeastAsFresh(&token)
         )
@@ -164,7 +182,10 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     );
 
     let token = api
-        .delete_relationships([(ENTITY_A, EntityObjectRelation::DirectViewer, BOB)])
+        .delete_relationships([(
+            ENTITY_A,
+            EntityRelationAndSubject::DirectViewer(EntityDirectViewerSubject::Account { id: BOB }),
+        )])
         .await?
         .written_at;
 

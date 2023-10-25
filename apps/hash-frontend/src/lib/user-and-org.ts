@@ -383,7 +383,7 @@ export const constructUser = (params: {
 
     if (!isEntityOrgEntity(orgEntity)) {
       throw new Error(
-        `Entity with type ${orgEntity.metadata.entityTypeId} is not a user entity`,
+        `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
       );
     }
 

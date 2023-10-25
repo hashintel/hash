@@ -5,10 +5,7 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{
-        EntityDirectOwnerSubject, EntityPermission, EntityRelationAndSubject, EntitySubjectSet,
-        OwnerId, WebPermission,
-    },
+    schema::{EntityDirectOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -272,7 +269,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: OwnerId,
+        owner: EntityDirectOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -427,19 +424,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        let subject = match owner {
-            OwnerId::Account(id) => EntityDirectOwnerSubject::Account { id },
-            OwnerId::AccountGroupMembers(id) => EntityDirectOwnerSubject::AccountGroup {
-                id,
-                set: EntitySubjectSet::Member,
-            },
-        };
-
         authorization_api
             .modify_entity_relations([(
                 ModifyRelationshipOperation::Create,
                 entity_id,
-                EntityRelationAndSubject::DirectOwner(subject),
+                EntityRelationAndSubject::DirectOwner(owner),
             )])
             .await
             .change_context(InsertionError)?;
@@ -449,7 +438,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .modify_entity_relations([(
                     ModifyRelationshipOperation::Delete,
                     entity_id,
-                    EntityRelationAndSubject::DirectOwner(subject),
+                    EntityRelationAndSubject::DirectOwner(owner),
                 )])
                 .await
                 .change_context(InsertionError)

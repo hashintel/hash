@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelation};
+use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::account::AccountGroupId;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 pub enum AccountRowBatch {
     Accounts(Vec<AccountRow>),
     AccountGroups(Vec<AccountGroupRow>),
-    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelation, AccountId)>),
+    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelationAndSubject)>),
 }
 
 #[async_trait]

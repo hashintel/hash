@@ -114,8 +114,8 @@ export const useUserOrOrg = (
           Entity<OrgProperties> | Entity<UserProperties> | undefined
         >((prev, currentEntity) => {
           if (
-            !isEntityUserEntity(currentEntity) ||
-            isEntityOrgEntity(currentEntity)
+            !isEntityUserEntity(currentEntity) &&
+            !isEntityOrgEntity(currentEntity)
           ) {
             throw new Error(
               `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,

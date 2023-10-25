@@ -12,7 +12,8 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, EntityPermission, EntityRelationAndSubject, OwnerId, WebPermission,
+        AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
+        EntityRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -29,69 +30,21 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
-    fn add_account_group_owner(
+    fn modify_account_group_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_owner(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn add_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn add_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                AccountGroupId,
+                AccountGroupRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Web authorization
     ////////////////////////////////////////////////////////////////////////////
-    fn add_web_owner(
-        &mut self,
-        owner: OwnerId,
-        web: WebId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_web_owner(
-        &mut self,
-        owner: OwnerId,
-        web: WebId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn add_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
-    fn remove_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
-
     fn check_web_permission(
         &self,
         actor: AccountId,
@@ -99,6 +52,14 @@ pub trait AuthorizationApi {
         web: WebId,
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn modify_web_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            IntoIter: Send,
+        > + Send,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Entity authorization
