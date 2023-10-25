@@ -1,12 +1,8 @@
 import { useLazyQuery } from "@apollo/client";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  OrgMembershipProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupId,
-  Entity,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
@@ -32,7 +28,11 @@ import {
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import { constructUser, User } from "../../lib/user-and-org";
+import {
+  constructUser,
+  isEntityUserEntity,
+  User,
+} from "../../lib/user-and-org";
 import { fetchKratosSession } from "./ory-kratos";
 
 type RefetchAuthInfoFunction = () => Promise<{
@@ -70,9 +70,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       return undefined;
     }
 
-    const userEntity = getRoots(
-      authenticatedUserSubgraph,
-    )[0] as Entity<UserProperties>;
+    const userEntity = getRoots(authenticatedUserSubgraph)[0]!;
+
+    if (!isEntityUserEntity(userEntity)) {
+      throw new Error(
+        `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+      );
+    }
 
     return getOutgoingLinksForEntity(
       authenticatedUserSubgraph,
@@ -101,7 +105,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         return undefined;
       }
 
-      const userEntity = getRoots(subgraph)[0] as Entity<UserProperties>;
+      const userEntity = getRoots(subgraph)[0]!;
+
+      if (!isEntityUserEntity(userEntity)) {
+        throw new Error(
+          `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+        );
+      }
 
       return constructUser({
         orgMembershipLinks: userMemberOfLinks,

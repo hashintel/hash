@@ -156,7 +156,7 @@ export const ShareEntitySection: FunctionComponent<{
           entityId: entity.metadata.recordId.entityId,
           viewer: {
             kind:
-              account.kind === "org"
+              account.kind === "user"
                 ? AuthorizationSubjectKind.Account
                 : AuthorizationSubjectKind.AccountGroup,
             viewer:

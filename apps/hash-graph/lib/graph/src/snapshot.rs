@@ -1,7 +1,7 @@
 pub mod entity;
 pub mod owner;
 
-use authorization::schema::AccountNamespace;
+use authorization::schema::{AccountGroupRelationAndSubject, WebRelationAndSubject};
 
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
@@ -22,12 +22,9 @@ use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{
-        AccountGroupNamespace, AccountGroupPermission, AccountGroupRelation,
-        EntityRelationAndSubject, OwnerId, WebNamespace, WebRelation,
-    },
+    schema::{EntityRelationAndSubject, WebNamespace},
     zanzibar::{
-        types::{RelationshipFilter, ResourceFilter, SubjectFilter},
+        types::{RelationshipFilter, ResourceFilter},
         Consistency,
     },
 };
@@ -69,18 +66,14 @@ pub struct Account {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
     id: AccountGroupId,
-    owners: Vec<AccountId>,
-    admins: Vec<AccountId>,
-    members: Vec<AccountId>,
+    relations: Vec<AccountGroupRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Web {
     id: WebId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    owners: Vec<OwnerId>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    editors: Vec<OwnerId>,
+    relations: Vec<WebRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -231,28 +224,18 @@ where
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
                 let id: AccountGroupId = row.get(0);
-                let mut owners = Vec::new();
-                let mut admins = Vec::new();
-                let mut members = Vec::new();
-                for (_group, relation, user) in authorization_api
-                    .read_relations::<(AccountGroupId, AccountGroupRelation, AccountId)>(
-                        RelationshipFilter::from_resource(id),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(SnapshotDumpError::Query)?
-                {
-                    match relation {
-                        AccountGroupRelation::DirectOwner => owners.push(user),
-                        AccountGroupRelation::DirectAdmin => admins.push(user),
-                        AccountGroupRelation::DirectMember => members.push(user),
-                    }
-                }
                 Ok(AccountGroup {
                     id,
-                    owners,
-                    admins,
-                    members,
+                    relations: authorization_api
+                        .read_relations::<(AccountGroupId, AccountGroupRelationAndSubject)>(
+                            RelationshipFilter::from_resource(id),
+                            Consistency::FullyConsistent,
+                        )
+                        .await
+                        .change_context(SnapshotDumpError::Query)?
+                        .into_iter()
+                        .map(|(_group, relation)| relation)
+                        .collect(),
                 })
             }))
     }
@@ -262,67 +245,28 @@ where
         authorization_api: &'a (impl ZanzibarBackend + Sync),
     ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
     {
-        let accounts = authorization_api
-            .read_relations::<(WebId, WebRelation, AccountId)>(
-                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
-                    &WebNamespace::Web,
-                ))
-                .with_subject(SubjectFilter::from_resource(
-                    ResourceFilter::from_namespace(AccountNamespace::Account),
-                )),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(SnapshotDumpError::Query)?
-            .into_iter()
-            .map(|(id, relation, account_id)| match relation {
-                WebRelation::DirectOwner => Ok(Web {
-                    id,
-                    owners: vec![OwnerId::Account(account_id)],
-                    editors: Vec::new(),
+        Ok(stream::iter(
+            authorization_api
+                .read_relations::<(WebId, WebRelationAndSubject)>(
+                    RelationshipFilter::from_resource(ResourceFilter::from_kind(
+                        &WebNamespace::Web,
+                    )),
+                    Consistency::FullyConsistent,
+                )
+                .await
+                .change_context(SnapshotDumpError::Query)?
+                .into_iter()
+                .map(|(id, relation_and_subject)| {
+                    Ok(Web {
+                        id,
+                        // TODO: Partition web ids so a single web holds multiple owners/editors per
+                        //       snapshot line. For the restoring logic this has no effect, but it
+                        // would       make the snapshot file smaller and
+                        // more readable.
+                        relations: vec![relation_and_subject],
+                    })
                 }),
-                WebRelation::DirectEditor => Ok(Web {
-                    id,
-                    owners: Vec::new(),
-                    editors: vec![OwnerId::Account(account_id)],
-                }),
-            });
-
-        let account_groups = authorization_api
-            .read_relations::<(WebId, WebRelation, (AccountGroupId, AccountGroupPermission))>(
-                RelationshipFilter::from_resource(ResourceFilter::from_namespace(
-                    &WebNamespace::Web,
-                ))
-                .with_subject(SubjectFilter::from_resource(
-                    ResourceFilter::from_namespace(AccountGroupNamespace::AccountGroup),
-                )),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(SnapshotDumpError::Query)?
-            .into_iter()
-            .map(
-                |(id, relation, (account_group, account_group_permission))| {
-                    assert_eq!(account_group_permission, AccountGroupPermission::Member);
-                    // TODO: Partition web ids so a single web holds multiple owners/editors per
-                    //       snapshot line. For the restoring logic this has no effect, but it would
-                    //       make the snapshot file smaller and more readable.
-                    match relation {
-                        WebRelation::DirectOwner => Ok(Web {
-                            id,
-                            owners: vec![OwnerId::AccountGroupMembers(account_group)],
-                            editors: Vec::new(),
-                        }),
-                        WebRelation::DirectEditor => Ok(Web {
-                            id,
-                            owners: Vec::new(),
-                            editors: vec![OwnerId::AccountGroupMembers(account_group)],
-                        }),
-                    }
-                },
-            );
-
-        Ok(stream::iter(accounts.chain(account_groups)))
+        ))
     }
 
     /// Convenience function to create a stream of snapshot entries.
