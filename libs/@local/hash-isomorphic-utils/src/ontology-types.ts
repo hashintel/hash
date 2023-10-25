@@ -1,5 +1,5 @@
+import { systemTypeWebShortname } from "@apps/hash-api/src/graph/system-accounts";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { BaseUrl } from "@local/hash-subgraph";
 
@@ -84,7 +84,12 @@ export const generateTypeId = ({
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: systemUserShortname, ...args });
+}) =>
+  generateTypeId({
+    domain: "https://hash.ai",
+    namespace: systemTypeWebShortname,
+    ...args,
+  });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URL).
@@ -111,7 +116,8 @@ export const generateBlockProtocolTypeId = (args: {
 export const generateLinearTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: "linear", ...args });
+}) =>
+  generateTypeId({ domain: "https://hash.ai", namespace: "linear", ...args });
 
 /**
  * The system entity types.

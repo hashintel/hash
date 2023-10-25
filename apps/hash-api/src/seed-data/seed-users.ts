@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { ImpureGraphContext } from "../graph";
 import { createUser, User } from "../graph/knowledge/system-types/user";
-import { systemUserAccountId } from "../graph/system-user";
+import { systemAccountId } from "../graph/system-accounts";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
 type SeededUser = {
@@ -43,7 +43,7 @@ export const ensureUsersAreSeeded = async ({
   context: ImpureGraphContext;
 }): Promise<User[]> => {
   const createdUsers = [];
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
 
   // Only use `devUsers` if we are in a dev environment
   let usersToSeed = isDevEnv || isTestEnv ? devUsers : [];

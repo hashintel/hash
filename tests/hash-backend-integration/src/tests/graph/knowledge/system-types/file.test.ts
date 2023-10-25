@@ -8,7 +8,7 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -42,7 +42,7 @@ describe("File", () => {
       kratosIdentityId: testUser.kratosIdentityId,
     });
     await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
+      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();

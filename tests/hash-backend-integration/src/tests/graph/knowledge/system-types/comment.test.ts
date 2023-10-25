@@ -15,8 +15,8 @@ import {
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
@@ -67,7 +67,7 @@ describe("Comment", () => {
       kratosIdentityId: testUser.kratosIdentityId,
     });
     await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
+      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();

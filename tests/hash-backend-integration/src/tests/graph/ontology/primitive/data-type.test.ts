@@ -10,7 +10,7 @@ import {
   getDataTypeSubgraphById,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -56,7 +56,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await deleteKratosIdentity({
-    kratosIdentityId: systemUser.kratosIdentityId,
+    kratosIdentityId: systemAccounts.kratosIdentityId,
   });
   await deleteKratosIdentity({
     kratosIdentityId: testUser.kratosIdentityId,

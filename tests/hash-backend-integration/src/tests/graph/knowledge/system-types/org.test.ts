@@ -10,9 +10,9 @@ import {
   updateOrgShortname,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+  systemAccountId,
+  systemAccounts,
+} from "@apps/hash-api/src/graph/system-accounts";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -41,7 +41,7 @@ describe("Org", () => {
 
   afterAll(async () => {
     await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
+      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();
@@ -52,7 +52,7 @@ describe("Org", () => {
   it("can create an org", async () => {
     createdOrg = await createTestOrg(
       graphContext,
-      { actorId: systemUserAccountId },
+      { actorId: systemAccountId },
       "orgTest",
       logger,
     );
@@ -65,7 +65,7 @@ describe("Org", () => {
   });
 
   it("can update the shortname of an org", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
     shortname = generateRandomShortname("orgTest");
 
     createdOrg = await updateOrgShortname(graphContext, authentication, {
@@ -75,7 +75,7 @@ describe("Org", () => {
   });
 
   it("can update the preferred name of an org", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     createdOrg = await updateOrgName(graphContext, authentication, {
       org: createdOrg,
@@ -84,7 +84,7 @@ describe("Org", () => {
   });
 
   it("can get an org by its shortname", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
       shortname,

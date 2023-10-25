@@ -2,7 +2,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 
 import { ImpureGraphContext } from "./index";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
-import { systemUserAccountId } from "./system-user";
+import { systemAccountId } from "./system-accounts";
 
 const linearOrgShortname = "linear";
 
@@ -16,7 +16,7 @@ export const ensureLinearOrgExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { logger, context } = params;
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
 
   const existingLinearOrg = await getOrgByShortname(context, authentication, {
     shortname: linearOrgShortname,

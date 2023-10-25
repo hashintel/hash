@@ -48,7 +48,7 @@ import { WorkspaceContext } from "../../shared/workspace-context";
 const typesTableColumnIds = [
   "title",
   "kind",
-  "namespaceShortname",
+  "webShortname",
   "archived",
 ] as const;
 
@@ -64,7 +64,7 @@ type TypesTableRow = {
   typeId: VersionedUrl;
   title: string;
   external: boolean;
-  namespaceShortname?: string;
+  webShortname: string;
   archived: boolean;
 };
 
@@ -109,8 +109,8 @@ export const TypesTable: FunctionComponent<{
           ]
         : []),
       {
-        id: "namespaceShortname",
-        title: "Namespace",
+        id: "webShortname",
+        title: "Web",
         width: 200,
       },
       {
@@ -161,7 +161,7 @@ export const TypesTable: FunctionComponent<{
                 ? "property-type"
                 : "data-type",
             external: isExternal,
-            namespaceShortname: namespace?.shortname,
+            webShortname: namespace?.shortname ?? "unknown",
             archived: isTypeArchived(type),
           } as const;
         })
@@ -217,10 +217,8 @@ export const TypesTable: FunctionComponent<{
               displayData: String(row.kind),
               data: row.kind,
             };
-          case "namespaceShortname": {
-            const value = row.namespaceShortname
-              ? `@${row.namespaceShortname}`
-              : "";
+          case "webShortname": {
+            const value = row.webShortname ? `@${row.webShortname}` : "";
 
             return {
               kind: GridCellKind.Text,

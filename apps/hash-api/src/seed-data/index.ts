@@ -9,7 +9,7 @@ import {
   OrgSize,
 } from "../graph/knowledge/system-types/org";
 import { joinOrg } from "../graph/knowledge/system-types/user";
-import { systemUserAccountId } from "../graph/system-user";
+import { systemAccountId } from "../graph/system-accounts";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
 
@@ -18,7 +18,7 @@ const seedOrg = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }): Promise<Org> => {
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
   const { logger, context } = params;
 
   const exampleOrgShortname = "example-org";
@@ -75,7 +75,7 @@ export const seedOrgsAndUsers = async (params: {
   context: ImpureGraphContext;
 }): Promise<void> => {
   const { logger, context } = params;
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
 
   const createdUsers = await ensureUsersAreSeeded(params);
 

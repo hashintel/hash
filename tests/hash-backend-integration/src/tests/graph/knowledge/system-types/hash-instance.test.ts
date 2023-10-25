@@ -14,9 +14,9 @@ import {
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+  systemAccountId,
+  systemAccounts,
+} from "@apps/hash-api/src/graph/system-accounts";
 import {
   AuthenticationContext,
   publicUserAccountId,
@@ -45,7 +45,7 @@ describe("Hash Instance", () => {
 
   afterAll(async () => {
     await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
+      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();
@@ -84,7 +84,7 @@ describe("Hash Instance", () => {
   it("can add a hash instance admin", async () => {
     await addHashInstanceAdmin(
       graphContext,
-      { actorId: systemUserAccountId },
+      { actorId: systemAccountId },
       {
         user: testHashInstanceAdmin,
       },
@@ -100,7 +100,7 @@ describe("Hash Instance", () => {
   it("can remove a hash instance admin", async () => {
     await removeHashInstanceAdmin(
       graphContext,
-      { actorId: systemUserAccountId },
+      { actorId: systemAccountId },
       {
         user: testHashInstanceAdmin,
       },

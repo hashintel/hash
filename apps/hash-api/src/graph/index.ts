@@ -14,12 +14,12 @@ import axios, { AxiosError } from "axios";
 
 import { AuthenticationContext } from "../graphql/context";
 import { UploadableStorageProvider } from "../storage";
+import {
+  ensureSystemAccountIdExists,
+  ensureSystemOrgExists,
+} from "./system-accounts";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
-import {
-  ensureSystemUserAccountIdExists,
-  ensureSystemUserExists,
-} from "./system-user";
 
 export type ImpureGraphContext = {
   graphApi: GraphApi;
@@ -145,11 +145,9 @@ export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
-  await ensureSystemUserAccountIdExists(params);
+  await ensureSystemAccountsExists(params);
 
   await ensureSystemTypesExist(params);
-
-  await ensureSystemUserExists(params);
 
   await ensureSystemEntitiesExists(params);
 };

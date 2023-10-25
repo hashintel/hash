@@ -7,7 +7,7 @@ import {
   createHashInstance,
   getHashInstance,
 } from "./knowledge/system-types/hash-instance";
-import { systemUserAccountId } from "./system-user";
+import { systemAccountId } from "./system-accounts";
 
 /**
  * Ensures the required system entities has been created in the graph.
@@ -17,7 +17,7 @@ export const ensureSystemEntitiesExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { context } = params;
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
   logger.debug("Ensuring required system entities exists");
 
   // Create system entities if they don't already exist

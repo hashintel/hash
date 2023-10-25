@@ -15,7 +15,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
@@ -159,7 +159,7 @@ describe("Link entity", () => {
       kratosIdentityId: testUser.kratosIdentityId,
     });
     await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
+      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();

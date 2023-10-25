@@ -13,6 +13,7 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   PrimitiveDataTypeKey,
   systemTypes,
@@ -35,7 +36,7 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "./ontology/primitive/property-type";
-import { systemUserAccountId } from "./system-user";
+import { systemAccountId } from "./system-accounts";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -169,7 +170,7 @@ export const propertyTypeInitializer = (
   let propertyType: PropertyTypeWithMetadata;
 
   return async (context?: ImpureGraphContext) => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyType) {
@@ -188,7 +189,7 @@ export const propertyTypeInitializer = (
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
           return await createPropertyType(context, authentication, {
-            ownedById: systemUserAccountId as OwnedById,
+            ownedById: systemAccountId as OwnedById,
             schema: propertyTypeSchema,
           }).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
@@ -375,7 +376,7 @@ export const entityTypeInitializer = (
   let entityType: EntityTypeWithMetadata | undefined;
 
   return async (context?: ImpureGraphContext) => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     if (entityType) {
       return entityType;
@@ -396,7 +397,7 @@ export const entityTypeInitializer = (
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
           return await createEntityType(context, authentication, {
-            ownedById: systemUserAccountId as OwnedById,
+            ownedById: systemAccountId as OwnedById,
             schema: entityTypeSchema,
           }).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
@@ -414,3 +415,10 @@ export const entityTypeInitializer = (
     }
   };
 };
+
+// Whether this is a self-hosted instance, rather than the central HASH hosted instance
+export const isSelfHostedInstance = ![
+  "http://localhost:3000",
+  "https://app.hash.ai",
+  "https://hash.ai",
+].includes(frontendUrl);

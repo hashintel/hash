@@ -9,7 +9,7 @@ import {
 import { ImpureGraphFunction } from "../..";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
-import { systemUserAccountId } from "../../system-user";
+import { systemAccountId } from "../../system-accounts";
 
 /**
  * Get the namespace of an account owner by its id
@@ -23,7 +23,7 @@ export const getNamespaceOfAccountOwner: ImpureGraphFunction<
   Promise<string>
 > = async (ctx, authentication, params) => {
   const namespace =
-    params.ownerId === systemUserAccountId
+    params.ownerId === systemAccountId
       ? systemUserShortname
       : (
           (await getUserById(ctx, authentication, {
