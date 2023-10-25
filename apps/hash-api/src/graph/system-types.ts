@@ -106,9 +106,6 @@ export let SYSTEM_TYPES: {
     gitHubAccount: EntityTypeWithMetadata;
   };
   linkEntityType: {
-    // HASHInstance-related
-    admin: EntityTypeWithMetadata;
-
     // User-related
     orgMembership: EntityTypeWithMetadata;
     hasServiceAccount: EntityTypeWithMetadata;
@@ -160,10 +157,6 @@ const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
     possibleValues: [{ primitiveDataType: "boolean" }],
   });
 
-export const adminLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.admin,
-);
-
 export const hashInstanceEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -187,12 +180,6 @@ export const hashInstanceEntityTypeInitializer = async (
       context,
     );
 
-  const adminLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(context);
-
-  const userEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -215,12 +202,7 @@ export const hashInstanceEntityTypeInitializer = async (
         required: true,
       },
     ],
-    outgoingLinks: [
-      {
-        linkEntityType: adminLinkEntityType,
-        destinationEntityTypes: [userEntityType],
-      },
-    ],
+    outgoingLinks: [],
   })(context);
 };
 
@@ -1137,7 +1119,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     profileUrl: profileUrlPropertyTypeInitializer,
   },
   linkEntityType: {
-    admin: adminLinkEntityTypeInitializer,
     orgMembership: orgMembershipLinkEntityTypeInitializer,
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,

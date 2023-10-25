@@ -390,10 +390,6 @@ const systemLinkEntityTypes = {
     title: "Author",
     description: "The author of something.",
   },
-  admin: {
-    title: "Admin",
-    description: "The admin of something.",
-  },
   syncLinearDataWith: {
     title: "Sync Linear Data With",
     description: "Something that syncs linear data with something.",
