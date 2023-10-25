@@ -208,8 +208,8 @@ const systemEntityTypes = {
     title: "Notification",
     description: undefined,
   },
-  pageMentionNotification: {
-    title: "Page Mention Notification",
+  mentionNotification: {
+    title: "Mention Notification",
     description: undefined,
   },
   notificationAction: {
@@ -430,9 +430,13 @@ const systemLinkEntityTypes = {
     title: "Has Action",
     description: "Has an action.",
   },
-  occurredInPage: {
-    title: "Occurred In Page",
-    description: "A page that something occurred in.",
+  occurredInEntity: {
+    title: "Occurred In Entity",
+    description: "An entity that something occurred in.",
+  },
+  occurredInComment: {
+    title: "Occurred In Comment",
+    description: "A comment that something occurred in.",
   },
   occurredInText: {
     title: "Occurred In Text",

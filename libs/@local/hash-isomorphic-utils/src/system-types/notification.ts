@@ -3,6 +3,8 @@
  */
 
 import {
+  ArchivedPropertyValue,
+  BooleanDataType,
   HasAction,
   HasActionOutgoingLinkAndTarget,
   HasActionOutgoingLinksByLinkEntityTypeId,
@@ -26,6 +28,8 @@ import {
 } from "./shared";
 
 export type {
+  ArchivedPropertyValue,
+  BooleanDataType,
   HasAction,
   HasActionOutgoingLinkAndTarget,
   HasActionOutgoingLinksByLinkEntityTypeId,

@@ -110,7 +110,7 @@ export let SYSTEM_TYPES: {
     gitHubAccount: EntityTypeWithMetadata;
     notification: EntityTypeWithMetadata;
     notificationAction: EntityTypeWithMetadata;
-    pageMentionNotification: EntityTypeWithMetadata;
+    mentionNotification: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -145,8 +145,9 @@ export let SYSTEM_TYPES: {
     // Notification related
     hasAction: EntityTypeWithMetadata;
 
-    // Page Mention Notification related
-    occurredInPage: EntityTypeWithMetadata;
+    // Mention Notification related
+    occurredInEntity: EntityTypeWithMetadata;
+    occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
     triggeredByUser: EntityTypeWithMetadata;
   };
@@ -1149,8 +1150,8 @@ const notificationEntityTypeInitializer = async (
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const titlePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
   const hasActionLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAction(context);
@@ -1164,8 +1165,7 @@ const notificationEntityTypeInitializer = async (
     ...types.entityType.notification,
     properties: [
       {
-        propertyType: titlePropertyType,
-        required: true,
+        propertyType: archivedPropertyType,
       },
     ],
     outgoingLinks: [
@@ -1177,8 +1177,12 @@ const notificationEntityTypeInitializer = async (
   })(context);
 };
 
-export const occurredInPageLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInPage,
+export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.occurredInEntity,
+);
+
+export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.occurredInComment,
 );
 
 export const occurredInTextLinkEntityTypeInitializer = entityTypeInitializer(
@@ -1189,7 +1193,7 @@ export const triggeredByUserLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.triggeredByUser,
 );
 
-const pageMentionNotificationEntityTypeInitializer = async (
+const mentionNotificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -1197,11 +1201,17 @@ const pageMentionNotificationEntityTypeInitializer = async (
   const notificationEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
 
-  const occurredInPageLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInPage(context);
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const occurredInCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInComment(context);
+
+  const commentEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.comment(context);
 
   const occurredInTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInText(context);
@@ -1218,13 +1228,19 @@ const pageMentionNotificationEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.pageMentionNotification,
+    ...types.entityType.mentionNotification,
     allOf: [notificationEntityType.schema.$id],
     outgoingLinks: [
       {
-        linkEntityType: occurredInPageLinkEntityType,
+        linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
         minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 0,
         maxItems: 1,
       },
       {
@@ -1317,7 +1333,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
     hasAction: hasActionLinkEntityTypeInitializer,
-    occurredInPage: occurredInPageLinkEntityTypeInitializer,
+    occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
+    occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
     triggeredByUser: triggeredByUserLinkEntityTypeInitializer,
   },
@@ -1344,7 +1361,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     instagramAccount: instagramAccountEntityTypeInitializer,
     gitHubAccount: gitHubAccountEntityTypeInitializer,
     notification: notificationEntityTypeInitializer,
-    pageMentionNotification: pageMentionNotificationEntityTypeInitializer,
+    mentionNotification: mentionNotificationEntityTypeInitializer,
     notificationAction: notificationActionEntityTypeInitializer,
   },
 };

@@ -6,6 +6,10 @@ import { Entity, LinkData } from "@blockprotocol/graph";
 
 import {
   ArchivedPropertyValue,
+  Author,
+  AuthorOutgoingLinkAndTarget,
+  AuthorOutgoingLinksByLinkEntityTypeId,
+  AuthorProperties,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -21,11 +25,19 @@ import {
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
+  Comment,
+  CommentAuthorLink,
+  CommentHasTextLink,
+  CommentOutgoingLinkAndTarget,
+  CommentOutgoingLinksByLinkEntityTypeId,
+  CommentParentLink,
+  CommentProperties,
   ComponentIdPropertyValue,
   Contains,
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  DeletedAtPropertyValue,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
@@ -57,6 +69,10 @@ import {
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
+  HasText,
+  HasTextOutgoingLinkAndTarget,
+  HasTextOutgoingLinksByLinkEntityTypeId,
+  HasTextProperties,
   IconPropertyValue,
   Image,
   ImageOutgoingLinkAndTarget,
@@ -115,6 +131,7 @@ import {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileURLPropertyValue,
+  ResolvedAtPropertyValue,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -142,6 +159,10 @@ import {
 
 export type {
   ArchivedPropertyValue,
+  Author,
+  AuthorOutgoingLinkAndTarget,
+  AuthorOutgoingLinksByLinkEntityTypeId,
+  AuthorProperties,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -157,11 +178,19 @@ export type {
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BooleanDataType,
+  Comment,
+  CommentAuthorLink,
+  CommentHasTextLink,
+  CommentOutgoingLinkAndTarget,
+  CommentOutgoingLinksByLinkEntityTypeId,
+  CommentParentLink,
+  CommentProperties,
   ComponentIdPropertyValue,
   Contains,
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  DeletedAtPropertyValue,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   EmailPropertyValue,
@@ -193,6 +222,10 @@ export type {
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
+  HasText,
+  HasTextOutgoingLinkAndTarget,
+  HasTextOutgoingLinksByLinkEntityTypeId,
+  HasTextProperties,
   IconPropertyValue,
   Image,
   ImageOutgoingLinkAndTarget,
@@ -251,6 +284,7 @@ export type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileURLPropertyValue,
+  ResolvedAtPropertyValue,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
@@ -276,22 +310,80 @@ export type {
   WebsitePropertyValue,
 };
 
-export type OccurredInPage = Entity<OccurredInPageProperties> & {
+export type MentionNotification = Entity<MentionNotificationProperties>;
+
+export type MentionNotificationOccurredInCommentLink = {
+  linkEntity: OccurredInComment;
+  rightEntity: Comment;
+};
+
+export type MentionNotificationOccurredInEntityLink = {
+  linkEntity: OccurredInEntity;
+  rightEntity: Page;
+};
+
+export type MentionNotificationOccurredInTextLink = {
+  linkEntity: OccurredInText;
+  rightEntity: Text;
+};
+
+export type MentionNotificationOutgoingLinkAndTarget =
+  | MentionNotificationOccurredInCommentLink
+  | MentionNotificationOccurredInEntityLink
+  | MentionNotificationOccurredInTextLink
+  | MentionNotificationTriggeredByUserLink;
+
+export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": MentionNotificationOccurredInEntityLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
+};
+
+export type MentionNotificationProperties = MentionNotificationProperties1 &
+  MentionNotificationProperties2;
+export type MentionNotificationProperties1 = NotificationProperties;
+
+export type MentionNotificationProperties2 = {};
+
+export type MentionNotificationTriggeredByUserLink = {
+  linkEntity: TriggeredByUser;
+  rightEntity: User;
+};
+
+export type OccurredInComment = Entity<OccurredInCommentProperties> & {
   linkData: LinkData;
 };
 
-export type OccurredInPageOutgoingLinkAndTarget = never;
+export type OccurredInCommentOutgoingLinkAndTarget = never;
 
-export type OccurredInPageOutgoingLinksByLinkEntityTypeId = {};
+export type OccurredInCommentOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * A page that something occurred in.
+ * A comment that something occurred in.
  */
-export type OccurredInPageProperties = OccurredInPageProperties1 &
-  OccurredInPageProperties2;
-export type OccurredInPageProperties1 = LinkProperties;
+export type OccurredInCommentProperties = OccurredInCommentProperties1 &
+  OccurredInCommentProperties2;
+export type OccurredInCommentProperties1 = LinkProperties;
 
-export type OccurredInPageProperties2 = {};
+export type OccurredInCommentProperties2 = {};
+
+export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
+  linkData: LinkData;
+};
+
+export type OccurredInEntityOutgoingLinkAndTarget = never;
+
+export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An entity that something occurred in.
+ */
+export type OccurredInEntityProperties = OccurredInEntityProperties1 &
+  OccurredInEntityProperties2;
+export type OccurredInEntityProperties1 = LinkProperties;
+
+export type OccurredInEntityProperties2 = {};
 
 export type OccurredInText = Entity<OccurredInTextProperties> & {
   linkData: LinkData;
@@ -309,40 +401,6 @@ export type OccurredInTextProperties = OccurredInTextProperties1 &
 export type OccurredInTextProperties1 = LinkProperties;
 
 export type OccurredInTextProperties2 = {};
-
-export type PageMentionNotification = Entity<PageMentionNotificationProperties>;
-
-export type PageMentionNotificationOccurredInPageLink = {
-  linkEntity: OccurredInPage;
-  rightEntity: Page;
-};
-
-export type PageMentionNotificationOccurredInTextLink = {
-  linkEntity: OccurredInText;
-  rightEntity: Text;
-};
-
-export type PageMentionNotificationOutgoingLinkAndTarget =
-  | PageMentionNotificationOccurredInPageLink
-  | PageMentionNotificationOccurredInTextLink
-  | PageMentionNotificationTriggeredByUserLink;
-
-export type PageMentionNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": PageMentionNotificationOccurredInPageLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": PageMentionNotificationOccurredInTextLink;
-  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": PageMentionNotificationTriggeredByUserLink;
-};
-
-export type PageMentionNotificationProperties =
-  PageMentionNotificationProperties1 & PageMentionNotificationProperties2;
-export type PageMentionNotificationProperties1 = NotificationProperties;
-
-export type PageMentionNotificationProperties2 = {};
-
-export type PageMentionNotificationTriggeredByUserLink = {
-  linkEntity: TriggeredByUser;
-  rightEntity: User;
-};
 
 export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
   linkData: LinkData;

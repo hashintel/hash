@@ -9,6 +9,20 @@ import { Entity, LinkData } from "@blockprotocol/graph";
  */
 export type ArchivedPropertyValue = BooleanDataType;
 
+export type Author = Entity<AuthorProperties> & { linkData: LinkData };
+
+export type AuthorOutgoingLinkAndTarget = never;
+
+export type AuthorOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The author of something.
+ */
+export type AuthorProperties = AuthorProperties1 & AuthorProperties2;
+export type AuthorProperties1 = LinkProperties;
+
+export type AuthorProperties2 = {};
+
 export type Block = Entity<BlockProperties>;
 
 export type BlockBlockDataLink = { linkEntity: BlockData; rightEntity: Entity };
@@ -57,6 +71,33 @@ export type BlockProperties = {
  */
 export type BooleanDataType = boolean;
 
+export type Comment = Entity<CommentProperties>;
+
+export type CommentAuthorLink = { linkEntity: Author; rightEntity: User };
+
+export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
+
+export type CommentOutgoingLinkAndTarget =
+  | CommentAuthorLink
+  | CommentHasTextLink
+  | CommentParentLink;
+
+export type CommentOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
+};
+
+export type CommentParentLink = {
+  linkEntity: Parent;
+  rightEntity: Comment | Block;
+};
+
+export type CommentProperties = {
+  "http://localhost:3000/@system-user/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
+};
+
 export type ComponentIdPropertyValue = TextDataType;
 
 /**
@@ -77,6 +118,11 @@ export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
 export type ContainsProperties1 = LinkProperties;
 
 export type ContainsProperties2 = {};
+
+/**
+ * Stringified timestamp of when something was deleted.
+ */
+export type DeletedAtPropertyValue = TextDataType;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -213,6 +259,20 @@ export type HasServiceAccountProperties1 = LinkProperties;
 
 export type HasServiceAccountProperties2 = {};
 
+export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+
+export type HasTextOutgoingLinkAndTarget = never;
+
+export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The text something has.
+ */
+export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
+export type HasTextProperties1 = LinkProperties;
+
+export type HasTextProperties2 = {};
+
 /**
  * An emoji icon.
  */
@@ -284,7 +344,7 @@ export type NotificationOutgoingLinksByLinkEntityTypeId = {
 };
 
 export type NotificationProperties = {
-  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
 };
 
 /**
@@ -453,6 +513,11 @@ export type ProfileBioProperties2 = {};
  * A URL to a profile
  */
 export type ProfileURLPropertyValue = TextDataType;
+
+/**
+ * Stringified timestamp of when something was resolved.
+ */
+export type ResolvedAtPropertyValue = TextDataType;
 
 export type ServiceAccount = Entity<ServiceAccountProperties>;
 
