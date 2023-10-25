@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -13,7 +14,6 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   assertEntityRootedSubgraph,
@@ -157,7 +157,7 @@ export const getUserByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
       assertEntityRootedSubgraph(subgraph);
       return getRoots(subgraph);
     });
@@ -206,7 +206,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
       assertEntityRootedSubgraph(subgraph);
       return getRoots(subgraph);
     });

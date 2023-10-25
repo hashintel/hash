@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   Entity,
@@ -160,7 +161,9 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
-          const subgraph = data.getEntity.subgraph as Subgraph;
+          const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph(
+            data.getEntity.subgraph,
+          );
 
           assertEntityRootedSubgraph(subgraph);
 

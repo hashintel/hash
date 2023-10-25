@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
@@ -10,7 +11,6 @@ import {
   AccountEntityId,
   AccountId,
   extractAccountId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { getEntities } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -54,7 +54,7 @@ export const ensureSystemUserAccountIdExists = async (params: {
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => data as Subgraph);
+    .then(({ data }) => mapGraphApiSubgraphToSubgraph(data));
 
   const existingUserEntities = getEntities(existingUserEntitiesSubgraph);
 

@@ -2,6 +2,7 @@ import {
   DATA_TYPE_META_SCHEMA,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   DataTypeStructuralQuery,
   OntologyTemporalMetadata,
@@ -22,7 +23,10 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertDataTypeRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../..";
@@ -89,9 +93,12 @@ export const getDataTypes: ImpureGraphFunction<
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi
-    .getDataTypesByQuery(actorId, query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<DataTypeRootType>);
+  return await graphApi.getDataTypesByQuery(actorId, query).then(({ data }) => {
+    const subgraph = mapGraphApiSubgraphToSubgraph(data);
+
+    assertDataTypeRootedSubgraph(subgraph);
+    return subgraph;
+  });
 };
 
 /**

@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
@@ -5,10 +6,10 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   OwnedById,
-  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
+import { assertPropertyTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,
@@ -75,7 +76,7 @@ export const queryPropertyTypesResolver: ResolverFn<
    *   authorized to see.
    *   https://app.asana.com/0/1202805690238892/1202890446280569/f
    */
-  const { data: propertyTypeSubgraph } = await graphApi.getPropertyTypesByQuery(
+  const { data } = await graphApi.getPropertyTypesByQuery(
     authentication.actorId,
     {
       filter: latestOnly
@@ -108,7 +109,11 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  return propertyTypeSubgraph as Subgraph<PropertyTypeRootType>;
+  const subgraph = mapGraphApiSubgraphToSubgraph(data);
+
+  assertPropertyTypeRootedSubgraph(subgraph);
+
+  return subgraph;
 };
 
 export const getPropertyTypeResolver: ResolverFn<

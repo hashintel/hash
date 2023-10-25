@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -12,7 +13,6 @@ import {
   EntityUuid,
   extractAccountGroupId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   assertEntityRootedSubgraph,
@@ -230,7 +230,7 @@ export const getOrgByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const userEntitiesSubgraph = data as Subgraph;
+      const userEntitiesSubgraph = mapGraphApiSubgraphToSubgraph(data);
       assertEntityRootedSubgraph(userEntitiesSubgraph);
       return getRoots(userEntitiesSubgraph);
     });

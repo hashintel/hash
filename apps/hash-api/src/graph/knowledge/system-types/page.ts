@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
@@ -10,7 +11,6 @@ import {
   EntityId,
   EntityPropertiesObject,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   assertEntityRootedSubgraph,
@@ -269,7 +269,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
       assertEntityRootedSubgraph(subgraph);
       return getEntities(subgraph);
     });

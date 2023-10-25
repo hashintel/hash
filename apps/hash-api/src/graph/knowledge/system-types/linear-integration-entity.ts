@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -9,7 +10,6 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   assertEntityRootedSubgraph,
@@ -89,7 +89,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
       assertEntityRootedSubgraph(subgraph);
       return getRoots(subgraph);
     });
@@ -153,7 +153,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
 
       assertEntityRootedSubgraph(subgraph);
 
@@ -218,7 +218,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph;
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
 
       assertEntityRootedSubgraph(subgraph);
 

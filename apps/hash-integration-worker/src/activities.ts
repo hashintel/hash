@@ -6,6 +6,7 @@ import {
   Team,
   User,
 } from "@linear/sdk";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { PartialEntity } from "@local/hash-backend-utils/temporal-workflow-types";
 import { GraphApi } from "@local/hash-graph-client";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
@@ -13,11 +14,12 @@ import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   EntityPropertiesObject,
-  EntityRootType,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  assertEntityRootedSubgraph,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
@@ -103,9 +105,11 @@ const createOrUpdateHashEntity = async (params: {
         },
       },
     })
-    .then(({ data: linearEntities }) =>
-      getRoots(linearEntities as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph(data);
+      assertEntityRootedSubgraph(subgraph);
+      return getRoots(subgraph);
+    });
 
   for (const existingEntity of entities) {
     if (

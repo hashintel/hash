@@ -1,14 +1,15 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { OntologyTemporalMetadata } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { assertEntityTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
@@ -68,7 +69,7 @@ export const queryEntityTypesResolver: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery(
+  const { data } = await graphApi.getEntityTypesByQuery(
     authentication.actorId,
     {
       filter: latestOnly
@@ -104,7 +105,11 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   );
 
-  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
+  const subgraph = mapGraphApiSubgraphToSubgraph(data);
+
+  assertEntityTypeRootedSubgraph(subgraph);
+
+  return subgraph;
 };
 
 export const getEntityTypeResolver: ResolverFn<

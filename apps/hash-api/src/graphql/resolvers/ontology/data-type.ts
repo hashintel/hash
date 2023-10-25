@@ -1,8 +1,10 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
+import { Subgraph } from "@local/hash-subgraph";
+import { assertDataTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import {
@@ -21,21 +23,22 @@ export const queryDataTypes: ResolverFn<
 > = async (_, { constrainsValuesOn }, { dataSources, authentication }) => {
   const { graphApi } = dataSources;
 
-  const { data: dataTypeSubgraph } = await graphApi.getDataTypesByQuery(
-    authentication.actorId,
-    {
-      filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
+  const { data } = await graphApi.getDataTypesByQuery(authentication.actorId, {
+    filter: {
+      equal: [{ path: ["version"] }, { parameter: "latest" }],
     },
-  );
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
-  return dataTypeSubgraph as Subgraph<DataTypeRootType>;
+  const subgraph = mapGraphApiSubgraphToSubgraph(data);
+
+  assertDataTypeRootedSubgraph(subgraph);
+
+  return subgraph;
 };
 
 export const getDataType: ResolverFn<

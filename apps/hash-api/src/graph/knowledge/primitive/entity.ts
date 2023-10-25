@@ -1,4 +1,5 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import {
   EntityPermission,
   EntityStructuralQuery,
@@ -123,7 +124,7 @@ export const getEntities: ImpureGraphFunction<
       }
     }
 
-    const subgraph = data as Subgraph;
+    const subgraph = mapGraphApiSubgraphToSubgraph(data);
 
     assertEntityRootedSubgraph(subgraph);
 

@@ -1,3 +1,4 @@
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-backend-utils/graph-api";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
@@ -7,7 +8,7 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { Entity, Subgraph } from "@local/hash-subgraph";
+import { Entity } from "@local/hash-subgraph";
 import {
   assertEntityRootedSubgraph,
   getRoots,
@@ -62,7 +63,7 @@ export const createIntegrationSyncBackWatcher = async (
               temporalAxes: fullDecisionTimeAxis,
             })
             .then(({ data }) => {
-              const subgraph = data as Subgraph;
+              const subgraph = mapGraphApiSubgraphToSubgraph(data);
               assertEntityRootedSubgraph(subgraph);
               return getRoots(subgraph);
             })

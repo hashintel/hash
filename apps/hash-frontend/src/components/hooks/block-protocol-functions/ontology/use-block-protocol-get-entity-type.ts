@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { assertEntityTypeRootedSubgraph } from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
 import {
@@ -65,9 +66,15 @@ export const useBlockProtocolGetEntityType = (): {
         };
       }
 
+      /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph(
+        response.data.getEntityType,
+      );
+
+      assertEntityTypeRootedSubgraph(subgraph);
+
       return {
-        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.data.getEntityType as Subgraph<EntityTypeRootType>,
+        data: subgraph,
       };
     },
     [getFn],
