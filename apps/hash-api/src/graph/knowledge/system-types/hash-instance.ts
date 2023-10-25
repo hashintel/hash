@@ -10,12 +10,13 @@ import {
 import { HASHInstanceProperties } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import {
   Entity,
+  EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
@@ -71,9 +72,7 @@ export const getHashInstance: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
 
       return getRoots(subgraph);
     });

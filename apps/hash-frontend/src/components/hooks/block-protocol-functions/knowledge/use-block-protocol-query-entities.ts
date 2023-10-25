@@ -1,5 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
-import { assertEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { EntityRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
 import {
@@ -67,11 +68,11 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      assertEntityRootedSubgraph(response.queryEntities.subgraph);
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        response.queryEntities.subgraph,
+      );
 
-      return {
-        data: response.queryEntities.subgraph,
-      };
+      return { data: subgraph };
     },
     [queryFn],
   );

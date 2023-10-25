@@ -3,7 +3,12 @@ import {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { BaseUrl, EntityId, Subgraph } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  EntityId,
+  Subgraph,
+  SubgraphRootType,
+} from "@local/hash-subgraph";
 
 import { SubgraphFieldsFragment } from "./api-types.gen";
 
@@ -90,6 +95,8 @@ export type UserPermissionsOnEntities = {
   [key: EntityId]: UserPermissions | undefined;
 };
 
-export const mapGqlSubgraphFieldsFragmentToSubgraph = (
+export const mapGqlSubgraphFieldsFragmentToSubgraph = <
+  RootType extends SubgraphRootType,
+>(
   subgraph: SubgraphFieldsFragment,
-): Subgraph => subgraph as Subgraph;
+) => subgraph as Subgraph<RootType>;

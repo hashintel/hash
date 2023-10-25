@@ -26,9 +26,9 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import {   assertEntityTypeRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
@@ -97,8 +97,8 @@ export const getEntityTypes: ImpureGraphFunction<
   return await graphApi
     .getEntityTypesByQuery(actorId, query)
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityTypeRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+
       return subgraph;
     });
 };

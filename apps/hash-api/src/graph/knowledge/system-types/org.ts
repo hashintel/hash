@@ -9,13 +9,14 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractAccountGroupId,
   OwnedById,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -229,8 +230,9 @@ export const getOrgByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const userEntitiesSubgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(userEntitiesSubgraph);
+      const userEntitiesSubgraph =
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
       return getRoots(userEntitiesSubgraph);
     });
 

@@ -11,7 +11,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import {
-  assertEntityRootedSubgraph,
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
@@ -445,11 +444,9 @@ export const save = async (
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph(
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         data.getEntity.subgraph,
       );
-
-      assertEntityRootedSubgraph(subgraph);
 
       const [blockCollectionEntity] = getRoots(subgraph);
 

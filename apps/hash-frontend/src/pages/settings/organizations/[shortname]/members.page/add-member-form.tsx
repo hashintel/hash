@@ -1,17 +1,16 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
+  EntityRootType,
   extractAccountId,
   OwnedById,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
@@ -101,9 +100,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    assertEntityRootedSubgraph(data.queryEntities.subgraph);
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      data.queryEntities.subgraph,
+    );
 
-    const user = getRoots(data.queryEntities.subgraph)[0];
+    const user = getRoots(subgraph)[0];
 
     if (!user) {
       setError("User not found");

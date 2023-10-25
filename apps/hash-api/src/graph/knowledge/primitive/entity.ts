@@ -33,9 +33,9 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
@@ -123,9 +123,7 @@ export const getEntities: ImpureGraphFunction<
       }
     }
 
-    const subgraph = mapGraphApiSubgraphToSubgraph(data);
-
-    assertEntityRootedSubgraph(subgraph);
+    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
 
     return subgraph;
   });

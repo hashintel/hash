@@ -4,6 +4,7 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -16,13 +17,11 @@ import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
   entityIdFromOwnedByIdAndEntityUuid,
+  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, SxProps } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetServerSideProps } from "next";
@@ -208,11 +207,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         },
       },
     )
-    .then(({ data }) => data.structuralQueryEntities);
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.structuralQueryEntities.subgraph,
+      ),
+    );
 
-  assertEntityRootedSubgraph(workspaceSubgraph.subgraph);
-
-  const pageWorkspaceEntity = getRoots(workspaceSubgraph.subgraph)[0];
+  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
 
   if (!pageWorkspaceEntity) {
     throw new Error(

@@ -13,10 +13,10 @@ import { linearTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   EntityPropertiesObject,
+  EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
-  assertEntityRootedSubgraph,
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
@@ -106,8 +106,7 @@ const createOrUpdateHashEntity = async (params: {
       },
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
       return getRoots(subgraph);
     });
 

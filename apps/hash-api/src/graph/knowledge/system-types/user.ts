@@ -9,14 +9,15 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
+  EntityRootType,
   EntityUuid,
   extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import {
@@ -156,8 +157,8 @@ export const getUserByShortname: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
       return getRoots(subgraph);
     });
 
@@ -205,8 +206,8 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
       return getRoots(subgraph);
     });
 

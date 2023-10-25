@@ -5,13 +5,11 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   OwnedById,
+  PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
 } from "@local/hash-subgraph";
-import {
-  assertPropertyTypeRootedSubgraph,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-subgraph/stdlib";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archivePropertyType,
@@ -111,9 +109,7 @@ export const queryPropertyTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph(data);
-
-  assertPropertyTypeRootedSubgraph(subgraph);
+  const subgraph = mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(data);
 
   return subgraph;
 };

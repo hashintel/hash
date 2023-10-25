@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -11,12 +12,12 @@ import {
   BaseUrl,
   Entity,
   EntityId,
+  EntityRootType,
   EntityTypeWithMetadata,
   extractOwnedByIdFromEntityId,
   OwnedById,
 } from "@local/hash-subgraph";
 import {
-  assertEntityRootedSubgraph,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -171,11 +172,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     fetchPolicy: "cache-and-network",
   });
 
-  const entitiesSubgraph = data?.structuralQueryEntities.subgraph;
-
-  if (entitiesSubgraph) {
-    assertEntityRootedSubgraph(entitiesSubgraph);
-  }
+  const entitiesSubgraph = data
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.structuralQueryEntities.subgraph,
+      )
+    : undefined;
 
   const searchedEntities = useMemo(
     () =>

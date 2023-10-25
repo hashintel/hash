@@ -1,14 +1,13 @@
 import { useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { EntityRootType } from "@local/hash-subgraph/.";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
@@ -170,12 +169,11 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profile || !includeEntityTypeIds,
   });
 
-  const { subgraph: entitiesSubgraph } =
-    pinnedEntityTypesData?.structuralQueryEntities ?? {};
-
-  if (entitiesSubgraph) {
-    assertEntityRootedSubgraph(entitiesSubgraph);
-  }
+  const entitiesSubgraph = pinnedEntityTypesData
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        pinnedEntityTypesData.structuralQueryEntities.subgraph,
+      )
+    : undefined;
 
   const allPinnedEntities = useMemo(
     () => (entitiesSubgraph ? getRoots(entitiesSubgraph) : undefined),

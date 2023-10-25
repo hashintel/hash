@@ -9,11 +9,12 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
+  EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getEntities,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
@@ -268,8 +269,8 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
       return getEntities(subgraph);
     });
 

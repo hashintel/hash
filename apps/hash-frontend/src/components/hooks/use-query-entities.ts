@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { GraphResolveDepths } from "@local/hash-subgraph";
-import { assertEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import {
@@ -67,11 +67,11 @@ export const useQueryEntities = ({
   );
 
   return useMemo(() => {
-    const { subgraph } = response.data?.queryEntities ?? {};
-
-    if (subgraph) {
-      assertEntityRootedSubgraph(subgraph);
-    }
+    const subgraph = response.data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          response.data.queryEntities.subgraph,
+        )
+      : undefined;
 
     return { entitiesSubgraph: subgraph, ...response };
   }, [response]);

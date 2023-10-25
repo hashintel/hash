@@ -4,11 +4,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  EntityTypeRootType,
   EntityTypeWithMetadata,
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { assertEntityTypeRootedSubgraph,mapGraphApiSubgraphToSubgraph  } from "@local/hash-subgraph/stdlib";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
@@ -104,9 +105,7 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   );
 
-  const subgraph = mapGraphApiSubgraphToSubgraph(data);
-
-  assertEntityTypeRootedSubgraph(subgraph);
+  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
 
   return subgraph;
 };

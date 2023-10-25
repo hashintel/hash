@@ -1,14 +1,12 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountGroupId } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { AccountGroupId, EntityRootType } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -86,9 +84,9 @@ export const useOrgsWithLinks = ({
       return undefined;
     }
 
-    const { subgraph } = subgraphAndPermissions;
-
-    assertEntityRootedSubgraph(subgraph);
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      subgraphAndPermissions.subgraph,
+    );
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {

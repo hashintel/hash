@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -14,13 +15,11 @@ import {
   AccountGroupId,
   AccountId,
   Entity,
+  EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -103,11 +102,11 @@ export const useUserOrOrg = (
   });
 
   return useMemo(() => {
-    const { subgraph } = data?.structuralQueryEntities ?? {};
-
-    if (subgraph) {
-      assertEntityRootedSubgraph(subgraph);
-    }
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.structuralQueryEntities.subgraph,
+        )
+      : undefined;
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
@@ -136,11 +135,11 @@ export const useUserOrOrg = (
         }, undefined)
       : undefined;
 
-    const { subgraph: userOrOrgSubgraph } = data?.structuralQueryEntities ?? {};
-
-    if (userOrOrgSubgraph) {
-      assertEntityRootedSubgraph(userOrOrgSubgraph);
-    }
+    const userOrOrgSubgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.structuralQueryEntities.subgraph,
+        )
+      : undefined;
 
     return {
       canUserEdit: !!(

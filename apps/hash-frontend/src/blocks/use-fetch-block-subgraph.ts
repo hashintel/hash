@@ -13,7 +13,6 @@ import {
   Subgraph,
   Timestamp,
 } from "@local/hash-subgraph";
-import { assertEntityRootedSubgraph } from "@local/hash-subgraph/stdlib";
 import { useCallback } from "react";
 
 import {
@@ -161,11 +160,10 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
-          const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph(
-            data.getEntity.subgraph,
-          );
-
-          assertEntityRootedSubgraph(subgraph);
+          const subgraph =
+            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+              data.getEntity.subgraph,
+            );
 
           return {
             subgraph,

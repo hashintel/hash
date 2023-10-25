@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -10,7 +11,6 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 import {
-  assertEntityRootedSubgraph,
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
@@ -128,7 +128,13 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     useCallback<RefetchAuthInfoFunction>(async () => {
       const [subgraph, kratosSession] = await Promise.all([
         getMe()
-          .then(({ data }) => data?.me.subgraph)
+          .then(({ data }) =>
+            data
+              ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                  data.me.subgraph,
+                )
+              : undefined,
+          )
           .catch(() => undefined),
         fetchKratosSession(),
       ]);
@@ -137,8 +143,6 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         setAuthenticatedUserSubgraph(undefined);
         return {};
       }
-
-      assertEntityRootedSubgraph(subgraph);
 
       setAuthenticatedUserSubgraph(subgraph);
 

@@ -7,13 +7,14 @@ import {
   AccountId,
   Entity,
   EntityId,
+  EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
   splitEntityId,
 } from "@local/hash-subgraph";
-import {   assertEntityRootedSubgraph,
+import {
   getRoots,
-mapGraphApiSubgraphToSubgraph ,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
@@ -109,8 +110,8 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
       return getRoots(subgraph);
     });
 
@@ -179,8 +180,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph(data);
-      assertEntityRootedSubgraph(subgraph);
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
       return getRoots(subgraph);
     });
 

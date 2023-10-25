@@ -2,8 +2,8 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { Subgraph } from "@local/hash-subgraph";
-import { assertDataTypeRootedSubgraph,mapGraphApiSubgraphToSubgraph  } from "@local/hash-subgraph/stdlib";
+import { DataTypeRootType, Subgraph } from "@local/hash-subgraph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import { getDataTypeSubgraphById } from "../../../graph/ontology/primitive/data-type";
 import {
@@ -33,9 +33,7 @@ export const queryDataTypes: ResolverFn<
     temporalAxes: currentTimeInstantTemporalAxes,
   });
 
-  const subgraph = mapGraphApiSubgraphToSubgraph(data);
-
-  assertDataTypeRootedSubgraph(subgraph);
+  const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
 
   return subgraph;
 };

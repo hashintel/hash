@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   EntityId,
@@ -9,10 +10,7 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -100,11 +98,11 @@ const Page: NextPageWithLayout = () => {
 
           const { data } = await getEntity(entityId);
 
-          const subgraph = data?.getEntity.subgraph;
-
-          if (subgraph) {
-            assertEntityRootedSubgraph(subgraph);
-          }
+          const subgraph = data
+            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                data.getEntity.subgraph,
+              )
+            : undefined;
 
           if (data?.getEntity) {
             try {
@@ -141,13 +139,12 @@ const Page: NextPageWithLayout = () => {
 
     const { data } = await getEntity(entityId);
 
-    const subgraph = data?.getEntity.subgraph;
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntity.subgraph,
+        )
+      : undefined;
 
-    if (!subgraph) {
-      return;
-    }
-
-    assertEntityRootedSubgraph(subgraph);
     setEntitySubgraphFromDb(subgraph);
     setDraftEntitySubgraph(subgraph);
   };

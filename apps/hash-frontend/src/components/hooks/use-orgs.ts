@@ -1,9 +1,8 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  assertEntityRootedSubgraph,
-  getRoots,
-} from "@local/hash-subgraph/stdlib";
+import { EntityRootType } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
@@ -61,9 +60,9 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    const { subgraph } = subgraphAndPermissions;
-
-    assertEntityRootedSubgraph(subgraph);
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      subgraphAndPermissions.subgraph,
+    );
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {

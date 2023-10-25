@@ -142,5 +142,8 @@ export const assertEntityRootedSubgraph: (
  *
  * @param subgraph
  */
-export const mapGraphApiSubgraphToSubgraph = (subgraph: GraphApiSubgraph) =>
-  subgraph as Subgraph;
+export const mapGraphApiSubgraphToSubgraph = <
+  RootType extends SubgraphRootType,
+>(
+  subgraph: GraphApiSubgraph,
+) => subgraph as Subgraph<RootType>;
