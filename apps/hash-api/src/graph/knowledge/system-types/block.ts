@@ -6,8 +6,8 @@ import {
 } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../util";
 import {
   archiveEntity,
   createEntity,

@@ -24,8 +24,8 @@ import {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../util";
 import {
   checkEntityPermission,
   createEntity,

@@ -135,6 +135,7 @@ services:
       telemetry-collector:
         condition: service_healthy
     environment:
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN}"
       HASH_SPICEDB_HOST: http://spicedb
       HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
       HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"

@@ -10,7 +10,7 @@ import { StatsD } from "hot-shots";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph";
+import { GraphApi } from "../graph/util";
 import { UploadableStorageProvider } from "../storage";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault/index";

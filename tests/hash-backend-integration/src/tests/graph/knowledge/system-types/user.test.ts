@@ -1,12 +1,8 @@
 import {
   createKratosIdentity,
-  deleteKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import {
   createUser,
   getUserByKratosIdentityId,
@@ -16,6 +12,7 @@ import {
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";

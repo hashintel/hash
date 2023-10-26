@@ -1,4 +1,4 @@
-import { ImpureGraphContext } from "../../graph";
+import { ImpureGraphContext } from "../../graph/util";
 import { GraphQLContext } from "../context";
 
 export const dataSourcesToImpureGraphContext = ({

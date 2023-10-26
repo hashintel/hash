@@ -3,9 +3,9 @@ import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId } from "@local/hash-subgraph";
 
 import { publicUserAccountId } from "../graphql/context";
-import { ImpureGraphContext } from "./index";
 import { createAccount } from "./knowledge/system-types/account.fields";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
+import { ImpureGraphContext } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemAccountId: AccountId;
@@ -28,9 +28,10 @@ export const ensureSystemAccountExists = async (params: {
       entityTypeId: systemTypes.entityType.org.entityTypeId,
     });
 
-    logger.info(`Using existing system account id: ${systemAccountId}`);
     systemAccountId =
       orgEntityType.metadata.custom.provenance.recordCreatedById;
+
+    logger.info(`Using existing system account id: ${systemAccountId}`);
   } catch {
     // We don't have any system types yet, so we need to create the system account, which will create them
 

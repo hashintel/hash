@@ -18,8 +18,8 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction, PureGraphFunction } from "../../util";
 import {
   createEntity,
   CreateEntityParams,

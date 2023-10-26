@@ -1,10 +1,8 @@
-import {
-  createGraphClient,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { createGraphClient } from "@apps/hash-api/src/graph";
 import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { VersionedUrl } from "@blockprotocol/type-system";

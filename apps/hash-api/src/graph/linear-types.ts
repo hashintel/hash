@@ -7,8 +7,11 @@ import {
 } from "@local/hash-subgraph";
 
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
-import { entityTypeInitializer, propertyTypeInitializer } from "./util";
+import {
+  entityTypeInitializer,
+  ImpureGraphContext,
+  propertyTypeInitializer,
+} from "./util";
 
 /**
  * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,

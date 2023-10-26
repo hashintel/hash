@@ -11,8 +11,8 @@ import {
 } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction } from "../..";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
+import { ImpureGraphFunction } from "../../util";
 import { getLatestEntityById } from "./entity";
 
 export type CreateLinkEntityParams = {

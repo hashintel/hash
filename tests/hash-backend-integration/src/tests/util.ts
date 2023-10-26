@@ -2,11 +2,11 @@ import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import {
   AuthenticationContext,
   publicUserAccountId,

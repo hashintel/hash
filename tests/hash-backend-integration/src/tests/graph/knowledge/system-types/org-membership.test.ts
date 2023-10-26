@@ -1,8 +1,5 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createOrgMembership,
@@ -11,6 +8,7 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";

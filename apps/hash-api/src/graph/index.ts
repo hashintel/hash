@@ -9,30 +9,16 @@ import {
 } from "@local/hash-graph-client";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
-import { AuthenticationContext } from "../graphql/context";
-import { UploadableStorageProvider } from "../storage";
 import { ensureSystemAccountExists } from "./system-account";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
-
-export type ImpureGraphContext = {
-  graphApi: GraphApi;
-  uploadProvider: UploadableStorageProvider;
-  /** @todo: add logger? */
-};
-
-export type ImpureGraphFunction<Parameters, ReturnType> = (
-  context: ImpureGraphContext,
-  authentication: AuthenticationContext,
-  params: Parameters,
-) => ReturnType;
-
-export type PureGraphFunction<Parameters, ReturnType> = (
-  params: Parameters,
-) => ReturnType;
+import {
+  ensureAccountGroupOrgsExist,
+  GraphApi,
+  ImpureGraphContext,
+} from "./util";
 
 const agentConfig = {
   maxSockets: 128,
@@ -44,12 +30,10 @@ const agentConfig = {
 const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
 
-export type GraphApi = GraphApiClient & DataSource;
-
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;
 
-export class GraphApiError extends Error {
+class GraphApiError extends Error {
   status: GraphStatus;
 
   /**
@@ -145,6 +129,8 @@ export const ensureSystemGraphIsInitialized = async (params: {
   await ensureSystemAccountExists(params);
 
   await ensureSystemTypesExist(params);
+
+  await ensureAccountGroupOrgsExist(params);
 
   await ensureSystemEntitiesExists(params);
 };

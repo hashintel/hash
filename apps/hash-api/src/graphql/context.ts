@@ -4,8 +4,8 @@ import { AccountId } from "@local/hash-subgraph";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph";
 import { User } from "../graph/knowledge/system-types/user";
+import { GraphApi } from "../graph/util";
 import { UploadableStorageProvider } from "../storage";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault";

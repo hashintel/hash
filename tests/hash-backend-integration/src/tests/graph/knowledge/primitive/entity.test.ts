@@ -1,8 +1,5 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import {
   createEntity,
   createEntityWithLinks,
@@ -19,7 +16,10 @@ import {
 import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
+import {
+  generateSystemEntityTypeSchema,
+  ImpureGraphContext,
+} from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {

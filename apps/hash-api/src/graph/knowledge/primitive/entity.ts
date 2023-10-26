@@ -43,9 +43,9 @@ import {
 } from "../../../graphql/api-types.gen";
 import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../system-types";
+import { ImpureGraphFunction } from "../../util";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {

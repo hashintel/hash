@@ -7,7 +7,6 @@ import {
 } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { ImpureGraphContext } from "../../../../graph";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -20,6 +19,7 @@ import {
   updateUserKratosIdentityTraits,
 } from "../../../../graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
+import { ImpureGraphContext } from "../../../../graph/util";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,

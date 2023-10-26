@@ -26,7 +26,7 @@ import {
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
+import { ImpureGraphFunction } from "../../util";
 import { getWebShortname } from "./util";
 
 /**
@@ -34,25 +34,30 @@ import { getWebShortname } from "./util";
  *
  * @param params.ownedById - the id of the account who owns the property type
  * @param params.schema - the `PropertyType`
+ * @param [params.webShortname] – the shortname of the web that owns the property type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.actorId - the id of the account that is creating the property type
  */
 export const createPropertyType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructPropertyTypeParams;
+    webShortname?: string;
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById } = params;
+  const { ownedById, webShortname } = params;
 
-  const webShortname = await getWebShortname(ctx, authentication, {
-    accountOrAccountGroupId: ownedById,
-  });
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: ownedById,
+    }));
 
   const propertyTypeId = generateTypeId({
     kind: "property-type",
     title: params.schema.title,
-    webShortname,
+    webShortname: shortname,
   });
 
   const schema = {

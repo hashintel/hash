@@ -14,7 +14,7 @@ import {
 import { AuthenticationContext } from "../../../graphql/context";
 import { PresignedPutUpload } from "../../../storage";
 import { genId } from "../../../util";
-import { ImpureGraphContext, ImpureGraphFunction } from "../..";
+import { ImpureGraphContext, ImpureGraphFunction } from "../../util";
 import {
   createEntity,
   getLatestEntityById,

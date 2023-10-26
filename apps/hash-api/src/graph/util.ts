@@ -4,7 +4,7 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   EntityType,
   extractBaseUrl,
-  Object,
+  Object as ObjectSchema,
   OneOf,
   PROPERTY_TYPE_META_SCHEMA,
   PropertyType,
@@ -13,22 +13,27 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   PrimitiveDataTypeKey,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  AccountGroupId,
   EntityTypeWithMetadata,
   linkEntityTypeUrl,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
+import { DataSource } from "apollo-datasource";
 
+import { AuthenticationContext } from "../graphql/context";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { UploadableStorageProvider } from "../storage";
 import { addAccountGroupMember } from "./account-groups";
-import { ImpureGraphContext } from "./index";
+import { createAccountGroup } from "./knowledge/system-types/account.fields";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 import {
   createEntityType,
@@ -94,6 +99,24 @@ export const RESTRICTED_SHORTNAMES = [
   "v2",
 ];
 
+export type GraphApi = GraphApiClient & DataSource;
+
+export type ImpureGraphContext = {
+  graphApi: GraphApi;
+  uploadProvider: UploadableStorageProvider;
+  /** @todo: add logger? */
+};
+
+export type ImpureGraphFunction<Parameters, ReturnType> = (
+  context: ImpureGraphContext,
+  authentication: AuthenticationContext,
+  params: Parameters,
+) => ReturnType;
+
+export type PureGraphFunction<Parameters, ReturnType> = (
+  params: Parameters,
+) => ReturnType;
+
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance = ![
   "http://localhost:3000",
@@ -106,6 +129,7 @@ type OwningWebShortname = "hash" | "linear";
 const owningWebs: Record<
   OwningWebShortname,
   {
+    accountGroupId?: AccountGroupId;
     name: string;
     website: string;
   }
@@ -120,7 +144,7 @@ const owningWebs: Record<
   },
 };
 
-const getOrCreateOwningWeb = async (
+const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: OwningWebShortname,
 ) => {
@@ -132,24 +156,74 @@ const getOrCreateOwningWeb = async (
     );
   }
 
-  const foundOrg = await getOrgByShortname(context, authentication, {
-    shortname: webShortname,
+  // We only need to resolve this once for each shortname during the seeding process
+  const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
+  if (resolvedAccountGroupId) {
+    return resolvedAccountGroupId;
+  }
+
+  try {
+    // If this function is used again after the initial seeding, it's possible that we've created the org in the past
+    const foundOrg = await getOrgByShortname(context, authentication, {
+      shortname: webShortname,
+    });
+
+    if (foundOrg) {
+      logger.debug(
+        `Found org entity with shortname ${webShortname}, accountGroupId: ${foundOrg.accountGroupId}`,
+      );
+      owningWebs[webShortname].accountGroupId = foundOrg.accountGroupId;
+      return foundOrg.accountGroupId;
+    }
+  } catch {
+    // No org system type yet, this must be the first time the seeding has run
+  }
+
+  const accountGroupId = await createAccountGroup(context, authentication, {});
+  await addAccountGroupMember(context, authentication, {
+    accountId: systemAccountId,
+    accountGroupId,
   });
 
-  if (foundOrg) {
-    return foundOrg;
-  } else {
-    const createdOrg = await createOrg(context, authentication, {
+  owningWebs[webShortname].accountGroupId = accountGroupId;
+
+  logger.info(
+    `Created accountGroup for org with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
+  );
+
+  return accountGroupId;
+};
+
+export const ensureAccountGroupOrgsExist = async (params: {
+  context: ImpureGraphContext;
+}) => {
+  const { context } = params;
+
+  logger.debug("Ensuring account group organization entities exist");
+
+  for (const [webShortname, { name, website }] of Object.entries(owningWebs)) {
+    const authentication = { actorId: systemAccountId };
+    const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,
-      ...owningWebs[webShortname],
     });
 
-    await addAccountGroupMember(context, authentication, {
-      accountId: systemAccountId,
-      accountGroupId: createdOrg.accountGroupId,
-    });
+    if (!foundOrg) {
+      const orgAccountGroupId = await getOrCreateOwningAccountGroupId(
+        context,
+        webShortname as OwningWebShortname,
+      );
 
-    return createdOrg;
+      await createOrg(context, authentication, {
+        orgAccountGroupId,
+        shortname: webShortname,
+        name,
+        website,
+      });
+
+      logger.info(
+        `Created organization entity for '${webShortname}' with accountGroupId '${orgAccountGroupId}'`,
+      );
+    }
   }
 };
 
@@ -181,11 +255,12 @@ export const generateSystemPropertyTypeSchema = (
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
-        const propertyTypeObject: Object<ValueOrArray<PropertyTypeReference>> =
-          {
-            type: "object" as const,
-            properties: propertyTypeObjectProperties,
-          };
+        const propertyTypeObject: ObjectSchema<
+          ValueOrArray<PropertyTypeReference>
+        > = {
+          type: "object" as const,
+          properties: propertyTypeObjectProperties,
+        };
         inner = propertyTypeObject;
       } else {
         throw new Error(
@@ -269,7 +344,7 @@ export const propertyTypeInitializer = (
             });
           } else {
             // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-            const owningOrg = await getOrCreateOwningWeb(
+            const accountGroupId = await getOrCreateOwningAccountGroupId(
               context,
               params.webShortname,
             );
@@ -277,8 +352,9 @@ export const propertyTypeInitializer = (
               context,
               authentication,
               {
-                ownedById: owningOrg.accountGroupId as OwnedById,
+                ownedById: accountGroupId as OwnedById,
                 schema: propertyTypeSchema,
+                webShortname: params.webShortname,
               },
             ).catch((createError) => {
               logger.warn(
@@ -508,7 +584,7 @@ export const entityTypeInitializer = (
             });
           } else {
             // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-            const owningOrg = await getOrCreateOwningWeb(
+            const accountGroupId = await getOrCreateOwningAccountGroupId(
               context,
               params.webShortname,
             );
@@ -516,8 +592,9 @@ export const entityTypeInitializer = (
               context,
               authentication,
               {
-                ownedById: owningOrg.accountGroupId as OwnedById,
+                ownedById: accountGroupId as OwnedById,
                 schema: entityTypeSchema,
+                webShortname: params.webShortname,
               },
             ).catch((createError) => {
               logger.warn(
