@@ -2,7 +2,7 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use type_system::{repr, url::VersionedUrl};
+use type_system::{raw, url::VersionedUrl};
 
 // We would really like to use error-stack for this. It's not possible because
 // we need Serialize and Deserialize for `Report`
@@ -29,9 +29,9 @@ impl fmt::Display for FetcherError {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum OntologyTypeRepr {
-    DataType(repr::DataType),
-    PropertyType(repr::PropertyType),
-    EntityType(repr::EntityType),
+    DataType(raw::DataType),
+    PropertyType(raw::PropertyType),
+    EntityType(raw::EntityType),
 }
 
 #[tarpc::service]

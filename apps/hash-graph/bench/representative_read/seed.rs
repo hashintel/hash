@@ -15,7 +15,7 @@ use graph_types::{
     },
     provenance::OwnedById,
 };
-use type_system::{repr, url::VersionedUrl, EntityType};
+use type_system::{raw, url::VersionedUrl, EntityType};
 use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
@@ -146,7 +146,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
         let properties: EntityProperties =
             serde_json::from_str(entity_str).expect("could not parse entity");
-        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+        let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
             .expect("could not parse entity type representation");
         let entity_type_id = EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
@@ -175,7 +175,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     }
 
     for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
-        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+        let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
             .expect("could not parse entity type representation");
         let entity_type_id = EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
@@ -239,7 +239,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
         SEED_ENTITY_TYPES
             .into_iter()
             .map(|entity_type_str| {
-                let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+                let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
                     .expect("could not parse entity type representation");
                 EntityType::try_from(entity_type_repr)
                     .expect("could not parse entity type")
@@ -260,7 +260,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &StoreWrapper) -> Sam
         .expect("could not get sample map");
 
     for entity_type_id in SEED_ENTITIES.map(|(entity_type_str, ..)| {
-        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+        let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
             .expect("could not parse entity type representation");
         EntityType::try_from(entity_type_repr)
             .expect("could not parse entity type")
