@@ -1,10 +1,11 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { AccountId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -79,9 +80,11 @@ export const useUsersWithLinks = ({
     skip: !userAccountIds || !userAccountIds.length,
   });
 
-  const subgraph = data?.structuralQueryEntities.subgraph as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const subgraph = data
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.structuralQueryEntities.subgraph,
+      )
+    : undefined;
 
   const users = useMemo(() => {
     if (!subgraph) {

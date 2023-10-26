@@ -1,10 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  EntityRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "@local/hash-subgraph";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { useMemo } from "react";
 
 import {
@@ -17,10 +14,12 @@ export const useQueryEntities = ({
   excludeEntityTypeIds,
   includeEntityTypeIds,
   graphResolveDepths,
+  includePermissions = false,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
   includeEntityTypeIds?: VersionedUrl[];
   graphResolveDepths?: Partial<GraphResolveDepths>;
+  includePermissions?: boolean;
 }) => {
   if (excludeEntityTypeIds && includeEntityTypeIds) {
     throw new Error(
@@ -32,6 +31,7 @@ export const useQueryEntities = ({
     queryEntitiesQuery,
     {
       variables: {
+        includePermissions,
         operation: {
           multiFilter: {
             filters: [
@@ -66,13 +66,13 @@ export const useQueryEntities = ({
     },
   );
 
-  return useMemo(
-    () => ({
-      entitiesSubgraph: response.data?.queryEntities as
-        | Subgraph<EntityRootType>
-        | undefined,
-      ...response,
-    }),
-    [response],
-  );
+  return useMemo(() => {
+    const subgraph = response.data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          response.data.queryEntities.subgraph,
+        )
+      : undefined;
+
+    return { entitiesSubgraph: subgraph, ...response };
+  }, [response]);
 };

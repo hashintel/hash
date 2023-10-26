@@ -50,5 +50,5 @@ export {
   getPropertyTypes,
   getPropertyTypesByBaseUrl,
 } from "./stdlib/subgraph/element/property-type";
-export { getRoots } from "./stdlib/subgraph/roots";
+export * from "./stdlib/subgraph/roots";
 export { getLatestInstantIntervalForSubgraph } from "./stdlib/subgraph/temporal-axes";

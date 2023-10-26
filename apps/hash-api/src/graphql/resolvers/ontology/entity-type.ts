@@ -9,6 +9,7 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-subgraph/stdlib";
 
 import {
   archiveEntityType,
@@ -68,7 +69,7 @@ export const queryEntityTypesResolver: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: entityTypeSubgraph } = await graphApi.getEntityTypesByQuery(
+  const { data } = await graphApi.getEntityTypesByQuery(
     authentication.actorId,
     {
       filter: latestOnly
@@ -104,7 +105,9 @@ export const queryEntityTypesResolver: ResolverFn<
     },
   );
 
-  return entityTypeSubgraph as Subgraph<EntityTypeRootType>;
+  const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+
+  return subgraph;
 };
 
 export const getEntityTypeResolver: ResolverFn<

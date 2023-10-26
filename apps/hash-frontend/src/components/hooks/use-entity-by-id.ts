@@ -1,5 +1,8 @@
 import { useQuery } from "@apollo/client";
-import { UserPermissionsOnEntities } from "@local/hash-graphql-shared/graphql/types";
+import {
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  UserPermissionsOnEntities,
+} from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -18,7 +21,7 @@ import {
 export const useEntityById = ({
   entityId,
   graphResolveDepths,
-  includePermissions,
+  includePermissions = false,
 }: {
   entityId: EntityId;
   graphResolveDepths?: GraphResolveDepths;
@@ -40,14 +43,17 @@ export const useEntityById = ({
     },
   );
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntity.subgraph,
+        )
+      : undefined;
+
+    return {
       loading,
-      entitySubgraph: data?.getEntity.subgraph as
-        | Subgraph<EntityRootType>
-        | undefined,
+      entitySubgraph: subgraph,
       permissions: data?.getEntity.userPermissionsOnEntities,
-    }),
-    [loading, data],
-  );
+    };
+  }, [loading, data]);
 };

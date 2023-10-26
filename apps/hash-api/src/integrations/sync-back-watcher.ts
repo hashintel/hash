@@ -7,8 +7,11 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { Entity, EntityRootType } from "@local/hash-subgraph";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { systemUserAccountId } from "../graph/system-user";
 import { logger } from "../logger";
@@ -58,9 +61,11 @@ export const createIntegrationSyncBackWatcher = async (
               graphResolveDepths: zeroedGraphResolveDepths,
               temporalAxes: fullDecisionTimeAxis,
             })
-            .then(({ data: subgraph }) =>
-              getRoots(subgraph as Subgraph<EntityRootType>),
-            )
+            .then(({ data }) => {
+              const subgraph =
+                mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+              return getRoots(subgraph);
+            })
         )[0];
 
         if (!entity) {
