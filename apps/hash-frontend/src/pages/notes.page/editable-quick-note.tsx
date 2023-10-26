@@ -124,6 +124,7 @@ export const EditableQuickNote: FunctionComponent<{
     getEntityQuery,
     {
       variables: {
+        includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         hasLeftEntity: { incoming: 2, outgoing: 2 },

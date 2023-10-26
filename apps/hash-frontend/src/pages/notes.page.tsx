@@ -122,6 +122,7 @@ const NotesPage: NextPageWithLayout = () => {
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       query: {
         filter: {
           any: (quickNoteEntities ?? []).map((quickNoteEntity) => ({
@@ -278,6 +279,7 @@ const NotesPage: NextPageWithLayout = () => {
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       query: {
         filter: {
           any: (latestQuickNoteEntitiesWithCreatedAt ?? []).map(
