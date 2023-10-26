@@ -15,7 +15,7 @@ serde = { version = "1.0.189", features = ["derive", "unstable"] }
 serde_json = { version = "1.0.107" }
 
 reqwest = { version = "0.11.22", default-features = false, features = ["json", "stream"] }
-tokio-util = { version ="0.7.9", features = ["io"] }
+tokio-util = { version ="0.7.10", features = ["io"] }
 uuid =  { version = "1.5.0", default-features = false }
 tokio = { version = "1.33.0", default-features = false }
 
