@@ -1,6 +1,10 @@
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -11,7 +15,6 @@ import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
-import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -19,6 +22,7 @@ import { ArrowUpRightRegularIcon } from "../../../../shared/icons/arrow-up-right
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Link } from "../../../../shared/ui";
 import { useEntityIcon } from "../../../../shared/use-entity-icon";
+import { useUserOrOrg } from "../../../../shared/use-user-or-org";
 import { Mention } from "../shared/mention-suggester";
 
 const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
@@ -60,18 +64,27 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     [entitySubgraph],
   );
 
-  const getOwnerForEntity = useGetOwnerForEntity();
+  const entityOwnedById = useMemo(
+    () =>
+      entity
+        ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+        : undefined,
+    [entity],
+  );
+
+  const { userOrOrg: owner } = useUserOrOrg({
+    accountOrAccountGroupId: entityOwnedById,
+  });
 
   const entityOwnerShortname = useMemo(() => {
-    if (entity) {
-      const { shortname } = getOwnerForEntity(entity);
-
-      return shortname;
+    if (owner) {
+      const { shortname } = simplifyProperties(owner.properties);
+      return shortname ?? "incomplete-user-profile";
     }
-  }, [entity, getOwnerForEntity]);
+  }, [owner]);
 
   const entityHref = useMemo(() => {
-    if (entity) {
+    if (entity && entityOwnerShortname) {
       return `/@${entityOwnerShortname}/entities/${extractEntityUuidFromEntityId(
         entity.metadata.recordId.entityId,
       )}`;

@@ -28,7 +28,7 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "c
 hash-status = { path = "../../libs/@local/status/rust" }
 error-stack = { version = "0.4.1", features = ["spantrace"] }
 
-tokio-util = { version = "0.7.9", default-features = false }
+tokio-util = { version = "0.7.10", default-features = false }
 bytes = "1.5.0"
 utoipa = "4.0.0"
 uuid = { version = "1.5.0", default-features = false }

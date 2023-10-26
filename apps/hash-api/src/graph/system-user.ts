@@ -9,11 +9,12 @@ import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   AccountId,
-  EntityRootType,
   extractAccountId,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/stdlib";
+import {
+  getEntities,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
@@ -46,19 +47,18 @@ export const ensureSystemUserAccountIdExists = async (params: {
     context: { graphApi },
   } = params;
 
-  const { data: existingUserEntitiesSubgraph } =
-    await graphApi.getEntitiesByQuery(publicUserAccountId, {
+  const existingUserEntitiesSubgraph = await graphApi
+    .getEntitiesByQuery(publicUserAccountId, {
       filter: generateVersionedUrlMatchingFilter(
         types.entityType.user.entityTypeId,
         { ignoreParents: true },
       ),
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
-    });
+    })
+    .then(({ data }) => mapGraphApiSubgraphToSubgraph(data));
 
-  const existingUserEntities = getEntities(
-    existingUserEntitiesSubgraph as Subgraph<EntityRootType>,
-  );
+  const existingUserEntities = getEntities(existingUserEntitiesSubgraph);
 
   const existingSystemUserEntity = existingUserEntities.find(
     ({ properties }) =>

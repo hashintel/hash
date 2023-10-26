@@ -58,6 +58,7 @@ export const LoadEntityMenuContent: FunctionComponent<
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [

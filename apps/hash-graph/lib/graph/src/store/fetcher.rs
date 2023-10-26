@@ -2,7 +2,7 @@ use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityDirectOwnerSubject, WebSubject},
+    schema::{EntityOwnerSubject, WebSubject},
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -872,7 +872,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
-        owner: EntityDirectOwnerSubject,
+        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

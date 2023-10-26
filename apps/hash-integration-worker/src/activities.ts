@@ -15,9 +15,11 @@ import {
   EntityPropertiesObject,
   EntityRootType,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
@@ -103,9 +105,10 @@ const createOrUpdateHashEntity = async (params: {
         },
       },
     })
-    .then(({ data: linearEntities }) =>
-      getRoots(linearEntities as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      return getRoots(subgraph);
+    });
 
   for (const existingEntity of entities) {
     if (

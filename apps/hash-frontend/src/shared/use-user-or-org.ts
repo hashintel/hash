@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,7 +18,6 @@ import {
   EntityRootType,
   GraphResolveDepths,
   QueryTemporalAxesUnresolved,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -35,8 +35,8 @@ export const useUserOrOrg = (
     graphResolveDepths?: Partial<GraphResolveDepths>;
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
-    | { shortname: string }
-    | { accountOrAccountGroupId: AccountId | AccountGroupId }
+    | { shortname?: string }
+    | { accountOrAccountGroupId?: AccountId | AccountGroupId }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<
@@ -48,26 +48,32 @@ export const useUserOrOrg = (
       query: {
         filter: {
           all: [
-            "shortname" in params
-              ? {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.shortname.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: params.shortname },
-                  ],
-                }
-              : {
-                  equal: [
-                    { path: ["uuid"] },
-                    { parameter: params.accountOrAccountGroupId },
-                  ],
-                },
+            ...("shortname" in params
+              ? [
+                  {
+                    equal: [
+                      {
+                        path: [
+                          "properties",
+                          extractBaseUrl(
+                            types.propertyType.shortname.propertyTypeId,
+                          ),
+                        ],
+                      },
+                      { parameter: params.shortname },
+                    ],
+                  },
+                ]
+              : "accountOrAccountGroupId" in params
+              ? [
+                  {
+                    equal: [
+                      { path: ["uuid"] },
+                      { parameter: params.accountOrAccountGroupId },
+                    ],
+                  },
+                ]
+              : []),
             {
               any: [
                 generateVersionedUrlMatchingFilter(
@@ -91,37 +97,47 @@ export const useUserOrOrg = (
           : currentTimeInstantTemporalAxes,
       },
     },
+    skip: !("accountOrAccountGroupId" in params) && !("shortname" in params),
     fetchPolicy: "network-only",
   });
 
   return useMemo(() => {
-    const rootEntity = data
-      ? getRoots(
-          data.structuralQueryEntities.subgraph as Subgraph<EntityRootType>,
-        ).reduce<Entity<OrgProperties> | Entity<UserProperties> | undefined>(
-          (prev, currentEntity) => {
-            if (
-              !isEntityUserEntity(currentEntity) &&
-              !isEntityOrgEntity(currentEntity)
-            ) {
-              throw new Error(
-                `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
-              );
-            }
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.structuralQueryEntities.subgraph,
+        )
+      : undefined;
 
-            if (!prev) {
-              return currentEntity;
-            }
+    const rootEntity = subgraph
+      ? getRoots(subgraph).reduce<
+          Entity<OrgProperties> | Entity<UserProperties> | undefined
+        >((prev, currentEntity) => {
+          if (
+            !isEntityUserEntity(currentEntity) &&
+            !isEntityOrgEntity(currentEntity)
+          ) {
+            throw new Error(
+              `Entity with type ${currentEntity.metadata.entityTypeId} is not a user or an org entity`,
+            );
+          }
 
-            if (
-              prev.metadata.temporalVersioning.decisionTime.start.limit <
-              currentEntity.metadata.temporalVersioning.decisionTime.start.limit
-            ) {
-              return currentEntity;
-            }
-            return prev;
-          },
-          undefined,
+          if (!prev) {
+            return currentEntity;
+          }
+
+          if (
+            prev.metadata.temporalVersioning.decisionTime.start.limit <
+            currentEntity.metadata.temporalVersioning.decisionTime.start.limit
+          ) {
+            return currentEntity;
+          }
+          return prev;
+        }, undefined)
+      : undefined;
+
+    const userOrOrgSubgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.structuralQueryEntities.subgraph,
         )
       : undefined;
 
@@ -132,9 +148,7 @@ export const useUserOrOrg = (
           rootEntity.metadata.recordId.entityId
         ]?.edit
       ),
-      userOrOrgSubgraph: data?.structuralQueryEntities.subgraph as
-        | Subgraph<EntityRootType>
-        | undefined,
+      userOrOrgSubgraph,
       userOrOrg: rootEntity,
       loading,
       refetch,

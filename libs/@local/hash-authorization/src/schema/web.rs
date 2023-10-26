@@ -43,7 +43,7 @@ impl Resource for WebId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebResourceRelation {
-    DirectOwner,
+    Owner,
 }
 
 impl Affiliation<WebId> for WebResourceRelation {}
@@ -125,7 +125,7 @@ impl Resource for WebSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum WebDirectOwnerSubject {
+pub enum WebOwnerSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -142,7 +142,7 @@ pub enum WebDirectOwnerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
 pub enum WebRelationAndSubject {
-    DirectOwner(WebDirectOwnerSubject),
+    Owner(WebOwnerSubject),
 }
 
 impl Relationship for (WebId, WebRelationAndSubject) {
@@ -160,15 +160,12 @@ impl Relationship for (WebId, WebRelationAndSubject) {
         Ok((
             resource,
             match relation {
-                WebResourceRelation::DirectOwner => match (subject, subject_set) {
+                WebResourceRelation::Owner => match (subject, subject_set) {
                     (WebSubject::Account(id), None) => {
-                        WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::Account { id })
+                        WebRelationAndSubject::Owner(WebOwnerSubject::Account { id })
                     }
                     (WebSubject::AccountGroup(id), Some(set)) => {
-                        WebRelationAndSubject::DirectOwner(WebDirectOwnerSubject::AccountGroup {
-                            id,
-                            set,
-                        })
+                        WebRelationAndSubject::Owner(WebOwnerSubject::AccountGroup { id, set })
                     }
                     (WebSubject::Account(_) | WebSubject::AccountGroup(_), subject_set) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(
@@ -203,11 +200,11 @@ impl Relationship for (WebId, WebRelationAndSubject) {
         Option<Self::SubjectSet>,
     ) {
         let (relation, (subject, subject_set)) = match self.1 {
-            WebRelationAndSubject::DirectOwner(subject) => (
-                WebResourceRelation::DirectOwner,
+            WebRelationAndSubject::Owner(subject) => (
+                WebResourceRelation::Owner,
                 match subject {
-                    WebDirectOwnerSubject::Account { id } => (WebSubject::Account(id), None),
-                    WebDirectOwnerSubject::AccountGroup { id, set } => {
+                    WebOwnerSubject::Account { id } => (WebSubject::Account(id), None),
+                    WebOwnerSubject::AccountGroup { id, set } => {
                         (WebSubject::AccountGroup(id), Some(set))
                     }
                 },

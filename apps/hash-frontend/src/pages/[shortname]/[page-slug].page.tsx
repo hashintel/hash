@@ -4,6 +4,7 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
@@ -19,7 +20,6 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, SxProps } from "@mui/material";
@@ -170,6 +170,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         context: { headers: { cookie } },
         query: structuralQueryEntitiesQuery,
         variables: {
+          includePermissions: false,
           query: {
             filter: {
               all: [
@@ -206,11 +207,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
         },
       },
     )
-    .then(({ data }) => data.structuralQueryEntities);
+    .then(({ data }) =>
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.structuralQueryEntities.subgraph,
+      ),
+    );
 
-  const pageWorkspaceEntity = getRoots(
-    workspaceSubgraph.subgraph as Subgraph<EntityRootType>,
-  )[0];
+  const pageWorkspaceEntity = getRoots(workspaceSubgraph)[0];
 
   if (!pageWorkspaceEntity) {
     throw new Error(

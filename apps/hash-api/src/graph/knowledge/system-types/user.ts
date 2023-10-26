@@ -14,9 +14,11 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import {
   kratosIdentityApi,
@@ -154,9 +156,11 @@ export const getUserByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -201,9 +205,11 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -329,7 +335,7 @@ export const createUser: ImpureGraphFunction<
           subject: {
             kind: "public",
           },
-          relation: "directViewer",
+          relation: "generalViewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

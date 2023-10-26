@@ -10,7 +10,7 @@ export const getEntityQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-    $includePermissions: Boolean = false
+    $includePermissions: Boolean!
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!

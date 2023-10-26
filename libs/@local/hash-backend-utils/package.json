@@ -24,6 +24,7 @@
     "@blockprotocol/core": "0.1.2",
     "@blockprotocol/type-system": "0.1.1",
     "@linear/sdk": "6.0.0",
+    "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@opensearch-project/opensearch": "1.1.0",
     "@temporalio/client": "1.8.1",
