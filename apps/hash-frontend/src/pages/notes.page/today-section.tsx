@@ -1,7 +1,5 @@
-import { Chip } from "@hashintel/design-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { Box, Collapse, Divider, Typography } from "@mui/material";
-import { styled } from "@mui/system";
+import { Box, Collapse, Divider } from "@mui/material";
 import { format } from "date-fns";
 import { forwardRef, Fragment, useMemo, useState } from "react";
 
@@ -16,13 +14,13 @@ import { NotesWrapper } from "./notes-wrapper";
 import { TimestampColumn } from "./timestamp-column";
 import { QuickNoteEntityWithCreatedAt } from "./types";
 
-const CreateChip = styled(Chip)(({ theme }) => ({
-  background: theme.palette.common.white,
-  color: theme.palette.common.black,
-  "&:hover": {
-    color: theme.palette.common.black,
-  },
-}));
+// const CreateChip = styled(Chip)(({ theme }) => ({
+//   background: theme.palette.common.white,
+//   color: theme.palette.common.black,
+//   "&:hover": {
+//     color: theme.palette.common.black,
+//   },
+// }));
 
 export const TodaySection = forwardRef<
   HTMLDivElement,
@@ -113,7 +111,8 @@ export const TodaySection = forwardRef<
               refetchQuickNotes={refetchQuickNotes}
               onCreatingQuickNote={setCreatingQuickNote}
             />
-            <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
+            {/* @todo: add these chips when they do something specific to the note */}
+            {/* <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
             <Box display="flex" marginTop={2.25}>
               <Box display="flex" alignItems="center" gap={1.5}>
                 <Typography
@@ -141,7 +140,7 @@ export const TodaySection = forwardRef<
                   clickable
                 />
               </Box>
-            </Box>
+            </Box> */}
           </NotesWrapper>
           <Collapse in={!isCollapsed}>
             {displayedQuickNoteEntities &&
