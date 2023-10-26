@@ -10,7 +10,7 @@ import {
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
-import { systemAccountId } from "../graph/system-accounts";
+import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {
