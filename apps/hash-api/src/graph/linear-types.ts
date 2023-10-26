@@ -122,21 +122,25 @@ export let LINEAR_TYPES: {
 const idPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.id,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const archivedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.archivedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const createdAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.createdAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const updatedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.updatedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 // Generic Initializers (for HASH)
@@ -144,24 +148,29 @@ const updatedAtPropertyTypeInitializer = propertyTypeInitializer({
 const createdIssueCountPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.createdIssueCount,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const namePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.name,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const urlPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.url,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const labelLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.label,
+  webShortname: "linear",
 });
 
 const teamLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.team,
+  webShortname: "linear",
 });
 
 // User Initializers
@@ -169,84 +178,101 @@ const teamLinkEntityTypeInitializer = entityTypeInitializer({
 const activePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.active,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const adminPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.admin,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const avatarUrlPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.avatarUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const descriptionPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.description,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const disableReasonPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.disableReason,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const displayNamePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.displayName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const guestPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.guest,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const inviteHashPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.inviteHash,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const isMePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.isMe,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const lastSeenPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.lastSeen,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const statusEmojiPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.statusEmoji,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const statusLabelPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.statusLabel,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const statusUntilAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.statusUntilAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const timezonePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.timezone,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const assignedIssueLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.assignedIssue,
+  webShortname: "linear",
 });
 
 const createdIssueLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.createdIssue,
+  webShortname: "linear",
 });
 
 export const userEntityTypeInitializer = async (
@@ -447,6 +473,7 @@ export const userEntityTypeInitializer = async (
       //   destinationEntityTypes: [teamEntityType],
       // },
     ],
+    webShortname: "linear",
   })(context);
 };
 
@@ -455,100 +482,119 @@ export const userEntityTypeInitializer = async (
 const allowedAuthServicePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.allowedAuthService,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const deletionRequestedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.deletionRequestedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const gitBranchFormatPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.gitBranchFormat,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const gitLinkbackMessagesEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...linearTypes.propertyType.gitLinkbackMessagesEnabled,
     possibleValues: [{ primitiveDataType: "text" }],
+    webShortname: "linear",
   });
 
 const gitPublicLinkbackMessagesEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...linearTypes.propertyType.gitPublicLinkbackMessagesEnabled,
     possibleValues: [{ primitiveDataType: "text" }],
+    webShortname: "linear",
   });
 
 const logoUrlPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.logoUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const periodUploadVolumePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.periodUploadVolume,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const previousUrlKeyPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.previousUrlKey,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const projectUpdateRemindersDayPropertyTypeInitializer =
   propertyTypeInitializer({
     ...linearTypes.propertyType.projectUpdateRemindersDay,
     possibleValues: [{ primitiveDataType: "text" }],
+    webShortname: "linear",
   });
 
 const projectUpdateRemindersHourPropertyTypeInitializer =
   propertyTypeInitializer({
     ...linearTypes.propertyType.projectUpdateRemindersHour,
     possibleValues: [{ primitiveDataType: "number" }],
+    webShortname: "linear",
   });
 
 const projectUpdatesReminderFrequencyPropertyTypeInitializer =
   propertyTypeInitializer({
     ...linearTypes.propertyType.projectUpdatesReminderFrequency,
     possibleValues: [{ primitiveDataType: "text" }],
+    webShortname: "linear",
   });
 
 const releaseChannelPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.releaseChannel,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const roadmapEnabledPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.roadmapEnabled,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const samlEnabledPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.samlEnabled,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const scimEnabledPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.scimEnabled,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const trialEndsAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.trialEndsAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const urlKeyPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.urlKey,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const userCountPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.userCount,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const hasMemberLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.hasMember,
+  webShortname: "linear",
 });
 
 const organizationEntityTypeInitializer = async (
@@ -776,6 +822,7 @@ const organizationEntityTypeInitializer = async (
         destinationEntityTypes: [userEntityType],
       },
     ],
+    webShortname: "linear",
   })(context);
 };
 
@@ -784,155 +831,188 @@ const organizationEntityTypeInitializer = async (
 const autoArchivedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.autoArchivedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const autoClosedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.autoClosedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const branchNamePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.branchName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const canceledAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.canceledAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const completedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.completedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const customerTicketCountPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.customerTicketCount,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const markdownDescriptionPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.markdownDescription,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const dueDatePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.dueDate,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const estimatePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.estimate,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const identifierPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.identifier,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const numberPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.number,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const previousIdentifierPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.previousIdentifier,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const priorityPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.priority,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const priorityLabelPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.priorityLabel,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const snoozedUntilAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.snoozedUntilAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const sortOrderPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.sortOrder,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const startedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.startedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const startedTriageAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.startedTriageAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const subIssueSortOrderPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.subIssueSortOrder,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "linear",
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const trashedPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.trashed,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "linear",
 });
 
 const triagedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...linearTypes.propertyType.triagedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "linear",
 });
 
 const assigneeLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.assignee,
+  webShortname: "linear",
 });
 
 const attachmentLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.attachment,
+  webShortname: "linear",
 });
 
 const childLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.child,
+  webShortname: "linear",
 });
 
 const commentLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.comment,
+  webShortname: "linear",
 });
 
 const creatorLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.creator,
+  webShortname: "linear",
 });
 
 const cycleLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.cycle,
+  webShortname: "linear",
 });
 
 const parentLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.parent,
+  webShortname: "linear",
 });
 
 const projectLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.project,
+  webShortname: "linear",
 });
 
 const projectMilestoneLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.projectMilestone,
+  webShortname: "linear",
 });
 
 const snoozedByLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.snoozedBy,
+  webShortname: "linear",
 });
 
 const subscriberLinkEntityTypeInitializer = entityTypeInitializer({
   ...linearTypes.linkEntityType.subscriber,
+  webShortname: "linear",
 });
 
 const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -1257,6 +1337,7 @@ const issueEntityTypeInitializer = async (context: ImpureGraphContext) => {
       //   destinationEntityTypes: [teamEntityType],
       // },
     ],
+    webShortname: "linear",
   })(context);
 };
 

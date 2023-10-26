@@ -137,24 +137,28 @@ export let SYSTEM_TYPES: {
 const pagesAreEnabledPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.pagesAreEnabled,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "hash",
 });
 
 const userSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...systemTypes.propertyType.userSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...systemTypes.propertyType.orgSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...systemTypes.propertyType.userRegistrationByInviteIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 export const hashInstanceEntityTypeInitializer = async (
@@ -203,6 +207,7 @@ export const hashInstanceEntityTypeInitializer = async (
       },
     ],
     outgoingLinks: [],
+    webShortname: "hash",
   })(context);
 };
 
@@ -227,11 +232,15 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
-  entityTypeInitializer(systemTypes.linkEntityType.hasBio)(context);
+  entityTypeInitializer({
+    ...systemTypes.linkEntityType.hasBio,
+    webShortname: "hash",
+  })(context);
 
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -325,65 +334,77 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const locationPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.location,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const websitePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.website,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.shortname,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const preferredPronounsPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.preferredPronouns,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const pinnedEntityTypeBaseUrlPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.pinnedEntityTypeBaseUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
-  return entityTypeInitializer(systemTypes.linkEntityType.orgMembership)(
-    context,
-  );
+  return entityTypeInitializer({
+    ...systemTypes.linkEntityType.orgMembership,
+    webShortname: "hash",
+  })(context);
 };
 
 const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -493,12 +514,14 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const profileUrlPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.profileUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const serviceAccountEntityTypeInitializer = async (
@@ -523,6 +546,7 @@ const serviceAccountEntityTypeInitializer = async (
         required: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -539,6 +563,7 @@ const linkedInAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.linkedInAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -555,6 +580,7 @@ const twitterAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.twitterAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -571,6 +597,7 @@ const tikTokAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.tikTokAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -587,6 +614,7 @@ const facebookAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.facebookAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -603,6 +631,7 @@ const instagramAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.instagramAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -619,17 +648,20 @@ const gitHubAccountEntityTypeInitializer = async (
   return entityTypeInitializer({
     ...systemTypes.entityType.gitHubAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.blockData,
-);
+const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.blockData,
+  webShortname: "hash",
+});
 
 const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -657,6 +689,7 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -667,6 +700,7 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
+  webShortname: "hash",
 });
 
 const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -685,6 +719,7 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
         array: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -731,6 +766,7 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
           "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -745,32 +781,38 @@ const imageFileEntityTypeInitializer = async (context: ImpureGraphContext) => {
   return entityTypeInitializer({
     ...systemTypes.entityType.imageFile,
     allOf: [fileEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "hash",
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 /**
@@ -778,9 +820,10 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
  *     for both canvas and document mode. We probably want to split these out into two links,
  *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
  */
-const containsLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.contains,
-);
+const containsLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.contains,
+  webShortname: "hash",
+});
 
 const blockCollectionEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -805,12 +848,14 @@ const blockCollectionEntityTypeInitializer = async (
         ordered: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.parent,
-);
+const parentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.parent,
+  webShortname: "hash",
+});
 
 const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -867,6 +912,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -881,37 +927,44 @@ const profileBioEntityTypeInitializer = async (context: ImpureGraphContext) => {
   return entityTypeInitializer({
     ...systemTypes.entityType.profileBio,
     allOf: [blockCollectionEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.deletedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const expiredAtPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.expiredAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const connectionSourceNamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.connectionSourceName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const vaultPathPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.vaultPath,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const linearTeamIdPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.linearTeamId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const syncLinearDataWithLinkEntityTypeInitializer = entityTypeInitializer({
@@ -922,14 +975,17 @@ const syncLinearDataWithLinkEntityTypeInitializer = entityTypeInitializer({
       array: true,
     },
   ],
+  webShortname: "hash",
 });
 
 const usesUserSecretLinkEntityTypeInitializer = entityTypeInitializer({
   ...systemTypes.linkEntityType.usesUserSecret,
+  webShortname: "hash",
 });
 
 const hasServiceAccountSecretLinkEntityTypeInitializer = entityTypeInitializer({
   ...systemTypes.linkEntityType.hasServiceAccount,
+  webShortname: "hash",
 });
 
 const userSecretEntityTypeInitializer = entityTypeInitializer({
@@ -949,11 +1005,13 @@ const userSecretEntityTypeInitializer = entityTypeInitializer({
       required: true,
     },
   ],
+  webShortname: "hash",
 });
 
 const linearOrgIdPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.linearOrgId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const linearIntegrationEntityTypeInitializer = entityTypeInitializer({
@@ -981,23 +1039,28 @@ const linearIntegrationEntityTypeInitializer = entityTypeInitializer({
       maxItems: 1,
     },
   ],
+  webShortname: "hash",
 });
 
-const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.hasAvatar,
-);
+const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasAvatar,
+  webShortname: "hash",
+});
 
-const hasCoverImageLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.hasCoverImage,
-);
+const hasCoverImageLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasCoverImage,
+  webShortname: "hash",
+});
 
-const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.hasText,
-);
+const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasText,
+  webShortname: "hash",
+});
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer(
-  systemTypes.linkEntityType.author,
-);
+const authorLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.author,
+  webShortname: "hash",
+});
 
 const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -1058,6 +1121,7 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 

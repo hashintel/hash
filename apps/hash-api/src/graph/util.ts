@@ -27,7 +27,9 @@ import {
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { addAccountGroupMember } from "./account-groups";
 import { ImpureGraphContext } from "./index";
+import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 import {
   createEntityType,
   getEntityTypeById,
@@ -36,7 +38,7 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "./ontology/primitive/property-type";
-import { systemAccountId } from "./system-accounts";
+import { systemAccountId } from "./system-account";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -92,6 +94,47 @@ export const RESTRICTED_SHORTNAMES = [
   "v2",
 ];
 
+// Whether this is a self-hosted instance, rather than the central HASH hosted instance
+export const isSelfHostedInstance = ![
+  "http://localhost:3000",
+  "https://app.hash.ai",
+  "https://hash.ai",
+].includes(frontendUrl);
+
+const getOrCreateOwningOrg = async (
+  context: ImpureGraphContext,
+  shortname: string,
+) => {
+  const authentication = { actorId: systemAccountId };
+
+  if (isSelfHostedInstance) {
+    throw new Error(
+      "Should not create owning organization for system types on self-hosted instance – system types should be loaded as external types instead",
+    );
+  }
+
+  const foundOrg = await getOrgByShortname(context, authentication, {
+    shortname,
+  });
+
+  if (foundOrg) {
+    return foundOrg;
+  } else {
+    const createdOrg = await createOrg(context, authentication, {
+      shortname,
+      name: "HASH",
+      website: "https://hash.ai",
+    });
+
+    await addAccountGroupMember(context, authentication, {
+      accountId: systemAccountId,
+      accountGroupId: createdOrg.accountGroupId,
+    });
+
+    return createdOrg;
+  }
+};
+
 export type PropertyTypeCreatorParams = {
   propertyTypeId: VersionedUrl;
   title: string;
@@ -101,6 +144,7 @@ export type PropertyTypeCreatorParams = {
     propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
     array?: boolean;
   }[];
+  webShortname: string;
 };
 
 /**
@@ -188,16 +232,50 @@ export const propertyTypeInitializer = (
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createPropertyType(context, authentication, {
-            ownedById: systemAccountId as OwnedById,
-            schema: propertyTypeSchema,
-          }).catch((createError) => {
-            logger.warn(`Failed to create property type: ${params.title}`);
-            throw createError;
-          });
+
+          if (isSelfHostedInstance) {
+            // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
+            await context.graphApi.loadExternalPropertyType(
+              authentication.actorId,
+              {
+                propertyTypeId: propertyTypeSchema.$id,
+                // Specify the schema so that self-hosted instances don't need network access to hash.ai
+                // BLOCKED by H-1164 @todo remove this comment when H-1164 is merged
+                // @ts-expect-error –– error will disappear when H-1164 is merged, and this line can be removed
+                schema: propertyTypeSchema,
+              },
+            );
+
+            return await getPropertyTypeById(context, authentication, {
+              propertyTypeId: propertyTypeSchema.$id,
+            });
+          } else {
+            // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
+            const owningOrg = await getOrCreateOwningOrg(
+              context,
+              params.webShortname,
+            );
+            const createdPropertyType = await createPropertyType(
+              context,
+              authentication,
+              {
+                ownedById: owningOrg.accountGroupId as OwnedById,
+                schema: propertyTypeSchema,
+              },
+            ).catch((createError) => {
+              logger.warn(
+                `Failed to create property type: ${params.propertyTypeId}`,
+              );
+              throw createError;
+            });
+
+            // @todo BEFORE MERGING remove the web as an owner, and add the systemAccountId as an owner
+
+            return createdPropertyType;
+          }
         } else {
           logger.warn(
-            `Failed to check existence of property type: ${params.title}`,
+            `Failed to check existence of property type: ${params.propertyTypeId}`,
           );
           throw error;
         }
@@ -208,7 +286,7 @@ export const propertyTypeInitializer = (
   };
 };
 
-type linkDestinationConstraint =
+type LinkDestinationConstraint =
   | EntityTypeWithMetadata
   | VersionedUrl
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
@@ -227,13 +305,14 @@ export type EntityTypeCreatorParams = {
   outgoingLinks?: {
     linkEntityType: EntityTypeWithMetadata | VersionedUrl;
     destinationEntityTypes?: [
-      linkDestinationConstraint,
-      ...linkDestinationConstraint[],
+      LinkDestinationConstraint,
+      ...LinkDestinationConstraint[],
     ];
     minItems?: number;
     maxItems?: number;
     ordered?: boolean;
   }[];
+  webShortname: string;
 };
 
 /**
@@ -396,13 +475,43 @@ export const entityTypeInitializer = (
       }).catch(async (error: Error) => {
         if (error instanceof NotFoundError) {
           // The type was missing, try and create it
-          return await createEntityType(context, authentication, {
-            ownedById: systemAccountId as OwnedById,
-            schema: entityTypeSchema,
-          }).catch((createError) => {
-            logger.warn(`Failed to create entity type: ${params.title}`);
-            throw createError;
-          });
+          if (isSelfHostedInstance) {
+            // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
+            await context.graphApi.loadExternalEntityType(systemAccountId, {
+              entityTypeId: entityTypeSchema.$id,
+              // Specify the schema so that self-hosted instances don't need network access to hash.ai
+              // BLOCKED by H-1164 @todo remove this comment when H-1164 is merged
+              // @ts-expect-error –– error will disappear when H-1164 is merged, and this line can be removed
+              schema: entityTypeSchema,
+            });
+
+            return await getEntityTypeById(context, authentication, {
+              entityTypeId: entityTypeSchema.$id,
+            });
+          } else {
+            // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
+            const owningOrg = await getOrCreateOwningOrg(
+              context,
+              params.webShortname,
+            );
+            const createdEntityType = await createEntityType(
+              context,
+              authentication,
+              {
+                ownedById: owningOrg.accountGroupId as OwnedById,
+                schema: entityTypeSchema,
+              },
+            ).catch((createError) => {
+              logger.warn(
+                `Failed to create entity type: ${entityTypeSchema.$id}`,
+              );
+              throw createError;
+            });
+
+            // @todo BEFORE MERGING remove the web as an owner, and add the systemAccountId as an owner
+
+            return createdEntityType;
+          }
         } else {
           logger.warn(
             `Failed to check existence of entity type: ${params.title}`,
@@ -415,10 +524,3 @@ export const entityTypeInitializer = (
     }
   };
 };
-
-// Whether this is a self-hosted instance, rather than the central HASH hosted instance
-export const isSelfHostedInstance = ![
-  "http://localhost:3000",
-  "https://app.hash.ai",
-  "https://hash.ai",
-].includes(frontendUrl);
