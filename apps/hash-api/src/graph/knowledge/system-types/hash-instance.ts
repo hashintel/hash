@@ -149,7 +149,7 @@ export const createHashInstance: ImpureGraphFunction<
         subject: {
           kind: "public",
         },
-        relation: "directViewer",
+        relation: "generalViewer",
         resource: {
           kind: "entity",
           resourceId: entity.metadata.recordId.entityId,

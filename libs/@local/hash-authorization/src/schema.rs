@@ -7,17 +7,17 @@ mod web;
 pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
-        AccountGroupDirectMemberSubject, AccountGroupDirectOwnerSubject, AccountGroupNamespace,
+        AccountGroupGeneralMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
         AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupResourceRelation,
         AccountGroupSubject, AccountGroupSubjectId,
     },
     entity::{
-        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
+        EntityGeneralEditorSubject, EntityGeneralViewerSubject, EntityOwnerSubject,
         EntityPermission, EntityRelationAndSubject, EntityResourceRelation, EntitySubject,
         EntitySubjectId, EntitySubjectSet,
     },
     web::{
-        WebDirectOwnerSubject, WebNamespace, WebPermission, WebRelationAndSubject,
-        WebResourceRelation, WebSubject, WebSubjectId, WebSubjectSet,
+        WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,
+        WebSubject, WebSubjectId, WebSubjectSet,
     },
 };
