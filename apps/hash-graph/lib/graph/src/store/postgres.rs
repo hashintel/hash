@@ -8,10 +8,7 @@ mod traversal_context;
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{
-        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, EntityTypeOwnerSubject,
-        EntityTypeSubjectSet, WebSubject,
-    },
+    schema::{AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebSubject},
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -43,6 +40,7 @@ use type_system::{
 };
 
 pub use self::{
+    ontology::OntologyTypeSubject,
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,
 };
@@ -343,7 +341,7 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<EntityTypeOwnerSubject, InsertionError> {
+    ) -> Result<OntologyTypeSubject, InsertionError> {
         let query = "
                 WITH inserted_owners AS (
                     INSERT INTO ontology_owned_metadata (
@@ -368,12 +366,11 @@ where
 
         let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
-            Ok(EntityTypeOwnerSubject::AccountGroup {
+            Ok(OntologyTypeSubject::AccountGroup {
                 id: AccountGroupId::new(owned_by_uuid),
-                set: EntityTypeSubjectSet::Member,
             })
         } else {
-            Ok(EntityTypeOwnerSubject::Account {
+            Ok(OntologyTypeSubject::Account {
                 id: AccountId::new(owned_by_uuid),
             })
         }
@@ -751,7 +748,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Option<(
             OntologyId,
             LeftClosedTemporalInterval<TransactionTime>,
-            Option<EntityTypeOwnerSubject>,
+            Option<OntologyTypeSubject>,
         )>,
         InsertionError,
     > {
@@ -809,7 +806,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         &self,
         database_type: T,
         record_created_by_id: RecordCreatedById,
-    ) -> Result<(OntologyId, OntologyElementMetadata), UpdateError>
+    ) -> Result<(OntologyId, OntologyElementMetadata, OntologyTypeSubject), UpdateError>
     where
         T: OntologyDatabaseType + Send,
         T::Representation: Send,
@@ -817,7 +814,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id, transaction_time, _owner) = self
+        let (ontology_id, owned_by_id, transaction_time, owner) = self
             .update_owned_ontology_id(url, record_created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
@@ -837,6 +834,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     temporal_versioning: OntologyTemporalMetadata { transaction_time },
                 },
             },
+            owner,
         ))
     }
 
@@ -858,7 +856,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             OntologyId,
             OwnedById,
             LeftClosedTemporalInterval<TransactionTime>,
-            EntityTypeOwnerSubject,
+            OntologyTypeSubject,
         ),
         UpdateError,
     > {

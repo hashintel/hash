@@ -1,4 +1,6 @@
-use authorization::schema::EntityTypeRelationAndSubject;
+use authorization::schema::{
+    DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
+};
 use graph_types::ontology::OntologyType;
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
@@ -19,7 +21,8 @@ pub struct OntologyTypeSnapshotRecord<T: OntologyType, R> {
     pub relations: Vec<R>,
 }
 
-pub type DataTypeSnapshotRecord = OntologyTypeSnapshotRecord<DataType, ()>;
-pub type PropertyTypeSnapshotRecord = OntologyTypeSnapshotRecord<PropertyType, ()>;
+pub type DataTypeSnapshotRecord = OntologyTypeSnapshotRecord<DataType, DataTypeRelationAndSubject>;
+pub type PropertyTypeSnapshotRecord =
+    OntologyTypeSnapshotRecord<PropertyType, PropertyTypeRelationAndSubject>;
 pub type EntityTypeSnapshotRecord =
     OntologyTypeSnapshotRecord<EntityType, EntityTypeRelationAndSubject>;

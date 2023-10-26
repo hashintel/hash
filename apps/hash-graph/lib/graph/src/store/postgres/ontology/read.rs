@@ -25,18 +25,21 @@ use type_system::{
 
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    snapshot::{EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord},
+    snapshot::{
+        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        PropertyTypeSnapshotRecord,
+    },
     store::{
         crud::Read,
         postgres::{
             ontology::OntologyId,
             query::{
-                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
-                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
+                SelectCompiler, Table, Transpile,
             },
         },
-        query::{Filter, OntologyQueryPath},
-        AsClient, PostgresStore, QueryError, Record,
+        query::Filter,
+        AsClient, PostgresStore, QueryError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -71,12 +74,10 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType, ()>> for PostgresStore<C> {
+impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
     type Record = DataTypeWithMetadata;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType, ()>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream = impl Stream<Item = Result<DataTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -173,12 +174,11 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType, ()>> for PostgresSto
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType, ()>> for PostgresStore<C> {
+impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
     type Record = PropertyTypeWithMetadata;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType, ()>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream =
+        impl Stream<Item = Result<PropertyTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -398,15 +398,14 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<DataTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<DataType, ()>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(DataTypeWithMetadata {
-                        schema: DataType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<DataTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(DataTypeWithMetadata {
+                    schema: DataType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -424,15 +423,14 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<PropertyTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<PropertyType, ()>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(PropertyTypeWithMetadata {
-                        schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<PropertyTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(PropertyTypeWithMetadata {
+                    schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -491,51 +489,6 @@ pub struct OntologyEdgeTraversal<L, R> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    pub(crate) async fn read_ontology_ids<R>(
-        &self,
-        filter: &Filter<'_, R>,
-        temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(R::VertexId, OntologyId), QueryError>>, QueryError>
-    where
-        R: for<'p> Record<QueryPath<'p>: PostgresQueryPath + OntologyQueryPath> + PostgresRecord,
-        R::VertexId: From<VersionedUrl>,
-    {
-        let mut compiler = SelectCompiler::new(temporal_axes);
-
-        let ontology_id_path = <R::QueryPath<'static> as OntologyQueryPath>::ontology_id();
-        let base_url_path = <R::QueryPath<'static> as OntologyQueryPath>::base_url();
-        let version_path = <R::QueryPath<'static> as OntologyQueryPath>::version();
-
-        let ontology_id_index = compiler.add_distinct_selection_with_ordering(
-            &ontology_id_path,
-            Distinctness::Distinct,
-            None,
-        );
-        let base_url_index = compiler.add_selection_path(&base_url_path);
-        let version_index = compiler.add_selection_path(&version_path);
-
-        compiler.add_filter(filter);
-        let (statement, parameters) = compiler.compile();
-
-        Ok(self
-            .as_client()
-            .query_raw(&statement, parameters.iter().copied())
-            .await
-            .change_context(QueryError)?
-            .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| {
-                (
-                    VersionedUrl {
-                        base_url: BaseUrl::new(row.get(base_url_index))
-                            .expect("Ontology type record base URL should always be a valid URL"),
-                        version: row.get::<_, OntologyTypeVersion>(version_index).inner(),
-                    }
-                    .into(),
-                    row.get(ontology_id_index),
-                )
-            }))
-    }
-
     pub(crate) async fn read_closed_schemas(
         &self,
         filter: &Filter<'_, EntityTypeWithMetadata>,

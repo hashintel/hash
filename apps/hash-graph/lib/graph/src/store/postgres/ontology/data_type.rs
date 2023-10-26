@@ -1,9 +1,16 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
-use authorization::AuthorizationApi;
-use error_stack::{Report, Result, ResultExt};
-use futures::{stream, TryStreamExt};
+use authorization::{
+    backend::ModifyRelationshipOperation,
+    schema::{
+        DataTypeGeneralViewerSubject, DataTypeId, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject, DataTypeSubjectSet,
+    },
+    zanzibar::{Consistency, Zookie},
+    AuthorizationApi,
+};
+use error_stack::{Result, ResultExt};
 use graph_types::{
     account::AccountId,
     ontology::{
@@ -20,7 +27,7 @@ use crate::store::error::DeletionError;
 use crate::{
     store::{
         crud::Read,
-        postgres::{ontology::OntologyId, TraversalContext},
+        postgres::{ontology::OntologyId, OntologyTypeSubject, TraversalContext},
         AsClient, ConflictBehavior, DataTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
@@ -30,11 +37,53 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
+    pub(crate) async fn filter_data_types_by_permission<I, T, A>(
+        data_types: impl IntoIterator<Item = (I, T)> + Send,
+        actor_id: AccountId,
+        authorization_api: &A,
+        zookie: &Zookie<'static>,
+    ) -> Result<impl Iterator<Item = T>, QueryError>
+    where
+        I: Into<DataTypeId> + Send,
+        T: Send,
+        A: AuthorizationApi + Sync,
+    {
+        let (ids, data_types): (Vec<_>, Vec<_>) = data_types
+            .into_iter()
+            .map(|(id, edge)| (id.into(), edge))
+            .unzip();
+
+        let permissions = authorization_api
+            .check_data_types_permission(
+                actor_id,
+                DataTypePermission::View,
+                ids.iter().copied(),
+                Consistency::AtExactSnapshot(zookie),
+            )
+            .await
+            .change_context(QueryError)?
+            .0;
+
+        Ok(ids
+            .into_iter()
+            .zip(data_types)
+            .filter_map(move |(id, data_type)| {
+                permissions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(false)
+                    .then_some(data_type)
+            }))
+    }
+
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "trace", skip(self, _traversal_context, _subgraph))]
-    pub(crate) async fn traverse_data_types(
+    #[tracing::instrument(
+        level = "trace",
+        skip(self, _traversal_context, _subgraph, _authorization_api, _zookie)
+    )]
+    pub(crate) async fn traverse_data_types<A: AuthorizationApi + Sync>(
         &self,
         queue: Vec<(
             OntologyId,
@@ -42,6 +91,9 @@ impl<C: AsClient> PostgresStore<C> {
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         _traversal_context: &mut TraversalContext,
+        actor_id: AccountId,
+        _authorization_api: &A,
+        _zookie: &Zookie<'static>,
         _subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         // TODO: data types currently have no references to other types, so we don't need to do
@@ -81,11 +133,11 @@ impl<C: AsClient> PostgresStore<C> {
 
 #[async_trait]
 impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    #[tracing::instrument(level = "info", skip(self, data_types, _authorization_api))]
-    async fn create_data_types<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, data_types, authorization_api))]
+    async fn create_data_types<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         data_types: impl IntoIterator<Item = (DataType, PartialOntologyElementMetadata), IntoIter: Send>
         + Send,
         on_conflict: ConflictBehavior,
@@ -97,9 +149,11 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             record_archived_by_id: None,
         };
 
+        let mut relationships = Vec::new();
+
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
-            if let Some((ontology_id, transaction_time, _visibility_scope)) = transaction
+            if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
                     &metadata.record_id,
@@ -117,28 +171,75 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                     transaction_time,
                 ));
 
-                // TODO: Insert permission for data type, something like
-                //       ```
-                //       authorization_api.grant_permission(
-                //           visibility_scope,
-                //           Relation::Admin,
-                //           ontology_id
-                //       )
-                //       ```
-                //       Make sure this will revoke the permission if the transaction fails.
+                relationships.push((
+                    DataTypeId::from(ontology_id),
+                    DataTypeRelationAndSubject::GeneralViewer(DataTypeGeneralViewerSubject::Public),
+                ));
+                if let Some(owner) = owner {
+                    match owner {
+                        OntologyTypeSubject::Account { id } => relationships.push((
+                            DataTypeId::from(ontology_id),
+                            DataTypeRelationAndSubject::Owner(DataTypeOwnerSubject::Account { id }),
+                        )),
+                        OntologyTypeSubject::AccountGroup { id } => relationships.push((
+                            DataTypeId::from(ontology_id),
+                            DataTypeRelationAndSubject::Owner(DataTypeOwnerSubject::AccountGroup {
+                                id,
+                                set: DataTypeSubjectSet::Member,
+                            }),
+                        )),
+                    }
+                }
             }
         }
 
-        transaction.commit().await.change_context(InsertionError)?;
+        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
+        authorization_api
+            .modify_data_type_relations(
+                relationships
+                    .iter()
+                    .map(|(resource, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            *resource,
+                            *relation_and_subject,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .change_context(InsertionError)?;
 
-        Ok(inserted_data_type_metadata)
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .modify_data_type_relations(relationships.into_iter().map(
+                    |(resource, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            resource,
+                            relation_and_subject,
+                        )
+                    },
+                ))
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(inserted_data_type_metadata)
+        }
     }
 
-    #[tracing::instrument(level = "info", skip(self, _authorization_api))]
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
     async fn get_data_type<A: AuthorizationApi + Sync>(
         &self,
-        _actor_id: AccountId,
-        _authorization_api: &A,
+        actor_id: AccountId,
+        authorization_api: &A,
         query: &StructuralQuery<DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
@@ -150,80 +251,156 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
+            .await?
+            .into_iter()
+            .filter_map(|data_type| {
+                let id = DataTypeId::from_url(data_type.schema.id());
+                let vertex_id = data_type.vertex_id(time_axis);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, (vertex_id, data_type)))
+            })
+            .collect::<HashMap<_, _>>();
+
+        let filtered_ids = data_types.keys().copied().collect::<Vec<_>>();
+        let (permissions, zookie) = authorization_api
+            .check_data_types_permission(
+                actor_id,
+                DataTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
+
         let mut subgraph = Subgraph::new(
             graph_resolve_depths,
             unresolved_temporal_axes.clone(),
             temporal_axes.clone(),
         );
 
-        if graph_resolve_depths.is_empty() {
-            // TODO: Remove again when subgraph logic was revisited
-            //   see https://linear.app/hash/issue/H-297
-            let mut visited_ontology_ids = HashSet::new();
+        let (data_type_ids, data_type_vertices): (Vec<_>, _) = data_types
+            .into_iter()
+            .filter(|(id, _)| permissions.get(id).copied().unwrap_or(false))
+            .unzip();
+        subgraph.vertices.data_types = data_type_vertices;
 
-            subgraph.vertices.data_types =
-                Read::<DataTypeWithMetadata>::read_vec(self, filter, Some(&temporal_axes))
-                    .await?
-                    .into_iter()
-                    .filter_map(|data_type| {
-                        // The records are already sorted by time, so we can just take the first
-                        // one
-                        visited_ontology_ids
-                            .insert(data_type.vertex_id(time_axis))
-                            .then(|| (data_type.vertex_id(time_axis), data_type))
-                    })
-                    .collect();
-            for vertex_id in subgraph.vertices.data_types.keys() {
-                subgraph.roots.insert(vertex_id.clone().into());
-            }
-        } else {
-            let mut traversal_context = TraversalContext::default();
-            let traversal_data = self
-                .read_ontology_ids::<DataTypeWithMetadata>(filter, Some(&temporal_axes))
-                .await?
-                .map_ok(|(vertex_id, ontology_id)| {
-                    subgraph.roots.insert(vertex_id.into());
-                    stream::iter(
-                        traversal_context
-                            .add_data_type_id(
-                                ontology_id,
-                                graph_resolve_depths,
-                                temporal_axes.variable_interval(),
-                            )
-                            .map(Ok::<_, Report<QueryError>>),
+        for vertex_id in subgraph.vertices.data_types.keys() {
+            subgraph.roots.insert(vertex_id.clone().into());
+        }
+
+        let mut traversal_context = TraversalContext::default();
+
+        // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow the
+        //       vertices and have to `.collect()` the keys.
+        self.traverse_data_types(
+            data_type_ids
+                .into_iter()
+                .map(|id| {
+                    (
+                        OntologyId::from(id),
+                        subgraph.depths,
+                        subgraph.temporal_axes.resolved.variable_interval(),
                     )
                 })
-                .try_flatten()
-                .try_collect::<Vec<_>>()
-                .await?;
+                .collect(),
+            &mut traversal_context,
+            actor_id,
+            authorization_api,
+            &zookie,
+            &mut subgraph,
+        )
+        .await?;
 
-            self.traverse_data_types(traversal_data, &mut traversal_context, &mut subgraph)
-                .await?;
-
-            traversal_context
-                .read_traversed_vertices(self, &mut subgraph)
-                .await?;
-        }
+        traversal_context
+            .read_traversed_vertices(self, &mut subgraph)
+            .await?;
 
         Ok(subgraph)
     }
 
-    #[tracing::instrument(level = "info", skip(self, data_type, _authorization_api))]
-    async fn update_data_type<A: AuthorizationApi + Sync>(
+    #[tracing::instrument(level = "info", skip(self, data_type, authorization_api))]
+    async fn update_data_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let (_, metadata) = transaction
+        let (ontology_id, metadata, owner) = transaction
             .update::<DataType>(data_type, RecordCreatedById::new(actor_id))
             .await?;
 
-        transaction.commit().await.change_context(UpdateError)?;
+        let owner = match owner {
+            OntologyTypeSubject::Account { id } => DataTypeOwnerSubject::Account { id },
+            OntologyTypeSubject::AccountGroup { id } => DataTypeOwnerSubject::AccountGroup {
+                id,
+                set: DataTypeSubjectSet::Member,
+            },
+        };
 
-        Ok(metadata)
+        let relationships = [
+            (
+                DataTypeId::from(ontology_id),
+                DataTypeRelationAndSubject::Owner(owner),
+            ),
+            (
+                DataTypeId::from(ontology_id),
+                DataTypeRelationAndSubject::GeneralViewer(DataTypeGeneralViewerSubject::Public),
+            ),
+        ];
+
+        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
+        authorization_api
+            .modify_data_type_relations(
+                relationships
+                    .iter()
+                    .map(|(resource, relation_and_subject)| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            *resource,
+                            *relation_and_subject,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
+            #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
+            if let Err(auth_error) = authorization_api
+                .modify_data_type_relations(
+                    relationships
+                        .iter()
+                        .map(|(resource, relation_and_subject)| {
+                            (
+                                ModifyRelationshipOperation::Delete,
+                                *resource,
+                                *relation_and_subject,
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                )
+                .await
+                .change_context(UpdateError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(metadata)
+        }
     }
 
     #[tracing::instrument(level = "info", skip(self, _authorization_api))]
