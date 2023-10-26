@@ -302,10 +302,10 @@ const systemPropertyTypes = {
     title: "Title",
     description: "The title of something.",
   },
-  index: {
-    title: "Index",
+  fractionalIndex: {
+    title: "Fractional Index",
     description:
-      "The (fractional) index indicating the current position of something.",
+      "The fractional index indicating the current position of something.",
   },
   icon: {
     title: "Icon",

@@ -23,7 +23,9 @@ export const getTreeItemList = (
         : !parentPage,
     )
     .sort((pageA, pageB) =>
-      (pageA.index ?? "ZZZ") > (pageB.index ?? "ZZZ") ? 1 : -1,
+      (pageA.fractionalIndex ?? "ZZZ") > (pageB.fractionalIndex ?? "ZZZ")
+        ? 1
+        : -1,
     )
     .reduce((prev, page) => {
       const children = getTreeItemList(
@@ -77,7 +79,7 @@ export const getLastIndex = (
       ? page.parentPage?.metadata.recordId.entityId === parentId
       : !page.parentPage,
   );
-  return groupItems[groupItems.length - 1]?.page.index ?? null;
+  return groupItems[groupItems.length - 1]?.page.fractionalIndex ?? null;
 };
 
 // Calculates relevant properties for the page that is being dragged

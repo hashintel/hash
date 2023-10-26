@@ -74,14 +74,14 @@ export type {
 export type ArchivedPropertyValue = BooleanDataType;
 
 /**
+ * The fractional index indicating the current position of something.
+ */
+export type FractionalIndexPropertyValue = TextDataType;
+
+/**
  * An emoji icon.
  */
 export type IconPropertyValue = TextDataType;
-
-/**
- * The (fractional) index indicating the current position of something.
- */
-export type IndexPropertyValue = TextDataType;
 
 export type Page = Entity<PageProperties>;
 
@@ -98,8 +98,8 @@ export type PageProperties1 = BlockCollectionProperties;
 
 export type PageProperties2 = {
   "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/fractional-index/": FractionalIndexPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
 };

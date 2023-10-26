@@ -42,7 +42,10 @@ export const useCreateSubPage = ({
   });
 
   const createSubPage = useCallback(
-    async (parentPageEntityId: EntityId, prevIndex: string | null) => {
+    async (
+      parentPageEntityId: EntityId,
+      prevFractionalIndex: string | null,
+    ) => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreateSubPage");
       }
@@ -59,7 +62,7 @@ export const useCreateSubPage = ({
           variables: {
             pageEntityId,
             parentPageEntityId,
-            prevIndex,
+            prevFractionalIndex,
           },
         });
 

@@ -36,7 +36,7 @@ export const useAccountPages = (
   const lastRootPageIndex = useMemo(() => {
     const rootPages = pages
       .filter(({ parentPage }) => !parentPage)
-      .map(({ index }) => index)
+      .map(({ fractionalIndex }) => fractionalIndex)
       .sort();
 
     return rootPages[rootPages.length - 1] ?? null;

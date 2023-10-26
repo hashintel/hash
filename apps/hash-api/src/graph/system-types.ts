@@ -51,7 +51,7 @@ export let SYSTEM_TYPES: {
     archived: PropertyTypeWithMetadata;
     summary: PropertyTypeWithMetadata;
     title: PropertyTypeWithMetadata;
-    index: PropertyTypeWithMetadata;
+    fractionalIndex: PropertyTypeWithMetadata;
     icon: PropertyTypeWithMetadata;
 
     // Text-related
@@ -779,8 +779,8 @@ const titlePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const indexPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.index,
+const fractionalIndexPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fractionalIndex,
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
@@ -840,8 +840,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const titlePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
 
-  const indexPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(context);
+  const fractionalIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
 
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
@@ -872,7 +872,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
-        propertyType: indexPropertyType,
+        propertyType: fractionalIndexPropertyType,
         required: true,
       },
     ],
@@ -1107,7 +1107,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     summary: summaryPropertyTypeInitializer,
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
-    index: indexPropertyTypeInitializer,
+    fractionalIndex: fractionalIndexPropertyTypeInitializer,
     icon: iconPropertyTypeInitializer,
 
     tokens: tokensPropertyTypeInitializer,
