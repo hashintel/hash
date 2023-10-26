@@ -24,9 +24,9 @@ export const useGenerateTypeUrlsForUser = () => {
 
       const baseUrl = generateBaseTypeId({
         domain: frontendUrl,
-        namespace: activeWorkspace.shortname,
         kind,
         title,
+        webShortname: activeWorkspace.shortname,
       });
 
       const versionedUrl = versionedUrlFromComponents(baseUrl, version);

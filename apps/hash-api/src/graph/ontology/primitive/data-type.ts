@@ -26,7 +26,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { getWebShortname } from "./util";
 
 /**
  * Create a data type.
@@ -49,16 +49,16 @@ export const createDataType: ImpureGraphFunction<
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
   const { ownedById } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: params.ownedById,
+  const webShortname = await getWebShortname(ctx, authentication, {
+    accountOrAccountGroupId: params.ownedById,
   });
 
   const { graphApi } = ctx;
 
   const dataTypeUrl = generateTypeId({
-    namespace,
     kind: "data-type",
     title: params.schema.title,
+    webShortname,
   });
   const schema = {
     $schema: DATA_TYPE_META_SCHEMA,

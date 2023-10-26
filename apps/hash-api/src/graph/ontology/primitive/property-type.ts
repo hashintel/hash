@@ -27,7 +27,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { getWebShortname } from "./util";
 
 /**
  * Create a property type.
@@ -45,14 +45,14 @@ export const createPropertyType: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { ownedById } = params;
 
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: ownedById,
+  const webShortname = await getWebShortname(ctx, authentication, {
+    accountOrAccountGroupId: ownedById,
   });
 
   const propertyTypeId = generateTypeId({
-    namespace,
     kind: "property-type",
     title: params.schema.title,
+    webShortname,
   });
 
   const schema = {

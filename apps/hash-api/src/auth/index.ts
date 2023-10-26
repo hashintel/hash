@@ -9,7 +9,7 @@ import {
   createUser,
   getUserByKratosIdentityId,
 } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-accounts";
+import { systemAccountId } from "../graph/system-account";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");

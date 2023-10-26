@@ -30,7 +30,7 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { getWebShortname } from "./util";
 
 /**
  * Create an entity type.
@@ -49,14 +49,14 @@ export const createEntityType: ImpureGraphFunction<
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
   const { ownedById, labelProperty } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: params.ownedById,
+  const webShortname = await getWebShortname(ctx, authentication, {
+    accountOrAccountGroupId: params.ownedById,
   });
 
   const entityTypeId = generateTypeId({
-    namespace,
     kind: "entity-type",
     title: params.schema.title,
+    webShortname,
   });
 
   const schema = {
