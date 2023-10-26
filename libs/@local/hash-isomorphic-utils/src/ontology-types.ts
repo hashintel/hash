@@ -307,6 +307,11 @@ const systemPropertyTypes = {
     description:
       "The fractional index indicating the current position of something.",
   },
+  numericIndex: {
+    title: "Numeric Index",
+    description:
+      "The numeric index indicating the current position of something.",
+  },
   icon: {
     title: "Icon",
     description: "An emoji icon.",

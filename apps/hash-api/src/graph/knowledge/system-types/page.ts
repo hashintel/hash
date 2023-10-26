@@ -4,7 +4,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  BlockDataProperties,
+  ContainsProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -446,7 +450,7 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId },
   Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { pageEntityId }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
@@ -454,21 +458,28 @@ export const getPageBlocks: ImpureGraphFunction<
       linkEntityTypeVersionedUrl:
         SYSTEM_TYPES.linkEntityType.contains.schema.$id,
     },
-  );
+  )) as LinkEntity<ContainsProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort(
-        (a, b) =>
-          (a.linkData.leftToRightOrder ?? 0) -
-            (b.linkData.leftToRightOrder ?? 0) ||
+      .sort((a, b) => {
+        const { numericIndex: aNumericIndex } = simplifyProperties(
+          a.properties,
+        );
+        const { numericIndex: bNumericIndex } = simplifyProperties(
+          b.properties,
+        );
+
+        return (
+          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||
           a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
             b.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
-      )
+          )
+        );
+      })
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {

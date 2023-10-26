@@ -1,5 +1,9 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
-import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  BlockDataProperties,
+  ContainsProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -26,7 +30,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
   { blockCollectionEntityId: EntityId },
   Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { blockCollectionEntityId }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
@@ -34,21 +38,28 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
       linkEntityTypeVersionedUrl:
         SYSTEM_TYPES.linkEntityType.contains.schema.$id,
     },
-  );
+  )) as LinkEntity<ContainsProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort(
-        (a, b) =>
-          (a.linkData.leftToRightOrder ?? 0) -
-            (b.linkData.leftToRightOrder ?? 0) ||
+      .sort((a, b) => {
+        const { numericIndex: aNumericIndex } = simplifyProperties(
+          a.properties,
+        );
+        const { numericIndex: bNumericIndex } = simplifyProperties(
+          b.properties,
+        );
+
+        return (
+          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||
           a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
             b.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
-      )
+          )
+        );
+      })
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -81,26 +92,35 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     block,
   } = params;
 
+  const index =
+    specifiedPosition ??
+    // if position is not specified and there are no blocks currently in the blockCollection, specify the index of the link is `0`
+    ((
+      await getBlockCollectionBlocks(ctx, authentication, {
+        blockCollectionEntityId:
+          blockCollectionEntity.metadata.recordId.entityId,
+      })
+    ).length === 0
+      ? 0
+      : undefined);
+
   await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
     linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
-    leftToRightOrder:
-      specifiedPosition ??
-      // if position is not specified and there are no blocks currently in the blockCollection, specify the index of the link is `0`
-      ((
-        await getBlockCollectionBlocks(ctx, authentication, {
-          blockCollectionEntityId:
-            blockCollectionEntity.metadata.recordId.entityId,
-        })
-      ).length === 0
-        ? 0
-        : undefined),
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(
       blockCollectionEntity.metadata.recordId.entityId,
     ),
-    properties: canvasPosition ?? {},
+    properties: {
+      ...canvasPosition,
+      ...(typeof index === "number"
+        ? {
+            [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]:
+              index,
+          }
+        : {}),
+    },
   });
 };
 
@@ -156,9 +176,10 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     properties: {
       ...linkEntity.properties,
       ...canvasPosition,
+      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]:
+        newPosition,
     },
     linkEntity,
-    leftToRightOrder: newPosition,
   });
 };
 
@@ -185,7 +206,7 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     position,
   } = params;
 
-  const contentLinkEntities = await getEntityOutgoingLinks(
+  const contentLinkEntities = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
@@ -193,7 +214,7 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
       linkEntityTypeVersionedUrl:
         SYSTEM_TYPES.linkEntityType.contains.schema.$id,
     },
-  );
+  )) as LinkEntity<ContainsProperties>[];
 
   /**
    * @todo currently the count of outgoing links are not the best indicator of a valid position
@@ -202,10 +223,11 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
    *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
    */
 
-  const linkEntity = contentLinkEntities.find(
-    (contentLinkEntity) =>
-      contentLinkEntity.linkData.leftToRightOrder === position,
-  );
+  const linkEntity = contentLinkEntities.find((contentLinkEntity) => {
+    const { numericIndex } = simplifyProperties(contentLinkEntity.properties);
+
+    return numericIndex === position;
+  });
 
   if (!linkEntity) {
     throw new Error(

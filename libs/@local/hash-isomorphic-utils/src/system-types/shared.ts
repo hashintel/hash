@@ -71,7 +71,9 @@ export type ContainsOutgoingLinksByLinkEntityTypeId = {};
 export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
 export type ContainsProperties1 = LinkProperties;
 
-export type ContainsProperties2 = {};
+export type ContainsProperties2 = {
+  "http://localhost:3000/@system-user/types/property-type/numeric-index/"?: NumericIndexPropertyValue;
+};
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -234,6 +236,11 @@ export type MIMETypePropertyValue = TextDataType;
  * An arithmetical value (in the Real number system)
  */
 export type NumberDataType = number;
+
+/**
+ * The numeric index indicating the current position of something.
+ */
+export type NumericIndexPropertyValue = NumberDataType;
 
 /**
  * An opaque, untyped JSON object
