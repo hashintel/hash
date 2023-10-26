@@ -5,6 +5,11 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { apiGraphQLEndpoint } from "@local/hash-graphql-shared/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import {
+  SystemTypeWebShortname,
+  systemTypeWebShortnames,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { OntologyTypeVertexId } from "@local/hash-subgraph";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
@@ -71,8 +76,20 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
+  // To be removed in H-1172: Temporary provision to serve system types from https://app.hash.ai
+  const urlObject = new URL(url);
+  const shouldServeHashAiType =
+    ["http://localhost:3000", "https://app.hash.ai"].includes(frontendUrl) &&
+    systemTypeWebShortnames.includes(
+      urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
+    );
+  const urlToRequest = shouldServeHashAiType
+    ? (new URL(urlObject.pathname, "https://hash.ai").href as VersionedUrl)
+    : url;
+  // Remove above code in H-1172, pass url directly to generateQueryArgs
+
   const { query, variables } = generateQueryArgs(
-    url,
+    urlToRequest,
     ontologyType as "data-type" | "entity-type" | "property-type",
   );
 

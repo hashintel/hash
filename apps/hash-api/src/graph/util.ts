@@ -18,6 +18,7 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   PrimitiveDataTypeKey,
   systemTypes,
+  SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountGroupId,
@@ -124,10 +125,8 @@ export const isSelfHostedInstance = ![
   "https://hash.ai",
 ].includes(frontendUrl);
 
-type OwningWebShortname = "hash" | "linear";
-
 const owningWebs: Record<
-  OwningWebShortname,
+  SystemTypeWebShortname,
   {
     accountGroupId?: AccountGroupId;
     name: string;
@@ -146,7 +145,7 @@ const owningWebs: Record<
 
 const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
-  webShortname: OwningWebShortname,
+  webShortname: SystemTypeWebShortname,
 ) => {
   const authentication = { actorId: systemAccountId };
 
@@ -210,7 +209,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
     if (!foundOrg) {
       const orgAccountGroupId = await getOrCreateOwningAccountGroupId(
         context,
-        webShortname as OwningWebShortname,
+        webShortname as SystemTypeWebShortname,
       );
 
       await createOrg(context, authentication, {
@@ -236,7 +235,7 @@ export type PropertyTypeCreatorParams = {
     propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
     array?: boolean;
   }[];
-  webShortname: OwningWebShortname;
+  webShortname: SystemTypeWebShortname;
 };
 
 /**
@@ -406,7 +405,7 @@ export type EntityTypeCreatorParams = {
     maxItems?: number;
     ordered?: boolean;
   }[];
-  webShortname: OwningWebShortname;
+  webShortname: SystemTypeWebShortname;
 };
 
 /**

@@ -6,6 +6,9 @@ import { frontendUrl } from "./environment";
 
 export type SchemaKind = "data-type" | "property-type" | "entity-type";
 
+export const systemTypeWebShortnames = ["hash", "linear"] as const;
+export type SystemTypeWebShortname = (typeof systemTypeWebShortnames)[number];
+
 /**
  * IF YOU EDIT THIS FILE in a way which affects the number or structure of system types,
  * run `yarn generate-system-types` to update their TypeScript representation
