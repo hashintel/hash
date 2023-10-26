@@ -1,6 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use authorization::{backend::ZanzibarBackend, NoAuthorization};
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{AccountGroupNamespace, EntityNamespace, WebNamespace},
+    zanzibar::types::{RelationshipFilter, ResourceFilter},
+    NoAuthorization,
+};
 use axum::{
     extract::BodyStream,
     response::Response,
@@ -35,11 +40,11 @@ where
 {
     Router::new()
         .route("/snapshot", post(restore_snapshot::<A>))
-        .route("/accounts", delete(delete_accounts))
-        .route("/data-types", delete(delete_data_types))
-        .route("/property-types", delete(delete_property_types))
-        .route("/entity-types", delete(delete_entity_types))
-        .route("/entities", delete(delete_entities))
+        .route("/accounts", delete(delete_accounts::<A>))
+        .route("/data-types", delete(delete_data_types::<A>))
+        .route("/property-types", delete(delete_property_types::<A>))
+        .route("/entity-types", delete(delete_entity_types::<A>))
+        .route("/entities", delete(delete_entities::<A>))
         .layer(Extension(Arc::new(store_pool)))
         .layer(Extension(Arc::new(authorization_api)))
         .layer(axum::middleware::from_fn(log_request_and_response))
@@ -66,6 +71,21 @@ fn store_acquisition_error(report: Report<impl Context>) -> Response {
             //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
             //  or perhaps as a big enum, or as an attachment
             "STORE_ACQUISITION_FAILURE".to_owned(),
+        ))],
+    ))
+}
+
+fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Response {
+    status_to_response(Status::new(
+        report
+            .request_ref::<StatusCode>()
+            .copied()
+            .next()
+            .unwrap_or(StatusCode::Unknown),
+        Some(report.to_string()),
+        vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+            HashMap::new(),
+            code.into(),
         ))],
     ))
 }
@@ -98,23 +118,7 @@ where
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not restore snapshot");
-            status_to_response(Status::new(
-                report
-                    .request_ref::<StatusCode>()
-                    .copied()
-                    .next()
-                    .unwrap_or(StatusCode::Unknown),
-                Some(report.to_string()),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                    // TODO: add information from the report here
-                    //   https://app.asana.com/0/1203363157432094/1203639884730779/f
-                    HashMap::new(),
-                    // TODO: We should encapsulate these Reasons within the type system, perhaps
-                    //  requiring top level contexts to implement a trait `ErrorReason::to_reason`
-                    //  or perhaps as a big enum, or as an attachment
-                    "SNAPSHOT_RESTORATION_FAILURE".to_owned(),
-                ))],
-            ))
+            report_to_response(&report, "SNAPSHOT_RESTORATION_FAILURE")
         })?;
 
     Ok(status_to_response(Status::<()>::new(
@@ -124,28 +128,42 @@ where
     )))
 }
 
-async fn delete_accounts(
+async fn delete_accounts<A>(
     pool: Extension<Arc<PostgresStorePool<NoTls>>>,
-) -> Result<Response, Response> {
+    authorization_api: Extension<Arc<A>>,
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
+    let mut authorization_api = (**authorization_api).clone();
 
     store
         .delete_accounts(AccountId::new(Uuid::nil()), &NoAuthorization)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not delete accounts");
-            status_to_response(Status::new(
-                report
-                    .request_ref::<StatusCode>()
-                    .copied()
-                    .next()
-                    .unwrap_or(StatusCode::Unknown),
-                Some(report.to_string()),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                    HashMap::new(),
-                    "ACCOUNT_DELETION_FAILURE".to_owned(),
-                ))],
-            ))
+            report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
+        })?;
+
+    authorization_api
+        .delete_relations(RelationshipFilter::from_resource(
+            ResourceFilter::from_kind(WebNamespace::Web),
+        ))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete web relationships");
+            report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
+        })?;
+
+    authorization_api
+        .delete_relations(RelationshipFilter::from_resource(
+            ResourceFilter::from_kind(AccountGroupNamespace::AccountGroup),
+        ))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete account group relationships");
+            report_to_response(&report, "ACCOUNT_DELETION_FAILURE")
         })?;
 
     Ok(status_to_response(Status::<()>::new(
@@ -155,10 +173,15 @@ async fn delete_accounts(
     )))
 }
 
-async fn delete_data_types(
+async fn delete_data_types<A>(
     pool: Extension<Arc<PostgresStorePool<NoTls>>>,
-) -> Result<Response, Response> {
+    authorization_api: Extension<Arc<A>>,
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
+    let mut _authorization_api = (**authorization_api).clone();
 
     store.delete_data_types().await.map_err(|report| {
         tracing::error!(error=?report, "Could not delete data types");
@@ -183,25 +206,19 @@ async fn delete_data_types(
     )))
 }
 
-async fn delete_property_types(
+async fn delete_property_types<A>(
     pool: Extension<Arc<PostgresStorePool<NoTls>>>,
-) -> Result<Response, Response> {
+    authorization_api: Extension<Arc<A>>,
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
+    let mut _authorization_api = (**authorization_api).clone();
 
     store.delete_property_types().await.map_err(|report| {
         tracing::error!(error=?report, "Could not delete property types");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "PROPERTY_TYPE_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
+        report_to_response(&report, "PROPERTY_TYPE_DELETION_FAILURE")
     })?;
 
     Ok(status_to_response(Status::<()>::new(
@@ -211,25 +228,19 @@ async fn delete_property_types(
     )))
 }
 
-async fn delete_entity_types(
+async fn delete_entity_types<A>(
     pool: Extension<Arc<PostgresStorePool<NoTls>>>,
-) -> Result<Response, Response> {
+    authorization_api: Extension<Arc<A>>,
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
+    let mut _authorization_api = (**authorization_api).clone();
 
     store.delete_entity_types().await.map_err(|report| {
         tracing::error!(error=?report, "Could not delete entity types");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "ENTITY_TYPE_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
+        report_to_response(&report, "ENTITY_TYPE_DELETION_FAILURE")
     })?;
 
     Ok(status_to_response(Status::<()>::new(
@@ -239,26 +250,30 @@ async fn delete_entity_types(
     )))
 }
 
-async fn delete_entities(
+async fn delete_entities<A>(
     pool: Extension<Arc<PostgresStorePool<NoTls>>>,
-) -> Result<Response, Response> {
+    authorization_api: Extension<Arc<A>>,
+) -> Result<Response, Response>
+where
+    A: ZanzibarBackend + Send + Sync + Clone,
+{
     let mut store = pool.acquire().await.map_err(store_acquisition_error)?;
+    let mut authorization_api = (**authorization_api).clone();
 
     store.delete_entities().await.map_err(|report| {
         tracing::error!(error=?report, "Could not delete entities");
-        status_to_response(Status::new(
-            report
-                .request_ref::<StatusCode>()
-                .copied()
-                .next()
-                .unwrap_or(StatusCode::Unknown),
-            Some(report.to_string()),
-            vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
-                HashMap::new(),
-                "ENTITY_DELETION_FAILURE".to_owned(),
-            ))],
-        ))
+        report_to_response(&report, "ENTITY_DELETION_FAILURE")
     })?;
+
+    authorization_api
+        .delete_relations(RelationshipFilter::from_resource(
+            ResourceFilter::from_kind(EntityNamespace::Entity),
+        ))
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not delete entity relationships");
+            report_to_response(&report, "ENTITY_DELETION_FAILURE")
+        })?;
 
     Ok(status_to_response(Status::<()>::new(
         StatusCode::Ok,

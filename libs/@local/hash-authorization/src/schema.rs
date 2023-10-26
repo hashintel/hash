@@ -12,9 +12,9 @@ pub use self::{
         AccountGroupSubject, AccountGroupSubjectId,
     },
     entity::{
-        EntityGeneralEditorSubject, EntityGeneralViewerSubject, EntityOwnerSubject,
-        EntityPermission, EntityRelationAndSubject, EntityResourceRelation, EntitySubject,
-        EntitySubjectId, EntitySubjectSet,
+        EntityGeneralEditorSubject, EntityGeneralViewerSubject, EntityNamespace,
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityResourceRelation,
+        EntitySubject, EntitySubjectId, EntitySubjectSet,
     },
     web::{
         WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,
