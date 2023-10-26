@@ -17,7 +17,6 @@ import {
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
@@ -35,6 +34,7 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  textDataTypeId,
 } from "../../../util";
 
 jest.setTimeout(60000);
@@ -50,8 +50,6 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 let testOrg: Org;
 let testUser: User;
 let testUser2: User;
-const textDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {

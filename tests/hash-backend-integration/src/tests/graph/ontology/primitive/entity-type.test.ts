@@ -17,10 +17,7 @@ import {
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
-import {
-  TypeSystemInitializer,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   ConstructEntityTypeParams,
@@ -43,6 +40,7 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  textDataTypeId,
 } from "../../../util";
 
 jest.setTimeout(60000);
@@ -60,8 +58,6 @@ let testUser: User;
 let testUser2: User;
 let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
-const textDataTypeId =
-  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 let namePropertyType: PropertyTypeWithMetadata;
 let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityType: EntityTypeWithMetadata;

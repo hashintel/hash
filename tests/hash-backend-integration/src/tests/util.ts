@@ -13,10 +13,13 @@ import {
 } from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
 
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   return new Array(6)

@@ -20,10 +20,7 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
-import {
-  TypeSystemInitializer,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   currentTimeInstantTemporalAxes,
@@ -46,6 +43,7 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  textDataTypeId,
 } from "../../../util";
 
 jest.setTimeout(60000);
@@ -64,8 +62,6 @@ describe("Entity CRU", () => {
   let testUser: User;
   let testUser2: User;
   let entityType: EntityTypeWithMetadata;
-  const textDataTypeId =
-    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
   let namePropertyType: PropertyTypeWithMetadata;
   let favoriteBookPropertyType: PropertyTypeWithMetadata;
   let linkEntityTypeFriend: EntityTypeWithMetadata;

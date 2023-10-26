@@ -13,7 +13,6 @@ import {
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { publicUserAccountId } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
 import {
@@ -27,7 +26,11 @@ import {
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -71,8 +74,6 @@ afterAll(async () => {
 
 describe("Data type CRU", () => {
   let createdDataType: DataTypeWithMetadata;
-  const textDataTypeId =
-    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 
   it.skip("can create a data type", async () => {
     const authentication = { actorId: testUser.accountId };
