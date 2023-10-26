@@ -283,7 +283,8 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<raw::EntityType, QueryError> {
         let mut current_type = available_types
             .remove(&entity_type_id)
-            .expect("entity type not available");
+            .ok_or_else(|| Report::new(QueryError))
+            .attach_printable("entity type not available")?;
         let mut visited_ids = HashSet::from([entity_type_id]);
 
         loop {
@@ -333,7 +334,7 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(current_type)
     }
 
-    async fn resolve_entity_types(
+    pub(crate) async fn resolve_entity_types(
         &self,
         entity_types: impl IntoIterator<Item = EntityType> + Send,
     ) -> Result<Vec<EntityTypeInsertion>, QueryError> {
@@ -395,10 +396,10 @@ impl<C: AsClient> PostgresStore<C> {
     }
 }
 
-struct EntityTypeInsertion {
-    schema: EntityType,
-    raw_schema: raw::EntityType,
-    closed_schema: raw::EntityType,
+pub struct EntityTypeInsertion {
+    pub schema: EntityType,
+    pub raw_schema: raw::EntityType,
+    pub closed_schema: raw::EntityType,
 }
 
 #[async_trait]
