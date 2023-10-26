@@ -438,6 +438,11 @@ export const save = async (
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
+        /**
+         * These depths are chosen to cover the following:
+         * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
+         * - the text block (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
+         */
         hasLeftEntity: { outgoing: 2, incoming: 2 },
         hasRightEntity: { outgoing: 2, incoming: 2 },
         ...currentTimeInstantTemporalAxes,
