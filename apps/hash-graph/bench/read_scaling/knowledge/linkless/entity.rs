@@ -23,7 +23,7 @@ use graph_types::{
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
-use type_system::{repr, EntityType};
+use type_system::{raw, EntityType};
 use uuid::Uuid;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
@@ -70,7 +70,7 @@ async fn seed_db(
 
     let properties: EntityProperties =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
-    let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type::BOOK_V1)
+    let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type::BOOK_V1)
         .expect("could not parse entity type representation");
     let entity_type_id = EntityType::try_from(entity_type_repr)
         .expect("could not parse entity type")

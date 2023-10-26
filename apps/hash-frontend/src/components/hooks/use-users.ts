@@ -1,6 +1,7 @@
 import { useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -25,6 +26,7 @@ export const useUsers = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [
@@ -56,17 +58,19 @@ export const useUsers = (): {
       return undefined;
     }
 
-    return getRoots(queryEntitiesData.subgraph as Subgraph<EntityRootType>).map(
-      (userEntity) => {
-        if (!isEntityUserEntity(userEntity)) {
-          throw new Error(
-            `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
-          );
-        }
-
-        return constructMinimalUser({ userEntity });
-      },
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      queryEntitiesData.subgraph,
     );
+
+    return getRoots(subgraph).map((userEntity) => {
+      if (!isEntityUserEntity(userEntity)) {
+        throw new Error(
+          `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+        );
+      }
+
+      return constructMinimalUser({ userEntity });
+    });
   }, [queryEntitiesData]);
 
   return {

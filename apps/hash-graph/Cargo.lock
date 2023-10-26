@@ -123,6 +123,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-util",
+ "type-system",
  "utoipa",
  "uuid",
 ]
@@ -2735,9 +2736,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.9"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d68074620f57a0b21594d9735eb2e98ab38b17f80d3fcb189fca266771ca60d"
+checksum = "5419f34732d9eb6ee4c3578b7989078579b7f039cbbb9ca2c4da015749371e15"
 dependencies = [
  "bytes",
  "futures-core",
@@ -3049,7 +3050,7 @@ dependencies = [
 [[package]]
 name = "type-system"
 version = "0.0.0"
-source = "git+https://github.com/blockprotocol/blockprotocol?rev=cdde49#cdde4909f36e6208bb075ed624c7fc7ff70507b9"
+source = "git+https://github.com/blockprotocol/blockprotocol?rev=b63f923#b63f923ee1c931c8213d4c9e37ac84c6a4966ca7"
 dependencies = [
  "console_error_panic_hook",
  "serde",

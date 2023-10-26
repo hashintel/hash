@@ -1,4 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   EntityId,
@@ -97,12 +98,16 @@ const Page: NextPageWithLayout = () => {
 
           const { data } = await getEntity(entityId);
 
-          const subgraph = data?.getEntity.subgraph;
+          const subgraph = data
+            ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                data.getEntity.subgraph,
+              )
+            : undefined;
 
           if (data?.getEntity) {
             try {
-              setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
-              setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
+              setEntitySubgraphFromDb(subgraph);
+              setDraftEntitySubgraph(subgraph);
               setIsReadOnly(
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
                 !data.getEntity.userPermissionsOnEntities?.[entityId]?.edit,
@@ -134,14 +139,14 @@ const Page: NextPageWithLayout = () => {
 
     const { data } = await getEntity(entityId);
 
-    const subgraph = data?.getEntity.subgraph;
+    const subgraph = data
+      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+          data.getEntity.subgraph,
+        )
+      : undefined;
 
-    if (!subgraph) {
-      return;
-    }
-
-    setEntitySubgraphFromDb(subgraph as Subgraph<EntityRootType>);
-    setDraftEntitySubgraph(subgraph as Subgraph<EntityRootType>);
+    setEntitySubgraphFromDb(subgraph);
+    setDraftEntitySubgraph(subgraph);
   };
 
   const resetDraftState = () => {

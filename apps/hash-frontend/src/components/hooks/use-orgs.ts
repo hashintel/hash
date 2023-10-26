@@ -1,6 +1,7 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -29,6 +30,7 @@ export const useOrgs = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [
@@ -58,9 +60,11 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    return getRoots(
-      subgraphAndPermissions.subgraph as Subgraph<EntityRootType>,
-    ).map((orgEntity) => {
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      subgraphAndPermissions.subgraph,
+    );
+
+    return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {
         throw new Error(
           `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,

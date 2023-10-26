@@ -33,7 +33,10 @@ import {
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
@@ -104,27 +107,26 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi
-    .getEntitiesByQuery(actorId, query)
-    .then(({ data: subgraph }) => {
-      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-      for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
-        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+  return await graphApi.getEntitiesByQuery(actorId, query).then(({ data }) => {
+    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+    for (const [entityId, editionMap] of Object.entries(data.vertices)) {
+      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
 
-        if (
-          (
-            editionMap[latestEditionTimestamp!]!.inner
-              .metadata as EntityMetadata
-          ).archived &&
-          // if the vertex is in the roots of the query, then it is intentionally included
-          !subgraph.roots.find((root) => root.baseId === entityId)
-        ) {
-          // eslint-disable-next-line no-param-reassign -- temporary hack
-          delete subgraph.vertices[entityId];
-        }
+      if (
+        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
+          .archived &&
+        // if the vertex is in the roots of the query, then it is intentionally included
+        !data.roots.find((root) => root.baseId === entityId)
+      ) {
+        // eslint-disable-next-line no-param-reassign -- temporary hack
+        delete data.vertices[entityId];
       }
-      return subgraph as Subgraph<EntityRootType>;
-    });
+    }
+
+    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+    return subgraph;
+  });
 };
 
 /**

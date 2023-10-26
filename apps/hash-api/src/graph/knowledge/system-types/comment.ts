@@ -188,7 +188,7 @@ export const createComment: ImpureGraphFunction<
             subjectId: ownedById as AccountGroupId,
             kind: "accountGroup",
           },
-          relation: "directViewer",
+          relation: "generalViewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

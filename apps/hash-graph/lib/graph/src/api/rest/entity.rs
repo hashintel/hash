@@ -7,7 +7,7 @@ use std::{iter::once, sync::Arc};
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
+        EntityGeneralEditorSubject, EntityGeneralViewerSubject, EntityOwnerSubject,
         EntityPermission, EntityRelationAndSubject, EntitySubjectSet, WebSubject,
     },
     zanzibar::Consistency,
@@ -71,9 +71,9 @@ use crate::{
 
             EntityRelationAndSubject,
             EntityPermission,
-            EntityDirectOwnerSubject,
-            EntityDirectEditorSubject,
-            EntityDirectViewerSubject,
+            EntityOwnerSubject,
+            EntityGeneralEditorSubject,
+            EntityGeneralViewerSubject,
             EntityAuthorizationRelationship,
             ModifyEntityAuthorizationRelationship,
             ModifyRelationshipOperation,
@@ -210,8 +210,8 @@ where
     })?;
 
     let owner = match owner_id {
-        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
+        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -665,8 +665,8 @@ where
         })?;
 
     let owner = match owner_id {
-        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
+        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -676,7 +676,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationAndSubject::DirectOwner(owner),
+            EntityRelationAndSubject::Owner(owner),
         )])
         .await
         .map_err(|error| {
@@ -752,8 +752,8 @@ where
         })?;
 
     let subject = match owner_id {
-        WebSubject::Account(id) => EntityDirectOwnerSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityDirectOwnerSubject::AccountGroup {
+        WebSubject::Account(id) => EntityOwnerSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityOwnerSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -763,7 +763,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationAndSubject::DirectOwner(subject),
+            EntityRelationAndSubject::Owner(subject),
         )])
         .await
         .map_err(|error| {
@@ -833,8 +833,8 @@ where
     })?;
 
     let subject = match editor_id {
-        WebSubject::Account(id) => EntityDirectEditorSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityDirectEditorSubject::AccountGroup {
+        WebSubject::Account(id) => EntityGeneralEditorSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityGeneralEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -844,7 +844,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationAndSubject::DirectEditor(subject),
+            EntityRelationAndSubject::GeneralEditor(subject),
         )])
         .await
         .map_err(|error| {
@@ -917,8 +917,8 @@ where
     })?;
 
     let subject = match editor_id {
-        WebSubject::Account(id) => EntityDirectEditorSubject::Account { id },
-        WebSubject::AccountGroup(id) => EntityDirectEditorSubject::AccountGroup {
+        WebSubject::Account(id) => EntityGeneralEditorSubject::Account { id },
+        WebSubject::AccountGroup(id) => EntityGeneralEditorSubject::AccountGroup {
             id,
             set: EntitySubjectSet::Member,
         },
@@ -928,7 +928,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationAndSubject::DirectEditor(subject),
+            EntityRelationAndSubject::GeneralEditor(subject),
         )])
         .await
         .map_err(|error| {

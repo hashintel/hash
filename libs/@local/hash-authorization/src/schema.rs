@@ -1,23 +1,42 @@
 mod account;
 mod account_group;
+mod data_type;
 mod entity;
+mod entity_type;
 mod error;
+mod property_type;
 mod web;
 
 pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
-        AccountGroupDirectMemberSubject, AccountGroupDirectOwnerSubject, AccountGroupNamespace,
+        AccountGroupGeneralMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
         AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupResourceRelation,
         AccountGroupSubject, AccountGroupSubjectId,
     },
+    data_type::{
+        DataTypeGeneralViewerSubject, DataTypeId, DataTypeNamespace, DataTypeOwnerSubject,
+        DataTypePermission, DataTypeRelationAndSubject, DataTypeResourceRelation, DataTypeSubject,
+        DataTypeSubjectId, DataTypeSubjectSet,
+    },
     entity::{
-        EntityDirectEditorSubject, EntityDirectOwnerSubject, EntityDirectViewerSubject,
-        EntityPermission, EntityRelationAndSubject, EntityResourceRelation, EntitySubject,
-        EntitySubjectId, EntitySubjectSet,
+        EntityGeneralEditorSubject, EntityGeneralViewerSubject, EntityNamespace,
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityResourceRelation,
+        EntitySubject, EntitySubjectId, EntitySubjectSet,
+    },
+    entity_type::{
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeNamespace, EntityTypeOwnerSubject,
+        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeResourceRelation,
+        EntityTypeSubject, EntityTypeSubjectId, EntityTypeSubjectSet,
+    },
+    property_type::{
+        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeNamespace,
+        PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
+        PropertyTypeResourceRelation, PropertyTypeSubject, PropertyTypeSubjectId,
+        PropertyTypeSubjectSet,
     },
     web::{
-        WebDirectOwnerSubject, WebNamespace, WebPermission, WebRelationAndSubject,
-        WebResourceRelation, WebSubject, WebSubjectId, WebSubjectSet,
+        WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,
+        WebSubject, WebSubjectId, WebSubjectSet,
     },
 };

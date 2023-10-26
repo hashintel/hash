@@ -27,7 +27,7 @@ pytest-mock = "^3.12.0"
 pytest-vcr = "^1.0.2"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.10.0"
+black = "^23.10.1"
 ruff = "^0.1.2"
 mypy = "^1.6.1"
 

@@ -94,17 +94,23 @@ export const OrgForm = ({
 
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
-  const { control, formState, handleSubmit, register, reset, watch } =
-    useForm<OrgFormData>({
-      mode: "all",
-      defaultValues: {
-        description: initialOrg?.description ?? "",
-        name: initialOrg?.name ?? "",
-        location: initialOrg?.location ?? "",
-        shortname: initialOrg?.shortname ?? "",
-        website: initialOrg?.website ?? "",
-      },
-    });
+  const {
+    control,
+    formState: { errors, isDirty, isValid, touchedFields },
+    handleSubmit,
+    register,
+    reset,
+    watch,
+  } = useForm<OrgFormData>({
+    mode: "all",
+    defaultValues: {
+      description: initialOrg?.description ?? "",
+      name: initialOrg?.name ?? "",
+      location: initialOrg?.location ?? "",
+      shortname: initialOrg?.shortname ?? "",
+      website: initialOrg?.website ?? "",
+    },
+  });
 
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
@@ -112,8 +118,8 @@ export const OrgForm = ({
   const shortnameWatcher = watch("shortname");
 
   const shortnameError = getShortnameError(
-    formState.errors.shortname?.message,
-    !!formState.touchedFields.shortname,
+    errors.shortname?.message,
+    !!touchedFields.shortname,
   );
 
   const nameWatcher = watch("name");
@@ -168,9 +174,7 @@ export const OrgForm = ({
   };
 
   const nameError =
-    formState.touchedFields.name && !nameWatcher
-      ? "Display name is required"
-      : "";
+    touchedFields.name && !nameWatcher ? "Display name is required" : "";
 
   const innerSubmit = handleSubmit(async (data) => {
     try {
@@ -185,7 +189,7 @@ export const OrgForm = ({
     }
   });
 
-  const isSubmitEnabled = formState.isValid && !loading && formState.isDirty;
+  const isSubmitEnabled = isValid && !loading && isDirty;
 
   return (
     <Box component="form" onSubmit={innerSubmit} sx={{ px: 5, py: 4 }}>
@@ -344,7 +348,7 @@ export const OrgForm = ({
             </Button>
             {initialOrg && (
               <Button
-                disabled={!formState.isDirty}
+                disabled={!isDirty}
                 onClick={() => reset(initialOrg)}
                 type="button"
                 variant="tertiary"

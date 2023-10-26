@@ -1,26 +1,50 @@
 definition graph/account {}
 
 definition graph/account_group {
-	relation direct_owner: graph/account
-	relation direct_member: graph/account
+	relation owner: graph/account
+	relation general_member: graph/account
 
-	permission add_member = direct_owner
-	permission remove_member = direct_owner
+	permission add_member = owner
+	permission remove_member = owner
 
-	permission member = direct_owner + direct_member
+	permission member = owner + general_member
 }
 
 definition graph/entity {
-	relation direct_owner: graph/account | graph/account_group#member
-	relation direct_editor: graph/account | graph/account_group#member
-	relation direct_viewer: graph/account | graph/account_group#member | graph/account:*
+	relation owner: graph/account | graph/account_group#member
+	relation general_editor: graph/account | graph/account_group#member
+	relation general_viewer: graph/account | graph/account_group#member | graph/account:*
 
-	permission update = direct_owner + direct_editor
-	permission view = direct_viewer + update
+	permission update = owner + general_editor
+	permission view = general_viewer + update
 }
 
 definition graph/web {
-	relation direct_owner: graph/account | graph/account_group#member
+	relation owner: graph/account | graph/account_group#member
 
-	permission create_entity = direct_owner
+	permission create_entity = owner
+}
+
+definition graph/entity_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/property_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/data_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner - owner
+	permission view = general_viewer + update + owner
 }

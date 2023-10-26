@@ -1,11 +1,11 @@
 use graph_test_data::{data_type, entity_type, property_type};
-use type_system::{repr, EntityType};
+use type_system::{raw, EntityType};
 
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let person_et_repr: repr::EntityType = serde_json::from_str(entity_type::PERSON_V1)
+    let person_et_repr: raw::EntityType = serde_json::from_str(entity_type::PERSON_V1)
         .expect("could not parse entity type representation");
     let person_et = EntityType::try_from(person_et_repr).expect("could not parse entity type");
 
@@ -26,7 +26,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let organization_et_repr: repr::EntityType = serde_json::from_str(entity_type::ORGANIZATION_V1)
+    let organization_et_repr: raw::EntityType = serde_json::from_str(entity_type::ORGANIZATION_V1)
         .expect("could not parse entity type representation");
     let organization_et =
         EntityType::try_from(organization_et_repr).expect("could not parse entity type");
@@ -51,11 +51,11 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let page_et_v1_repr: repr::EntityType = serde_json::from_str(entity_type::PAGE_V1)
+    let page_et_v1_repr: raw::EntityType = serde_json::from_str(entity_type::PAGE_V1)
         .expect("could not parse entity type representation");
     let page_et_v1 = EntityType::try_from(page_et_v1_repr).expect("could not parse entity type");
 
-    let page_et_v2_repr: repr::EntityType = serde_json::from_str(entity_type::PAGE_V2)
+    let page_et_v2_repr: raw::EntityType = serde_json::from_str(entity_type::PAGE_V2)
         .expect("could not parse entity type representation");
     let page_et_v2 = EntityType::try_from(page_et_v2_repr).expect("could not parse entity type");
 

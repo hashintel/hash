@@ -22,7 +22,10 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../util";
@@ -96,9 +99,11 @@ export const getDataTypes: ImpureGraphFunction<
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi
-    .getDataTypesByQuery(actorId, query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<DataTypeRootType>);
+  return await graphApi.getDataTypesByQuery(actorId, query).then(({ data }) => {
+    const subgraph = mapGraphApiSubgraphToSubgraph<DataTypeRootType>(data);
+
+    return subgraph;
+  });
 };
 
 /**

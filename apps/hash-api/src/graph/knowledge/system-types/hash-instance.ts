@@ -13,9 +13,11 @@ import {
   EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { SYSTEM_TYPES } from "../../system-types";
@@ -69,9 +71,11 @@ export const getHashInstance: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");
@@ -145,7 +149,7 @@ export const createHashInstance: ImpureGraphFunction<
         subject: {
           kind: "public",
         },
-        relation: "directViewer",
+        relation: "generalViewer",
         resource: {
           kind: "entity",
           resourceId: entity.metadata.recordId.entityId,

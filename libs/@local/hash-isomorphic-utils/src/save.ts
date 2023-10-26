@@ -1,5 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -434,6 +435,7 @@ export const save = async (
     .query<GetEntityQuery, GetEntityQueryVariables>({
       query: getEntityQuery,
       variables: {
+        includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
@@ -444,7 +446,9 @@ export const save = async (
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = data.getEntity.subgraph as Subgraph<EntityRootType>;
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.getEntity.subgraph,
+      );
 
       const [blockCollectionEntity] = getRoots(subgraph);
 

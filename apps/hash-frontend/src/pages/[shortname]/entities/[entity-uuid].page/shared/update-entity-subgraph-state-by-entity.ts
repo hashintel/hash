@@ -27,7 +27,7 @@ export const updateEntitySubgraphStateByEntity = (
       newEntityRevisionId;
 
     return subgraph
-      ? ({
+      ? {
           ...subgraph,
           roots: [
             {
@@ -45,6 +45,6 @@ export const updateEntitySubgraphStateByEntity = (
               },
             },
           },
-        } as Subgraph<EntityRootType>)
+        }
       : undefined;
   });

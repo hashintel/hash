@@ -3,7 +3,7 @@ use std::iter::once;
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use type_system::{
-    repr,
+    raw,
     url::{BaseUrl, VersionedUrl},
     EntityType, ParseEntityTypeError,
 };
@@ -86,7 +86,7 @@ impl From<EntityTypeMetadata> for OntologyElementMetadata {
 impl OntologyType for EntityType {
     type ConversionError = ParseEntityTypeError;
     type Metadata = EntityTypeMetadata;
-    type Representation = repr::EntityType;
+    type Representation = raw::EntityType;
 
     fn id(&self) -> &VersionedUrl {
         self.id()

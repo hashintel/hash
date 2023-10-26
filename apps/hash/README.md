@@ -349,15 +349,19 @@ You **do not** need to set any environment variables to run the application.
 If you want to use AWS for file uploads or emails, you will need to have it configured:
 
 - `AWS_REGION`: The region, eg. `us-east-1`
-- `AWS_ACCESS_KEY_ID`: Your aws access key
-- `AWS_SECRET_ACCESS_KEY`: Your aws secret key
+- `AWS_ACCESS_KEY_ID`: Your AWS access key
+- `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
 - `AWS_S3_UPLOADS_BUCKET`: The name of the bucket to use for file uploads (if you want to use S3 for file uploads), eg: `my_uploads_bucket`
+- `AWS_S3_UPLOADS_ACCESS_KEY_ID`: (optional) the AWS access key ID to use for file uploads. Must be provided along with the secret access key if the API is not otherwise authorized to access the bucket (e.g. via an IAM role).
+- `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
+- `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
+- `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
 
 ### File uploads
 
-By default, files are uploaded locally. It is also possible to upload files on AWS S3.
+By default, files are uploaded locally, which is **not** recommended for production use. It is also possible to upload files on AWS S3.
 
-- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the aws variables above.
+- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the `AWS_S3_UPLOADS_` variables above.
 - `LOCAL_FILE_UPLOAD_PATH`: Relative path to store uploaded files if using the local file system storage provider. Default is `var/uploads` (the `var` folder is the folder normally used for application data)
 
 ### Email
