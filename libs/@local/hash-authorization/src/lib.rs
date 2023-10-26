@@ -11,7 +11,8 @@ pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, EntityRelationAndSubject, WebRelationAndSubject,
+    AccountGroupRelationAndSubject, EntityRelationAndSubject, EntityTypeId, EntityTypePermission,
+    EntityTypeRelationAndSubject, WebRelationAndSubject,
 };
 
 mod api;
@@ -117,6 +118,41 @@ impl AuthorizationApi for NoAuthorization {
         _entity: EntityId,
         _consistency: Consistency<'static>,
     ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+        Ok(Vec::new())
+    }
+
+    async fn modify_entity_type_relations(
+        &mut self,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityTypeId,
+                EntityTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn check_entity_type_permission(
+        &self,
+        _actor: AccountId,
+        _permission: EntityTypePermission,
+        _entity_type: EntityTypeId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn get_entity_type_relations(
+        &self,
+        _entity_type: EntityTypeId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 }

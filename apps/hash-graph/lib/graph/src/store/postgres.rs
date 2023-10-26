@@ -8,7 +8,10 @@ mod traversal_context;
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{AccountGroupOwnerSubject, AccountGroupRelationAndSubject, EntitySubject, WebSubject},
+    schema::{
+        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, EntityTypeOwnerSubject,
+        EntityTypeSubjectSet, WebSubject,
+    },
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -339,7 +342,7 @@ where
         &self,
         ontology_id: OntologyId,
         owned_by_id: OwnedById,
-    ) -> Result<EntitySubject, InsertionError> {
+    ) -> Result<EntityTypeOwnerSubject, InsertionError> {
         let query = "
                 WITH inserted_owners AS (
                     INSERT INTO ontology_owned_metadata (
@@ -364,11 +367,14 @@ where
 
         let owned_by_uuid = owned_by_id.into_uuid();
         if is_account_group {
-            Ok(EntitySubject::AccountGroup(AccountGroupId::new(
-                owned_by_uuid,
-            )))
+            Ok(EntityTypeOwnerSubject::AccountGroup {
+                id: AccountGroupId::new(owned_by_uuid),
+                set: EntityTypeSubjectSet::Member,
+            })
         } else {
-            Ok(EntitySubject::Account(AccountId::new(owned_by_uuid)))
+            Ok(EntityTypeOwnerSubject::Account {
+                id: AccountId::new(owned_by_uuid),
+            })
         }
     }
 
@@ -732,6 +738,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     ///
     /// [`BaseUrl`]: type_system::url::BaseUrl
     #[tracing::instrument(level = "info", skip(self))]
+    #[expect(clippy::type_complexity)]
     async fn create_ontology_metadata(
         &self,
         record_created_by_id: RecordCreatedById,
@@ -742,7 +749,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Option<(
             OntologyId,
             LeftClosedTemporalInterval<TransactionTime>,
-            EntitySubject,
+            Option<EntityTypeOwnerSubject>,
         )>,
         InsertionError,
     > {
@@ -755,10 +762,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
                         .await?;
-                    let visibility = self
+                    let owner = self
                         .create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, visibility)))
+                    Ok(Some((ontology_id, transaction_time, Some(owner))))
                 } else {
                     Ok(None)
                 }
@@ -777,7 +784,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((ontology_id, transaction_time, EntitySubject::Public)))
+                    Ok(Some((ontology_id, transaction_time, None)))
                 } else {
                     Ok(None)
                 }
@@ -808,7 +815,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         let url = database_type.id();
         let record_id = OntologyTypeRecordId::from(url.clone());
 
-        let (ontology_id, owned_by_id, transaction_time) = self
+        let (ontology_id, owned_by_id, transaction_time, _owner) = self
             .update_owned_ontology_id(url, record_created_by_id)
             .await?;
         self.insert_with_id(ontology_id, database_type)
@@ -849,6 +856,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             OntologyId,
             OwnedById,
             LeftClosedTemporalInterval<TransactionTime>,
+            EntityTypeOwnerSubject,
         ),
         UpdateError,
     > {
@@ -910,11 +918,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .create_ontology_temporal_metadata(ontology_id, record_created_by_id)
             .await
             .change_context(UpdateError)?;
-        self.create_ontology_owned_metadata(ontology_id, owned_by_id)
+        let owner = self
+            .create_ontology_owned_metadata(ontology_id, owned_by_id)
             .await
             .change_context(UpdateError)?;
 
-        Ok((ontology_id, owned_by_id, transaction_time))
+        Ok((ontology_id, owned_by_id, transaction_time, owner))
     }
 
     /// # Errors

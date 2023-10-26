@@ -13,7 +13,8 @@ use crate::{
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, EntityPermission,
-        EntityRelationAndSubject, WebPermission, WebRelationAndSubject,
+        EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
+        WebPermission, WebRelationAndSubject,
     },
     zanzibar::{Consistency, Zookie},
 };
@@ -116,6 +117,62 @@ pub trait AuthorizationApi {
         entity: EntityId,
         consistency: Consistency<'static>,
     ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, ReadError>> + Send;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Entity type authorization
+    ////////////////////////////////////////////////////////////////////////////
+    fn check_entity_type_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
+
+    fn modify_entity_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityTypeId,
+                EntityTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn check_entity_types_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let mut zookie = Zookie::empty();
+            let mut result = HashMap::new();
+            for entity_type in entity_types {
+                let CheckResponse {
+                    has_permission,
+                    checked_at,
+                } = self
+                    .check_entity_type_permission(actor, permission, entity_type, consistency)
+                    .await?;
+                result.insert(entity_type, has_permission);
+                zookie = checked_at;
+            }
+            Ok((result, zookie))
+        }
+    }
+
+    fn get_entity_type_relations(
+        &self,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<EntityTypeRelationAndSubject>, ReadError>> + Send;
 }
 
 /// Managed pool to keep track about [`AuthorizationApi`]s.

@@ -21,12 +21,12 @@ use crate::snapshot::{
             PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
             PropertyTypeRow,
         },
-        OntologyTypeMetadataSender,
+        OntologyTypeMetadataSender, PropertyTypeSnapshotRecord,
     },
-    OntologyTypeSnapshotRecord, SnapshotRestoreError,
+    SnapshotRestoreError,
 };
 
-/// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`PropertyType`].
+/// A sink to insert [`PropertyTypeSnapshotRecord`]s.
 ///
 /// An `PropertyTypeSender` with the corresponding [`PropertyTypeReceiver`] are created using the
 /// [`property_type_channel`] function.
@@ -41,7 +41,7 @@ pub struct PropertyTypeSender {
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
 // with error-handling added to make it easier to use. It's taking an `OntologyTypeSnapshotRecord`
 // and sending the individual rows to the corresponding sinks.
-impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
+impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -62,7 +62,7 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        property_type: OntologyTypeSnapshotRecord<PropertyType>,
+        property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
         let schema = PropertyType::try_from(property_type.schema)
             .change_context(SnapshotRestoreError::Read)

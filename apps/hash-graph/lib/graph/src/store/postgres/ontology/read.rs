@@ -24,7 +24,7 @@ use type_system::{
 
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    snapshot::OntologyTypeSnapshotRecord,
+    snapshot::{EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord},
     store::{
         crud::Read,
         postgres::{
@@ -70,11 +70,12 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C> {
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType, ()>> for PostgresStore<C> {
     type Record = DataTypeWithMetadata;
 
-    type ReadStream =
-        impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType>, QueryError>> + Send + Sync;
+    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType, ()>, QueryError>>
+        + Send
+        + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -163,6 +164,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
                         },
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -170,10 +172,10 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresStore<C> {
+impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType, ()>> for PostgresStore<C> {
     type Record = PropertyTypeWithMetadata;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType>, QueryError>>
+    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType, ()>, QueryError>>
         + Send
         + Sync;
 
@@ -264,6 +266,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
                         },
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -271,12 +274,11 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore<C> {
+impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
     type Record = OntologyTypeWithMetadata<EntityType>;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<EntityType>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream =
+        impl Stream<Item = Result<EntityTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -375,6 +377,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                         icon: row.get(icon_index),
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -395,7 +398,7 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
         let stream =
-            Read::<OntologyTypeSnapshotRecord<DataType>>::read(self, filter, temporal_axes)
+            Read::<OntologyTypeSnapshotRecord<DataType, ()>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
                     Ok(DataTypeWithMetadata {
@@ -421,7 +424,7 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
         let stream =
-            Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(self, filter, temporal_axes)
+            Read::<OntologyTypeSnapshotRecord<PropertyType, ()>>::read(self, filter, temporal_axes)
                 .await?
                 .and_then(|record| async move {
                     Ok(PropertyTypeWithMetadata {
@@ -446,15 +449,14 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<EntityTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<EntityType>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(EntityTypeWithMetadata {
-                        schema: EntityType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<EntityTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(EntityTypeWithMetadata {
+                    schema: EntityType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -537,7 +539,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
-    ) -> Result<impl Iterator<Item = OntologyEdgeTraversal<L, R>> + 'r, QueryError>
+    ) -> Result<impl Iterator<Item = (OntologyId, OntologyEdgeTraversal<L, R>)> + 'r, QueryError>
     where
         L: From<VersionedUrl>,
         R: From<VersionedUrl>,
@@ -606,26 +608,30 @@ impl<C: AsClient> PostgresStore<C> {
                     // `record_ids` vectors that was just passed in.
                     unreachable!("invalid index: {error}")
                 });
-                OntologyEdgeTraversal {
-                    left_endpoint: L::from(VersionedUrl {
-                        base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
-                            // The `BaseUrl` was just inserted as a parameter to the query
-                            unreachable!("invalid URL: {error}")
+                let right_endpoint_ontology_id = row.get(5);
+                (
+                    right_endpoint_ontology_id,
+                    OntologyEdgeTraversal {
+                        left_endpoint: L::from(VersionedUrl {
+                            base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
+                                // The `BaseUrl` was just inserted as a parameter to the query
+                                unreachable!("invalid URL: {error}")
+                            }),
+                            version: row.get::<_, OntologyTypeVersion>(2).inner(),
                         }),
-                        version: row.get::<_, OntologyTypeVersion>(2).inner(),
-                    }),
-                    right_endpoint: R::from(VersionedUrl {
-                        base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
-                            // The `BaseUrl` was already validated when it was inserted into
-                            // the database, so this should never happen.
-                            unreachable!("invalid URL: {error}")
+                        right_endpoint: R::from(VersionedUrl {
+                            base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
+                                // The `BaseUrl` was already validated when it was inserted into
+                                // the database, so this should never happen.
+                                unreachable!("invalid URL: {error}")
+                            }),
+                            version: row.get::<_, OntologyTypeVersion>(4).inner(),
                         }),
-                        version: row.get::<_, OntologyTypeVersion>(4).inner(),
-                    }),
-                    right_endpoint_ontology_id: row.get(5),
-                    resolve_depths: record_ids.resolve_depths[index],
-                    traversal_interval: record_ids.traversal_intervals[index],
-                }
+                        right_endpoint_ontology_id,
+                        resolve_depths: record_ids.resolve_depths[index],
+                        traversal_interval: record_ids.traversal_intervals[index],
+                    },
+                )
             }))
     }
 }
