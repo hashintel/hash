@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 error-stack = { version = "0.4.1", features = ["spantrace"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
 temporal-versioning = { path = "../../temporal-versioning" }
 
 bytes = { version = "1.5.0" }

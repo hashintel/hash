@@ -33,7 +33,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
-    repr,
+    raw,
     url::{BaseUrl, VersionedUrl},
     DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
 };
@@ -445,7 +445,7 @@ where
         entity_type: EntityType,
         label_property: Option<&BaseUrl>,
     ) -> Result<Option<OntologyId>, InsertionError> {
-        let value_repr = repr::EntityType::from(entity_type);
+        let value_repr = raw::EntityType::from(entity_type);
         let value = serde_json::to_value(value_repr).change_context(InsertionError)?;
 
         let label_property = label_property.map(BaseUrl::as_str);
