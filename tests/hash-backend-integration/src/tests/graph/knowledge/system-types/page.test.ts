@@ -23,7 +23,6 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -53,9 +52,6 @@ describe("Page", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
-    });
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
     });

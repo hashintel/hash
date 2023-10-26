@@ -38,10 +38,6 @@ hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },
 
-  { name = "SYSTEM_USER_SHORTNAME", secret = false, value = "hash" },
-  { name = "SYSTEM_USER_PREFERRED_NAME", secret = false, value = "HASH" },
-  { name = "SYSTEM_USER_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
-
   { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
   { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
   { name = "LOG_LEVEL", secret = false, value = "debug" },

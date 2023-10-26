@@ -15,10 +15,7 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemAccountId,
-  systemAccounts,
-} from "@apps/hash-api/src/graph/system-accounts";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -49,10 +46,6 @@ describe("User model class", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 

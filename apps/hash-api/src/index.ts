@@ -35,7 +35,6 @@ import {
   ImpureGraphContext,
 } from "./graph";
 import { User } from "./graph/knowledge/system-types/user";
-import { ensureLinearOrgExists } from "./graph/linear-org";
 import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
@@ -165,8 +164,6 @@ const main = async () => {
   await ensureSystemGraphIsInitialized({ logger, context });
 
   if (process.env.LINEAR_CLIENT_ID) {
-    await ensureLinearOrgExists({ logger, context });
-
     await ensureLinearTypesExist({ logger, context });
   }
 

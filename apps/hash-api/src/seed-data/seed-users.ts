@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { ImpureGraphContext } from "../graph";
 import { createUser, User } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-accounts";
+import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
 type SeededUser = {

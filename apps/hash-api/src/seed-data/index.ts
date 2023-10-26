@@ -9,7 +9,7 @@ import {
   OrgSize,
 } from "../graph/knowledge/system-types/org";
 import { joinOrg } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-accounts";
+import { systemAccountId } from "../graph/system-account";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
 

@@ -101,9 +101,28 @@ export const isSelfHostedInstance = ![
   "https://hash.ai",
 ].includes(frontendUrl);
 
-const getOrCreateOwningOrg = async (
+type OwningWebShortname = "hash" | "linear";
+
+const owningWebs: Record<
+  OwningWebShortname,
+  {
+    name: string;
+    website: string;
+  }
+> = {
+  hash: {
+    name: "HASH",
+    website: "https://hash.ai",
+  },
+  linear: {
+    name: "Linear",
+    website: "https://linear.app",
+  },
+};
+
+const getOrCreateOwningWeb = async (
   context: ImpureGraphContext,
-  shortname: string,
+  webShortname: OwningWebShortname,
 ) => {
   const authentication = { actorId: systemAccountId };
 
@@ -114,16 +133,15 @@ const getOrCreateOwningOrg = async (
   }
 
   const foundOrg = await getOrgByShortname(context, authentication, {
-    shortname,
+    shortname: webShortname,
   });
 
   if (foundOrg) {
     return foundOrg;
   } else {
     const createdOrg = await createOrg(context, authentication, {
-      shortname,
-      name: "HASH",
-      website: "https://hash.ai",
+      shortname: webShortname,
+      ...owningWebs[webShortname],
     });
 
     await addAccountGroupMember(context, authentication, {
@@ -144,14 +162,14 @@ export type PropertyTypeCreatorParams = {
     propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUrl } };
     array?: boolean;
   }[];
-  webShortname: string;
+  webShortname: OwningWebShortname;
 };
 
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
 export const generateSystemPropertyTypeSchema = (
-  params: PropertyTypeCreatorParams,
+  params: Omit<PropertyTypeCreatorParams, "webShortname">,
 ): PropertyType => {
   const possibleValues: PropertyValues[] = params.possibleValues.map(
     ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
@@ -251,7 +269,7 @@ export const propertyTypeInitializer = (
             });
           } else {
             // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-            const owningOrg = await getOrCreateOwningOrg(
+            const owningOrg = await getOrCreateOwningWeb(
               context,
               params.webShortname,
             );
@@ -312,14 +330,14 @@ export type EntityTypeCreatorParams = {
     maxItems?: number;
     ordered?: boolean;
   }[];
-  webShortname: string;
+  webShortname: OwningWebShortname;
 };
 
 /**
  * Helper method for generating an entity type schema for the Graph API.
  */
 export const generateSystemEntityTypeSchema = (
-  params: EntityTypeCreatorParams,
+  params: Omit<EntityTypeCreatorParams, "webShortname">,
 ): EntityType => {
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
   const properties =
@@ -423,7 +441,7 @@ export type LinkEntityTypeCreatorParams = Omit<
  * Helper method for generating a link entity type schema for the Graph API.
  */
 export const generateSystemLinkEntityTypeSchema = (
-  params: LinkEntityTypeCreatorParams,
+  params: Omit<LinkEntityTypeCreatorParams, "webShortname">,
 ): EntityType => {
   const baseSchema = generateSystemEntityTypeSchema({
     ...params,
@@ -490,7 +508,7 @@ export const entityTypeInitializer = (
             });
           } else {
             // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
-            const owningOrg = await getOrCreateOwningOrg(
+            const owningOrg = await getOrCreateOwningWeb(
               context,
               params.webShortname,
             );

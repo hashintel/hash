@@ -68,7 +68,6 @@ Secret environment should be provided in HashiCorp Vault. These are expected in 
       "shortname": "instance-admin"
     }
   ],
-  "hash_system_user_password": "changeme",
   "kratos_api_key": "changeme",
   "kratos_secrets_cipher": "32-LONG-SECRET-NOT-SECURE-AT-ALL",
   "kratos_secrets_cookie": "changeme",

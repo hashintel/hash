@@ -13,10 +13,7 @@ import {
   isUserHashInstanceAdmin,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemAccountId,
-  systemAccounts,
-} from "@apps/hash-api/src/graph/system-accounts";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import {
   AuthenticationContext,
   publicUserAccountId,
@@ -44,10 +41,6 @@ describe("Hash Instance", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 

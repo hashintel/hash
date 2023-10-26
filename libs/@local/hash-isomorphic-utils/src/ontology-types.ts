@@ -1,4 +1,3 @@
-import { systemTypeWebShortname } from "@apps/hash-api/src/graph/system-accounts";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 import { BaseUrl } from "@local/hash-subgraph";
@@ -25,18 +24,18 @@ export type SchemaKind = "data-type" | "property-type" | "entity-type";
  */
 export const generateBaseTypeId = ({
   domain,
-  namespace,
   kind,
   title,
   slugOverride,
+  webShortname,
 }: {
   domain?: string;
-  namespace: string;
   kind: SchemaKind;
   title: string;
   slugOverride?: string;
+  webShortname: string;
 }): BaseUrl =>
-  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${
+  `${domain ?? frontendUrl}/@${webShortname}/types/${kind}/${
     slugOverride ?? slugifyTypeTitle(title)
   }/` as const as BaseUrl;
 
@@ -51,16 +50,16 @@ export const generateBaseTypeId = ({
  */
 export const generateTypeId = ({
   domain,
-  namespace,
   kind,
   title,
+  webShortname,
   slugOverride,
 }: {
   domain?: string;
-  namespace: string;
   kind: SchemaKind;
   title: string;
   slugOverride?: string;
+  webShortname: string;
 }): VersionedUrl => {
   // We purposefully don't use `versionedUrlFromComponents` here as we want to limit the amount of functional code
   // we're calling when this package is imported (this happens every time on import, not as the result of a call).
@@ -68,10 +67,10 @@ export const generateTypeId = ({
   // system to validate them.
   return `${generateBaseTypeId({
     domain,
-    namespace,
     kind,
     title,
     slugOverride,
+    webShortname,
   })}v/1` as VersionedUrl;
 };
 
@@ -83,11 +82,11 @@ export const generateTypeId = ({
  */
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
+  webShortname: "hash" | "linear";
   title: string;
 }) =>
   generateTypeId({
     domain: "https://hash.ai",
-    namespace: systemTypeWebShortname,
     ...args,
   });
 
@@ -103,7 +102,7 @@ export const generateBlockProtocolTypeId = (args: {
 }) =>
   generateTypeId({
     domain: "https://blockprotocol.org",
-    namespace: "blockprotocol",
+    webShortname: "blockprotocol",
     ...args,
   });
 
@@ -117,7 +116,11 @@ export const generateLinearTypeId = (args: {
   kind: SchemaKind;
   title: string;
 }) =>
-  generateTypeId({ domain: "https://hash.ai", namespace: "linear", ...args });
+  generateTypeId({
+    domain: "https://hash.ai",
+    webShortname: "linear",
+    ...args,
+  });
 
 /**
  * The system entity types.
@@ -885,7 +888,11 @@ export const systemTypes: TypeDefinitions = {
       const definition: EntityTypeDefinition = {
         title,
         description,
-        entityTypeId: generateSystemTypeId({ kind: "entity-type", title }),
+        entityTypeId: generateSystemTypeId({
+          kind: "entity-type",
+          title,
+          webShortname: "hash",
+        }),
       };
 
       return { ...prev, [key]: definition };
@@ -900,6 +907,7 @@ export const systemTypes: TypeDefinitions = {
         propertyTypeId: generateSystemTypeId({
           kind: "property-type",
           title,
+          webShortname: "hash",
         }),
       };
 
@@ -930,6 +938,7 @@ export const systemTypes: TypeDefinitions = {
         linkEntityTypeId: generateSystemTypeId({
           kind: "entity-type",
           title,
+          webShortname: "hash",
         }),
       };
 

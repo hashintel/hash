@@ -7,7 +7,7 @@ import {
   createHashInstance,
   getHashInstance,
 } from "./knowledge/system-types/hash-instance";
-import { systemAccountId } from "./system-accounts";
+import { systemAccountId } from "./system-account";
 
 /**
  * Ensures the required system entities has been created in the graph.

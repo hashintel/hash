@@ -1,8 +1,3 @@
-// We need to import this file to load the environment variables –– ontology-types.ts relies on SYSTEM_USER_SHORTNAME.
-// This script is used in the backend only, but the outputs are used in the frontend, thus the following eslint-disable.
-// eslint-disable-next-line no-restricted-imports
-import "@local/hash-backend-utils/environment";
-
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
 import slugify from "slugify";
 

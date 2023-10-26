@@ -12,7 +12,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../graph/system-accounts";
+import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 import { createVaultClient } from "../../vault";

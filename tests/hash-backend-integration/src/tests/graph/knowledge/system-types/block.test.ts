@@ -13,7 +13,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -63,9 +62,9 @@ describe("Block", () => {
       ownedById: testUser.accountId as OwnedById,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
-          namespace: testUser.shortname!,
           kind: "entity-type",
           title: "Dummy",
+          webShortname: testUser.shortname!,
         }),
         title: "Dummy",
         properties: [],
@@ -83,9 +82,6 @@ describe("Block", () => {
   afterAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();

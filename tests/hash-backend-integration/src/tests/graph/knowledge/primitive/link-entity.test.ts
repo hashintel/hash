@@ -15,7 +15,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import {
   EntityTypeCreatorParams,
   generateSystemEntityTypeSchema,
@@ -45,7 +44,7 @@ const logger = new Logger({
 const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
 describe("Link entity", () => {
-  let namespace: string;
+  let webShortname: string;
 
   let testUser: User;
   let testEntityType: EntityTypeWithMetadata;
@@ -56,10 +55,13 @@ describe("Link entity", () => {
   let acquaintanceRightEntity: Entity;
 
   const createTestEntityType = (
-    params: Omit<EntityTypeCreatorParams, "entityTypeId" | "actorId">,
+    params: Omit<
+      EntityTypeCreatorParams,
+      "entityTypeId" | "actorId" | "webShortname"
+    >,
   ) => {
     const entityTypeId = generateTypeId({
-      namespace,
+      webShortname,
       kind: "entity-type",
       title: params.title,
     });
@@ -83,7 +85,7 @@ describe("Link entity", () => {
     testUser = await createTestUser(graphContext, "linktest", logger);
     const authentication = { actorId: testUser.accountId };
 
-    namespace = testUser.shortname!;
+    webShortname = testUser.shortname!;
 
     await Promise.all([
       createEntityType(graphContext, authentication, {
@@ -157,9 +159,6 @@ describe("Link entity", () => {
   afterAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
     });
 
     await resetGraph();

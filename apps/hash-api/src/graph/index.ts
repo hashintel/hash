@@ -14,10 +14,7 @@ import axios, { AxiosError } from "axios";
 
 import { AuthenticationContext } from "../graphql/context";
 import { UploadableStorageProvider } from "../storage";
-import {
-  ensureSystemAccountIdExists,
-  ensureSystemOrgExists,
-} from "./system-accounts";
+import { ensureSystemAccountExists } from "./system-account";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
 
@@ -145,7 +142,7 @@ export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
-  await ensureSystemAccountsExists(params);
+  await ensureSystemAccountExists(params);
 
   await ensureSystemTypesExist(params);
 

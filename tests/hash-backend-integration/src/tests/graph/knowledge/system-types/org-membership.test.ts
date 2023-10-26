@@ -11,7 +11,6 @@ import {
   OrgMembership,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemAccounts } from "@apps/hash-api/src/graph/system-accounts";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -55,9 +54,6 @@ describe("OrgMembership", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemAccounts.kratosIdentityId,
-    });
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
     });
