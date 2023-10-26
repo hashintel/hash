@@ -64,8 +64,15 @@ type TypesTableRow = {
   typeId: VersionedUrl;
   title: string;
   external: boolean;
-  webShortname: string;
+  webShortname?: string;
   archived: boolean;
+};
+
+const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
+  const url = new URL(typeId);
+  const domain = url.hostname;
+  const firstPathSegment = url.pathname.split("/")[1];
+  return `${domain}/${firstPathSegment}`;
 };
 
 export const TypesTable: FunctionComponent<{
@@ -111,7 +118,7 @@ export const TypesTable: FunctionComponent<{
       {
         id: "webShortname",
         title: "Web",
-        width: 200,
+        width: 280,
       },
       {
         id: "archived",
@@ -144,9 +151,9 @@ export const TypesTable: FunctionComponent<{
             ? undefined
             : type.metadata.custom.ownedById;
 
-          const namespace = namespaces?.find(
+          const webShortname = namespaces?.find(
             (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
-          );
+          )?.shortname;
 
           return {
             rowId: type.schema.$id,
@@ -161,7 +168,7 @@ export const TypesTable: FunctionComponent<{
                 ? "property-type"
                 : "data-type",
             external: isExternal,
-            webShortname: namespace?.shortname ?? "unknown",
+            webShortname,
             archived: isTypeArchived(type),
           } as const;
         })
@@ -218,7 +225,9 @@ export const TypesTable: FunctionComponent<{
               data: row.kind,
             };
           case "webShortname": {
-            const value = row.webShortname ? `@${row.webShortname}` : "";
+            const value = row.webShortname
+              ? `@${row.webShortname}`
+              : typeNamespaceFromTypeId(row.typeId);
 
             return {
               kind: GridCellKind.Text,
