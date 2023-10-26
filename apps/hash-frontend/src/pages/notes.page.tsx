@@ -322,6 +322,16 @@ const NotesPage: NextPageWithLayout = () => {
     [latestQuickNoteEntitiesByDay, todayTimestamp],
   );
 
+  const quickNotesEntitiesCreatedBeforeToday = useMemo(
+    () =>
+      latestQuickNoteEntitiesByDay
+        ? Object.entries(latestQuickNoteEntitiesByDay).filter(
+            ([dayTimestamp]) => dayTimestamp !== todayTimestamp,
+          )
+        : undefined,
+    [latestQuickNoteEntitiesByDay, todayTimestamp],
+  );
+
   const refetchQuickNotes = useCallback(async () => {
     await refetch();
   }, [refetch]);
@@ -359,50 +369,53 @@ const NotesPage: NextPageWithLayout = () => {
                   : quickNotesWithContentsSubgraph
               }
               refetchQuickNotes={refetchQuickNotes}
-              navigateDown={() => {
-                sectionRefs.current[1]?.scrollIntoView({
-                  behavior: "smooth",
-                });
-              }}
+              navigateDown={
+                quickNotesEntitiesCreatedBeforeToday &&
+                quickNotesEntitiesCreatedBeforeToday.length > 0
+                  ? () => {
+                      sectionRefs.current[1]?.scrollIntoView({
+                        behavior: "smooth",
+                      });
+                    }
+                  : undefined
+              }
             />
-            {latestQuickNoteEntitiesByDay
-              ? Object.entries(latestQuickNoteEntitiesByDay)
-                  .filter(([dayTimestamp]) => dayTimestamp !== todayTimestamp)
-                  .map(
-                    (
-                      [dayTimestamp, quickNoteEntitiesWithCreatedAt],
-                      index,
-                      all,
-                    ) => (
-                      <NotesSection
-                        key={dayTimestamp}
-                        ref={(element) => {
-                          if (element) {
-                            sectionRefs.current[index + 1] = element;
-                          }
-                        }}
-                        dayTimestamp={dayTimestamp}
-                        heading={dayTimestampToHeadings?.[dayTimestamp]}
-                        quickNoteEntities={quickNoteEntitiesWithCreatedAt}
-                        quickNotesSubgraph={quickNotesWithContentsSubgraph}
-                        refetchQuickNotes={refetchQuickNotes}
-                        navigateUp={() => {
-                          sectionRefs.current[index]?.scrollIntoView({
-                            behavior: "smooth",
-                          });
-                        }}
-                        navigateDown={
-                          index < all.length - 1
-                            ? () => {
-                                sectionRefs.current[index + 2]?.scrollIntoView({
-                                  behavior: "smooth",
-                                });
-                              }
-                            : undefined
+            {quickNotesEntitiesCreatedBeforeToday
+              ? quickNotesEntitiesCreatedBeforeToday.map(
+                  (
+                    [dayTimestamp, quickNoteEntitiesWithCreatedAt],
+                    index,
+                    all,
+                  ) => (
+                    <NotesSection
+                      key={dayTimestamp}
+                      ref={(element) => {
+                        if (element) {
+                          sectionRefs.current[index + 1] = element;
                         }
-                      />
-                    ),
-                  )
+                      }}
+                      dayTimestamp={dayTimestamp}
+                      heading={dayTimestampToHeadings?.[dayTimestamp]}
+                      quickNoteEntities={quickNoteEntitiesWithCreatedAt}
+                      quickNotesSubgraph={quickNotesWithContentsSubgraph}
+                      refetchQuickNotes={refetchQuickNotes}
+                      navigateUp={() => {
+                        sectionRefs.current[index]?.scrollIntoView({
+                          behavior: "smooth",
+                        });
+                      }}
+                      navigateDown={
+                        index < all.length - 1
+                          ? () => {
+                              sectionRefs.current[index + 2]?.scrollIntoView({
+                                behavior: "smooth",
+                              });
+                            }
+                          : undefined
+                      }
+                    />
+                  ),
+                )
               : null}
           </UserBlocksProvider>
         </BlockLoadedProvider>

@@ -30,7 +30,7 @@ export const TodaySection = forwardRef<
     quickNoteEntities?: QuickNoteEntityWithCreatedAt[];
     quickNotesSubgraph?: Subgraph<EntityRootType> | null;
     refetchQuickNotes: () => Promise<void>;
-    navigateDown: () => void;
+    navigateDown?: () => void;
   }
 >(
   (
