@@ -18,6 +18,7 @@ import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
+import { Comment, getCommentById } from "./comment";
 import { getPageFromEntity, Page } from "./page";
 import { getUserById, User } from "./user";
 
@@ -64,9 +65,9 @@ export const getTextById: ImpureGraphFunction<
 };
 
 /**
- * Whether the text entity is in a page block collection.
+ * Get the page that contains the text, or null if the text is not in the page.
  *
- * @param params.tokens - the array of text tokens
+ * @param params.text - the text entity
  */
 export const getPageByText: ImpureGraphFunction<
   { text: Text },
@@ -187,6 +188,61 @@ export const getPageByText: ImpureGraphFunction<
   );
 
   return pageEntities[0] ?? null;
+};
+
+/**
+ * Get the comment that contains the text, or null if the text is not in a comment.
+ *
+ * @param params.text - the text entity
+ */
+export const getCommentByText: ImpureGraphFunction<
+  { text: Text },
+  Promise<Comment | null>
+> = async (context, authentication, { text }) => {
+  const textEntityUuid = extractEntityUuidFromEntityId(
+    text.entity.metadata.recordId.entityId,
+  );
+
+  const matchingHasTextLinks = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: textEntityUuid },
+            ],
+          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.comment.schema.$id,
+            { ignoreParents: true, pathPrefix: ["leftEntity"] },
+          ),
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+
+  if (matchingHasTextLinks.length > 1) {
+    throw new Error("Text entity is in more than one comment");
+  }
+
+  const [matchingHasTextLink] = matchingHasTextLinks;
+
+  if (matchingHasTextLink) {
+    const comment = await getCommentById(context, authentication, {
+      entityId: matchingHasTextLink.linkData.leftEntityId,
+    });
+
+    return comment;
+  }
+
+  return null;
 };
 
 /**

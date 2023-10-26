@@ -19,6 +19,8 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
+import { Block, getBlockFromEntity } from "./block";
+import { getTextFromEntity, Text } from "./text";
 import { getUserFromEntity, User } from "./user";
 
 export type Comment = {
@@ -84,7 +86,7 @@ export const getCommentText: ImpureGraphFunction<
   {
     commentEntityId: EntityId;
   },
-  Promise<Entity>
+  Promise<Text>
 > = async (ctx, authentication, { commentEntityId }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
@@ -105,8 +107,10 @@ export const getCommentText: ImpureGraphFunction<
     );
   }
 
-  return await getLinkEntityRightEntity(ctx, authentication, {
-    linkEntity: hasTextLink,
+  return getTextFromEntity({
+    entity: await getLinkEntityRightEntity(ctx, authentication, {
+      linkEntity: hasTextLink,
+    }),
   });
 };
 
@@ -217,12 +221,12 @@ export const updateCommentText: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { commentEntityId, tokens } = params;
 
-  const textEntity = await getCommentText(ctx, authentication, {
+  const text = await getCommentText(ctx, authentication, {
     commentEntityId,
   });
 
   await updateEntityProperty(ctx, authentication, {
-    entity: textEntity,
+    entity: text.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
     value: tokens,
@@ -378,4 +382,29 @@ export const resolveComment: ImpureGraphFunction<
   });
 
   return getCommentFromEntity({ entity: updatedEntity });
+};
+
+/**
+ * Get the block ancestor of the comment.
+ *
+ * @param params.comment - the comment
+ */
+export const getCommentAncestorBlock: ImpureGraphFunction<
+  { commentEntityId: EntityId },
+  Promise<Block>
+> = async (context, authentication, { commentEntityId }) => {
+  const parentEntity = await getCommentParent(context, authentication, {
+    commentEntityId,
+  });
+
+  if (
+    parentEntity.metadata.entityTypeId ===
+    SYSTEM_TYPES.entityType.block.schema.$id
+  ) {
+    return getBlockFromEntity({ entity: parentEntity });
+  } else {
+    return getCommentAncestorBlock(context, authentication, {
+      commentEntityId: parentEntity.metadata.recordId.entityId,
+    });
+  }
 };

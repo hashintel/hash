@@ -1,9 +1,16 @@
 import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
   Entity,
   EntityId,
   EntityPropertiesObject,
+  extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -12,6 +19,7 @@ import {
   archiveEntity,
   createEntity,
   CreateEntityParams,
+  getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -20,6 +28,7 @@ import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
+  isEntityLinkEntity,
 } from "../primitive/link-entity";
 import { Comment, getCommentFromEntity } from "./comment";
 
@@ -221,4 +230,62 @@ export const getBlockComments: ImpureGraphFunction<
   );
 
   return commentEntities.map((entity) => getCommentFromEntity({ entity }));
+};
+
+/**
+ * Get the page the block collection entity that contains the block, or null if
+ * if the block is in not contained in a block collection.
+ *
+ * @param params.block - the block entity
+ */
+export const getBlockCollectionByBlock: ImpureGraphFunction<
+  { block: Block },
+  Promise<Entity | null>
+> = async (context, authentication, { block }) => {
+  const blockEntityUuid = extractEntityUuidFromEntityId(
+    block.entity.metadata.recordId.entityId,
+  );
+
+  const matchingContainsLinks = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: blockEntityUuid },
+            ],
+          },
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.blockCollection.schema.$id,
+            { ignoreParents: false, pathPrefix: ["leftEntity"] },
+          ),
+        ],
+      },
+      graphResolveDepths: zeroedGraphResolveDepths,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  }).then((subgraph) => getRoots(subgraph).filter(isEntityLinkEntity));
+
+  /** @todo: account for blocks that are in multiple pages */
+
+  const [matchingContainsLink] = matchingContainsLinks;
+
+  if (matchingContainsLink) {
+    const blockCollectionEntity = await getLatestEntityById(
+      context,
+      authentication,
+      {
+        entityId: matchingContainsLink.linkData.leftEntityId,
+      },
+    );
+
+    return blockCollectionEntity;
+  }
+
+  return null;
 };

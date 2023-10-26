@@ -6,12 +6,16 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 
+import { getBlockCollectionByBlock } from "../../../../graph/knowledge/system-types/block";
+import { getCommentAncestorBlock } from "../../../../graph/knowledge/system-types/comment";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
 } from "../../../../graph/knowledge/system-types/notification";
+import { getPageFromEntity } from "../../../../graph/knowledge/system-types/page";
 import {
+  getCommentByText,
   getMentionedUsersInTextTokens,
   getPageByText,
   getTextFromEntity,
@@ -31,9 +35,37 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 }) => {
   const text = getTextFromEntity({ entity });
 
-  const page = await getPageByText(context, authentication, { text });
+  let occurredInPage = await getPageByText(context, authentication, { text });
 
-  if (!page) {
+  const occurredInComment = !occurredInPage
+    ? (await getCommentByText(context, authentication, { text })) ?? undefined
+    : undefined;
+
+  if (occurredInComment) {
+    const commentAncestorBlock = await getCommentAncestorBlock(
+      context,
+      authentication,
+      { commentEntityId: occurredInComment.entity.metadata.recordId.entityId },
+    );
+
+    const blockCollectionEntity = await getBlockCollectionByBlock(
+      context,
+      authentication,
+      {
+        block: commentAncestorBlock,
+      },
+    );
+
+    if (
+      blockCollectionEntity &&
+      blockCollectionEntity.metadata.entityTypeId ===
+        SYSTEM_TYPES.entityType.page.schema.$id
+    ) {
+      occurredInPage = getPageFromEntity({ entity: blockCollectionEntity });
+    }
+  }
+
+  if (!occurredInPage) {
     return;
   }
 
@@ -89,7 +121,8 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInEntity: page,
+          occurredInEntity: occurredInPage!,
+          occurredInComment,
           occurredInText: text,
         },
       );
@@ -112,7 +145,8 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: addedMentionedUser,
           triggeredByUser,
-          occurredInEntity: page,
+          occurredInEntity: occurredInPage!,
+          occurredInComment,
           occurredInText: text,
         },
       );
@@ -124,7 +158,8 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           { actorId: addedMentionedUser.accountId },
           {
             ownedById: addedMentionedUser.accountId as OwnedById,
-            occurredInEntity: page,
+            occurredInEntity: occurredInPage!,
+            occurredInComment,
             occurredInText: text,
             triggeredByUser,
           },

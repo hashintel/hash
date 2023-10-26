@@ -7,7 +7,15 @@ import {
   getEntityOutgoingLinks,
   updateEntityProperties,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { getBlockData } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import {
+  Block,
+  getBlockData,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import {
+  Comment,
+  createComment,
+  getCommentText,
+} from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import {
   archiveNotification,
   createMentionNotification,
@@ -82,6 +90,8 @@ describe("Page Mention Notification", () => {
 
   let occurredInPage: Page;
 
+  let pageBlocks: Block[];
+
   let occurredInText: Text;
 
   it("can create a page mention notification", async () => {
@@ -93,19 +103,16 @@ describe("Page Mention Notification", () => {
       ownedById: triggerUser.accountId as OwnedById,
     });
 
-    const pageBlockDataEntities = await getPageBlocks(
-      graphContext,
-      authentication,
-      {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
-      },
-    ).then(
-      async (pageBlocks) =>
-        await Promise.all(
-          pageBlocks.map(({ rightEntity: block }) =>
-            getBlockData(graphContext, authentication, { block }),
-          ),
-        ),
+    pageBlocks = await getPageBlocks(graphContext, authentication, {
+      pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+    }).then((blocksWithLinks) =>
+      blocksWithLinks.map(({ rightEntity }) => rightEntity),
+    );
+
+    const pageBlockDataEntities = await Promise.all(
+      pageBlocks.map((block) =>
+        getBlockData(graphContext, authentication, { block }),
+      ),
     );
 
     const textEntity = pageBlockDataEntities.find(
@@ -325,5 +332,134 @@ describe("Page Mention Notification", () => {
     );
 
     expect(afterPageMentionNotification).toBeNull();
+  });
+
+  let occurredInComment: Comment;
+
+  let commentText: Text;
+
+  it("can create a comment mention notification when a user is mentioned in a comment", async () => {
+    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+
+    const commentBlock = pageBlocks[0]!;
+
+    occurredInComment = await createComment(
+      graphContext,
+      { actorId: triggerUser.accountId },
+      {
+        parentEntityId: commentBlock.entity.metadata.recordId.entityId,
+        ownedById: triggerUser.accountId as OwnedById,
+        tokens: [],
+        author: triggerUser,
+      },
+    );
+
+    commentText = await getCommentText(
+      graphContext,
+      { actorId: triggerUser.accountId },
+      { commentEntityId: occurredInComment.entity.metadata.recordId.entityId },
+    );
+
+    const beforeCommentMentionNotification = await getMentionNotification(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        recipient: recipientUser,
+        triggeredByUser: triggerUser,
+        occurredInEntity: occurredInPage,
+        occurredInComment,
+        occurredInText: commentText,
+      },
+    );
+
+    expect(beforeCommentMentionNotification).toBeNull();
+
+    const updatedCommentTextTokens: TextToken[] = [
+      {
+        mentionType: "user",
+        entityId: recipientUser.entity.metadata.recordId.entityId,
+        tokenType: "mention",
+      },
+    ];
+
+    commentText.entity = (await updateEntityProperties(
+      graphContext,
+      { actorId: triggerUser.accountId },
+      {
+        entity: commentText.entity,
+        updatedProperties: [
+          {
+            propertyTypeBaseUrl:
+              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
+            value: updatedCommentTextTokens,
+          },
+        ],
+      },
+    )) as Entity<TextProperties>;
+    commentText.tokens = updatedCommentTextTokens;
+
+    const afterCommentMentionNotification = await getMentionNotification(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        recipient: recipientUser,
+        triggeredByUser: triggerUser,
+        occurredInEntity: occurredInPage,
+        occurredInComment,
+        occurredInText: commentText,
+      },
+    );
+
+    expect(afterCommentMentionNotification).not.toBeNull();
+  });
+
+  it("can archive a comment mention notification when a user mention is removed from a comment", async () => {
+    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+
+    const beforeCommentMentionNotification = await getMentionNotification(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        recipient: recipientUser,
+        triggeredByUser: triggerUser,
+        occurredInEntity: occurredInPage,
+        occurredInComment,
+        occurredInText: commentText,
+      },
+    );
+
+    expect(beforeCommentMentionNotification).not.toBeNull();
+
+    const updatedCommentTextTokens: TextToken[] = [];
+
+    commentText.entity = (await updateEntityProperties(
+      graphContext,
+      { actorId: triggerUser.accountId },
+      {
+        entity: commentText.entity,
+        updatedProperties: [
+          {
+            propertyTypeBaseUrl:
+              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
+            value: updatedCommentTextTokens,
+          },
+        ],
+      },
+    )) as Entity<TextProperties>;
+    commentText.tokens = updatedCommentTextTokens;
+
+    const afterCommentMentionNotification = await getMentionNotification(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        recipient: recipientUser,
+        triggeredByUser: triggerUser,
+        occurredInEntity: occurredInPage,
+        occurredInComment,
+        occurredInText: commentText,
+      },
+    );
+
+    expect(afterCommentMentionNotification).toBeNull();
   });
 });

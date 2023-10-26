@@ -327,6 +327,12 @@ export const getMentionNotification: ImpureGraphFunction<
         SYSTEM_TYPES.linkEntityType.occurredInText.schema.$id,
     );
 
+    const occurredInCommentLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.occurredInComment.schema.$id,
+    );
+
     return (
       triggeredByUserLink &&
       triggeredByUserLink.linkData.rightEntityId ===
@@ -336,7 +342,12 @@ export const getMentionNotification: ImpureGraphFunction<
         occurredInEntity.entity.metadata.recordId.entityId &&
       occurredInTextLink &&
       occurredInTextLink.linkData.rightEntityId ===
-        occurredInText.entity.metadata.recordId.entityId
+        occurredInText.entity.metadata.recordId.entityId &&
+      (occurredInComment
+        ? occurredInCommentLink &&
+          occurredInCommentLink.linkData.rightEntityId ===
+            occurredInComment.entity.metadata.recordId.entityId
+        : true)
     );
   });
 
