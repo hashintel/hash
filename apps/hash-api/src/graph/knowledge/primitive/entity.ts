@@ -350,7 +350,7 @@ export const updateEntity: ImpureGraphFunction<
     properties: EntityPropertiesObject;
   },
   Promise<Entity>
-> = async (context, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const { entity, properties, entityTypeId } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
@@ -359,11 +359,13 @@ export const updateEntity: ImpureGraphFunction<
         context,
         entity,
         updatedProperties: properties,
+        authentication,
       });
     }
   }
 
   const { graphApi } = context;
+  const { actorId } = authentication;
 
   const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
@@ -379,10 +381,11 @@ export const updateEntity: ImpureGraphFunction<
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
-      void afterUpdateHook.callback({
+      await afterUpdateHook.callback({
         context,
         entity,
         updatedProperties: properties,
+        authentication,
       });
     }
   }
