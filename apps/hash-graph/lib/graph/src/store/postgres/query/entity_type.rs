@@ -32,7 +32,8 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::Required
             | Self::LabelProperty
             | Self::Icon
-            | Self::Schema(_) => vec![Relation::EntityTypeIds],
+            | Self::Schema(_)
+            | Self::ClosedSchema(_) => vec![Relation::EntityTypeIds],
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
@@ -100,7 +101,22 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            _ => unreachable!("Invalid path: {self}"),
+            Self::EntityTypeEdge {
+                edge_kind:
+                    OntologyEdgeKind::ConstrainsValuesOn | OntologyEdgeKind::ConstrainsPropertiesOn,
+                path: _,
+                direction: _,
+                inheritance_depth: _,
+            }
+            | Self::PropertyTypeEdge {
+                edge_kind:
+                    OntologyEdgeKind::InheritsFrom
+                    | OntologyEdgeKind::ConstrainsLinksOn
+                    | OntologyEdgeKind::ConstrainsLinkDestinationsOn
+                    | OntologyEdgeKind::ConstrainsValuesOn,
+                path: _,
+                inheritance_depth: _,
+            } => unreachable!("Invalid path: {self}"),
         }
     }
 
@@ -124,6 +140,12 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 .map_or(Column::EntityTypes(EntityTypes::Schema(None)), |path| {
                     Column::EntityTypes(EntityTypes::Schema(Some(JsonField::JsonPath(path))))
                 }),
+            Self::ClosedSchema(path) => path.as_ref().map_or(
+                Column::EntityTypes(EntityTypes::ClosedSchema(None)),
+                |path| {
+                    Column::EntityTypes(EntityTypes::ClosedSchema(Some(JsonField::JsonPath(path))))
+                },
+            ),
             Self::VersionedUrl => {
                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::StaticText("$id"))))
             }

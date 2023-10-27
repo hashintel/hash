@@ -4,7 +4,10 @@ use authorization::{
     schema::{EntityTypeId, EntityTypeRelationAndSubject},
 };
 use error_stack::{Result, ResultExt};
+use futures::{StreamExt, TryStreamExt};
+use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
+use type_system::{raw, EntityType};
 
 use crate::{
     snapshot::{
@@ -172,7 +175,81 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines, reason = "TODO: Move out common parts")]
     async fn commit(postgres_client: &PostgresStore<C>) -> Result<(), InsertionError> {
+        // Insert types which don't need updating so they are available in the graph for the resolve
+        // step below.
+        postgres_client
+            .as_client()
+            .client()
+            .simple_query(
+                "
+                    WITH removed_entity_type AS (
+                        DELETE FROM entity_types_tmp
+                        WHERE schema->'allOf' IS NULL
+                        RETURNING entity_types_tmp.*
+                    )
+                    INSERT INTO entity_types SELECT * FROM removed_entity_type;
+                ",
+            )
+            .await
+            .change_context(InsertionError)?;
+
+        // We still need to update the closed schema for the types which have a parent.
+        let schemas = postgres_client
+            .as_client()
+            .client()
+            .query_raw(
+                "SELECT ontology_id, schema FROM entity_types_tmp",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(InsertionError)?
+            .map(|row| {
+                let schema: Json<raw::EntityType> = row.change_context(InsertionError)?.get(1);
+                // TODO: Distinguish between format validation and content validation so it's
+                //       possible to directly use the raw representation
+                //   see https://linear.app/hash/issue/BP-33
+                EntityType::try_from(schema.0).change_context(InsertionError)
+            })
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(InsertionError)?;
+
+        // `resolve_entity_types` can use entity types from both, the Graph and passed schemas.
+        let (ids, closed_schemas): (Vec<_>, Vec<_>) = postgres_client
+            .resolve_entity_types(schemas)
+            .await
+            .change_context(InsertionError)?
+            .into_iter()
+            .map(|insertion| {
+                (
+                    EntityTypeId::from_url(insertion.schema.id()).into_uuid(),
+                    Json(insertion.closed_schema),
+                )
+            })
+            .unzip();
+
+        postgres_client
+            .as_client()
+            .client()
+            .query(
+                "
+                    UPDATE entity_types_tmp
+                       SET closed_schema = param.closed_schema
+                      FROM (
+                               SELECT *
+                                 FROM UNNEST($1::uuid[], $2::jsonb[])
+                                   AS t(ontology_id, closed_schema)
+                           )
+                        AS param
+                     WHERE entity_types_tmp.ontology_id = param.ontology_id;
+                ",
+                &[&ids, &closed_schemas],
+            )
+            .await
+            .change_context(InsertionError)?;
+
         postgres_client
             .as_client()
             .client()

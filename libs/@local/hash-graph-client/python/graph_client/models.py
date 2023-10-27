@@ -283,9 +283,11 @@ class Viewer(RootModel[Literal['public'] | OwnedById]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['public'] | OwnedById
 
-class WebPermission(RootModel[Literal['create_entity']]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: Literal['create_entity']
+class WebPermission(Enum):
+    create_entity = 'create_entity'
+    create_entity_type = 'create_entity_type'
+    create_property_type = 'create_property_type'
+    create_data_type = 'create_data_type'
 
 class UpdateDataType(BaseModel):
     """
