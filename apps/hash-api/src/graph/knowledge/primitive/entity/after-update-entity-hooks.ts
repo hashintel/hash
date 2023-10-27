@@ -6,22 +6,22 @@ import {
   OwnedById,
 } from "@local/hash-subgraph";
 
-import { getBlockCollectionByBlock } from "../../../../graph/knowledge/system-types/block";
-import { getCommentAncestorBlock } from "../../../../graph/knowledge/system-types/comment";
+import { SYSTEM_TYPES } from "../../../system-types";
+import { getBlockCollectionByBlock } from "../../system-types/block";
+import { getCommentAncestorBlock } from "../../system-types/comment";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
-} from "../../../../graph/knowledge/system-types/notification";
-import { getPageFromEntity } from "../../../../graph/knowledge/system-types/page";
+} from "../../system-types/notification";
+import { getPageFromEntity } from "../../system-types/page";
 import {
   getCommentByText,
   getMentionedUsersInTextTokens,
   getPageByText,
   getTextFromEntity,
-} from "../../../../graph/knowledge/system-types/text";
-import { getUserById } from "../../../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
+} from "../../system-types/text";
+import { getUserById } from "../../system-types/user";
 import {
   UpdateEntityHook,
   UpdateEntityHookCallback,

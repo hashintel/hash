@@ -45,8 +45,8 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { publicUserAccountId } from "../../../graphql/context";
-import { afterUpdateEntityHooks } from "../../../graphql/resolvers/knowledge/entity/after-update-entity-hooks";
-import { beforeUpdateEntityHooks } from "../../../graphql/resolvers/knowledge/entity/before-update-entity-hooks";
+import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";

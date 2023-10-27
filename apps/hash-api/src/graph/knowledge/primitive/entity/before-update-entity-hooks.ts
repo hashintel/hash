@@ -2,19 +2,19 @@ import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { ImpureGraphContext } from "../../../../graph";
+import { ImpureGraphContext } from "../../..";
+import { SYSTEM_TYPES } from "../../../system-types";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
   shortnameIsTaken,
   shortnameMaximumLength,
   shortnameMinimumLength,
-} from "../../../../graph/knowledge/system-types/account.fields";
+} from "../../system-types/account.fields";
 import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
-} from "../../../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
+} from "../../system-types/user";
 import {
   UpdateEntityHook,
   UpdateEntityHookCallback,
