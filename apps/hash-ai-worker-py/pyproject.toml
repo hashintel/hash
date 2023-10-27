@@ -11,7 +11,7 @@ packages = [{ include = "worker", from = "src" }]
 hash-graph-types = { path = "../../libs/@local/hash-graph-types/python", develop = true }
 
 aiohttp = "^3.8.5"
-python = "^3.11"
+python = "^3.12.0"
 python-dotenv = "^1.0"
 openai = "^0.28.1"
 temporalio = "^1.3.0"

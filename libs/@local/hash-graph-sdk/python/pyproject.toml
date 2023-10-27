@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "graph_sdk" }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12.0"
 
 pydantic = "^2.4.2"
 yarl = "^1.9.2"
