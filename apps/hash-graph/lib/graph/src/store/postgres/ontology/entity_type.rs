@@ -310,6 +310,8 @@ impl<C: AsClient> PostgresStore<C> {
                 );
 
                 if visited_ids.contains(&parent_id) {
+                    // This can happens in case of multiple inheritance or cycles. Cycles are
+                    // already checked above, so we can just skip this parent.
                     current_type
                         .all_of
                         .elements
@@ -360,18 +362,18 @@ impl<C: AsClient> PostgresStore<C> {
 
         // We need all types that the provided types inherit from so we can create the closed
         // schemas
-        let relevant_entity_type_ids = entity_types
+        let parent_entity_type_ids = entity_types
             .iter()
             .flat_map(|(_, (schema, _))| schema.inherits_from().all_of())
             .map(|reference| EntityTypeId::from_url(reference.url()).into_uuid())
             .collect::<Vec<_>>();
 
         // We read all relevant schemas from the graph
-        let stored_schemas = self
+        let parent_schemas = self
             .read_closed_schemas(
                 &Filter::In(
                     FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                    ParameterList::Uuid(&relevant_entity_type_ids),
+                    ParameterList::Uuid(&parent_entity_type_ids),
                 ),
                 Some(&QueryTemporalAxesUnresolved::default().resolve()),
             )
@@ -381,10 +383,10 @@ impl<C: AsClient> PostgresStore<C> {
             .await?;
 
         // The types we check either come from the graph or are provided by the user
-        let mut available_types: HashMap<_, _> = entity_types
+        let mut available_schemas: HashMap<_, _> = entity_types
             .iter()
             .map(|(id, (_, raw_schema))| (EntityTypeId::new(*id), raw_schema.clone()))
-            .chain(stored_schemas)
+            .chain(parent_schemas)
             .collect();
 
         entity_types
@@ -395,7 +397,7 @@ impl<C: AsClient> PostgresStore<C> {
                     raw_schema,
                     closed_schema: Self::create_closed_entity_type(
                         EntityTypeId::new(entity_type_id),
-                        &mut available_types,
+                        &mut available_schemas,
                     )?,
                 })
             })

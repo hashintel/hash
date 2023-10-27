@@ -41,8 +41,6 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
                         (LIKE entity_types INCLUDING ALL)
                         ON COMMIT DROP;
 
-                    ALTER TABLE entity_types_tmp ALTER COLUMN closed_schema DROP NOT NULL;
-
                     CREATE TEMPORARY TABLE entity_type_constrains_properties_on_tmp (
                         source_entity_type_ontology_id UUID NOT NULL,
                         target_property_type_base_url TEXT NOT NULL,
@@ -202,9 +200,7 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             .as_client()
             .client()
             .query_raw(
-                "
-                    SELECT ontology_id, schema FROM entity_types_tmp
-                ",
+                "SELECT ontology_id, schema FROM entity_types_tmp",
                 [] as [&(dyn ToSql + Sync); 0],
             )
             .await
@@ -240,10 +236,14 @@ impl<C: AsClient> WriteBatch<C> for EntityTypeRowBatch {
             .query(
                 "
                     UPDATE entity_types_tmp
-                      SET closed_schema = param.closed_schema
-                    FROM (SELECT * FROM UNNEST($1::uuid[], $2::jsonb[]) AS t(ontology_id, \
-                 closed_schema)) AS param
-                    WHERE entity_types_tmp.ontology_id = param.ontology_id;
+                       SET closed_schema = param.closed_schema
+                      FROM (
+                               SELECT *
+                                 FROM UNNEST($1::uuid[], $2::jsonb[])
+                                   AS t(ontology_id, closed_schema)
+                           )
+                        AS param
+                     WHERE entity_types_tmp.ontology_id = param.ontology_id;
                 ",
                 &[&ids, &closed_schemas],
             )
