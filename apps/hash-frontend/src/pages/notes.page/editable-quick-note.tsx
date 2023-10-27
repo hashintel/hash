@@ -62,22 +62,17 @@ const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
 const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
-  if (
-    rightEntity.blockChildEntity.metadata.entityTypeId ===
-    types.entityType.text.entityTypeId
-  ) {
-    const textTokens = rightEntity.blockChildEntity.properties[
-      extractBaseUrl(types.propertyType.tokens.propertyTypeId)
-    ] as TextToken[];
+  const textTokens = rightEntity.blockChildEntity.properties[
+    extractBaseUrl(types.propertyType.tokens.propertyTypeId)
+  ] as TextToken[] | undefined;
 
-    return textTokens.reduce(
+  return (
+    textTokens?.reduce(
       (prevText, current) =>
         current.tokenType === "text" ? `${prevText}${current.text}` : prevText,
       "",
-    );
-  }
-
-  return "";
+    ) ?? ""
+  );
 };
 
 export const EditableQuickNote: FunctionComponent<{
@@ -180,6 +175,7 @@ export const EditableQuickNote: FunctionComponent<{
     () =>
       textBlocks?.reduce((prev, textBlock) => {
         const parsedText = parseTextFromTextBlock(textBlock);
+
         return `${prev}${prev.length > 0 ? " " : ""}${parsedText}`;
       }, ""),
     [textBlocks],
