@@ -29,6 +29,11 @@ hash-graph-types = { path = "../../hash-graph-types/python", develop = true }
 [tool.black]
 target-version = ['py311']
 preview = true
+extend-exclude = '''
+(
+    ^/graph_sdk/client/blocking.py$ | ^/graph_sdk/filter/path.py$
+)
+'''
 
 [tool.ruff]
 select = ["ALL"]
