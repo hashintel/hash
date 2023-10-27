@@ -18,7 +18,7 @@ use graph_types::{
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::{repr, DataType, EntityType, PropertyType};
+use type_system::{raw, DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
 pub type Store = <Pool as StorePool>::Store<'static>;
@@ -210,7 +210,7 @@ pub async fn seed<D, P, E, C>(
     C: AsClient,
 {
     for data_type_str in data_types {
-        let data_type_repr: repr::DataType =
+        let data_type_repr: raw::DataType =
             serde_json::from_str(data_type_str).expect("could not parse data type representation");
         let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
@@ -243,7 +243,7 @@ pub async fn seed<D, P, E, C>(
     }
 
     for property_type_str in property_types {
-        let property_typee_repr: repr::PropertyType = serde_json::from_str(property_type_str)
+        let property_typee_repr: raw::PropertyType = serde_json::from_str(property_type_str)
             .expect("could not parse property type representation");
         let property_type =
             PropertyType::try_from(property_typee_repr).expect("could not parse property type");
@@ -277,7 +277,7 @@ pub async fn seed<D, P, E, C>(
     }
 
     for entity_type_str in entity_types {
-        let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+        let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
             .expect("could not parse entity type representation");
         let entity_type =
             EntityType::try_from(entity_type_repr).expect("could not parse entity type");

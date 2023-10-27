@@ -2,13 +2,13 @@ use graph::store::{
     error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     BaseUrlAlreadyExists,
 };
-use type_system::{repr, DataType};
+use type_system::{raw, DataType};
 
 use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let data_type_repr: repr::DataType =
+    let data_type_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::BOOLEAN_V1)
             .expect("could not parse data type representation");
     let boolean_dt = DataType::try_from(data_type_repr).expect("could not parse data type");
@@ -26,7 +26,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let data_type_repr: repr::DataType =
+    let data_type_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::EMPTY_LIST_V1)
             .expect("could not parse data type representation");
     let empty_list_dt = DataType::try_from(data_type_repr).expect("could not parse data type");
@@ -51,12 +51,12 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let object_dt_v1_repr: repr::DataType =
+    let object_dt_v1_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
             .expect("could not parse data type representation");
     let object_dt_v1 = DataType::try_from(object_dt_v1_repr).expect("could not parse data type");
 
-    let object_dt_v2_repr: repr::DataType =
+    let object_dt_v2_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V2)
             .expect("could not parse data type representation");
     let object_dt_v2 = DataType::try_from(object_dt_v2_repr).expect("could not parse data type");
@@ -94,12 +94,12 @@ async fn update() {
 
 #[tokio::test]
 async fn insert_same_base_url() {
-    let object_dt_v1_repr: repr::DataType =
+    let object_dt_v1_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
             .expect("could not parse data type representation");
     let object_dt_v1 = DataType::try_from(object_dt_v1_repr).expect("could not parse data type");
 
-    let object_dt_v2_repr: repr::DataType =
+    let object_dt_v2_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V2)
             .expect("could not parse data type representation");
     let object_dt_v2 = DataType::try_from(object_dt_v2_repr).expect("could not parse data type");
@@ -153,12 +153,12 @@ async fn insert_same_base_url() {
 
 #[tokio::test]
 async fn wrong_update_order() {
-    let object_dt_v1_repr: repr::DataType =
+    let object_dt_v1_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
             .expect("could not parse data type representation");
     let object_dt_v1 = DataType::try_from(object_dt_v1_repr).expect("could not parse data type");
 
-    let object_dt_v2_repr: repr::DataType =
+    let object_dt_v2_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V2)
             .expect("could not parse data type representation");
     let object_dt_v2 = DataType::try_from(object_dt_v2_repr).expect("could not parse data type");
@@ -207,12 +207,12 @@ async fn wrong_update_order() {
 
 #[tokio::test]
 async fn update_external_with_owned() {
-    let object_dt_v1_repr: repr::DataType =
+    let object_dt_v1_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
             .expect("could not parse data type representation");
     let object_dt_v1 = DataType::try_from(object_dt_v1_repr).expect("could not parse data type");
 
-    let object_dt_v2_repr: repr::DataType =
+    let object_dt_v2_repr: raw::DataType =
         serde_json::from_str(graph_test_data::data_type::OBJECT_V2)
             .expect("could not parse data type representation");
     let object_dt_v2 = DataType::try_from(object_dt_v2_repr).expect("could not parse data type");

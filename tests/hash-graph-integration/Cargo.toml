@@ -12,7 +12,7 @@ temporal-versioning = { path = "../../libs/@local/temporal-versioning" }
 authorization = { path = "../../libs/@local/hash-authorization" }
 
 error-stack = { version = "0.4.1", features = ["spantrace"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
 
 futures = { version = "0.3.28", default-features = false }
 rand = "0.8.5"

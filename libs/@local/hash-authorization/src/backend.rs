@@ -185,6 +185,23 @@ pub trait ZanzibarBackend {
                 Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
                 SubjectSet: Deserialize<'de>,
             > + Send;
+
+    /// Deletes all relationships matching the given filter
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the deletion could not be performed.
+    fn delete_relations(
+        &mut self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+    ) -> impl Future<Output = Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>>> + Send;
 }
 
 impl ZanzibarBackend for NoAuthorization {
@@ -243,6 +260,22 @@ impl ZanzibarBackend for NoAuthorization {
     ) -> Result<Vec<R>, Report<ReadError>> {
         Ok(Vec::new())
     }
+
+    async fn delete_relations(
+        &mut self,
+        _filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+    ) -> Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>> {
+        Ok(DeleteRelationshipResponse {
+            deleted_at: Zookie::empty(),
+        })
+    }
 }
 
 /// Return value for [`ZanzibarBackend::import_schema`].
@@ -298,11 +331,30 @@ pub struct ModifyRelationshipError;
 
 impl fmt::Display for ModifyRelationshipError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("failed to modify relations")
+        fmt.write_str("failed to modify relationships")
     }
 }
 
 impl Error for ModifyRelationshipError {}
+
+/// Return value for [`ZanzibarBackend::delete_relationships`].
+#[derive(Debug)]
+pub struct DeleteRelationshipResponse {
+    /// A token to determine the time at which the relation was created.
+    pub deleted_at: Zookie<'static>,
+}
+
+/// Error returned from [`ZanzibarBackend::delete_relationships`].
+#[derive(Debug)]
+pub struct DeleteRelationshipError;
+
+impl fmt::Display for DeleteRelationshipError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("failed to delete relationships")
+    }
+}
+
+impl Error for DeleteRelationshipError {}
 
 /// Return value for [`ZanzibarBackend::check`].
 #[derive(Debug)]
