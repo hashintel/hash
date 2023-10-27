@@ -94,7 +94,7 @@
     "signia": "0.1.1",
     "signia-react": "0.1.1",
     "ts-node": "10.9.1",
-    "url-regex-safe": "2.0.2",
+    "url-regex-safe": "2.1.0",
     "use-font-face-observer": "1.2.1",
     "uuid": "9.0.1"
   },
