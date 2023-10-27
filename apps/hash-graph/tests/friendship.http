@@ -254,7 +254,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.status === 403, "Response status is not 200");
     });
 %}
 
@@ -364,7 +364,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Name",
     "oneOf": [
       {
-        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/2"
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
       }
     ]
   }

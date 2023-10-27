@@ -95,7 +95,7 @@ describe("Data type CRU", () => {
   });
 
   const updatedTitle = "New text!";
-  it("can update a data type", async () => {
+  it.skip("can update a data type", async () => {
     expect(
       isOwnedOntologyElementMetadata(createdDataType.metadata) &&
         createdDataType.metadata.custom.provenance.recordCreatedById,

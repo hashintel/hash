@@ -148,10 +148,10 @@ describe("Entity CRU", () => {
     ]);
 
     entityType = await createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
-          namespace: testUser.shortname!,
+          namespace: testOrg.shortname,
           kind: "entity-type",
           title: "Person",
         }),

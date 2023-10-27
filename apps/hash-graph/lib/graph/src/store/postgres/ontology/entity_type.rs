@@ -510,6 +510,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         label_property: Option<BaseUrl>,
         icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
+        let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
+            base_url: entity_type.id().base_url.clone(),
+            version: entity_type.id().version - 1,
+        });
+        authorization_api
+            .check_entity_type_permission(
+                actor_id,
+                EntityTypePermission::Update,
+                old_ontology_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let url = entity_type.id();
