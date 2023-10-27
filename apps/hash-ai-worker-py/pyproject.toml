@@ -10,7 +10,7 @@ packages = [{ include = "worker", from = "src" }]
 [tool.poetry.dependencies]
 hash-graph-types = { path = "../../libs/@local/hash-graph-types/python", develop = true }
 
-aiohttp = "^3.8.5"
+aiohttp = "^3.8.6"
 python = "^3.11"
 python-dotenv = "^1.0"
 openai = "^0.28.1"
