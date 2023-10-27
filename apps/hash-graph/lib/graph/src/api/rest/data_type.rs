@@ -187,6 +187,9 @@ where
             // TODO: consider adding the data type, or at least its URL in the trace
             tracing::error!(error=?report, "Could not create data types");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }

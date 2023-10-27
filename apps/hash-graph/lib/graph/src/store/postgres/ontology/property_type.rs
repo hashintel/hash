@@ -6,6 +6,7 @@ use authorization::{
     schema::{
         PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeOwnerSubject,
         PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSubjectSet,
+        WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -14,10 +15,11 @@ use error_stack::{Result, ResultExt};
 use graph_types::{
     account::AccountId,
     ontology::{
-        OntologyElementMetadata, OntologyTemporalMetadata, PartialOntologyElementMetadata,
-        PropertyTypeWithMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, PartialCustomOntologyMetadata,
+        PartialOntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, PropertyType};
@@ -274,6 +276,20 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let mut inserted_property_type_metadata =
             Vec::with_capacity(inserted_property_types.capacity());
         for (schema, metadata) in property_types {
+            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+                authorization_api
+                    .check_web_permission(
+                        actor_id,
+                        WebPermission::CreatePropertyType,
+                        WebId::from(*owned_by_id),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(InsertionError)?
+                    .assert_permission()
+                    .change_context(InsertionError)?;
+            }
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,

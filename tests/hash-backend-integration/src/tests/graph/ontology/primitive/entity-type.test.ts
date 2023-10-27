@@ -8,7 +8,6 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
@@ -29,7 +28,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
@@ -42,6 +40,7 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  textDataTypeId,
 } from "../../../util";
 
 jest.setTimeout(60000);
@@ -59,7 +58,6 @@ let testUser: User;
 let testUser2: User;
 let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
-let textDataType: DataTypeWithMetadata;
 let namePropertyType: PropertyTypeWithMetadata;
 let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityType: EntityTypeWithMetadata;
@@ -84,14 +82,6 @@ beforeAll(async () => {
   await joinOrg(graphContext, authentication, {
     userEntityId: testUser2.entity.metadata.recordId.entityId,
     orgEntityId: testOrg.entity.metadata.recordId.entityId,
-  });
-
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      title: "Text",
-      type: "string",
-    },
   });
 
   await Promise.all([
@@ -119,7 +109,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Favorite Book",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       favoriteBookPropertyType = val;
@@ -128,7 +118,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Name",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       namePropertyType = val;

@@ -188,6 +188,9 @@ where
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create property types");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
