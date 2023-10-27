@@ -19,7 +19,8 @@ run *arguments:
 generate-openapi-specs:
   cargo run --bin hash-graph -- server --write-openapi-specs
   just yarn codegen --filter @local/hash-graph-client-py
-  just yarn codegen --filter @local/hash-graph-sdk-python
+  just yarn workspace @local/hash-graph-sdk-py codegen:filter
+  just yarn workspace @local/hash-graph-sdk-py codegen:blocking
 
 [private]
 test *arguments:
