@@ -2,6 +2,7 @@ import { useApolloClient, useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -122,13 +123,7 @@ export const EditableQuickNote: FunctionComponent<{
         includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
-        /**
-         * These depths are chosen to cover the following:
-         * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
-         * - the block data (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
-         */
-        hasLeftEntity: { incoming: 2, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 2 },
+        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
       },
       fetchPolicy: "cache-and-network",
     },

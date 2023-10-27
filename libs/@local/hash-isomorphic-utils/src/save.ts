@@ -18,6 +18,7 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
+import { getBlockCollectionResolveDepth } from "./block-collection";
 import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -440,13 +441,7 @@ export const save = async (
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
-        /**
-         * These depths are chosen to cover the following:
-         * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
-         * - the block data (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
-         */
-        hasLeftEntity: { incoming: 2, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 2 },
+        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
         ...currentTimeInstantTemporalAxes,
       },
       fetchPolicy: "network-only",
@@ -527,13 +522,7 @@ export const save = async (
             includePermissions: false,
             entityId: blockCollectionEntityId,
             ...zeroedGraphResolveDepths,
-            /**
-             * These depths are chosen to cover the following:
-             * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
-             * - the block data (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
-             */
-            hasLeftEntity: { incoming: 2, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 2 },
+            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
           } satisfies GetEntityQueryVariables,
         },
       ],
