@@ -5,11 +5,11 @@ import {
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import {
   GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
-  PresignedPutUpload,
   PresignedStorageRequest,
   StorageType,
   UploadableStorageProvider,
@@ -27,7 +27,10 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
   private client: S3Client;
   private bucket: string;
-  public storageType: StorageType = StorageType.AwsS3;
+  private endpoint?: string;
+  private forcePathStyle?: boolean;
+  private region: string;
+  public storageType: StorageType = "AWS_S3";
 
   constructor({
     bucket,
@@ -38,17 +41,25 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     const bucketEndpoint = process.env.AWS_S3_UPLOADS_ENDPOINT;
 
     this.bucket = bucket;
+    this.endpoint = bucketEndpoint;
+    this.forcePathStyle =
+      process.env.AWS_S3_UPLOADS_FORCE_PATH_STYLE === "true";
+    this.region = region;
+
+    /**
+     * Configure the default client for file uploads and downloads
+     * Previously uploaded entities may have different configs saved which will be applied on download
+     */
     this.client = new S3Client({
       endpoint: bucketEndpoint,
       credentials,
+      // Use path-style rather than virtual host-style for requests, required by some S3-compatible services
       forcePathStyle: process.env.AWS_S3_UPLOADS_FORCE_PATH_STYLE === "true",
       region,
     });
   }
 
-  async presignUpload(
-    params: PresignedStorageRequest,
-  ): Promise<PresignedPutUpload> {
+  async presignUpload(params: PresignedStorageRequest) {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       ContentLength: params.headers?.["content-length"],
@@ -62,26 +73,55 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     });
 
     return {
-      url: presignedPutUrl,
+      fileStorageProperties: {
+        bucket: this.bucket,
+        key: params.key,
+        provider: "AWS_S3" as const,
+      },
+      presignedPut: { url: presignedPutUrl },
     };
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {
+    const { key, entity } = params;
+    const {
+      fileStorageBucket,
+      fileStorageEndpoint,
+      fileStorageRegion,
+      fileStorageForcePathStyle,
+    } = simplifyProperties(entity.properties);
+
+    let client = this.client;
+    if (
+      fileStorageBucket !== this.bucket ||
+      fileStorageEndpoint !== this.endpoint ||
+      fileStorageForcePathStyle !== this.forcePathStyle ||
+      fileStorageRegion !== this.region
+    ) {
+      client = new S3Client({
+        credentials: this.client.config.credentials,
+        endpoint: fileStorageEndpoint,
+        forcePathStyle: fileStorageForcePathStyle,
+        region: fileStorageRegion,
+      });
+    }
+
     const command = new GetObjectCommand({
       Bucket: this.bucket,
-      Key: params.key,
+      Key: key,
     });
-    const url = await getSignedUrl(this.client, command, {
+
+    const url = await getSignedUrl(client, command, {
       expiresIn: params.expiresInSeconds,
     });
     return url;
   }
 
   getFileEntityStorageKey({
-    ownedById,
+    entityId,
     editionIdentifier,
     filename,
   }: GetFileEntityStorageKeyParams) {
-    return `files/${ownedById}/${editionIdentifier}/${filename}`;
+    return `files/${entityId}/${editionIdentifier}/${filename}` as const;
   }
 }

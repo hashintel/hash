@@ -8,7 +8,7 @@ import {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import { QueryTemporalAxesUnresolved } from "@local/hash-subgraph";
+import { QueryTemporalAxesUnresolved, Timestamp } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
@@ -40,6 +40,28 @@ export const currentTimeInstantTemporalAxes: QueryTemporalAxesUnresolved = {
     },
   },
 };
+
+export const generateTimeInstantTemporalAxes = (
+  isoTimestamp: Timestamp,
+): QueryTemporalAxesUnresolved => ({
+  pinned: {
+    axis: "transactionTime",
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime",
+    interval: {
+      start: {
+        kind: "inclusive",
+        limit: isoTimestamp,
+      },
+      end: {
+        kind: "inclusive",
+        limit: isoTimestamp,
+      },
+    },
+  },
+});
 
 /**
  * According to the database's most up-to-date knowledge (transaction time),
