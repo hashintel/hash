@@ -1,5 +1,9 @@
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-subgraph/.";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityUuid,
+  OwnedById,
+} from "@local/hash-subgraph/.";
 
 import {
   getBlockCollectionByBlock,
@@ -11,12 +15,22 @@ import {
   getCommentFromEntity,
   getCommentParent,
 } from "../../system-types/comment";
-import { createCommentNotification } from "../../system-types/notification";
+import {
+  createCommentNotification,
+  createMentionNotification,
+  getMentionNotification,
+} from "../../system-types/notification";
 import { getPageCreator, getPageFromEntity } from "../../system-types/page";
+import {
+  getMentionedUsersInTextTokens,
+  getTextById,
+} from "../../system-types/text";
+import { getUserById } from "../../system-types/user";
 import {
   CreateEntityHook,
   CreateEntityHookCallback,
 } from "./create-entity-hooks";
+import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
 
 const commentCreateHookCallback: CreateEntityHookCallback = async ({
   entity,
@@ -128,9 +142,83 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
   return entity;
 };
 
+const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
+  entity,
+  authentication,
+  context,
+}) => {
+  const text = await getTextById(context, authentication, {
+    entityId: entity.linkData!.rightEntityId,
+  });
+
+  const { occurredInComment, occurredInPage } =
+    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+      text,
+    });
+
+  if (!occurredInPage) {
+    return entity;
+  }
+
+  const { tokens } = text;
+
+  const mentionedUsers = await getMentionedUsersInTextTokens(
+    context,
+    authentication,
+    {
+      tokens,
+    },
+  );
+
+  const triggeredByUser = await getUserById(context, authentication, {
+    entityId: entityIdFromOwnedByIdAndEntityUuid(
+      authentication.actorId as OwnedById,
+      authentication.actorId as string as EntityUuid,
+    ),
+  });
+
+  await Promise.all([
+    ...mentionedUsers.map(async (mentionedUser) => {
+      const existingNotification = await getMentionNotification(
+        context,
+        /** @todo: use authentication of machine user instead */
+        { actorId: mentionedUser.accountId },
+        {
+          recipient: mentionedUser,
+          triggeredByUser,
+          occurredInEntity: occurredInPage,
+          occurredInComment,
+          occurredInText: text,
+        },
+      );
+
+      if (!existingNotification) {
+        await createMentionNotification(
+          context,
+          /** @todo: use authentication of machine user instead */
+          { actorId: mentionedUser.accountId },
+          {
+            ownedById: mentionedUser.accountId as OwnedById,
+            occurredInEntity: occurredInPage,
+            occurredInComment,
+            occurredInText: text,
+            triggeredByUser,
+          },
+        );
+      }
+    }),
+  ]);
+
+  return entity;
+};
+
 export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
     entityTypeId: types.entityType.comment.entityTypeId,
     callback: commentCreateHookCallback,
+  },
+  {
+    entityTypeId: types.linkEntityType.hasText.linkEntityTypeId,
+    callback: hasTextCreateHookCallback,
   },
 ];

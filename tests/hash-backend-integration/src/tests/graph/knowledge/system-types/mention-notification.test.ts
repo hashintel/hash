@@ -232,7 +232,7 @@ describe("Page Mention Notification", () => {
     expect(fetchedPageMentionNotification).toBeNull();
   });
 
-  it("can create a page mention notification when a user is mentioned in a page", async () => {
+  it("can create a page mention notification when a user is mentioned in a page via an update to a text entity", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
     const beforePageMentionNotification = await getMentionNotification(
@@ -349,7 +349,13 @@ describe("Page Mention Notification", () => {
       {
         parentEntityId: commentBlock.entity.metadata.recordId.entityId,
         ownedById: triggerUser.accountId as OwnedById,
-        tokens: [],
+        tokens: [
+          {
+            mentionType: "user",
+            entityId: recipientUser.entity.metadata.recordId.entityId,
+            tokenType: "mention",
+          },
+        ],
         author: triggerUser,
       },
     );
@@ -359,44 +365,6 @@ describe("Page Mention Notification", () => {
       { actorId: triggerUser.accountId },
       { commentEntityId: occurredInComment.entity.metadata.recordId.entityId },
     );
-
-    const beforeCommentMentionNotification = await getMentionNotification(
-      graphContext,
-      { actorId: recipientUser.accountId },
-      {
-        recipient: recipientUser,
-        triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
-        occurredInComment,
-        occurredInText: commentText,
-      },
-    );
-
-    expect(beforeCommentMentionNotification).toBeNull();
-
-    const updatedCommentTextTokens: TextToken[] = [
-      {
-        mentionType: "user",
-        entityId: recipientUser.entity.metadata.recordId.entityId,
-        tokenType: "mention",
-      },
-    ];
-
-    commentText.entity = (await updateEntityProperties(
-      graphContext,
-      { actorId: triggerUser.accountId },
-      {
-        entity: commentText.entity,
-        updatedProperties: [
-          {
-            propertyTypeBaseUrl:
-              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
-            value: updatedCommentTextTokens,
-          },
-        ],
-      },
-    )) as Entity<TextProperties>;
-    commentText.tokens = updatedCommentTextTokens;
 
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,

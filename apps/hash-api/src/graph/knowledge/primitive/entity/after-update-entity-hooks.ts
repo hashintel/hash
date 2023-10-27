@@ -7,21 +7,17 @@ import {
 } from "@local/hash-subgraph";
 
 import { SYSTEM_TYPES } from "../../../system-types";
-import { getBlockCollectionByBlock } from "../../system-types/block";
-import { getCommentAncestorBlock } from "../../system-types/comment";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
 } from "../../system-types/notification";
-import { getPageFromEntity } from "../../system-types/page";
 import {
-  getCommentByText,
   getMentionedUsersInTextTokens,
-  getPageByText,
   getTextFromEntity,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
+import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
 import {
   UpdateEntityHook,
   UpdateEntityHookCallback,
@@ -35,43 +31,16 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 }) => {
   const text = getTextFromEntity({ entity });
 
-  let occurredInPage = await getPageByText(context, authentication, { text });
-
-  const occurredInComment = !occurredInPage
-    ? (await getCommentByText(context, authentication, { text })) ?? undefined
-    : undefined;
-
-  if (occurredInComment) {
-    const commentAncestorBlock = await getCommentAncestorBlock(
-      context,
-      authentication,
-      { commentEntityId: occurredInComment.entity.metadata.recordId.entityId },
-    );
-
-    const blockCollectionEntity = await getBlockCollectionByBlock(
-      context,
-      authentication,
-      {
-        block: commentAncestorBlock,
-      },
-    );
-
-    if (
-      blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        SYSTEM_TYPES.entityType.page.schema.$id
-    ) {
-      occurredInPage = getPageFromEntity({ entity: blockCollectionEntity });
-    }
-  }
+  const { occurredInComment, occurredInPage } =
+    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+      text,
+    });
 
   if (!occurredInPage) {
     return;
   }
 
-  const previousTokens = entity.properties[
-    SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
-  ] as TextToken[];
+  const previousTokens = text.tokens;
 
   const updatedTokens = updatedProperties[
     SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
@@ -121,7 +90,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInEntity: occurredInPage!,
+          occurredInEntity: occurredInPage,
           occurredInComment,
           occurredInText: text,
         },
@@ -136,8 +105,6 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
       }
     }),
     ...addedMentionedUsers.map(async (addedMentionedUser) => {
-      /** @todo: check if notification already exists */
-
       const existingNotification = await getMentionNotification(
         context,
         /** @todo: use authentication of machine user instead */
@@ -145,7 +112,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: addedMentionedUser,
           triggeredByUser,
-          occurredInEntity: occurredInPage!,
+          occurredInEntity: occurredInPage,
           occurredInComment,
           occurredInText: text,
         },
@@ -158,7 +125,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           { actorId: addedMentionedUser.accountId },
           {
             ownedById: addedMentionedUser.accountId as OwnedById,
-            occurredInEntity: occurredInPage!,
+            occurredInEntity: occurredInPage,
             occurredInComment,
             occurredInText: text,
             triggeredByUser,

@@ -104,14 +104,12 @@ export const createEntity: ImpureGraphFunction<
 
   let entity = { properties, metadata: metadata as EntityMetadata };
 
-  await Promise.all(
-    (outgoingLinks ?? []).map((createOutgoingLinkParams) =>
-      createLinkEntity(context, authentication, {
-        ...createOutgoingLinkParams,
-        leftEntityId: entity.metadata.recordId.entityId,
-      }),
-    ),
-  );
+  for (const createOutgoingLinkParams of outgoingLinks ?? []) {
+    await createLinkEntity(context, authentication, {
+      ...createOutgoingLinkParams,
+      leftEntityId: entity.metadata.recordId.entityId,
+    });
+  }
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {

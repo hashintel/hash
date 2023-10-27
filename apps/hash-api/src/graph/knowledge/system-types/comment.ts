@@ -148,12 +148,6 @@ export const createComment: ImpureGraphFunction<
     entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
     outgoingLinks: [
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
-        rightEntityId: textEntity.metadata.recordId.entityId,
-        ownedById,
-        owner: author.accountId,
-      },
-      {
         linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
         rightEntityId: parentEntityId,
         ownedById,
@@ -162,6 +156,17 @@ export const createComment: ImpureGraphFunction<
       {
         linkEntityType: SYSTEM_TYPES.linkEntityType.author,
         rightEntityId: author.entity.metadata.recordId.entityId,
+        ownedById,
+        owner: author.accountId,
+      },
+      /**
+       * The creation of the `hasText` link entity has to occur last so
+       * that the after create hook for the entity can access to the
+       * `parent` nad `author` link entities.
+       */
+      {
+        linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+        rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
       },
