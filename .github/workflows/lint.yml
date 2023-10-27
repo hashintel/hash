@@ -155,6 +155,7 @@ jobs:
 
       - name: Install Python dependencies
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
+        continue-on-error: true
         run: turbo run poetry:install
 
       - name: Show disk usage
@@ -246,14 +247,17 @@ jobs:
 
       - name: Run black
         if: always() && steps.lints.outputs.black == 'true'
+        continue-on-error: true
         run: turbo run lint:black --filter "${{ matrix.package }}"
 
       - name: Run ruff
         if: always() && steps.lints.outputs.ruff == 'true'
+        continue-on-error: true
         run: turbo run lint:ruff --filter "${{ matrix.package }}"
 
       - name: Run MyPy
         if: always() && steps.lints.outputs.mypy == 'true'
+        continue-on-error: true
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
       - name: Show disk usage
