@@ -152,17 +152,6 @@
       "matchPackagePatterns": ["^pydantic"]
     },
     {
-      "matchManagers": ["poetry"],
-      "matchPackagePatterns": [
-        "mypy$",
-        "ruff$",
-        "black$",
-        "^pytest-",
-        "pytest$"
-      ],
-      "dependencyDashboardApproval": false
-    },
-    {
       "matchManagers": ["regex"],
       "matchDepNames": ["rust"],
       "matchDepPatterns": ["(R|r)ust(-.+)?"],
