@@ -18,6 +18,7 @@ use temporal_versioning::RightBoundedTemporalInterval;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
 use type_system::{
+    raw,
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, PropertyType,
 };
@@ -488,6 +489,40 @@ pub struct OntologyEdgeTraversal<L, R> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
+    pub(crate) async fn read_closed_schemas(
+        &self,
+        filter: &Filter<'_, EntityTypeWithMetadata>,
+        temporal_axes: Option<&QueryTemporalAxes>,
+    ) -> Result<impl Stream<Item = Result<(OntologyId, raw::EntityType), QueryError>>, QueryError>
+    {
+        let mut compiler = SelectCompiler::new(temporal_axes);
+
+        let ontology_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityTypeQueryPath::OntologyId,
+            Distinctness::Distinct,
+            None,
+        );
+        let closed_schema_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::ClosedSchema(None));
+
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        Ok(self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .change_context(QueryError)?
+            .map(|row| row.change_context(QueryError))
+            .and_then(move |row| async move {
+                Ok((
+                    row.get(ontology_id_index),
+                    serde_json::from_value(row.get(closed_schema_index))
+                        .change_context(QueryError)?,
+                ))
+            }))
+    }
+
     pub(crate) async fn read_ontology_edges<'r, L, R>(
         &self,
         record_ids: &'r OntologyTypeTraversalData,
