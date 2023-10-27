@@ -15,6 +15,7 @@ import { AuthenticationContext } from "../../../graphql/context";
 import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
 import { ImpureGraphContext, ImpureGraphFunction } from "../..";
+import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   getLatestEntityById,
@@ -134,11 +135,24 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
+    const { propertyType } = SYSTEM_TYPES;
+    const { bucket, endpoint, forcePathStyle, provider } =
+      fileStorageProperties;
+
+    const storageProperties: Partial<FileProperties> = {
+      [propertyType.fileStorageBucket.metadata.recordId.baseUrl]: bucket,
+      [propertyType.fileStorageEndpoint.metadata.recordId.baseUrl]: endpoint,
+      [propertyType.fileStorageForcePathStyle.metadata.recordId.baseUrl]:
+        !!forcePathStyle,
+      [propertyType.fileStorageKey.metadata.recordId.baseUrl]: key,
+      [propertyType.fileStorageProvider.metadata.recordId.baseUrl]: provider,
+    };
+
     const properties: FileProperties = {
       ...initialProperties,
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
         formatUrl(key),
-      ...fileStorageProperties,
+      ...storageProperties,
     };
 
     const entity = (await updateEntity(ctx, authentication, {
