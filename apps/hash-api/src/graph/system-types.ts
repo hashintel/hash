@@ -111,6 +111,7 @@ export let SYSTEM_TYPES: {
     notification: EntityTypeWithMetadata;
     notificationAction: EntityTypeWithMetadata;
     mentionNotification: EntityTypeWithMetadata;
+    commentNotification: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // HASHInstance-related
@@ -150,6 +151,10 @@ export let SYSTEM_TYPES: {
     occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
     triggeredByUser: EntityTypeWithMetadata;
+
+    // Comment Notification related
+    triggeredByComment: EntityTypeWithMetadata;
+    repliedToComment: EntityTypeWithMetadata;
   };
 };
 
@@ -1259,6 +1264,76 @@ const mentionNotificationEntityTypeInitializer = async (
   })(context);
 };
 
+export const triggeredByCommentLinkEntityTypeInitializer =
+  entityTypeInitializer(types.linkEntityType.triggeredByComment);
+
+export const repliedToCommentLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.repliedToComment,
+);
+
+const commentNotificationEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const notificationEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
+
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
+
+  const pageEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const triggeredByCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
+
+  const commentEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.comment(context);
+
+  const triggeredByUserLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
+
+  const userEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
+
+  const repliedToCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.repliedToComment(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.commentNotification,
+    allOf: [notificationEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: occurredInEntityLinkEntityType,
+        destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: triggeredByCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: triggeredByUserLinkEntityType,
+        destinationEntityTypes: [userEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: repliedToCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 0,
+        maxItems: 1,
+      },
+    ],
+  })(context);
+};
+
 type LazyPromise<T> = (context: ImpureGraphContext) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -1337,6 +1412,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
     triggeredByUser: triggeredByUserLinkEntityTypeInitializer,
+    triggeredByComment: triggeredByCommentLinkEntityTypeInitializer,
+    repliedToComment: repliedToCommentLinkEntityTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
@@ -1362,6 +1439,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     gitHubAccount: gitHubAccountEntityTypeInitializer,
     notification: notificationEntityTypeInitializer,
     mentionNotification: mentionNotificationEntityTypeInitializer,
+    commentNotification: commentNotificationEntityTypeInitializer,
     notificationAction: notificationActionEntityTypeInitializer,
   },
 };

@@ -212,6 +212,10 @@ const systemEntityTypes = {
     title: "Mention Notification",
     description: undefined,
   },
+  commentNotification: {
+    title: "Comment Notification",
+    description: undefined,
+  },
   notificationAction: {
     title: "Notification Action",
     description: undefined,
@@ -445,6 +449,14 @@ const systemLinkEntityTypes = {
   triggeredByUser: {
     title: "Triggered By User",
     description: "A user that triggered something.",
+  },
+  triggeredByComment: {
+    title: "Triggered By Comment",
+    description: "A comment that triggered something.",
+  },
+  repliedToComment: {
+    title: "Replied To Comment",
+    description: "A comment that was replied to.",
   },
 } as const;
 

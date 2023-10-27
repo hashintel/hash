@@ -357,6 +357,23 @@ export type NumberDataType = number;
  */
 export type ObjectDataType = {};
 
+export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
+  linkData: LinkData;
+};
+
+export type OccurredInEntityOutgoingLinkAndTarget = never;
+
+export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An entity that something occurred in.
+ */
+export type OccurredInEntityProperties = OccurredInEntityProperties1 &
+  OccurredInEntityProperties2;
+export type OccurredInEntityProperties1 = LinkProperties;
+
+export type OccurredInEntityProperties2 = {};
+
 export type Org = Entity<OrgProperties>;
 
 export type OrgHasAvatarLink = { linkEntity: HasAvatar; rightEntity: Image };
@@ -563,6 +580,23 @@ export type TextProperties = {
 export type TitlePropertyValue = TextDataType;
 
 export type TokensPropertyValue = ObjectDataType;
+
+export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
+  linkData: LinkData;
+};
+
+export type TriggeredByUserOutgoingLinkAndTarget = never;
+
+export type TriggeredByUserOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A user that triggered something.
+ */
+export type TriggeredByUserProperties = TriggeredByUserProperties1 &
+  TriggeredByUserProperties2;
+export type TriggeredByUserProperties1 = LinkProperties;
+
+export type TriggeredByUserProperties2 = {};
 
 /**
  * A URL.

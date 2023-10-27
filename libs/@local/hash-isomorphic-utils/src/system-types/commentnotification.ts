@@ -326,77 +326,53 @@ export type {
   WebsitePropertyValue,
 };
 
-export type MentionNotification = Entity<MentionNotificationProperties>;
+export type CommentNotification = Entity<CommentNotificationProperties>;
 
-export type MentionNotificationOccurredInCommentLink = {
-  linkEntity: OccurredInComment;
-  rightEntity: Comment;
-};
-
-export type MentionNotificationOccurredInEntityLink = {
+export type CommentNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
   rightEntity: Page;
 };
 
-export type MentionNotificationOccurredInTextLink = {
-  linkEntity: OccurredInText;
-  rightEntity: Text;
+export type CommentNotificationOutgoingLinkAndTarget =
+  | CommentNotificationOccurredInEntityLink
+  | CommentNotificationRepliedToCommentLink
+  | CommentNotificationTriggeredByUserLink;
+
+export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
+  "http://localhost:3000/@system-user/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
-export type MentionNotificationOutgoingLinkAndTarget =
-  | MentionNotificationOccurredInCommentLink
-  | MentionNotificationOccurredInEntityLink
-  | MentionNotificationOccurredInTextLink
-  | MentionNotificationTriggeredByUserLink;
+export type CommentNotificationProperties = CommentNotificationProperties1 &
+  CommentNotificationProperties2;
+export type CommentNotificationProperties1 = NotificationProperties;
 
-export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": MentionNotificationOccurredInEntityLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
-  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
+export type CommentNotificationProperties2 = {};
+
+export type CommentNotificationRepliedToCommentLink = {
+  linkEntity: RepliedToComment;
+  rightEntity: Comment;
 };
 
-export type MentionNotificationProperties = MentionNotificationProperties1 &
-  MentionNotificationProperties2;
-export type MentionNotificationProperties1 = NotificationProperties;
-
-export type MentionNotificationProperties2 = {};
-
-export type MentionNotificationTriggeredByUserLink = {
+export type CommentNotificationTriggeredByUserLink = {
   linkEntity: TriggeredByUser;
   rightEntity: User;
 };
 
-export type OccurredInComment = Entity<OccurredInCommentProperties> & {
+export type RepliedToComment = Entity<RepliedToCommentProperties> & {
   linkData: LinkData;
 };
 
-export type OccurredInCommentOutgoingLinkAndTarget = never;
+export type RepliedToCommentOutgoingLinkAndTarget = never;
 
-export type OccurredInCommentOutgoingLinksByLinkEntityTypeId = {};
-
-/**
- * A comment that something occurred in.
- */
-export type OccurredInCommentProperties = OccurredInCommentProperties1 &
-  OccurredInCommentProperties2;
-export type OccurredInCommentProperties1 = LinkProperties;
-
-export type OccurredInCommentProperties2 = {};
-
-export type OccurredInText = Entity<OccurredInTextProperties> & {
-  linkData: LinkData;
-};
-
-export type OccurredInTextOutgoingLinkAndTarget = never;
-
-export type OccurredInTextOutgoingLinksByLinkEntityTypeId = {};
+export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Text that something occurred in.
+ * A comment that was replied to.
  */
-export type OccurredInTextProperties = OccurredInTextProperties1 &
-  OccurredInTextProperties2;
-export type OccurredInTextProperties1 = LinkProperties;
+export type RepliedToCommentProperties = RepliedToCommentProperties1 &
+  RepliedToCommentProperties2;
+export type RepliedToCommentProperties1 = LinkProperties;
 
-export type OccurredInTextProperties2 = {};
+export type RepliedToCommentProperties2 = {};

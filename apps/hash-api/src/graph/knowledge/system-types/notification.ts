@@ -5,15 +5,12 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 /** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
+import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
+/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 /** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
-import {
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -272,20 +269,6 @@ export const getMentionNotification: ImpureGraphFunction<
               },
             ],
           },
-          ...(occurredInComment
-            ? [
-                {
-                  equal: [
-                    { path: ["outgoingLinks", "rightEntity", "uuid"] },
-                    {
-                      parameter: extractEntityUuidFromEntityId(
-                        occurredInComment.entity.metadata.recordId.entityId,
-                      ),
-                    },
-                  ],
-                },
-              ]
-            : []),
         ],
       },
       graphResolveDepths: {
@@ -362,6 +345,225 @@ export const getMentionNotification: ImpureGraphFunction<
   return mentionNotificationEntity
     ? getMentionNotificationFromEntity({
         entity: mentionNotificationEntity,
+      })
+    : null;
+};
+
+export type CommentNotification = {
+  entity: Entity<MentionNotificationProperties>;
+} & Notification;
+
+export const isEntityCommentNotificationEntity = (
+  entity: Entity,
+): entity is Entity<CommentNotificationProperties> =>
+  entity.metadata.entityTypeId ===
+  SYSTEM_TYPES.entityType.commentNotification.schema.$id;
+
+export const getCommentNotificationFromEntity: PureGraphFunction<
+  { entity: Entity },
+  Notification
+> = ({ entity }) => {
+  if (!isEntityCommentNotificationEntity(entity)) {
+    throw new EntityTypeMismatchError(
+      entity.metadata.recordId.entityId,
+      SYSTEM_TYPES.entityType.commentNotification.schema.$id,
+      entity.metadata.entityTypeId,
+    );
+  }
+
+  const { archived } = simplifyProperties(entity.properties);
+
+  return { entity, archived };
+};
+
+export const createCommentNotification: ImpureGraphFunction<
+  Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
+    triggeredByUser: User;
+    triggeredByComment: Comment;
+    occurredInEntity: Page;
+    repliedToComment?: Comment;
+  },
+  Promise<CommentNotification>
+> = async (context, authentication, params) => {
+  const {
+    triggeredByUser,
+    triggeredByComment,
+    occurredInEntity,
+    repliedToComment,
+    ownedById,
+  } = params;
+
+  const entity = await createEntity(context, authentication, {
+    ownedById,
+    properties: {},
+    entityTypeId: SYSTEM_TYPES.entityType.commentNotification.schema.$id,
+    outgoingLinks: [
+      {
+        ownedById,
+        rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.triggeredByUser,
+      },
+      {
+        ownedById,
+        rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.triggeredByComment,
+      },
+      {
+        ownedById,
+        rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInEntity,
+      },
+      repliedToComment
+        ? {
+            ownedById,
+            rightEntityId: repliedToComment.entity.metadata.recordId.entityId,
+            linkEntityType: SYSTEM_TYPES.linkEntityType.repliedToComment,
+          }
+        : [],
+    ].flat(),
+  });
+
+  return getCommentNotificationFromEntity({ entity });
+};
+
+export const getCommentNotification: ImpureGraphFunction<
+  {
+    recipient: User;
+    triggeredByUser: User;
+    triggeredByComment: Comment;
+    occurredInEntity: Page;
+    repliedToComment?: Comment;
+  },
+  Promise<CommentNotification | null>
+> = async (context, authentication, params) => {
+  const {
+    recipient,
+    triggeredByUser,
+    triggeredByComment,
+    occurredInEntity,
+    repliedToComment,
+  } = params;
+
+  const entitiesSubgraph = await getEntities(context, authentication, {
+    query: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            SYSTEM_TYPES.entityType.commentNotification.schema.$id,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: recipient.accountId },
+            ],
+          },
+          /** @todo: enforce the type of these links somehow */
+          {
+            any: [
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      SYSTEM_TYPES.propertyType.archived.metadata.recordId
+                        .baseUrl,
+                    ],
+                  },
+                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  null,
+                ],
+              },
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      SYSTEM_TYPES.propertyType.archived.metadata.recordId
+                        .baseUrl,
+                    ],
+                  },
+                  { parameter: false },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        // Get the outgoing links of the entities
+        hasLeftEntity: { outgoing: 0, incoming: 1 },
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  });
+
+  /**
+   * @todo: move these filters into the query when it is possible to filter
+   * on more than one outgoing entity
+   *
+   * @see https://linear.app/hash/issue/H-1169/explore-and-allow-specifying-multiple-structural-query-filters
+   */
+  const matchingEntities = getRoots(entitiesSubgraph).filter((entity) => {
+    const outgoingLinks = getOutgoingLinksForEntity(
+      entitiesSubgraph,
+      entity.metadata.recordId.entityId,
+    ) as LinkEntity[];
+
+    const triggeredByUserLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.triggeredByUser.schema.$id,
+    );
+
+    const occurredInEntityLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.occurredInEntity.schema.$id,
+    );
+
+    const triggeredByCommentLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.triggeredByComment.schema.$id,
+    );
+
+    const repliedToCommentLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.repliedToComment.schema.$id,
+    );
+
+    return (
+      triggeredByUserLink &&
+      triggeredByUserLink.linkData.rightEntityId ===
+        triggeredByUser.entity.metadata.recordId.entityId &&
+      occurredInEntityLink &&
+      occurredInEntityLink.linkData.rightEntityId ===
+        occurredInEntity.entity.metadata.recordId.entityId &&
+      triggeredByCommentLink &&
+      triggeredByCommentLink.linkData.rightEntityId ===
+        triggeredByComment.entity.metadata.recordId.entityId &&
+      (repliedToComment
+        ? repliedToCommentLink &&
+          repliedToCommentLink.linkData.rightEntityId ===
+            repliedToComment.entity.metadata.recordId.entityId
+        : true)
+    );
+  });
+
+  if (matchingEntities.length > 1) {
+    throw new Error(
+      "More than one comment notification found for a given recipient, trigger user, page, comment and replied to comment.",
+    );
+  }
+
+  const [commentNotificationEntity] = matchingEntities;
+
+  return commentNotificationEntity
+    ? getCommentNotificationFromEntity({
+        entity: commentNotificationEntity,
       })
     : null;
 };
