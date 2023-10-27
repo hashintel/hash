@@ -17,7 +17,7 @@ run *arguments:
 
 # Generates the OpenAPI specifications and the clients
 generate-openapi-specs:
-  cargo run --bin hash-graph -- server --write-openapi-specs
+  just run server --write-openapi-specs
   just yarn codegen --filter @local/hash-graph-client-py
   just yarn workspace @local/hash-graph-sdk-py codegen:filter
   just yarn workspace @local/hash-graph-sdk-py codegen:blocking
@@ -34,7 +34,7 @@ test-unit *arguments:
   cargo nextest run --workspace --all-features --cargo-profile {{profile}} --lib --bins {{arguments}}
   cargo test --profile {{profile}} --workspace --all-features --doc
 
-  @RUSTFLAGS="{{ test-env-flags }}" just generate-openapi-specs
+  @RUSTFLAGS="{{ test-env-flags }}" just run server --write-openapi-specs
   git --no-pager diff --exit-code --color openapi
 
 [private]
