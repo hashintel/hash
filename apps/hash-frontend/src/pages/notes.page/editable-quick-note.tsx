@@ -127,8 +127,13 @@ export const EditableQuickNote: FunctionComponent<{
         includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
-        hasLeftEntity: { incoming: 2, outgoing: 2 },
-        hasRightEntity: { incoming: 2, outgoing: 2 },
+        /**
+         * These depths are chosen to cover the following:
+         * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
+         * - the block data (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
+         */
+        hasLeftEntity: { incoming: 2, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 2 },
       },
       fetchPolicy: "cache-and-network",
     },

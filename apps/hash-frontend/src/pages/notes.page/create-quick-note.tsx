@@ -88,8 +88,8 @@ export const CreateQuickNote: FunctionComponent<{
            * - the blocks (quick note -> [hasLeftEntity incoming 1] contains [hasRightEntity outgoing 1] -> block)
            * - the text block (block -> [hasLeftEntity incoming 2] block data [hasRightEntity outgoing 2] -> text)
            */
-          hasLeftEntity: { incoming: 2, outgoing: 2 },
-          hasRightEntity: { incoming: 2, outgoing: 2 },
+          hasLeftEntity: { incoming: 2, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 2 },
         },
       },
     });
