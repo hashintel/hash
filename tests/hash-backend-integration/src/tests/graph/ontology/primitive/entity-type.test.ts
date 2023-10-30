@@ -3,8 +3,11 @@ import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createEntityType,
   getEntityTypeById,
@@ -25,7 +28,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  DataTypeWithMetadata,
   EntityTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   linkEntityTypeUrl,
@@ -34,7 +36,12 @@ import {
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -46,11 +53,11 @@ const logger = new Logger({
 
 const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
 let entityTypeSchema: ConstructEntityTypeParams;
 let workerEntityType: EntityTypeWithMetadata;
-let textDataType: DataTypeWithMetadata;
 let namePropertyType: PropertyTypeWithMetadata;
 let favoriteBookPropertyType: PropertyTypeWithMetadata;
 let knowsLinkEntityType: EntityTypeWithMetadata;
@@ -66,12 +73,15 @@ beforeAll(async () => {
 
   const authentication = { actorId: testUser.accountId };
 
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      title: "Text",
-      type: "string",
-    },
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "entitytypetestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
   });
 
   await Promise.all([
@@ -99,7 +109,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Favorite Book",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       favoriteBookPropertyType = val;
@@ -108,7 +118,7 @@ beforeAll(async () => {
       ownedById: testUser.accountId as OwnedById,
       schema: {
         title: "Name",
-        oneOf: [{ $ref: textDataType.schema.$id }],
+        oneOf: [{ $ref: textDataTypeId }],
       },
     }).then((val) => {
       namePropertyType = val;
@@ -191,7 +201,7 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
+      ownedById: testOrg.accountGroupId as OwnedById,
       schema: entityTypeSchema,
     });
   });

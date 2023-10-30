@@ -5,7 +5,7 @@ export const userTypedef = gql`
     me(
       hasLeftEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
       hasRightEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
-    ): Subgraph!
+    ): SubgraphAndPermissions!
     """
     Determines whether a provided shortname is already taken
     """

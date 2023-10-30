@@ -88,6 +88,7 @@ const ReplaceFile = ({
             existingFileEntityId: entity.metadata.recordId.entityId,
           },
         },
+        makePublic: false, // maintain existing visibility settings
         ownedById: extractOwnedByIdFromEntityId(
           entity.metadata.recordId.entityId,
         ),

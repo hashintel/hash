@@ -9,6 +9,13 @@ export const entityTypedef = gql`
   scalar EntityStructuralQuery
   scalar LinkData
   scalar QueryOperationInput
+  scalar UserPermissions
+  scalar UserPermissionsOnEntities
+
+  type SubgraphAndPermissions {
+    userPermissionsOnEntities: UserPermissionsOnEntities!
+    subgraph: Subgraph!
+  }
 
   input LinkedEntityDefinition {
     destinationAccountId: AccountId!
@@ -114,8 +121,13 @@ export const entityTypedef = gql`
     Viewer
   }
 
+  enum AccountGroupAuthorizationSubjectRelation {
+    Member
+  }
+
   type AccountGroupAuthorizationSubject {
     accountGroupId: AccountGroupId!
+    relation: AccountGroupAuthorizationSubjectRelation
   }
 
   type AccountAuthorizationSubject {
@@ -154,9 +166,11 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
-    ): Subgraph!
+    ): SubgraphAndPermissions!
 
-    structuralQueryEntities(query: EntityStructuralQuery!): Subgraph!
+    structuralQueryEntities(
+      query: EntityStructuralQuery!
+    ): SubgraphAndPermissions!
 
     """
     Get a subgraph rooted at an entity resolved by its id.
@@ -178,13 +192,15 @@ export const entityTypedef = gql`
       isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: EdgeResolveDepthsInput!
       hasRightEntity: EdgeResolveDepthsInput!
-    ): Subgraph!
+    ): SubgraphAndPermissions!
 
     isEntityPublic(entityId: EntityId!): Boolean!
 
     getEntityAuthorizationRelationships(
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!
+
+    checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
   }
 
   enum AuthorizationSubjectKind {
@@ -325,6 +341,16 @@ export const entityTypedef = gql`
     removeEntityViewer(
       entityId: EntityId!
       viewer: AuthorizationViewerInput!
+    ): Boolean!
+
+    addAccountGroupMember(
+      accountGroupId: AccountGroupId!
+      accountId: AccountId!
+    ): Boolean!
+
+    removeAccountGroupMember(
+      accountGroupId: AccountGroupId!
+      accountId: AccountId!
     ): Boolean!
   }
 `;

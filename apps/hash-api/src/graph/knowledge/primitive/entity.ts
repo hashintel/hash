@@ -1,9 +1,15 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  EntityPermission,
   EntityStructuralQuery,
   Filter,
   GraphResolveDepths,
+  ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
+import {
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -22,11 +28,15 @@ import {
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  isEntityVertex,
   OwnedById,
   splitEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
@@ -38,6 +48,7 @@ import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
+import { SYSTEM_TYPES } from "../../system-types";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 export type CreateEntityParams = {
@@ -96,27 +107,26 @@ export const getEntities: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityRootType>>
 > = async ({ graphApi }, { actorId }, { query }) => {
-  return await graphApi
-    .getEntitiesByQuery(actorId, query)
-    .then(({ data: subgraph }) => {
-      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-      for (const [entityId, editionMap] of Object.entries(subgraph.vertices)) {
-        const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
+  return await graphApi.getEntitiesByQuery(actorId, query).then(({ data }) => {
+    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+    for (const [entityId, editionMap] of Object.entries(data.vertices)) {
+      const latestEditionTimestamp = Object.keys(editionMap).sort().pop();
 
-        if (
-          (
-            editionMap[latestEditionTimestamp!]!.inner
-              .metadata as EntityMetadata
-          ).archived &&
-          // if the vertex is in the roots of the query, then it is intentionally included
-          !subgraph.roots.find((root) => root.baseId === entityId)
-        ) {
-          // eslint-disable-next-line no-param-reassign -- temporary hack
-          delete subgraph.vertices[entityId];
-        }
+      if (
+        (editionMap[latestEditionTimestamp!]!.inner.metadata as EntityMetadata)
+          .archived &&
+        // if the vertex is in the roots of the query, then it is intentionally included
+        !data.roots.find((root) => root.baseId === entityId)
+      ) {
+        // eslint-disable-next-line no-param-reassign -- temporary hack
+        delete data.vertices[entityId];
       }
-      return subgraph as Subgraph<EntityRootType>;
-    });
+    }
+
+    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+    return subgraph;
+  });
 };
 
 /**
@@ -392,7 +402,7 @@ export const updateEntityProperties: ImpureGraphFunction<
     entity: Entity;
     updatedProperties: {
       propertyTypeBaseUrl: BaseUrl;
-      value: PropertyValue | undefined | undefined;
+      value: PropertyValue | undefined;
     }[];
   },
   Promise<Entity>
@@ -659,6 +669,23 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   });
 };
 
+export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: EntityAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyEntityAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationSubject: relationship,
+    })),
+  );
+};
+
 export const addEntityOwner: ImpureGraphFunction<
   { entityId: EntityId; owner: AccountId | AccountGroupId },
   Promise<void>
@@ -687,41 +714,89 @@ export const removeEntityEditor: ImpureGraphFunction<
   await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
 };
 
-export const addEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityViewer(actorId, params.entityId, params.viewer);
-};
-
-export const removeEntityViewer: ImpureGraphFunction<
-  { entityId: EntityId; viewer: AccountId | AccountGroupId | "public" },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityViewer(actorId, params.entityId, params.viewer);
-};
-
-export const canViewEntity: ImpureGraphFunction<
-  { entityId: EntityId },
+export const checkEntityPermission: ImpureGraphFunction<
+  { entityId: EntityId; permission: EntityPermission },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .canViewEntity(actorId, params.entityId)
+    .checkEntityPermission(actorId, params.entityId, params.permission)
     .then(({ data }) => data.has_permission);
 
-export const canUpdateEntity: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .canUpdateEntity(actorId, params.entityId)
-    .then(({ data }) => data.has_permission);
+export const checkPermissionsOnEntity: ImpureGraphFunction<
+  { entity: Pick<Entity, "metadata"> },
+  Promise<UserPermissions>
+> = async (graphContext, { actorId }, params) => {
+  const { entity } = params;
 
-export const isEntityPublic: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<boolean>
-> = async (ctx, _, params) =>
-  canViewEntity(ctx, { actorId: publicUserAccountId }, params);
+  const { entityId } = entity.metadata.recordId;
+
+  const isAccountGroup =
+    entity.metadata.entityTypeId === SYSTEM_TYPES.entityType.org.schema.$id;
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const [entityEditable, membersEditable] = await Promise.all([
+    isPublicUser
+      ? false
+      : await checkEntityPermission(
+          graphContext,
+          { actorId },
+          { entityId, permission: "update" },
+        ),
+    isAccountGroup
+      ? isPublicUser
+        ? false
+        : await graphContext.graphApi
+            .checkAccountGroupPermission(
+              actorId,
+              extractEntityUuidFromEntityId(entityId),
+              "add_member",
+            )
+            .then(({ data }) => data.has_permission)
+      : null,
+  ]);
+
+  return {
+    edit: entityEditable,
+    view: true,
+    editPermissions: entityEditable,
+    viewPermissions: entityEditable,
+    editMembers: membersEditable,
+  };
+};
+
+export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
+  { subgraph: Subgraph },
+  Promise<UserPermissionsOnEntities>
+> = async (graphContext, authentication, params) => {
+  const { subgraph } = params;
+
+  const entities: Entity[] = [];
+  for (const editionMap of Object.values(subgraph.vertices)) {
+    const latestEditionTimestamp = Object.keys(editionMap).sort().pop()!;
+    // @ts-expect-error -- subgraph needs revamping to make typing less annoying
+    const latestEdition = editionMap[latestEditionTimestamp];
+
+    if (isEntityVertex(latestEdition)) {
+      entities.push(latestEdition.inner);
+    }
+  }
+
+  const userPermissionsOnEntities: UserPermissionsOnEntities = {};
+  await Promise.all(
+    entities.map(async (entity) => {
+      const permissions = await checkPermissionsOnEntity(
+        graphContext,
+        authentication,
+        { entity },
+      );
+      userPermissionsOnEntities[entity.metadata.recordId.entityId] =
+        permissions;
+    }),
+  );
+
+  return userPermissionsOnEntities;
+};
 
 export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   { entityId: EntityId },
@@ -730,8 +805,11 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
   graphApi
     .getEntityAuthorizationRelationships(actorId, params.entityId)
     .then(({ data }) =>
-      data.map((relationship) => ({
-        object: params.entityId,
-        ...relationship,
-      })),
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "entity", resourceId: params.entityId },
+            ...relationship.relationAndSubject,
+          }) as EntityAuthorizationRelationship,
+      ),
     );

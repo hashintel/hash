@@ -41,6 +41,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     this.client = new S3Client({
       endpoint: bucketEndpoint,
       credentials,
+      forcePathStyle: process.env.AWS_S3_UPLOADS_FORCE_PATH_STYLE === "true",
       region,
     });
   }

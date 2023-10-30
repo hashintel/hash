@@ -1,13 +1,9 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
-use authorization::{
-    backend::ZanzibarBackend,
-    schema::{AccountGroupPermission, EntityRelation, PublicAccess},
-};
+use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    knowledge::entity::EntityUuid,
-};
+use graph_types::knowledge::entity::EntityUuid;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -23,16 +19,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     Links(Vec<EntityLinkEdgeRow>),
-    AccountRelations(Vec<(EntityUuid, EntityRelation, AccountId)>),
-    PublicAccountRelations(Vec<(EntityUuid, EntityRelation)>),
-    AccountGroupRelations(
-        Vec<(
-            EntityUuid,
-            EntityRelation,
-            AccountGroupId,
-            AccountGroupPermission,
-        )>,
-    ),
+    Relations(HashMap<EntityUuid, EntityRelationAndSubject>),
 }
 
 #[async_trait]
@@ -82,7 +69,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -97,7 +84,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[ids],
+                        &[&ids],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -114,7 +101,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[editions],
+                        &[&editions],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -130,7 +117,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             SELECT * FROM UNNEST($1::entity_temporal_metadata[])
                             RETURNING 1;
                         ",
-                        &[temporal_metadata],
+                        &[&temporal_metadata],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -146,7 +133,7 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::entity_link_edges_tmp[])
                             RETURNING 1;
                         ",
-                        &[links],
+                        &[&links],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -154,26 +141,9 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                     tracing::info!("Read {} entity links", rows.len());
                 }
             }
-            Self::AccountRelations(accounts) => {
+            Self::Relations(relations) => {
                 authorization_api
-                    .touch_relations(accounts.iter().copied())
-                    .await
-                    .change_context(InsertionError)?;
-            }
-            Self::PublicAccountRelations(accounts) => {
-                authorization_api
-                    .touch_relations(
-                        accounts
-                            .iter()
-                            .copied()
-                            .map(|(account, relation)| (account, relation, PublicAccess::Public)),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-            Self::AccountGroupRelations(account_groups) => {
-                authorization_api
-                    .touch_relations(account_groups.iter().copied())
+                    .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
             }

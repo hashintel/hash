@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { GraphQLError } from "graphql";
@@ -55,9 +56,17 @@ export const useUpdateAuthenticatedUser = () => {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const latestUserEntitySubgraph = (await getMe()
-          .then(({ data }) => data?.me)
-          .catch(() => undefined)) as Subgraph<EntityRootType> | undefined;
+        const latestUserEntitySubgraph = await getMe()
+          .then(({ data }) => {
+            const subgraph = data
+              ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+                  data.me.subgraph,
+                )
+              : undefined;
+
+            return subgraph;
+          })
+          .catch(() => undefined);
 
         if (!latestUserEntitySubgraph) {
           throw new Error(

@@ -1,5 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -17,6 +18,7 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
+import { getBlockCollectionResolveDepth } from "./block-collection";
 import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -194,8 +196,11 @@ const calculateSaveActions = (
       store.draft,
       block.metadata.recordId.entityId,
     );
+
     if (!draftEntity) {
-      throw new Error("Draft entity missing");
+      throw new Error(
+        `Draft entity missing: ${block.metadata.recordId.entityId}`,
+      );
     }
 
     return draftEntity.draftId;
@@ -432,17 +437,19 @@ export const save = async (
     .query<GetEntityQuery, GetEntityQueryVariables>({
       query: getEntityQuery,
       variables: {
+        includePermissions: false,
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
-        hasLeftEntity: { outgoing: 2, incoming: 2 },
-        hasRightEntity: { outgoing: 2, incoming: 2 },
+        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
         ...currentTimeInstantTemporalAxes,
       },
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = data.getEntity as Subgraph<EntityRootType>;
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.getEntity.subgraph,
+      );
 
       const [blockCollectionEntity] = getRoots(subgraph);
 
@@ -462,9 +469,12 @@ export const save = async (
             rightEntityRevisions[0].metadata.entityTypeId ===
               types.entityType.block.entityTypeId,
         )
-        .map(
-          ({ rightEntity: rightEntityRevisions }) =>
-            rightEntityRevisions[0] as Entity<BlockProperties>,
+        .map(({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0])
+        .filter(
+          (blockEntity): blockEntity is Entity<BlockProperties> =>
+            !blockEntity ||
+            blockEntity.metadata.entityTypeId ===
+              types.entityType.block.entityTypeId,
         );
 
       return blockEntities.map((blockEntity) =>
@@ -505,6 +515,17 @@ export const save = async (
     >({
       variables: { entityId: blockCollectionEntityId, actions },
       mutation: updateBlockCollectionContents,
+      refetchQueries: [
+        {
+          query: getEntityQuery,
+          variables: {
+            includePermissions: false,
+            entityId: blockCollectionEntityId,
+            ...zeroedGraphResolveDepths,
+            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
+          } satisfies GetEntityQueryVariables,
+        },
+      ],
     });
 
     if (!res.data) {

@@ -123,7 +123,7 @@ export const BulkActionsDropdown: FunctionComponent<{
         }
 
         /**
-         * @todo: check whether the user has permission to archive the item
+         * @todo: check whether the user has permission to archive the type
          */
 
         if (isType(item)) {
@@ -142,7 +142,7 @@ export const BulkActionsDropdown: FunctionComponent<{
           // Page entities can be archived
           return true;
         }
-        /** @todo: support archiving entities */
+        /** @todo: support archiving entities, including checking permissions */
         // Everything else cannot be archived
         return false;
       }).length === selectedItems.length,

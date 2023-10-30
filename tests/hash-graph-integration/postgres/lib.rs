@@ -13,7 +13,7 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use authorization::{schema::OwnerId, NoAuthorization};
+use authorization::{schema::EntityOwnerSubject, NoAuthorization};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -54,7 +54,7 @@ use graph_types::{
 use temporal_versioning::{DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp};
 use time::{format_description::well_known::Iso8601, Duration, OffsetDateTime};
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{repr, url::VersionedUrl, DataType, EntityType, PropertyType};
+use type_system::{raw, url::VersionedUrl, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -129,7 +129,7 @@ impl DatabaseTestWrapper {
             .expect("could not insert account id");
 
         let data_types_iter = propertys.into_iter().map(|data_type_str| {
-            let data_type_repr: repr::DataType = serde_json::from_str(data_type_str)
+            let data_type_repr: raw::DataType = serde_json::from_str(data_type_str)
                 .expect("could not parse data type representation");
             let data_type = DataType::try_from(data_type_repr).expect("could not parse data type");
 
@@ -152,7 +152,7 @@ impl DatabaseTestWrapper {
             .await?;
 
         let property_types_iter = property_types.into_iter().map(|property_type_str| {
-            let property_type_repr: repr::PropertyType = serde_json::from_str(property_type_str)
+            let property_type_repr: raw::PropertyType = serde_json::from_str(property_type_str)
                 .expect("could not parse property type representation");
             let property_type =
                 PropertyType::try_from(property_type_repr).expect("could not parse property type");
@@ -176,7 +176,7 @@ impl DatabaseTestWrapper {
             .await?;
 
         let entity_types_iter = entity_types.into_iter().map(|entity_type_str| {
-            let entity_type_repr: repr::EntityType = serde_json::from_str(entity_type_str)
+            let entity_type_repr: raw::EntityType = serde_json::from_str(entity_type_str)
                 .expect("could not parse entity type representation");
             let entity_type =
                 EntityType::try_from(entity_type_repr).expect("could not parse entity type");
@@ -419,7 +419,9 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                OwnerId::Account(self.account_id),
+                EntityOwnerSubject::Account {
+                    id: self.account_id,
+                },
                 entity_uuid,
                 Some(generate_decision_time()),
                 false,
@@ -544,7 +546,9 @@ impl DatabaseApi<'_> {
                 self.account_id,
                 &mut NoAuthorization,
                 OwnedById::new(self.account_id.into_uuid()),
-                OwnerId::Account(self.account_id),
+                EntityOwnerSubject::Account {
+                    id: self.account_id,
+                },
                 entity_uuid,
                 None,
                 false,

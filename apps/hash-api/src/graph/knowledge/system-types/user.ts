@@ -14,9 +14,11 @@ import {
   extractAccountId,
   extractEntityUuidFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import {
   kratosIdentityApi,
@@ -27,12 +29,12 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityViewer,
-  canUpdateEntity,
+  checkEntityPermission,
   createEntity,
   CreateEntityParams,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
   createAccount,
@@ -154,9 +156,11 @@ export const getUserByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -201,9 +205,11 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -319,10 +325,24 @@ export const createUser: ImpureGraphFunction<
       entityUuid: userAccountId as string as EntityUuid,
     },
   );
-  await addEntityViewer(
+  await modifyEntityAuthorizationRelationships(
     ctx,
     { actorId: userAccountId },
-    { entityId: entity.metadata.recordId.entityId, viewer: "public" },
+    [
+      {
+        operation: "create",
+        relationship: {
+          subject: {
+            kind: "public",
+          },
+          relation: "generalViewer",
+          resource: {
+            kind: "entity",
+            resourceId: entity.metadata.recordId.entityId,
+          },
+        },
+      },
+    ],
   );
 
   const user = getUserFromEntity({ entity });
@@ -472,11 +492,12 @@ export const isUserHashInstanceAdmin: ImpureGraphFunction<
   Promise<boolean>
 > = async (ctx, authentication, { user }) =>
   getHashInstance(ctx, authentication, {}).then((hashInstance) =>
-    canUpdateEntity(
+    checkEntityPermission(
       ctx,
       { actorId: user.accountId },
       {
         entityId: hashInstance.entity.metadata.recordId.entityId,
+        permission: "update",
       },
     ),
   );

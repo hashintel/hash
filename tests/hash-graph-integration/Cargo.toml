@@ -12,16 +12,16 @@ temporal-versioning = { path = "../../libs/@local/temporal-versioning" }
 authorization = { path = "../../libs/@local/hash-authorization" }
 
 error-stack = { version = "0.4.1", features = ["spantrace"] }
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
 
-futures = { version = "0.3.28", default-features = false }
+futures = { version = "0.3.29", default-features = false }
 rand = "0.8.5"
-serde = { version = "1.0.189", features = ["derive"] }
+serde = { version = "1.0.190", features = ["derive"] }
 serde_json = "1.0.107"
 time = "0.3.30"
 tokio = { version = "1.33.0", default-features = false, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }
-uuid = { version = "1.4.1", features = ["v4", "serde"] }
+uuid = { version = "1.5.0", features = ["v4", "serde"] }
 
 [[test]]
 name = "postgres"

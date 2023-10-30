@@ -18,9 +18,9 @@ setuptools = "^68.2.2"
 devtools = "^0.12.2"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.10.0"
-ruff = "^0.1.0"
-mypy = "^1.6.0"
+black = "^23.10.1"
+ruff = "^0.1.2"
+mypy = "^1.6.1"
 
 hash-graph-client = { path = "../../hash-graph-client/python", develop = true }
 hash-graph-types = { path = "../../hash-graph-types/python", develop = true }
@@ -29,6 +29,11 @@ hash-graph-types = { path = "../../hash-graph-types/python", develop = true }
 [tool.black]
 target-version = ['py311']
 preview = true
+extend-exclude = '''
+(
+    ^/graph_sdk/client/blocking.py$ | ^/graph_sdk/filter/path.py$
+)
+'''
 
 [tool.ruff]
 select = ["ALL"]

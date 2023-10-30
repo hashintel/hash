@@ -1,4 +1,4 @@
-use type_system::{repr, url::VersionedUrl, ParsePropertyTypeError, PropertyType};
+use type_system::{raw, url::VersionedUrl, ParsePropertyTypeError, PropertyType};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     openapi::{schema, Ref, RefOr, Schema},
@@ -12,7 +12,7 @@ use crate::ontology::{
 impl OntologyType for PropertyType {
     type ConversionError = ParsePropertyTypeError;
     type Metadata = OntologyElementMetadata;
-    type Representation = repr::PropertyType;
+    type Representation = raw::PropertyType;
 
     fn id(&self) -> &VersionedUrl {
         self.id()

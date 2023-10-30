@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelation};
+use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::account::AccountGroupId;
 use tokio_postgres::GenericClient;
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 pub enum AccountRowBatch {
     Accounts(Vec<AccountRow>),
     AccountGroups(Vec<AccountGroupRow>),
-    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelation, AccountId)>),
+    AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelationAndSubject)>),
 }
 
 #[async_trait]
@@ -41,7 +41,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -56,7 +56,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[accounts],
+                        &[&accounts],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -73,7 +73,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[account_groups],
+                        &[&account_groups],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -83,7 +83,7 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             }
             Self::AccountGroupAccountRelations(relations) => {
                 authorization_api
-                    .touch_relations(relations.iter().copied())
+                    .touch_relationships(relations)
                     .await
                     .change_context(InsertionError)?;
             }

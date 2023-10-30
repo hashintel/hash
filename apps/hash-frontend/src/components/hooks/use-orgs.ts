@@ -1,7 +1,7 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
@@ -10,7 +10,11 @@ import {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { constructMinimalOrg, MinimalOrg } from "../../lib/user-and-org";
+import {
+  constructMinimalOrg,
+  isEntityOrgEntity,
+  MinimalOrg,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**
@@ -26,6 +30,7 @@ export const useOrgs = (): {
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       operation: {
         multiFilter: {
           filters: [
@@ -48,19 +53,26 @@ export const useOrgs = (): {
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: subgraph } = data ?? {};
+  const { queryEntities: subgraphAndPermissions } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph) {
+    if (!subgraphAndPermissions) {
       return undefined;
     }
 
-    return getRoots(subgraph as Subgraph<EntityRootType>).map((orgEntity) =>
-      constructMinimalOrg({
-        orgEntity: orgEntity as Entity<OrgProperties>,
-      }),
+    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+      subgraphAndPermissions.subgraph,
     );
-  }, [subgraph]);
+
+    return getRoots(subgraph).map((orgEntity) => {
+      if (!isEntityOrgEntity(orgEntity)) {
+        throw new Error(
+          `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+        );
+      }
+      return constructMinimalOrg({ orgEntity });
+    });
+  }, [subgraphAndPermissions]);
 
   return {
     loading,

@@ -40,6 +40,7 @@ export const CreateOrgForm = () => {
       onSubmit={onSubmit}
       submitLabel="Create organization"
       autoFocusDisplayName
+      readonly={false}
     />
   );
 };

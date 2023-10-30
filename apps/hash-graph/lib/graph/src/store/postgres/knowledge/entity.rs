@@ -4,7 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::OwnerId,
+    backend::ModifyRelationshipOperation,
+    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -19,6 +20,7 @@ use graph_types::{
         link::{EntityLinkOrder, LinkData},
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
+    web::WebId,
 };
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
@@ -65,7 +67,7 @@ impl<C: AsClient> PostgresStore<C> {
         traversal_context: &mut TraversalContext,
         actor_id: AccountId,
         authorization_api: &A,
-        zookie: Zookie<'static>,
+        zookie: &Zookie<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError>
     where
@@ -147,22 +149,27 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
                 entity_type_queue.extend(
-                    self.read_shared_edges(&traversal_data, Some(0))
-                        .await?
-                        .flat_map(|edge| {
-                            subgraph.insert_edge(
-                                &edge.left_endpoint,
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                                edge.right_endpoint.clone(),
-                            );
+                    Self::filter_entity_types_by_permission(
+                        self.read_shared_edges(&traversal_data, Some(0)).await?,
+                        actor_id,
+                        authorization_api,
+                        zookie,
+                    )
+                    .await?
+                    .flat_map(|edge| {
+                        subgraph.insert_edge(
+                            &edge.left_endpoint,
+                            SharedEdgeKind::IsOfType,
+                            EdgeDirection::Outgoing,
+                            edge.right_endpoint.clone(),
+                        );
 
-                            traversal_context.add_entity_type_id(
-                                edge.right_endpoint_ontology_id,
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                        }),
+                        traversal_context.add_entity_type_id(
+                            edge.right_endpoint_ontology_id,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
+                    }),
                 );
             }
 
@@ -180,12 +187,13 @@ impl<C: AsClient> PostgresStore<C> {
                     }
 
                     let permissions = authorization_api
-                        .can_view_entities(
+                        .check_entities_permission(
                             actor_id,
+                            EntityPermission::View,
                             // TODO: Filter for entities, which were not already added to the
                             //       subgraph to avoid unnecessary lookups.
                             entity_ids.iter().copied(),
-                            Consistency::AtExactSnapshot(&zookie),
+                            Consistency::AtExactSnapshot(zookie),
                         )
                         .await
                         .change_context(QueryError)?
@@ -230,8 +238,15 @@ impl<C: AsClient> PostgresStore<C> {
             }
         }
 
-        self.traverse_entity_types(entity_type_queue, traversal_context, subgraph)
-            .await?;
+        self.traverse_entity_types(
+            entity_type_queue,
+            traversal_context,
+            actor_id,
+            authorization_api,
+            zookie,
+            subgraph,
+        )
+        .await?;
 
         Ok(())
     }
@@ -266,7 +281,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
-        owner: OwnerId,
+        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
@@ -276,7 +291,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     ) -> Result<EntityMetadata, InsertionError> {
         if Some(owned_by_id.into_uuid()) != entity_uuid.map(EntityUuid::into_uuid) {
             authorization_api
-                .can_create_entity(actor_id, owned_by_id, Consistency::FullyConsistent)
+                .check_web_permission(
+                    actor_id,
+                    WebPermission::CreateEntity,
+                    WebId::from(owned_by_id),
+                    Consistency::FullyConsistent,
+                )
                 .await
                 .change_context(InsertionError)?
                 .assert_permission()
@@ -417,13 +437,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         };
 
         authorization_api
-            .add_entity_owner(owner, entity_id)
+            .modify_entity_relations([(
+                ModifyRelationshipOperation::Create,
+                entity_id,
+                EntityRelationAndSubject::Owner(owner),
+            )])
             .await
             .change_context(InsertionError)?;
 
         if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
             if let Err(auth_error) = authorization_api
-                .remove_entity_owner(owner, entity_id)
+                .modify_entity_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    entity_id,
+                    EntityRelationAndSubject::Owner(owner),
+                )])
                 .await
                 .change_context(InsertionError)
             {
@@ -609,7 +637,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .collect::<HashSet<_>>();
 
         let (permissions, zookie) = authorization_api
-            .can_view_entities(actor_id, filtered_ids, Consistency::FullyConsistent)
+            .check_entities_permission(
+                actor_id,
+                EntityPermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -651,7 +684,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             &mut traversal_context,
             actor_id,
             authorization_api,
-            zookie,
+            &zookie,
             &mut subgraph,
         )
         .await?;
@@ -676,7 +709,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         authorization_api
-            .can_update_entity(actor_id, entity_id, Consistency::FullyConsistent)
+            .check_entity_permission(
+                actor_id,
+                EntityPermission::Update,
+                entity_id,
+                Consistency::FullyConsistent,
+            )
             .await
             .change_context(UpdateError)?
             .assert_permission()

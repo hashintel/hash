@@ -11,9 +11,11 @@ import {
   extractOwnedByIdFromEntityId,
   OwnedById,
   splitEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
@@ -36,7 +38,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.userSecret.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -107,7 +109,11 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -173,7 +179,10 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      return getRoots(subgraph);
+    });
 
   const integrationEntity = linearIntegrationEntities[0];
 

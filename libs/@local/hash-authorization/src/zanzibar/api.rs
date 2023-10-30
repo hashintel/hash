@@ -6,13 +6,18 @@ use graph_types::{
 };
 
 use crate::{
-    backend::{CheckError, CheckResponse, ModifyRelationError, ReadError, ZanzibarBackend},
-    schema::{
-        AccountGroupPermission, AccountGroupRelation, EntityPermission, EntityRelation, OwnerId,
-        PublicAccess, WebPermission, WebRelation,
+    backend::{
+        CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
+        ZanzibarBackend,
     },
-    zanzibar::{Consistency, Zookie},
-    AccountOrPublic, AuthorizationApi, EntitySubject,
+    schema::{
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypeId, DataTypePermission,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
+        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypeId, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
+    },
+    zanzibar::{types::RelationshipFilter, Consistency, Zookie},
+    AuthorizationApi,
 };
 
 #[derive(Debug, Clone)]
@@ -30,485 +35,106 @@ impl<B> AuthorizationApi for ZanzibarClient<B>
 where
     B: ZanzibarBackend + Send + Sync,
 {
-    async fn can_add_group_owner(
+    ////////////////////////////////////////////////////////////////////////////
+    // Account group authorization
+    ////////////////////////////////////////////////////////////////////////////
+    async fn check_account_group_permission(
         &self,
         actor: AccountId,
+        permission: AccountGroupPermission,
         account_group: AccountGroupId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(
-                &(account_group, AccountGroupPermission::AddOwner, actor),
-                consistency,
-            )
+            .check(&account_group, &permission, &actor, consistency)
             .await
     }
 
-    async fn add_account_group_owner(
+    async fn modify_account_group_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                AccountGroupId,
+                AccountGroupRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectOwner, member)])
+            .modify_relationships(relationships.into_iter().map(
+                |(operation, account_group_id, relation)| (operation, (account_group_id, relation)),
+            ))
             .await
             .change_context(ModifyRelationError)?
             .written_at)
     }
 
-    async fn can_remove_group_owner(
+    ////////////////////////////////////////////////////////////////////////////
+    // Web authorization
+    ////////////////////////////////////////////////////////////////////////////
+    async fn check_web_permission(
         &self,
         actor: AccountId,
-        account_group: AccountGroupId,
+        permission: WebPermission,
+        web: WebId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(
-                &(account_group, AccountGroupPermission::RemoveOwner, actor),
-                consistency,
-            )
+            .check(&web, &permission, &actor, consistency)
             .await
     }
 
-    async fn remove_account_group_owner(
+    async fn modify_web_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (ModifyRelationshipOperation, WebId, WebRelationAndSubject),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectOwner, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .deleted_at)
-    }
-
-    async fn add_web_owner(
-        &mut self,
-        owner: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match owner {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relations([(web, WebRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relations([(
-                        web,
-                        WebRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_web_owner(
-        &mut self,
-        owner: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match owner {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relations([(web, WebRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relations([(
-                        web,
-                        WebRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .deleted_at)
-    }
-
-    async fn add_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match editor {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relations([(web, WebRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relations([(
-                        web,
-                        WebRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_web_editor(
-        &mut self,
-        editor: OwnerId,
-        web: WebId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match editor {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relations([(web, WebRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relations([(
-                        web,
-                        WebRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .deleted_at)
-    }
-
-    async fn can_add_group_admin(
-        &self,
-        actor: AccountId,
-        account_group: AccountGroupId,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(account_group, AccountGroupPermission::AddAdmin, actor),
-                consistency,
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, web_id, relation)| (operation, (web_id, relation))),
             )
-            .await
-    }
-
-    async fn add_account_group_admin(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
             .await
             .change_context(ModifyRelationError)?
             .written_at)
     }
 
-    async fn can_remove_group_admin(
-        &self,
-        actor: AccountId,
-        account_group: AccountGroupId,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(account_group, AccountGroupPermission::RemoveAdmin, actor),
-                consistency,
-            )
-            .await
-    }
-
-    async fn remove_account_group_admin(
+    async fn modify_entity_relations(
         &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityId,
+                EntityRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Zookie<'static>, ModifyRelationError> {
         Ok(self
             .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectAdmin, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .deleted_at)
-    }
-
-    async fn can_add_group_member(
-        &self,
-        actor: AccountId,
-        account_group: AccountGroupId,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(account_group, AccountGroupPermission::AddMember, actor),
-                consistency,
-            )
-            .await
-    }
-
-    async fn add_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .create_relations([(account_group, AccountGroupRelation::DirectMember, member)])
+            .modify_relationships(relationships.into_iter().map(
+                |(operation, entity_id, relation)| (operation, (entity_id.entity_uuid, relation)),
+            ))
             .await
             .change_context(ModifyRelationError)?
             .written_at)
     }
 
-    async fn can_remove_group_member(
+    async fn check_entity_permission(
         &self,
         actor: AccountId,
-        account_group: AccountGroupId,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(account_group, AccountGroupPermission::RemoveMember, actor),
-                consistency,
-            )
-            .await
-    }
-
-    async fn remove_account_group_member(
-        &mut self,
-        member: AccountId,
-        account_group: AccountGroupId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(self
-            .backend
-            .delete_relations([(account_group, AccountGroupRelation::DirectMember, member)])
-            .await
-            .change_context(ModifyRelationError)?
-            .deleted_at)
-    }
-
-    async fn add_entity_owner(
-        &mut self,
-        scope: OwnerId,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_entity_owner(
-        &mut self,
-        scope: OwnerId,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectOwner, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectOwner,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .deleted_at)
-    }
-
-    async fn add_entity_editor(
-        &mut self,
-        scope: OwnerId,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            OwnerId::Account(account) => {
-                self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_entity_editor(
-        &mut self,
-        scope: OwnerId,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            OwnerId::Account(account) => {
-                self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectEditor, account)])
-                    .await
-            }
-            OwnerId::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectEditor,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .deleted_at)
-    }
-
-    async fn add_entity_viewer(
-        &mut self,
-        scope: EntitySubject,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            EntitySubject::Public => {
-                self.backend
-                    .create_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectViewer,
-                        PublicAccess::Public,
-                    )])
-                    .await
-            }
-            EntitySubject::Account(account) => {
-                self.backend
-                    .create_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
-                    .await
-            }
-            EntitySubject::AccountGroupMembers(account_group) => {
-                self.backend
-                    .create_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectViewer,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .written_at)
-    }
-
-    async fn remove_entity_viewer(
-        &mut self,
-        scope: EntitySubject,
-        entity: EntityId,
-    ) -> Result<Zookie<'static>, ModifyRelationError> {
-        Ok(match scope {
-            EntitySubject::Public => {
-                self.backend
-                    .delete_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectViewer,
-                        PublicAccess::Public,
-                    )])
-                    .await
-            }
-            EntitySubject::Account(account) => {
-                self.backend
-                    .delete_relations([(entity.entity_uuid, EntityRelation::DirectViewer, account)])
-                    .await
-            }
-            EntitySubject::AccountGroupMembers(account_group) => {
-                self.backend
-                    .delete_relations([(
-                        entity.entity_uuid,
-                        EntityRelation::DirectViewer,
-                        account_group,
-                        AccountGroupPermission::Member,
-                    )])
-                    .await
-            }
-        }
-        .change_context(ModifyRelationError)?
-        .deleted_at)
-    }
-
-    async fn can_create_entity(
-        &self,
-        actor: AccountId,
-        web: impl Into<WebId> + Send,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(web.into(), WebPermission::CreateEntity, actor),
-                consistency,
-            )
-            .await
-    }
-
-    async fn can_update_entity(
-        &self,
-        actor: AccountId,
+        permission: EntityPermission,
         entity: EntityId,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
-            .check(
-                &(entity.entity_uuid, EntityPermission::Update, actor),
-                consistency,
-            )
-            .await
-    }
-
-    async fn can_view_entity(
-        &self,
-        actor: AccountId,
-        entity: EntityId,
-        consistency: Consistency<'_>,
-    ) -> Result<CheckResponse, CheckError> {
-        self.backend
-            .check(
-                &(entity.entity_uuid, EntityPermission::View, actor),
-                consistency,
-            )
+            .check(&entity.entity_uuid, &permission, &actor, consistency)
             .await
     }
 
@@ -516,43 +142,178 @@ where
         &self,
         entity: EntityId,
         consistency: Consistency<'static>,
-    ) -> Result<Vec<(EntitySubject, EntityRelation)>, ReadError> {
-        let accounts = self
+    ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+        Ok(self
             .backend
-            .read_relations::<EntityUuid, EntityRelation, AccountOrPublic, ()>(
-                Some(entity.entity_uuid),
-                None,
-                None,
-                None,
+            .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
+                RelationshipFilter::from_resource(entity.entity_uuid),
                 consistency,
             )
             .await
             .change_context(ReadError)?
             .into_iter()
-            .map(|(entity_uuid, relation, account, account_relation)| {
-                debug_assert_eq!(entity_uuid, entity.entity_uuid);
-                assert!(account_relation.is_none());
-                (EntitySubject::from(account), relation)
-            });
+            .map(|(_, relation)| relation)
+            .collect())
+    }
 
-        let account_groups = self
+    async fn modify_entity_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityTypeId,
+                EntityTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
             .backend
-            .read_relations::<EntityUuid, EntityRelation, AccountGroupId, AccountGroupPermission>(
-                Some(entity.entity_uuid),
-                None,
-                None,
-                None,
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, entity_type, relation)| (operation, (entity_type, relation))),
+            )
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
+    async fn check_entity_type_permission(
+        &self,
+        actor: AccountId,
+        permission: EntityTypePermission,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        self.backend
+            .check(&entity_type, &permission, &actor, consistency)
+            .await
+    }
+
+    async fn get_entity_type_relations(
+        &self,
+        entity_type: EntityTypeId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+        Ok(self
+            .backend
+            .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
+                RelationshipFilter::from_resource(entity_type),
                 consistency,
             )
             .await
             .change_context(ReadError)?
             .into_iter()
-            .map(|(entity_uuid, relation, account_group, account_relation)| {
-                debug_assert_eq!(entity_uuid, entity.entity_uuid);
-                assert_eq!(account_relation, Some(AccountGroupPermission::Member));
-                (EntitySubject::AccountGroupMembers(account_group), relation)
-            });
+            .map(|(_, relation)| relation)
+            .collect())
+    }
 
-        Ok(accounts.chain(account_groups).collect())
+    async fn modify_property_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                PropertyTypeId,
+                PropertyTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
+            .backend
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, property_type, relation)| {
+                        (operation, (property_type, relation))
+                    }),
+            )
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
+    async fn check_property_type_permission(
+        &self,
+        actor: AccountId,
+        permission: PropertyTypePermission,
+        property_type: PropertyTypeId,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        self.backend
+            .check(&property_type, &permission, &actor, consistency)
+            .await
+    }
+
+    async fn get_property_type_relations(
+        &self,
+        property_type: PropertyTypeId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
+        Ok(self
+            .backend
+            .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
+                RelationshipFilter::from_resource(property_type),
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(_, relation)| relation)
+            .collect())
+    }
+
+    async fn modify_data_type_relations(
+        &mut self,
+        relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                DataTypeId,
+                DataTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(self
+            .backend
+            .modify_relationships(
+                relationships
+                    .into_iter()
+                    .map(|(operation, data_type, relation)| (operation, (data_type, relation))),
+            )
+            .await
+            .change_context(ModifyRelationError)?
+            .written_at)
+    }
+
+    async fn check_data_type_permission(
+        &self,
+        actor: AccountId,
+        permission: DataTypePermission,
+        data_type: DataTypeId,
+        consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        self.backend
+            .check(&data_type, &permission, &actor, consistency)
+            .await
+    }
+
+    async fn get_data_type_relations(
+        &self,
+        data_type: DataTypeId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
+        Ok(self
+            .backend
+            .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
+                RelationshipFilter::from_resource(data_type),
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(_, relation)| relation)
+            .collect())
     }
 }

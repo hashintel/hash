@@ -13,17 +13,19 @@ import {
   EntityRootType,
   extractOwnedByIdFromEntityId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityViewer,
   createEntity,
   CreateEntityParams,
+  modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import { createAccountGroup, createWeb } from "./account.fields";
 import { User } from "./user";
@@ -42,7 +44,7 @@ export const getHashInstanceFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.hashInstance.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -69,9 +71,11 @@ export const getHashInstance: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getRoots(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error("More than one hash instance entity found in the graph.");
@@ -138,10 +142,21 @@ export const createHashInstance: ImpureGraphFunction<
     },
     entityTypeId: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
   });
-  await addEntityViewer(ctx, authentication, {
-    entityId: entity.metadata.recordId.entityId,
-    viewer: "public",
-  });
+  await modifyEntityAuthorizationRelationships(ctx, authentication, [
+    {
+      operation: "create",
+      relationship: {
+        subject: {
+          kind: "public",
+        },
+        relation: "generalViewer",
+        resource: {
+          kind: "entity",
+          resourceId: entity.metadata.recordId.entityId,
+        },
+      },
+    },
+  ]);
 
   return getHashInstanceFromEntity({ entity });
 };

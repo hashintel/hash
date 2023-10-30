@@ -43,7 +43,11 @@ import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
 import { getAwsRegion } from "./lib/aws-config";
-import { CORS_CONFIG, getEnvStorageType } from "./lib/config";
+import {
+  CORS_CONFIG,
+  getEnvStorageType,
+  LOCAL_FILE_UPLOAD_PATH,
+} from "./lib/config";
 import {
   isDevEnv,
   isProdEnv,
@@ -184,7 +188,10 @@ const main = async () => {
 
   // Body parsing middleware
   app.use((req, res, next) => {
-    if (req.path.startsWith("/webhooks/")) {
+    if (
+      req.path.startsWith("/webhooks/") ||
+      req.path === LOCAL_FILE_UPLOAD_PATH
+    ) {
       // webhooks typically need the raw body for signature verification
       return rawParser(req, res, next);
     }
@@ -196,7 +203,7 @@ const main = async () => {
 
   // Create an email transporter
   const emailTransporter =
-    (isTestEnv || isDevEnv) && process.env.HASH_EMAIL_TRANSPORTER === "dummy"
+    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
           copyCodesOrLinksToClipboard:
             process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",

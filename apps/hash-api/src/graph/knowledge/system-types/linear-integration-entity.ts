@@ -10,11 +10,11 @@ import {
   EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  Subgraph,
 } from "@local/hash-subgraph";
 import {
   getRightEntityForLinkEntity,
   getRoots,
+  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
@@ -38,7 +38,7 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -88,7 +88,10 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+      return getRoots(subgraph);
+    });
 
   if (entities.length > 1) {
     throw new Error(
@@ -149,7 +152,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
     })
     .then(({ data }) => {
-      const subgraph = data as Subgraph<EntityRootType>;
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
 
       const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -211,7 +214,11 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data }) => getRoots(data as Subgraph<EntityRootType>));
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(subgraph);
+    });
 
   if (existingLinkEntities.length > 1) {
     throw new Error(

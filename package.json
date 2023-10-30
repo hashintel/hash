@@ -18,6 +18,7 @@
     "dev:backend:realtime": "turbo dev --log-order stream --filter '@apps/hash-realtime' --",
     "dev:backend:search-loader": "turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
     "dev:frontend": "turbo dev --log-order stream --filter '@apps/hash-frontend' --",
+    "dev:graph": "RUST_LOG=info yarn workspace @apps/hash-graph dev",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
@@ -98,7 +99,7 @@
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
     "husky": "8.0.3",
-    "lint-staged": "15.0.0",
+    "lint-staged": "15.0.2",
     "lockfile-lint": "4.12.1",
     "markdownlint-cli": "0.37.0",
     "npm-run-all": "4.1.5",
@@ -109,7 +110,7 @@
     "prettier-plugin-sh": "0.13.1",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "1.10.15",
+    "turbo": "1.10.16",
     "wait-on": "6.0.1",
     "yarn-deduplicate": "6.0.2"
   }

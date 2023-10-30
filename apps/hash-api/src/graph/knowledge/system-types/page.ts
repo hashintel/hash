@@ -11,9 +11,11 @@ import {
   EntityPropertiesObject,
   EntityRootType,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getEntities } from "@local/hash-subgraph/stdlib";
+import {
+  getEntities,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
@@ -59,7 +61,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      SYSTEM_TYPES.entityType.page.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -266,9 +268,11 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: subgraph }) =>
-      getEntities(subgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getEntities(subgraph);
+    });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
 

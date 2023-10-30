@@ -18,9 +18,9 @@ error-stack = { workspace = true }
 type-system = { workspace = true }
 
 axum = "0.6.20"
-clap = { version = "4.4.6", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.4.3"
-futures = { version = "0.3.28" }
+clap = { version = "4.4.7", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.4.4"
+futures = { version = "0.3.29" }
 regex = "1.10.2"
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.20", default-features = false }
@@ -32,8 +32,8 @@ tokio = { workspace = true }
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-serde = { version = "0.8", features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
-tracing = "0.1.39"
-uuid = "1.4.1"
+tracing = "0.1.40"
+uuid = "1.5.0"
 
 [features]
 test-server = ["graph/test-server"]

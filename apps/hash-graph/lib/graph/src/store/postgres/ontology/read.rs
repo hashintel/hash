@@ -18,24 +18,28 @@ use temporal_versioning::RightBoundedTemporalInterval;
 use time::OffsetDateTime;
 use tokio_postgres::GenericClient;
 use type_system::{
+    raw,
     url::{BaseUrl, VersionedUrl},
     DataType, EntityType, PropertyType,
 };
 
 use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    snapshot::OntologyTypeSnapshotRecord,
+    snapshot::{
+        DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        PropertyTypeSnapshotRecord,
+    },
     store::{
         crud::Read,
         postgres::{
             ontology::OntologyId,
             query::{
-                Column, Distinctness, ForeignKeyReference, Ordering, PostgresQueryPath,
-                PostgresRecord, ReferenceTable, SelectCompiler, Table, Transpile,
+                Column, Distinctness, ForeignKeyReference, Ordering, ReferenceTable,
+                SelectCompiler, Table, Transpile,
             },
         },
-        query::{Filter, OntologyQueryPath},
-        AsClient, PostgresStore, QueryError, Record,
+        query::Filter,
+        AsClient, PostgresStore, QueryError,
     },
     subgraph::{
         edges::GraphResolveDepths,
@@ -70,11 +74,10 @@ impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C> {
+impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
     type Record = DataTypeWithMetadata;
 
-    type ReadStream =
-        impl Stream<Item = Result<OntologyTypeSnapshotRecord<DataType>, QueryError>> + Send + Sync;
+    type ReadStream = impl Stream<Item = Result<DataTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -163,6 +166,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
                         },
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -170,12 +174,11 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<DataType>> for PostgresStore<C
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresStore<C> {
+impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
     type Record = PropertyTypeWithMetadata;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<PropertyType>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream =
+        impl Stream<Item = Result<PropertyTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -264,6 +267,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
                         },
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -271,12 +275,11 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<PropertyType>> for PostgresSto
 }
 
 #[async_trait]
-impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore<C> {
+impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
     type Record = OntologyTypeWithMetadata<EntityType>;
 
-    type ReadStream = impl Stream<Item = Result<OntologyTypeSnapshotRecord<EntityType>, QueryError>>
-        + Send
-        + Sync;
+    type ReadStream =
+        impl Stream<Item = Result<EntityTypeSnapshotRecord, QueryError>> + Send + Sync;
 
     #[tracing::instrument(level = "info", skip(self, filter))]
     async fn read(
@@ -375,6 +378,7 @@ impl<C: AsClient> Read<OntologyTypeSnapshotRecord<EntityType>> for PostgresStore
                         icon: row.get(icon_index),
                         custom: custom_metadata,
                     },
+                    relations: Vec::new(),
                 })
             });
         Ok(stream)
@@ -394,15 +398,14 @@ impl<C: AsClient> Read<DataTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<DataTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<DataType>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(DataTypeWithMetadata {
-                        schema: DataType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<DataTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(DataTypeWithMetadata {
+                    schema: DataType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -420,15 +423,14 @@ impl<C: AsClient> Read<PropertyTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<PropertyTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<PropertyType>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(PropertyTypeWithMetadata {
-                        schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<PropertyTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(PropertyTypeWithMetadata {
+                    schema: PropertyType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -446,15 +448,14 @@ impl<C: AsClient> Read<EntityTypeWithMetadata> for PostgresStore<C> {
         filter: &Filter<EntityTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
     ) -> Result<Self::ReadStream, QueryError> {
-        let stream =
-            Read::<OntologyTypeSnapshotRecord<EntityType>>::read(self, filter, temporal_axes)
-                .await?
-                .and_then(|record| async move {
-                    Ok(EntityTypeWithMetadata {
-                        schema: EntityType::try_from(record.schema).change_context(QueryError)?,
-                        metadata: record.metadata,
-                    })
-                });
+        let stream = Read::<EntityTypeSnapshotRecord>::read(self, filter, temporal_axes)
+            .await?
+            .and_then(|record| async move {
+                Ok(EntityTypeWithMetadata {
+                    schema: EntityType::try_from(record.schema).change_context(QueryError)?,
+                    metadata: record.metadata,
+                })
+            });
         Ok(stream)
     }
 }
@@ -488,28 +489,21 @@ pub struct OntologyEdgeTraversal<L, R> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    pub(crate) async fn read_ontology_ids<R>(
+    pub(crate) async fn read_closed_schemas(
         &self,
-        filter: &Filter<'_, R>,
+        filter: &Filter<'_, EntityTypeWithMetadata>,
         temporal_axes: Option<&QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(R::VertexId, OntologyId), QueryError>>, QueryError>
-    where
-        R: for<'p> Record<QueryPath<'p>: PostgresQueryPath + OntologyQueryPath> + PostgresRecord,
-        R::VertexId: From<VersionedUrl>,
+    ) -> Result<impl Stream<Item = Result<(OntologyId, raw::EntityType), QueryError>>, QueryError>
     {
         let mut compiler = SelectCompiler::new(temporal_axes);
 
-        let ontology_id_path = <R::QueryPath<'static> as OntologyQueryPath>::ontology_id();
-        let base_url_path = <R::QueryPath<'static> as OntologyQueryPath>::base_url();
-        let version_path = <R::QueryPath<'static> as OntologyQueryPath>::version();
-
         let ontology_id_index = compiler.add_distinct_selection_with_ordering(
-            &ontology_id_path,
+            &EntityTypeQueryPath::OntologyId,
             Distinctness::Distinct,
             None,
         );
-        let base_url_index = compiler.add_selection_path(&base_url_path);
-        let version_index = compiler.add_selection_path(&version_path);
+        let closed_schema_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::ClosedSchema(None));
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -520,16 +514,12 @@ impl<C: AsClient> PostgresStore<C> {
             .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
-            .map_ok(move |row| {
-                (
-                    VersionedUrl {
-                        base_url: BaseUrl::new(row.get(base_url_index))
-                            .expect("Ontology type record base URL should always be a valid URL"),
-                        version: row.get::<_, OntologyTypeVersion>(version_index).inner(),
-                    }
-                    .into(),
+            .and_then(move |row| async move {
+                Ok((
                     row.get(ontology_id_index),
-                )
+                    serde_json::from_value(row.get(closed_schema_index))
+                        .change_context(QueryError)?,
+                ))
             }))
     }
 
@@ -537,7 +527,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
-    ) -> Result<impl Iterator<Item = OntologyEdgeTraversal<L, R>> + 'r, QueryError>
+    ) -> Result<impl Iterator<Item = (OntologyId, OntologyEdgeTraversal<L, R>)> + 'r, QueryError>
     where
         L: From<VersionedUrl>,
         R: From<VersionedUrl>,
@@ -606,26 +596,30 @@ impl<C: AsClient> PostgresStore<C> {
                     // `record_ids` vectors that was just passed in.
                     unreachable!("invalid index: {error}")
                 });
-                OntologyEdgeTraversal {
-                    left_endpoint: L::from(VersionedUrl {
-                        base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
-                            // The `BaseUrl` was just inserted as a parameter to the query
-                            unreachable!("invalid URL: {error}")
+                let right_endpoint_ontology_id = row.get(5);
+                (
+                    right_endpoint_ontology_id,
+                    OntologyEdgeTraversal {
+                        left_endpoint: L::from(VersionedUrl {
+                            base_url: BaseUrl::new(row.get(1)).unwrap_or_else(|error| {
+                                // The `BaseUrl` was just inserted as a parameter to the query
+                                unreachable!("invalid URL: {error}")
+                            }),
+                            version: row.get::<_, OntologyTypeVersion>(2).inner(),
                         }),
-                        version: row.get::<_, OntologyTypeVersion>(2).inner(),
-                    }),
-                    right_endpoint: R::from(VersionedUrl {
-                        base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
-                            // The `BaseUrl` was already validated when it was inserted into
-                            // the database, so this should never happen.
-                            unreachable!("invalid URL: {error}")
+                        right_endpoint: R::from(VersionedUrl {
+                            base_url: BaseUrl::new(row.get(3)).unwrap_or_else(|error| {
+                                // The `BaseUrl` was already validated when it was inserted into
+                                // the database, so this should never happen.
+                                unreachable!("invalid URL: {error}")
+                            }),
+                            version: row.get::<_, OntologyTypeVersion>(4).inner(),
                         }),
-                        version: row.get::<_, OntologyTypeVersion>(4).inner(),
-                    }),
-                    right_endpoint_ontology_id: row.get(5),
-                    resolve_depths: record_ids.resolve_depths[index],
-                    traversal_interval: record_ids.traversal_intervals[index],
-                }
+                        right_endpoint_ontology_id,
+                        resolve_depths: record_ids.resolve_depths[index],
+                        traversal_interval: record_ids.traversal_intervals[index],
+                    },
+                )
             }))
     }
 }

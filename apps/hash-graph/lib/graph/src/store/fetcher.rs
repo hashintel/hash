@@ -1,7 +1,10 @@
 use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
-use authorization::{schema::OwnerId, AuthorizationApi};
+use authorization::{
+    schema::{EntityOwnerSubject, WebSubject},
+    AuthorizationApi,
+};
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -153,6 +156,10 @@ where
 }
 
 #[derive(Default)]
+#[expect(
+    clippy::struct_field_names,
+    reason = "Removing the postfix will be more confusing"
+)]
 struct FetchedOntologyTypes {
     data_types: Vec<(DataType, PartialOntologyElementMetadata)>,
     property_types: Vec<(PropertyType, PartialOntologyElementMetadata)>,
@@ -606,7 +613,7 @@ where
         self.store.has_account(account_id).await
     }
 
-    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<OwnerId, QueryError> {
+    async fn identify_owned_by_id(&self, owned_by_id: OwnedById) -> Result<WebSubject, QueryError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }
@@ -865,7 +872,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         owned_by_id: OwnedById,
-        owner: OwnerId,
+        owner: EntityOwnerSubject,
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,

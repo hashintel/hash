@@ -19,9 +19,10 @@ import { usePageContextOptional } from "./page-context";
 type BlockCollectionProps = {
   contents: BlockCollectionContentItem[];
   enableCommenting?: boolean;
+  readonly: boolean;
+  autoFocus?: boolean;
   ownedById: OwnedById;
   entityId: EntityId;
-  readonly: boolean;
   sx?: BoxProps["sx"];
 };
 
@@ -33,10 +34,11 @@ type BlockCollectionProps = {
  */
 export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
+  readonly,
   enableCommenting = false,
+  autoFocus = true,
   ownedById,
   entityId,
-  readonly,
   sx,
 }) => {
   const root = useRef<HTMLDivElement>(null);
@@ -93,6 +95,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
       isCommentingEnabled: enableCommenting,
+      autoFocus,
     });
 
     if (setEditorContext) {
@@ -122,6 +125,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
     pageTitleRef,
     client,
     enableCommenting,
+    autoFocus,
   ]);
 
   return (

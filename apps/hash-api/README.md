@@ -7,11 +7,18 @@ The HASH Backend API service is configured using the following environment varia
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.
 - `PORT`: the port number the API will listen on.
-- `AWS_REGION`: the AWS region to use for the Simple Email Service (SES) provider.
-- S3 file uploads:
+- `AWS_REGION`: the AWS region to use for the Simple Email Service (SES) provider
+- `FILE_UPLOAD_PROVIDER`: where to store user file uploads. Currently supported values are:
+  - `LOCAL_FILE_SYSTEM`: (default) use the local filesystem for file uploads – **not recommended for production use**
+  - `AWS_S3`: use an AWS S3-compatible service for file uploads – ensure that the environment variables below are set
+- S3 file uploads (ensure that `FILE_UPLOAD_PROVIDER=AWS_S3` is also set):
   - `AWS_S3_REGION`: (optional) the AWS region where the file uploads bucket is located. If not
     provided, `AWS_REGION` is assumed.
   - `AWS_S3_UPLOADS_BUCKET`: the name of the S3 bucket for file uploads.
+  - `AWS_S3_UPLOADS_ACCESS_KEY_ID`: (optional) the AWS access key ID to use for file uploads. Must be provided along with the secret access key if the API is not otherwise authorized to access the bucket (e.g. via an IAM role).
+  - `AWS_S3_UPLOADS_SECRET_ACCESS_KEY`: (optional) the AWS secret access key to use for file uploads.
+  - `AWS_S3_UPLOADS_ENDPOINT`: (optional) the endpoint to use for S3 operations. If not, the AWS S3 default for the given region is used. Useful if you are using a different S3-compatible storage provider.
+  - `AWS_S3_UPLOADS_FORCE_PATH_STYLE`: (optional) set `true` if your S3 setup requires path-style rather than virtual hosted-style S3 requests.
 - Postgres
   - `HASH_PG_HOST`: Postgres hostname.
   - `HASH_PG_PORT`: Postgres connection port.

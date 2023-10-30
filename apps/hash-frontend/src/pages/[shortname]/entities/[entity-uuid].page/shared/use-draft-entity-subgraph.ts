@@ -93,7 +93,7 @@ export const useDraftEntitySubgraph = (
               },
             },
           },
-        } as Subgraph<EntityRootType>);
+        });
       } finally {
         setLoading(false);
       }

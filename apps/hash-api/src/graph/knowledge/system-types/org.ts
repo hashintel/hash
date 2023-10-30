@@ -13,18 +13,20 @@ import {
   EntityUuid,
   extractAccountGroupId,
   OwnedById,
-  Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
-  addEntityViewer,
   createEntity,
   CreateEntityParams,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
   updateEntityProperty,
 } from "../primitive/entity";
 import {
@@ -64,7 +66,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   if (entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.org.schema.$id) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      SYSTEM_TYPES.entityType.org.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -156,10 +158,21 @@ export const createOrg: ImpureGraphFunction<
     entityTypeId: SYSTEM_TYPES.entityType.org.schema.$id,
     entityUuid: orgAccountGroupId as string as EntityUuid,
   });
-  await addEntityViewer(ctx, authentication, {
-    entityId: entity.metadata.recordId.entityId,
-    viewer: "public",
-  });
+  await modifyEntityAuthorizationRelationships(ctx, authentication, [
+    {
+      operation: "create",
+      relationship: {
+        subject: {
+          kind: "public",
+        },
+        relation: "generalViewer",
+        resource: {
+          kind: "entity",
+          resourceId: entity.metadata.recordId.entityId,
+        },
+      },
+    },
+  ]);
 
   return getOrgFromEntity({ entity });
 };
@@ -216,9 +229,12 @@ export const getOrgByShortname: ImpureGraphFunction<
       //   see https://linear.app/hash/issue/H-757
       temporalAxes: currentTimeInstantTemporalAxes,
     })
-    .then(({ data: userEntitiesSubgraph }) =>
-      getRoots(userEntitiesSubgraph as Subgraph<EntityRootType>),
-    );
+    .then(({ data }) => {
+      const userEntitiesSubgraph =
+        mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
+
+      return getRoots(userEntitiesSubgraph);
+    });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

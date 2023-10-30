@@ -15,6 +15,7 @@ import {
 } from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../shared/ui";
+import { useUserPermissionsOnEntity } from "../../../shared/use-user-permissions-on-entity";
 import {
   EditAuthorizationStatusMenu,
   EntityAuthorizationStatus,
@@ -27,12 +28,15 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
 }) => {
   const { entityId } = entity.metadata.recordId;
 
+  const { userPermissions } = useUserPermissionsOnEntity(entity);
+
   const { data } = useQuery<
     GetEntityAuthorizationRelationshipsQuery,
     GetEntityAuthorizationRelationshipsQueryVariables
   >(getEntityAuthorizationRelationshipsQuery, {
     variables: { entityId },
     fetchPolicy: "cache-and-network",
+    skip: !userPermissions?.viewPermissions,
   });
 
   const authorizationRelationships = data?.getEntityAuthorizationRelationships;
@@ -83,6 +87,10 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
     variant: "popover",
     popupId: "share-dropdown-menu",
   });
+
+  if (!userPermissions?.viewPermissions) {
+    return null;
+  }
 
   return (
     <>

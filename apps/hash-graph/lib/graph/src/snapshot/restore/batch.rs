@@ -40,7 +40,7 @@ impl<C: AsClient> WriteBatch<C> for SnapshotRecordBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {

@@ -20,16 +20,16 @@ jsonref = "^1.1"
 [tool.poetry.group.dev.dependencies]
 setuptools = "^68.2.2"
 httpx = "^0.25.0"
-pytest = "^7.4.2"
+pytest = "^7.4.3"
 pytest-asyncio = "^0.21.1"
 pytest-cov = "^4.1.0"
-pytest-mock = "^3.11.1"
+pytest-mock = "^3.12.0"
 pytest-vcr = "^1.0.2"
 
 [tool.poetry.group.lint-tools.dependencies]
-black = "^23.10.0"
-ruff = "^0.1.0"
-mypy = "^1.6.0"
+black = "^23.10.1"
+ruff = "^0.1.2"
+mypy = "^1.6.1"
 
 
 [tool.pytest.ini_options]

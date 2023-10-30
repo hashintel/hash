@@ -1,15 +1,12 @@
 import { useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  OrgProperties,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { EntityRootType } from "@local/hash-subgraph/.";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
@@ -22,7 +19,11 @@ import {
   StructuralQueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
-import { constructOrg, constructUser } from "../lib/user-and-org";
+import {
+  constructOrg,
+  constructUser,
+  isEntityUserEntity,
+} from "../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
@@ -33,11 +34,9 @@ import {
   parseProfilePageUrlQueryParams,
   ProfilePageTab,
 } from "./[shortname].page/util";
-import { useAuthenticatedUser } from "./shared/auth-info-context";
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
-  const { authenticatedUser } = useAuthenticatedUser();
   const { entityTypes } = useEntityTypesContextRequired();
 
   const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
@@ -47,57 +46,45 @@ const ProfilePage: NextPageWithLayout = () => {
   const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] =
     useState(false);
 
-  const { userOrOrg, userOrOrgSubgraph, loading, refetch } = useUserOrOrg({
-    shortname: profileShortname,
-    graphResolveDepths: {
-      // Required to retrieve avatars. Will need amending if we want an org's memberships (they are incoming links)
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
-    },
-    /**
-     * We need to obtain all revisions of the user or org entity
-     * to determine when the user joined or the org was created.
-     */
-    temporalAxes: {
-      pinned: { axis: "transactionTime", timestamp: null },
-      variable: {
-        axis: "decisionTime",
-        interval: { start: { kind: "unbounded" }, end: null },
+  const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
+    useUserOrOrg({
+      shortname: profileShortname,
+      graphResolveDepths: {
+        // Required to gather the avatar of the user/org (outgoing link), and an org's memberships (incoming links)
+        hasLeftEntity: { incoming: 1, outgoing: 1 },
+        hasRightEntity: { incoming: 1, outgoing: 1 },
       },
-    },
-  });
+      includePermissions: true,
+      /**
+       * We need to obtain all revisions of the user or org entity
+       * to determine when the user joined or the org was created.
+       */
+      temporalAxes: {
+        pinned: { axis: "transactionTime", timestamp: null },
+        variable: {
+          axis: "decisionTime",
+          interval: { start: { kind: "unbounded" }, end: null },
+        },
+      },
+    });
 
   const profile = useMemo(() => {
     if (!userOrOrgSubgraph || !userOrOrg) {
       return undefined;
     }
 
-    if (
-      userOrOrg.metadata.entityTypeId === types.entityType.user.entityTypeId
-    ) {
+    if (isEntityUserEntity(userOrOrg)) {
       return constructUser({
         subgraph: userOrOrgSubgraph,
-        userEntity: userOrOrg as Entity<UserProperties>,
+        userEntity: userOrOrg,
+      });
+    } else {
+      return constructOrg({
+        orgEntity: userOrOrg,
+        subgraph: userOrOrgSubgraph,
       });
     }
-
-    return constructOrg({
-      orgEntity: userOrOrg as Entity<OrgProperties>,
-      subgraph: userOrOrgSubgraph,
-    });
   }, [userOrOrgSubgraph, userOrOrg]);
-
-  const isEditable = useMemo(
-    () =>
-      profile
-        ? profile.kind === "user"
-          ? profile.accountId === authenticatedUser.accountId
-          : profile.memberships.some(
-              ({ user }) => user.accountId === authenticatedUser.accountId,
-            )
-        : false,
-    [profile, authenticatedUser],
-  );
 
   const profileNotFound = !profile && !loading;
 
@@ -142,6 +129,7 @@ const ProfilePage: NextPageWithLayout = () => {
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
+      includePermissions: false,
       query: {
         filter: {
           all: [
@@ -181,9 +169,11 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profile || !includeEntityTypeIds,
   });
 
-  const entitiesSubgraph = pinnedEntityTypesData?.structuralQueryEntities as
-    | Subgraph<EntityRootType>
-    | undefined;
+  const entitiesSubgraph = pinnedEntityTypesData
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        pinnedEntityTypesData.structuralQueryEntities.subgraph,
+      )
+    : undefined;
 
   const allPinnedEntities = useMemo(
     () => (entitiesSubgraph ? getRoots(entitiesSubgraph) : undefined),
@@ -255,7 +245,7 @@ const ProfilePage: NextPageWithLayout = () => {
     <>
       <ProfilePageHeader
         profile={profile}
-        isEditable={isEditable}
+        isEditable={canUserEdit}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         tabs={tabsWithEntities}
         currentTab={currentTab}
@@ -263,7 +253,7 @@ const ProfilePage: NextPageWithLayout = () => {
       />
       <ProfilePageContent
         profile={profile}
-        isEditable={isEditable}
+        isEditable={canUserEdit}
         refetchProfile={refetchProfile}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}

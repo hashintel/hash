@@ -3,7 +3,14 @@ import {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system/slim";
-import { BaseUrl, EntityId } from "@local/hash-subgraph";
+import {
+  BaseUrl,
+  EntityId,
+  Subgraph,
+  SubgraphRootType,
+} from "@local/hash-subgraph";
+
+import { SubgraphFieldsFragment } from "./api-types.gen";
 
 export type TextToken =
   | {
@@ -75,3 +82,21 @@ export type ConstructEntityTypeParams = Omit<
   EntityType,
   SystemDefinedProperties
 >;
+
+export type UserPermissions = {
+  view: boolean;
+  viewPermissions: boolean;
+  edit: boolean;
+  editMembers: boolean | null;
+  editPermissions: boolean;
+};
+
+export type UserPermissionsOnEntities = {
+  [key: EntityId]: UserPermissions | undefined;
+};
+
+export const mapGqlSubgraphFieldsFragmentToSubgraph = <
+  RootType extends SubgraphRootType,
+>(
+  subgraph: SubgraphFieldsFragment,
+) => subgraph as Subgraph<RootType>;

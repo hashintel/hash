@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use authorization::backend::ZanzibarBackend;
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{PropertyTypeId, PropertyTypeRelationAndSubject},
+};
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -18,6 +21,7 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
+    Relations(Vec<(PropertyTypeId, PropertyTypeRelationAndSubject)>),
 }
 
 #[async_trait]
@@ -52,9 +56,9 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
-        _authorization_api: &mut (impl ZanzibarBackend + Send),
+        authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
@@ -66,7 +70,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                             SELECT DISTINCT * FROM UNNEST($1::property_types[])
                             RETURNING 1;
                         ",
-                        &[property_types],
+                        &[&property_types],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -83,7 +87,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                          UNNEST($1::property_type_constrains_values_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[values],
+                        &[&values],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -100,13 +104,19 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                          UNNEST($1::property_type_constrains_properties_on_tmp[])
                             RETURNING 1;
                         ",
-                        &[properties],
+                        &[&properties],
                     )
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} property type property type constrains", rows.len());
                 }
+            }
+            Self::Relations(relations) => {
+                authorization_api
+                    .touch_relationships(relations)
+                    .await
+                    .change_context(InsertionError)?;
             }
         }
         Ok(())

@@ -13,10 +13,13 @@ import {
 } from "@apps/hash-api/src/graphql/context";
 import { StorageType } from "@apps/hash-api/src/storage";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
 
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   return new Array(6)
@@ -80,8 +83,11 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
-    logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
+    logger.error(
+      `Error when creating Kratos Identity, ${shortname}: ${
+        (err as Error).message
+      }`,
+    );
     throw err;
   });
 

@@ -2,7 +2,7 @@ pub mod subgraph;
 
 use graph_types::ontology::{EntityTypeMetadata, OntologyElementMetadata};
 use serde::{Deserialize, Serialize};
-use type_system::repr;
+use type_system::raw;
 use utoipa::{
     openapi::{OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
@@ -57,7 +57,7 @@ impl ToSchema<'_> for MaybeListOfEntityTypeMetadata {
     }
 }
 
-pub type MaybeListOfDataType = ListOrValue<repr::DataType>;
+pub type MaybeListOfDataType = ListOrValue<raw::DataType>;
 impl ToSchema<'_> for MaybeListOfDataType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -67,7 +67,7 @@ impl ToSchema<'_> for MaybeListOfDataType {
     }
 }
 
-pub type MaybeListOfPropertyType = ListOrValue<repr::PropertyType>;
+pub type MaybeListOfPropertyType = ListOrValue<raw::PropertyType>;
 impl ToSchema<'_> for MaybeListOfPropertyType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (
@@ -77,7 +77,7 @@ impl ToSchema<'_> for MaybeListOfPropertyType {
     }
 }
 
-pub type MaybeListOfEntityType = ListOrValue<repr::EntityType>;
+pub type MaybeListOfEntityType = ListOrValue<raw::EntityType>;
 impl ToSchema<'_> for MaybeListOfEntityType {
     fn schema() -> (&'static str, RefOr<Schema>) {
         (

@@ -26,7 +26,10 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import {
+  getRoots,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../..";
@@ -93,7 +96,11 @@ export const getEntityTypes: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, { query }) => {
   return await graphApi
     .getEntityTypesByQuery(actorId, query)
-    .then(({ data: subgraph }) => subgraph as Subgraph<EntityTypeRootType>);
+    .then(({ data }) => {
+      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(data);
+
+      return subgraph;
+    });
 };
 
 /**

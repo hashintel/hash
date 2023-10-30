@@ -56,7 +56,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
     }
 
     async fn write(
-        &self,
+        self,
         postgres_client: &PostgresStore<C>,
         _authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
@@ -71,7 +71,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[ontology_ids],
+                        &[&ontology_ids],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -87,7 +87,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                             SELECT * FROM UNNEST($1::ontology_temporal_metadata[])
                             RETURNING 1;
                         ",
-                        &[ontology_temporal_metadata],
+                        &[&ontology_temporal_metadata],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -104,7 +104,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[ontology_owned_metadata],
+                        &[&ontology_owned_metadata],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -121,7 +121,7 @@ impl<C: AsClient> WriteBatch<C> for OntologyTypeMetadataRowBatch {
                             ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
-                        &[ontology_external_metadata],
+                        &[&ontology_external_metadata],
                     )
                     .await
                     .change_context(InsertionError)?;

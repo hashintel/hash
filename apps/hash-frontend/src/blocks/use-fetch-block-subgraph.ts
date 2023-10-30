@@ -1,8 +1,12 @@
+import { useLazyQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   Entity,
   EntityId,
   EntityRevisionId,
+  EntityRootType,
   GraphResolveDepths,
   KnowledgeGraphVertices,
   RecordCreatedById,
@@ -11,20 +15,36 @@ import {
 } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
-import { useBlockProtocolGetEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+  SubgraphAndPermissions,
+} from "../graphql/api-types.gen";
 
-export const useFetchBlockSubgraph = () => {
-  const { getEntity } = useBlockProtocolGetEntity();
+export const useFetchBlockSubgraph = (): ((
+  blockEntityTypeId: VersionedUrl,
+  blockEntityId?: EntityId,
+) => Promise<
+  Omit<SubgraphAndPermissions, "subgraph"> & {
+    subgraph: Subgraph<EntityRootType>;
+  }
+>) => {
+  const [getEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
   const fetchBlockSubgraph = useCallback(
     async (blockEntityTypeId: VersionedUrl, blockEntityId?: EntityId) => {
       const depths: GraphResolveDepths = {
-        inheritsFrom: { outgoing: 0 },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        isOfType: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 1 },
+        constrainsLinkDestinationsOn: { outgoing: 1 },
+        inheritsFrom: { outgoing: 255 },
+        isOfType: { outgoing: 1 },
         hasRightEntity: {
           incoming: 2,
           outgoing: 2,
@@ -95,7 +115,7 @@ export const useFetchBlockSubgraph = () => {
             },
           },
         } as const;
-        const blockEntitySubgraph: Subgraph = {
+        const blockEntitySubgraph: Subgraph<EntityRootType> = {
           depths,
           edges: {},
           roots: [
@@ -118,22 +138,38 @@ export const useFetchBlockSubgraph = () => {
           },
         };
 
-        return blockEntitySubgraph;
+        return {
+          subgraph: blockEntitySubgraph,
+          userPermissionsOnEntities: {},
+        } satisfies SubgraphAndPermissions;
       }
 
       return getEntity({
-        data: { entityId: blockEntityId },
+        variables: {
+          entityId: blockEntityId,
+          includePermissions: true,
+          ...depths,
+        },
       })
-        .then(({ data, errors }) => {
+        .then(({ data, error }) => {
           if (!data) {
             throw new Error(
-              `Could not get entity ${blockEntityId} ${
-                errors ? JSON.stringify(errors, null, 2) : ""
+              `Could not get entity ${blockEntityId}: ${
+                error ? error.message : "unknown error"
               }`,
             );
           }
 
-          return data;
+          const subgraph =
+            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+              data.getEntity.subgraph,
+            );
+
+          return {
+            subgraph,
+            userPermissionsOnEntities:
+              data.getEntity.userPermissionsOnEntities!,
+          } satisfies SubgraphAndPermissions;
         })
         .catch((err) => {
           // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors

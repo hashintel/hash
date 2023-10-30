@@ -4,17 +4,14 @@ use std::{
     task::{ready, Context, Poll},
 };
 
-use authorization::schema::{AccountGroupPermission, OwnerId, WebRelation};
+use authorization::schema::WebRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::{
-    account::{AccountGroupId, AccountId},
-    web::WebId,
-};
+use graph_types::web::WebId;
 
 use crate::snapshot::{web::WebBatch, SnapshotRestoreError, Web};
 
@@ -24,9 +21,7 @@ use crate::snapshot::{web::WebBatch, SnapshotRestoreError, Web};
 /// function.
 #[derive(Debug, Clone)]
 pub struct WebSender {
-    web_account_relation: Sender<(WebId, WebRelation, AccountId)>,
-    web_account_group_relation:
-        Sender<(WebId, WebRelation, AccountGroupId, AccountGroupPermission)>,
+    relations: Sender<(WebId, WebRelationAndSubject)>,
 }
 
 impl Sink<Web> for WebSender {
@@ -36,44 +31,19 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.web_account_relation.poll_ready_unpin(cx))
+        ready!(self.relations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll web account relation sender")?;
-        ready!(self.web_account_group_relation.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll web account group relation sender")?;
+            .attach_printable("could not poll web relations sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn start_send(mut self: Pin<&mut Self>, item: Web) -> StdResult<(), Self::Error> {
-        let owner_relations = item
-            .owners
-            .into_iter()
-            .map(|owner| (WebRelation::DirectOwner, owner));
-        let editor_relations = item
-            .editors
-            .into_iter()
-            .map(|owner| (WebRelation::DirectEditor, owner));
-
-        for (relation, id) in owner_relations.chain(editor_relations) {
-            match id {
-                OwnerId::Account(account_id) => self
-                    .web_account_relation
-                    .start_send_unpin((item.id, relation, account_id))
-                    .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send web account relation owner")?,
-                OwnerId::AccountGroupMembers(account_group_id) => self
-                    .web_account_group_relation
-                    .start_send_unpin((
-                        item.id,
-                        relation,
-                        account_group_id,
-                        AccountGroupPermission::Member,
-                    ))
-                    .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send web account group relation owners")?,
-            }
+        for relation_and_subject in item.relations {
+            self.relations
+                .start_send_unpin((item.id, relation_and_subject))
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send web relations")?;
         }
         Ok(())
     }
@@ -82,12 +52,9 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.web_account_relation.poll_flush_unpin(cx))
+        ready!(self.relations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush web account relation sender")?;
-        ready!(self.web_account_relation.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush web account group relation sender")?;
+            .attach_printable("could not flush web relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -96,12 +63,9 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.web_account_relation.poll_close_unpin(cx))
+        ready!(self.relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close web account relation sender")?;
-        ready!(self.web_account_relation.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close web account group relation sender")?;
+            .attach_printable("could not close web relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -129,25 +93,17 @@ impl Stream for WebReceiver {
 ///
 /// The `chunk_size` parameter determines the number of ids are sent in a single batch.
 pub fn channel(chunk_size: usize) -> (WebSender, WebReceiver) {
-    let (web_account_relation_tx, web_account_relation_rx) = mpsc::channel(chunk_size);
-    let (web_account_group_relation_tx, web_account_group_relation_rx) = mpsc::channel(chunk_size);
+    let (web_relations_tx, web_relations_rx) = mpsc::channel(chunk_size);
 
     (
         WebSender {
-            web_account_relation: web_account_relation_tx,
-            web_account_group_relation: web_account_group_relation_tx,
+            relations: web_relations_tx,
         },
         WebReceiver {
-            stream: select_all([
-                web_account_relation_rx
-                    .ready_chunks(chunk_size)
-                    .map(WebBatch::Accounts)
-                    .boxed(),
-                web_account_group_relation_rx
-                    .ready_chunks(chunk_size)
-                    .map(WebBatch::AccountGroups)
-                    .boxed(),
-            ]),
+            stream: select_all([web_relations_rx
+                .ready_chunks(chunk_size)
+                .map(WebBatch::Relations)
+                .boxed()]),
         },
     )
 }

@@ -1,10 +1,5 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import {
-  AccountEntityId,
-  Entity,
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -15,6 +10,7 @@ import {
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  modifyEntityAuthorizationRelationships,
   updateEntityProperties,
   updateEntityProperty,
 } from "../primitive/entity";
@@ -45,7 +41,7 @@ export const getCommentFromEntity: PureGraphFunction<
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.block.schema.$id,
+      SYSTEM_TYPES.entityType.comment.schema.$id,
       entity.metadata.entityTypeId,
     );
   }
@@ -136,11 +132,13 @@ export const createComment: ImpureGraphFunction<
   const [commentEntity, textEntity] = await Promise.all([
     createEntity(ctx, authentication, {
       ownedById,
+      owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
       properties: {},
       entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
     }),
     createEntity(ctx, authentication, {
       ownedById,
+      owner: author.accountId,
       properties: {
         [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
       },
@@ -148,26 +146,57 @@ export const createComment: ImpureGraphFunction<
     }),
   ]);
 
-  await Promise.all([
+  const linkEntities = await Promise.all([
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: textEntity.metadata.recordId.entityId,
       ownedById,
+      owner: author.accountId,
     }),
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: parentEntityId,
       ownedById,
+      owner: author.accountId,
     }),
     createLinkEntity(ctx, authentication, {
       linkEntityType: SYSTEM_TYPES.linkEntityType.author,
       leftEntityId: commentEntity.metadata.recordId.entityId,
       rightEntityId: author.entity.metadata.recordId.entityId,
       ownedById,
+      owner: author.accountId,
     }),
   ]);
+
+  if (author.accountId !== ownedById) {
+    /**
+     * If this is a comment on an org's entity, we want the comment to belong to the org's web,
+     * represented by the ownedById (to be renamed to webId for clarity, see H-1063).
+     *
+     * But in terms of _permissions_ we want the comment author to be the 'owner' and members of the org
+     * to be viewers only, so that they cannot edit each other's comments.
+     */
+    await modifyEntityAuthorizationRelationships(
+      ctx,
+      authentication,
+      [textEntity, commentEntity, ...linkEntities].map((entity) => ({
+        operation: "create",
+        relationship: {
+          subject: {
+            subjectId: ownedById as AccountGroupId,
+            kind: "accountGroup",
+          },
+          relation: "generalViewer",
+          resource: {
+            kind: "entity",
+            resourceId: entity.metadata.recordId.entityId,
+          },
+        },
+      })),
+    );
+  }
 
   return getCommentFromEntity({ entity: commentEntity });
 };
@@ -187,14 +216,6 @@ export const updateCommentText: ImpureGraphFunction<
   Promise<void>
 > = async (ctx, authentication, params) => {
   const { commentEntityId, tokens } = params;
-
-  if (
-    authentication.actorId !== extractOwnedByIdFromEntityId(commentEntityId)
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to edit the comment with entityId ${commentEntityId}`,
-    );
-  }
 
   const textEntity = await getCommentText(ctx, authentication, {
     commentEntityId,
@@ -221,18 +242,6 @@ export const deleteComment: ImpureGraphFunction<
   Promise<Comment>
 > = async (ctx, authentication, params) => {
   const { comment } = params;
-
-  // Throw error if the user trying to delete the comment is not the comment's author
-  if (
-    authentication.actorId !==
-    extractOwnedByIdFromEntityId(
-      comment.entity.metadata.recordId.entityId as AccountEntityId,
-    )
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to delete the comment with entityId ${comment.entity.metadata.recordId}`,
-    );
-  }
 
   const updatedCommentEntity = await updateEntityProperties(
     ctx,
@@ -356,26 +365,6 @@ export const resolveComment: ImpureGraphFunction<
   Promise<Comment>
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { comment } = params;
-
-  const commentEntityId = comment.entity.metadata.recordId.entityId;
-
-  const [parent, author] = await Promise.all([
-    getCommentParent(ctx, authentication, { commentEntityId }),
-    getCommentAuthor(ctx, authentication, { commentEntityId }),
-  ]);
-
-  // Throw error if the user trying to resolve the comment is not the comment's author
-  // or the author of the block the comment is attached to
-  if (
-    authentication.actorId !== author.accountId &&
-    parent.metadata.entityTypeId === SYSTEM_TYPES.entityType.block.schema.$id &&
-    authentication.actorId !==
-      extractOwnedByIdFromEntityId(parent.metadata.recordId.entityId)
-  ) {
-    throw new Error(
-      `Critical: account ${authentication.actorId} does not have permission to resolve the comment with entityId ${commentEntityId}`,
-    );
-  }
 
   const updatedEntity = await updateEntityProperties(ctx, authentication, {
     entity: comment.entity,

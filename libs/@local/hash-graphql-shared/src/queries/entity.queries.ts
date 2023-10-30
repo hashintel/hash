@@ -10,6 +10,7 @@ export const getEntityQuery = gql`
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $includePermissions: Boolean!
     $inheritsFrom: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
     $hasLeftEntity: EdgeResolveDepthsInput!
@@ -27,8 +28,17 @@ export const getEntityQuery = gql`
       hasLeftEntity: $hasLeftEntity
       hasRightEntity: $hasRightEntity
     ) {
-      ...SubgraphFields
+      userPermissionsOnEntities @include(if: $includePermissions)
+      subgraph {
+        ...SubgraphFields
+      }
     }
   }
   ${subgraphFieldsFragment}
+`;
+
+export const checkUserPermissionsOnEntityQuery = gql`
+  query checkUserPermissionsOnEntity($metadata: EntityMetadata!) {
+    checkUserPermissionsOnEntity(metadata: $metadata)
+  }
 `;

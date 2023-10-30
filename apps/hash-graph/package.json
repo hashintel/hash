@@ -12,11 +12,12 @@
     }
   },
   "scripts": {
-    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../",
-    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../",
-    "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../",
-    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../",
+    "build:docker": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:offline": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TYPE_FETCHER=no --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:prod": "docker buildx build --build-arg PROFILE=production --tag hash-graph --tag hash-graph:prod --file docker/Dockerfile ../../ --load",
+    "build:docker:test": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --tag hash-graph:test --file docker/Dockerfile ../../ --load",
     "codegen:generate-openapi-specs": "just generate-openapi-specs",
+    "dev": "RUST_LOG=info cargo run --all-features -- server",
     "exe": "ts-node",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
@@ -33,7 +34,7 @@
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private",
-    "httpyac": "6.7.1",
+    "httpyac": "6.8.2",
     "quicktype": "^16.0.43",
     "typescript": "5.1.6"
   }
