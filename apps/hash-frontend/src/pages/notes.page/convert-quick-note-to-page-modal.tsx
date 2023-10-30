@@ -72,7 +72,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
     const title = !data.title ? defaultTitle : data.title;
 
-    const prevIndex =
+    const prevFractionalIndex =
       pages
         .filter((potentialSiblingPage) =>
           parentPage
@@ -81,11 +81,11 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
                 parentPage.metadata.recordId.entityId
             : !potentialSiblingPage.parentPage,
         )
-        .map((sibling) => sibling.index)
+        .map((sibling) => sibling.fractionalIndex)
         .sort()
         .slice(-1)[0] ?? null;
 
-    const index = generateKeyBetween(prevIndex, null);
+    const fractionalIndex = generateKeyBetween(prevFractionalIndex, null);
 
     const { data: pageEntity, errors } = await updateEntity({
       data: {
@@ -95,7 +95,8 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         entityTypeId: types.entityType.page.entityTypeId,
         properties: {
           [extractBaseUrl(types.propertyType.title.propertyTypeId)]: title,
-          [extractBaseUrl(types.propertyType.index.propertyTypeId)]: index,
+          [extractBaseUrl(types.propertyType.fractionalIndex.propertyTypeId)]:
+            fractionalIndex,
         },
       },
     });
@@ -120,7 +121,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     onConvertedToPage({
       archived: false,
       title,
-      index,
+      fractionalIndex,
       parentPage,
       ...pageEntity,
     });
