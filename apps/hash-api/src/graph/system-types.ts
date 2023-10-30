@@ -51,8 +51,11 @@ export let SYSTEM_TYPES: {
     archived: PropertyTypeWithMetadata;
     summary: PropertyTypeWithMetadata;
     title: PropertyTypeWithMetadata;
-    index: PropertyTypeWithMetadata;
+    fractionalIndex: PropertyTypeWithMetadata;
     icon: PropertyTypeWithMetadata;
+
+    // Contains related
+    numericIndex: PropertyTypeWithMetadata;
 
     // Text-related
     tokens: PropertyTypeWithMetadata;
@@ -872,8 +875,8 @@ const titlePropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const indexPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.index,
+const fractionalIndexPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fractionalIndex,
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
@@ -882,14 +885,35 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
+const numericIndexPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.numericIndex,
+  possibleValues: [{ primitiveDataType: "number" }],
+});
+
 /**
  * @todo this 'contains' link type is used to link a page to blocks it contains
  *     for both canvas and document mode. We probably want to split these out into two links,
  *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
  */
-const containsLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.contains,
-);
+const containsLinkEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const numericIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.numericIndex(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.linkEntityType.contains,
+    properties: [
+      {
+        propertyType: numericIndexPropertyType,
+      },
+    ],
+  })(context);
+};
 
 const blockCollectionEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -951,8 +975,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const titlePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
 
-  const indexPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(context);
+  const fractionalIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
 
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
@@ -983,7 +1007,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
-        propertyType: indexPropertyType,
+        propertyType: fractionalIndexPropertyType,
         required: true,
       },
     ],
@@ -1397,8 +1421,10 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     summary: summaryPropertyTypeInitializer,
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
-    index: indexPropertyTypeInitializer,
+    fractionalIndex: fractionalIndexPropertyTypeInitializer,
     icon: iconPropertyTypeInitializer,
+
+    numericIndex: numericIndexPropertyTypeInitializer,
 
     tokens: tokensPropertyTypeInitializer,
 

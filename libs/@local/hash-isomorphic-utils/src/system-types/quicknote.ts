@@ -5,6 +5,7 @@
 import { Entity } from "@blockprotocol/graph";
 
 import {
+  ArchivedPropertyValue,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -19,6 +20,7 @@ import {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   ComponentIdPropertyValue,
   Contains,
   ContainsOutgoingLinkAndTarget,
@@ -28,10 +30,13 @@ import {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NumberDataType,
+  NumericIndexPropertyValue,
   TextDataType,
 } from "./shared";
 
 export type {
+  ArchivedPropertyValue,
   Block,
   BlockBlockDataLink,
   BlockCollection,
@@ -46,6 +51,7 @@ export type {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   ComponentIdPropertyValue,
   Contains,
   ContainsOutgoingLinkAndTarget,
@@ -55,6 +61,8 @@ export type {
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
+  NumberDataType,
+  NumericIndexPropertyValue,
   TextDataType,
 };
 
@@ -67,4 +75,6 @@ export type QuickNoteOutgoingLinksByLinkEntityTypeId = {};
 export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
 export type QuickNoteProperties1 = BlockCollectionProperties;
 
-export type QuickNoteProperties2 = {};
+export type QuickNoteProperties2 = {
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+};

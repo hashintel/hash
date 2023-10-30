@@ -194,7 +194,7 @@ where
 
 #[utoipa::path(
     get,
-    path = "/account_groups/{account_group_id}/permissions/add_owner",
+    path = "/account_groups/{account_group_id}/permissions/{permission}",
     tag = "Account Group",
     params(
         ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),

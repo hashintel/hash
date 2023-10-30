@@ -6,13 +6,13 @@ export const setParentPage = gql`
   mutation setParentPage(
     $pageEntityId: EntityId!
     $parentPageEntityId: EntityId
-    $prevIndex: String
+    $prevFractionalIndex: String
     $nextIndex: String
   ) {
     setParentPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
-      prevIndex: $prevIndex
+      prevFractionalIndex: $prevFractionalIndex
       nextIndex: $nextIndex
     ) {
       metadata

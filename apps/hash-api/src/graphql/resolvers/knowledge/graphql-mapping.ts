@@ -22,7 +22,7 @@ export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
   title: page.title,
   archived: page.archived,
   summary: page.summary,
-  index: page.index,
+  fractionalIndex: page.fractionalIndex,
   icon: page.icon,
 });
 

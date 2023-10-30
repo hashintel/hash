@@ -34,14 +34,14 @@ export const useReorderPage = () => {
     async (
       pageEntityId: EntityId,
       parentPageEntityId: EntityId | null,
-      prevIndex: string | null,
+      prevFractionalIndex: string | null,
       nextIndex: string | null,
     ) => {
       await setParentPageFn({
         variables: {
           parentPageEntityId,
           pageEntityId,
-          prevIndex,
+          prevFractionalIndex,
           nextIndex,
         },
       });
