@@ -2,7 +2,10 @@
  * This file was automatically generated – do not edit it.
  */
 
+import { Entity, LinkData } from "@blockprotocol/graph";
+
 import {
+  ArchivedPropertyValue,
   Author,
   AuthorOutgoingLinkAndTarget,
   AuthorOutgoingLinksByLinkEntityTypeId,
@@ -21,6 +24,7 @@ import {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   Comment,
   CommentAuthorLink,
   CommentHasTextLink,
@@ -45,6 +49,10 @@ import {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
+  HasAction,
+  HasActionOutgoingLinkAndTarget,
+  HasActionOutgoingLinksByLinkEntityTypeId,
+  HasActionProperties,
   HasAvatar,
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
@@ -65,10 +73,12 @@ import {
   HasTextOutgoingLinkAndTarget,
   HasTextOutgoingLinksByLinkEntityTypeId,
   HasTextProperties,
+  IconPropertyValue,
   Image,
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IndexPropertyValue,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -76,8 +86,21 @@ import {
   LinkProperties,
   LocationPropertyValue,
   MIMETypePropertyValue,
+  Notification,
+  NotificationAction,
+  NotificationActionOutgoingLinkAndTarget,
+  NotificationActionOutgoingLinksByLinkEntityTypeId,
+  NotificationActionProperties,
+  NotificationHasActionLink,
+  NotificationOutgoingLinkAndTarget,
+  NotificationOutgoingLinksByLinkEntityTypeId,
+  NotificationProperties,
   NumberDataType,
   ObjectDataType,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -95,6 +118,11 @@ import {
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
+  Page,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageParentLink,
+  PageProperties,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
@@ -113,12 +141,19 @@ import {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ShortnamePropertyValue,
+  SummaryPropertyValue,
   Text,
   TextDataType,
   TextOutgoingLinkAndTarget,
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
+  TitlePropertyValue,
   TokensPropertyValue,
+  TriggeredByUser,
+  TriggeredByUserOutgoingLinkAndTarget,
+  TriggeredByUserOutgoingLinksByLinkEntityTypeId,
+  TriggeredByUserProperties,
+  URLPropertyValue,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -131,6 +166,7 @@ import {
 } from "./shared";
 
 export type {
+  ArchivedPropertyValue,
   Author,
   AuthorOutgoingLinkAndTarget,
   AuthorOutgoingLinksByLinkEntityTypeId,
@@ -149,6 +185,7 @@ export type {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   Comment,
   CommentAuthorLink,
   CommentHasTextLink,
@@ -173,6 +210,10 @@ export type {
   FileProperties,
   FileSizePropertyValue,
   FileURLPropertyValue,
+  HasAction,
+  HasActionOutgoingLinkAndTarget,
+  HasActionOutgoingLinksByLinkEntityTypeId,
+  HasActionProperties,
   HasAvatar,
   HasAvatarOutgoingLinkAndTarget,
   HasAvatarOutgoingLinksByLinkEntityTypeId,
@@ -193,10 +234,12 @@ export type {
   HasTextOutgoingLinkAndTarget,
   HasTextOutgoingLinksByLinkEntityTypeId,
   HasTextProperties,
+  IconPropertyValue,
   Image,
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
+  IndexPropertyValue,
   KratosIdentityIdPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
@@ -204,8 +247,21 @@ export type {
   LinkProperties,
   LocationPropertyValue,
   MIMETypePropertyValue,
+  Notification,
+  NotificationAction,
+  NotificationActionOutgoingLinkAndTarget,
+  NotificationActionOutgoingLinksByLinkEntityTypeId,
+  NotificationActionProperties,
+  NotificationHasActionLink,
+  NotificationOutgoingLinkAndTarget,
+  NotificationOutgoingLinksByLinkEntityTypeId,
+  NotificationProperties,
   NumberDataType,
   ObjectDataType,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -223,6 +279,11 @@ export type {
   OriginalFileNamePropertyValue,
   OriginalSourcePropertyValue,
   OriginalURLPropertyValue,
+  Page,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageParentLink,
+  PageProperties,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
@@ -241,12 +302,19 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ShortnamePropertyValue,
+  SummaryPropertyValue,
   Text,
   TextDataType,
   TextOutgoingLinkAndTarget,
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
+  TitlePropertyValue,
   TokensPropertyValue,
+  TriggeredByUser,
+  TriggeredByUserOutgoingLinkAndTarget,
+  TriggeredByUserOutgoingLinksByLinkEntityTypeId,
+  TriggeredByUserProperties,
+  URLPropertyValue,
   User,
   UserHasAvatarLink,
   UserHasBioLink,
@@ -257,3 +325,54 @@ export type {
   UserProperties,
   WebsitePropertyValue,
 };
+
+export type CommentNotification = Entity<CommentNotificationProperties>;
+
+export type CommentNotificationOccurredInEntityLink = {
+  linkEntity: OccurredInEntity;
+  rightEntity: Page;
+};
+
+export type CommentNotificationOutgoingLinkAndTarget =
+  | CommentNotificationOccurredInEntityLink
+  | CommentNotificationRepliedToCommentLink
+  | CommentNotificationTriggeredByUserLink;
+
+export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
+  "http://localhost:3000/@system-user/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
+};
+
+export type CommentNotificationProperties = CommentNotificationProperties1 &
+  CommentNotificationProperties2;
+export type CommentNotificationProperties1 = NotificationProperties;
+
+export type CommentNotificationProperties2 = {};
+
+export type CommentNotificationRepliedToCommentLink = {
+  linkEntity: RepliedToComment;
+  rightEntity: Comment;
+};
+
+export type CommentNotificationTriggeredByUserLink = {
+  linkEntity: TriggeredByUser;
+  rightEntity: User;
+};
+
+export type RepliedToComment = Entity<RepliedToCommentProperties> & {
+  linkData: LinkData;
+};
+
+export type RepliedToCommentOutgoingLinkAndTarget = never;
+
+export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A comment that was replied to.
+ */
+export type RepliedToCommentProperties = RepliedToCommentProperties1 &
+  RepliedToCommentProperties2;
+export type RepliedToCommentProperties1 = LinkProperties;
+
+export type RepliedToCommentProperties2 = {};

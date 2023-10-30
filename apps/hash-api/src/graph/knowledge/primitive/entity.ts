@@ -49,12 +49,20 @@ import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../system-types";
-import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
+import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
+import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
+import {
+  createLinkEntity,
+  CreateLinkEntityParams,
+  isEntityLinkEntity,
+} from "./link-entity";
 
 export type CreateEntityParams = {
   ownedById: OwnedById;
   properties: EntityPropertiesObject;
   entityTypeId: VersionedUrl;
+  outgoingLinks?: Omit<CreateLinkEntityParams, "leftEntityId">[];
   entityUuid?: EntityUuid;
   owner?: AccountId | AccountGroupId;
 };
@@ -74,13 +82,17 @@ export type PropertyValue = EntityPropertiesObject[BaseUrl];
 export const createEntity: ImpureGraphFunction<
   CreateEntityParams,
   Promise<Entity>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const {
     ownedById,
     entityTypeId,
     properties,
+    outgoingLinks,
     entityUuid: overrideEntityUuid,
   } = params;
+
+  const { graphApi } = context;
+  const { actorId } = authentication;
 
   const { data: metadata } = await graphApi.createEntity(actorId, {
     ownedById,
@@ -90,10 +102,26 @@ export const createEntity: ImpureGraphFunction<
     owner: params.owner ?? ownedById,
   });
 
-  return {
-    properties,
-    metadata: metadata as EntityMetadata,
-  };
+  let entity = { properties, metadata: metadata as EntityMetadata };
+
+  for (const createOutgoingLinkParams of outgoingLinks ?? []) {
+    await createLinkEntity(context, authentication, {
+      ...createOutgoingLinkParams,
+      leftEntityId: entity.metadata.recordId.entityId,
+    });
+  }
+
+  for (const afterCreateHook of afterCreateEntityHooks) {
+    if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {
+      entity = await afterCreateHook.callback({
+        context,
+        entity,
+        authentication,
+      });
+    }
+  }
+
+  return entity;
 };
 
 /**
@@ -343,13 +371,27 @@ export const createEntityWithLinks: ImpureGraphFunction<
  */
 export const updateEntity: ImpureGraphFunction<
   {
-    entity: Pick<Entity, "metadata">;
+    entity: Entity;
     entityTypeId?: VersionedUrl;
     properties: EntityPropertiesObject;
   },
   Promise<Entity>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const { entity, properties, entityTypeId } = params;
+
+  for (const beforeUpdateHook of beforeUpdateEntityHooks) {
+    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+      await beforeUpdateHook.callback({
+        context,
+        entity,
+        updatedProperties: properties,
+        authentication,
+      });
+    }
+  }
+
+  const { graphApi } = context;
+  const { actorId } = authentication;
 
   const { data: metadata } = await graphApi.updateEntity(actorId, {
     entityId: entity.metadata.recordId.entityId,
@@ -362,6 +404,17 @@ export const updateEntity: ImpureGraphFunction<
     archived: entity.metadata.archived,
     properties,
   });
+
+  for (const afterUpdateHook of afterUpdateEntityHooks) {
+    if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+      await afterUpdateHook.callback({
+        context,
+        entity,
+        updatedProperties: properties,
+        authentication,
+      });
+    }
+  }
 
   return {
     ...entity,

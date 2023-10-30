@@ -7,9 +7,9 @@ export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLConte
   async ({ metadata }, _, { dataSources, authentication }) => {
     const context = dataSourcesToImpureGraphContext(dataSources);
 
-    const textEntity = await getCommentText(context, authentication, {
+    const text = await getCommentText(context, authentication, {
       commentEntityId: metadata.recordId.entityId,
     });
 
-    return textEntity.metadata.temporalVersioning;
+    return text.entity.metadata.temporalVersioning;
   };

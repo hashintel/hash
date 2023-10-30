@@ -4,6 +4,25 @@
 
 import { Entity, LinkData } from "@blockprotocol/graph";
 
+/**
+ * Whether or not something has been archived.
+ */
+export type ArchivedPropertyValue = BooleanDataType;
+
+export type Author = Entity<AuthorProperties> & { linkData: LinkData };
+
+export type AuthorOutgoingLinkAndTarget = never;
+
+export type AuthorOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The author of something.
+ */
+export type AuthorProperties = AuthorProperties1 & AuthorProperties2;
+export type AuthorProperties1 = LinkProperties;
+
+export type AuthorProperties2 = {};
+
 export type Block = Entity<BlockProperties>;
 
 export type BlockBlockDataLink = { linkEntity: BlockData; rightEntity: Entity };
@@ -52,6 +71,33 @@ export type BlockProperties = {
  */
 export type BooleanDataType = boolean;
 
+export type Comment = Entity<CommentProperties>;
+
+export type CommentAuthorLink = { linkEntity: Author; rightEntity: User };
+
+export type CommentHasTextLink = { linkEntity: HasText; rightEntity: Text };
+
+export type CommentOutgoingLinkAndTarget =
+  | CommentAuthorLink
+  | CommentHasTextLink
+  | CommentParentLink;
+
+export type CommentOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
+  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
+};
+
+export type CommentParentLink = {
+  linkEntity: Parent;
+  rightEntity: Comment | Block;
+};
+
+export type CommentProperties = {
+  "http://localhost:3000/@system-user/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
+};
+
 export type ComponentIdPropertyValue = TextDataType;
 
 /**
@@ -72,6 +118,11 @@ export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
 export type ContainsProperties1 = LinkProperties;
 
 export type ContainsProperties2 = {};
+
+/**
+ * Stringified timestamp of when something was deleted.
+ */
+export type DeletedAtPropertyValue = TextDataType;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -131,6 +182,20 @@ export type FileSizePropertyValue = NumberDataType;
  * A URL that serves a file.
  */
 export type FileURLPropertyValue = TextDataType;
+
+export type HasAction = Entity<HasActionProperties> & { linkData: LinkData };
+
+export type HasActionOutgoingLinkAndTarget = never;
+
+export type HasActionOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Has an action.
+ */
+export type HasActionProperties = HasActionProperties1 & HasActionProperties2;
+export type HasActionProperties1 = LinkProperties;
+
+export type HasActionProperties2 = {};
 
 export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
 
@@ -194,6 +259,25 @@ export type HasServiceAccountProperties1 = LinkProperties;
 
 export type HasServiceAccountProperties2 = {};
 
+export type HasText = Entity<HasTextProperties> & { linkData: LinkData };
+
+export type HasTextOutgoingLinkAndTarget = never;
+
+export type HasTextOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The text something has.
+ */
+export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
+export type HasTextProperties1 = LinkProperties;
+
+export type HasTextProperties2 = {};
+
+/**
+ * An emoji icon.
+ */
+export type IconPropertyValue = TextDataType;
+
 export type Image = Entity<ImageProperties>;
 
 export type ImageOutgoingLinkAndTarget = never;
@@ -207,6 +291,11 @@ export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
 export type ImageProperties2 = {};
+
+/**
+ * The (fractional) index indicating the current position of something.
+ */
+export type IndexPropertyValue = TextDataType;
 
 export type KratosIdentityIdPropertyValue = TextDataType;
 
@@ -230,6 +319,34 @@ export type LocationPropertyValue = TextDataType;
  */
 export type MIMETypePropertyValue = TextDataType;
 
+export type Notification = Entity<NotificationProperties>;
+
+export type NotificationAction = Entity<NotificationActionProperties>;
+
+export type NotificationActionOutgoingLinkAndTarget = never;
+
+export type NotificationActionOutgoingLinksByLinkEntityTypeId = {};
+
+export type NotificationActionProperties = {
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/url/": URLPropertyValue;
+};
+
+export type NotificationHasActionLink = {
+  linkEntity: HasAction;
+  rightEntity: NotificationAction;
+};
+
+export type NotificationOutgoingLinkAndTarget = NotificationHasActionLink;
+
+export type NotificationOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/has-action/v/1": NotificationHasActionLink;
+};
+
+export type NotificationProperties = {
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+};
+
 /**
  * An arithmetical value (in the Real number system)
  */
@@ -239,6 +356,23 @@ export type NumberDataType = number;
  * An opaque, untyped JSON object
  */
 export type ObjectDataType = {};
+
+export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
+  linkData: LinkData;
+};
+
+export type OccurredInEntityOutgoingLinkAndTarget = never;
+
+export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An entity that something occurred in.
+ */
+export type OccurredInEntityProperties = OccurredInEntityProperties1 &
+  OccurredInEntityProperties2;
+export type OccurredInEntityProperties1 = LinkProperties;
+
+export type OccurredInEntityProperties2 = {};
 
 export type Org = Entity<OrgProperties>;
 
@@ -336,6 +470,27 @@ export type OriginalSourcePropertyValue = TextDataType;
  */
 export type OriginalURLPropertyValue = TextDataType;
 
+export type Page = Entity<PageProperties>;
+
+export type PageOutgoingLinkAndTarget = PageParentLink;
+
+export type PageOutgoingLinksByLinkEntityTypeId = {
+  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": PageParentLink;
+};
+
+export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
+
+export type PageProperties = PageProperties1 & PageProperties2;
+export type PageProperties1 = BlockCollectionProperties;
+
+export type PageProperties2 = {
+  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+};
+
 export type Parent = Entity<ParentProperties> & { linkData: LinkData };
 
 export type ParentOutgoingLinkAndTarget = never;
@@ -376,6 +531,11 @@ export type ProfileBioProperties2 = {};
  */
 export type ProfileURLPropertyValue = TextDataType;
 
+/**
+ * Stringified timestamp of when something was resolved.
+ */
+export type ResolvedAtPropertyValue = TextDataType;
+
 export type ServiceAccount = Entity<ServiceAccountProperties>;
 
 export type ServiceAccountOutgoingLinkAndTarget = never;
@@ -394,6 +554,11 @@ export type ServiceAccountProperties = {
  */
 export type ShortnamePropertyValue = TextDataType;
 
+/**
+ * The summary of the something.
+ */
+export type SummaryPropertyValue = TextDataType;
+
 export type Text = Entity<TextProperties>;
 
 /**
@@ -409,7 +574,34 @@ export type TextProperties = {
   "http://localhost:3000/@system-user/types/property-type/tokens/": TokensPropertyValue[];
 };
 
+/**
+ * The title of something.
+ */
+export type TitlePropertyValue = TextDataType;
+
 export type TokensPropertyValue = ObjectDataType;
+
+export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
+  linkData: LinkData;
+};
+
+export type TriggeredByUserOutgoingLinkAndTarget = never;
+
+export type TriggeredByUserOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A user that triggered something.
+ */
+export type TriggeredByUserProperties = TriggeredByUserProperties1 &
+  TriggeredByUserProperties2;
+export type TriggeredByUserProperties1 = LinkProperties;
+
+export type TriggeredByUserProperties2 = {};
+
+/**
+ * A URL.
+ */
+export type URLPropertyValue = TextDataType;
 
 export type User = Entity<UserProperties>;
 

@@ -15,10 +15,11 @@ import {
   updateEntityProperty,
 } from "../primitive/entity";
 import {
-  createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "../primitive/link-entity";
+import { Block, getBlockFromEntity } from "./block";
+import { getTextFromEntity, Text } from "./text";
 import { getUserFromEntity, User } from "./user";
 
 export type Comment = {
@@ -84,7 +85,7 @@ export const getCommentText: ImpureGraphFunction<
   {
     commentEntityId: EntityId;
   },
-  Promise<Entity>
+  Promise<Text>
 > = async (ctx, authentication, { commentEntityId }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
@@ -105,8 +106,10 @@ export const getCommentText: ImpureGraphFunction<
     );
   }
 
-  return await getLinkEntityRightEntity(ctx, authentication, {
-    linkEntity: hasTextLink,
+  return getTextFromEntity({
+    entity: await getLinkEntityRightEntity(ctx, authentication, {
+      linkEntity: hasTextLink,
+    }),
   });
 };
 
@@ -129,48 +132,51 @@ export const createComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { ownedById, tokens, parentEntityId, author } = params;
 
-  const [commentEntity, textEntity] = await Promise.all([
-    createEntity(ctx, authentication, {
-      ownedById,
-      owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
-      properties: {},
-      entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
-    }),
-    createEntity(ctx, authentication, {
-      ownedById,
-      owner: author.accountId,
-      properties: {
-        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
-      },
-      entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
-    }),
-  ]);
+  const textEntity = await createEntity(ctx, authentication, {
+    ownedById,
+    owner: author.accountId,
+    properties: {
+      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
+    },
+    entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+  });
 
-  const linkEntities = await Promise.all([
-    createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
-      leftEntityId: commentEntity.metadata.recordId.entityId,
-      rightEntityId: textEntity.metadata.recordId.entityId,
-      ownedById,
-      owner: author.accountId,
-    }),
-    createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
-      leftEntityId: commentEntity.metadata.recordId.entityId,
-      rightEntityId: parentEntityId,
-      ownedById,
-      owner: author.accountId,
-    }),
-    createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.author,
-      leftEntityId: commentEntity.metadata.recordId.entityId,
-      rightEntityId: author.entity.metadata.recordId.entityId,
-      ownedById,
-      owner: author.accountId,
-    }),
-  ]);
+  const commentEntity = await createEntity(ctx, authentication, {
+    ownedById,
+    owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
+    properties: {},
+    entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
+    outgoingLinks: [
+      {
+        linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+        rightEntityId: parentEntityId,
+        ownedById,
+        owner: author.accountId,
+      },
+      {
+        linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+        rightEntityId: author.entity.metadata.recordId.entityId,
+        ownedById,
+        owner: author.accountId,
+      },
+      /**
+       * The creation of the `hasText` link entity has to occur last so
+       * that the after create hook for the entity can access to the
+       * `parent` nad `author` link entities.
+       */
+      {
+        linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+        rightEntityId: textEntity.metadata.recordId.entityId,
+        ownedById,
+        owner: author.accountId,
+      },
+    ],
+  });
 
   if (author.accountId !== ownedById) {
+    const outgoingLinks = await getEntityOutgoingLinks(ctx, authentication, {
+      entityId: commentEntity.metadata.recordId.entityId,
+    });
     /**
      * If this is a comment on an org's entity, we want the comment to belong to the org's web,
      * represented by the ownedById (to be renamed to webId for clarity, see H-1063).
@@ -181,7 +187,7 @@ export const createComment: ImpureGraphFunction<
     await modifyEntityAuthorizationRelationships(
       ctx,
       authentication,
-      [textEntity, commentEntity, ...linkEntities].map((entity) => ({
+      [textEntity, commentEntity, ...outgoingLinks].map((entity) => ({
         operation: "create",
         relationship: {
           subject: {
@@ -217,12 +223,12 @@ export const updateCommentText: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { commentEntityId, tokens } = params;
 
-  const textEntity = await getCommentText(ctx, authentication, {
+  const text = await getCommentText(ctx, authentication, {
     commentEntityId,
   });
 
   await updateEntityProperty(ctx, authentication, {
-    entity: textEntity,
+    entity: text.entity,
     propertyTypeBaseUrl:
       SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
     value: tokens,
@@ -378,4 +384,29 @@ export const resolveComment: ImpureGraphFunction<
   });
 
   return getCommentFromEntity({ entity: updatedEntity });
+};
+
+/**
+ * Get the block ancestor of the comment.
+ *
+ * @param params.comment - the comment
+ */
+export const getCommentAncestorBlock: ImpureGraphFunction<
+  { commentEntityId: EntityId },
+  Promise<Block>
+> = async (context, authentication, { commentEntityId }) => {
+  const parentEntity = await getCommentParent(context, authentication, {
+    commentEntityId,
+  });
+
+  if (
+    parentEntity.metadata.entityTypeId ===
+    SYSTEM_TYPES.entityType.block.schema.$id
+  ) {
+    return getBlockFromEntity({ entity: parentEntity });
+  } else {
+    return getCommentAncestorBlock(context, authentication, {
+      commentEntityId: parentEntity.metadata.recordId.entityId,
+    });
+  }
 };

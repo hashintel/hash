@@ -3,17 +3,19 @@ import { createReadStream } from "node:fs";
 import { GraphStatus } from "@apps/hash-graph/type-defs/status";
 import fetch from "node-fetch";
 
+const port = 4001;
+
 const deleteRecords = async (endpoint: string) => {
-  await fetch(`http://127.0.0.1:4001/${endpoint}`, { method: "DELETE" }).then(
-    async (response) => {
-      const status: GraphStatus = await response.json();
-      if (status.code !== "OK") {
-        throw new Error(
-          `Could not remove ${endpoint}: ${JSON.stringify(status)}`,
-        );
-      }
-    },
-  );
+  await fetch(`http://127.0.0.1:${port}/${endpoint}`, {
+    method: "DELETE",
+  }).then(async (response) => {
+    const status: GraphStatus = await response.json();
+    if (status.code !== "OK") {
+      throw new Error(
+        `Could not remove ${endpoint}: ${JSON.stringify(status)}`,
+      );
+    }
+  });
 };
 
 /**
@@ -63,7 +65,7 @@ export const deleteEntities = async () => {
  * Restore a snapshot from a file.
  */
 export const restoreSnapshot = async (snapshotPath: string) => {
-  await fetch("http://127.0.0.1:4001/snapshot", {
+  await fetch(`http://127.0.0.1:${port}/snapshot`, {
     method: "POST",
     body: createReadStream(snapshotPath),
   }).then(async (response) => {
