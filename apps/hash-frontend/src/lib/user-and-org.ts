@@ -1,3 +1,4 @@
+import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
@@ -14,7 +15,6 @@ import {
   AccountId,
   BaseUrl,
   Entity,
-  EntityId,
   EntityRootType,
   extractAccountGroupId,
   extractAccountId,
@@ -23,7 +23,6 @@ import {
   Timestamp,
 } from "@local/hash-subgraph";
 import {
-  getEntityRevisionsByEntityId,
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
   getOutgoingLinkAndTargetEntities,
@@ -107,20 +106,6 @@ export const constructMinimalUser = (params: {
     ...simpleProperties,
   };
 };
-
-const getFirstRevisionCreatedAt = (subgraph: Subgraph, entityId: EntityId) =>
-  getEntityRevisionsByEntityId(subgraph, entityId).reduce<Date>(
-    (earliestCreatedAt, current) => {
-      const currentCreatedAt = new Date(
-        current.metadata.temporalVersioning.decisionTime.start.limit,
-      );
-
-      return earliestCreatedAt < currentCreatedAt
-        ? earliestCreatedAt
-        : currentCreatedAt;
-    },
-    new Date(),
-  );
 
 export type Org = MinimalOrg & {
   createdAt: Date;
@@ -250,9 +235,13 @@ export const constructOrg = (params: {
     };
   });
 
-  const createdAt = getFirstRevisionCreatedAt(
+  const firstRevision = getFirstEntityRevision(
     subgraph,
     orgEntity.metadata.recordId.entityId,
+  );
+
+  const createdAt = new Date(
+    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
   );
 
   return { ...minimalOrg, createdAt, hasAvatar, memberships, hasBio };
@@ -491,9 +480,13 @@ export const constructUser = (params: {
    */
   const isInstanceAdmin = false;
 
-  const joinedAt = getFirstRevisionCreatedAt(
+  const firstRevision = getFirstEntityRevision(
     subgraph,
     userEntity.metadata.recordId.entityId,
+  );
+
+  const joinedAt = new Date(
+    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
   );
 
   return {

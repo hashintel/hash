@@ -177,7 +177,10 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(schema.into()),
+                schema: Json(schema.clone().into()),
+                // The unclosed schema is inserted initially. This will be replaced later by the
+                // closed schema.
+                closed_schema: Json(schema.into()),
                 label_property: entity_type
                     .metadata
                     .label_property

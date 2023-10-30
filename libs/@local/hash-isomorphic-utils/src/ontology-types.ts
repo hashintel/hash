@@ -132,6 +132,10 @@ const systemEntityTypes = {
     title: "Page",
     description: undefined,
   },
+  quickNote: {
+    title: "Quick Note",
+    description: undefined,
+  },
   profileBio: {
     title: "Profile Bio",
     description: undefined,
@@ -199,6 +203,18 @@ const systemEntityTypes = {
   gitHubAccount: {
     title: "GitHub Account",
     description: "A GitHub account.",
+  },
+  notification: {
+    title: "Notification",
+    description: undefined,
+  },
+  mentionNotification: {
+    title: "Mention Notification",
+    description: undefined,
+  },
+  commentNotification: {
+    title: "Comment Notification",
+    description: undefined,
   },
 } as const;
 
@@ -430,6 +446,30 @@ const systemLinkEntityTypes = {
   hasServiceAccount: {
     title: "Has Service Account",
     description: "Something that has a service account.",
+  },
+  occurredInEntity: {
+    title: "Occurred In Entity",
+    description: "An entity that something occurred in.",
+  },
+  occurredInComment: {
+    title: "Occurred In Comment",
+    description: "A comment that something occurred in.",
+  },
+  occurredInText: {
+    title: "Occurred In Text",
+    description: "Text that something occurred in.",
+  },
+  triggeredByUser: {
+    title: "Triggered By User",
+    description: "A user that triggered something.",
+  },
+  triggeredByComment: {
+    title: "Triggered By Comment",
+    description: "A comment that triggered something.",
+  },
+  repliedToComment: {
+    title: "Replied To Comment",
+    description: "A comment that was replied to.",
   },
 } as const;
 

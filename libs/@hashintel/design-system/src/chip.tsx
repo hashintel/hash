@@ -11,6 +11,7 @@ import { FontAwesomeIcon } from "./fontawesome-icon";
 export type ChipProps = {
   hasCircleStartIcon?: boolean;
   rectangular?: boolean;
+  href?: string;
 } & MuiChipProps;
 
 // @todo

@@ -70,7 +70,6 @@ import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
-import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -315,16 +314,6 @@ export const updateEntityResolver: ResolverFn<
   const entity = await getLatestEntityById(context, authentication, {
     entityId,
   });
-
-  for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
-      await beforeUpdateHook.callback({
-        context,
-        entity,
-        updatedProperties,
-      });
-    }
-  }
 
   let updatedEntity: Entity;
 

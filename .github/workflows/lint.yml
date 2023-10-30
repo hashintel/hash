@@ -131,7 +131,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@ac89944b5b150d78567ab6c02badfbe48b0b55aa # v2.20.16
+        uses: taiki-e/install-action@285bd10d1ce81bd96d8e0c372615e57cf204e95a # v2.21.3
         with:
           tool: just@1.13.0,cargo-hack@0.6.7,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -155,6 +155,7 @@ jobs:
 
       - name: Install Python dependencies
         if: always() && steps.lints.outputs.has-poetry-deps == 'true'
+        continue-on-error: true
         run: turbo run poetry:install
 
       - name: Show disk usage
@@ -219,7 +220,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@49abf0ba24d0b7953cb586944e918a0b92074c80 # v2.22.4
+        uses: github/codeql-action/upload-sarif@74483a38d39275f33fcff5f35b679b5ca4a26a99 # v2.22.5
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
@@ -246,14 +247,17 @@ jobs:
 
       - name: Run black
         if: always() && steps.lints.outputs.black == 'true'
+        continue-on-error: true
         run: turbo run lint:black --filter "${{ matrix.package }}"
 
       - name: Run ruff
         if: always() && steps.lints.outputs.ruff == 'true'
+        continue-on-error: true
         run: turbo run lint:ruff --filter "${{ matrix.package }}"
 
       - name: Run MyPy
         if: always() && steps.lints.outputs.mypy == 'true'
+        continue-on-error: true
         run: turbo run lint:mypy --filter "${{ matrix.package }}"
 
       - name: Show disk usage

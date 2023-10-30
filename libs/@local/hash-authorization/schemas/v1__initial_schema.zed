@@ -23,6 +23,9 @@ definition graph/web {
 	relation owner: graph/account | graph/account_group#member
 
 	permission create_entity = owner
+	permission create_entity_type = owner
+	permission create_property_type = owner
+	permission create_data_type = owner - owner
 }
 
 definition graph/entity_type {

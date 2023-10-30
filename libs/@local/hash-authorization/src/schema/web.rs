@@ -54,6 +54,9 @@ impl Relation<WebId> for WebResourceRelation {}
 #[serde(rename_all = "snake_case")]
 pub enum WebPermission {
     CreateEntity,
+    CreateEntityType,
+    CreatePropertyType,
+    CreateDataType,
 }
 impl Affiliation<WebId> for WebPermission {}
 impl Permission<WebId> for WebPermission {}

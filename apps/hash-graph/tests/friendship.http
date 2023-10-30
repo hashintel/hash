@@ -142,10 +142,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.status === 403, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", `${response.body[0].recordId.baseUrl}v/${response.body[0].recordId.version}`);
-    client.assert(response.body.length === 2, "Unexpected number of data types");
 %}
 
 ### Insert external data types
@@ -155,7 +153,7 @@ Accept: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
-  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+  "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
 }
 
 > {%
@@ -254,7 +252,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.status === 403, "Response status is not 200");
     });
 %}
 
@@ -273,7 +271,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Name",
     "oneOf": [
       {
-        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
+        "$ref": "{{text_data_type_id}}"
       }
     ]
   }
@@ -364,7 +362,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "title": "Name",
     "oneOf": [
       {
-        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/2"
+        "$ref": "{{text_data_type_id}}"
       }
     ]
   }

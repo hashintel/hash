@@ -10,10 +10,13 @@ import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
 
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   return new Array(6)

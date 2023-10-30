@@ -11,8 +11,8 @@ codec = { path = "../codec" }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
 
 derive-where = { version = "1.2.5", default-features = false, features = ["nightly"] }
-futures = { version = "0.3.28", default-features = false }
-serde = { version = "1.0.189", features = ["derive", "unstable"] }
+futures = { version = "0.3.29", default-features = false }
+serde = { version = "1.0.190", features = ["derive", "unstable"] }
 serde_json = { version = "1.0.107" }
 
 reqwest = { version = "0.11.22", default-features = false, features = ["json", "stream"] }
