@@ -32,6 +32,12 @@ import {
 } from "./create-entity-hooks";
 import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
 
+/**
+ * This after create `Comment` entity hook is responsible for creating
+ * comment notifications if:
+ * - the parent of the comment is a block on a page
+ * - the parent of the comment is another comment (i.e the comment is a reply)
+ */
 const commentCreateHookCallback: CreateEntityHookCallback = async ({
   entity,
   authentication,
@@ -142,6 +148,13 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
   return entity;
 };
 
+/**
+ * This after create `hasText` link entity hook is responsible for creating
+ * mention notifications if the right entity is a `Text` entity whose tokens
+ * contain a mention to a user, and:
+ * - the `Text` is in a page
+ * - the `Text` is in a comment that's on a page
+ */
 const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
   entity,
   authentication,
