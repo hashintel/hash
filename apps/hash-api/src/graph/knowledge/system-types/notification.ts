@@ -239,7 +239,6 @@ export const getMentionNotification: ImpureGraphFunction<
               { parameter: recipient.accountId },
             ],
           },
-          /** @todo: enforce the type of these links somehow */
           {
             any: [
               {
