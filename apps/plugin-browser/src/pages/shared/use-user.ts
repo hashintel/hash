@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getUser } from "./get-user";
+import { setSentryUser } from "./sentry";
 import { useSessionStorage } from "./use-storage-sync";
 
 export const useUser = () => {
@@ -12,6 +13,7 @@ export const useUser = () => {
       const maybeUser = await getUser();
 
       setUser(maybeUser);
+      setSentryUser(maybeUser);
       setApiChecked(true);
     };
 

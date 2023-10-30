@@ -27,7 +27,7 @@
     "@blockprotocol/type-system": "0.1.1",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/browser": "7.30.0",
+    "@sentry/browser": "7.74.1",
     "apollo-server-express": "3.9.0",
     "node-fetch": "^2.6.7"
   },
