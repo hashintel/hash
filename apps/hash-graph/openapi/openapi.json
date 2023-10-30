@@ -140,7 +140,7 @@
         }
       }
     },
-    "/account_groups/{account_group_id}/permissions/add_owner": {
+    "/account_groups/{account_group_id}/permissions/{permission}": {
       "get": {
         "tags": [
           "Graph",
