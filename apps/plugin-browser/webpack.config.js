@@ -8,12 +8,15 @@ const TerserPlugin = require("terser-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const ReactRefreshTypeScript = require("react-refresh-typescript");
+const { sentryWebpackPlugin } = require("@sentry/webpack-plugin");
 
 const env = {
   API_ORIGIN: process.env.API_ORIGIN || "https://app-api.hash.ai",
   BROWSER: process.env.BROWSER || "chrome",
   FRONTEND_ORIGIN: process.env.FRONTEND_ORIGIN || "https://app.hash.ai",
   NODE_ENV: process.env.NODE_ENV || "development",
+  SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+  SENTRY_DSN: process.env.SENTRY_DSN,
 };
 
 const ASSET_PATH = process.env.ASSET_PATH || "/";
@@ -41,8 +44,15 @@ if (fileSystem.existsSync(secretsPath)) {
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
+if ((!isDevelopment && !env.SENTRY_DSN) || !env.SENTRY_AUTH_TOKEN) {
+  throw new Error(
+    "No SENTRY_DSN or SENTRY_AUTH_TOKEN in environment – these must be set for a production build. SENTRY_DSN is relied on at runtime, and they are both needed to build and upload source maps to Sentry.",
+  );
+}
+
 const options = {
   mode: process.env.NODE_ENV || "development",
+  devtool: "source-map",
   entry: {
     background: path.join(__dirname, "src", "scripts", "background.ts"),
     content: path.join(__dirname, "src", "scripts", "content.ts"),
@@ -142,7 +152,9 @@ const options = {
     new webpack.EnvironmentPlugin(["NODE_ENV"]),
     new webpack.DefinePlugin({
       API_ORIGIN: `"${env.API_ORIGIN}"`,
+      ENVIRONMENT: `"${env.NODE_ENV}"`,
       FRONTEND_ORIGIN: `"${env.FRONTEND_ORIGIN}"`,
+      SENTRY_DSN: `"${env.SENTRY_DSN}"`,
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -204,15 +216,20 @@ const options = {
       chunks: ["popup"],
       cache: false,
     }),
+    env.SENTRY_AUTH_TOKEN && env.SENTRY_DSN
+      ? sentryWebpackPlugin({
+          authToken: env.SENTRY_AUTH_TOKEN,
+          org: "hashintel",
+          project: "plugin-browser",
+        })
+      : null,
   ].filter(Boolean),
   infrastructureLogging: {
     level: "info",
   },
 };
 
-if (env.NODE_ENV === "development") {
-  options.devtool = "cheap-module-source-map";
-} else {
+if (env.NODE_ENV !== "development") {
   options.optimization = {
     minimize: true,
     minimizer: [
