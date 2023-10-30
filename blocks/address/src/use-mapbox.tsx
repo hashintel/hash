@@ -1,4 +1,4 @@
-import { MapboxRetrieveStaticMapData } from "@blockprotocol/service/.";
+import { MapboxRetrieveStaticMapData } from "@blockprotocol/service";
 import {
   AutofillFeatureSuggestion,
   AutofillSuggestion,

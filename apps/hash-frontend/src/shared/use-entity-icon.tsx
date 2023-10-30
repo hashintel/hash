@@ -1,6 +1,6 @@
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity } from "@local/hash-subgraph/.";
+import { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { useMemo } from "react";

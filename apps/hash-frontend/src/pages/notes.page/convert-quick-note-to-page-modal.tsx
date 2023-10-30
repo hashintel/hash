@@ -5,7 +5,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity, OwnedById } from "@local/hash-subgraph/.";
+import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   autocompleteClasses,

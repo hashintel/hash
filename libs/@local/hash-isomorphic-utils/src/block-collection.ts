@@ -1,4 +1,4 @@
-import { GraphResolveDepths } from "@local/hash-subgraph/.";
+import { GraphResolveDepths } from "@local/hash-subgraph";
 
 /**
  * Get the `hasLeftEntity` and `hasRightEntity` resolve depths for a block
