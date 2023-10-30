@@ -36,8 +36,6 @@ import {
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
-
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrgProperties>;
 }): MinimalOrg => {
