@@ -2,7 +2,11 @@ import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { ProfileBioProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  ContainsProperties,
+  ProfileBioProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   EntityId,
   EntityRootType,
@@ -10,7 +14,10 @@ import {
   Subgraph,
 } from "@local/hash-subgraph/.";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {
   FunctionComponent,
@@ -47,12 +54,18 @@ const getProfileBioContents = (params: {
           types.linkEntityType.contains.linkEntityTypeId,
     )
     .sort((a, b) => {
-      const aLinkEntity = a.linkEntity[0]!;
-      const bLinkEntity = b.linkEntity[0]!;
+      const aLinkEntity = a.linkEntity[0] as LinkEntity<ContainsProperties>;
+      const bLinkEntity = b.linkEntity[0] as LinkEntity<ContainsProperties>;
+
+      const { numericIndex: aNumericIndex } = simplifyProperties(
+        aLinkEntity.properties,
+      );
+      const { numericIndex: bNumericIndex } = simplifyProperties(
+        bLinkEntity.properties,
+      );
 
       return (
-        (aLinkEntity.linkData?.leftToRightOrder ?? 0) -
-          (bLinkEntity.linkData?.leftToRightOrder ?? 0) ||
+        (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
         aLinkEntity.metadata.recordId.entityId.localeCompare(
           bLinkEntity.metadata.recordId.entityId,
         ) ||
