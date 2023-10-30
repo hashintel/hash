@@ -11,7 +11,9 @@ pub mod zanzibar;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, EntityRelationAndSubject, WebRelationAndSubject,
+    AccountGroupRelationAndSubject, DataTypeId, DataTypePermission, DataTypeRelationAndSubject,
+    EntityRelationAndSubject, EntityTypeId, EntityTypePermission, EntityTypeRelationAndSubject,
+    PropertyTypeId, PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
 };
 
 mod api;
@@ -117,6 +119,111 @@ impl AuthorizationApi for NoAuthorization {
         _entity: EntityId,
         _consistency: Consistency<'static>,
     ) -> Result<Vec<EntityRelationAndSubject>, ReadError> {
+        Ok(Vec::new())
+    }
+
+    async fn modify_entity_type_relations(
+        &mut self,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                EntityTypeId,
+                EntityTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn check_entity_type_permission(
+        &self,
+        _actor: AccountId,
+        _permission: EntityTypePermission,
+        _entity_type: EntityTypeId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn get_entity_type_relations(
+        &self,
+        _entity_type: EntityTypeId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
+        Ok(Vec::new())
+    }
+
+    async fn modify_property_type_relations(
+        &mut self,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                PropertyTypeId,
+                PropertyTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn check_property_type_permission(
+        &self,
+        _actor: AccountId,
+        _permission: PropertyTypePermission,
+        _property_type: PropertyTypeId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn get_property_type_relations(
+        &self,
+        _property_type: PropertyTypeId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
+        Ok(Vec::new())
+    }
+
+    async fn modify_data_type_relations(
+        &mut self,
+        _relationships: impl IntoIterator<
+            Item = (
+                ModifyRelationshipOperation,
+                DataTypeId,
+                DataTypeRelationAndSubject,
+            ),
+            IntoIter: Send,
+        > + Send,
+    ) -> Result<Zookie<'static>, ModifyRelationError> {
+        Ok(Zookie::empty())
+    }
+
+    async fn check_data_type_permission(
+        &self,
+        _actor: AccountId,
+        _permission: DataTypePermission,
+        _data_type: DataTypeId,
+        _consistency: Consistency<'_>,
+    ) -> Result<CheckResponse, CheckError> {
+        Ok(CheckResponse {
+            has_permission: true,
+            checked_at: Zookie::empty(),
+        })
+    }
+
+    async fn get_data_type_relations(
+        &self,
+        _data_type: DataTypeId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
     }
 }

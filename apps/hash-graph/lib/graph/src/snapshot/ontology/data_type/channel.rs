@@ -3,6 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
+use authorization::schema::{DataTypeId, DataTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
@@ -15,12 +16,13 @@ use uuid::Uuid;
 
 use crate::snapshot::{
     ontology::{
-        data_type::batch::DataTypeRowBatch, table::DataTypeRow, OntologyTypeMetadataSender,
+        data_type::batch::DataTypeRowBatch, table::DataTypeRow, DataTypeSnapshotRecord,
+        OntologyTypeMetadataSender,
     },
-    OntologyTypeSnapshotRecord, SnapshotRestoreError,
+    SnapshotRestoreError,
 };
 
-/// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`DataType`].
+/// A sink to insert [`DataTypeSnapshotRecord`]s.
 ///
 /// An `DataTypeSender` with the corresponding [`DataTypeReceiver`] are created using the
 /// [`data_type_channel`] function.
@@ -28,11 +30,12 @@ use crate::snapshot::{
 pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
+    relations: Sender<(DataTypeId, DataTypeRelationAndSubject)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
 // `OntologyTypeMetadataSender` with error-handling added to make it easier to use.
-impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
+impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -41,13 +44,16 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
+        ready!(self.relations.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll relations sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        data_type: OntologyTypeSnapshotRecord<DataType>,
+        data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
         let schema = DataType::try_from(data_type.schema)
             .change_context(SnapshotRestoreError::Read)
@@ -67,6 +73,13 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
+        for relationships in data_type.relations {
+            self.relations
+                .start_send_unpin((DataTypeId::new(ontology_id), relationships))
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send data relations")?;
+        }
+
         Ok(())
     }
 
@@ -76,6 +89,9 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
+        ready!(self.relations.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -86,6 +102,9 @@ impl Sink<OntologyTypeSnapshotRecord<DataType>> for DataTypeSender {
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
+        ready!(self.relations.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -117,17 +136,25 @@ pub fn data_type_channel(
     metadata_sender: OntologyTypeMetadataSender,
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
+    let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         DataTypeSender {
             metadata: metadata_sender,
             schema: schema_tx,
+            relations: relations_tx,
         },
         DataTypeReceiver {
-            stream: select_all([schema_rx
-                .ready_chunks(chunk_size)
-                .map(DataTypeRowBatch::Schema)
-                .boxed()]),
+            stream: select_all([
+                schema_rx
+                    .ready_chunks(chunk_size)
+                    .map(DataTypeRowBatch::Schema)
+                    .boxed(),
+                relations_rx
+                    .ready_chunks(chunk_size)
+                    .map(DataTypeRowBatch::Relations)
+                    .boxed(),
+            ]),
         },
     )
 }

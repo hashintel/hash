@@ -132,6 +132,10 @@ const systemEntityTypes = {
     title: "Page",
     description: undefined,
   },
+  quickNote: {
+    title: "Quick Note",
+    description: undefined,
+  },
   profileBio: {
     title: "Profile Bio",
     description: undefined,

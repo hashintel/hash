@@ -24,7 +24,7 @@ graph-types = { path = "../../libs/@local/hash-graph-types/rust" }
 authorization = { path = "../../libs/@local/hash-authorization" }
 codec = { path = "../../libs/@local/codec" }
 
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "cdde49" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "b63f923" }
 hash-status = { path = "../../libs/@local/status/rust" }
 error-stack = { version = "0.4.1", features = ["spantrace"] }
 
@@ -33,12 +33,12 @@ bytes = "1.5.0"
 utoipa = "4.0.0"
 uuid = { version = "1.5.0", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
-serde = "1.0.189"
+serde = "1.0.190"
 serde_json = "1.0.107"
 tokio = { version = "1.33.0", default-features = false }
 time = { version = "0.3.30", default-features = false }
 tracing = "0.1.40"
-futures = { version = "0.3.28", default-features = false }
+futures = { version = "0.3.29", default-features = false }
 
 [profile.production]
 inherits = "release"

@@ -266,7 +266,7 @@ impl<C: AsClient> PostgresStore<C> {
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
-    ) -> Result<impl Iterator<Item = SharedEdgeTraversal> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (OntologyId, SharedEdgeTraversal)> + 't, QueryError> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -329,22 +329,26 @@ impl<C: AsClient> PostgresStore<C> {
             .into_iter()
             .map(|row| {
                 let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
-                SharedEdgeTraversal {
-                    left_endpoint: EntityVertexId {
-                        base_id: EntityId {
-                            owned_by_id: traversal_data.owned_by_ids[index],
-                            entity_uuid: traversal_data.entity_uuids[index],
+                let right_endpoint_ontology_id = row.get(3);
+                (
+                    right_endpoint_ontology_id,
+                    SharedEdgeTraversal {
+                        left_endpoint: EntityVertexId {
+                            base_id: EntityId {
+                                owned_by_id: traversal_data.owned_by_ids[index],
+                                entity_uuid: traversal_data.entity_uuids[index],
+                            },
+                            revision_id: traversal_data.entity_revision_ids[index],
                         },
-                        revision_id: traversal_data.entity_revision_ids[index],
+                        right_endpoint: EntityTypeVertexId {
+                            base_id: BaseUrl::new(row.get(1)).expect("invalid URL"),
+                            revision_id: row.get(2),
+                        },
+                        right_endpoint_ontology_id,
+                        resolve_depths: traversal_data.resolve_depths[index],
+                        traversal_interval: row.get(4),
                     },
-                    right_endpoint: EntityTypeVertexId {
-                        base_id: BaseUrl::new(row.get(1)).expect("invalid URL"),
-                        revision_id: row.get(2),
-                    },
-                    right_endpoint_ontology_id: row.get(3),
-                    resolve_depths: traversal_data.resolve_depths[index],
-                    traversal_interval: row.get(4),
-                }
+                )
             }))
     }
 

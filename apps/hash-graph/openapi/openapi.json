@@ -3962,7 +3962,10 @@
       "WebPermission": {
         "type": "string",
         "enum": [
-          "create_entity"
+          "create_entity",
+          "create_entity_type",
+          "create_property_type",
+          "create_data_type"
         ]
       }
     }

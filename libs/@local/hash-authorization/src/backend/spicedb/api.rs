@@ -10,9 +10,10 @@ use tokio_util::{codec::FramedRead, io::StreamReader};
 use crate::{
     backend::{
         spicedb::model::{self, RpcError},
-        CheckError, CheckResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
-        ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
-        ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        CheckError, CheckResponse, DeleteRelationshipError, DeleteRelationshipResponse,
+        ExportSchemaError, ExportSchemaResponse, ImportSchemaError, ImportSchemaResponse,
+        ModifyRelationshipError, ModifyRelationshipOperation, ModifyRelationshipResponse,
+        ReadError, SpiceDbOpenApi, ZanzibarBackend,
     },
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
@@ -432,5 +433,51 @@ impl ZanzibarBackend for SpiceDbOpenApi {
         .map_err(|error| error.change_context(ReadError))
         .try_collect::<Vec<_>>()
         .await
+    }
+
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "False positive, documented on trait"
+    )]
+    async fn delete_relations(
+        &mut self,
+        filter: RelationshipFilter<
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+            impl Serialize + Send + Sync,
+        >,
+    ) -> Result<DeleteRelationshipResponse, Report<DeleteRelationshipError>> {
+        #[derive(Serialize)]
+        #[serde(
+            rename_all = "camelCase",
+            bound = "
+                ON: Serialize, OI: Serialize, R: Serialize,
+                SN: Serialize, SI: Serialize, SR: Serialize"
+        )]
+        struct DeleteRelationshipsRequest<ON, OI, R, SN, SI, SR> {
+            #[serde(with = "super::serde::relationship_filter")]
+            relationship_filter: RelationshipFilter<ON, OI, R, SN, SI, SR>,
+        }
+
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Response {
+            deleted_at: model::ZedToken,
+        }
+
+        self.call::<Response>(
+            "/v1/relationships/delete",
+            &DeleteRelationshipsRequest {
+                relationship_filter: filter,
+            },
+        )
+        .await
+        .map(|response| DeleteRelationshipResponse {
+            deleted_at: response.deleted_at.into(),
+        })
+        .change_context(DeleteRelationshipError)
     }
 }

@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use authorization::backend::ZanzibarBackend;
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{PropertyTypeId, PropertyTypeRelationAndSubject},
+};
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -18,6 +21,7 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
+    Relations(Vec<(PropertyTypeId, PropertyTypeRelationAndSubject)>),
 }
 
 #[async_trait]
@@ -54,7 +58,7 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
     async fn write(
         self,
         postgres_client: &PostgresStore<C>,
-        _authorization_api: &mut (impl ZanzibarBackend + Send),
+        authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
@@ -107,6 +111,12 @@ impl<C: AsClient> WriteBatch<C> for PropertyTypeRowBatch {
                 if !rows.is_empty() {
                     tracing::info!("Read {} property type property type constrains", rows.len());
                 }
+            }
+            Self::Relations(relations) => {
+                authorization_api
+                    .touch_relationships(relations)
+                    .await
+                    .change_context(InsertionError)?;
             }
         }
         Ok(())

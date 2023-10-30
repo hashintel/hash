@@ -3,6 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
+use authorization::schema::{PropertyTypeId, PropertyTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
@@ -21,12 +22,12 @@ use crate::snapshot::{
             PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
             PropertyTypeRow,
         },
-        OntologyTypeMetadataSender,
+        OntologyTypeMetadataSender, PropertyTypeSnapshotRecord,
     },
-    OntologyTypeSnapshotRecord, SnapshotRestoreError,
+    SnapshotRestoreError,
 };
 
-/// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`PropertyType`].
+/// A sink to insert [`PropertyTypeSnapshotRecord`]s.
 ///
 /// An `PropertyTypeSender` with the corresponding [`PropertyTypeReceiver`] are created using the
 /// [`property_type_channel`] function.
@@ -36,12 +37,13 @@ pub struct PropertyTypeSender {
     schema: Sender<PropertyTypeRow>,
     constrains_values: Sender<Vec<PropertyTypeConstrainsValuesOnRow>>,
     constrains_properties: Sender<Vec<PropertyTypeConstrainsPropertiesOnRow>>,
+    relations: Sender<(PropertyTypeId, PropertyTypeRelationAndSubject)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
 // with error-handling added to make it easier to use. It's taking an `OntologyTypeSnapshotRecord`
 // and sending the individual rows to the corresponding sinks.
-impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
+impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -56,13 +58,16 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.constrains_properties.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains properties edge sender")?;
+        ready!(self.relations.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll relations sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn start_send(
         mut self: Pin<&mut Self>,
-        property_type: OntologyTypeSnapshotRecord<PropertyType>,
+        property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
         let schema = PropertyType::try_from(property_type.schema)
             .change_context(SnapshotRestoreError::Read)
@@ -121,6 +126,13 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
+        for relationships in property_type.relations {
+            self.relations
+                .start_send_unpin((PropertyTypeId::new(ontology_id), relationships))
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send property relations")?;
+        }
+
         Ok(())
     }
 
@@ -136,6 +148,9 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.constrains_properties.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains properties edge sender")?;
+        ready!(self.relations.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -152,6 +167,9 @@ impl Sink<OntologyTypeSnapshotRecord<PropertyType>> for PropertyTypeSender {
         ready!(self.constrains_properties.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains properties edge sender")?;
+        ready!(self.relations.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -185,6 +203,7 @@ pub fn property_type_channel(
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (constrains_values_tx, constrains_values_rx) = mpsc::channel(chunk_size);
     let (constrains_properties_tx, constrains_properties_rx) = mpsc::channel(chunk_size);
+    let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         PropertyTypeSender {
@@ -192,6 +211,7 @@ pub fn property_type_channel(
             schema: schema_tx,
             constrains_values: constrains_values_tx,
             constrains_properties: constrains_properties_tx,
+            relations: relations_tx,
         },
         PropertyTypeReceiver {
             stream: select_all([
@@ -214,6 +234,10 @@ pub fn property_type_channel(
                             values.into_iter().flatten().collect(),
                         )
                     })
+                    .boxed(),
+                relations_rx
+                    .ready_chunks(chunk_size)
+                    .map(PropertyTypeRowBatch::Relations)
                     .boxed(),
             ]),
         },
