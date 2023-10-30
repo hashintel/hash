@@ -148,10 +148,10 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     newPosition,
   } = params;
 
-  const contentLinks = await getEntityOutgoingLinks(ctx, authentication, {
+  const contentLinks = (await getEntityOutgoingLinks(ctx, authentication, {
     entityId: blockCollectionEntity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-  });
+  })) as LinkEntity<ContainsProperties>[];
 
   if (currentPosition < 0 || currentPosition >= contentLinks.length) {
     throw new UserInputError(
@@ -162,9 +162,11 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
   }
 
-  const linkEntity = contentLinks.find(
-    ({ linkData }) => linkData.leftToRightOrder === currentPosition,
-  );
+  const linkEntity = contentLinks.find(({ properties }) => {
+    const { numericIndex } = simplifyProperties(properties);
+
+    return numericIndex === currentPosition;
+  });
 
   if (!linkEntity) {
     throw new Error(
