@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import { Entity } from "@blockprotocol/graph/temporal";
 
 import {
   Block,
@@ -25,6 +25,7 @@ import {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  IndexPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -59,6 +60,7 @@ export type {
   ContainsOutgoingLinkAndTarget,
   ContainsOutgoingLinksByLinkEntityTypeId,
   ContainsProperties,
+  IndexPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,

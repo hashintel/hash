@@ -1,3 +1,4 @@
+import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
@@ -34,8 +35,6 @@ import {
   extractBaseUrl,
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
-
-import { getFirstRevisionCreatedAt } from "../shared/entity-utils";
 
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<OrgProperties>;
@@ -236,9 +235,13 @@ export const constructOrg = (params: {
     };
   });
 
-  const createdAt = getFirstRevisionCreatedAt(
+  const firstRevision = getFirstEntityRevision(
     subgraph,
     orgEntity.metadata.recordId.entityId,
+  );
+
+  const createdAt = new Date(
+    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
   );
 
   return { ...minimalOrg, createdAt, hasAvatar, memberships, hasBio };
@@ -477,9 +480,13 @@ export const constructUser = (params: {
    */
   const isInstanceAdmin = false;
 
-  const joinedAt = getFirstRevisionCreatedAt(
+  const firstRevision = getFirstEntityRevision(
     subgraph,
     userEntity.metadata.recordId.entityId,
+  );
+
+  const joinedAt = new Date(
+    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
   );
 
   return {

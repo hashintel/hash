@@ -1,4 +1,5 @@
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -12,12 +13,16 @@ import {
 import {
   Entity,
   EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
   EntityPropertiesObject,
   EntityRootType,
+  EntityUuid,
+  extractEntityUuidFromEntityId,
   OwnedById,
+  Uuid,
 } from "@local/hash-subgraph";
 import {
-  getEntities,
+  getEntities as getEntitiesFromSubgraph,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
@@ -31,6 +36,7 @@ import {
   archiveEntity,
   createEntity,
   CreateEntityParams,
+  getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntityProperty,
@@ -47,6 +53,7 @@ import {
 } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 import { Comment } from "./comment";
+import { getUserById, User } from "./user";
 
 export type Page = {
   title: string;
@@ -278,7 +285,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .then(({ data }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(data);
 
-      return getEntities(subgraph);
+      return getEntitiesFromSubgraph(subgraph);
     });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));
@@ -511,4 +518,58 @@ export const getPageComments: ImpureGraphFunction<
   return comments
     .flat()
     .filter((comment) => !comment.resolvedAt && !comment.deletedAt);
+};
+
+/**
+ * Get the creator fo the page.
+ *
+ * @param params.page - the page
+ */
+export const getPageCreator: ImpureGraphFunction<
+  { pageEntityId: EntityId },
+  Promise<User>
+> = async (context, authentication, { pageEntityId }) => {
+  const pageEntityRevisionsSubgraph = await getEntities(
+    context,
+    authentication,
+    {
+      query: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["uuid"] },
+                { parameter: extractEntityUuidFromEntityId(pageEntityId) },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: {
+          pinned: { axis: "transactionTime", timestamp: null },
+          variable: {
+            axis: "decisionTime",
+            interval: { start: { kind: "unbounded" }, end: null },
+          },
+        },
+      },
+    },
+  );
+
+  const firstRevision = getFirstEntityRevision(
+    pageEntityRevisionsSubgraph,
+    pageEntityId,
+  );
+
+  const firstRevisionCreatorId =
+    firstRevision.metadata.provenance.recordCreatedById;
+
+  const user = await getUserById(context, authentication, {
+    entityId: entityIdFromOwnedByIdAndEntityUuid(
+      firstRevisionCreatorId as Uuid as OwnedById,
+      firstRevisionCreatorId as Uuid as EntityUuid,
+    ),
+  });
+
+  return user;
 };
