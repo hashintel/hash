@@ -82,9 +82,6 @@ export let SYSTEM_TYPES: {
 
     // Service Account related
     profileUrl: PropertyTypeWithMetadata;
-
-    // Notification Action related
-    url: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -109,7 +106,6 @@ export let SYSTEM_TYPES: {
     instagramAccount: EntityTypeWithMetadata;
     gitHubAccount: EntityTypeWithMetadata;
     notification: EntityTypeWithMetadata;
-    notificationAction: EntityTypeWithMetadata;
     mentionNotification: EntityTypeWithMetadata;
     commentNotification: EntityTypeWithMetadata;
   };
@@ -142,9 +138,6 @@ export let SYSTEM_TYPES: {
     // Linear Integration related
     syncLinearDataWith: EntityTypeWithMetadata;
     usesUserSecret: EntityTypeWithMetadata;
-
-    // Notification related
-    hasAction: EntityTypeWithMetadata;
 
     // Mention Notification related
     occurredInEntity: EntityTypeWithMetadata;
@@ -1113,43 +1106,6 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const urlPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.url,
-  possibleValues: [{ primitiveDataType: "text" }],
-});
-
-const notificationActionEntityTypeInitializer = async (
-  context: ImpureGraphContext,
-) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-
-  const titlePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
-
-  const urlPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.url(context);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  return entityTypeInitializer({
-    ...types.entityType.notificationAction,
-    properties: [
-      {
-        propertyType: titlePropertyType,
-        required: true,
-      },
-      {
-        propertyType: urlPropertyType,
-        required: true,
-      },
-    ],
-  })(context);
-};
-
-export const hasActionLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.hasAction,
-);
-
 const notificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -1158,12 +1114,6 @@ const notificationEntityTypeInitializer = async (
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
-  const hasActionLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAction(context);
-
-  const notificationActionEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.notificationAction(context);
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -1171,12 +1121,6 @@ const notificationEntityTypeInitializer = async (
     properties: [
       {
         propertyType: archivedPropertyType,
-      },
-    ],
-    outgoingLinks: [
-      {
-        linkEntityType: hasActionLinkEntityType,
-        destinationEntityTypes: [notificationActionEntityType],
       },
     ],
   })(context);
@@ -1390,8 +1334,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
     profileUrl: profileUrlPropertyTypeInitializer,
-
-    url: urlPropertyTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
@@ -1407,7 +1349,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
-    hasAction: hasActionLinkEntityTypeInitializer,
     occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
@@ -1440,7 +1381,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     notification: notificationEntityTypeInitializer,
     mentionNotification: mentionNotificationEntityTypeInitializer,
     commentNotification: commentNotificationEntityTypeInitializer,
-    notificationAction: notificationActionEntityTypeInitializer,
   },
 };
 

@@ -216,10 +216,6 @@ const systemEntityTypes = {
     title: "Comment Notification",
     description: undefined,
   },
-  notificationAction: {
-    title: "Notification Action",
-    description: undefined,
-  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
@@ -363,10 +359,6 @@ const systemPropertyTypes = {
     title: "Linear Team Id",
     description: "The unique identifier for a team in Linear.",
   },
-  url: {
-    title: "URL",
-    description: "A URL.",
-  },
 } as const;
 
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
@@ -429,10 +421,6 @@ const systemLinkEntityTypes = {
   hasServiceAccount: {
     title: "Has Service Account",
     description: "Something that has a service account.",
-  },
-  hasAction: {
-    title: "Has Action",
-    description: "Has an action.",
   },
   occurredInEntity: {
     title: "Occurred In Entity",
