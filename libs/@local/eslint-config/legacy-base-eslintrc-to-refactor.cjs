@@ -109,7 +109,7 @@ module.exports = {
     "default-case": "off",
     "class-methods-use-this": "off",
     "react/no-unescapted-entities": "off",
-    "jsx-a11y/no-autoFocus": "off",
+    "jsx-a11y/no-autofocus": "off",
     "no-plusplus": "off",
     "prefer-destructuring": "off",
     "no-else-return": "off",

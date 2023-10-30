@@ -37,7 +37,6 @@ export const EditableColumnTitle = ({
 
   return (
     <input
-      // eslint-disable-next-line jsx-a11y/no-autofocus
       autoFocus
       ref={inputRef}
       className={styles.wrapper}
