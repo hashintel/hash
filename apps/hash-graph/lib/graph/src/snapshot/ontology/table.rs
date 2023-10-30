@@ -74,6 +74,7 @@ pub struct PropertyTypeConstrainsPropertiesOnRow {
 pub struct EntityTypeRow {
     pub ontology_id: Uuid,
     pub schema: Json<raw::EntityType>,
+    pub closed_schema: Json<raw::EntityType>,
     pub label_property: Option<String>,
     pub icon: Option<String>,
 }

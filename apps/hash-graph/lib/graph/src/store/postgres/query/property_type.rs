@@ -63,7 +63,32 @@ impl PostgresQueryPath for PropertyTypeQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            _ => unreachable!("Invalid path: {self}"),
+            Self::EntityTypeEdge {
+                edge_kind:
+                    OntologyEdgeKind::ConstrainsValuesOn
+                    | OntologyEdgeKind::InheritsFrom
+                    | OntologyEdgeKind::ConstrainsLinksOn
+                    | OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path: _,
+                inheritance_depth: _,
+            }
+            | Self::PropertyTypeEdge {
+                edge_kind:
+                    OntologyEdgeKind::ConstrainsValuesOn
+                    | OntologyEdgeKind::InheritsFrom
+                    | OntologyEdgeKind::ConstrainsLinksOn
+                    | OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path: _,
+                direction: _,
+            }
+            | Self::DataTypeEdge {
+                edge_kind:
+                    OntologyEdgeKind::ConstrainsPropertiesOn
+                    | OntologyEdgeKind::InheritsFrom
+                    | OntologyEdgeKind::ConstrainsLinksOn
+                    | OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                path: _,
+            } => unreachable!("Invalid path: {self}"),
         }
     }
 

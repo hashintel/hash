@@ -23,4 +23,31 @@ definition graph/web {
 	relation owner: graph/account | graph/account_group#member
 
 	permission create_entity = owner
+	permission create_entity_type = owner
+	permission create_property_type = owner
+	permission create_data_type = owner - owner
+}
+
+definition graph/entity_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/property_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner
+	permission view = general_viewer + update
+}
+
+definition graph/data_type {
+	relation owner: graph/account | graph/account_group#member
+	relation general_viewer: graph/account:*
+
+	permission update = owner - owner
+	permission view = general_viewer + update + owner
 }

@@ -3,6 +3,7 @@ use std::{
     task::{ready, Context, Poll},
 };
 
+use authorization::schema::{EntityTypeId, EntityTypeRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use futures::{
     channel::mpsc::{self, Sender},
@@ -21,12 +22,12 @@ use crate::snapshot::{
             EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
             EntityTypeConstrainsPropertiesOnRow, EntityTypeInheritsFromRow, EntityTypeRow,
         },
-        OntologyTypeMetadataSender,
+        EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
     },
-    OntologyTypeSnapshotRecord, SnapshotRestoreError,
+    SnapshotRestoreError,
 };
 
-/// A sink to insert [`OntologyTypeSnapshotRecord`]s with `T` being an [`EntityType`].
+/// A sink to insert [`EntityTypeSnapshotRecord`]s.
 ///
 /// An `EntityTypeSender` with the corresponding [`EntityTypeReceiver`] are created using the
 /// [`entity_type_channel`] function.
@@ -38,12 +39,13 @@ pub struct EntityTypeSender {
     constrains_properties: Sender<Vec<EntityTypeConstrainsPropertiesOnRow>>,
     constrains_links: Sender<Vec<EntityTypeConstrainsLinksOnRow>>,
     constrains_link_destinations: Sender<Vec<EntityTypeConstrainsLinkDestinationsOnRow>>,
+    relations: Sender<(EntityTypeId, EntityTypeRelationAndSubject)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
 // with error-handling added to make it easier to use. It's taking an `OntologyTypeSnapshotRecord`
 // and sending the individual rows to the corresponding sinks.
-impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
+impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
@@ -64,13 +66,17 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.constrains_link_destinations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll constrains link destinations edge sender")?;
+        ready!(self.relations.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll relations sender")?;
 
         Poll::Ready(Ok(()))
     }
 
+    #[expect(clippy::too_many_lines)]
     fn start_send(
         mut self: Pin<&mut Self>,
-        entity_type: OntologyTypeSnapshotRecord<EntityType>,
+        entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
         let schema = EntityType::try_from(entity_type.schema)
             .change_context(SnapshotRestoreError::Read)
@@ -171,7 +177,10 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
-                schema: Json(schema.into()),
+                schema: Json(schema.clone().into()),
+                // The unclosed schema is inserted initially. This will be replaced later by the
+                // closed schema.
+                closed_schema: Json(schema.into()),
                 label_property: entity_type
                     .metadata
                     .label_property
@@ -180,6 +189,13 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
+
+        for relationships in entity_type.relations {
+            self.relations
+                .start_send_unpin((EntityTypeId::new(ontology_id), relationships))
+                .change_context(SnapshotRestoreError::Read)
+                .attach_printable("could not send entity relations")?;
+        }
 
         Ok(())
     }
@@ -202,6 +218,9 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.constrains_link_destinations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush constrains link destinations edge sender")?;
+        ready!(self.relations.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -224,6 +243,9 @@ impl Sink<OntologyTypeSnapshotRecord<EntityType>> for EntityTypeSender {
         ready!(self.constrains_link_destinations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close constrains link destinations edge sender")?;
+        ready!(self.relations.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -260,6 +282,7 @@ pub fn entity_type_channel(
     let (constrains_links_tx, constrains_links_rx) = mpsc::channel(chunk_size);
     let (constrains_link_destinations_tx, constrains_link_destinations_rx) =
         mpsc::channel(chunk_size);
+    let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         EntityTypeSender {
@@ -269,6 +292,7 @@ pub fn entity_type_channel(
             constrains_properties: constrains_properties_tx,
             constrains_links: constrains_links_tx,
             constrains_link_destinations: constrains_link_destinations_tx,
+            relations: relations_tx,
         },
         EntityTypeReceiver {
             stream: select_all([
@@ -303,6 +327,10 @@ pub fn entity_type_channel(
                             values.into_iter().flatten().collect(),
                         )
                     })
+                    .boxed(),
+                relations_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityTypeRowBatch::Relations)
                     .boxed(),
             ]),
         },

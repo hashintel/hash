@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use authorization::backend::ZanzibarBackend;
+use authorization::{
+    backend::ZanzibarBackend,
+    schema::{DataTypeId, DataTypeRelationAndSubject},
+};
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -10,6 +13,7 @@ use crate::{
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
+    Relations(Vec<(DataTypeId, DataTypeRelationAndSubject)>),
 }
 
 #[async_trait]
@@ -34,7 +38,7 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
     async fn write(
         self,
         postgres_client: &PostgresStore<C>,
-        _authorization_api: &mut (impl ZanzibarBackend + Send),
+        authorization_api: &mut (impl ZanzibarBackend + Send),
     ) -> Result<(), InsertionError> {
         let client = postgres_client.as_client().client();
         match self {
@@ -53,6 +57,12 @@ impl<C: AsClient> WriteBatch<C> for DataTypeRowBatch {
                 if !rows.is_empty() {
                     tracing::info!("Read {} data type schemas", rows.len());
                 }
+            }
+            Self::Relations(relations) => {
+                authorization_api
+                    .touch_relationships(relations)
+                    .await
+                    .change_context(InsertionError)?;
             }
         }
         Ok(())

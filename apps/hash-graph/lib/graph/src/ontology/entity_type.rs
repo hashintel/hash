@@ -469,6 +469,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
+    ClosedSchema(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
     AdditionalMetadata,
 }
 
@@ -517,7 +519,9 @@ impl QueryPath for EntityTypeQueryPath<'_> {
             | Self::OwnedById
             | Self::RecordCreatedById
             | Self::RecordArchivedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::AdditionalMetadata => ParameterType::Object,
+            Self::Schema(_) | Self::ClosedSchema(_) | Self::AdditionalMetadata => {
+                ParameterType::Object
+            }
             Self::Examples | Self::Required => ParameterType::Any,
             Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -544,6 +548,8 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::RecordArchivedById => fmt.write_str("recordArchivedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
+            Self::ClosedSchema(Some(path)) => write!(fmt, "closedSchema.{path}"),
+            Self::ClosedSchema(None) => fmt.write_str("closedSchema"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Examples => fmt.write_str("examples"),
@@ -651,6 +657,8 @@ pub enum EntityTypeQueryToken {
     Children,
     #[serde(skip)]
     Schema,
+    #[serde(skip)]
+    ClosedSchema,
 }
 
 /// Deserializes an [`EntityTypeQueryPath`] from a string sequence.
@@ -678,6 +686,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         formatter.write_str(Self::EXPECTING)
     }
 
+    #[expect(clippy::too_many_lines)]
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -775,6 +784,19 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     EntityTypeQueryPath::Schema(None)
                 } else {
                     EntityTypeQueryPath::Schema(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+            EntityTypeQueryToken::ClosedSchema => {
+                let mut path_tokens = Vec::new();
+                while let Some(field) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(field);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityTypeQueryPath::ClosedSchema(None)
+                } else {
+                    EntityTypeQueryPath::ClosedSchema(Some(JsonPath::from_path_tokens(path_tokens)))
                 }
             }
         };

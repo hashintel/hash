@@ -1,5 +1,6 @@
 use std::fmt;
 
+use authorization::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
 use graph_types::ontology::OntologyTypeRecordId;
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
@@ -29,6 +30,42 @@ impl OntologyId {
     #[must_use]
     pub const fn into_uuid(self) -> Uuid {
         self.0
+    }
+}
+
+impl From<PropertyTypeId> for OntologyId {
+    fn from(property_type_id: PropertyTypeId) -> Self {
+        Self(property_type_id.into_uuid())
+    }
+}
+
+impl From<OntologyId> for PropertyTypeId {
+    fn from(ontology_id: OntologyId) -> Self {
+        Self::new(ontology_id.into_uuid())
+    }
+}
+
+impl From<EntityTypeId> for OntologyId {
+    fn from(entity_type_id: EntityTypeId) -> Self {
+        Self(entity_type_id.into_uuid())
+    }
+}
+
+impl From<OntologyId> for EntityTypeId {
+    fn from(ontology_id: OntologyId) -> Self {
+        Self::new(ontology_id.into_uuid())
+    }
+}
+
+impl From<DataTypeId> for OntologyId {
+    fn from(data_type_id: DataTypeId) -> Self {
+        Self(data_type_id.into_uuid())
+    }
+}
+
+impl From<OntologyId> for DataTypeId {
+    fn from(ontology_id: OntologyId) -> Self {
+        Self::new(ontology_id.into_uuid())
     }
 }
 

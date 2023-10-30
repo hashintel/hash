@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApiPool;
+use authorization::{backend::PermissionAssertion, AuthorizationApiPool};
 use axum::{
     http::StatusCode,
     routing::{post, put},
@@ -187,6 +187,9 @@ where
             // TODO: consider adding the data type, or at least its URL in the trace
             tracing::error!(error=?report, "Could not create data types");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -388,6 +391,9 @@ where
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
