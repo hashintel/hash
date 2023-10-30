@@ -129,7 +129,7 @@ export const InviteAccountForm: FunctionComponent<{
             </Box>
           );
         }}
-        height={36}
+        inputHeight={36}
         sx={{
           height: 36,
           [`.${outlinedInputClasses.root}`]: {

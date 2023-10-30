@@ -94,6 +94,7 @@ export let SYSTEM_TYPES: {
     profileBio: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
+    quickNote: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     userSecret: EntityTypeWithMetadata;
     linearIntegration: EntityTypeWithMetadata;
@@ -824,6 +825,24 @@ const blockCollectionEntityTypeInitializer = async (
   })(context);
 };
 
+const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const blockCollectionEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
+
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.quickNote,
+    allOf: [blockCollectionEntityType.schema.$id],
+    properties: [{ propertyType: archivedPropertyType }],
+  })(context);
+};
+
 const parentLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.parent,
 );
@@ -1156,6 +1175,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     blockCollection: blockCollectionEntityTypeInitializer,
     profileBio: profileBioEntityTypeInitializer,
     page: pageEntityTypeInitializer,
+    quickNote: quickNoteEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     userSecret: userSecretEntityTypeInitializer,

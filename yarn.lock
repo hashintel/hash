@@ -13602,7 +13602,7 @@ forwarded@0.2.0:
 fractional-indexing@2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/fractional-indexing/-/fractional-indexing-2.1.0.tgz#1f20e5973ff6ac9d577583a814af43fcb9441a05"
-  integrity "sha1-HyDllz/2rJ1XdYOoFK9D/LlEGgU= sha512-4tIVui+5dxsXe/BG7D9EzgNIDK9fEoBzjvAf9gFfxFDPo2LsPSjfFKB2QmtcvmioD2IlshtcJFXGEcDPTG6R/A=="
+  integrity sha512-4tIVui+5dxsXe/BG7D9EzgNIDK9fEoBzjvAf9gFfxFDPo2LsPSjfFKB2QmtcvmioD2IlshtcJFXGEcDPTG6R/A==
 
 framer-motion@^6.4.3:
   version "6.4.3"

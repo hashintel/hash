@@ -20,6 +20,7 @@ type BlockCollectionProps = {
   contents: BlockCollectionContentItem[];
   enableCommenting?: boolean;
   readonly: boolean;
+  autoFocus?: boolean;
   ownedById: OwnedById;
   entityId: EntityId;
   sx?: BoxProps["sx"];
@@ -35,6 +36,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
   readonly,
   enableCommenting = false,
+  autoFocus = true,
   ownedById,
   entityId,
   sx,
@@ -93,6 +95,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
         currentContents.current.map((contentItem) => contentItem.rightEntity),
       client,
       isCommentingEnabled: enableCommenting,
+      autoFocus,
     });
 
     if (setEditorContext) {
@@ -122,6 +125,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
     pageTitleRef,
     client,
     enableCommenting,
+    autoFocus,
   ]);
 
   return (
