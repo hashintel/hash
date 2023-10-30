@@ -25,7 +25,7 @@ export const pageTypedef = gql`
     """
     The fractional index of the page in the page tree.
     """
-    index: String
+    fractionalIndex: String
     """
     The page's parent page (may not be set).
     """
@@ -85,14 +85,14 @@ export const pageTypedef = gql`
     """
     The fractional index of the page that is before the current.
     """
-    prevIndex: String
+    prevFractionalIndex: String
   }
 
   input PageUpdateData {
     title: String
     summary: String
     archived: Boolean
-    index: String
+    fractionalIndex: String
     icon: String
   }
 
@@ -122,7 +122,7 @@ export const pageTypedef = gql`
     setParentPage(
       pageEntityId: EntityId!
       parentPageEntityId: EntityId
-      prevIndex: String
+      prevFractionalIndex: String
       nextIndex: String
     ): Page!
   }

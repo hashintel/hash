@@ -45,13 +45,16 @@ export const useCreatePage = ({
   });
 
   const createUntitledPage = useCallback(
-    async (prevIndex: string | null) => {
+    async (prevFractionalIndex: string | null) => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreatePage");
       }
 
       const response = await createPageFn({
-        variables: { ownedById, properties: { title: "", prevIndex } },
+        variables: {
+          ownedById,
+          properties: { title: "", prevFractionalIndex },
+        },
       });
 
       const pageEntityId = response.data?.createPage.metadata.recordId.entityId;

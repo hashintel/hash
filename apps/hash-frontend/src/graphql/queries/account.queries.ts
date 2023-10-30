@@ -5,7 +5,7 @@ export const getAccountPagesTree = gql`
     pages(ownedById: $ownedById, includeArchived: $includeArchived) {
       archived
       icon
-      index
+      fractionalIndex
       title
       parentPage {
         metadata

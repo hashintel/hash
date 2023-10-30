@@ -1,7 +1,7 @@
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { OwnedById } from "@local/hash-subgraph/.";
+import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useCallback } from "react";
 

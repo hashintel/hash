@@ -1,5 +1,5 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { Entity, EntityId, Subgraph } from "@local/hash-subgraph/.";
+import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
 import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 import {

@@ -1,6 +1,6 @@
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-subgraph/.";
+import { OwnedById } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {
   FunctionComponent,

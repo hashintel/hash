@@ -5,7 +5,11 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  BlockDataProperties,
+  ContainsProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -54,7 +58,7 @@ import { getUserById, User } from "./user";
 export type Page = {
   title: string;
   summary?: string;
-  index?: string;
+  fractionalIndex?: string;
   icon?: string;
   archived?: boolean;
   entity: Entity;
@@ -81,8 +85,8 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
     SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl
   ] as string | undefined;
 
-  const index = entity.properties[
-    SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl
+  const fractionalIndex = entity.properties[
+    SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl
   ] as string | undefined;
 
   const icon = entity.properties[
@@ -96,7 +100,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   return {
     title,
     summary,
-    index,
+    fractionalIndex,
     icon,
     archived,
     entity,
@@ -132,14 +136,14 @@ export const createPage: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     title: string;
     summary?: string;
-    prevIndex?: string;
+    prevFractionalIndex?: string;
     initialBlocks?: Block[];
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, summary, prevIndex, ownedById } = params;
+  const { title, summary, prevFractionalIndex, ownedById } = params;
 
-  const index = generateKeyBetween(prevIndex ?? null, null);
+  const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
@@ -150,8 +154,11 @@ export const createPage: ImpureGraphFunction<
         }
       : {}),
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
-    ...(index !== undefined
-      ? { [SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl]: index }
+    ...(fractionalIndex !== undefined
+      ? {
+          [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+            fractionalIndex,
+        }
       : {}),
   };
 
@@ -380,22 +387,22 @@ export const removeParentPage: ImpureGraphFunction<
  * @param params.page - the page
  * @param params.parentPage - the new parent page (or `null`)
  * @param params.actorId - the account that is setting the parent page
- * @param params.prevIndex - the index of the previous page
- * @param params.nextIndex- the index of the next page
+ * @param params.prevFractionalIndex - the fractionalIndex of the previous page
+ * @param params.nextIndex- the fractionalIndex of the next page
  */
 export const setPageParentPage: ImpureGraphFunction<
   {
     page: Page;
     parentPage: Page | null;
 
-    prevIndex: string | null;
+    prevFractionalIndex: string | null;
     nextIndex: string | null;
   },
   Promise<Page>
 > = async (ctx, authentication, params) => {
-  const { page, parentPage, prevIndex, nextIndex } = params;
+  const { page, parentPage, prevFractionalIndex, nextIndex } = params;
 
-  const newIndex = generateKeyBetween(prevIndex, nextIndex);
+  const newIndex = generateKeyBetween(prevFractionalIndex, nextIndex);
 
   const existingParentPage = await getPageParentPage(ctx, authentication, {
     page,
@@ -427,11 +434,11 @@ export const setPageParentPage: ImpureGraphFunction<
     });
   }
 
-  if (page.index !== newIndex) {
+  if (page.fractionalIndex !== newIndex) {
     const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
       entity: page.entity,
       propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.index.metadata.recordId.baseUrl,
+        SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl,
       value: newIndex,
     });
 
@@ -450,7 +457,7 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId },
   Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { pageEntityId }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
+  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
@@ -458,21 +465,28 @@ export const getPageBlocks: ImpureGraphFunction<
       linkEntityTypeVersionedUrl:
         SYSTEM_TYPES.linkEntityType.contains.schema.$id,
     },
-  );
+  )) as LinkEntity<ContainsProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort(
-        (a, b) =>
-          (a.linkData.leftToRightOrder ?? 0) -
-            (b.linkData.leftToRightOrder ?? 0) ||
+      .sort((a, b) => {
+        const { numericIndex: aNumericIndex } = simplifyProperties(
+          a.properties,
+        );
+        const { numericIndex: bNumericIndex } = simplifyProperties(
+          b.properties,
+        );
+
+        return (
+          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||
           a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
             b.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
-      )
+          )
+        );
+      })
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {

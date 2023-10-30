@@ -16,7 +16,12 @@ export const setParentPageResolver: ResolverFn<
   MutationSetParentPageArgs
 > = async (
   _,
-  { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },
+  {
+    pageEntityId,
+    parentPageEntityId,
+    prevFractionalIndex = null,
+    nextIndex = null,
+  },
   { dataSources, authentication },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -38,7 +43,7 @@ export const setParentPageResolver: ResolverFn<
   const updatedPage = await setPageParentPage(context, authentication, {
     page,
     parentPage: newParentPage,
-    prevIndex,
+    prevFractionalIndex,
     nextIndex,
   });
 

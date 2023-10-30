@@ -117,7 +117,9 @@ export type ContainsOutgoingLinksByLinkEntityTypeId = {};
 export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
 export type ContainsProperties1 = LinkProperties;
 
-export type ContainsProperties2 = {};
+export type ContainsProperties2 = {
+  "http://localhost:3000/@system-user/types/property-type/numeric-index/"?: NumericIndexPropertyValue;
+};
 
 /**
  * Stringified timestamp of when something was deleted.
@@ -183,19 +185,10 @@ export type FileSizePropertyValue = NumberDataType;
  */
 export type FileURLPropertyValue = TextDataType;
 
-export type HasAction = Entity<HasActionProperties> & { linkData: LinkData };
-
-export type HasActionOutgoingLinkAndTarget = never;
-
-export type HasActionOutgoingLinksByLinkEntityTypeId = {};
-
 /**
- * Has an action.
+ * The fractional index indicating the current position of something.
  */
-export type HasActionProperties = HasActionProperties1 & HasActionProperties2;
-export type HasActionProperties1 = LinkProperties;
-
-export type HasActionProperties2 = {};
+export type FractionalIndexPropertyValue = TextDataType;
 
 export type HasAvatar = Entity<HasAvatarProperties> & { linkData: LinkData };
 
@@ -292,11 +285,6 @@ export type ImageProperties1 = FileProperties;
 
 export type ImageProperties2 = {};
 
-/**
- * The (fractional) index indicating the current position of something.
- */
-export type IndexPropertyValue = TextDataType;
-
 export type KratosIdentityIdPropertyValue = TextDataType;
 
 export type Link = Entity<LinkProperties>;
@@ -321,27 +309,9 @@ export type MIMETypePropertyValue = TextDataType;
 
 export type Notification = Entity<NotificationProperties>;
 
-export type NotificationAction = Entity<NotificationActionProperties>;
+export type NotificationOutgoingLinkAndTarget = never;
 
-export type NotificationActionOutgoingLinkAndTarget = never;
-
-export type NotificationActionOutgoingLinksByLinkEntityTypeId = {};
-
-export type NotificationActionProperties = {
-  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/url/": URLPropertyValue;
-};
-
-export type NotificationHasActionLink = {
-  linkEntity: HasAction;
-  rightEntity: NotificationAction;
-};
-
-export type NotificationOutgoingLinkAndTarget = NotificationHasActionLink;
-
-export type NotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/has-action/v/1": NotificationHasActionLink;
-};
+export type NotificationOutgoingLinksByLinkEntityTypeId = {};
 
 export type NotificationProperties = {
   "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
@@ -351,6 +321,11 @@ export type NotificationProperties = {
  * An arithmetical value (in the Real number system)
  */
 export type NumberDataType = number;
+
+/**
+ * The numeric index indicating the current position of something.
+ */
+export type NumericIndexPropertyValue = NumberDataType;
 
 /**
  * An opaque, untyped JSON object
@@ -485,8 +460,8 @@ export type PageProperties1 = BlockCollectionProperties;
 
 export type PageProperties2 = {
   "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/fractional-index/": FractionalIndexPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/index/": IndexPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
   "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
 };
@@ -597,11 +572,6 @@ export type TriggeredByUserProperties = TriggeredByUserProperties1 &
 export type TriggeredByUserProperties1 = LinkProperties;
 
 export type TriggeredByUserProperties2 = {};
-
-/**
- * A URL.
- */
-export type URLPropertyValue = TextDataType;
 
 export type User = Entity<UserProperties>;
 

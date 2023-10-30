@@ -3,7 +3,7 @@ import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
-} from "@local/hash-subgraph/.";
+} from "@local/hash-subgraph";
 
 import {
   getBlockCollectionByBlock,
