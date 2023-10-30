@@ -86,9 +86,6 @@ export interface PresignedDownloadRequest {
  * Data returned for a client to be able to send a PUT request to upload a file
  * PUT rather than POST is used for R2 compatibility
  * @see https://developers.cloudflare.com/r2/api/s3/presigned-urls
- *
- * This also returns the file storage configuration currently in effect for persisting as properties on the file entity,
- *    to allow retrieval at a later date in the event that the storage configuration changes in the future.
  */
 export interface PresignedPutUpload {
   /** PUT URL to send the upload request to, including any headers */
