@@ -75,8 +75,11 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     return {
       fileStorageProperties: {
         bucket: this.bucket,
+        endpoint: this.endpoint,
+        forcePathStyle: this.forcePathStyle,
         key: params.key,
         provider: "AWS_S3" as const,
+        region: this.region,
       },
       presignedPut: { url: presignedPutUrl },
     };
@@ -92,12 +95,21 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     } = simplifyProperties(entity.properties);
 
     let client = this.client;
+
     if (
       fileStorageBucket !== this.bucket ||
       fileStorageEndpoint !== this.endpoint ||
       fileStorageForcePathStyle !== this.forcePathStyle ||
       fileStorageRegion !== this.region
     ) {
+      /**
+       * We store the exact configuration used when the file was uploaded,
+       * in case it's different to the current configuration.
+       *
+       * If the credentials in effect are invalid for the saved configuration,
+       * the request will fail.
+       * @todo allow specifying different credentials for access based on the storage configuration
+       */
       client = new S3Client({
         credentials: this.client.config.credentials,
         endpoint: fileStorageEndpoint,
@@ -107,7 +119,7 @@ export class AwsS3StorageProvider implements UploadableStorageProvider {
     }
 
     const command = new GetObjectCommand({
-      Bucket: this.bucket,
+      Bucket: fileStorageBucket,
       Key: key,
     });
 

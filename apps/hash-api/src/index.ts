@@ -163,8 +163,6 @@ const main = async () => {
 
   const context = { graphApi, uploadProvider };
 
-  setupFileDownloadProxyHandler(app, redis);
-
   await ensureSystemGraphIsInitialized({ logger, context });
 
   if (process.env.LINEAR_CLIENT_ID) {
@@ -273,6 +271,8 @@ const main = async () => {
     };
     next();
   });
+
+  setupFileDownloadProxyHandler(app, redis);
 
   app.get("/", (_, res) => res.send("Hello World"));
 

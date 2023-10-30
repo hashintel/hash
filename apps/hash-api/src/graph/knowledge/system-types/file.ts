@@ -136,7 +136,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       });
 
     const { propertyType } = SYSTEM_TYPES;
-    const { bucket, endpoint, forcePathStyle, provider } =
+    const { bucket, endpoint, forcePathStyle, provider, region } =
       fileStorageProperties;
 
     const storageProperties: Partial<FileProperties> = {
@@ -146,6 +146,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         !!forcePathStyle,
       [propertyType.fileStorageKey.metadata.recordId.baseUrl]: key,
       [propertyType.fileStorageProvider.metadata.recordId.baseUrl]: provider,
+      [propertyType.fileStorageRegion.metadata.recordId.baseUrl]: region,
     };
 
     const properties: FileProperties = {

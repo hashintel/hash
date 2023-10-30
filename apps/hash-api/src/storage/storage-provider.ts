@@ -45,6 +45,7 @@ export interface UploadableStorageProvider extends StorageProvider, DataSource {
       forcePathStyle?: boolean;
       key: string;
       provider: StorageType;
+      region?: string;
     };
   }>;
   /**
