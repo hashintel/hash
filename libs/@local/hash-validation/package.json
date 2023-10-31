@@ -7,5 +7,7 @@
     "lint:clippy": "just clippy",
     "test:unit": "cargo hack nextest run --feature-powerset --lib && cargo test --all-features --doc"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@local/hash-graph-types-rs": "0.0.0-private"
+  }
 }
