@@ -1,8 +1,7 @@
-use std::{collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{collections::HashSet, marker::PhantomData};
 
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
-use tokio_postgres::row::RowIndex;
 
 use crate::{
     store::{
@@ -211,10 +210,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path<'q>(
-        &mut self,
-        path: &'p R::QueryPath<'q>,
-    ) -> impl RowIndex + Display + Copy
+    pub fn add_selection_path<'q>(&mut self, path: &'p R::QueryPath<'q>) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
@@ -234,7 +230,7 @@ impl<'p, R: PostgresRecord> SelectCompiler<'p, R> {
         path: &'p R::QueryPath<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
-    ) -> impl RowIndex + Display + Copy
+    ) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
     {
