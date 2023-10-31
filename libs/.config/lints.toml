@@ -1,0 +1,10 @@
+# library specific lints
+
+warn = [
+    "unreachable_pub"
+]
+
+allow = [
+    # This would otherwise clash with `unreachable_pub`
+    "clippy::redundant_pub_crate"
+]
