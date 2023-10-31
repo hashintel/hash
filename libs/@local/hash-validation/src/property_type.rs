@@ -26,15 +26,11 @@ macro_rules! extend_report {
 }
 
 #[derive(Debug, Error)]
-pub enum PropertyTypeValidationError {
-    #[error("The value does not match any of the provided schemas")]
-    InvalidOneOf,
+pub enum PropertyValidationError {
     #[error("the validator was unable to read the property type `{id}`")]
     PropertyTypeRetrieval { id: VersionedUrl },
     #[error("data type validation failed for data type with id `{id}`")]
     DataTypeValidation { id: VersionedUrl },
-    #[error("not a valid value for the provided property type")]
-    PropertyTypeObject,
     #[error("the property `{key}` was specified, but not in the schema")]
     UnexpectedProperty { key: BaseUrl },
     #[error("the value provided does not match the required schema for `{key}`")]
@@ -62,17 +58,17 @@ pub enum PropertyTypeValidationError {
     },
 }
 
-impl<P: Sync> Schema<JsonValue, P> for PropertyType
+impl<P> Schema<JsonValue, P> for PropertyType
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<Self> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
         provider: &'a P,
-    ) -> Result<(), Report<PropertyTypeValidationError>> {
+    ) -> Result<(), Report<PropertyValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
@@ -89,7 +85,7 @@ impl<P> Validate<PropertyType, P> for JsonValue
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate(
         &self,
@@ -104,7 +100,7 @@ impl<P> Schema<JsonValue, P> for PropertyTypeReference
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
@@ -114,7 +110,7 @@ where
         let property_type =
             OntologyTypeProvider::<PropertyType>::provide_type(provider, self.url())
                 .await
-                .change_context_lazy(|| PropertyTypeValidationError::PropertyTypeRetrieval {
+                .change_context_lazy(|| PropertyValidationError::PropertyTypeRetrieval {
                     id: self.url().clone(),
                 })?;
         property_type.borrow().validate_value(value, provider).await
@@ -125,7 +121,7 @@ impl<P> Validate<PropertyTypeReference, P> for JsonValue
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate(
         &self,
@@ -140,26 +136,26 @@ impl<V, P, S> Schema<[V], P> for Array<S>
 where
     V: Sync,
     P: Sync,
-    S: Schema<V, P, Error = PropertyTypeValidationError> + Sync,
+    S: Schema<V, P, Error = PropertyValidationError> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
         values: &'a [V],
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
-        let mut status: Result<(), Report<PropertyTypeValidationError>> = Ok(());
+        let mut status: Result<(), Report<PropertyValidationError>> = Ok(());
 
         if let Some(min) = self.min_items() {
             if values.len() < min {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::TooFewItems {
+                    PropertyValidationError::TooFewItems {
                         actual: values.len(),
                         min,
                     },
-                )
+                );
             }
         }
 
@@ -167,17 +163,17 @@ where
             if values.len() > max {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::TooManyItems {
+                    PropertyValidationError::TooManyItems {
                         actual: values.len(),
                         max,
                     },
-                )
+                );
             }
         }
 
         for value in values {
             if let Err(report) = self.items().validate_value(value, provider).await {
-                extend_report!(status, report)
+                extend_report!(status, report);
             }
         }
 
@@ -201,9 +197,11 @@ where
         let mut status: Result<(), Report<S::Error>> = Ok(());
 
         for schema in self.one_of() {
-            match schema.validate_value(value, provider).await {
-                Ok(_) => return Ok(()),
-                Err(error) => extend_report!(status, error),
+            if let Err(error) = schema.validate_value(value, provider).await {
+                extend_report!(status, error);
+            } else {
+                // Only one schema must match
+                return Ok(());
             }
         }
 
@@ -211,24 +209,12 @@ where
     }
 }
 
-#[derive(Debug, Error)]
-pub enum ArrayOrValueValidationError {
-    #[error("the provided value does not match the schema")]
-    ValueError,
-    #[error("the provided array does not match the schema")]
-    ArrayError,
-    #[error("an array was expected, but a single value was found")]
-    UnexpectedValue,
-    #[error("a single value was expected, but an array was found")]
-    UnexpectedArray,
-}
-
-impl<P: Sync, S> Schema<JsonValue, P> for ValueOrArray<S>
+impl<P, S> Schema<JsonValue, P> for ValueOrArray<S>
 where
     P: Sync,
-    S: Schema<JsonValue, P, Error = PropertyTypeValidationError> + Sync,
+    S: Schema<JsonValue, P, Error = PropertyValidationError> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
@@ -236,12 +222,12 @@ where
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
         match (value, self) {
-            (value, ValueOrArray::Value(schema)) => schema.validate_value(value, provider).await,
-            (JsonValue::Array(array), ValueOrArray::Array(schema)) => {
+            (value, Self::Value(schema)) => schema.validate_value(value, provider).await,
+            (JsonValue::Array(array), Self::Array(schema)) => {
                 schema.validate_value(array, provider).await
             }
-            (_, ValueOrArray::Array(_)) => {
-                bail!(PropertyTypeValidationError::InvalidType {
+            (_, Self::Array(_)) => {
+                bail!(PropertyValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Array,
                 })
@@ -250,12 +236,12 @@ where
     }
 }
 
-impl<P: Sync, const MIN: usize> Schema<serde_json::Map<String, JsonValue>, P>
+impl<P, const MIN: usize> Schema<serde_json::Map<String, JsonValue>, P>
     for Object<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
@@ -264,28 +250,28 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
-        for (key, property) in value.into_iter() {
+        for (key, property) in value {
             // TODO: Distinguish between format validation and content validation so it's possible
             //       to directly use the correct type. `BaseUrl` should implement `Borrow<str>` so
             //       it can be used for lookup in the object.
             //   see https://linear.app/hash/issue/BP-33
             let key = BaseUrl::new(key.clone()).change_context_lazy(|| {
-                PropertyTypeValidationError::InvalidPropertyKey { key: key.clone() }
+                PropertyValidationError::InvalidPropertyKey { key: key.clone() }
             })?;
             if let Some(object_schema) = self.properties().get(&key) {
                 if let Err(report) = object_schema.validate_value(property, provider).await {
                     extend_report!(
                         status,
-                        report.change_context(PropertyTypeValidationError::InvalidProperty {
+                        report.change_context(PropertyValidationError::InvalidProperty {
                             key: key.clone(),
                         })
-                    )
+                    );
                 }
             } else {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::UnexpectedProperty { key: key.clone() }
-                )
+                    PropertyValidationError::UnexpectedProperty { key: key.clone() }
+                );
             }
         }
 
@@ -293,10 +279,10 @@ where
             if !value.contains_key(required_property.as_str()) {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::MissingRequiredProperty {
+                    PropertyValidationError::MissingRequiredProperty {
                         key: required_property.clone(),
                     }
-                )
+                );
             }
         }
 
@@ -304,12 +290,12 @@ where
     }
 }
 
-impl<P: Sync, const MIN: usize> Schema<HashMap<BaseUrl, JsonValue>, P>
+impl<P, const MIN: usize> Schema<HashMap<BaseUrl, JsonValue>, P>
     for Object<ValueOrArray<PropertyTypeReference>, MIN>
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
@@ -318,16 +304,16 @@ where
     ) -> Result<(), Report<Self::Error>> {
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
-        for (key, property) in value.into_iter() {
-            if let Some(object_schema) = self.properties().get(&key) {
+        for (key, property) in value {
+            if let Some(object_schema) = self.properties().get(key) {
                 if let Err(report) = object_schema.validate_value(property, provider).await {
-                    extend_report!(status, report)
+                    extend_report!(status, report);
                 }
             } else {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::UnexpectedProperty { key: key.clone() }
-                )
+                    PropertyValidationError::UnexpectedProperty { key: key.clone() }
+                );
             }
         }
 
@@ -335,10 +321,10 @@ where
             if !value.contains_key(required_property) {
                 extend_report!(
                     status,
-                    PropertyTypeValidationError::MissingRequiredProperty {
+                    PropertyValidationError::MissingRequiredProperty {
                         key: required_property.clone(),
                     }
-                )
+                );
             }
         }
 
@@ -350,7 +336,7 @@ impl<P> Schema<JsonValue, P> for PropertyValues
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = PropertyTypeValidationError;
+    type Error = PropertyValidationError;
 
     fn validate_value<'a>(
         &'a self,
@@ -359,16 +345,16 @@ where
     ) -> Pin<Box<dyn Future<Output = Result<(), Report<Self::Error>>> + Send + '_>> {
         Box::pin(async move {
             match (value, self) {
-                (value, PropertyValues::DataTypeReference(reference)) => reference
+                (value, Self::DataTypeReference(reference)) => reference
                     .validate_value(value, provider)
                     .await
-                    .change_context(PropertyTypeValidationError::DataTypeValidation {
+                    .change_context(PropertyValidationError::DataTypeValidation {
                         id: reference.url().clone(),
                     }),
-                (JsonValue::Array(values), PropertyValues::ArrayOfPropertyValues(schema)) => {
+                (JsonValue::Array(values), Self::ArrayOfPropertyValues(schema)) => {
                     schema.validate_value(values, provider).await
                 }
-                (JsonValue::Object(object), PropertyValues::PropertyTypeObject(schema)) => {
+                (JsonValue::Object(object), Self::PropertyTypeObject(schema)) => {
                     schema.validate_value(object, provider).await
                 }
                 (
@@ -377,8 +363,8 @@ where
                     | JsonValue::Number(_)
                     | JsonValue::String(_)
                     | JsonValue::Object(_),
-                    PropertyValues::ArrayOfPropertyValues(_),
-                ) => Err(Report::new(PropertyTypeValidationError::InvalidType {
+                    Self::ArrayOfPropertyValues(_),
+                ) => Err(Report::new(PropertyValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Array,
                 })),
@@ -388,8 +374,8 @@ where
                     | JsonValue::Number(_)
                     | JsonValue::String(_)
                     | JsonValue::Array(_),
-                    PropertyValues::PropertyTypeObject(_),
-                ) => Err(Report::new(PropertyTypeValidationError::InvalidType {
+                    Self::PropertyTypeObject(_),
+                ) => Err(Report::new(PropertyValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Object,
                 })),
@@ -501,7 +487,7 @@ mod tests {
         .expect("validation failed");
 
         validate_property(
-            json!(12345678),
+            json!(12_34_56_78),
             graph_test_data::property_type::CONTRIVED_PROPERTY_V1,
             property_types,
             data_types,

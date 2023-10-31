@@ -12,22 +12,22 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-pub enum EntityTypeValidationError {
+pub enum EntityValidationError {
     #[error("The properties of the entity do not match the schema")]
     InvalidProperties,
 }
 
-impl<P: Sync> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
+impl<P> Schema<HashMap<BaseUrl, JsonValue>, P> for EntityType
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = EntityTypeValidationError;
+    type Error = EntityValidationError;
 
     async fn validate_value<'a>(
         &'a self,
         value: &'a HashMap<BaseUrl, serde_json::Value>,
         provider: &'a P,
-    ) -> Result<(), Report<EntityTypeValidationError>> {
+    ) -> Result<(), Report<EntityValidationError>> {
         // TODO: Distinguish between format validation and content validation so it's possible
         //       to directly use the correct type.
         //   see https://linear.app/hash/issue/BP-33
@@ -35,7 +35,7 @@ where
             .expect("`Object` was already validated")
             .validate_value(value, provider)
             .await
-            .change_context(EntityTypeValidationError::InvalidProperties)
+            .change_context(EntityValidationError::InvalidProperties)
             .attach_lazy(|| Expected::EntityType(self.clone()))
             .attach_lazy(|| Actual::Properties(EntityProperties::new(value.clone())))
     }
@@ -45,7 +45,7 @@ impl<P> Validate<EntityType, P> for EntityProperties
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = EntityTypeValidationError;
+    type Error = EntityValidationError;
 
     async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
         schema.validate_value(self.properties(), provider).await

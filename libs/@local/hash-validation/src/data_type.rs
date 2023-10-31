@@ -25,13 +25,13 @@ pub enum JsonValueType {
 impl fmt::Display for JsonValueType {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            JsonValueType::Null => fmt.write_str("null"),
-            JsonValueType::Boolean => fmt.write_str("boolean"),
-            JsonValueType::Number => fmt.write_str("number"),
-            JsonValueType::Integer => fmt.write_str("integer"),
-            JsonValueType::String => fmt.write_str("string"),
-            JsonValueType::Array => fmt.write_str("array"),
-            JsonValueType::Object => fmt.write_str("object"),
+            Self::Null => fmt.write_str("null"),
+            Self::Boolean => fmt.write_str("boolean"),
+            Self::Number => fmt.write_str("number"),
+            Self::Integer => fmt.write_str("integer"),
+            Self::String => fmt.write_str("string"),
+            Self::Array => fmt.write_str("array"),
+            Self::Object => fmt.write_str("object"),
         }
     }
 }
@@ -61,7 +61,7 @@ pub enum DataTypeConstraint {
 }
 
 #[derive(Debug, Error)]
-pub enum DataTypeValidationError {
+pub enum DataValidationError {
     #[error("the validator was unable to read the data type: `{id}`")]
     DataTypeRetrieval { id: VersionedUrl },
     #[error(
@@ -78,24 +78,24 @@ pub enum DataTypeValidationError {
 }
 
 impl<P: Sync> Schema<JsonValue, P> for DataType {
-    type Error = DataTypeValidationError;
+    type Error = DataValidationError;
 
     async fn validate_value<'a>(
         &'a self,
         value: &'a JsonValue,
         _provider: &'a P,
-    ) -> Result<(), Report<DataTypeValidationError>> {
+    ) -> Result<(), Report<DataValidationError>> {
         match self.json_type() {
             "null" => ensure!(
                 value.is_null(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Null,
                 }
             ),
             "boolean" => ensure!(
                 value.is_boolean(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Boolean,
                 }
@@ -103,41 +103,41 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
 
             "number" => ensure!(
                 value.is_number(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Number,
                 }
             ),
             "integer" => ensure!(
                 value.is_i64() || value.is_u64(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Integer,
                 }
             ),
             "string" => ensure!(
                 value.is_string(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::String,
                 }
             ),
             "array" => ensure!(
                 value.is_array(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Array,
                 }
             ),
             "object" => ensure!(
                 value.is_object(),
-                DataTypeValidationError::InvalidType {
+                DataValidationError::InvalidType {
                     actual: JsonValueType::from(value),
                     expected: JsonValueType::Object,
                 }
             ),
             _ => {
-                bail!(DataTypeValidationError::UnknownType {
+                bail!(DataValidationError::UnknownType {
                     schema: self.json_type().to_owned()
                 });
             }
@@ -151,13 +151,13 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
                         actual: value.clone(),
                         expected: additional_property.clone(),
                     })
-                    .change_context(DataTypeValidationError::ConstraintUnfulfilled)
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
                 ),
                 _ => bail!(
                     Report::new(DataTypeConstraint::Unknown {
                         key: additional_key.to_owned(),
                     })
-                    .change_context(DataTypeValidationError::ConstraintUnfulfilled)
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
                 ),
             }
         }
@@ -167,8 +167,9 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
 }
 
 impl Validate<DataType, ()> for JsonValue {
-    type Error = DataTypeValidationError;
+    type Error = DataValidationError;
 
+    #[expect(clippy::let_underscore_untyped, reason = "false positive")]
     async fn validate(&self, schema: &DataType, _: &()) -> Result<(), Report<Self::Error>> {
         schema.validate_value(self, &()).await
     }
@@ -178,7 +179,7 @@ impl<P> Schema<JsonValue, P> for DataTypeReference
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = DataTypeValidationError;
+    type Error = DataValidationError;
 
     async fn validate_value<'a>(
         &'a self,
@@ -188,7 +189,7 @@ where
         let data_type = provider
             .provide_type(self.url())
             .await
-            .change_context_lazy(|| DataTypeValidationError::DataTypeRetrieval {
+            .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
                 id: self.url().clone(),
             })?;
         data_type
@@ -204,7 +205,7 @@ impl<P> Validate<DataTypeReference, P> for JsonValue
 where
     P: OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = DataTypeValidationError;
+    type Error = DataValidationError;
 
     async fn validate(
         &self,

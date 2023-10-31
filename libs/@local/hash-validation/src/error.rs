@@ -10,22 +10,23 @@ pub fn install_error_stack_hooks() {
         Actual::Json(json) => context.push_body(format!("actual: {json:#}")),
         Actual::Properties(properties) => {
             if let Ok(json) = serde_json::to_value(properties) {
-                context.push_body(format!("actual: {json:#}"))
+                context.push_body(format!("actual: {json:#}"));
             }
         }
     });
     Report::install_debug_hook::<Expected>(|expected, context| {
+        struct AttachedSchemas(HashSet<VersionedUrl>);
+
         let id = expected.id();
         context.push_body(format!("expected schema: {id}"));
 
-        struct AttachedSchemas(HashSet<VersionedUrl>);
-        let attach = match context.get_mut::<AttachedSchemas>() {
-            Some(attached) => attached.0.insert(id.clone()),
-            None => {
+        let attach = context
+            .get_mut::<AttachedSchemas>()
+            .map(|attached| attached.0.insert(id.clone()))
+            .unwrap_or_else(|| {
                 context.insert(AttachedSchemas(HashSet::from([id.clone()])));
                 true
-            }
-        };
+            });
 
         if attach {
             let json = match expected {
@@ -60,7 +61,8 @@ pub enum Expected {
 }
 
 impl Expected {
-    pub fn id(&self) -> &VersionedUrl {
+    #[must_use]
+    pub const fn id(&self) -> &VersionedUrl {
         match self {
             Self::EntityType(entity_type) => entity_type.id(),
             Self::PropertyType(property_type) => property_type.id(),

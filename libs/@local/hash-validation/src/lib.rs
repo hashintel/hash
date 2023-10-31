@@ -1,15 +1,25 @@
 #![feature(lint_reasons)]
+#![expect(
+    clippy::missing_errors_doc,
+    reason = "It's obvious that validation may error on invalid data."
+)]
 
-pub mod data_type;
-pub mod entity_type;
 pub mod error;
-pub mod property_type;
 
-use std::{borrow::Borrow, collections::HashMap, future::Future};
+pub use self::{
+    data_type::{DataTypeConstraint, DataValidationError, JsonValueType},
+    entity_type::EntityValidationError,
+    property_type::PropertyValidationError,
+};
+
+mod data_type;
+mod entity_type;
+mod property_type;
+
+use std::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
-use thiserror::Error;
-use type_system::{url::VersionedUrl, DataType, PropertyType};
+use type_system::url::VersionedUrl;
 
 trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
@@ -30,7 +40,9 @@ pub struct Valid<T> {
 impl<T> Valid<T> {
     pub async fn new<S, C>(value: T, schema: S, context: C) -> Result<Self, Report<T::Error>>
     where
-        T: Validate<S, C>,
+        T: Validate<S, C> + Send,
+        S: Send,
+        C: Send,
     {
         value.validate(&schema, &context).await?;
         Ok(Self { value })
@@ -72,14 +84,17 @@ pub trait OntologyTypeProvider<O> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use graph_types::knowledge::entity::EntityProperties;
     use serde_json::Value as JsonValue;
-    use type_system::{raw, EntityType};
+    use thiserror::Error;
+    use type_system::{raw, DataType, EntityType, PropertyType};
 
     use super::*;
     use crate::{
-        data_type::DataTypeValidationError, entity_type::EntityTypeValidationError,
-        error::install_error_stack_hooks, property_type::PropertyTypeValidationError,
+        data_type::DataValidationError, entity_type::EntityValidationError,
+        error::install_error_stack_hooks, property_type::PropertyValidationError,
     };
 
     struct Provider {
@@ -144,9 +159,9 @@ mod tests {
     pub(crate) async fn validate_entity(
         entity: &'static str,
         entity_type: &'static str,
-        property_types: impl IntoIterator<Item = &'static str>,
-        data_types: impl IntoIterator<Item = &'static str>,
-    ) -> Result<(), Report<EntityTypeValidationError>> {
+        property_types: impl IntoIterator<Item = &'static str> + Send,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
+    ) -> Result<(), Report<EntityValidationError>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
@@ -176,9 +191,9 @@ mod tests {
     pub(crate) async fn validate_property(
         property: JsonValue,
         property_type: &'static str,
-        property_types: impl IntoIterator<Item = &'static str>,
-        data_types: impl IntoIterator<Item = &'static str>,
-    ) -> Result<(), Report<PropertyTypeValidationError>> {
+        property_types: impl IntoIterator<Item = &'static str> + Send,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
+    ) -> Result<(), Report<PropertyValidationError>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
@@ -205,7 +220,7 @@ mod tests {
     pub(crate) async fn validate_data(
         data: JsonValue,
         data_type: &'static str,
-    ) -> Result<(), Report<DataTypeValidationError>> {
+    ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
         let raw_data_type = serde_json::from_str::<raw::DataType>(data_type)
