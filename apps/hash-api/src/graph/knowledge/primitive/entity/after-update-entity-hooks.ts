@@ -17,6 +17,7 @@ import {
   getTextFromEntity,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
+import { checkPermissionsOnEntity } from "../entity";
 import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
 import {
   UpdateEntityHook,
@@ -110,35 +111,51 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         );
       }
     }),
-    ...addedMentionedUsers.map(async (addedMentionedUser) => {
-      const existingNotification = await getMentionNotification(
-        context,
-        /** @todo: use authentication of machine user instead */
-        { actorId: addedMentionedUser.accountId },
-        {
-          recipient: addedMentionedUser,
-          triggeredByUser,
-          occurredInEntity: occurredInPage,
-          occurredInComment,
-          occurredInText: text,
-        },
-      );
+    ...addedMentionedUsers
+      .filter(
+        (addedMentionedUser) =>
+          triggeredByUser.accountId !== addedMentionedUser.accountId,
+      )
+      .map(async (addedMentionedUser) => {
+        const { view: mentionedUserCanViewPage } =
+          await checkPermissionsOnEntity(
+            context,
+            { actorId: addedMentionedUser.accountId },
+            { entity: occurredInPage.entity },
+          );
 
-      if (!existingNotification) {
-        await createMentionNotification(
+        if (!mentionedUserCanViewPage) {
+          return;
+        }
+
+        const existingNotification = await getMentionNotification(
           context,
           /** @todo: use authentication of machine user instead */
           { actorId: addedMentionedUser.accountId },
           {
-            ownedById: addedMentionedUser.accountId as OwnedById,
+            recipient: addedMentionedUser,
+            triggeredByUser,
             occurredInEntity: occurredInPage,
             occurredInComment,
             occurredInText: text,
-            triggeredByUser,
           },
         );
-      }
-    }),
+
+        if (!existingNotification) {
+          await createMentionNotification(
+            context,
+            /** @todo: use authentication of machine user instead */
+            { actorId: addedMentionedUser.accountId },
+            {
+              ownedById: addedMentionedUser.accountId as OwnedById,
+              occurredInEntity: occurredInPage,
+              occurredInComment,
+              occurredInText: text,
+              triggeredByUser,
+            },
+          );
+        }
+      }),
   ]);
 };
 

@@ -26,6 +26,7 @@ import {
   getTextById,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
+import { checkPermissionsOnEntity } from "../entity";
 import {
   CreateEntityHook,
   CreateEntityHookCallback,
@@ -77,8 +78,18 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         commentEntityId: comment.entity.metadata.recordId.entityId,
       });
 
-      // If the comment author is not the recipient, then create a page comment notification
-      if (commentAuthor.accountId !== recipientUser.accountId) {
+      const { view: recipientUserCanViewPage } = await checkPermissionsOnEntity(
+        context,
+        { actorId: recipientUser.accountId },
+        { entity: occurredInPage.entity },
+      );
+
+      // If the comment author is not the recipient, and the recipient can view the page,
+      // then create a page comment notification
+      if (
+        commentAuthor.accountId !== recipientUser.accountId &&
+        recipientUserCanViewPage
+      ) {
         await createCommentNotification(
           context,
           { actorId: recipientUser.accountId },
@@ -128,8 +139,18 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         }),
       ]);
 
-      // If the comment author is not the author of the parent comment, then create a comment reply notification
-      if (commentAuthor.accountId !== recipientUser.accountId) {
+      const { view: recipientUserCanViewPage } = await checkPermissionsOnEntity(
+        context,
+        { actorId: recipientUser.accountId },
+        { entity: occurredInPage.entity },
+      );
+
+      // If the comment author is not the recipient user, and the recipient user
+      // can view the page, then create a comment reply notification
+      if (
+        commentAuthor.accountId !== recipientUser.accountId &&
+        recipientUserCanViewPage
+      ) {
         await createCommentNotification(
           context,
           { actorId: recipientUser.accountId },
@@ -191,35 +212,48 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
   });
 
   await Promise.all([
-    ...mentionedUsers.map(async (mentionedUser) => {
-      const existingNotification = await getMentionNotification(
-        context,
-        /** @todo: use authentication of machine user instead */
-        { actorId: mentionedUser.accountId },
-        {
-          recipient: mentionedUser,
-          triggeredByUser,
-          occurredInEntity: occurredInPage,
-          occurredInComment,
-          occurredInText: text,
-        },
-      );
+    ...mentionedUsers
+      .filter((user) => user.accountId !== triggeredByUser.accountId)
+      .map(async (mentionedUser) => {
+        const { view: mentionedUserCanViewPage } =
+          await checkPermissionsOnEntity(
+            context,
+            { actorId: mentionedUser.accountId },
+            { entity: occurredInPage.entity },
+          );
 
-      if (!existingNotification) {
-        await createMentionNotification(
+        if (!mentionedUserCanViewPage) {
+          return;
+        }
+
+        const existingNotification = await getMentionNotification(
           context,
           /** @todo: use authentication of machine user instead */
           { actorId: mentionedUser.accountId },
           {
-            ownedById: mentionedUser.accountId as OwnedById,
+            recipient: mentionedUser,
+            triggeredByUser,
             occurredInEntity: occurredInPage,
             occurredInComment,
             occurredInText: text,
-            triggeredByUser,
           },
         );
-      }
-    }),
+
+        if (!existingNotification) {
+          await createMentionNotification(
+            context,
+            /** @todo: use authentication of machine user instead */
+            { actorId: mentionedUser.accountId },
+            {
+              ownedById: mentionedUser.accountId as OwnedById,
+              occurredInEntity: occurredInPage,
+              occurredInComment,
+              occurredInText: text,
+              triggeredByUser,
+            },
+          );
+        }
+      }),
   ]);
 
   return entity;
