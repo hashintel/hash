@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt};
-use graph_types::knowledge::entity::EntityProperties;
+use graph_types::knowledge::entity::{Entity, EntityProperties};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{url::BaseUrl, DataType, EntityType, Object, PropertyType};
@@ -49,6 +49,17 @@ where
 
     async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
         schema.validate_value(self.properties(), provider).await
+    }
+}
+
+impl<P> Validate<EntityType, P> for Entity
+where
+    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+{
+    type Error = EntityValidationError;
+
+    async fn validate(&self, schema: &EntityType, provider: &P) -> Result<(), Report<Self::Error>> {
+        self.properties.validate(schema, provider).await
     }
 }
 
