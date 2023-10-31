@@ -364,6 +364,10 @@ const systemPropertyTypes = {
     title: "Linear Team Id",
     description: "The unique identifier for a team in Linear.",
   },
+  readAt: {
+    title: "Read At",
+    description: "The timestamp of when something was read.",
+  },
 } as const;
 
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;

@@ -8,10 +8,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 /** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import {
   CommentNotificationProperties,
   CommentProperties,
+  NotificationProperties,
   PageProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
@@ -36,6 +38,7 @@ import {
   useMemo,
 } from "react";
 
+import { useBlockProtocolUpdateEntity } from "../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import {
   StructuralQueryEntitiesQuery,
   StructuralQueryEntitiesQueryVariables,
@@ -44,7 +47,7 @@ import { structuralQueryEntitiesQuery } from "../graphql/queries/knowledge/entit
 import { constructMinimalUser, MinimalUser } from "../lib/user-and-org";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 
-type PageMentionNotification = {
+export type PageMentionNotification = {
   kind: "page-mention";
   entity: Entity<MentionNotificationProperties>;
   occurredInPage: Entity<PageProperties>;
@@ -52,12 +55,12 @@ type PageMentionNotification = {
   triggeredByUser: MinimalUser;
 };
 
-type CommentMentionNotification = {
+export type CommentMentionNotification = {
   kind: "comment-mention";
   occurredInComment: Entity<CommentProperties>;
 } & Omit<PageMentionNotification, "kind">;
 
-type NewCommentNotification = {
+export type NewCommentNotification = {
   kind: "new-comment";
   entity: Entity<CommentNotificationProperties>;
   occurredInPage: Entity<PageProperties>;
@@ -65,12 +68,12 @@ type NewCommentNotification = {
   triggeredByUser: MinimalUser;
 };
 
-type CommentReplyNotification = {
+export type CommentReplyNotification = {
   kind: "comment-reply";
   repliedToComment: Entity<CommentProperties>;
 } & Omit<NewCommentNotification, "kind">;
 
-type Notification =
+export type Notification =
   | PageMentionNotification
   | CommentMentionNotification
   | NewCommentNotification
@@ -80,6 +83,9 @@ export type NotificationsContextValues = {
   notifications?: Notification[];
   loading: boolean;
   refetch: () => Promise<void>;
+  markNotificationAsRead: (params: {
+    notification: Notification;
+  }) => Promise<void>;
 };
 
 export const NotificationsContext =
@@ -184,144 +190,188 @@ export const NotificationsContextProvider: FunctionComponent<
       notificationsData.structuralQueryEntities.subgraph,
     );
 
-    return getRoots(subgraph).map((entity) => {
-      const {
-        metadata: {
-          entityTypeId,
-          recordId: { entityId },
-        },
-      } = entity;
-
-      const outgoingLinks = getOutgoingLinkAndTargetEntities(
-        subgraph,
-        entityId,
-      );
-
-      if (entityTypeId === types.entityType.mentionNotification.entityTypeId) {
-        const occurredInPage = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.occurredInEntity.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        const occurredInText = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.occurredInText.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        const triggeredByUserEntity = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.triggeredByUser.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        if (!occurredInPage || !occurredInText || !triggeredByUserEntity) {
-          throw new Error(
-            `Mention notification "${entityId}" is missing required links`,
+    return (
+      getRoots(subgraph)
+        // Filter notifications that have been marked as read
+        .filter((entity) => {
+          const { readAt } = simplifyProperties(
+            entity.properties as NotificationProperties,
           );
-        }
 
-        const triggeredByUser = constructMinimalUser({
-          userEntity: triggeredByUserEntity as Entity<UserProperties>,
-        });
+          return !readAt;
+        })
+        .map((entity) => {
+          const {
+            metadata: {
+              entityTypeId,
+              recordId: { entityId },
+            },
+          } = entity;
 
-        const occurredInComment = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.occurredInComment.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        if (occurredInComment) {
-          return {
-            kind: "comment-mention",
-            entity,
-            occurredInPage: occurredInPage as Entity<PageProperties>,
-            occurredInText: occurredInText as Entity<TextProperties>,
-            triggeredByUser,
-            occurredInComment: occurredInComment as Entity<CommentProperties>,
-          } satisfies CommentMentionNotification;
-        }
-
-        return {
-          kind: "page-mention",
-          entity,
-          occurredInPage: occurredInPage as Entity<PageProperties>,
-          occurredInText: occurredInText as Entity<TextProperties>,
-          triggeredByUser,
-        } satisfies PageMentionNotification;
-      } else if (
-        entityTypeId === types.entityType.commentNotification.entityTypeId
-      ) {
-        const occurredInPage = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.occurredInEntity.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        const triggeredByComment = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.triggeredByComment.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        const triggeredByUserEntity = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.triggeredByUser.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
-
-        if (!occurredInPage || !triggeredByComment || !triggeredByUserEntity) {
-          throw new Error(
-            `Comment notification "${entityId}" is missing required links`,
+          const outgoingLinks = getOutgoingLinkAndTargetEntities(
+            subgraph,
+            entityId,
           );
-        }
 
-        const triggeredByUser = constructMinimalUser({
-          userEntity: triggeredByUserEntity as Entity<UserProperties>,
-        });
+          if (
+            entityTypeId === types.entityType.mentionNotification.entityTypeId
+          ) {
+            const occurredInPage = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
 
-        const repliedToComment = outgoingLinks.find(
-          isLinkAndRightEntityWithLinkType(
-            types.linkEntityType.repliedToComment.linkEntityTypeId,
-          ),
-        )?.rightEntity[0];
+            const occurredInText = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInText.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
 
-        if (repliedToComment) {
-          return {
-            kind: "comment-reply",
-            entity,
-            occurredInPage: occurredInPage as Entity<PageProperties>,
-            triggeredByComment,
-            repliedToComment,
-            triggeredByUser,
-          } satisfies CommentReplyNotification;
-        }
+            const triggeredByUserEntity = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.triggeredByUser.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
 
-        return {
-          kind: "new-comment",
-          entity,
-          occurredInPage: occurredInPage as Entity<PageProperties>,
-          triggeredByComment,
-          triggeredByUser,
-        } satisfies NewCommentNotification;
-      }
+            if (!occurredInPage || !occurredInText || !triggeredByUserEntity) {
+              throw new Error(
+                `Mention notification "${entityId}" is missing required links`,
+              );
+            }
 
-      throw new Error(`Notification of type "${entityTypeId}" not handled`);
-    });
+            const triggeredByUser = constructMinimalUser({
+              userEntity: triggeredByUserEntity as Entity<UserProperties>,
+            });
+
+            const occurredInComment = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInComment.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            if (occurredInComment) {
+              return {
+                kind: "comment-mention",
+                entity,
+                occurredInPage: occurredInPage as Entity<PageProperties>,
+                occurredInText: occurredInText as Entity<TextProperties>,
+                triggeredByUser,
+                occurredInComment:
+                  occurredInComment as Entity<CommentProperties>,
+              } satisfies CommentMentionNotification;
+            }
+
+            return {
+              kind: "page-mention",
+              entity,
+              occurredInPage: occurredInPage as Entity<PageProperties>,
+              occurredInText: occurredInText as Entity<TextProperties>,
+              triggeredByUser,
+            } satisfies PageMentionNotification;
+          } else if (
+            entityTypeId === types.entityType.commentNotification.entityTypeId
+          ) {
+            const occurredInPage = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            const triggeredByComment = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.triggeredByComment.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            const triggeredByUserEntity = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.triggeredByUser.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            if (
+              !occurredInPage ||
+              !triggeredByComment ||
+              !triggeredByUserEntity
+            ) {
+              throw new Error(
+                `Comment notification "${entityId}" is missing required links`,
+              );
+            }
+
+            const triggeredByUser = constructMinimalUser({
+              userEntity: triggeredByUserEntity as Entity<UserProperties>,
+            });
+
+            const repliedToComment = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.repliedToComment.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            if (repliedToComment) {
+              return {
+                kind: "comment-reply",
+                entity,
+                occurredInPage: occurredInPage as Entity<PageProperties>,
+                triggeredByComment,
+                repliedToComment,
+                triggeredByUser,
+              } satisfies CommentReplyNotification;
+            }
+
+            return {
+              kind: "new-comment",
+              entity,
+              occurredInPage: occurredInPage as Entity<PageProperties>,
+              triggeredByComment,
+              triggeredByUser,
+            } satisfies NewCommentNotification;
+          }
+
+          throw new Error(`Notification of type "${entityTypeId}" not handled`);
+        })
+    );
   }, [notificationsData]);
 
   const refetch = useCallback(async () => {
     await refetchQuery();
   }, [refetchQuery]);
 
+  const { updateEntity } = useBlockProtocolUpdateEntity();
+
+  const markNotificationAsRead = useCallback(
+    async (params: { notification: Notification }) => {
+      const { notification } = params;
+
+      const now = new Date();
+
+      await updateEntity({
+        data: {
+          entityId: notification.entity.metadata.recordId.entityId,
+          entityTypeId: notification.entity.metadata.entityTypeId,
+          properties: {
+            ...notification.entity.properties,
+            [extractBaseUrl(types.propertyType.readAt.propertyTypeId)]:
+              now.toISOString(),
+          },
+        },
+      });
+
+      await refetch();
+    },
+    [updateEntity, refetch],
+  );
+
   const value = useMemo<NotificationsContextValues>(
     () => ({
       notifications,
       loading,
       refetch,
+      markNotificationAsRead,
     }),
-    [notifications, loading, refetch],
+    [notifications, loading, refetch, markNotificationAsRead],
   );
 
   return (

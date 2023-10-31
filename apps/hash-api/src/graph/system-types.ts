@@ -85,6 +85,9 @@ export let SYSTEM_TYPES: {
 
     // Service Account related
     profileUrl: PropertyTypeWithMetadata;
+
+    // Notifications
+    readAt: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -1130,6 +1133,11 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const readAtPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.readAt,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const notificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -1138,6 +1146,9 @@ const notificationEntityTypeInitializer = async (
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
+  const readAtPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.readAt(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -1145,6 +1156,9 @@ const notificationEntityTypeInitializer = async (
     properties: [
       {
         propertyType: archivedPropertyType,
+      },
+      {
+        propertyType: readAtPropertyType,
       },
     ],
   })(context);
@@ -1360,6 +1374,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
     profileUrl: profileUrlPropertyTypeInitializer,
+
+    readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
