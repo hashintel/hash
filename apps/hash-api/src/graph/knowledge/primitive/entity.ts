@@ -102,7 +102,7 @@ export const createEntity: ImpureGraphFunction<
     owner: params.owner ?? ownedById,
   });
 
-  let entity = { properties, metadata: metadata as EntityMetadata };
+  const entity = { properties, metadata: metadata as EntityMetadata };
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
@@ -113,7 +113,7 @@ export const createEntity: ImpureGraphFunction<
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {
-      entity = await afterCreateHook.callback({
+      void afterCreateHook.callback({
         context,
         entity,
         authentication,
@@ -407,7 +407,7 @@ export const updateEntity: ImpureGraphFunction<
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
-      await afterUpdateHook.callback({
+      void afterUpdateHook.callback({
         context,
         entity,
         updatedProperties: properties,
