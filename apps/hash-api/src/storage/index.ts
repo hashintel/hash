@@ -108,7 +108,7 @@ const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
     entity.properties &&
   extractBaseUrl(fileUrlPropertyTypeUrl) in entity.properties;
 
-const isValidStorageType = (storageType: string): storageType is StorageType =>
+const isStorageType = (storageType: string): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);
 
 const getFileEntity = async (
@@ -253,7 +253,7 @@ export const setupFileDownloadProxyHandler = (
         return;
       }
 
-      if (!isValidStorageType(storageProviderName)) {
+      if (!isStorageType(storageProviderName)) {
         res
           .status(500)
           .send(
