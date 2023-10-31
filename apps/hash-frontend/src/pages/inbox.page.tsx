@@ -5,6 +5,7 @@ import {
 } from "@local/hash-subgraph";
 import {
   Container,
+  Skeleton,
   styled,
   Table as MuiTable,
   TableBody,
@@ -167,35 +168,49 @@ const InboxPage: NextPageWithLayout = () => {
       <Typography variant="h5" sx={{ marginBottom: 4 }}>
         Notifications
       </Typography>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell variant="head" sx={{ width: "100%" }}>
-              Title
-            </TableCell>
-            <TableCell variant="head" sx={{ width: "auto" }}>
-              Actions
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody
-          sx={{
-            [`> .${tableRowClasses.root}:last-child > .${tableCellClasses.root}`]:
-              {
-                borderBottomWidth: 0,
-              },
-          }}
-        >
-          {notifications
-            ? notifications.map((notification) => (
+      {notifications && notifications.length === 0 ? (
+        <Typography>You don't have any notifications.</Typography>
+      ) : (
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell variant="head" sx={{ width: "100%" }}>
+                Title
+              </TableCell>
+              <TableCell variant="head" sx={{ width: "auto" }}>
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody
+            sx={{
+              [`> .${tableRowClasses.root}:last-child > .${tableCellClasses.root}`]:
+                {
+                  borderBottomWidth: 0,
+                },
+            }}
+          >
+            {notifications ? (
+              notifications.map((notification) => (
                 <NotificationRow
                   key={notification.entity.metadata.recordId.entityId}
                   {...notification}
                 />
               ))
-            : null}
-        </TableBody>
-      </Table>
+            ) : (
+              <TableRow>
+                <TableCell>
+                  <Skeleton sx={{ maxWidth: 150 }} />
+                </TableCell>
+                <TableCell sx={{ display: "flex", columnGap: 1 }}>
+                  <Skeleton sx={{ width: 50 }} />
+                  <Skeleton sx={{ width: 50 }} />
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
     </Container>
   );
 };
