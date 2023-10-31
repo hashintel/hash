@@ -1,5 +1,4 @@
-use core::fmt;
-use std::{borrow::Borrow, fmt::Formatter};
+use core::{borrow::Borrow, fmt};
 
 use error_stack::{bail, ensure, Report, ResultExt};
 use serde_json::Value as JsonValue;
@@ -12,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum JsonValueType {
+pub enum JsonSchemaValueType {
     Null,
     Boolean,
     Number,
@@ -22,8 +21,8 @@ pub enum JsonValueType {
     Object,
 }
 
-impl fmt::Display for JsonValueType {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for JsonSchemaValueType {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Null => fmt.write_str("null"),
             Self::Boolean => fmt.write_str("boolean"),
@@ -36,7 +35,7 @@ impl fmt::Display for JsonValueType {
     }
 }
 
-impl From<&JsonValue> for JsonValueType {
+impl From<&JsonValue> for JsonSchemaValueType {
     fn from(value: &JsonValue) -> Self {
         match value {
             JsonValue::Null => Self::Null,
@@ -68,8 +67,8 @@ pub enum DataValidationError {
         "the value provided does not match the data type, expected `{expected}`, got `{actual}`"
     )]
     InvalidType {
-        actual: JsonValueType,
-        expected: JsonValueType,
+        actual: JsonSchemaValueType,
+        expected: JsonSchemaValueType,
     },
     #[error("a constraint was not fulfilled")]
     ConstraintUnfulfilled,
@@ -89,51 +88,51 @@ impl<P: Sync> Schema<JsonValue, P> for DataType {
             "null" => ensure!(
                 value.is_null(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Null,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Null,
                 }
             ),
             "boolean" => ensure!(
                 value.is_boolean(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Boolean,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Boolean,
                 }
             ),
 
             "number" => ensure!(
                 value.is_number(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Number,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Number,
                 }
             ),
             "integer" => ensure!(
                 value.is_i64() || value.is_u64(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Integer,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Integer,
                 }
             ),
             "string" => ensure!(
                 value.is_string(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::String,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::String,
                 }
             ),
             "array" => ensure!(
                 value.is_array(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Array,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Array,
                 }
             ),
             "object" => ensure!(
                 value.is_object(),
                 DataValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Object,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Object,
                 }
             ),
             _ => {

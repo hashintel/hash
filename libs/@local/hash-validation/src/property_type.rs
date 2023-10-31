@@ -1,4 +1,5 @@
-use std::{borrow::Borrow, collections::HashMap, future::Future, pin::Pin};
+use core::{borrow::Borrow, future::Future, pin::Pin};
+use std::collections::HashMap;
 
 use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
@@ -10,7 +11,7 @@ use type_system::{
 };
 
 use crate::{
-    data_type::JsonValueType,
+    data_type::JsonSchemaValueType,
     error::{Actual, Expected},
     OntologyTypeProvider, Schema, Validate,
 };
@@ -53,8 +54,8 @@ pub enum PropertyValidationError {
          `{actual}`"
     )]
     InvalidType {
-        actual: JsonValueType,
-        expected: JsonValueType,
+        actual: JsonSchemaValueType,
+        expected: JsonSchemaValueType,
     },
 }
 
@@ -228,8 +229,8 @@ where
             }
             (_, Self::Array(_)) => {
                 bail!(PropertyValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Array,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Array,
                 })
             }
         }
@@ -365,8 +366,8 @@ where
                     | JsonValue::Object(_),
                     Self::ArrayOfPropertyValues(_),
                 ) => Err(Report::new(PropertyValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Array,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Array,
                 })),
                 (
                     JsonValue::Null
@@ -376,8 +377,8 @@ where
                     | JsonValue::Array(_),
                     Self::PropertyTypeObject(_),
                 ) => Err(Report::new(PropertyValidationError::InvalidType {
-                    actual: JsonValueType::from(value),
-                    expected: JsonValueType::Object,
+                    actual: JsonSchemaValueType::from(value),
+                    expected: JsonSchemaValueType::Object,
                 })),
             }
         })

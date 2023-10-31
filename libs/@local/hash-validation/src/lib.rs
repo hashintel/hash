@@ -7,7 +7,7 @@
 pub mod error;
 
 pub use self::{
-    data_type::{DataTypeConstraint, DataValidationError, JsonValueType},
+    data_type::{DataTypeConstraint, DataValidationError, JsonSchemaValueType},
     entity_type::EntityValidationError,
     property_type::PropertyValidationError,
 };
