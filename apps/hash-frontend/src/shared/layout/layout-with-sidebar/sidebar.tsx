@@ -7,7 +7,9 @@ import { FunctionComponent } from "react";
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
+import { InboxIcon } from "../../icons/inbox-icon";
 import { QuickNoteIcon } from "../../icons/quick-note-icon";
+import { useNotifications } from "../../notifications-context";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntityTypeList } from "./account-entity-type-list";
@@ -21,6 +23,7 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
+  const { notifications } = useNotifications();
   const { activeWorkspaceOwnedById } = useActiveWorkspace();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
@@ -74,6 +77,14 @@ export const PageSidebar: FunctionComponent = () => {
         active={router.pathname === "/[shortname]"}
       />
       <TopNavLink
+        icon={<InboxIcon sx={{ fontSize: 16 }} />}
+        title="Inbox"
+        href="/inbox"
+        tooltipTitle=""
+        count={notifications?.length}
+        active={router.pathname === "/inbox"}
+      />
+      <TopNavLink
         icon={<QuickNoteIcon sx={{ fontSize: 16 }} />}
         title="Quick Note"
         href="/notes"
@@ -87,12 +98,7 @@ export const PageSidebar: FunctionComponent = () => {
         @todo uncomment when the functionalities are implemented
       */}
 
-      {/* <TopNavLink
-        icon={faZap}
-        title="Quick Capture"
-        href="/"
-        tooltipTitle="Quickly create notes, entities, and types"
-      />
+      {/*
       <TopNavLink
         icon={faHistory}
         title="Recently visited"
