@@ -200,6 +200,22 @@ export const NotificationsContextProvider: FunctionComponent<
 
           return !readAt;
         })
+        /**
+         * Order the notifications by when their revisions were created
+         *
+         * @todo: if we ever want to display updated notifications, we will need
+         * to sort by their created at timestamps instead (i.e. when the first
+         * revision of the entity was created, not the latest)
+         */
+        .sort(
+          (a, b) =>
+            new Date(
+              b.metadata.temporalVersioning.decisionTime.start.limit,
+            ).getTime() -
+            new Date(
+              a.metadata.temporalVersioning.decisionTime.start.limit,
+            ).getTime(),
+        )
         .map((entity) => {
           const {
             metadata: {
