@@ -186,16 +186,14 @@ export const setupFileDownloadProxyHandler = (
     const [entityId, editionTimestamp, filename] = keyParts.slice(-3);
 
     if (!entityId || !editionTimestamp || !filename) {
-      res
-        .status(400)
-        .send(
-          `File path ${key} is invalid – should be of the form [EntityId]/[EditionTimestamp]/[Filename], with an optional leading [Prefix]/`,
-        );
+      res.status(400).json({
+        error: `File path ${key} is invalid – should be of the form [EntityId]/[EditionTimestamp]/[Filename], with an optional leading [Prefix]/`,
+      });
     }
     if (!entityId || !isEntityId(entityId)) {
-      res
-        .status(400)
-        .send(`File path contains invalid entityId ${entityId} in ${key}`);
+      res.status(400).json({
+        error: `File path contains invalid entityId ${entityId} in ${key}`,
+      });
       return;
     }
 
@@ -211,30 +209,24 @@ export const setupFileDownloadProxyHandler = (
     );
 
     if (!fileEntity) {
-      res
-        .status(404)
-        .send(
-          `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
-        );
+      res.status(404).json({
+        error: `Could not find file entity ${entityId} with edition timestamp ${editionTimestamp}, either it does not exist or you do not have permission to access it.`,
+      });
       return;
     }
 
     if (!isFileEntity(fileEntity)) {
-      res
-        .status(400)
-        .send(
-          `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type ${fileEntity.metadata.entityTypeId}`,
-        );
+      res.status(400).json({
+        error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type ${fileEntity.metadata.entityTypeId}`,
+      });
       return;
     }
 
     const { fileStorageKey } = simplifyProperties(fileEntity.properties);
     if (!fileStorageKey) {
-      res
-        .status(400)
-        .send(
-          `File entity ${fileEntity.metadata.recordId.entityId} is missing the necessary properties for file retrieval`,
-        );
+      res.status(400).json({
+        error: `File entity ${fileEntity.metadata.recordId.entityId} is missing the necessary properties for file retrieval`,
+      });
       return;
     }
 
@@ -245,20 +237,17 @@ export const setupFileDownloadProxyHandler = (
         fileEntity.properties,
       );
       if (!storageProviderName) {
-        res
-          .status(500)
-          .send(
+        res.status(500).json({
+          error:
             "No storage provider listed on file entity – cannot retrieve file.",
-          );
+        });
         return;
       }
 
       if (!isStorageType(storageProviderName)) {
-        res
-          .status(500)
-          .send(
-            `Entity lists invalid storage provider '${storageProviderName}'.`,
-          );
+        res.status(500).json({
+          error: `Entity lists invalid storage provider '${storageProviderName}'.`,
+        });
         return;
       }
 
@@ -267,11 +256,9 @@ export const setupFileDownloadProxyHandler = (
         try {
           storageProvider = initialiseStorageProvider(app, storageProviderName);
         } catch {
-          res
-            .status(500)
-            .send(
-              `Could not initialize ${storageProviderName} storage provider.`,
-            );
+          res.status(500).json({
+            error: `Could not initialize ${storageProviderName} storage provider.`,
+          });
           return;
         }
       }
