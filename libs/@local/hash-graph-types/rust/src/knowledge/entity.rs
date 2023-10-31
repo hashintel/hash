@@ -80,6 +80,11 @@ impl<'a> FromSql<'a> for EntityProperties {
 
 impl EntityProperties {
     #[must_use]
+    pub const fn new(properties: HashMap<BaseUrl, serde_json::Value>) -> Self {
+        Self(properties)
+    }
+
+    #[must_use]
     pub fn empty() -> Self {
         Self(HashMap::new())
     }
