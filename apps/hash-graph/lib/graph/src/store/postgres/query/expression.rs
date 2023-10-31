@@ -11,5 +11,5 @@ pub use self::{
     order_clause::{OrderByExpression, Ordering},
     select_clause::SelectExpression,
     where_clause::WhereExpression,
-    with_clause::{CommonTableExpression, WithExpression},
+    with_clause::WithExpression,
 };

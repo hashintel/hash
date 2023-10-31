@@ -18,8 +18,8 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Constant, Expression, Function, JoinExpression, OrderByExpression,
-        Ordering, SelectExpression, WhereExpression, WithExpression,
+        Constant, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+        SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
     table::{

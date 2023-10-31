@@ -3,5 +3,5 @@ mod channel;
 
 pub use self::{
     batch::DataTypeRowBatch,
-    channel::{data_type_channel, DataTypeReceiver, DataTypeSender},
+    channel::{data_type_channel, DataTypeSender},
 };
