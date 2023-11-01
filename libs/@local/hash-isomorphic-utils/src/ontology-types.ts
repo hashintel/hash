@@ -435,6 +435,10 @@ const systemLinkEntityTypes = {
     title: "Occurred In Page",
     description: "A page that something occurred in.",
   },
+  occurredInBlock: {
+    title: "Occurred In Block",
+    description: "A block that something occurred in.",
+  },
   occurredInComment: {
     title: "Occurred In Comment",
     description: "A comment that something occurred in.",

@@ -18,7 +18,7 @@ import {
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
-import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 import {
   UpdateEntityHook,
   UpdateEntityHookCallback,
@@ -38,12 +38,12 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 }) => {
   const text = getTextFromEntity({ entity });
 
-  const { occurredInComment, occurredInPage } =
-    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+  const { occurredInComment, occurredInPage, occurredInBlock } =
+    await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage) {
+  if (!occurredInPage || !occurredInBlock) {
     return;
   }
 
@@ -97,8 +97,9 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInPage: occurredInPage,
+          occurredInPage,
           occurredInComment,
+          occurredInBlock,
           occurredInText: text,
         },
       );
@@ -135,8 +136,9 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           {
             recipient: addedMentionedUser,
             triggeredByUser,
-            occurredInPage: occurredInPage,
+            occurredInPage,
             occurredInComment,
+            occurredInBlock,
             occurredInText: text,
           },
         );
@@ -148,7 +150,8 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
             { actorId: addedMentionedUser.accountId },
             {
               ownedById: addedMentionedUser.accountId as OwnedById,
-              occurredInPage: occurredInPage,
+              occurredInPage,
+              occurredInBlock,
               occurredInComment,
               occurredInText: text,
               triggeredByUser,

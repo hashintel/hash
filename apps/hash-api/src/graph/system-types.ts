@@ -147,6 +147,7 @@ export let SYSTEM_TYPES: {
 
     // Mention Notification related
     occurredInPage: EntityTypeWithMetadata;
+    occurredInBlock: EntityTypeWithMetadata;
     occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
     triggeredByUser: EntityTypeWithMetadata;
@@ -1168,6 +1169,10 @@ export const occurredInPageLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.occurredInPage,
 );
 
+export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.triggeredByUser,
+);
+
 export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.occurredInComment,
 );
@@ -1193,6 +1198,12 @@ const mentionNotificationEntityTypeInitializer = async (
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
 
   const occurredInCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInComment(context);
@@ -1221,6 +1232,12 @@ const mentionNotificationEntityTypeInitializer = async (
       {
         linkEntityType: occurredInPageLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1267,6 +1284,12 @@ const commentNotificationEntityTypeInitializer = async (
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
 
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
   const triggeredByCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
 
@@ -1291,6 +1314,12 @@ const commentNotificationEntityTypeInitializer = async (
       {
         linkEntityType: occurredInPageLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1392,6 +1421,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
     occurredInPage: occurredInPageLinkEntityTypeInitializer,
+    occurredInBlock: occurredInBlockLinkEntityTypeInitializer,
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
     triggeredByUser: triggeredByUserLinkEntityTypeInitializer,

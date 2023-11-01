@@ -342,7 +342,7 @@ export type OccurredInPageOutgoingLinkAndTarget = never;
 export type OccurredInPageOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * An entity that something occurred in.
+ * A page that something occurred in.
  */
 export type OccurredInPageProperties = OccurredInPageProperties1 &
   OccurredInPageProperties2;

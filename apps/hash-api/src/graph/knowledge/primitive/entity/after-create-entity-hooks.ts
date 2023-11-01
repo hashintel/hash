@@ -31,7 +31,7 @@ import {
   CreateEntityHook,
   CreateEntityHookCallback,
 } from "./create-entity-hooks";
-import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 
 /**
  * This after create `Comment` entity hook is responsible for creating
@@ -98,6 +98,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInPage,
+            occurredInBlock: parentBlock,
           },
         );
       }
@@ -159,6 +160,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInPage,
+            occurredInBlock: ancestorBlock,
             repliedToComment: parentComment,
           },
         );
@@ -185,12 +187,12 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
     entityId: entity.linkData!.rightEntityId,
   });
 
-  const { occurredInComment, occurredInPage } =
-    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+  const { occurredInComment, occurredInPage, occurredInBlock } =
+    await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage) {
+  if (!occurredInPage || !occurredInBlock) {
     return entity;
   }
 
@@ -235,6 +237,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
             triggeredByUser,
             occurredInPage,
             occurredInComment,
+            occurredInBlock,
             occurredInText: text,
           },
         );
@@ -247,6 +250,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
             {
               ownedById: mentionedUser.accountId as OwnedById,
               occurredInPage,
+              occurredInBlock,
               occurredInComment,
               occurredInText: text,
               triggeredByUser,

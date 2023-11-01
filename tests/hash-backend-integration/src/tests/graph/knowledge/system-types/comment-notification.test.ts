@@ -106,7 +106,7 @@ describe("Comment Notification", () => {
       },
     );
 
-    const firstBlock = blocks[0]!.rightEntity;
+    const occurredInBlock = blocks[0]!.rightEntity;
 
     const comment = await createComment(
       graphContext,
@@ -116,7 +116,7 @@ describe("Comment Notification", () => {
           occurredInPage.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
-        parentEntityId: firstBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         tokens: [],
       },
     );
@@ -128,7 +128,8 @@ describe("Comment Notification", () => {
         triggeredByComment: comment,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage: occurredInPage,
+        occurredInPage,
+        occurredInBlock,
       },
     );
 
@@ -155,7 +156,7 @@ describe("Comment Notification", () => {
       },
     );
 
-    const firstBlock = blocks[0]!.rightEntity;
+    const occurredInBlock = blocks[0]!.rightEntity;
 
     const comment = await createComment(
       graphContext,
@@ -165,7 +166,7 @@ describe("Comment Notification", () => {
           occurredInPage.entity.metadata.recordId.entityId,
         ),
         author: recipientUser,
-        parentEntityId: firstBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         tokens: [],
       },
     );
@@ -190,7 +191,8 @@ describe("Comment Notification", () => {
         triggeredByComment: commentReply,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage: occurredInPage,
+        occurredInPage,
+        occurredInBlock,
         repliedToComment: comment,
       },
     );
