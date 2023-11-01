@@ -333,22 +333,22 @@ export type NumericIndexPropertyValue = NumberDataType;
  */
 export type ObjectDataType = {};
 
-export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
+export type OccurredInPage = Entity<OccurredInPageProperties> & {
   linkData: LinkData;
 };
 
-export type OccurredInEntityOutgoingLinkAndTarget = never;
+export type OccurredInPageOutgoingLinkAndTarget = never;
 
-export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
+export type OccurredInPageOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * An entity that something occurred in.
  */
-export type OccurredInEntityProperties = OccurredInEntityProperties1 &
-  OccurredInEntityProperties2;
-export type OccurredInEntityProperties1 = LinkProperties;
+export type OccurredInPageProperties = OccurredInPageProperties1 &
+  OccurredInPageProperties2;
+export type OccurredInPageProperties1 = LinkProperties;
 
-export type OccurredInEntityProperties2 = {};
+export type OccurredInPageProperties2 = {};
 
 export type Org = Entity<OrgProperties>;
 

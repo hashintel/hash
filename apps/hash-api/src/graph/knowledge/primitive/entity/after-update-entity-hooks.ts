@@ -97,7 +97,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInEntity: occurredInPage,
+          occurredInPage: occurredInPage,
           occurredInComment,
           occurredInText: text,
         },
@@ -135,7 +135,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           {
             recipient: addedMentionedUser,
             triggeredByUser,
-            occurredInEntity: occurredInPage,
+            occurredInPage: occurredInPage,
             occurredInComment,
             occurredInText: text,
           },
@@ -148,7 +148,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
             { actorId: addedMentionedUser.accountId },
             {
               ownedById: addedMentionedUser.accountId as OwnedById,
-              occurredInEntity: occurredInPage,
+              occurredInPage: occurredInPage,
               occurredInComment,
               occurredInText: text,
               triggeredByUser,

@@ -128,7 +128,7 @@ describe("Comment Notification", () => {
         triggeredByComment: comment,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
       },
     );
 
@@ -190,7 +190,7 @@ describe("Comment Notification", () => {
         triggeredByComment: commentReply,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         repliedToComment: comment,
       },
     );

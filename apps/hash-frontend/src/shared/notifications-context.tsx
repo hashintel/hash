@@ -234,7 +234,7 @@ export const NotificationsContextProvider: FunctionComponent<
           ) {
             const occurredInPage = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+                types.linkEntityType.occurredInPage.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -290,7 +290,7 @@ export const NotificationsContextProvider: FunctionComponent<
           ) {
             const occurredInPage = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+                types.linkEntityType.occurredInPage.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 

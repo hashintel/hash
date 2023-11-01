@@ -97,7 +97,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             ownedById: recipientUser.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInEntity: occurredInPage,
+            occurredInPage,
           },
         );
       }
@@ -158,7 +158,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             ownedById: recipientUser.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInEntity: occurredInPage,
+            occurredInPage,
             repliedToComment: parentComment,
           },
         );
@@ -233,7 +233,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
           {
             recipient: mentionedUser,
             triggeredByUser,
-            occurredInEntity: occurredInPage,
+            occurredInPage,
             occurredInComment,
             occurredInText: text,
           },
@@ -246,7 +246,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
             { actorId: mentionedUser.accountId },
             {
               ownedById: mentionedUser.accountId as OwnedById,
-              occurredInEntity: occurredInPage,
+              occurredInPage,
               occurredInComment,
               occurredInText: text,
               triggeredByUser,

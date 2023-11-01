@@ -89,10 +89,10 @@ import {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInEntity,
-  OccurredInEntityOutgoingLinkAndTarget,
-  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
-  OccurredInEntityProperties,
+  OccurredInPage,
+  OccurredInPageOutgoingLinkAndTarget,
+  OccurredInPageOutgoingLinksByLinkEntityTypeId,
+  OccurredInPageProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -242,10 +242,10 @@ export type {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInEntity,
-  OccurredInEntityOutgoingLinkAndTarget,
-  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
-  OccurredInEntityProperties,
+  OccurredInPage,
+  OccurredInPageOutgoingLinkAndTarget,
+  OccurredInPageOutgoingLinksByLinkEntityTypeId,
+  OccurredInPageProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -312,18 +312,18 @@ export type {
 
 export type CommentNotification = Entity<CommentNotificationProperties>;
 
-export type CommentNotificationOccurredInEntityLink = {
-  linkEntity: OccurredInEntity;
+export type CommentNotificationOccurredInPageLink = {
+  linkEntity: OccurredInPage;
   rightEntity: Page;
 };
 
 export type CommentNotificationOutgoingLinkAndTarget =
-  | CommentNotificationOccurredInEntityLink
+  | CommentNotificationOccurredInPageLink
   | CommentNotificationRepliedToCommentLink
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInPageLink;
   "http://localhost:3000/@system-user/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
   "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };

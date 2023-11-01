@@ -131,7 +131,7 @@ describe("Page Mention Notification", () => {
       { actorId: recipientUser.accountId },
       {
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
         ownedById: recipientUser.accountId as OwnedById,
       },
@@ -145,17 +145,17 @@ describe("Page Mention Notification", () => {
       { entityId: pageMentionNotification.entity.metadata.recordId.entityId },
     );
 
-    const occurredInEntityLinks = outgoingLinks.filter(
+    const occurredInPageLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInEntity.linkEntityTypeId,
+        types.linkEntityType.occurredInPage.linkEntityTypeId,
     );
 
-    expect(occurredInEntityLinks).toHaveLength(1);
+    expect(occurredInPageLinks).toHaveLength(1);
 
-    const [occurredInEntityLink] = occurredInEntityLinks;
+    const [occurredInPageLink] = occurredInPageLinks;
 
-    expect(occurredInEntityLink!.linkData.rightEntityId).toBe(
+    expect(occurredInPageLink!.linkData.rightEntityId).toBe(
       occurredInPage.entity.metadata.recordId.entityId,
     );
 
@@ -198,7 +198,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -224,7 +224,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -241,7 +241,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -278,7 +278,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -295,7 +295,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -326,7 +326,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInText,
       },
     );
@@ -372,7 +372,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -390,7 +390,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -422,7 +422,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInPage: occurredInPage,
         occurredInComment,
         occurredInText: commentText,
       },
