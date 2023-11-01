@@ -198,7 +198,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems ?? "-"} in your webs`}
+                label={`${numberOfUserWebItems ?? "–"} in your webs`}
                 sx={{
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -243,7 +243,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     <EarthAmericasRegularIcon />
                   )
                 }
-                label={`${numberOfGlobalItems ?? "-"} others`}
+                label={`${numberOfGlobalItems ?? "–"} others`}
                 sx={({ palette }) => ({
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {

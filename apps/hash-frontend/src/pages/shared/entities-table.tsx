@@ -59,8 +59,23 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const { entities, entityTypes, propertyTypes, subgraph } =
-    useEntityTypeEntities();
+  const {
+    entities: lastLoadedEntities,
+    entityTypes,
+    hadCachedContent,
+    loading,
+    propertyTypes,
+    subgraph,
+  } = useEntityTypeEntities();
+
+  const entities = useMemo(
+    /**
+     * If a network request is in process and there is no cached content for the request, return undefined.
+     * There may be stale data in the context related to an earlier request with different variables.
+     */
+    () => (loading && !hadCachedContent ? undefined : lastLoadedEntities),
+    [hadCachedContent, loading, lastLoadedEntities],
+  );
 
   const isViewingPages = useMemo(
     () =>
@@ -224,7 +239,7 @@ export const EntitiesTable: FunctionComponent<{
       <TableHeader
         internalWebIds={internalWebIds}
         itemLabelPlural={isViewingPages ? "pages" : "entities"}
-        items={entities ?? []}
+        items={entities}
         selectedItems={
           entities?.filter((entity) =>
             selectedRows.some(
