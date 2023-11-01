@@ -93,11 +93,11 @@ export const createLinkEntity: ImpureGraphFunction<
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
-      void (await afterCreateHook.callback({
+      void afterCreateHook.callback({
         context,
         entity: linkEntity,
         authentication,
-      }));
+      });
     }
   }
 

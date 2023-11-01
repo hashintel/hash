@@ -271,6 +271,10 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
@@ -321,6 +325,10 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
@@ -359,6 +367,10 @@ describe("Page Mention Notification", () => {
         author: triggerUser,
       },
     );
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
 
     commentText = await getCommentText(
       graphContext,
@@ -417,6 +429,10 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
     commentText.tokens = updatedCommentTextTokens;
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
 
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,

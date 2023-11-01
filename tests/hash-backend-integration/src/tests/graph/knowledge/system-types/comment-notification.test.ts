@@ -121,6 +121,10 @@ describe("Comment Notification", () => {
       },
     );
 
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
+
     const commentNotification = await getCommentNotification(
       graphContext,
       { actorId: recipientUser.accountId },
@@ -183,6 +187,10 @@ describe("Comment Notification", () => {
         tokens: [],
       },
     );
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1000);
+    });
 
     const commentReplyNotification = await getCommentNotification(
       graphContext,
