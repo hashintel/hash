@@ -11,6 +11,7 @@ import { types } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 /** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import {
+  BlockProperties,
   CommentNotificationProperties,
   CommentProperties,
   NotificationProperties,
@@ -51,6 +52,7 @@ export type PageMentionNotification = {
   kind: "page-mention";
   entity: Entity<MentionNotificationProperties>;
   occurredInPage: Entity<PageProperties>;
+  occurredInBlock: Entity<BlockProperties>;
   occurredInText: Entity<TextProperties>;
   triggeredByUser: MinimalUser;
 };
@@ -64,6 +66,7 @@ export type NewCommentNotification = {
   kind: "new-comment";
   entity: Entity<CommentNotificationProperties>;
   occurredInPage: Entity<PageProperties>;
+  occurredInBlock: Entity<BlockProperties>;
   triggeredByComment: Entity<CommentProperties>;
   triggeredByUser: MinimalUser;
 };
@@ -238,6 +241,12 @@ export const NotificationsContextProvider: FunctionComponent<
               ),
             )?.rightEntity[0];
 
+            const occurredInBlock = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInBlock.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 types.linkEntityType.occurredInText.linkEntityTypeId,
@@ -250,7 +259,12 @@ export const NotificationsContextProvider: FunctionComponent<
               ),
             )?.rightEntity[0];
 
-            if (!occurredInPage || !occurredInText || !triggeredByUserEntity) {
+            if (
+              !occurredInPage ||
+              !occurredInBlock ||
+              !occurredInText ||
+              !triggeredByUserEntity
+            ) {
               throw new Error(
                 `Mention notification "${entityId}" is missing required links`,
               );
@@ -271,6 +285,7 @@ export const NotificationsContextProvider: FunctionComponent<
                 kind: "comment-mention",
                 entity,
                 occurredInPage: occurredInPage as Entity<PageProperties>,
+                occurredInBlock: occurredInBlock as Entity<BlockProperties>,
                 occurredInText: occurredInText as Entity<TextProperties>,
                 triggeredByUser,
                 occurredInComment:
@@ -282,6 +297,7 @@ export const NotificationsContextProvider: FunctionComponent<
               kind: "page-mention",
               entity,
               occurredInPage: occurredInPage as Entity<PageProperties>,
+              occurredInBlock: occurredInBlock as Entity<BlockProperties>,
               occurredInText: occurredInText as Entity<TextProperties>,
               triggeredByUser,
             } satisfies PageMentionNotification;
@@ -291,6 +307,12 @@ export const NotificationsContextProvider: FunctionComponent<
             const occurredInPage = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 types.linkEntityType.occurredInPage.linkEntityTypeId,
+              ),
+            )?.rightEntity[0];
+
+            const occurredInBlock = outgoingLinks.find(
+              isLinkAndRightEntityWithLinkType(
+                types.linkEntityType.occurredInBlock.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -308,6 +330,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             if (
               !occurredInPage ||
+              !occurredInBlock ||
               !triggeredByComment ||
               !triggeredByUserEntity
             ) {
@@ -331,6 +354,7 @@ export const NotificationsContextProvider: FunctionComponent<
                 kind: "comment-reply",
                 entity,
                 occurredInPage: occurredInPage as Entity<PageProperties>,
+                occurredInBlock: occurredInBlock as Entity<BlockProperties>,
                 triggeredByComment,
                 repliedToComment,
                 triggeredByUser,
@@ -341,6 +365,7 @@ export const NotificationsContextProvider: FunctionComponent<
               kind: "new-comment",
               entity,
               occurredInPage: occurredInPage as Entity<PageProperties>,
+              occurredInBlock: occurredInBlock as Entity<BlockProperties>,
               triggeredByComment,
               triggeredByUser,
             } satisfies NewCommentNotification;

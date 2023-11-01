@@ -85,7 +85,8 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
 
 const NotificationRow: FunctionComponent<Notification> = (notification) => {
   const { markNotificationAsRead } = useNotifications();
-  const { kind, triggeredByUser, occurredInPage } = notification;
+  const { kind, triggeredByUser, occurredInPage, occurredInBlock } =
+    notification;
 
   const ownedById = useMemo(
     () =>
@@ -106,8 +107,9 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
       pageEntityUuid: extractEntityUuidFromEntityId(
         occurredInPage.metadata.recordId.entityId,
       ),
+      highlightedBlockEntityId: occurredInBlock.metadata.recordId.entityId,
     });
-  }, [shortname, occurredInPage]);
+  }, [shortname, occurredInPage, occurredInBlock]);
 
   const pageTitle = useMemo(() => {
     const { title } = simplifyProperties(occurredInPage.properties);
