@@ -12,16 +12,13 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../shared/links-section-empty-state";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
+import { useRows } from "./links-section/link-table/use-rows";
 
 export const LinksSection = () => {
   const { entitySubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
   const entity = getRoots(entitySubgraph)[0]!;
-  const entityType = getEntityTypeById(
-    entitySubgraph,
-    entity.metadata.entityTypeId,
-  );
 
   const outgoingLinks = getOutgoingLinksForEntity(
     entitySubgraph,
@@ -31,9 +28,9 @@ export const LinksSection = () => {
     ],
   );
 
-  const isEmpty = Object.keys(entityType?.schema.links ?? {}).length === 0;
+  const rows = useRows();
 
-  if (isEmpty) {
+  if (rows.length === 0) {
     return <LinksSectionEmptyState />;
   }
 
