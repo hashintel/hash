@@ -10,10 +10,13 @@ export const getEntityTypeBaseUrl = (
   namespaceWithAt: string,
 ): BaseUrl =>
   `${
-    // To be removed in H-1172: Temporary provision to serve system types from https://app.hash.ai
-    systemTypeWebShortnames.includes(
+    // To be removed in H-1172: Temporary provision until https://app.hash.ai migrated to https://hash.ai
+    // To be replaced with simply 'frontendUrl'
+    (systemTypeWebShortnames.includes(
       namespaceWithAt.slice(1) as SystemTypeWebShortname,
-    ) && ["http://localhost:3000", "https://app.hash.ai"].includes(frontendUrl)
+    ) &&
+      frontendUrl === "http://localhost:3000") ||
+    frontendUrl === "https://app.hash.ai"
       ? "https://hash.ai"
       : frontendUrl
   }/${namespaceWithAt}/types/entity-type/${slug}/` as BaseUrl;

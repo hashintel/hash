@@ -76,13 +76,15 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  // To be removed in H-1172: Temporary provision to serve system types from https://app.hash.ai
+  // To be removed in H-1172: Temporary provision until app is migrated to https://hash.ai
   const urlObject = new URL(url);
   const shouldServeHashAiType =
-    ["http://localhost:3000", "https://app.hash.ai"].includes(frontendUrl) &&
-    systemTypeWebShortnames.includes(
-      urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
-    );
+    frontendUrl === "https://app.hash.ai" ||
+    (frontendUrl === "http://localhost:3000" &&
+      systemTypeWebShortnames.includes(
+        urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
+      ));
+
   const urlToRequest = shouldServeHashAiType
     ? (new URL(urlObject.pathname, "https://hash.ai").href as VersionedUrl)
     : url;
