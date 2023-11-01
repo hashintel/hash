@@ -1170,7 +1170,7 @@ export const occurredInPageLinkEntityTypeInitializer = entityTypeInitializer(
 );
 
 export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.triggeredByUser,
+  types.linkEntityType.occurredInBlock,
 );
 
 export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
