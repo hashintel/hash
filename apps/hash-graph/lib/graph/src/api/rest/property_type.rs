@@ -7,18 +7,22 @@ use std::sync::Arc;
 use authorization::{backend::PermissionAssertion, AuthorizationApiPool};
 use axum::{
     http::StatusCode,
+    response::Response,
     routing::{post, put},
     Extension, Router,
 };
 use graph_types::{
     ontology::{
-        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeReference,
-        PartialCustomOntologyMetadata, PartialOntologyElementMetadata, PropertyTypeWithMetadata,
+        OntologyElementMetadata, OntologyTemporalMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::OwnedById,
 };
+use hash_status::Status;
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, PropertyType};
+use time::OffsetDateTime;
+use type_system::{raw, url::VersionedUrl, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -26,6 +30,7 @@ use crate::{
     api::rest::{
         json::Json,
         report_to_status_code,
+        status::{report_to_response, status_to_response},
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfPropertyType},
         AuthenticatedUserHeader, RestApiStore,
     },
@@ -209,10 +214,17 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct LoadExternalPropertyTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    property_type_id: VersionedUrl,
+#[serde(untagged)]
+enum LoadExternalPropertyTypeRequest {
+    #[serde(rename_all = "camelCase")]
+    Fetch {
+        #[schema(value_type = SHARED_VersionedUrl)]
+        property_type_id: VersionedUrl,
+    },
+    Create {
+        #[schema(value_type = VAR_PROPERTY_TYPE)]
+        schema: raw::PropertyType,
+    },
 }
 
 #[utoipa::path(
@@ -240,35 +252,65 @@ async fn load_external_property_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
-    body: Json<LoadExternalPropertyTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode>
+    Json(request): Json<LoadExternalPropertyTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    match request {
+        LoadExternalPropertyTypeRequest::Fetch { property_type_id } => Ok(Json(
+            store
+                .load_external_type(
+                    actor_id,
+                    &mut authorization_api,
+                    &domain_validator,
+                    OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
+                )
+                .await?,
+        )),
+        LoadExternalPropertyTypeRequest::Create { schema } => {
+            // TODO: Distinguish between format validation and content validation so it's possible
+            //       to directly use the correct type.
+            //   see https://linear.app/hash/issue/BP-33
+            let schema = PropertyType::try_from(schema).map_err(report_to_response)?;
+            let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
-    let Json(LoadExternalPropertyTypeRequest { property_type_id }) = body;
+            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+                let error = "Ontology type is not external".to_owned();
+                tracing::error!(id=%schema.id(), error);
+                return Err(status_to_response(Status::<()>::new(
+                    hash_status::StatusCode::InvalidArgument,
+                    Some(error),
+                    vec![],
+                )));
+            }
 
-    Ok(Json(
-        store
-            .load_external_type(
-                actor_id,
-                &mut authorization_api,
-                &domain_validator,
-                OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
-            )
-            .await?,
-    ))
+            Ok(Json(
+                store
+                    .create_property_type(
+                        actor_id,
+                        &mut authorization_api,
+                        schema,
+                        PartialOntologyElementMetadata {
+                            record_id,
+                            custom: PartialCustomOntologyMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                        },
+                    )
+                    .await
+                    .map_err(report_to_response)?,
+            ))
+        }
+    }
 }
 
 #[utoipa::path(
