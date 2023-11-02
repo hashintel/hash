@@ -40,6 +40,8 @@
   "globalDependencies": [
     "**/turbo.json",
     ".github/actions/**",
+    ".github/scripts/**",
+    ".github/workflows/**",
     ".env*",
     ".justfile",
     ".yarnrc",
