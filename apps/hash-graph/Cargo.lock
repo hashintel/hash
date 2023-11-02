@@ -671,6 +671,7 @@ checksum = "27a72baa257b5e0e2de241967bc5ee8f855d6072351042688621081d66b2a76b"
 dependencies = [
  "anyhow",
  "rustc_version",
+ "serde",
  "tracing-error",
 ]
 
@@ -899,6 +900,7 @@ dependencies = [
  "type-system",
  "utoipa",
  "uuid",
+ "validation",
 ]
 
 [[package]]
@@ -995,6 +997,7 @@ dependencies = [
  "type-fetcher",
  "type-system",
  "uuid",
+ "validation",
 ]
 
 [[package]]
@@ -3176,6 +3179,17 @@ dependencies = [
  "getrandom",
  "serde",
  "sha1_smol",
+]
+
+[[package]]
+name = "validation"
+version = "0.0.0"
+dependencies = [
+ "error-stack 0.4.1",
+ "graph-types",
+ "serde_json",
+ "thiserror",
+ "type-system",
 ]
 
 [[package]]

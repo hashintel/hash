@@ -1,6 +1,6 @@
 use std::{collections::HashMap, future::Future};
 
-use error_stack::Result;
+use error_stack::{Context, Result};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::EntityId,
@@ -291,7 +291,7 @@ pub trait AuthorizationApi {
 /// Managed pool to keep track about [`AuthorizationApi`]s.
 pub trait AuthorizationApiPool {
     /// The error returned when acquiring an [`AuthorizationApi`].
-    type Error;
+    type Error: Context;
 
     /// The [`AuthorizationApi`] returned when acquiring.
     type Api<'pool>: AuthorizationApi + Send + Sync;

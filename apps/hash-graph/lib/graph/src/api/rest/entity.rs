@@ -16,9 +16,11 @@ use authorization::{
 use axum::{
     extract::Path,
     http::StatusCode,
+    response::Response,
     routing::{get, post},
     Extension, Router,
 };
+use error_stack::ResultExt;
 use graph_types::{
     knowledge::{
         entity::{
@@ -36,7 +38,8 @@ use utoipa::{openapi, OpenApi, ToSchema};
 use crate::{
     api::rest::{
         api_resource::RoutedResource, json::Json, report_to_status_code,
-        utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, PermissionResponse,
+        status::report_to_response, utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader,
+        PermissionResponse,
     },
     knowledge::EntityQueryToken,
     store::{
@@ -180,7 +183,7 @@ async fn create_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     body: Json<CreateEntityRequest>,
-) -> Result<Json<EntityMetadata>, StatusCode>
+) -> Result<Json<EntityMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -194,20 +197,17 @@ where
         link_data,
     }) = body;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let owner_id = store.identify_owned_by_id(owner).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not identify account or account group");
-        StatusCode::NOT_FOUND
-    })?;
+    let owner_id = store
+        .identify_owned_by_id(owner)
+        .await
+        .attach(hash_status::StatusCode::NotFound)
+        .map_err(report_to_response)?;
 
     let owner = match owner_id {
         WebSubject::Account(id) => EntityOwnerSubject::Account { id },
@@ -231,12 +231,7 @@ where
             link_data,
         )
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not create entity");
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+        .map_err(report_to_response)
         .map(Json)
 }
 
@@ -379,7 +374,7 @@ async fn update_entity<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     body: Json<UpdateEntityRequest>,
-) -> Result<Json<EntityMetadata>, StatusCode>
+) -> Result<Json<EntityMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -392,15 +387,11 @@ where
         archived,
     }) = body;
 
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     store
         .update_entity(
@@ -415,17 +406,15 @@ where
         )
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not update entity");
-
             if report.contains::<EntityDoesNotExist>() {
-                StatusCode::NOT_FOUND
+                report.attach(hash_status::StatusCode::NotFound)
             } else if report.contains::<RaceConditionOnUpdate>() {
-                StatusCode::LOCKED
+                report.attach(hash_status::StatusCode::Cancelled)
             } else {
-                // Insertion/update errors are considered internal server errors.
-                StatusCode::INTERNAL_SERVER_ERROR
+                report
             }
         })
+        .map_err(report_to_response)
         .map(Json)
 }
 

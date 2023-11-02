@@ -15,6 +15,7 @@ use self::{args::Args, error::GraphError};
 
 fn main() -> Result<(), GraphError> {
     load_env(None);
+    validation::error::install_error_stack_hooks();
 
     let Args {
         sentry_dsn,
