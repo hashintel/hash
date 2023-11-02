@@ -1,5 +1,6 @@
 export const propertyIds = {
-  text: "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as const,
+  textualContent:
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as const,
   emoji:
     "https://blockprotocol.org/@hash/types/property-type/callout-block-emoji/" as const,
 };
