@@ -4,13 +4,23 @@
 
 use std::{collections::hash_map, sync::Arc};
 
-use authorization::{backend::PermissionAssertion, AuthorizationApiPool};
+use authorization::{
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
+        EntityTypeRelationAndSubject,
+    },
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool,
+};
 use axum::{
+    extract::Path,
     http::StatusCode,
     response::Response,
-    routing::{post, put},
+    routing::{get, post, put},
     Extension, Router,
 };
+use error_stack::Report;
 use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -34,9 +44,9 @@ use crate::{
             api_resource::RoutedResource,
             json::Json,
             report_to_status_code,
-            status::status_to_response,
+            status::{report_to_response, status_to_response},
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-            AuthenticatedUserHeader, RestApiStore,
+            AuthenticatedUserHeader, PermissionResponse, RestApiStore,
         },
     },
     ontology::{
@@ -53,6 +63,10 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        get_entity_type_authorization_relationships,
+        modify_entity_type_authorization_relationships,
+        check_entity_type_permission,
+
         create_entity_type,
         load_external_entity_type,
         get_entity_types_by_query,
@@ -63,6 +77,12 @@ use crate::{
     components(
         schemas(
             EntityTypeWithMetadata,
+
+            EntityTypeGeneralViewerSubject,
+            EntityTypeOwnerSubject,
+            EntityTypePermission,
+            EntityTypeRelationAndSubject,
+            ModifyEntityTypeAuthorizationRelationship,
 
             CreateEntityTypeRequest,
             LoadExternalEntityTypeRequest,
@@ -95,6 +115,22 @@ impl RoutedResource for EntityTypeResource {
                     "/",
                     post(create_entity_type::<S, A>).put(update_entity_type::<S, A>),
                 )
+                .route(
+                    "/relationships",
+                    post(modify_entity_type_authorization_relationships::<A>),
+                )
+                .nest(
+                    "/:entity_type_id",
+                    Router::new()
+                        .route(
+                            "/relationships",
+                            get(get_entity_type_authorization_relationships::<A>),
+                        )
+                        .route(
+                            "/permissions/:permission",
+                            get(check_entity_type_permission::<A>),
+                        ),
+                )
                 .route("/query", post(get_entity_types_by_query::<S, A>))
                 .route("/load", post(load_external_entity_type::<S, A>))
                 .route("/archive", put(archive_entity_type::<S, A>))
@@ -114,6 +150,168 @@ struct CreateEntityTypeRequest {
     label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     icon: Option<String>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ModifyEntityTypeAuthorizationRelationship {
+    operation: ModifyRelationshipOperation,
+    resource: VersionedUrl,
+    relation_and_subject: EntityTypeRelationAndSubject,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/relationships",
+    tag = "EntityType",
+    request_body = [ModifyEntityTypeAuthorizationRelationship],
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, description = "The relationship was modified for the entity"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn modify_entity_type_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    relationships: Json<Vec<ModifyEntityTypeAuthorizationRelationship>>,
+) -> Result<StatusCode, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let (entity_types, operations): (Vec<_>, Vec<_>) = relationships
+        .0
+        .into_iter()
+        .map(|request| {
+            let resource = EntityTypeId::from_url(&request.resource);
+            (
+                resource,
+                (request.operation, resource, request.relation_and_subject),
+            )
+        })
+        .unzip();
+
+    let (permissions, _zookie) = authorization_api
+        .check_entity_types_permission(
+            actor_id,
+            EntityTypePermission::Update,
+            entity_types,
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let mut failed = false;
+    // TODO: Change interface for `check_entity_types_permission` to avoid this loop
+    for (_entity_type_id, has_permission) in permissions {
+        if !has_permission {
+            tracing::error!("Insufficient permissions to modify relationship for entity type");
+            failed = true;
+        }
+    }
+
+    if failed {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
+
+    // for request in relationships.0 {
+    authorization_api
+        .modify_entity_type_relations(operations)
+        .await
+        .map_err(report_to_response)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/entity-types/{entity_type_id}/relationships",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_type_id" = VersionedUrl, Path, description = "The Entity type to read the relations for"),
+    ),
+    responses(
+        (status = 200, description = "The relations of the entity type", body = [EntityTypeRelationAndSubject]),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn get_entity_type_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(entity_type_id): Path<VersionedUrl>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<Vec<EntityTypeRelationAndSubject>>, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    Ok(Json(
+        authorization_api
+            .get_entity_type_relations(
+                EntityTypeId::from_url(&entity_type_id),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .map_err(report_to_response)?,
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/entity-types/{entity_type_id}/permissions/{permission}",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("entity_type_id" = VersionedUrl, Path, description = "The entity type ID to check if the actor has the permission"),
+        ("permission" = EntityTypePermission, Path, description = "The permission to check for"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the entity type"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn check_entity_type_permission<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((entity_type_id, permission)): Path<(VersionedUrl, EntityTypePermission)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(report_to_response)?
+            .check_entity_type_permission(
+                actor_id,
+                permission,
+                EntityTypeId::from_url(&entity_type_id),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .map_err(report_to_response)?
+            .has_permission,
+    }))
 }
 
 #[utoipa::path(

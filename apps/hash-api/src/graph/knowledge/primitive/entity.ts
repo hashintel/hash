@@ -862,7 +862,7 @@ export const getEntityAuthorizationRelationships: ImpureGraphFunction<
         (relationship) =>
           ({
             resource: { kind: "entity", resourceId: params.entityId },
-            ...relationship.relationAndSubject,
+            ...relationship,
           }) as EntityAuthorizationRelationship,
       ),
     );
