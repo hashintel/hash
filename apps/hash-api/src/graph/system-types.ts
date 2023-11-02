@@ -698,7 +698,6 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) =>
         propertyType:
           "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
         required: true,
-        array: true,
       },
     ],
   })(context);
