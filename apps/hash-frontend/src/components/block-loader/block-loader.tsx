@@ -8,13 +8,8 @@ import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
-import {
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityPropertiesObject,
-} from "@local/hash-subgraph";
+import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
+import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
 import {
   FunctionComponent,
   useCallback,
@@ -216,15 +211,16 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     /**
-     * Our text blocks ask for a BP `textual-content` property, which is plain `Text`.
-     * Because they use the hook service, we actually generate text as text tokens and persist it under a different property.
-     * The BP spec says that blocks should receive the data they expect even if the hook service is used
-     * – this code makes sure we provide rich text as a plain string for this specific property.
+     * Our text blocks ask for a BP `textual-content` property as a plan `string`ich is plain `Text`.
+     * Because they use the hook service, we actually generate text as an array of text tokens and
+     * persist it under a different property.
+     * The BP spec says that blocks should receive the data they expect even if the hook service is used,
+     * therefore we provides the rich text as a plain string for the `textual-content` property.
      * It is useful for making sure that blocks have string fallbacks in contexts where the hook service is not available,
      * which at the time of writing (May 2023) is when viewing/editing a page in 'canvas' mode.
      *
      * This code has the following issues:
-     * 1. It assumes that any entity with `tokens` stored on it is actually expected as `textual-content`
+     * 1. It assumes that any entity with `textual-content` stored on it expects the value to be a string
      *   - we should instead be able to identify which property on the entity the hook service was used for
      * 2. It does not do this translation for any entities that are not the root entity
      * @todo address the issues described above
@@ -233,13 +229,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     const newProperties: EntityPropertiesObject = { ...rootEntity.properties };
 
     const textTokens = rootEntity.properties[
-      TEXT_TOKEN_PROPERTY_TYPE_BASE_URL
+      textualContentPropertyTypeBaseUrl
     ] as TextToken[] | undefined;
 
     if (textTokens) {
-      newProperties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" as BaseUrl
-      ] = textTokens
+      newProperties[textualContentPropertyTypeBaseUrl] = textTokens
         .map((token) =>
           "text" in token ? token.text : "hardBreak" in token ? "\n" : "",
         )

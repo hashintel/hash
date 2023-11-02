@@ -12,13 +12,11 @@ import { Draft, produce } from "immer";
 
 import { BlockEntity } from "./entity";
 import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { blockProtocolTypes, types } from "./ontology-types";
+import { blockProtocolTypes } from "./ontology-types";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
-export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
-// `extractBaseUrl` does not work within this context, so this is a hacky way to get the base URL.
-export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URL = extractBaseUrl(
+export const textualContentPropertyTypeBaseUrl = extractBaseUrl(
   blockProtocolTypes.propertyType.textualContent.propertyTypeId,
 );
 

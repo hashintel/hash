@@ -9,7 +9,7 @@ import {
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
-  TEXT_TOKEN_PROPERTY_TYPE_BASE_URL,
+  textualContentPropertyTypeBaseUrl,
 } from "./entity-store";
 import { Block } from "./graphql/api-types.gen";
 import { flatMapTree } from "./util";
@@ -17,9 +17,7 @@ import { flatMapTree } from "./util";
 export type BlockEntity = Block;
 
 export type TextProperties = {
-  // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URL (and TEXT_TOKEN_PROPERTY_TYPE_ID) are
-  // not const the type is just `string`. Not ideal.
-  [_ in typeof TEXT_TOKEN_PROPERTY_TYPE_BASE_URL]: TextToken[];
+  [_ in typeof textualContentPropertyTypeBaseUrl]: TextToken[];
 };
 
 export type TextEntityType = Omit<EntityStoreType, "properties"> & {
@@ -29,7 +27,7 @@ export type TextEntityType = Omit<EntityStoreType, "properties"> & {
 // @todo make this more robust
 export const isTextProperties =
   (properties: {}): properties is TextEntityType["properties"] =>
-    TEXT_TOKEN_PROPERTY_TYPE_BASE_URL in properties;
+    textualContentPropertyTypeBaseUrl in properties;
 
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
