@@ -12,7 +12,7 @@ use crate::{
     },
     zanzibar::{
         types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
+        Permission, Relation,
     },
 };
 
@@ -77,7 +77,6 @@ pub enum EntityTypeResourceRelation {
     GeneralViewer,
 }
 
-impl Affiliation<EntityTypeId> for EntityTypeResourceRelation {}
 impl Relation<EntityTypeId> for EntityTypeResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,7 +87,6 @@ pub enum EntityTypePermission {
     View,
 }
 
-impl Affiliation<EntityTypeId> for EntityTypePermission {}
 impl Permission<EntityTypeId> for EntityTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -106,7 +104,6 @@ pub enum EntityTypeSubjectSet {
     Member,
 }
 
-impl Affiliation<EntityTypeSubject> for EntityTypeSubjectSet {}
 impl Relation<EntityTypeSubject> for EntityTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

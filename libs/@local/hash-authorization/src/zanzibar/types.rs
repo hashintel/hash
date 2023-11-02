@@ -14,16 +14,12 @@ use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 
-/// The relation or permission of a [`Subject`] to another [`Resource`].
-pub trait Affiliation<O: Resource> {}
-
-impl<O: Resource> Affiliation<O> for ! {}
-
 /// A computed set of [`Subject`]s for another particular [`Resource`].
-pub trait Permission<O: Resource>: Affiliation<O> {}
+pub trait Permission<O: Resource> {}
 
 /// Encapsulates the relationship between an [`Resource`] and a [`Subject`].
-pub trait Relation<O: Resource>: Affiliation<O> {}
+pub trait Relation<O: Resource> {}
+impl<O: Resource> Relation<O> for ! {}
 
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Clone, Serialize, Deserialize)]

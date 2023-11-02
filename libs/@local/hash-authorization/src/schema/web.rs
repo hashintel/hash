@@ -11,7 +11,7 @@ use crate::{
     schema::error::InvalidRelationship,
     zanzibar::{
         types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
+        Permission, Relation,
     },
 };
 
@@ -46,7 +46,6 @@ pub enum WebResourceRelation {
     Owner,
 }
 
-impl Affiliation<WebId> for WebResourceRelation {}
 impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,7 +57,6 @@ pub enum WebPermission {
     CreatePropertyType,
     CreateDataType,
 }
-impl Affiliation<WebId> for WebPermission {}
 impl Permission<WebId> for WebPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,7 +73,6 @@ pub enum WebSubjectSet {
     Member,
 }
 
-impl Affiliation<WebSubject> for WebSubjectSet {}
 impl Relation<WebSubject> for WebSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

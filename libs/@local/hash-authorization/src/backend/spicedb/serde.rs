@@ -110,7 +110,7 @@ pub(crate) mod relationship {
         backend::spicedb::serde::SerializedSubject,
         zanzibar::{
             types::{Relationship, Resource},
-            Affiliation,
+            Relation,
         },
     };
 
@@ -136,9 +136,9 @@ pub(crate) mod relationship {
     where
         T: Relationship<
                 Resource: Resource<Kind: Serialize, Id: Serialize>,
-                Relation: Affiliation<T::Resource> + Serialize,
+                Relation: Relation<T::Resource> + Serialize,
                 Subject: Resource<Kind: Serialize, Id: Serialize>,
-                SubjectSet: Affiliation<T::Subject> + Serialize,
+                SubjectSet: Relation<T::Subject> + Serialize,
             >,
         S: Serializer,
     {
@@ -158,9 +158,9 @@ pub(crate) mod relationship {
     where
         T: Relationship<
                 Resource: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
-                Relation: Affiliation<T::Resource> + Deserialize<'de>,
+                Relation: Relation<T::Resource> + Deserialize<'de>,
                 Subject: Resource<Kind: Deserialize<'de>, Id: Deserialize<'de>>,
-                SubjectSet: Affiliation<T::Subject> + Deserialize<'de>,
+                SubjectSet: Relation<T::Subject> + Deserialize<'de>,
             >,
         D: Deserializer<'de>,
     {

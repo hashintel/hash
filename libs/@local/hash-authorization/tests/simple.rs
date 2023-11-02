@@ -10,7 +10,6 @@ use authorization::{
     backend::ZanzibarBackend,
     schema::{
         EntityGeneralViewerSubject, EntityOwnerSubject, EntityPermission, EntityRelationAndSubject,
-        EntityResourceRelation,
     },
     zanzibar::Consistency,
 };
@@ -55,38 +54,6 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         ])
         .await?
         .written_at;
-
-    // Test relations
-    assert!(
-        api.check(
-            &ENTITY_A,
-            &EntityResourceRelation::Owner,
-            &ALICE,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &ENTITY_A,
-            &EntityResourceRelation::GeneralViewer,
-            &BOB,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &ENTITY_B,
-            &EntityResourceRelation::Owner,
-            &BOB,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
 
     // Test permissions
     assert!(

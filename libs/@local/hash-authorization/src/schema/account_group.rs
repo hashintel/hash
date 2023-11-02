@@ -8,7 +8,7 @@ use crate::{
     schema::error::InvalidRelationship,
     zanzibar::{
         types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
+        Permission, Relation,
     },
 };
 
@@ -38,13 +38,12 @@ impl Resource for AccountGroupId {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum AccountGroupResourceRelation {
     Owner,
-    GeneralMember,
+    Member,
 }
 
-impl Affiliation<AccountGroupId> for AccountGroupResourceRelation {}
 impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,7 +54,6 @@ pub enum AccountGroupPermission {
     RemoveMember,
 }
 
-impl Affiliation<AccountGroupId> for AccountGroupPermission {}
 impl Permission<AccountGroupId> for AccountGroupPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,7 +158,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                         ));
                     }
                 },
-                AccountGroupResourceRelation::GeneralMember => match (subject, subject_set) {
+                AccountGroupResourceRelation::Member => match (subject, subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
                         AccountGroupRelationAndSubject::GeneralMember(
                             AccountGroupGeneralMemberSubject::Account { id },
@@ -208,7 +206,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                 },
             ),
             AccountGroupRelationAndSubject::GeneralMember(subject) => (
-                AccountGroupResourceRelation::GeneralMember,
+                AccountGroupResourceRelation::Member,
                 match subject {
                     AccountGroupGeneralMemberSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)

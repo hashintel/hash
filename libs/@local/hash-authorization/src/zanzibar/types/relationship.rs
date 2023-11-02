@@ -5,7 +5,7 @@ use crate::zanzibar::{
         resource::{Resource, ResourceFilter},
         subject::SubjectFilter,
     },
-    Affiliation,
+    Relation,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -55,9 +55,9 @@ impl<ON, OI, R> RelationshipFilter<ON, OI, R, !, !, !> {
 
 pub trait Relationship: Sized {
     type Resource: Resource;
-    type Relation: Affiliation<Self::Resource>;
+    type Relation: Relation<Self::Resource>;
     type Subject: Resource;
-    type SubjectSet: Affiliation<Self::Subject>;
+    type SubjectSet: Relation<Self::Subject>;
 
     /// Creates a relationship from an resource, relation, subject, and subject set.
     ///
