@@ -13,13 +13,13 @@ export const createCommentResolver: ResolverFn<
   MutationCreateCommentArgs
 > = async (
   _,
-  { parentEntityId, tokens },
+  { parentEntityId, textualContent },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   const comment = await createComment(context, authentication, {
-    tokens,
+    textualContent,
     ownedById: extractOwnedByIdFromEntityId(parentEntityId),
     parentEntityId,
     author: user,

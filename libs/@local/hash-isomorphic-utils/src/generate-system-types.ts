@@ -53,7 +53,11 @@ const generateTypes = async (
 const generateSystemTypeTypes = async () => {
   await generateTypes(types.entityType, "system");
   await generateTypes(linearTypes.entityType, "linear", "linear");
-  await generateTypes(blockProtocolTypes, "Block Protocol", "blockprotocol");
+  await generateTypes(
+    blockProtocolTypes.entityType,
+    "Block Protocol",
+    "blockprotocol",
+  );
 };
 
 void generateSystemTypeTypes();

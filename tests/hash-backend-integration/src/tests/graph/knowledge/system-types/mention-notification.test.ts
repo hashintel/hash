@@ -32,14 +32,17 @@ import {
   Text,
 } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, OwnedById } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -248,7 +251,7 @@ describe("Page Mention Notification", () => {
 
     expect(beforePageMentionNotification).toBeNull();
 
-    const updatedTextTokens: TextToken[] = [
+    const updatedTextualContent: TextToken[] = [
       {
         mentionType: "user",
         entityId: recipientUser.entity.metadata.recordId.entityId,
@@ -256,7 +259,7 @@ describe("Page Mention Notification", () => {
       },
     ];
 
-    occurredInText.tokens = updatedTextTokens;
+    occurredInText.textualContent = updatedTextualContent;
     occurredInText.entity = (await updateEntityProperties(
       graphContext,
       { actorId: triggerUser.accountId },
@@ -264,9 +267,10 @@ describe("Page Mention Notification", () => {
         entity: occurredInText.entity,
         updatedProperties: [
           {
-            propertyTypeBaseUrl:
-              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
-            value: updatedTextTokens,
+            propertyTypeBaseUrl: extractBaseUrl(
+              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+            ),
+            value: updatedTextualContent,
           },
         ],
       },
@@ -302,9 +306,9 @@ describe("Page Mention Notification", () => {
 
     expect(beforePageMentionNotification).not.toBeNull();
 
-    const updatedTextTokens: TextToken[] = [];
+    const updatedTextualContent: TextToken[] = [];
 
-    occurredInText.tokens = updatedTextTokens;
+    occurredInText.textualContent = updatedTextualContent;
     occurredInText.entity = (await updateEntityProperties(
       graphContext,
       { actorId: triggerUser.accountId },
@@ -312,9 +316,10 @@ describe("Page Mention Notification", () => {
         entity: occurredInText.entity,
         updatedProperties: [
           {
-            propertyTypeBaseUrl:
-              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
-            value: updatedTextTokens,
+            propertyTypeBaseUrl: extractBaseUrl(
+              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+            ),
+            value: updatedTextualContent,
           },
         ],
       },
@@ -349,7 +354,7 @@ describe("Page Mention Notification", () => {
       {
         parentEntityId: commentBlock.entity.metadata.recordId.entityId,
         ownedById: triggerUser.accountId as OwnedById,
-        tokens: [
+        textualContent: [
           {
             mentionType: "user",
             entityId: recipientUser.entity.metadata.recordId.entityId,
@@ -398,7 +403,7 @@ describe("Page Mention Notification", () => {
 
     expect(beforeCommentMentionNotification).not.toBeNull();
 
-    const updatedCommentTextTokens: TextToken[] = [];
+    const updatedCommentTextualContent: TextToken[] = [];
 
     commentText.entity = (await updateEntityProperties(
       graphContext,
@@ -407,14 +412,15 @@ describe("Page Mention Notification", () => {
         entity: commentText.entity,
         updatedProperties: [
           {
-            propertyTypeBaseUrl:
-              SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
-            value: updatedCommentTextTokens,
+            propertyTypeBaseUrl: extractBaseUrl(
+              blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+            ),
+            value: updatedCommentTextualContent,
           },
         ],
       },
     )) as Entity<TextProperties>;
-    commentText.tokens = updatedCommentTextTokens;
+    commentText.textualContent = updatedCommentTextualContent;
 
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,

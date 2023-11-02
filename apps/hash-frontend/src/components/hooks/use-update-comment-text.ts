@@ -27,9 +27,9 @@ export const useUpdateCommentText = (pageId: EntityId) => {
   });
 
   const updatePageCommentText = useCallback(
-    async (commentId: EntityId, tokens: TextToken[]) => {
+    async (commentId: EntityId, textualContent: TextToken[]) => {
       await updatePageCommentTextFn({
-        variables: { entityId: commentId, tokens },
+        variables: { entityId: commentId, textualContent },
       });
     },
     [updatePageCommentTextFn],

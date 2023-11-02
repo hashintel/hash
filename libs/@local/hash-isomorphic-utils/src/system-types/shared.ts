@@ -546,15 +546,18 @@ export type TextOutgoingLinkAndTarget = never;
 export type TextOutgoingLinksByLinkEntityTypeId = {};
 
 export type TextProperties = {
-  "http://localhost:3000/@system-user/types/property-type/tokens/": TokensPropertyValue[];
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue[];
 };
+
+/**
+ * The text material, information, or body, that makes up the content of this thing.
+ */
+export type TextualContentPropertyValue = TextDataType | ObjectDataType;
 
 /**
  * The title of something.
  */
 export type TitlePropertyValue = TextDataType;
-
-export type TokensPropertyValue = ObjectDataType;
 
 export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
   linkData: LinkData;

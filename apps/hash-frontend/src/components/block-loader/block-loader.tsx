@@ -233,7 +233,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     const newProperties: EntityPropertiesObject = { ...rootEntity.properties };
 
     const textTokens = rootEntity.properties[
-      TEXT_TOKEN_PROPERTY_TYPE_BASE_URL as BaseUrl
+      TEXT_TOKEN_PROPERTY_TYPE_BASE_URL
     ] as TextToken[] | undefined;
 
     if (textTokens) {
