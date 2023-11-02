@@ -29,12 +29,3 @@ const pageFieldsFragment = gql`
   }
   ${blockFieldsFragment}
 `;
-
-export const getPageQuery = gql`
-  query getPage($entityId: EntityId!) {
-    page(entityId: $entityId) {
-      ...PageFields
-    }
-  }
-  ${pageFieldsFragment}
-`;

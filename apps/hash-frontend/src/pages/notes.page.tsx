@@ -37,6 +37,8 @@ import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { QuickNoteEntityWithCreatedAt } from "./notes.page/types";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
+import { blockCollectionContentsDepths } from "./shared/block-collection-contents";
+import { BlockCollectionContextProvider } from "./shared/block-collection-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const NotesPage: NextPageWithLayout = () => {
@@ -44,7 +46,12 @@ const NotesPage: NextPageWithLayout = () => {
 
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
-  const { data: quickNotesData, refetch } = useQuery<
+  const [
+    previouslyFetchedQuickNotesAllVersionsData,
+    setPreviouslyFetchedQuickNotesAllVersionsData,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
+  const { data: quickNotesAllVersionsData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -99,48 +106,6 @@ const NotesPage: NextPageWithLayout = () => {
           ...zeroedGraphResolveDepths,
           isOfType: { outgoing: 1 },
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const quickNotesSubgraph = quickNotesData?.structuralQueryEntities
-    .subgraph as Subgraph<EntityRootType> | undefined;
-
-  const quickNoteEntities = useMemo(
-    () => (quickNotesSubgraph ? getRoots(quickNotesSubgraph) : undefined),
-    [quickNotesSubgraph],
-  );
-
-  const [
-    previouslyFetchedQuickNotesAllVersionsData,
-    setPreviouslyFetchedQuickNotesAllVersionsData,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: quickNotesAllVersionsData } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      includePermissions: false,
-      query: {
-        filter: {
-          any: (quickNoteEntities ?? []).map((quickNoteEntity) => ({
-            equal: [
-              { path: ["uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  quickNoteEntity.metadata.recordId.entityId,
-                ),
-              },
-            ],
-          })),
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
-        },
         /**
          * We need to obtain all revisions of the quick note entities
          * to determine when they were created.
@@ -154,7 +119,6 @@ const NotesPage: NextPageWithLayout = () => {
         },
       },
     },
-    skip: !quickNoteEntities,
     onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
     fetchPolicy: "cache-and-network",
   });
@@ -275,12 +239,12 @@ const NotesPage: NextPageWithLayout = () => {
     setPreviouslyFetchedQuickNotesWithContentsData,
   ] = useState<StructuralQueryEntitiesQuery>();
 
-  const { data: quickNotesWithContentsData } = useQuery<
+  const { data: quickNotesWithContentsData, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
-      includePermissions: false,
+      includePermissions: true,
       query: {
         filter: {
           any: (latestQuickNoteEntitiesWithCreatedAt ?? []).map(
@@ -296,11 +260,7 @@ const NotesPage: NextPageWithLayout = () => {
             }),
           ),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 2, outgoing: 2 },
-          hasRightEntity: { incoming: 2, outgoing: 2 },
-        },
+        graphResolveDepths: blockCollectionContentsDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     },
@@ -358,68 +318,76 @@ const NotesPage: NextPageWithLayout = () => {
       <Container>
         <BlockLoadedProvider>
           <UserBlocksProvider value={{}}>
-            <TodaySection
-              ref={(element) => {
-                if (element) {
-                  sectionRefs.current[0] = element;
+            <BlockCollectionContextProvider
+              blockCollectionSubgraph={quickNotesWithContentsSubgraph}
+              userPermissionsOnEntities={
+                quickNotesWithContentsData?.structuralQueryEntities
+                  .userPermissionsOnEntities
+              }
+            >
+              <TodaySection
+                ref={(element) => {
+                  if (element) {
+                    sectionRefs.current[0] = element;
+                  }
+                }}
+                quickNoteEntities={quickNotesEntitiesCreatedToday}
+                quickNotesSubgraph={
+                  quickNotesEntitiesCreatedToday &&
+                  quickNotesEntitiesCreatedToday.length === 0
+                    ? null
+                    : quickNotesWithContentsSubgraph
                 }
-              }}
-              quickNoteEntities={quickNotesEntitiesCreatedToday}
-              quickNotesSubgraph={
-                quickNotesEntitiesCreatedToday &&
-                quickNotesEntitiesCreatedToday.length === 0
-                  ? null
-                  : quickNotesWithContentsSubgraph
-              }
-              refetchQuickNotes={refetchQuickNotes}
-              navigateDown={
-                quickNotesEntitiesCreatedBeforeToday &&
-                quickNotesEntitiesCreatedBeforeToday.length > 0
-                  ? () => {
-                      sectionRefs.current[1]?.scrollIntoView({
-                        behavior: "smooth",
-                      });
-                    }
-                  : undefined
-              }
-            />
-            {quickNotesEntitiesCreatedBeforeToday
-              ? quickNotesEntitiesCreatedBeforeToday.map(
-                  (
-                    [dayTimestamp, quickNoteEntitiesWithCreatedAt],
-                    index,
-                    all,
-                  ) => (
-                    <NotesSection
-                      key={dayTimestamp}
-                      ref={(element) => {
-                        if (element) {
-                          sectionRefs.current[index + 1] = element;
-                        }
-                      }}
-                      dayTimestamp={dayTimestamp}
-                      heading={dayTimestampToHeadings?.[dayTimestamp]}
-                      quickNoteEntities={quickNoteEntitiesWithCreatedAt}
-                      quickNotesSubgraph={quickNotesWithContentsSubgraph}
-                      refetchQuickNotes={refetchQuickNotes}
-                      navigateUp={() => {
-                        sectionRefs.current[index]?.scrollIntoView({
+                refetchQuickNotes={refetchQuickNotes}
+                navigateDown={
+                  quickNotesEntitiesCreatedBeforeToday &&
+                  quickNotesEntitiesCreatedBeforeToday.length > 0
+                    ? () => {
+                        sectionRefs.current[1]?.scrollIntoView({
                           behavior: "smooth",
                         });
-                      }}
-                      navigateDown={
-                        index < all.length - 1
-                          ? () => {
-                              sectionRefs.current[index + 2]?.scrollIntoView({
-                                behavior: "smooth",
-                              });
-                            }
-                          : undefined
                       }
-                    />
-                  ),
-                )
-              : null}
+                    : undefined
+                }
+              />
+              {quickNotesEntitiesCreatedBeforeToday
+                ? quickNotesEntitiesCreatedBeforeToday.map(
+                    (
+                      [dayTimestamp, quickNoteEntitiesWithCreatedAt],
+                      index,
+                      all,
+                    ) => (
+                      <NotesSection
+                        key={dayTimestamp}
+                        ref={(element) => {
+                          if (element) {
+                            sectionRefs.current[index + 1] = element;
+                          }
+                        }}
+                        dayTimestamp={dayTimestamp}
+                        heading={dayTimestampToHeadings?.[dayTimestamp]}
+                        quickNoteEntities={quickNoteEntitiesWithCreatedAt}
+                        quickNotesSubgraph={quickNotesWithContentsSubgraph}
+                        refetchQuickNotes={refetchQuickNotes}
+                        navigateUp={() => {
+                          sectionRefs.current[index]?.scrollIntoView({
+                            behavior: "smooth",
+                          });
+                        }}
+                        navigateDown={
+                          index < all.length - 1
+                            ? () => {
+                                sectionRefs.current[index + 2]?.scrollIntoView({
+                                  behavior: "smooth",
+                                });
+                              }
+                            : undefined
+                        }
+                      />
+                    ),
+                  )
+                : null}
+            </BlockCollectionContextProvider>
           </UserBlocksProvider>
         </BlockLoadedProvider>
       </Container>

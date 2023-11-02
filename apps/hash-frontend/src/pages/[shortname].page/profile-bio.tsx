@@ -1,29 +1,30 @@
+import { useQuery } from "@apollo/client";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { OwnedById } from "@local/hash-subgraph";
-import { Box, Skeleton, Typography } from "@mui/material";
 import {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "@local/hash-graphql-shared/graphql/api-types.gen";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { EntityRootType, OwnedById } from "@local/hash-subgraph";
+import { Box, Skeleton, Typography } from "@mui/material";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
-import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
-import {
-  getBlockCollectionContents,
-  isBlockCollectionContentsEmpty,
-} from "../../lib/block-collection";
 import { Org, User } from "../../lib/user-and-org";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { BlockCollection } from "../shared/block-collection/block-collection";
+import {
+  blockCollectionContentsStaticVariables,
+  getBlockCollectionContents,
+  isBlockCollectionContentsEmpty,
+} from "../shared/block-collection-contents";
+import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 
 export const ProfileBio: FunctionComponent<{
@@ -35,50 +36,36 @@ export const ProfileBio: FunctionComponent<{
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
   ) as OwnedById;
 
-  const { getEntity } = useBlockProtocolGetEntity();
+  const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    {
+      variables: {
+        entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
+        ...blockCollectionContentsStaticVariables,
+      },
+      skip: !profile.hasBio,
+    },
+  );
+
+  const profileBioSubgraph = data
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.getEntity.subgraph,
+      )
+    : undefined;
+
+  const profileBioEntityId =
+    profile.hasBio?.profileBioEntity.metadata.recordId.entityId;
 
   const [isEditing, setIsEditing] = useState(false);
   const [isTogglingEdit, setIsTogglingEdit] = useState(false);
 
-  const [profileBioContents, setProfileBioContents] = useState<
-    BlockCollectionContentItem[] | null
-  >(null);
-
-  const fetchProfileBioContents = useCallback(async () => {
-    if (!profile.hasBio) {
-      return;
-    }
-
-    const profileBioEntityId =
-      profile.hasBio.profileBioEntity.metadata.recordId.entityId;
-
-    const { data: profileBioSubgraph } = await getEntity({
-      data: {
-        entityId: profileBioEntityId,
-        graphResolveDepths: {
-          hasLeftEntity: { incoming: 2, outgoing: 2 },
-          hasRightEntity: { incoming: 2, outgoing: 2 },
-        },
-      },
-    });
-
-    if (!profileBioSubgraph) {
-      throw new Error("Error fetching profile bio subgraph");
-    }
-
-    const contents = getBlockCollectionContents({
-      blockCollectionSubgraph: profileBioSubgraph,
-      blockCollectionEntityId: profileBioEntityId,
-    });
-
-    setProfileBioContents(contents);
-  }, [getEntity, profile]);
-
-  useEffect(() => {
-    if (profile.hasBio && !profileBioContents) {
-      void fetchProfileBioContents();
-    }
-  }, [profile, profileBioContents, fetchProfileBioContents]);
+  const profileBioContents =
+    profileBioEntityId && profileBioSubgraph
+      ? getBlockCollectionContents({
+          blockCollectionSubgraph: profileBioSubgraph,
+          blockCollectionEntityId: profileBioEntityId,
+        })
+      : undefined;
 
   const { createEntity } = useBlockProtocolCreateEntity(ownedById);
   const { createBlockCollectionEntity } = useCreateBlockCollection({
@@ -111,7 +98,7 @@ export const ProfileBio: FunctionComponent<{
   const toggleEdit = useCallback(async () => {
     setIsTogglingEdit(true);
     if (isEditing) {
-      await fetchProfileBioContents();
+      await refetch();
       setIsEditing(false);
     } else {
       if (!profile.hasBio) {
@@ -120,7 +107,7 @@ export const ProfileBio: FunctionComponent<{
       setIsEditing(true);
     }
     setIsTogglingEdit(false);
-  }, [profile, createProfileBioEntity, fetchProfileBioContents, isEditing]);
+  }, [profile, createProfileBioEntity, refetch, isEditing]);
 
   const isBioEmpty = useMemo(() => {
     if (!profile.hasBio || !profileBioContents) {
@@ -176,21 +163,28 @@ export const ProfileBio: FunctionComponent<{
                   paddingY: isEditing ? 2 : 0,
                 }}
               >
-                <BlockCollection
-                  contents={profileBioContents}
-                  ownedById={ownedById}
-                  entityId={
-                    profile.hasBio.profileBioEntity.metadata.recordId.entityId
+                <BlockCollectionContextProvider
+                  blockCollectionSubgraph={profileBioSubgraph}
+                  userPermissionsOnEntities={
+                    data?.getEntity.userPermissionsOnEntities
                   }
-                  readonly={!isEditable || !isEditing}
-                  sx={{
-                    ".ProseMirror": {
-                      paddingLeft: isEditing ? 1 : 0,
-                      transition: ({ transitions }) =>
-                        transitions.create("padding"),
-                    },
-                  }}
-                />
+                >
+                  <BlockCollection
+                    contents={profileBioContents}
+                    ownedById={ownedById}
+                    entityId={
+                      profile.hasBio.profileBioEntity.metadata.recordId.entityId
+                    }
+                    readonly={!isEditable || !isEditing}
+                    sx={{
+                      ".ProseMirror": {
+                        paddingLeft: isEditing ? 1 : 0,
+                        transition: ({ transitions }) =>
+                          transitions.create("padding"),
+                      },
+                    }}
+                  />
+                </BlockCollectionContextProvider>
               </Box>
             </UserBlocksProvider>
           </BlockLoadedProvider>

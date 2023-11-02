@@ -1,11 +1,11 @@
 import { useQuery } from "@apollo/client";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
-  GetPageQuery,
-  GetPageQueryVariables,
+  GetEntityQuery,
+  GetEntityQueryVariables,
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   currentTimeInstantTemporalAxes,
@@ -13,6 +13,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isSafariBrowser } from "@local/hash-isomorphic-utils/util";
 import {
   EntityId,
@@ -69,6 +71,11 @@ import { BlockCollection } from "../shared/block-collection/block-collection";
 import { CommentThread } from "../shared/block-collection/comments/comment-thread";
 import { PageContextProvider } from "../shared/block-collection/page-context";
 import { PageTitle } from "../shared/block-collection/page-title/page-title";
+import {
+  blockCollectionContentsStaticVariables,
+  getBlockCollectionContents,
+} from "../shared/block-collection-contents";
+import { BlockCollectionContextProvider } from "../shared/block-collection-context";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -320,9 +327,14 @@ const Page: NextPageWithLayout<PageProps> = ({
   );
 
   const { data, error, loading } = useQuery<
-    GetPageQuery,
-    GetPageQueryVariables
-  >(getPageQuery, { variables: { entityId: pageEntityId } });
+    GetEntityQuery,
+    GetEntityQueryVariables
+  >(getEntityQuery, {
+    variables: {
+      entityId: pageEntityId,
+      ...blockCollectionContentsStaticVariables,
+    },
+  });
 
   const pageHeaderRef = useRef<HTMLElement>();
 
@@ -359,6 +371,25 @@ const Page: NextPageWithLayout<PageProps> = ({
     readonly: true,
   };
 
+  const { subgraph, userPermissionsOnEntities } = data?.getEntity ?? {};
+
+  const pageSubgraph = subgraph
+    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph)
+    : undefined;
+
+  const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
+
+  const contents = useMemo(
+    () =>
+      pageSubgraph
+        ? getBlockCollectionContents({
+            blockCollectionEntityId: pageEntityId,
+            blockCollectionSubgraph: pageSubgraph,
+          })
+        : undefined,
+    [pageEntityId, pageSubgraph],
+  );
+
   if (pageState === "transferring") {
     return (
       <PageSectionContainer {...pageSectionContainerProps}>
@@ -383,16 +414,19 @@ const Page: NextPageWithLayout<PageProps> = ({
     );
   }
 
-  if (!data) {
+  if (!page || !pageSubgraph || !userPermissionsOnEntities || !contents) {
     return (
       <PageSectionContainer {...pageSectionContainerProps}>
-        <h1>No data loaded.</h1>
+        <h1>No page data loaded.</h1>
       </PageSectionContainer>
     );
   }
 
-  const { title, icon, contents, userPermissions } = data.page;
-  const canUserEdit = userPermissions.edit;
+  const { archived, icon, title } = simplifyProperties(
+    page.properties as PageProperties,
+  );
+
+  const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -426,19 +460,19 @@ const Page: NextPageWithLayout<PageProps> = ({
         >
           <TopContextBar
             actionMenuItems={
-              data.page.archived
+              archived
                 ? undefined
                 : [
                     <ArchiveMenuItem
-                      key={data.page.metadata.recordId.entityId}
-                      item={data.page}
+                      key={page.metadata.recordId.entityId}
+                      item={page}
                     />,
                   ]
             }
-            item={data.page}
+            item={page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.page.metadata.recordId.entityId,
+              pageEntityId: page.metadata.recordId.entityId,
               ownerShortname: pageWorkspace.shortname!,
             })}
             scrollToTop={scrollToTop}
@@ -552,26 +586,31 @@ const Page: NextPageWithLayout<PageProps> = ({
                       </Box>
                     </PageSectionContainer>
                   ) : null}
-                  <BlockCollection
-                    ownedById={extractOwnedById(pageWorkspace)}
-                    contents={contents}
-                    enableCommenting
-                    entityId={pageEntityId}
-                    readonly={!canUserEdit}
-                    autoFocus={title !== ""}
-                    sx={{
-                      /**
-                       * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-                       * so it automatically handles focusing on closest node on margin-clicking
-                       */
-                      ".ProseMirror": {
-                        ...getPageSectionContainerStyles({
-                          pageComments,
-                          readonly: !canUserEdit,
-                        }),
-                      },
-                    }}
-                  />
+                  <BlockCollectionContextProvider
+                    blockCollectionSubgraph={pageSubgraph}
+                    userPermissionsOnEntities={userPermissionsOnEntities}
+                  >
+                    <BlockCollection
+                      ownedById={extractOwnedById(pageWorkspace)}
+                      contents={contents}
+                      enableCommenting
+                      entityId={pageEntityId}
+                      readonly={!canUserEdit}
+                      autoFocus={title !== ""}
+                      sx={{
+                        /**
+                         * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+                         * so it automatically handles focusing on closest node on margin-clicking
+                         */
+                        ".ProseMirror": {
+                          ...getPageSectionContainerStyles({
+                            pageComments,
+                            readonly: !canUserEdit,
+                          }),
+                        },
+                      }}
+                    />
+                  </BlockCollectionContextProvider>
                 </Box>
               )}
             </BlockLoadedProvider>

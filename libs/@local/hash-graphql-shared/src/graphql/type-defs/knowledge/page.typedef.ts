@@ -46,16 +46,6 @@ export const pageTypedef = gql`
 
   extend type Query {
     """
-    Get a page by its entity id.
-    """
-    page(
-      """
-      The id of the page entity.
-      """
-      entityId: EntityId!
-    ): Page!
-
-    """
     Return a list of pages.
     """
     pages(

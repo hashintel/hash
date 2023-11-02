@@ -1,12 +1,14 @@
 import {
   BlockGraphProperties,
-  EntityRootType,
   GraphEmbedderMessageCallbacks,
-  Subgraph,
+  Subgraph as BpSubgraph,
 } from "@blockprotocol/graph/temporal";
 import { getRoots } from "@blockprotocol/graph/temporal/stdlib";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import {
+  TextToken,
+  UserPermissionsOnEntities,
+} from "@local/hash-graphql-shared/graphql/types";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "@local/hash-isomorphic-utils/entity-store";
 import {
@@ -14,6 +16,9 @@ import {
   Entity,
   EntityId,
   EntityPropertiesObject,
+  EntityRevisionId,
+  EntityRootType,
+  Subgraph,
 } from "@local/hash-subgraph";
 import {
   FunctionComponent,
@@ -39,11 +44,13 @@ import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {
+  blockCollectionSubgraph?: Subgraph<EntityRootType>;
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeId: VersionedUrl;
   blockMetadata: HashBlockMeta;
   editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded: () => void;
+  userPermissionsOnEntities?: UserPermissionsOnEntities;
   wrappingEntityId: string;
   readonly: boolean;
   // shouldSandbox?: boolean;
@@ -56,6 +63,7 @@ export type BlockLoaderProps = {
  * and passes the correctly formatted data to RemoteBlock, along with message callbacks
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
+  blockCollectionSubgraph,
   blockEntityId,
   blockEntityTypeId,
   blockMetadata,
@@ -64,6 +72,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   // shouldSandbox,
   wrappingEntityId,
   readonly,
+  userPermissionsOnEntities,
 }) => {
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
@@ -88,18 +97,43 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
+  /**
+   * Set the initial block data from the block collection subgraph and permissions on entities in it, if provided
+   */
   useEffect(() => {
-    void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
-      (newBlockSubgraph) => {
-        setBlockSubgraph(newBlockSubgraph.subgraph);
-        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
-      },
-    );
+    if (
+      !blockEntityId ||
+      !blockCollectionSubgraph ||
+      !userPermissionsOnEntities
+    ) {
+      return;
+    }
+
+    const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
+
+    if (!entityEditionMap) {
+      throw new Error(
+        `Block entity with id ${blockEntityId} not found in page subgraph`,
+      );
+    }
+
+    const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
+    const initialBlockSubgraph = {
+      ...blockCollectionSubgraph,
+      roots: [
+        {
+          baseId: blockEntityId,
+          revisionId: latestEditionId as EntityRevisionId,
+        },
+      ],
+    };
+    setBlockSubgraph(initialBlockSubgraph);
+    setUserPermissions(userPermissionsOnEntities);
   }, [
-    fetchBlockSubgraph,
     blockEntityId,
-    blockEntityTypeId,
+    blockCollectionSubgraph,
     setBlockSubgraph,
+    userPermissionsOnEntities,
     setUserPermissions,
   ]);
 
@@ -194,7 +228,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive on unsafe index access
               !userPermissions?.[blockEntityId]?.edit, // does the user lack edit permissions on the block entity?
             blockEntitySubgraph:
-              blockSubgraph as unknown as Subgraph<EntityRootType>,
+              blockSubgraph as unknown as BpSubgraph<EntityRootType>,
           }
         : null,
     [blockEntityId, blockSubgraph, readonly, userPermissions],
