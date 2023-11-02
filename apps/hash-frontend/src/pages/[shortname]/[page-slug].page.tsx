@@ -95,7 +95,8 @@ export const getPageSectionContainerStyles = (params: {
   const paddingRight = `calc(100% - ${pageContentWidth}px - ${paddingLeft})`;
 
   return {
-    padding: `${pageMinPadding}px ${paddingRight} 0 ${paddingLeft}`,
+    paddingLeft,
+    paddingRight,
     minWidth: `calc(${pageContentWidth}px + (${pageMinPadding}px * 2))`,
   };
 };
