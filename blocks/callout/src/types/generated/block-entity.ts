@@ -45,4 +45,4 @@ export type Text = string;
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = Text | Object;
+export type TextualContentPropertyValue = Text | Object[];
