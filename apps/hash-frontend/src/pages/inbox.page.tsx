@@ -124,7 +124,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
   return (
     <TableRow
       sx={{
-        background: readAt ? ({ palette }) => palette.gray[10] : undefined,
+        background: readAt ? ({ palette }) => palette.gray[20] : undefined,
         opacity: readAt ? 0.6 : 1,
       }}
     >
