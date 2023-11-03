@@ -185,10 +185,6 @@ const getOrCreateOwningAccountGroupId = async (
   }
 
   const accountGroupId = await createAccountGroup(context, authentication, {});
-  await addAccountGroupMember(context, authentication, {
-    accountId: systemAccountId,
-    accountGroupId,
-  });
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
 
@@ -350,6 +346,14 @@ export const propertyTypeInitializer = (
               context,
               params.webShortname,
             );
+            console.log("accountGroupId", accountGroupId);
+            console.log("systemAccountId", systemAccountId);
+            console.log({ authentication });
+            console.log({
+              ownedById: accountGroupId as OwnedById,
+              schema: propertyTypeSchema,
+              webShortname: params.webShortname,
+            });
             const createdPropertyType = await createPropertyType(
               context,
               authentication,
