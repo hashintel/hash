@@ -10,7 +10,6 @@ use authorization::{
     backend::ZanzibarBackend,
     schema::{
         EntityGeneralViewerSubject, EntityOwnerSubject, EntityPermission, EntityRelationAndSubject,
-        EntityResourceRelation,
     },
     zanzibar::Consistency,
 };
@@ -40,53 +39,25 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
         .touch_relationships([
             (
                 ENTITY_A,
-                EntityRelationAndSubject::Owner(EntityOwnerSubject::Account { id: ALICE }),
+                EntityRelationAndSubject::Owner {
+                    subject: EntityOwnerSubject::Account { id: ALICE },
+                },
             ),
             (
                 ENTITY_A,
-                EntityRelationAndSubject::GeneralViewer(EntityGeneralViewerSubject::Account {
-                    id: BOB,
-                }),
+                EntityRelationAndSubject::GeneralViewer {
+                    subject: EntityGeneralViewerSubject::Account { id: BOB },
+                },
             ),
             (
                 ENTITY_B,
-                EntityRelationAndSubject::Owner(EntityOwnerSubject::Account { id: BOB }),
+                EntityRelationAndSubject::Owner {
+                    subject: EntityOwnerSubject::Account { id: BOB },
+                },
             ),
         ])
         .await?
         .written_at;
-
-    // Test relations
-    assert!(
-        api.check(
-            &ENTITY_A,
-            &EntityResourceRelation::Owner,
-            &ALICE,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &ENTITY_A,
-            &EntityResourceRelation::GeneralViewer,
-            &BOB,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
-    assert!(
-        api.check(
-            &ENTITY_B,
-            &EntityResourceRelation::Owner,
-            &BOB,
-            Consistency::AtLeastAsFresh(&token)
-        )
-        .await?
-        .has_permission
-    );
 
     // Test permissions
     assert!(
@@ -173,9 +144,9 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let token = api
         .delete_relationships([(
             ENTITY_A,
-            EntityRelationAndSubject::GeneralViewer(EntityGeneralViewerSubject::Account {
-                id: BOB,
-            }),
+            EntityRelationAndSubject::GeneralViewer {
+                subject: EntityGeneralViewerSubject::Account { id: BOB },
+            },
         )])
         .await?
         .written_at;

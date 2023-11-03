@@ -465,7 +465,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .modify_entity_relations([(
                 ModifyRelationshipOperation::Create,
                 entity_id,
-                EntityRelationAndSubject::Owner(owner),
+                EntityRelationAndSubject::Owner { subject: owner },
             )])
             .await
             .change_context(InsertionError)?;
@@ -488,7 +488,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .modify_entity_relations([(
                     ModifyRelationshipOperation::Delete,
                     entity_id,
-                    EntityRelationAndSubject::Owner(owner),
+                    EntityRelationAndSubject::Owner { subject: owner },
                 )])
                 .await
                 .change_context(InsertionError)

@@ -188,20 +188,26 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     DataTypeId::from(ontology_id),
-                    DataTypeRelationAndSubject::GeneralViewer(DataTypeGeneralViewerSubject::Public),
+                    DataTypeRelationAndSubject::GeneralViewer {
+                        subject: DataTypeGeneralViewerSubject::Public,
+                    },
                 ));
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
                             DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner(DataTypeOwnerSubject::Account { id }),
+                            DataTypeRelationAndSubject::Owner {
+                                subject: DataTypeOwnerSubject::Account { id },
+                            },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
                             DataTypeId::from(ontology_id),
-                            DataTypeRelationAndSubject::Owner(DataTypeOwnerSubject::AccountGroup {
-                                id,
-                                set: DataTypeSubjectSet::Member,
-                            }),
+                            DataTypeRelationAndSubject::Owner {
+                                subject: DataTypeOwnerSubject::AccountGroup {
+                                    id,
+                                    set: DataTypeSubjectSet::Member,
+                                },
+                            },
                         )),
                     }
                 }
@@ -380,11 +386,13 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Owner(owner),
+                DataTypeRelationAndSubject::Owner { subject: owner },
             ),
             (
                 DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::GeneralViewer(DataTypeGeneralViewerSubject::Public),
+                DataTypeRelationAndSubject::GeneralViewer {
+                    subject: DataTypeGeneralViewerSubject::Public,
+                },
             ),
         ];
 

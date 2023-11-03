@@ -1314,9 +1314,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 account_group_id,
-                AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
-                    id: actor_id,
-                }),
+                AccountGroupRelationAndSubject::Owner {
+                    subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                },
             )])
             .await
             .change_context(InsertionError)?;
@@ -1326,9 +1326,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
                     account_group_id,
-                    AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
-                        id: actor_id,
-                    }),
+                    AccountGroupRelationAndSubject::Owner {
+                        subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    },
                 )])
                 .await
                 .change_context(InsertionError)
