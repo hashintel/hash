@@ -5,17 +5,19 @@
 import {
   ObjectDataType,
   Text,
+  TextDataType,
   TextOutgoingLinkAndTarget,
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
-  TokensPropertyValue,
+  TextualContentPropertyValue,
 } from "./shared";
 
 export type {
   ObjectDataType,
   Text,
+  TextDataType,
   TextOutgoingLinkAndTarget,
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
-  TokensPropertyValue,
+  TextualContentPropertyValue,
 };

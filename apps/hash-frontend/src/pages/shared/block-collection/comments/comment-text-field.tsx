@@ -84,14 +84,16 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
     editableRef.current = editable;
   });
 
-  const setDocument = (tokens: TextToken[]) => {
+  const setDocument = (textualContent: TextToken[]) => {
     const view = viewRef.current;
     if (view) {
       const state = view.state;
       const tr = state.tr.replaceWith(
         0,
         state.doc.content.size,
-        tokens.length ? textBlockNodesFromTokens(tokens, state.schema) : [],
+        textualContent.length
+          ? textBlockNodesFromTokens(textualContent, state.schema)
+          : [],
       );
       view.dispatch(tr);
     }
@@ -150,9 +152,9 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
             const newState = view.state.apply(tr);
 
             if (onChange) {
-              const tokens = textBlockNodeToTextTokens(newState.doc);
+              const textualContent = textBlockNodeToTextTokens(newState.doc);
 
-              onChange(tokens);
+              onChange(textualContent);
             }
 
             view.updateState(newState);
@@ -205,9 +207,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   useEffect(() => {
     if (value && viewRef.current) {
-      const tokens = textBlockNodeToTextTokens(viewRef.current.state.doc);
+      const textualContent = textBlockNodeToTextTokens(
+        viewRef.current.state.doc,
+      );
 
-      if (!isEqual(value, tokens)) {
+      if (!isEqual(value, textualContent)) {
         setDocument(value);
       }
     }

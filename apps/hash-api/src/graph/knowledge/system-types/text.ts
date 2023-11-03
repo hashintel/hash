@@ -23,7 +23,7 @@ import { getPageFromEntity, Page } from "./page";
 import { getUserById, User } from "./user";
 
 export type Text = {
-  tokens: TextToken[];
+  textualContent: TextToken[];
   entity: Entity<TextProperties>;
 };
 
@@ -43,9 +43,9 @@ export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
     );
   }
 
-  const { tokens } = simplifyProperties(entity.properties);
+  const { textualContent } = simplifyProperties(entity.properties);
 
-  return { entity, tokens: tokens as TextToken[] };
+  return { entity, textualContent: textualContent as TextToken[] };
 };
 
 /**
@@ -246,21 +246,21 @@ export const getCommentByText: ImpureGraphFunction<
 };
 
 /**
- * Get the mentioned users in text tokens.
+ * Get the mentioned users in textual content.
  *
- * @param params.tokens - the array of text tokens
+ * @param params.textualContent - the textual content (array of text tokens)
  */
-export const getMentionedUsersInTextTokens: ImpureGraphFunction<
-  { tokens: TextToken[] },
+export const getMentionedUsersInTextualContent: ImpureGraphFunction<
+  { textualContent: TextToken[] },
   Promise<User[]>
-> = async (context, authentication, { tokens }) => {
-  const mentionTokens = tokens.filter(
+> = async (context, authentication, { textualContent }) => {
+  const mentionTextualContent = textualContent.filter(
     (token): token is Extract<TextToken, { tokenType: "mention" }> =>
       token.tokenType === "mention",
   );
 
   const mentionedUsers = await Promise.all(
-    mentionTokens
+    mentionTextualContent
       .filter(({ mentionType }) => mentionType === "user")
       // Filter duplicate user mentions (users that were mentioned more than once)
       .filter(

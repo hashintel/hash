@@ -15,8 +15,10 @@ export const App: BlockComponent<BlockEntity> = ({
 }) => {
   const { rootEntity } = useEntitySubgraph(blockEntitySubgraph);
   const editableRef = useRef<HTMLDivElement>(null);
-  const { [propertyIds.emoji]: icon, [propertyIds.text]: text } =
-    rootEntity.properties;
+  const {
+    [propertyIds.emoji]: icon,
+    [propertyIds.textualContent]: textualContent,
+  } = rootEntity.properties;
   const { entityId } = rootEntity.metadata.recordId;
 
   const blockRef = useRef<HTMLDivElement>(null);
@@ -28,10 +30,10 @@ export const App: BlockComponent<BlockEntity> = ({
     editableRef,
     "text",
     entityId,
-    [propertyIds.text],
+    [propertyIds.textualContent],
     (node) => {
       // eslint-disable-next-line no-param-reassign
-      node.innerText = text ?? "";
+      node.innerText = typeof textualContent === "string" ? textualContent : "";
 
       return () => {
         // eslint-disable-next-line no-param-reassign
@@ -57,7 +59,7 @@ export const App: BlockComponent<BlockEntity> = ({
     });
   };
 
-  if (readonly && !text && !icon) {
+  if (readonly && !textualContent && !icon) {
     return null;
   }
 

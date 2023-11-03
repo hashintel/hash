@@ -27,9 +27,9 @@ export const useCreateComment = (pageId: EntityId) => {
   });
 
   const createCommentCallback = useCallback(
-    async (parentEntityId: EntityId, tokens: TextToken[]) => {
+    async (parentEntityId: EntityId, textualContent: TextToken[]) => {
       await createCommentFn({
-        variables: { parentEntityId, tokens },
+        variables: { parentEntityId, textualContent },
       });
     },
     [createCommentFn],
