@@ -1,11 +1,13 @@
 //! General types and traits used throughout the Zanzibar authorization system.
 
 pub use self::{
-    relationship::{Relationship, RelationshipFilter},
+    relation::{LeveledRelation, Relation},
+    relationship::{Relationship, RelationshipFilter, RelationshipParts},
     resource::{Resource, ResourceFilter},
     subject::{Subject, SubjectFilter},
 };
 
+mod relation;
 mod relationship;
 mod resource;
 mod subject;
@@ -16,10 +18,6 @@ use serde::{Deserialize, Serialize};
 
 /// A computed set of [`Subject`]s for another particular [`Resource`].
 pub trait Permission<O: Resource> {}
-
-/// Encapsulates the relationship between an [`Resource`] and a [`Subject`].
-pub trait Relation<O: Resource> {}
-impl<O: Resource> Relation<O> for ! {}
 
 /// Provide causality metadata between Write and Check requests.
 #[derive(Debug, Clone, Serialize, Deserialize)]

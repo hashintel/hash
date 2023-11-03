@@ -2504,8 +2504,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -2522,8 +2522,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -2921,8 +2921,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -2939,8 +2939,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -2957,8 +2957,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -3133,8 +3133,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -3151,8 +3151,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -4197,8 +4197,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {
@@ -4215,8 +4215,8 @@
           {
             "type": "object",
             "required": [
-              "relation",
-              "subject"
+              "subject",
+              "relation"
             ],
             "properties": {
               "relation": {

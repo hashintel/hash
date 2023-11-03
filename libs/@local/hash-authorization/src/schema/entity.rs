@@ -13,7 +13,7 @@ use crate::{
         PublicAccess,
     },
     zanzibar::{
-        types::{Relationship, Resource},
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Permission, Relation,
     },
 };
@@ -47,8 +47,8 @@ impl Resource for EntityUuid {
 #[serde(rename_all = "snake_case")]
 pub enum EntityResourceRelation {
     Owner,
-    GeneralEditor,
-    GeneralViewer,
+    Editor,
+    Viewer,
 }
 
 impl Relation<EntityUuid> for EntityResourceRelation {}
@@ -192,11 +192,11 @@ pub enum EntityGeneralViewerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
+#[serde(rename_all = "camelCase", tag = "relation")]
 pub enum EntityRelationAndSubject {
-    Owner(EntityOwnerSubject),
-    GeneralEditor(EntityGeneralEditorSubject),
-    GeneralViewer(EntityGeneralViewerSubject),
+    Owner { subject: EntityOwnerSubject },
+    GeneralEditor { subject: EntityGeneralEditorSubject },
+    GeneralViewer { subject: EntityGeneralViewerSubject },
 }
 
 impl Relationship for (EntityUuid, EntityRelationAndSubject) {
@@ -205,120 +205,78 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
     type Subject = EntitySubject;
     type SubjectSet = EntitySubjectSet;
 
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error> {
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
-            resource,
-            match relation {
-                EntityResourceRelation::Owner => match (subject, subject_set) {
-                    (EntitySubject::Account(id), None) => {
-                        EntityRelationAndSubject::Owner(EntityOwnerSubject::Account { id })
-                    }
+            parts.resource,
+            match parts.relation.name {
+                EntityResourceRelation::Owner => match (parts.subject, parts.subject_set) {
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::Owner {
+                        subject: EntityOwnerSubject::Account { id },
+                    },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::Owner(EntityOwnerSubject::AccountGroup {
-                            id,
-                            set,
-                        })
+                        EntityRelationAndSubject::Owner {
+                            subject: EntityOwnerSubject::AccountGroup { id, set },
+                        }
                     }
-                    (EntitySubject::Public, subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                    (EntitySubject::Public, _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
-                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
-                EntityResourceRelation::GeneralEditor => match (subject, subject_set) {
-                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralEditor(
-                        EntityGeneralEditorSubject::Account { id },
-                    ),
+                EntityResourceRelation::Editor => match (parts.subject, parts.subject_set) {
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralEditor {
+                        subject: EntityGeneralEditorSubject::Account { id },
+                    },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::GeneralEditor(
-                            EntityGeneralEditorSubject::AccountGroup { id, set },
-                        )
+                        EntityRelationAndSubject::GeneralEditor {
+                            subject: EntityGeneralEditorSubject::AccountGroup { id, set },
+                        }
                     }
-                    (EntitySubject::Public, subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                    (EntitySubject::Public, _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
-                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                    (EntitySubject::Account(_) | EntitySubject::AccountGroup(_), _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
-                EntityResourceRelation::GeneralViewer => match (subject, subject_set) {
-                    (EntitySubject::Public, None) => {
-                        EntityRelationAndSubject::GeneralViewer(EntityGeneralViewerSubject::Public)
-                    }
-                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralViewer(
-                        EntityGeneralViewerSubject::Account { id },
-                    ),
+                EntityResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
+                    (EntitySubject::Public, None) => EntityRelationAndSubject::GeneralViewer {
+                        subject: EntityGeneralViewerSubject::Public,
+                    },
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralViewer {
+                        subject: EntityGeneralViewerSubject::Account { id },
+                    },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::GeneralViewer(
-                            EntityGeneralViewerSubject::AccountGroup { id, set },
-                        )
+                        EntityRelationAndSubject::GeneralViewer {
+                            subject: EntityGeneralViewerSubject::AccountGroup { id, set },
+                        }
                     }
                     (
                         EntitySubject::Account(_)
                         | EntitySubject::AccountGroup(_)
                         | EntitySubject::Public,
-                        subject_set,
+                        _subject_set,
                     ) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
             },
         ))
     }
 
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn to_parts(&self) -> RelationshipParts<Self> {
         Self::into_parts(*self)
     }
 
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            EntityRelationAndSubject::Owner(subject) => (
-                EntityResourceRelation::Owner,
+            EntityRelationAndSubject::Owner { subject } => (
+                LeveledRelation {
+                    name: EntityResourceRelation::Owner,
+                    level: 0,
+                },
                 match subject {
                     EntityOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
                     EntityOwnerSubject::AccountGroup { id, set } => {
@@ -326,8 +284,11 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
             ),
-            EntityRelationAndSubject::GeneralEditor(subject) => (
-                EntityResourceRelation::GeneralEditor,
+            EntityRelationAndSubject::GeneralEditor { subject } => (
+                LeveledRelation {
+                    name: EntityResourceRelation::Editor,
+                    level: 0,
+                },
                 match subject {
                     EntityGeneralEditorSubject::Account { id } => {
                         (EntitySubject::Account(id), None)
@@ -337,8 +298,11 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
             ),
-            EntityRelationAndSubject::GeneralViewer(subject) => (
-                EntityResourceRelation::GeneralViewer,
+            EntityRelationAndSubject::GeneralViewer { subject } => (
+                LeveledRelation {
+                    name: EntityResourceRelation::Viewer,
+                    level: 0,
+                },
                 match subject {
                     EntityGeneralViewerSubject::Account { id } => {
                         (EntitySubject::Account(id), None)
@@ -350,6 +314,11 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                 },
             ),
         };
-        (self.0, relation, subject, subject_set)
+        RelationshipParts {
+            resource: self.0,
+            relation,
+            subject,
+            subject_set,
+        }
     }
 }

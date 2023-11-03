@@ -11,8 +11,8 @@ pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
         AccountGroupGeneralMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
-        AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupResourceRelation,
-        AccountGroupSubject, AccountGroupSubjectId,
+        AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,
+        AccountGroupSubjectId,
     },
     data_type::{
         DataTypeGeneralViewerSubject, DataTypeId, DataTypeNamespace, DataTypeOwnerSubject,

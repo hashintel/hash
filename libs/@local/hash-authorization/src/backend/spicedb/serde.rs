@@ -52,6 +52,56 @@ pub(crate) mod resource_ref {
     }
 }
 
+pub(crate) mod relation {
+    use std::borrow::Cow;
+
+    use serde::{de, de::IntoDeserializer, ser, Deserialize, Deserializer, Serialize, Serializer};
+
+    use crate::zanzibar::types::LeveledRelation;
+
+    pub(crate) fn serialize<N, S>(
+        relation: &LeveledRelation<N>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        N: Serialize,
+        S: Serializer,
+    {
+        format_args!(
+            "level_{:02}_{}",
+            relation.level,
+            serde_plain::to_string(&relation.name).map_err(ser::Error::custom)?,
+        )
+        .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, N, D>(deserializer: D) -> Result<LeveledRelation<N>, D::Error>
+    where
+        N: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        const ERROR_MSG: &str =
+            "Invalid relation name, expected a relation name in the form of `level_XX_NAME`";
+
+        let string: Cow<'de, str> = Deserialize::deserialize(deserializer)?;
+
+        let (level_str, tail) = string
+            .split_once('_')
+            .ok_or_else(|| de::Error::custom(ERROR_MSG))?;
+        if level_str != "level" {
+            return Err(de::Error::custom(ERROR_MSG));
+        }
+        let (level, name) = tail
+            .split_once('_')
+            .ok_or_else(|| de::Error::custom(ERROR_MSG))?;
+
+        Ok(LeveledRelation {
+            name: N::deserialize(name.into_deserializer())?,
+            level: serde_plain::from_str(level).map_err(de::Error::custom)?,
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(
     rename_all = "camelCase",
@@ -109,7 +159,7 @@ pub(crate) mod relationship {
     use crate::{
         backend::spicedb::serde::SerializedSubject,
         zanzibar::{
-            types::{Relationship, Resource},
+            types::{LeveledRelation, Relationship, RelationshipParts, Resource},
             Relation,
         },
     };
@@ -128,7 +178,8 @@ pub(crate) mod relationship {
     struct SerializedRelationship<O, R, S, SR> {
         #[serde(with = "super::resource")]
         resource: O,
-        relation: R,
+        #[serde(with = "super::relation")]
+        relation: LeveledRelation<R>,
         subject: SerializedSubject<S, SR>,
     }
 
@@ -142,7 +193,13 @@ pub(crate) mod relationship {
             >,
         S: Serializer,
     {
-        let (resource, relation, subject, subject_set) = relationship.to_parts();
+        let RelationshipParts {
+            resource,
+            relation,
+            subject,
+            subject_set,
+        } = relationship.to_parts();
+
         SerializedRelationship {
             resource,
             relation,
@@ -165,12 +222,12 @@ pub(crate) mod relationship {
         D: Deserializer<'de>,
     {
         let relationship = SerializedRelationship::deserialize(deserializer)?;
-        T::from_parts(
-            relationship.resource,
-            relationship.relation,
-            relationship.subject.object,
-            relationship.subject.optional_relation,
-        )
+        T::from_parts(RelationshipParts {
+            resource: relationship.resource,
+            relation: relationship.relation,
+            subject: relationship.subject.object,
+            subject_set: relationship.subject.optional_relation,
+        })
         .map_err(de::Error::custom)
     }
 }
