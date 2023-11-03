@@ -1,4 +1,5 @@
 import { createKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
+import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
@@ -7,11 +8,7 @@ import {
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
-import {
-  AuthenticationContext,
-  publicUserAccountId,
-} from "@apps/hash-api/src/graphql/context";
-import { StorageType } from "@apps/hash-api/src/storage";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -28,7 +25,7 @@ const randomStringSuffix = () => {
     .join("");
 };
 
-export const createTestImpureGraphContext = (): ImpureGraphContext => {
+export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
   const logger = new Logger({
     mode: "dev",
     level: "debug",
@@ -60,7 +57,7 @@ export const createTestImpureGraphContext = (): ImpureGraphContext => {
           "File presign upload not implemented in tests. Override with mock to test.",
         );
       },
-      storageType: StorageType.LocalFileSystem,
+      storageType: "LOCAL_FILE_SYSTEM",
     },
   };
 };

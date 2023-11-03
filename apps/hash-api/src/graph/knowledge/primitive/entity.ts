@@ -40,11 +40,11 @@ import {
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 
+import { publicUserAccountId } from "../../../auth/public-user-account-id";
 import {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { publicUserAccountId } from "../../../graphql/context";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../..";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
@@ -202,7 +202,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   if (!entity) {
     throw new Error(
-      `Critical: Entity with entityId ${entityId} doesn't exist.`,
+      `Critical: Entity with entityId ${entityId} doesn't exist or cannot be accessed by requesting user.`,
     );
   }
 

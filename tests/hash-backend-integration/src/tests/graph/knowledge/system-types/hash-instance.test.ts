@@ -1,4 +1,5 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
+import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
 import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
@@ -17,10 +18,7 @@ import {
   systemUser,
   systemUserAccountId,
 } from "@apps/hash-api/src/graph/system-user";
-import {
-  AuthenticationContext,
-  publicUserAccountId,
-} from "@apps/hash-api/src/graphql/context";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 

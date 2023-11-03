@@ -5,7 +5,7 @@ import { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-workflow-typ
 import { OwnedById } from "@local/hash-subgraph";
 import { RequestHandler } from "express";
 
-import { publicUserAccountId } from "../../graphql/context";
+import { publicUserAccountId } from "../../auth/public-user-account-id";
 import { logger } from "../../logger";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
