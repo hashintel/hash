@@ -1,9 +1,15 @@
 import {
   BaseUrl as BaseUrlBp,
   validateBaseUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import { Brand } from "@local/advanced-types/brand";
-import { EntityRelationAndSubject } from "@local/hash-graph-client";
+import {
+  DataTypeRelationAndSubject,
+  EntityRelationAndSubject,
+  EntityTypeRelationAndSubject,
+  PropertyTypeRelationAndSubject,
+} from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
 export type BaseUrl = Brand<BaseUrlBp, "BaseUrl">;
@@ -117,3 +123,24 @@ export type EntityAuthorizationRelationship = {
     resourceId: EntityId;
   };
 } & BrandRelationship<EntityRelationAndSubject>;
+
+export type EntityTypeAuthorizationRelationship = {
+  resource: {
+    kind: "entityType";
+    resourceId: VersionedUrl;
+  };
+} & BrandRelationship<EntityTypeRelationAndSubject>;
+
+export type PropertyTypeAuthorizationRelationship = {
+  resource: {
+    kind: "propertyType";
+    resourceId: VersionedUrl;
+  };
+} & BrandRelationship<PropertyTypeRelationAndSubject>;
+
+export type DataTypeAuthorizationRelationship = {
+  resource: {
+    kind: "dataType";
+    resourceId: VersionedUrl;
+  };
+} & BrandRelationship<DataTypeRelationAndSubject>;
