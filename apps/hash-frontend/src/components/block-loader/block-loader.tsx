@@ -211,13 +211,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     }
 
     /**
-     * Our text blocks ask for a BP `textual-content` property as a plan `string`ich is plain `Text`.
-     * Because they use the hook service, we actually generate text as an array of text tokens and
-     * persist it under a different property.
-     * The BP spec says that blocks should receive the data they expect even if the hook service is used,
-     * therefore we provides the rich text as a plain string for the `textual-content` property.
-     * It is useful for making sure that blocks have string fallbacks in contexts where the hook service is not available,
-     * which at the time of writing (May 2023) is when viewing/editing a page in 'canvas' mode.
+     * Text fields use a `textual-content` property, with a value of either `Text` (a string)
+     * or an opaque array of `Object`. This is so that the text can be stored as rich text tokens
+     * by the embedding application, when the hook service is used, but also still received by
+     * the block as a plain string (a predictable format), complying with the schema in both cases.
+     * Here we translate our rich text tokens into a plain string for passing into the block.
      *
      * This code has the following issues:
      * 1. It assumes that any entity with `textual-content` stored on it expects the value to be a string
