@@ -1,5 +1,8 @@
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -50,7 +53,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
               entityTypeId: systemTypes.entityType.text.entityTypeId,
               properties: {
                 [extractBaseUrl(
-                  systemTypes.propertyType.tokens.propertyTypeId,
+                  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
                 )]: [],
               },
             },

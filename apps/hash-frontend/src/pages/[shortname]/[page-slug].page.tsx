@@ -95,7 +95,8 @@ export const getPageSectionContainerStyles = (params: {
   const paddingRight = `calc(100% - ${pageContentWidth}px - ${paddingLeft})`;
 
   return {
-    padding: `${pageMinPadding}px ${paddingRight} 0 ${paddingLeft}`,
+    paddingLeft,
+    paddingRight,
     minWidth: `calc(${pageContentWidth}px + (${pageMinPadding}px * 2))`,
   };
 };
@@ -519,7 +520,7 @@ const Page: NextPageWithLayout<PageProps> = ({
               {canvasPage ? (
                 <CanvasPageBlock contents={contents} />
               ) : (
-                <Box marginTop={5}>
+                <Box marginTop={5} position="relative">
                   {!!canUserEdit && pageComments.length > 0 ? (
                     <PageSectionContainer
                       pageComments={pageComments}
@@ -536,7 +537,6 @@ const Page: NextPageWithLayout<PageProps> = ({
                         <Box
                           sx={{
                             position: "absolute",
-                            top: 16,
                             left: "calc(100% + 48px)",
                             zIndex: 1,
                           }}

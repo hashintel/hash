@@ -2,7 +2,7 @@ import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { Node, Schema } from "prosemirror-model";
 
 import { TextEntityType, TextProperties } from "./entity";
-import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URL } from "./entity-store";
+import { textualContentPropertyTypeBaseUrl } from "./entity-store";
 import { ComponentNode } from "./prosemirror";
 
 export const textBlockNodesFromTokens = (
@@ -48,7 +48,7 @@ export const childrenForTextEntity = (
   schema: Schema,
 ): Node[] =>
   textBlockNodesFromTokens(
-    entity.properties[TEXT_TOKEN_PROPERTY_TYPE_BASE_URL] ?? [],
+    entity.properties[textualContentPropertyTypeBaseUrl] ?? [],
     schema,
   );
 
@@ -106,5 +106,5 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
 export const textBlockNodeToEntityProperties = (
   node: ComponentNode,
 ): TextProperties => ({
-  [TEXT_TOKEN_PROPERTY_TYPE_BASE_URL]: textBlockNodeToTextTokens(node),
+  [textualContentPropertyTypeBaseUrl]: textBlockNodeToTextTokens(node),
 });

@@ -24,7 +24,9 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -67,7 +69,9 @@ describe("Page", () => {
         ownedById: testUser.accountId as OwnedById,
         entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
         properties: {
-          [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
+          [extractBaseUrl(
+            blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+          )]: [],
         },
       }),
     });

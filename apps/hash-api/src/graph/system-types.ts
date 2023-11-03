@@ -60,9 +60,6 @@ export let SYSTEM_TYPES: {
     // Contains related
     numericIndex: PropertyTypeWithMetadata;
 
-    // Text-related
-    tokens: PropertyTypeWithMetadata;
-
     // Timestamps
     resolvedAt: PropertyTypeWithMetadata;
     deletedAt: PropertyTypeWithMetadata;
@@ -721,35 +718,18 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const tokensPropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.tokens,
-  /**
-   * @todo: potentially improve this property type to be composed of nested property type definitions
-   * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
-   */
-  possibleValues: [{ primitiveDataType: "object" }],
-  webShortname: "hash",
-});
-
-const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-
-  const tokensPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.tokens(context);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-  return entityTypeInitializer({
+const textEntityTypeInitializer = async (context: ImpureGraphContext) =>
+  entityTypeInitializer({
     ...systemTypes.entityType.text,
     properties: [
       {
-        propertyType: tokensPropertyType,
+        propertyType:
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
         required: true,
-        array: true,
       },
     ],
     webShortname: "hash",
   })(context);
-};
 
 const fileStorageBucketPropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.fileStorageBucket,
@@ -1500,8 +1480,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     icon: iconPropertyTypeInitializer,
 
     numericIndex: numericIndexPropertyTypeInitializer,
-
-    tokens: tokensPropertyTypeInitializer,
 
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,

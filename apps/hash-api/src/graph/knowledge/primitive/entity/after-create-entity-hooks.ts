@@ -22,7 +22,7 @@ import {
 } from "../../system-types/notification";
 import { getPageCreator, getPageFromEntity } from "../../system-types/page";
 import {
-  getMentionedUsersInTextTokens,
+  getMentionedUsersInTextualContent,
   getTextById,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
@@ -151,8 +151,8 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
 /**
  * This after create `hasText` link entity hook is responsible for creating
- * mention notifications if the right entity is a `Text` entity whose tokens
- * contain a mention to a user, and:
+ * mention notifications if the right entity is a `Text` entity whose textual
+ * content contains a mention to a user, and:
  * - the `Text` is in a page
  * - the `Text` is in a comment that's on a page
  */
@@ -174,14 +174,12 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
     return entity;
   }
 
-  const { tokens } = text;
+  const { textualContent } = text;
 
-  const mentionedUsers = await getMentionedUsersInTextTokens(
+  const mentionedUsers = await getMentionedUsersInTextualContent(
     context,
     authentication,
-    {
-      tokens,
-    },
+    { textualContent },
   );
 
   const triggeredByUser = await getUserById(context, authentication, {

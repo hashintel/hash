@@ -4,8 +4,9 @@ use crate::zanzibar::{
     types::{
         resource::{Resource, ResourceFilter},
         subject::SubjectFilter,
+        LeveledRelation,
     },
-    Affiliation,
+    Relation,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -53,11 +54,18 @@ impl<ON, OI, R> RelationshipFilter<ON, OI, R, !, !, !> {
     }
 }
 
+pub struct RelationshipParts<R: Relationship> {
+    pub resource: R::Resource,
+    pub relation: LeveledRelation<R::Relation>,
+    pub subject: R::Subject,
+    pub subject_set: Option<R::SubjectSet>,
+}
+
 pub trait Relationship: Sized {
     type Resource: Resource;
-    type Relation: Affiliation<Self::Resource>;
+    type Relation: Relation<Self::Resource>;
     type Subject: Resource;
-    type SubjectSet: Affiliation<Self::Subject>;
+    type SubjectSet: Relation<Self::Subject>;
 
     /// Creates a relationship from an resource, relation, subject, and subject set.
     ///
@@ -65,28 +73,19 @@ pub trait Relationship: Sized {
     ///
     /// Returns an error if the resource, relation, subject, and subject set are not valid for the
     /// relationship.
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error>;
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error>;
 
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    );
+    /// Splits the relationship into an resource, relation, subject, and subject set.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relationship is not valid.
+    fn to_parts(&self) -> RelationshipParts<Self>;
 
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    );
+    /// Splits the relationship into an resource, relation, subject, and subject set.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the relationship is not valid.
+    fn into_parts(self) -> RelationshipParts<Self>;
 }

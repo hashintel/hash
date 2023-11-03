@@ -5,7 +5,10 @@ import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.querie
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityRootType,
   extractEntityUuidFromEntityId,
@@ -64,7 +67,9 @@ const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
-    extractBaseUrl(systemTypes.propertyType.tokens.propertyTypeId)
+    extractBaseUrl(
+      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+    )
   ] as TextToken[] | undefined;
 
   return (

@@ -4,7 +4,7 @@ use std::{error::Error, fmt::Write};
 use derive_where::derive_where;
 use serde::Serialize;
 
-use crate::zanzibar::types::{Relationship, Resource};
+use crate::zanzibar::types::{Relationship, RelationshipParts, Resource};
 
 #[derive(Debug)]
 enum InvalidResourceKind {
@@ -57,40 +57,21 @@ enum InvalidRelationshipKind {
 }
 
 pub(crate) struct InvalidRelationship<R: Relationship> {
-    resource: R::Resource,
-    relation: R::Relation,
-    subject: R::Subject,
-    subject_set: Option<R::SubjectSet>,
+    parts: RelationshipParts<R>,
     error: InvalidRelationshipKind,
 }
 
 impl<R: Relationship> InvalidRelationship<R> {
-    pub(crate) const fn invalid_subject(
-        resource: R::Resource,
-        relation: R::Relation,
-        subject: R::Subject,
-        subject_set: Option<R::SubjectSet>,
-    ) -> Self {
+    pub(crate) const fn invalid_subject(parts: RelationshipParts<R>) -> Self {
         Self {
-            resource,
-            relation,
-            subject,
-            subject_set,
+            parts,
             error: InvalidRelationshipKind::InvalidSubject,
         }
     }
 
-    pub(crate) const fn invalid_subject_set(
-        resource: R::Resource,
-        relation: R::Relation,
-        subject: R::Subject,
-        subject_set: Option<R::SubjectSet>,
-    ) -> Self {
+    pub(crate) const fn invalid_subject_set(parts: RelationshipParts<R>) -> Self {
         Self {
-            resource,
-            relation,
-            subject,
-            subject_set,
+            parts,
             error: InvalidRelationshipKind::InvalidSubjectSet,
         }
     }
@@ -148,18 +129,18 @@ where
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match self.error {
             InvalidRelationshipKind::InvalidSubject => "InvalidRelationshipSubject",
-            InvalidRelationshipKind::InvalidSubjectSet if self.subject_set.is_some() => {
+            InvalidRelationshipKind::InvalidSubjectSet if self.parts.subject_set.is_some() => {
                 "InvalidRelationshipSubjectSet"
             }
             InvalidRelationshipKind::InvalidSubjectSet => "MissingRelationshipSubjectSet",
         };
 
         fmt.debug_struct(name)
-            .field("resource", &ResourceDebugger(&self.resource))
-            .field("relation", &RelationDebugger(&self.relation))
+            .field("resource", &ResourceDebugger(&self.parts.resource))
+            .field("relation", &RelationDebugger(&self.parts.relation))
             .field(
                 "subject",
-                &SubjectSetDebugger(&self.subject, self.subject_set.as_ref()),
+                &SubjectSetDebugger(&self.parts.subject, self.parts.subject_set.as_ref()),
             )
             .finish()
     }
@@ -183,22 +164,26 @@ where
             InvalidRelationshipKind::InvalidSubject => write!(
                 fmt,
                 "invalid subject `{:?}`",
-                SubjectSetDebugger(&self.subject, self.subject_set.as_ref())
+                SubjectSetDebugger(&self.parts.subject, self.parts.subject_set.as_ref())
             )?,
             InvalidRelationshipKind::InvalidSubjectSet => {
-                if let Some(set) = &self.subject_set {
+                if let Some(set) = &self.parts.subject_set {
                     write!(fmt, "invalid subject set `{:?}`", RelationDebugger(&set),)?;
                 } else {
                     fmt.write_str("missing subject set")?;
                 }
-                write!(fmt, " in subject `{:?}`", ResourceDebugger(&self.subject))?;
+                write!(
+                    fmt,
+                    " in subject `{:?}`",
+                    ResourceDebugger(&self.parts.subject)
+                )?;
             }
         }
         write!(
             fmt,
-            "` for resource `{:?}` with relation `{:?}`",
-            ResourceDebugger(&self.resource),
-            RelationDebugger(&self.relation)
+            "` with relation `{:?}` to to resource `{:?}`",
+            RelationDebugger(&self.parts.relation),
+            ResourceDebugger(&self.parts.resource),
         )
     }
 }

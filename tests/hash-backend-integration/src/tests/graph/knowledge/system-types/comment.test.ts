@@ -16,7 +16,9 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -47,7 +49,9 @@ describe("Comment", () => {
     const textEntity = await createEntity(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: [],
+        [extractBaseUrl(
+          blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+        )]: [],
       },
       entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
     });
@@ -73,7 +77,7 @@ describe("Comment", () => {
     const comment = await createComment(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       parentEntityId: testBlock.entity.metadata.recordId.entityId,
-      tokens: [],
+      textualContent: [],
       author: testUser,
     });
 
@@ -82,7 +86,7 @@ describe("Comment", () => {
     const hasText = await getCommentText(graphContext, authentication, {
       commentEntityId,
     });
-    expect(hasText.tokens).toEqual([]);
+    expect(hasText.textualContent).toEqual([]);
 
     const commentAuthor = await getCommentAuthor(graphContext, authentication, {
       commentEntityId,

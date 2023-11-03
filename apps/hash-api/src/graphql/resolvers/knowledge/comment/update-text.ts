@@ -15,12 +15,16 @@ export const updateCommentTextResolver: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateCommentTextArgs
-> = async (_, { entityId, tokens }, { dataSources, authentication }) => {
+> = async (
+  _,
+  { entityId, textualContent },
+  { dataSources, authentication },
+) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
 
   await updateCommentText(context, authentication, {
     commentEntityId: entityId,
-    tokens,
+    textualContent,
   });
 
   const comment = await getCommentById(context, authentication, {
