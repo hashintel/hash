@@ -62,6 +62,14 @@ export let SYSTEM_TYPES: {
     deletedAt: PropertyTypeWithMetadata;
     expiredAt: PropertyTypeWithMetadata;
 
+    // File storage related
+    fileStorageBucket: PropertyTypeWithMetadata;
+    fileStorageEndpoint: PropertyTypeWithMetadata;
+    fileStorageForcePathStyle: PropertyTypeWithMetadata;
+    fileStorageKey: PropertyTypeWithMetadata;
+    fileStorageProvider: PropertyTypeWithMetadata;
+    fileStorageRegion: PropertyTypeWithMetadata;
+
     // Integration related
     connectionSourceName: PropertyTypeWithMetadata;
 
@@ -702,7 +710,60 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) =>
     ],
   })(context);
 
+const fileStorageBucketPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileStorageBucket,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileStorageEndpointPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileStorageEndpoint,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileStorageForcePathStylePropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.fileStorageForcePathStyle,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+  });
+
+const fileStorageKeyPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileStorageKey,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileStorageProviderPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileStorageProvider,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
+const fileStorageRegionPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.fileStorageRegion,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const fileStorageBucketPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageBucket(context);
+
+  const fileStorageEndpointPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageEndpoint(context);
+
+  const fileStorageForcePathStylePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageForcePathStyle(
+      context,
+    );
+
+  const fileStorageKeyPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageKey(context);
+
+  const fileStorageProviderPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageProvider(context);
+
+  const fileStorageProviderRegion =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageRegion(context);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
   return entityTypeInitializer({
     ...types.entityType.file,
     properties: [
@@ -715,6 +776,24 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: mimeTypePropertyTypeUrl,
+      },
+      {
+        propertyType: fileStorageBucketPropertyType,
+      },
+      {
+        propertyType: fileStorageEndpointPropertyType,
+      },
+      {
+        propertyType: fileStorageForcePathStylePropertyType,
+      },
+      {
+        propertyType: fileStorageKeyPropertyType,
+      },
+      {
+        propertyType: fileStorageProviderPropertyType,
+      },
+      {
+        propertyType: fileStorageProviderRegion,
       },
       {
         propertyType:
@@ -1306,6 +1385,13 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     kratosIdentityId: kratosIdentityIdPropertyTypeInitializer,
     preferredName: preferredNamePropertyTypeInitializer,
     preferredPronouns: preferredPronounsPropertyTypeInitializer,
+
+    fileStorageBucket: fileStorageBucketPropertyTypeInitializer,
+    fileStorageEndpoint: fileStorageEndpointPropertyTypeInitializer,
+    fileStorageForcePathStyle: fileStorageForcePathStylePropertyTypeInitializer,
+    fileStorageKey: fileStorageKeyPropertyTypeInitializer,
+    fileStorageProvider: fileStorageProviderPropertyTypeInitializer,
+    fileStorageRegion: fileStorageRegionPropertyTypeInitializer,
 
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
