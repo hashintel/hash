@@ -39,10 +39,12 @@ import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 import {
   createEntityType,
   getEntityTypeById,
+  modifyEntityTypeAuthorizationRelationships,
 } from "./ontology/primitive/entity-type";
 import {
   createPropertyType,
   getPropertyTypeById,
+  modifyPropertyTypeAuthorizationRelationships,
 } from "./ontology/primitive/property-type";
 import { systemAccountId } from "./system-account";
 
@@ -330,10 +332,7 @@ export const propertyTypeInitializer = (
             await context.graphApi.loadExternalPropertyType(
               authentication.actorId,
               {
-                propertyTypeId: propertyTypeSchema.$id,
                 // Specify the schema so that self-hosted instances don't need network access to hash.ai
-                // BLOCKED by H-1164 @todo remove this comment when H-1164 is merged
-                // @ts-expect-error –– error will disappear when H-1164 is merged, and this line can be removed
                 schema: propertyTypeSchema,
               },
             );
@@ -362,7 +361,41 @@ export const propertyTypeInitializer = (
               throw createError;
             });
 
-            // @todo BEFORE MERGING remove the web as an owner, and add the systemAccountId as an owner
+            // We don't want anyone but the systemAccount being able to modify system types
+            await modifyPropertyTypeAuthorizationRelationships(
+              context,
+              authentication,
+              [
+                {
+                  operation: "delete",
+                  relationship: {
+                    relation: "owner",
+                    resource: {
+                      kind: "propertyType",
+                      resourceId: createdPropertyType.schema.$id,
+                    },
+                    subject: {
+                      kind: "accountGroup",
+                      subjectId: accountGroupId,
+                    },
+                  },
+                },
+                {
+                  operation: "create",
+                  relationship: {
+                    relation: "owner",
+                    resource: {
+                      kind: "propertyType",
+                      resourceId: createdPropertyType.schema.$id,
+                    },
+                    subject: {
+                      kind: "account",
+                      subjectId: systemAccountId,
+                    },
+                  },
+                },
+              ],
+            );
 
             return createdPropertyType;
           }
@@ -571,10 +604,7 @@ export const entityTypeInitializer = (
           if (isSelfHostedInstance) {
             // If this is a self-hosted instance, the system types will be created as external types without an in-instance web
             await context.graphApi.loadExternalEntityType(systemAccountId, {
-              entityTypeId: entityTypeSchema.$id,
               // Specify the schema so that self-hosted instances don't need network access to hash.ai
-              // BLOCKED by H-1164 @todo remove this comment when H-1164 is merged
-              // @ts-expect-error –– error will disappear when H-1164 is merged, and this line can be removed
               schema: entityTypeSchema,
             });
 
@@ -602,7 +632,40 @@ export const entityTypeInitializer = (
               throw createError;
             });
 
-            // @todo BEFORE MERGING remove the web as an owner, and add the systemAccountId as an owner
+            await modifyEntityTypeAuthorizationRelationships(
+              context,
+              authentication,
+              [
+                {
+                  operation: "delete",
+                  relationship: {
+                    relation: "owner",
+                    resource: {
+                      kind: "entityType",
+                      resourceId: createdEntityType.schema.$id,
+                    },
+                    subject: {
+                      kind: "accountGroup",
+                      subjectId: accountGroupId,
+                    },
+                  },
+                },
+                {
+                  operation: "create",
+                  relationship: {
+                    relation: "owner",
+                    resource: {
+                      kind: "entityType",
+                      resourceId: createdEntityType.schema.$id,
+                    },
+                    subject: {
+                      kind: "account",
+                      subjectId: systemAccountId,
+                    },
+                  },
+                },
+              ],
+            );
 
             return createdEntityType;
           }
