@@ -97,17 +97,29 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
+  useEffect(() => {}, []);
+
   /**
-   * Set the initial block data from the block collection subgraph and permissions on entities in it, if provided
+   * Set the initial block data from either:
+   * - the block collection subgraph and permissions on entities in it, if provided
+   * - fetching the block's subgraph manually
    */
   useEffect(() => {
+    if (blockSubgraph) {
+      return;
+    }
+
     if (
       !blockEntityId ||
       !blockCollectionSubgraph ||
-      !userPermissionsOnEntities ||
-      // If we already have data, we don't need to set an initial value from the collection subgraph
-      blockSubgraph
+      !userPermissionsOnEntities
     ) {
+      void fetchBlockSubgraph(blockEntityTypeId, blockEntityId).then(
+        (newBlockSubgraph) => {
+          setBlockSubgraph(newBlockSubgraph.subgraph);
+          setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+        },
+      );
       return;
     }
 
@@ -133,7 +145,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   }, [
     blockEntityId,
     blockCollectionSubgraph,
+    blockEntityTypeId,
     blockSubgraph,
+    fetchBlockSubgraph,
     setBlockSubgraph,
     userPermissionsOnEntities,
     setUserPermissions,
