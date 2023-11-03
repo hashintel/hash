@@ -33,8 +33,10 @@ import { AuthenticationContext } from "../graphql/context";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { UploadableStorageProvider } from "../storage/storage-provider";
-import { addAccountGroupMember } from "./account-groups";
-import { createAccountGroup } from "./knowledge/system-types/account.fields";
+import {
+  createAccountGroup,
+  createWeb,
+} from "./knowledge/system-types/account.fields";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 import {
   createEntityType,
@@ -184,7 +186,10 @@ const getOrCreateOwningAccountGroupId = async (
     // No org system type yet, this must be the first time the seeding has run
   }
 
+  // The systemAccountId will automatically be assigned as an owner of the account group since it creates it
   const accountGroupId = await createAccountGroup(context, authentication, {});
+
+  await createWeb(context, authentication, { owner: accountGroupId });
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
 
@@ -346,14 +351,6 @@ export const propertyTypeInitializer = (
               context,
               params.webShortname,
             );
-            console.log("accountGroupId", accountGroupId);
-            console.log("systemAccountId", systemAccountId);
-            console.log({ authentication });
-            console.log({
-              ownedById: accountGroupId as OwnedById,
-              schema: propertyTypeSchema,
-              webShortname: params.webShortname,
-            });
             const createdPropertyType = await createPropertyType(
               context,
               authentication,
