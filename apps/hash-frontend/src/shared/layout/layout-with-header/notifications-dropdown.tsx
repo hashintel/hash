@@ -7,7 +7,7 @@ import {
   typographyClasses,
   useTheme,
 } from "@mui/material";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
 
 import { useNotifications } from "../../notifications-context";
 import { Link } from "../../ui";
@@ -18,7 +18,12 @@ export const NotificationsDropdown: FunctionComponent = () => {
 
   const { notifications } = useNotifications();
 
-  const hasNotifications = !!notifications?.length;
+  const numberOfUnreadNotifications = useMemo(
+    () => notifications?.filter(({ readAt }) => !readAt).length,
+    [notifications],
+  );
+
+  const hasNotifications = !!numberOfUnreadNotifications;
 
   return (
     <Link noLinkStyle href="/inbox">
@@ -80,7 +85,7 @@ export const NotificationsDropdown: FunctionComponent = () => {
               }}
               ml={0.75}
             >
-              {notifications.length}
+              {numberOfUnreadNotifications}
             </Typography>
             <Box
               className="circle"

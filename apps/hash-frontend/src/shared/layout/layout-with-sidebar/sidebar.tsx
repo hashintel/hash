@@ -2,7 +2,7 @@ import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
@@ -29,6 +29,11 @@ export const PageSidebar: FunctionComponent = () => {
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   const { hashInstance } = useHashInstance();
+
+  const numberOfUnreadNotifications = useMemo(
+    () => notifications?.filter(({ readAt }) => !readAt).length,
+    [notifications],
+  );
 
   return (
     <Drawer
@@ -81,7 +86,7 @@ export const PageSidebar: FunctionComponent = () => {
         title="Inbox"
         href="/inbox"
         tooltipTitle=""
-        count={notifications?.length}
+        count={numberOfUnreadNotifications}
         active={router.pathname === "/inbox"}
       />
       <TopNavLink
