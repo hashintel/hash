@@ -12,7 +12,6 @@ import {
   SimpleProperties,
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import {
   BlockProperties,
   CommentNotificationProperties,
@@ -21,7 +20,6 @@ import {
   PageProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import {
   Entity,

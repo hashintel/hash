@@ -4,11 +4,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
 import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
 import {
