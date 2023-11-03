@@ -151,7 +151,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 export const createMentionNotification: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     triggeredByUser: User;
-    occurredInPage: Page;
+    occurredInEntity: Page;
     occurredInBlock: Block;
     occurredInComment?: Comment;
     occurredInText: Text;
@@ -161,7 +161,7 @@ export const createMentionNotification: ImpureGraphFunction<
   const {
     triggeredByUser,
     occurredInText,
-    occurredInPage,
+    occurredInEntity,
     occurredInBlock,
     occurredInComment,
     ownedById,
@@ -184,8 +184,8 @@ export const createMentionNotification: ImpureGraphFunction<
       createLinkEntity(context, authentication, {
         ownedById,
         leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: occurredInPage.entity.metadata.recordId.entityId,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInPage,
+        rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInEntity,
       }),
       createLinkEntity(context, authentication, {
         ownedById,
@@ -217,7 +217,7 @@ export const getMentionNotification: ImpureGraphFunction<
   {
     recipient: User;
     triggeredByUser: User;
-    occurredInPage: Page;
+    occurredInEntity: Page;
     occurredInBlock: Block;
     occurredInComment?: Comment;
     occurredInText: Text;
@@ -227,7 +227,7 @@ export const getMentionNotification: ImpureGraphFunction<
   const {
     recipient,
     triggeredByUser,
-    occurredInPage,
+    occurredInEntity,
     occurredInBlock,
     occurredInComment,
     occurredInText,
@@ -306,10 +306,10 @@ export const getMentionNotification: ImpureGraphFunction<
         SYSTEM_TYPES.linkEntityType.triggeredByUser.schema.$id,
     );
 
-    const occurredInPageLink = outgoingLinks.find(
+    const occurredInEntityLink = outgoingLinks.find(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        SYSTEM_TYPES.linkEntityType.occurredInPage.schema.$id,
+        SYSTEM_TYPES.linkEntityType.occurredInEntity.schema.$id,
     );
 
     const occurredInBlockLink = outgoingLinks.find(
@@ -334,9 +334,9 @@ export const getMentionNotification: ImpureGraphFunction<
       triggeredByUserLink &&
       triggeredByUserLink.linkData.rightEntityId ===
         triggeredByUser.entity.metadata.recordId.entityId &&
-      occurredInPageLink &&
-      occurredInPageLink.linkData.rightEntityId ===
-        occurredInPage.entity.metadata.recordId.entityId &&
+      occurredInEntityLink &&
+      occurredInEntityLink.linkData.rightEntityId ===
+        occurredInEntity.entity.metadata.recordId.entityId &&
       occurredInBlockLink &&
       occurredInBlockLink.linkData.rightEntityId ===
         occurredInBlock.entity.metadata.recordId.entityId &&
@@ -397,7 +397,7 @@ export const createCommentNotification: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     triggeredByUser: User;
     triggeredByComment: Comment;
-    occurredInPage: Page;
+    occurredInEntity: Page;
     occurredInBlock: Block;
     repliedToComment?: Comment;
   },
@@ -406,7 +406,7 @@ export const createCommentNotification: ImpureGraphFunction<
   const {
     triggeredByUser,
     triggeredByComment,
-    occurredInPage,
+    occurredInEntity,
     occurredInBlock,
     repliedToComment,
     ownedById,
@@ -429,8 +429,8 @@ export const createCommentNotification: ImpureGraphFunction<
       },
       {
         ownedById,
-        rightEntityId: occurredInPage.entity.metadata.recordId.entityId,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInPage,
+        rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInEntity,
       },
       {
         ownedById,
@@ -455,7 +455,7 @@ export const getCommentNotification: ImpureGraphFunction<
     recipient: User;
     triggeredByUser: User;
     triggeredByComment: Comment;
-    occurredInPage: Page;
+    occurredInEntity: Page;
     occurredInBlock: Block;
     repliedToComment?: Comment;
   },
@@ -465,7 +465,7 @@ export const getCommentNotification: ImpureGraphFunction<
     recipient,
     triggeredByUser,
     triggeredByComment,
-    occurredInPage,
+    occurredInEntity,
     occurredInBlock,
     repliedToComment,
   } = params;
@@ -544,10 +544,10 @@ export const getCommentNotification: ImpureGraphFunction<
         SYSTEM_TYPES.linkEntityType.triggeredByUser.schema.$id,
     );
 
-    const occurredInPageLink = outgoingLinks.find(
+    const occurredInEntityLink = outgoingLinks.find(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        SYSTEM_TYPES.linkEntityType.occurredInPage.schema.$id,
+        SYSTEM_TYPES.linkEntityType.occurredInEntity.schema.$id,
     );
 
     const occurredInBlockLink = outgoingLinks.find(
@@ -572,9 +572,9 @@ export const getCommentNotification: ImpureGraphFunction<
       triggeredByUserLink &&
       triggeredByUserLink.linkData.rightEntityId ===
         triggeredByUser.entity.metadata.recordId.entityId &&
-      occurredInPageLink &&
-      occurredInPageLink.linkData.rightEntityId ===
-        occurredInPage.entity.metadata.recordId.entityId &&
+      occurredInEntityLink &&
+      occurredInEntityLink.linkData.rightEntityId ===
+        occurredInEntity.entity.metadata.recordId.entityId &&
       occurredInBlockLink &&
       occurredInBlockLink.linkData.rightEntityId ===
         occurredInBlock.entity.metadata.recordId.entityId &&

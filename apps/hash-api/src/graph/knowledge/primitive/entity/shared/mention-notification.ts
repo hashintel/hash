@@ -15,7 +15,7 @@ import {
 export const getTextUpdateOccurredIn: ImpureGraphFunction<
   { text: Text },
   Promise<{
-    occurredInPage?: Page;
+    occurredInEntity?: Page;
     occurredInBlock?: Block;
     occurredInComment?: Comment;
   }>
@@ -26,7 +26,7 @@ export const getTextUpdateOccurredIn: ImpureGraphFunction<
 
   if (pageAndBlock) {
     const { page, block } = pageAndBlock;
-    return { occurredInPage: page, occurredInBlock: block };
+    return { occurredInEntity: page, occurredInBlock: block };
   }
 
   const commentWithText = await getCommentByText(context, authentication, {
@@ -60,7 +60,7 @@ export const getTextUpdateOccurredIn: ImpureGraphFunction<
       return {
         occurredInComment: commentWithText,
         occurredInBlock: commentAncestorBlock,
-        occurredInPage: pageWithComment,
+        occurredInEntity: pageWithComment,
       };
     }
 

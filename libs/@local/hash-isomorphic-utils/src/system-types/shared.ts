@@ -369,22 +369,22 @@ export type NumericIndexPropertyValue = NumberDataType;
  */
 export type ObjectDataType = {};
 
-export type OccurredInPage = Entity<OccurredInPageProperties> & {
+export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
   linkData: LinkData;
 };
 
-export type OccurredInPageOutgoingLinkAndTarget = never;
+export type OccurredInEntityOutgoingLinkAndTarget = never;
 
-export type OccurredInPageOutgoingLinksByLinkEntityTypeId = {};
+export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
 
 /**
  * A page that something occurred in.
  */
-export type OccurredInPageProperties = OccurredInPageProperties1 &
-  OccurredInPageProperties2;
-export type OccurredInPageProperties1 = LinkProperties;
+export type OccurredInEntityProperties = OccurredInEntityProperties1 &
+  OccurredInEntityProperties2;
+export type OccurredInEntityProperties1 = LinkProperties;
 
-export type OccurredInPageProperties2 = {};
+export type OccurredInEntityProperties2 = {};
 
 export type Org = Entity<OrgProperties>;
 

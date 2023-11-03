@@ -91,7 +91,7 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a comment is left on a page", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const occurredInPage = await createPage(
+    const occurredInEntity = await createPage(
       graphContext,
       { actorId: recipientUser.accountId },
       {
@@ -104,7 +104,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       },
     );
 
@@ -115,7 +115,7 @@ describe("Comment Notification", () => {
       { actorId: triggerUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
@@ -140,7 +140,7 @@ describe("Comment Notification", () => {
         triggeredByComment: comment,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
       },
     );
@@ -151,7 +151,7 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a user replies to an existing comment", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const occurredInPage = await createPage(
+    const occurredInEntity = await createPage(
       graphContext,
       { actorId: triggerUser.accountId },
       {
@@ -164,7 +164,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       },
     );
 
@@ -175,7 +175,7 @@ describe("Comment Notification", () => {
       { actorId: recipientUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: recipientUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
@@ -188,7 +188,7 @@ describe("Comment Notification", () => {
       { actorId: triggerUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
         parentEntityId: comment.entity.metadata.recordId.entityId,
@@ -213,7 +213,7 @@ describe("Comment Notification", () => {
         triggeredByComment: commentReply,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         repliedToComment: comment,
       },

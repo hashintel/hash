@@ -52,7 +52,7 @@ import { useAuthInfo } from "../pages/shared/auth-info-context";
 export type PageMentionNotification = {
   kind: "page-mention";
   entity: Entity<MentionNotificationProperties>;
-  occurredInPage: Entity<PageProperties>;
+  occurredInEntity: Entity<PageProperties>;
   occurredInBlock: Entity<BlockProperties>;
   occurredInText: Entity<TextProperties>;
   triggeredByUser: MinimalUser;
@@ -66,7 +66,7 @@ export type CommentMentionNotification = {
 export type NewCommentNotification = {
   kind: "new-comment";
   entity: Entity<CommentNotificationProperties>;
-  occurredInPage: Entity<PageProperties>;
+  occurredInEntity: Entity<PageProperties>;
   occurredInBlock: Entity<BlockProperties>;
   triggeredByComment: Entity<CommentProperties>;
   triggeredByUser: MinimalUser;
@@ -218,9 +218,9 @@ export const NotificationsContextProvider: FunctionComponent<
           if (
             entityTypeId === types.entityType.mentionNotification.entityTypeId
           ) {
-            const occurredInPage = outgoingLinks.find(
+            const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInPage.linkEntityTypeId,
+                types.linkEntityType.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -243,7 +243,7 @@ export const NotificationsContextProvider: FunctionComponent<
             )?.rightEntity[0];
 
             if (
-              !occurredInPage ||
+              !occurredInEntity ||
               !occurredInBlock ||
               !occurredInText ||
               !triggeredByUserEntity
@@ -268,7 +268,7 @@ export const NotificationsContextProvider: FunctionComponent<
                 kind: "comment-mention",
                 readAt,
                 entity,
-                occurredInPage: occurredInPage as Entity<PageProperties>,
+                occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
                 occurredInText: occurredInText as Entity<TextProperties>,
                 triggeredByUser,
@@ -281,7 +281,7 @@ export const NotificationsContextProvider: FunctionComponent<
               kind: "page-mention",
               readAt,
               entity,
-              occurredInPage: occurredInPage as Entity<PageProperties>,
+              occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
               occurredInText: occurredInText as Entity<TextProperties>,
               triggeredByUser,
@@ -289,9 +289,9 @@ export const NotificationsContextProvider: FunctionComponent<
           } else if (
             entityTypeId === types.entityType.commentNotification.entityTypeId
           ) {
-            const occurredInPage = outgoingLinks.find(
+            const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInPage.linkEntityTypeId,
+                types.linkEntityType.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -314,7 +314,7 @@ export const NotificationsContextProvider: FunctionComponent<
             )?.rightEntity[0];
 
             if (
-              !occurredInPage ||
+              !occurredInEntity ||
               !occurredInBlock ||
               !triggeredByComment ||
               !triggeredByUserEntity
@@ -339,7 +339,7 @@ export const NotificationsContextProvider: FunctionComponent<
                 kind: "comment-reply",
                 readAt,
                 entity,
-                occurredInPage: occurredInPage as Entity<PageProperties>,
+                occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
                 triggeredByComment,
                 repliedToComment,
@@ -351,7 +351,7 @@ export const NotificationsContextProvider: FunctionComponent<
               kind: "new-comment",
               readAt,
               entity,
-              occurredInPage: occurredInPage as Entity<PageProperties>,
+              occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
               triggeredByComment,
               triggeredByUser,

@@ -452,9 +452,9 @@ const systemLinkEntityTypes = {
     title: "Has Service Account",
     description: "Something that has a service account.",
   },
-  occurredInPage: {
-    title: "Occurred In Page",
-    description: "A page that something occurred in.",
+  occurredInEntity: {
+    title: "Occurred In Entity",
+    description: "An entity that something occurred in.",
   },
   occurredInBlock: {
     title: "Occurred In Block",

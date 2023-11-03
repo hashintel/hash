@@ -89,10 +89,10 @@ import {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInPage,
-  OccurredInPageOutgoingLinkAndTarget,
-  OccurredInPageOutgoingLinksByLinkEntityTypeId,
-  OccurredInPageProperties,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -242,10 +242,10 @@ export type {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInPage,
-  OccurredInPageOutgoingLinkAndTarget,
-  OccurredInPageOutgoingLinksByLinkEntityTypeId,
-  OccurredInPageProperties,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -317,8 +317,8 @@ export type MentionNotificationOccurredInCommentLink = {
   rightEntity: Comment;
 };
 
-export type MentionNotificationOccurredInPageLink = {
-  linkEntity: OccurredInPage;
+export type MentionNotificationOccurredInEntityLink = {
+  linkEntity: OccurredInEntity;
   rightEntity: Page;
 };
 
@@ -329,13 +329,13 @@ export type MentionNotificationOccurredInTextLink = {
 
 export type MentionNotificationOutgoingLinkAndTarget =
   | MentionNotificationOccurredInCommentLink
-  | MentionNotificationOccurredInPageLink
+  | MentionNotificationOccurredInEntityLink
   | MentionNotificationOccurredInTextLink
   | MentionNotificationTriggeredByUserLink;
 
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": MentionNotificationOccurredInPageLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": MentionNotificationOccurredInEntityLink;
   "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
   "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };

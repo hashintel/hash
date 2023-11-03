@@ -93,7 +93,7 @@ describe("Page Mention Notification", () => {
 
   let pageMentionNotification: MentionNotification;
 
-  let occurredInPage: Page;
+  let occurredInEntity: Page;
 
   let occurredInBlock: Block;
 
@@ -103,13 +103,13 @@ describe("Page Mention Notification", () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
     const authentication = { actorId: triggerUser.accountId };
 
-    occurredInPage = await createPage(graphContext, authentication, {
+    occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
     });
 
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+      pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );
@@ -131,7 +131,7 @@ describe("Page Mention Notification", () => {
       { actorId: recipientUser.accountId },
       {
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInText,
         occurredInBlock,
         ownedById: recipientUser.accountId as OwnedById,
@@ -146,18 +146,18 @@ describe("Page Mention Notification", () => {
       { entityId: pageMentionNotification.entity.metadata.recordId.entityId },
     );
 
-    const occurredInPageLinks = outgoingLinks.filter(
+    const occurredInEntityLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInPage.linkEntityTypeId,
+        types.linkEntityType.occurredInEntity.linkEntityTypeId,
     );
 
-    expect(occurredInPageLinks).toHaveLength(1);
+    expect(occurredInEntityLinks).toHaveLength(1);
 
-    const [occurredInPageLink] = occurredInPageLinks;
+    const [occurredInEntityLink] = occurredInEntityLinks;
 
-    expect(occurredInPageLink!.linkData.rightEntityId).toBe(
-      occurredInPage.entity.metadata.recordId.entityId,
+    expect(occurredInEntityLink!.linkData.rightEntityId).toBe(
+      occurredInEntity.entity.metadata.recordId.entityId,
     );
 
     const occurredInTextLinks = outgoingLinks.filter(
@@ -199,7 +199,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -226,7 +226,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -244,7 +244,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -293,7 +293,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -311,7 +311,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -354,7 +354,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInText,
       },
@@ -409,7 +409,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
@@ -428,7 +428,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
@@ -472,7 +472,7 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInPage,
+        occurredInEntity,
         occurredInBlock,
         occurredInComment,
         occurredInText: commentText,

@@ -41,12 +41,12 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 }) => {
   const text = getTextFromEntity({ entity });
 
-  const { occurredInComment, occurredInPage, occurredInBlock } =
+  const { occurredInComment, occurredInEntity, occurredInBlock } =
     await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage || !occurredInBlock) {
+  if (!occurredInEntity || !occurredInBlock) {
     return;
   }
 
@@ -102,7 +102,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInPage,
+          occurredInEntity,
           occurredInComment,
           occurredInBlock,
           occurredInText: text,
@@ -127,7 +127,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           await checkPermissionsOnEntity(
             context,
             { actorId: addedMentionedUser.accountId },
-            { entity: occurredInPage.entity },
+            { entity: occurredInEntity.entity },
           );
 
         if (!mentionedUserCanViewPage) {
@@ -141,7 +141,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
           {
             recipient: addedMentionedUser,
             triggeredByUser,
-            occurredInPage,
+            occurredInEntity,
             occurredInComment,
             occurredInBlock,
             occurredInText: text,
@@ -155,7 +155,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
             { actorId: addedMentionedUser.accountId },
             {
               ownedById: addedMentionedUser.accountId as OwnedById,
-              occurredInPage,
+              occurredInEntity,
               occurredInBlock,
               occurredInComment,
               occurredInText: text,

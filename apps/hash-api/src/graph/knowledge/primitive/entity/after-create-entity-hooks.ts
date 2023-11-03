@@ -66,12 +66,12 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
       blockCollectionEntity.metadata.entityTypeId ===
         types.entityType.page.entityTypeId
     ) {
-      const occurredInPage = getPageFromEntity({
+      const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
       });
 
       const pageAuthor = await getPageAuthor(context, authentication, {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       });
 
       const commentAuthor = await getCommentAuthor(context, authentication, {
@@ -81,7 +81,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
       const { view: pageAuthorCanViewPage } = await checkPermissionsOnEntity(
         context,
         { actorId: pageAuthor.accountId },
-        { entity: occurredInPage.entity },
+        { entity: occurredInEntity.entity },
       );
 
       // If the comment author is not the page creator, and the page
@@ -97,7 +97,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             ownedById: pageAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInPage,
+            occurredInEntity,
             occurredInBlock: parentBlock,
           },
         );
@@ -127,7 +127,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
       blockCollectionEntity.metadata.entityTypeId ===
         types.entityType.page.entityTypeId
     ) {
-      const occurredInPage = getPageFromEntity({
+      const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
       });
 
@@ -144,7 +144,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         await checkPermissionsOnEntity(
           context,
           { actorId: parentCommentAuthor.accountId },
-          { entity: occurredInPage.entity },
+          { entity: occurredInEntity.entity },
         );
 
       // If the comment author is not the parent comment author, and the
@@ -161,7 +161,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
             ownedById: parentCommentAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInPage,
+            occurredInEntity,
             occurredInBlock: ancestorBlock,
             repliedToComment: parentComment,
           },
@@ -189,12 +189,12 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
     entityId: entity.linkData!.rightEntityId,
   });
 
-  const { occurredInComment, occurredInPage, occurredInBlock } =
+  const { occurredInComment, occurredInEntity, occurredInBlock } =
     await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage || !occurredInBlock) {
+  if (!occurredInEntity || !occurredInBlock) {
     return entity;
   }
 
@@ -221,7 +221,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
           await checkPermissionsOnEntity(
             context,
             { actorId: mentionedUser.accountId },
-            { entity: occurredInPage.entity },
+            { entity: occurredInEntity.entity },
           );
 
         if (!mentionedUserCanViewPage) {
@@ -235,7 +235,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
           {
             recipient: mentionedUser,
             triggeredByUser,
-            occurredInPage,
+            occurredInEntity,
             occurredInComment,
             occurredInBlock,
             occurredInText: text,
@@ -249,7 +249,7 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
             { actorId: mentionedUser.accountId },
             {
               ownedById: mentionedUser.accountId as OwnedById,
-              occurredInPage,
+              occurredInEntity,
               occurredInBlock,
               occurredInComment,
               occurredInText: text,

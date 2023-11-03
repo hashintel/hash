@@ -89,10 +89,10 @@ import {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInPage,
-  OccurredInPageOutgoingLinkAndTarget,
-  OccurredInPageOutgoingLinksByLinkEntityTypeId,
-  OccurredInPageProperties,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -242,10 +242,10 @@ export type {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
-  OccurredInPage,
-  OccurredInPageOutgoingLinkAndTarget,
-  OccurredInPageOutgoingLinksByLinkEntityTypeId,
-  OccurredInPageProperties,
+  OccurredInEntity,
+  OccurredInEntityOutgoingLinkAndTarget,
+  OccurredInEntityOutgoingLinksByLinkEntityTypeId,
+  OccurredInEntityProperties,
   Org,
   OrganizationNamePropertyValue,
   OrganizationProvidedInformationPropertyValue,
@@ -312,18 +312,18 @@ export type {
 
 export type CommentNotification = Entity<CommentNotificationProperties>;
 
-export type CommentNotificationOccurredInPageLink = {
-  linkEntity: OccurredInPage;
+export type CommentNotificationOccurredInEntityLink = {
+  linkEntity: OccurredInEntity;
   rightEntity: Page;
 };
 
 export type CommentNotificationOutgoingLinkAndTarget =
-  | CommentNotificationOccurredInPageLink
+  | CommentNotificationOccurredInEntityLink
   | CommentNotificationRepliedToCommentLink
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": CommentNotificationOccurredInPageLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": CommentNotificationOccurredInEntityLink;
   "http://localhost:3000/@system-user/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
   "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };

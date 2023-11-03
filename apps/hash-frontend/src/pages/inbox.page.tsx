@@ -85,13 +85,13 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
 
 const NotificationRow: FunctionComponent<Notification> = (notification) => {
   const { markNotificationAsRead } = useNotifications();
-  const { kind, triggeredByUser, occurredInPage, occurredInBlock, readAt } =
+  const { kind, triggeredByUser, occurredInEntity, occurredInBlock, readAt } =
     notification;
 
   const ownedById = useMemo(
     () =>
-      extractOwnedByIdFromEntityId(occurredInPage.metadata.recordId.entityId),
-    [occurredInPage],
+      extractOwnedByIdFromEntityId(occurredInEntity.metadata.recordId.entityId),
+    [occurredInEntity],
   );
 
   const { shortname } = useUserOrOrgShortnameByOwnedById({ ownedById });
@@ -105,17 +105,17 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     return constructPageRelativeUrl({
       workspaceShortname: shortname,
       pageEntityUuid: extractEntityUuidFromEntityId(
-        occurredInPage.metadata.recordId.entityId,
+        occurredInEntity.metadata.recordId.entityId,
       ),
       highlightedBlockEntityId: occurredInBlock.metadata.recordId.entityId,
     });
-  }, [shortname, occurredInPage, occurredInBlock]);
+  }, [shortname, occurredInEntity, occurredInBlock]);
 
   const pageTitle = useMemo(() => {
-    const { title } = simplifyProperties(occurredInPage.properties);
+    const { title } = simplifyProperties(occurredInEntity.properties);
 
     return title;
-  }, [occurredInPage]);
+  }, [occurredInEntity]);
 
   const handleNotificationClick = useCallback(async () => {
     await markNotificationAsRead({ notification });

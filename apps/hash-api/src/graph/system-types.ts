@@ -151,7 +151,7 @@ export let SYSTEM_TYPES: {
     usesUserSecret: EntityTypeWithMetadata;
 
     // Mention Notification related
-    occurredInPage: EntityTypeWithMetadata;
+    occurredInEntity: EntityTypeWithMetadata;
     occurredInBlock: EntityTypeWithMetadata;
     occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
@@ -1225,8 +1225,8 @@ const notificationEntityTypeInitializer = async (
   })(context);
 };
 
-export const occurredInPageLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInPage,
+export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.occurredInEntity,
 );
 
 export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer(
@@ -1253,8 +1253,8 @@ const mentionNotificationEntityTypeInitializer = async (
   const notificationEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
 
-  const occurredInPageLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInPage(context);
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
@@ -1290,7 +1290,7 @@ const mentionNotificationEntityTypeInitializer = async (
     allOf: [notificationEntityType.schema.$id],
     outgoingLinks: [
       {
-        linkEntityType: occurredInPageLinkEntityType,
+        linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
         minItems: 1,
         maxItems: 1,
@@ -1338,8 +1338,8 @@ const commentNotificationEntityTypeInitializer = async (
   const notificationEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
 
-  const occurredInPageLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInPage(context);
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
@@ -1372,7 +1372,7 @@ const commentNotificationEntityTypeInitializer = async (
     allOf: [notificationEntityType.schema.$id],
     outgoingLinks: [
       {
-        linkEntityType: occurredInPageLinkEntityType,
+        linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
         minItems: 1,
         maxItems: 1,
@@ -1485,7 +1485,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
-    occurredInPage: occurredInPageLinkEntityTypeInitializer,
+    occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
     occurredInBlock: occurredInBlockLinkEntityTypeInitializer,
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
