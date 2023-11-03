@@ -521,11 +521,11 @@ export const getPageComments: ImpureGraphFunction<
 };
 
 /**
- * Get the creator fo the page.
+ * Get the author of the page (i.e. the creator of the first revision).
  *
  * @param params.page - the page
  */
-export const getPageCreator: ImpureGraphFunction<
+export const getPageAuthor: ImpureGraphFunction<
   { pageEntityId: EntityId },
   Promise<User>
 > = async (context, authentication, { pageEntityId }) => {

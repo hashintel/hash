@@ -20,7 +20,7 @@ import {
   createMentionNotification,
   getMentionNotification,
 } from "../../system-types/notification";
-import { getPageCreator, getPageFromEntity } from "../../system-types/page";
+import { getPageAuthor, getPageFromEntity } from "../../system-types/page";
 import {
   getMentionedUsersInTextTokens,
   getTextById,
@@ -70,7 +70,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         entity: blockCollectionEntity,
       });
 
-      const recipientUser = await getPageCreator(context, authentication, {
+      const pageAuthor = await getPageAuthor(context, authentication, {
         pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
       });
 
@@ -78,23 +78,23 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         commentEntityId: comment.entity.metadata.recordId.entityId,
       });
 
-      const { view: recipientUserCanViewPage } = await checkPermissionsOnEntity(
+      const { view: pageAuthorCanViewPage } = await checkPermissionsOnEntity(
         context,
-        { actorId: recipientUser.accountId },
+        { actorId: pageAuthor.accountId },
         { entity: occurredInPage.entity },
       );
 
-      // If the comment author is not the recipient, and the recipient can view the page,
-      // then create a page comment notification
+      // If the comment author is not the page creator, and the page
+      // creator can view the page, then create a page comment notification
       if (
-        commentAuthor.accountId !== recipientUser.accountId &&
-        recipientUserCanViewPage
+        commentAuthor.accountId !== pageAuthor.accountId &&
+        pageAuthorCanViewPage
       ) {
         await createCommentNotification(
           context,
-          { actorId: recipientUser.accountId },
+          { actorId: pageAuthor.accountId },
           {
-            ownedById: recipientUser.accountId as OwnedById,
+            ownedById: pageAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInPage,
@@ -131,7 +131,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         entity: blockCollectionEntity,
       });
 
-      const [commentAuthor, recipientUser] = await Promise.all([
+      const [commentAuthor, parentCommentAuthor] = await Promise.all([
         getCommentAuthor(context, authentication, {
           commentEntityId: comment.entity.metadata.recordId.entityId,
         }),
@@ -140,23 +140,25 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         }),
       ]);
 
-      const { view: recipientUserCanViewPage } = await checkPermissionsOnEntity(
-        context,
-        { actorId: recipientUser.accountId },
-        { entity: occurredInPage.entity },
-      );
+      const { view: parentCommentAuthorCanViewPage } =
+        await checkPermissionsOnEntity(
+          context,
+          { actorId: parentCommentAuthor.accountId },
+          { entity: occurredInPage.entity },
+        );
 
-      // If the comment author is not the recipient user, and the recipient user
-      // can view the page, then create a comment reply notification
+      // If the comment author is not the parent comment author, and the
+      // parent comment author can view the page, then create a comment
+      // reply notification
       if (
-        commentAuthor.accountId !== recipientUser.accountId &&
-        recipientUserCanViewPage
+        commentAuthor.accountId !== parentCommentAuthor.accountId &&
+        parentCommentAuthorCanViewPage
       ) {
         await createCommentNotification(
           context,
-          { actorId: recipientUser.accountId },
+          { actorId: parentCommentAuthor.accountId },
           {
-            ownedById: recipientUser.accountId as OwnedById,
+            ownedById: parentCommentAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
             occurredInPage,
