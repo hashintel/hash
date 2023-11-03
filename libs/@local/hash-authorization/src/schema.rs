@@ -10,7 +10,7 @@ mod web;
 pub use self::{
     account::{AccountNamespace, PublicAccess},
     account_group::{
-        AccountGroupGeneralMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
+        AccountGroupMemberSubject, AccountGroupNamespace, AccountGroupOwnerSubject,
         AccountGroupPermission, AccountGroupRelationAndSubject, AccountGroupSubject,
         AccountGroupSubjectId,
     },

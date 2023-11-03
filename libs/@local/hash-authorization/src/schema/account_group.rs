@@ -4,12 +4,9 @@ use graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    schema::error::InvalidRelationship,
-    zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
-        Permission, Relation,
-    },
+use crate::zanzibar::{
+    types::{LeveledRelation, Relationship, RelationshipParts, Resource},
+    Permission, Relation,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,7 +110,7 @@ pub enum AccountGroupOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupGeneralMemberSubject {
+pub enum AccountGroupMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -124,12 +121,8 @@ pub enum AccountGroupGeneralMemberSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum AccountGroupRelationAndSubject {
-    Owner {
-        subject: AccountGroupOwnerSubject,
-    },
-    Member {
-        subject: AccountGroupGeneralMemberSubject,
-    },
+    Owner { subject: AccountGroupOwnerSubject },
+    GeneralMember { subject: AccountGroupMemberSubject },
 }
 
 impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
@@ -139,7 +132,7 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
     type SubjectSet = !;
 
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok((
+        Ok::<_, !>((
             parts.resource,
             match parts.relation.name {
                 AccountGroupResourceRelation::Owner => match (parts.subject, parts.subject_set) {
@@ -148,18 +141,12 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                             subject: AccountGroupOwnerSubject::Account { id },
                         }
                     }
-                    (AccountGroupSubject::Account(_), _subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                    }
                 },
                 AccountGroupResourceRelation::Member => match (parts.subject, parts.subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::Member {
-                            subject: AccountGroupGeneralMemberSubject::Account { id },
+                        AccountGroupRelationAndSubject::GeneralMember {
+                            subject: AccountGroupMemberSubject::Account { id },
                         }
-                    }
-                    (AccountGroupSubject::Account(_), _subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
             },
@@ -183,13 +170,13 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                     }
                 },
             ),
-            AccountGroupRelationAndSubject::Member { subject } => (
+            AccountGroupRelationAndSubject::GeneralMember { subject } => (
                 LeveledRelation {
-                    name: AccountGroupResourceRelation::Owner,
+                    name: AccountGroupResourceRelation::Member,
                     level: 0,
                 },
                 match subject {
-                    AccountGroupGeneralMemberSubject::Account { id } => {
+                    AccountGroupMemberSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },
