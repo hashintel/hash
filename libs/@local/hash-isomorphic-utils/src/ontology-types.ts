@@ -41,9 +41,7 @@ export const generateBaseTypeId = ({
   `${
     domain ??
     // Ternary to be replaced by 'frontendUrl' in H-1172: hosted app only living temporarily at https://app.hash.ai
-    frontendUrl === "https://app.hash.ai"
-      ? "https://hash.ai"
-      : frontendUrl
+    (frontendUrl === "https://app.hash.ai" ? "https://hash.ai" : frontendUrl)
   }/@${webShortname}/types/${kind}/${
     slugOverride ?? slugifyTypeTitle(title)
   }/` as const as BaseUrl;
