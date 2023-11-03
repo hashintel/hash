@@ -78,9 +78,17 @@ export const PageHeader: FunctionComponent = () => {
           {authenticatedUser ? <SearchBar /> : null}
         </Box>
         {authenticatedUser ? (
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              columnGap: {
+                xs: 1,
+                md: 1.5,
+              },
+            }}
+          >
             <ActionsDropdown />
-
             <NotificationsDropdown />
             <AccountDropdown
               logout={logout}
