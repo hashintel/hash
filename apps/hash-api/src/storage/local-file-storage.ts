@@ -32,7 +32,7 @@ export interface LocalFileSystemStorageProviderConstructorArgs {
 export class LocalFileSystemStorageProvider
   implements UploadableStorageProvider
 {
-  public storageType: StorageType = StorageType.LocalFileSystem;
+  public storageType: StorageType = "LOCAL_FILE_SYSTEM";
 
   private fileUploadPath: string;
   private apiOrigin: string;
@@ -51,13 +51,17 @@ export class LocalFileSystemStorageProvider
     this.setupExpressRoutes(app);
   }
 
-  async presignUpload({
-    key,
-  }: PresignedStorageRequest): Promise<PresignedPutUpload> {
-    const presignedPut = {
+  async presignUpload({ key }: PresignedStorageRequest) {
+    const presignedPut: PresignedPutUpload = {
       url: `${new URL(UPLOAD_BASE_URL, this.apiOrigin).href}?key=${key}`,
     };
-    return presignedPut;
+    return {
+      presignedPut,
+      fileStorageProperties: {
+        key,
+        provider: "LOCAL_FILE_SYSTEM" as const,
+      },
+    };
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<string> {
@@ -66,17 +70,17 @@ export class LocalFileSystemStorageProvider
   }
 
   getFileEntityStorageKey({
-    ownedById,
+    entityId,
     editionIdentifier,
     filename,
   }: GetFileEntityStorageKeyParams) {
-    const folder = `${ownedById}/${editionIdentifier}`;
+    const folder = `${entityId}/${editionIdentifier}` as const;
 
     if (!fs.existsSync(path.join(this.fileUploadPath, folder))) {
       fs.mkdirSync(path.join(this.fileUploadPath, folder), { recursive: true });
     }
 
-    return `${ownedById}/${editionIdentifier}/${filename}`;
+    return `${folder}/${filename}` as const;
   }
 
   /** Sets up express routes required for uploading and downloading files */

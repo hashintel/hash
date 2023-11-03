@@ -19,10 +19,11 @@ where
     response
 }
 
-pub fn report_to_response<C>(report: Report<C>) -> Response
+pub fn report_to_response<C>(report: impl Into<Report<C>>) -> Response
 where
     C: Context,
 {
+    let report = report.into();
     tracing::error!(error = ?report);
     let status_code = report
         .request_ref::<StatusCode>()
