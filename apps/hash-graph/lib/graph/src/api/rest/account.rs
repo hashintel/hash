@@ -7,7 +7,7 @@ use std::sync::Arc;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        AccountGroupGeneralMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
         WebSubject,
     },
     zanzibar::Consistency,
@@ -298,9 +298,9 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Create,
             account_group_id,
-            AccountGroupRelationAndSubject::GeneralMember(
-                AccountGroupGeneralMemberSubject::Account { id: account_id },
-            ),
+            AccountGroupRelationAndSubject::GeneralMember {
+                subject: AccountGroupMemberSubject::Account { id: account_id },
+            },
         )])
         .await
         .map_err(|error| {
@@ -366,9 +366,9 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Delete,
             account_group_id,
-            AccountGroupRelationAndSubject::GeneralMember(
-                AccountGroupGeneralMemberSubject::Account { id: account_id },
-            ),
+            AccountGroupRelationAndSubject::GeneralMember {
+                subject: AccountGroupMemberSubject::Account { id: account_id },
+            },
         )])
         .await
         .map_err(|error| {

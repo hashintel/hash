@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/graph/temporal";
 import { useGraphEmbedderModule } from "@blockprotocol/graph/temporal/react";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
+import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import { Skeleton, SkeletonProps } from "@mui/material";
 import { FunctionComponent, useEffect, useRef } from "react";
 import { v4 as uuid } from "uuid";
@@ -99,8 +100,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
         if (
           data?.type === "text" &&
           data.path.length === 1 &&
-          data.path[0] ===
-            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
+          data.path[0] === textualContentPropertyTypeBaseUrl
         ) {
           if (!editableRef) {
             return {

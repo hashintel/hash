@@ -19,8 +19,9 @@ export const App: BlockComponent<BlockEntity> = ({
     rootEntity.metadata.recordId.entityId,
     [propertyIds.text],
     (node) => {
+      const textualContent = rootEntity.properties[propertyIds.text];
       // eslint-disable-next-line no-param-reassign
-      node.innerText = rootEntity.properties[propertyIds.text] ?? "";
+      node.innerText = typeof textualContent === "string" ? textualContent : "";
 
       return () => {
         // eslint-disable-next-line no-param-reassign

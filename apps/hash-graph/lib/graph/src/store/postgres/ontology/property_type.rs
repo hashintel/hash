@@ -312,26 +312,26 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     PropertyTypeId::from(ontology_id),
-                    PropertyTypeRelationAndSubject::GeneralViewer(
-                        PropertyTypeGeneralViewerSubject::Public,
-                    ),
+                    PropertyTypeRelationAndSubject::GeneralViewer {
+                        subject: PropertyTypeGeneralViewerSubject::Public,
+                    },
                 ));
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
                             PropertyTypeId::from(ontology_id),
-                            PropertyTypeRelationAndSubject::Owner(
-                                PropertyTypeOwnerSubject::Account { id },
-                            ),
+                            PropertyTypeRelationAndSubject::Owner {
+                                subject: PropertyTypeOwnerSubject::Account { id },
+                            },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
                             PropertyTypeId::from(ontology_id),
-                            PropertyTypeRelationAndSubject::Owner(
-                                PropertyTypeOwnerSubject::AccountGroup {
+                            PropertyTypeRelationAndSubject::Owner {
+                                subject: PropertyTypeOwnerSubject::AccountGroup {
                                     id,
                                     set: PropertyTypeSubjectSet::Member,
                                 },
-                            ),
+                            },
                         )),
                     }
                 }
@@ -540,13 +540,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::Owner(owner),
+                PropertyTypeRelationAndSubject::Owner { subject: owner },
             ),
             (
                 PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::GeneralViewer(
-                    PropertyTypeGeneralViewerSubject::Public,
-                ),
+                PropertyTypeRelationAndSubject::GeneralViewer {
+                    subject: PropertyTypeGeneralViewerSubject::Public,
+                },
             ),
         ];
 

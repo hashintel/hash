@@ -10,7 +10,7 @@ pub use self::spicedb::SpiceDbOpenApi;
 use crate::{
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
-        Affiliation, Consistency, Zookie,
+        Consistency, Permission, Zookie,
     },
     NoAuthorization,
 };
@@ -158,7 +158,7 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send
     where
         O: Resource<Kind: Serialize, Id: Serialize> + Sync,
-        R: Serialize + Affiliation<O> + Sync,
+        R: Serialize + Permission<O> + Sync,
         S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync;
 
     /// Returns the list of all relations matching the filter.

@@ -165,7 +165,7 @@ jobs:
         if: always() && steps.lints.outputs.codegen == 'true'
         run: |
           set -o pipefail
-          turbo run codegen --filter "${{ matrix.package }}"
+          turbo run codegen --no-cache --filter "${{ matrix.package }}"
           while IFS= read -r line; do
             if [[ -n "$line" ]]; then
               echo "Checking diff of ${{ matrix.directory }}/$line"

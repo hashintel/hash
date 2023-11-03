@@ -22,7 +22,7 @@ const initialData: BlockEntity = {
     },
   },
   properties: {
-    [propertyIds.text]: "Hello World",
+    [propertyIds.textualContent]: "Hello World",
   },
 };
 

@@ -1,6 +1,9 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -58,11 +61,13 @@ export const isBlockCollectionContentsEmpty = (params: {
     contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeId ===
       types.entityType.text.entityTypeId
   ) {
-    const tokens = contents[0]!.rightEntity.blockChildEntity.properties[
-      extractBaseUrl(types.propertyType.tokens.propertyTypeId)
+    const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
+      extractBaseUrl(
+        blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+      )
     ] as TextToken[];
 
-    return tokens.length === 0;
+    return textualContent.length === 0;
   }
 
   return false;

@@ -1,7 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { File as FileEntityType } from "@local/hash-isomorphic-utils/system-types/file";
+import { FileProperties } from "@local/hash-isomorphic-utils/system-types/file";
 import {
+  Entity,
   EntityId,
   EntityPropertiesObject,
   OwnedById,
@@ -75,7 +76,7 @@ type FileUploadRequestData = {
 };
 
 type FileUploadEntities = {
-  fileEntity: FileEntityType;
+  fileEntity: Entity<FileProperties>;
   linkEntity?: LinkEntity;
 };
 
@@ -274,13 +275,14 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             throw new Error(errors?.[0]?.message ?? "unknown error");
           }
 
-          fileEntity = data.createFileFromUrl as unknown as FileEntityType;
+          fileEntity =
+            data.createFileFromUrl as unknown as Entity<FileProperties>;
 
           if (makePublic) {
             /** @todo: make entity public as part of `createEntity` query once this is supported */
             await addEntityViewer({
               variables: {
-                entityId: fileEntity.metadata.recordId.entityId as EntityId,
+                entityId: fileEntity.metadata.recordId.entityId,
                 viewer: { kind: AuthorizationSubjectKind.Public },
               },
             });
@@ -337,13 +339,13 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             }
 
             fileEntity = data.requestFileUpload
-              .entity as unknown as FileEntityType;
+              .entity as unknown as Entity<FileProperties>;
 
             if (makePublic) {
               /** @todo: make entity public as part of `createEntity` query once this is supported */
               await addEntityViewer({
                 variables: {
-                  entityId: fileEntity.metadata.recordId.entityId as EntityId,
+                  entityId: fileEntity.metadata.recordId.entityId,
                   viewer: { kind: AuthorizationSubjectKind.Public },
                 },
               });
@@ -389,6 +391,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
 
           const updatedUpload: FileUpload = {
             ...upload,
+            ...(fileEntity ? { createdEntities: { fileEntity } } : {}),
             status: "error",
             failedStep: "uploading-file-locally",
             errorMessage,
@@ -479,7 +482,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
             entityTypeId: linkEntityTypeId,
             linkData: {
               leftEntityId: linkedEntityId,
-              rightEntityId: fileEntity.metadata.recordId.entityId as EntityId,
+              rightEntityId: fileEntity.metadata.recordId.entityId,
             },
             properties: linkProperties ?? {},
           },

@@ -15,7 +15,6 @@ import { useRouter } from "next/router";
 import {
   FunctionComponent,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -35,6 +34,7 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../shared/table-header";
+import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import {
   createRenderTextIconCell,
@@ -45,7 +45,6 @@ import {
   useEntitiesTable,
 } from "./entities-table/use-entities-table";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { WorkspaceContext } from "./workspace-context";
 
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
@@ -53,15 +52,30 @@ export const EntitiesTable: FunctionComponent<{
 }> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns }) => {
   const router = useRouter();
 
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeGlobal: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const { entities, entityTypes, propertyTypes, subgraph } =
-    useEntityTypeEntities();
+  const {
+    entities: lastLoadedEntities,
+    entityTypes,
+    hadCachedContent,
+    loading,
+    propertyTypes,
+    subgraph,
+  } = useEntityTypeEntities();
+
+  const entities = useMemo(
+    /**
+     * If a network request is in process and there is no cached content for the request, return undefined.
+     * There may be stale data in the context related to an earlier request with different variables.
+     */
+    () => (loading && !hadCachedContent ? undefined : lastLoadedEntities),
+    [hadCachedContent, loading, lastLoadedEntities],
+  );
 
   const isViewingPages = useMemo(
     () =>
@@ -78,15 +92,22 @@ export const EntitiesTable: FunctionComponent<{
     }
   }, [isViewingPages, filterState]);
 
+  const internalWebIds = useMemo(() => {
+    return [
+      authenticatedUser.accountId,
+      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+    ];
+  }, [authenticatedUser]);
+
   const filteredEntities = useMemo(
     () =>
       entities?.filter(
         (entity) =>
           (filterState.includeGlobal
             ? true
-            : extractOwnedByIdFromEntityId(
-                entity.metadata.recordId.entityId,
-              ) === activeWorkspaceOwnedById) &&
+            : internalWebIds.includes(
+                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+              )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
           entity.metadata.entityTypeId !== types.entityType.page.entityTypeId
@@ -95,7 +116,7 @@ export const EntitiesTable: FunctionComponent<{
                 extractBaseUrl(types.propertyType.archived.propertyTypeId)
               ] !== true),
       ),
-    [entities, filterState, activeWorkspaceOwnedById],
+    [entities, filterState, internalWebIds],
   );
 
   const { columns, rows } = useEntitiesTable({
@@ -216,8 +237,9 @@ export const EntitiesTable: FunctionComponent<{
   return (
     <Box>
       <TableHeader
+        internalWebIds={internalWebIds}
         itemLabelPlural={isViewingPages ? "pages" : "entities"}
-        items={entities ?? []}
+        items={entities}
         selectedItems={
           entities?.filter((entity) =>
             selectedRows.some(

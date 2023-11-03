@@ -64,7 +64,7 @@ export const commentTypedef = gql`
       """
       Text contents of the comment
       """
-      tokens: [TextToken!]!
+      textualContent: [TextToken!]!
     ): Comment!
 
     """
@@ -98,7 +98,7 @@ export const commentTypedef = gql`
       """
       New Text contents of the comment
       """
-      tokens: [TextToken!]!
+      textualContent: [TextToken!]!
     ): Comment!
   }
 `;

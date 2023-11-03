@@ -13,7 +13,7 @@ import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
 import { AuthenticationContext } from "../graphql/context";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
 import {
@@ -21,14 +21,18 @@ import {
   ensureSystemUserExists,
 } from "./system-user";
 
-export type ImpureGraphContext = {
+export type ImpureGraphContext<WithUpload extends boolean = false> = {
   graphApi: GraphApi;
-  uploadProvider: UploadableStorageProvider;
-  /** @todo: add logger? */
-};
+} & (WithUpload extends true
+  ? { uploadProvider: UploadableStorageProvider }
+  : {});
 
-export type ImpureGraphFunction<Parameters, ReturnType> = (
-  context: ImpureGraphContext,
+export type ImpureGraphFunction<
+  Parameters,
+  ReturnType,
+  WithUpload extends boolean = false,
+> = (
+  context: ImpureGraphContext<WithUpload>,
   authentication: AuthenticationContext,
   params: Parameters,
 ) => ReturnType;

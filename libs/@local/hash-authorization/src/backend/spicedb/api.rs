@@ -17,7 +17,7 @@ use crate::{
     },
     zanzibar::{
         types::{Relationship, RelationshipFilter, Resource, Subject},
-        Affiliation, Consistency,
+        Consistency, Permission,
     },
 };
 
@@ -304,7 +304,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     ) -> Result<CheckResponse, Report<CheckError>>
     where
         O: Resource<Kind: Serialize, Id: Serialize> + Sync,
-        R: Serialize + Affiliation<O> + Sync,
+        R: Serialize + Permission<O> + Sync,
         S: Subject<Resource: Resource<Kind: Serialize, Id: Serialize>, Relation: Serialize> + Sync,
     {
         #[derive(Serialize)]

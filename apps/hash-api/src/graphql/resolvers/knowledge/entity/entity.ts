@@ -17,6 +17,7 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
+import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
   addEntityEditor,
   addEntityOwner,
@@ -65,11 +66,7 @@ import {
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import {
-  GraphQLContext,
-  LoggedInGraphQLContext,
-  publicUserAccountId,
-} from "../../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
@@ -394,6 +391,9 @@ export const inferEntitiesResolver: ResolverFn<
       },
     ],
     workflowId: `inferEntities-${genId()}`,
+    retry: {
+      maximumAttempts: 3,
+    },
   });
 
   if (status.code !== "OK") {
