@@ -271,6 +271,12 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
@@ -325,6 +331,12 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
@@ -368,6 +380,12 @@ describe("Page Mention Notification", () => {
       },
     );
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
@@ -430,6 +448,12 @@ describe("Page Mention Notification", () => {
     )) as Entity<TextProperties>;
     commentText.tokens = updatedCommentTextTokens;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
     await new Promise((resolve) => {
       setTimeout(resolve, 1000);
     });
