@@ -122,6 +122,7 @@ export const NotificationsContextProvider: FunctionComponent<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
+    pollInterval: 5_000,
     variables: {
       includePermissions: false,
       query: {
