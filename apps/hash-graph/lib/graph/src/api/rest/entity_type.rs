@@ -14,14 +14,16 @@ use axum::{
 use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        OntologyTemporalMetadata, OntologyTypeReference, PartialCustomOntologyMetadata,
-        PartialEntityTypeMetadata,
+        OntologyTemporalMetadata, OntologyTypeRecordId, OntologyTypeReference,
+        PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::OwnedById,
 };
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 use type_system::{
+    raw,
     url::{BaseUrl, VersionedUrl},
     EntityType, ParseEntityTypeError,
 };
@@ -34,7 +36,7 @@ use crate::{
             api_resource::RoutedResource,
             json::Json,
             report_to_status_code,
-            status::status_to_response,
+            status::{report_to_response, status_to_response},
             utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
             AuthenticatedUserHeader, RestApiStore,
         },
@@ -327,10 +329,22 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct LoadExternalEntityTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    entity_type_id: VersionedUrl,
+#[serde(untagged)]
+enum LoadExternalEntityTypeRequest {
+    #[serde(rename_all = "camelCase")]
+    Fetch {
+        #[schema(value_type = SHARED_VersionedUrl)]
+        entity_type_id: VersionedUrl,
+    },
+    Create {
+        #[schema(value_type = VAR_ENTITY_TYPE)]
+        schema: raw::EntityType,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schema(value_type = SHARED_BaseUrl)]
+        label_property: Option<BaseUrl>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        icon: Option<String>,
+    },
 }
 
 #[utoipa::path(
@@ -358,7 +372,7 @@ async fn load_external_entity_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
-    body: Json<LoadExternalEntityTypeRequest>,
+    Json(request): Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //  call `status_to_response` for our routes that return Status
 ) -> Result<Json<OntologyElementMetadata>, Response>
@@ -367,8 +381,6 @@ where
     for<'pool> S::Store<'pool>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let Json(LoadExternalEntityTypeRequest { entity_type_id }) = body;
-
     let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
         status_to_response(Status::new(
@@ -405,33 +417,59 @@ where
         ))
     })?;
 
-    Ok(Json(
-        store
-            .load_external_type(
-                actor_id,
-                &mut authorization_api,
-                &domain_validator,
-                OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
-            )
-            .await
-            .map_err(|error| {
-                if error == StatusCode::CONFLICT {
-                    status_to_response(Status::new(
-                        hash_status::StatusCode::AlreadyExists,
-                        Some("Provided schema entity type does already exist.".to_owned()),
-                        vec![],
-                    ))
-                } else {
-                    status_to_response(Status::new(
-                        hash_status::StatusCode::AlreadyExists,
-                        Some(
-                            "Unknown error occurred when loading external entity type.".to_owned(),
-                        ),
-                        vec![],
-                    ))
-                }
-            })?,
-    ))
+    match request {
+        LoadExternalEntityTypeRequest::Fetch { entity_type_id } => Ok(Json(
+            store
+                .load_external_type(
+                    actor_id,
+                    &mut authorization_api,
+                    &domain_validator,
+                    OntologyTypeReference::EntityTypeReference((&entity_type_id).into()),
+                )
+                .await?,
+        )),
+        LoadExternalEntityTypeRequest::Create {
+            schema,
+            label_property,
+            icon,
+        } => {
+            // TODO: Distinguish between format validation and content validation so it's possible
+            //       to directly use the correct type.
+            //   see https://linear.app/hash/issue/BP-33
+            let schema = EntityType::try_from(schema).map_err(report_to_response)?;
+            let record_id = OntologyTypeRecordId::from(schema.id().clone());
+
+            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+                let error = "Ontology type is not external".to_owned();
+                tracing::error!(id=%schema.id(), error);
+                return Err(status_to_response(Status::new(
+                    hash_status::StatusCode::InvalidArgument,
+                    Some(error),
+                    vec![],
+                )));
+            }
+
+            Ok(Json(
+                store
+                    .create_entity_type(
+                        actor_id,
+                        &mut authorization_api,
+                        schema,
+                        PartialEntityTypeMetadata {
+                            record_id,
+                            label_property,
+                            icon,
+                            custom: PartialCustomOntologyMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                        },
+                    )
+                    .await
+                    .map_err(report_to_response)?
+                    .into(),
+            ))
+        }
+    }
 }
 
 #[utoipa::path(

@@ -7,18 +7,22 @@ use std::sync::Arc;
 use authorization::{backend::PermissionAssertion, AuthorizationApiPool};
 use axum::{
     http::StatusCode,
+    response::Response,
     routing::{post, put},
     Extension, Router,
 };
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, PartialCustomOntologyMetadata,
+        PartialOntologyElementMetadata,
     },
     provenance::OwnedById,
 };
+use hash_status::Status;
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, DataType};
+use time::OffsetDateTime;
+use type_system::{raw, url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -26,6 +30,7 @@ use crate::{
     api::rest::{
         json::Json,
         report_to_status_code,
+        status::{report_to_response, status_to_response},
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
         AuthenticatedUserHeader, RestApiStore,
     },
@@ -208,10 +213,17 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct LoadExternalDataTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    data_type_id: VersionedUrl,
+#[serde(untagged)]
+enum LoadExternalDataTypeRequest {
+    #[serde(rename_all = "camelCase")]
+    Fetch {
+        #[schema(value_type = SHARED_VersionedUrl)]
+        data_type_id: VersionedUrl,
+    },
+    Create {
+        #[schema(value_type = VAR_DATA_TYPE)]
+        schema: raw::DataType,
+    },
 }
 
 #[utoipa::path(
@@ -239,35 +251,65 @@ async fn load_external_data_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
-    body: Json<LoadExternalDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode>
+    Json(request): Json<LoadExternalDataTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    match request {
+        LoadExternalDataTypeRequest::Fetch { data_type_id } => Ok(Json(
+            store
+                .load_external_type(
+                    actor_id,
+                    &mut authorization_api,
+                    &domain_validator,
+                    OntologyTypeReference::DataTypeReference((&data_type_id).into()),
+                )
+                .await?,
+        )),
+        LoadExternalDataTypeRequest::Create { schema } => {
+            // TODO: Distinguish between format validation and content validation so it's possible
+            //       to directly use the correct type.
+            //   see https://linear.app/hash/issue/BP-33
+            let schema = DataType::try_from(schema).map_err(report_to_response)?;
+            let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
-    let Json(LoadExternalDataTypeRequest { data_type_id }) = body;
+            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+                let error = "Ontology type is not external".to_owned();
+                tracing::error!(id=%schema.id(), error);
+                return Err(status_to_response(Status::<()>::new(
+                    hash_status::StatusCode::InvalidArgument,
+                    Some(error),
+                    vec![],
+                )));
+            }
 
-    Ok(Json(
-        store
-            .load_external_type(
-                actor_id,
-                &mut authorization_api,
-                &domain_validator,
-                OntologyTypeReference::DataTypeReference((&data_type_id).into()),
-            )
-            .await?,
-    ))
+            Ok(Json(
+                store
+                    .create_data_type(
+                        actor_id,
+                        &mut authorization_api,
+                        schema,
+                        PartialOntologyElementMetadata {
+                            record_id,
+                            custom: PartialCustomOntologyMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                        },
+                    )
+                    .await
+                    .map_err(report_to_response)?,
+            ))
+        }
+    }
 }
 
 #[utoipa::path(
