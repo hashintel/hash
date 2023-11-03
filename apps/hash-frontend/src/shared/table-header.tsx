@@ -6,6 +6,8 @@ import {
   IconButton,
 } from "@hashintel/design-system";
 import {
+  AccountGroupId,
+  AccountId,
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
@@ -35,7 +37,6 @@ import {
   useState,
 } from "react";
 
-import { useAuthenticatedUser } from "../pages/shared/auth-info-context";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
@@ -101,6 +102,7 @@ export type FilterState = {
 };
 
 type TableHeaderProps = {
+  internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
     | Entity
@@ -127,6 +129,7 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  internalWebIds,
   itemLabelPlural,
   items,
   selectedItems,
@@ -135,31 +138,22 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   toggleSearch,
   onBulkActionCompleted,
 }) => {
-  const { authenticatedUser } = useAuthenticatedUser();
-
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
     useState<boolean>(false);
-
-  const userWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
-    ];
-  }, [authenticatedUser]);
 
   const numberOfUserWebItems = useMemo(
     () =>
       items?.filter(({ metadata }) =>
         "entityTypeId" in metadata
-          ? userWebIds.includes(
+          ? internalWebIds.includes(
               extractOwnedByIdFromEntityId(metadata.recordId.entityId),
             )
           : isExternalOntologyElementMetadata(metadata)
           ? false
-          : userWebIds.includes(metadata.custom.ownedById),
+          : internalWebIds.includes(metadata.custom.ownedById),
       ).length,
-    [items, userWebIds],
+    [items, internalWebIds],
   );
 
   const numberOfGlobalItems =
@@ -204,7 +198,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems ?? "-"} in your webs`}
+                label={`${numberOfUserWebItems ?? "–"} in your webs`}
                 sx={{
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -249,7 +243,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     <EarthAmericasRegularIcon />
                   )
                 }
-                label={`${numberOfGlobalItems ?? "-"} others`}
+                label={`${numberOfGlobalItems ?? "–"} others`}
                 sx={({ palette }) => ({
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {

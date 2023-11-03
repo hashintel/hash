@@ -1,12 +1,22 @@
+import { ApolloQueryResult } from "@apollo/client";
 import { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { Entity, EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { createContext, useContext } from "react";
 
+import { QueryEntitiesQuery } from "../graphql/api-types.gen";
+
 export type EntityTypeEntitiesContextValue = {
   entities?: Entity[];
   entityTypes?: EntityType[];
+  // Whether or not cached content was available immediately for the context data
+  hadCachedContent: boolean;
+  /**
+   * Whether or not a network request is in process.
+   * Note that if is hasCachedContent is true, data for the given query is available before loading is complete.
+   * The cached content will be replaced automatically and the value updated when the network request completes.
+   */
   loading: boolean;
-  refetch: () => Promise<void>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
 };

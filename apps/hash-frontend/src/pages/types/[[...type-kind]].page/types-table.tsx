@@ -13,13 +13,7 @@ import {
 } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  FunctionComponent,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import {
   Grid,
@@ -38,12 +32,12 @@ import {
   TableHeader,
   tableHeaderHeight,
 } from "../../../shared/table-header";
+import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import {
   createRenderTextIconCell,
   TextIconCell,
 } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import { WorkspaceContext } from "../../shared/workspace-context";
 
 const typesTableColumnIds = [
   "title",
@@ -81,8 +75,6 @@ export const TypesTable: FunctionComponent<{
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
-
-  const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: false,
@@ -130,13 +122,22 @@ export const TypesTable: FunctionComponent<{
     [users, orgs],
   );
 
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const internalWebIds = useMemo(() => {
+    return [
+      authenticatedUser.accountId,
+      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+    ];
+  }, [authenticatedUser]);
+
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
       types
         ?.map((type) => {
           const isExternal = isExternalOntologyElementMetadata(type.metadata)
             ? true
-            : type.metadata.custom.ownedById !== activeWorkspaceOwnedById;
+            : !internalWebIds.includes(type.metadata.custom.ownedById);
 
           const namespaceOwnedById = isExternalOntologyElementMetadata(
             type.metadata,
@@ -170,13 +171,7 @@ export const TypesTable: FunctionComponent<{
             (filterState.includeGlobal ? true : !external) &&
             (filterState.includeArchived ? true : !archived),
         ),
-    [
-      isSpecialEntityTypeLookup,
-      types,
-      namespaces,
-      filterState,
-      activeWorkspaceOwnedById,
-    ],
+    [internalWebIds, isSpecialEntityTypeLookup, types, namespaces, filterState],
   );
 
   const createGetCellContent = useCallback(
@@ -250,6 +245,7 @@ export const TypesTable: FunctionComponent<{
   return (
     <Box>
       <TableHeader
+        internalWebIds={internalWebIds}
         itemLabelPlural="types"
         items={types}
         filterState={filterState}
