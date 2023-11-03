@@ -1,19 +1,22 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  types,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { SYSTEM_TYPES } from "../../../system-types";
 import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
 } from "../../system-types/notification";
 import {
-  getMentionedUsersInTextTokens,
+  getMentionedUsersInTextualContent,
   getTextFromEntity,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
@@ -26,7 +29,7 @@ import {
 
 /**
  * This after update `Text` entity hook is responsible for creating
- * mention notifications if the tokens contain a mention to a user and:
+ * mention notifications if the textual content contain a mention to a user and:
  * - the `Text` entity is in a page
  * - the `Text` entity is in a comment that's on a page
  */
@@ -47,20 +50,22 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
     return;
   }
 
-  const previousTokens = text.tokens;
+  const previousTextualContent = text.textualContent;
 
-  const updatedTokens = updatedProperties[
-    SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
+  const updatedTextualContent = updatedProperties[
+    extractBaseUrl(
+      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+    )
   ] as TextToken[];
 
-  /** @todo: check whether tokens have changed before performing expensive operations */
+  /** @todo: check whether textual content has changed before performing expensive operations */
 
   const [previousMentionedUsers, updatedMentionedUsers] = await Promise.all([
-    getMentionedUsersInTextTokens(context, authentication, {
-      tokens: previousTokens,
+    getMentionedUsersInTextualContent(context, authentication, {
+      textualContent: previousTextualContent,
     }),
-    getMentionedUsersInTextTokens(context, authentication, {
-      tokens: updatedTokens,
+    getMentionedUsersInTextualContent(context, authentication, {
+      textualContent: updatedTextualContent,
     }),
   ]);
 

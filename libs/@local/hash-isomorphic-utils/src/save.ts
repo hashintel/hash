@@ -26,7 +26,6 @@ import {
   EntityStore,
   getDraftEntityByEntityId,
   isDraftBlockEntity,
-  TEXT_ENTITY_TYPE_ID,
 } from "./entity-store";
 import {
   currentTimeInstantTemporalAxes,
@@ -491,15 +490,17 @@ export const save = async (
      * If the text entity type is ever updated in the backend,
      * the FE will need to be redeployed to avoid this being out of sync.
      */
-    TEXT_ENTITY_TYPE_ID,
+    types.entityType.text.entityTypeId,
     blocks,
     doc,
     /**
      * @todo Should the fallback be text here?
      */
     (componentId: string) => {
-      return (blocksMap()[componentId]?.meta.schema ??
-        TEXT_ENTITY_TYPE_ID) as VersionedUrl;
+      return (
+        (blocksMap()[componentId]?.meta.schema as VersionedUrl | undefined) ??
+        types.entityType.text.entityTypeId
+      );
     },
   );
 

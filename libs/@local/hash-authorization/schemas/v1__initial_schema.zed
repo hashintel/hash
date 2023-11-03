@@ -1,53 +1,53 @@
 definition graph/account {}
 
 definition graph/account_group {
-	relation owner: graph/account
-	relation general_member: graph/account
+	relation level_00_owner: graph/account
+	relation level_00_member: graph/account
 
-	permission add_member = owner
-	permission remove_member = owner
+	permission add_member = level_00_owner
+	permission remove_member = level_00_owner
 
-	permission member = owner + general_member
+	permission member = level_00_owner + level_00_member
 }
 
 definition graph/entity {
-	relation owner: graph/account | graph/account_group#member
-	relation general_editor: graph/account | graph/account_group#member
-	relation general_viewer: graph/account | graph/account_group#member | graph/account:*
+	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_editor: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account | graph/account_group#member | graph/account:*
 
-	permission update = owner + general_editor
-	permission view = general_viewer + update
+	permission update = level_00_owner + level_00_editor
+	permission view = level_00_viewer + update
 }
 
 definition graph/web {
-	relation owner: graph/account | graph/account_group#member
+	relation level_00_owner: graph/account | graph/account_group#member
 
-	permission create_entity = owner
-	permission create_entity_type = owner
-	permission create_property_type = owner
-	permission create_data_type = owner - owner
+	permission create_entity = level_00_owner
+	permission create_entity_type = level_00_owner
+	permission create_property_type = level_00_owner
+	permission create_data_type = level_00_owner - level_00_owner
 }
 
 definition graph/entity_type {
-	relation owner: graph/account | graph/account_group#member
-	relation general_viewer: graph/account:*
+	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account:*
 
-	permission update = owner
-	permission view = general_viewer + update
+	permission update = level_00_owner
+	permission view = level_00_viewer + update
 }
 
 definition graph/property_type {
-	relation owner: graph/account | graph/account_group#member
-	relation general_viewer: graph/account:*
+	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account:*
 
-	permission update = owner
-	permission view = general_viewer + update
+	permission update = level_00_owner
+	permission view = level_00_viewer + update
 }
 
 definition graph/data_type {
-	relation owner: graph/account | graph/account_group#member
-	relation general_viewer: graph/account:*
+	relation level_00_owner: graph/account | graph/account_group#member
+	relation level_00_viewer: graph/account:*
 
-	permission update = owner - owner
-	permission view = general_viewer + update + owner
+	permission update = level_00_owner - level_00_owner
+	permission view = level_00_viewer + update + level_00_owner
 }

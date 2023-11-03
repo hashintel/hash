@@ -18,5 +18,5 @@ export const commentHasTextResolver: ResolverFn<
     commentEntityId: metadata.recordId.entityId,
   });
 
-  return text.tokens;
+  return text.textualContent;
 };

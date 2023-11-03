@@ -6,12 +6,9 @@ import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph";
 import { User } from "../graph/knowledge/system-types/user";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault";
-
-export const publicUserAccountId: AccountId =
-  "00000000-0000-0000-0000-000000000000" as AccountId;
 
 export type AuthenticationContext = {
   actorId: AccountId;

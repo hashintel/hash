@@ -163,6 +163,12 @@ export type FileOutgoingLinksByLinkEntityTypeId = {};
  * A file hosted at a URL
  */
 export type FileProperties = {
+  "http://localhost:3000/@system-user/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -179,6 +185,36 @@ export type FileProperties = {
  * The size of a file
  */
 export type FileSizePropertyValue = NumberDataType;
+
+/**
+ * The bucket in which a file is stored.
+ */
+export type FileStorageBucketPropertyValue = TextDataType;
+
+/**
+ * The endpoint for making requests to a file storage provider.
+ */
+export type FileStorageEndpointPropertyValue = TextDataType;
+
+/**
+ * Whether to force path style for requests to a file storage provider (vs virtual host style).
+ */
+export type FileStorageForcePathStylePropertyValue = BooleanDataType;
+
+/**
+ * The key identifying a file in storage.
+ */
+export type FileStorageKeyPropertyValue = TextDataType;
+
+/**
+ * The provider of a file storage service.
+ */
+export type FileStorageProviderPropertyValue = TextDataType;
+
+/**
+ * The region in which a file is stored.
+ */
+export type FileStorageRegionPropertyValue = TextDataType;
 
 /**
  * A URL that serves a file.
@@ -552,15 +588,18 @@ export type TextOutgoingLinkAndTarget = never;
 export type TextOutgoingLinksByLinkEntityTypeId = {};
 
 export type TextProperties = {
-  "http://localhost:3000/@system-user/types/property-type/tokens/": TokensPropertyValue[];
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue[];
 };
+
+/**
+ * The text material, information, or body, that makes up the content of this thing.
+ */
+export type TextualContentPropertyValue = TextDataType | ObjectDataType;
 
 /**
  * The title of something.
  */
 export type TitlePropertyValue = TextDataType;
-
-export type TokensPropertyValue = ObjectDataType;
 
 export type TriggeredByUser = Entity<TriggeredByUserProperties> & {
   linkData: LinkData;

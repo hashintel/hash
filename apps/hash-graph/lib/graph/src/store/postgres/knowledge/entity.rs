@@ -1,5 +1,4 @@
 mod read;
-
 use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
@@ -22,11 +21,14 @@ use graph_types::{
     provenance::{OwnedById, ProvenanceMetadata, RecordCreatedById},
     web::WebId,
 };
+use hash_status::StatusCode;
+use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
-use type_system::url::VersionedUrl;
+use type_system::{raw, url::VersionedUrl, EntityType};
 use uuid::Uuid;
+use validation::Validate;
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
@@ -38,6 +40,7 @@ use crate::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
+        validation::StoreProvider,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
     subgraph::{
@@ -300,7 +303,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .await
                 .change_context(InsertionError)?
                 .assert_permission()
-                .change_context(InsertionError)?;
+                .change_context(InsertionError)
+                .attach(StatusCode::PermissionDenied)?;
         }
 
         let entity_id = EntityId {
@@ -373,13 +377,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             }
         };
 
-        let edition_id = transaction
+        let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
-                properties,
-                link_order,
+                &properties,
+                &link_order,
             )
             .await?;
 
@@ -436,33 +440,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?
         };
 
-        authorization_api
-            .modify_entity_relations([(
-                ModifyRelationshipOperation::Create,
-                entity_id,
-                EntityRelationAndSubject::Owner(owner),
-            )])
-            .await
-            .change_context(InsertionError)?;
-
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
-            if let Err(auth_error) = authorization_api
-                .modify_entity_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    entity_id,
-                    EntityRelationAndSubject::Owner(owner),
-                )])
-                .await
-                .change_context(InsertionError)
-            {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
-            }
-
-            Err(error)
-        } else {
-            Ok(EntityMetadata::new(
+        let entity = Entity {
+            properties,
+            link_data,
+            metadata: EntityMetadata::new(
                 EntityRecordId {
                     entity_id,
                     edition_id,
@@ -477,7 +458,49 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     record_archived_by_id: None,
                 },
                 archived,
-            ))
+            ),
+        };
+
+        authorization_api
+            .modify_entity_relations([(
+                ModifyRelationshipOperation::Create,
+                entity_id,
+                EntityRelationAndSubject::Owner { subject: owner },
+            )])
+            .await
+            .change_context(InsertionError)?;
+
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            actor_id,
+            authorization_api,
+            consistency: Consistency::FullyConsistent,
+        };
+
+        entity
+            .validate(&closed_schema, &validator_provider)
+            .await
+            .change_context(InsertionError)
+            .attach(StatusCode::InvalidArgument)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .modify_entity_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    entity_id,
+                    EntityRelationAndSubject::Owner { subject: owner },
+                )])
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(entity.metadata)
         }
     }
 
@@ -740,13 +763,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
-        let edition_id = transaction
+        let (edition_id, closed_schema) = transaction
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
                 &entity_type_id,
-                properties,
-                link_order,
+                &properties,
+                &link_order,
             )
             .await
             .change_context(UpdateError)?;
@@ -802,24 +825,45 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)
         })?;
 
+        let entity = Entity {
+            properties,
+            // TODO: Use correct link data for validation
+            //   see https://linear.app/hash/issue/H-972
+            link_data: None,
+            metadata: EntityMetadata::new(
+                EntityRecordId {
+                    entity_id,
+                    edition_id,
+                },
+                EntityTemporalMetadata {
+                    decision_time: row.get(0),
+                    transaction_time: row.get(1),
+                },
+                entity_type_id,
+                ProvenanceMetadata {
+                    record_created_by_id: RecordCreatedById::new(actor_id),
+                    record_archived_by_id: None,
+                },
+                archived,
+            ),
+        };
+
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            actor_id,
+            authorization_api,
+            consistency: Consistency::FullyConsistent,
+        };
+
+        entity
+            .validate(&closed_schema, &validator_provider)
+            .await
+            .change_context(UpdateError)
+            .attach(StatusCode::InvalidArgument)?;
+
         transaction.commit().await.change_context(UpdateError)?;
 
-        Ok(EntityMetadata::new(
-            EntityRecordId {
-                entity_id,
-                edition_id,
-            },
-            EntityTemporalMetadata {
-                decision_time: row.get(0),
-                transaction_time: row.get(1),
-            },
-            entity_type_id,
-            ProvenanceMetadata {
-                record_created_by_id: RecordCreatedById::new(actor_id),
-                record_archived_by_id: None,
-            },
-            archived,
-        ))
+        Ok(entity.metadata)
     }
 }
 
@@ -829,9 +873,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         record_created_by_id: RecordCreatedById,
         archived: bool,
         entity_type_id: &VersionedUrl,
-        properties: EntityProperties,
-        link_order: EntityLinkOrder,
-    ) -> Result<EntityEditionId, InsertionError> {
+        properties: &EntityProperties,
+        link_order: &EntityLinkOrder,
+    ) -> Result<(EntityEditionId, EntityType), InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
@@ -876,6 +920,17 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .await
             .change_context(InsertionError)?;
 
-        Ok(edition_id)
+        let entity_schema: Json<raw::EntityType> = self
+            .as_client()
+            .query_one(
+                "SELECT closed_schema FROM entity_types WHERE ontology_id = $1;",
+                &[&entity_type_ontology_id],
+            )
+            .await
+            .change_context(InsertionError)?
+            .get(0);
+        let entity_type = EntityType::try_from(entity_schema.0).change_context(InsertionError)?;
+
+        Ok((edition_id, entity_type))
     }
 }

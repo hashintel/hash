@@ -2,7 +2,7 @@ import {
   ArrowRotateLeftIcon,
   ArrowUpRightIcon,
 } from "@hashintel/design-system";
-import { EntityId, extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -38,8 +38,7 @@ export const Action = ({
         <Tooltip title="View entity">
           <Link
             href={`/@${shortname}/entities/${extractEntityUuidFromEntityId(
-              upload.createdEntities.fileEntity.metadata.recordId
-                .entityId as EntityId,
+              upload.createdEntities.fileEntity.metadata.recordId.entityId,
             )}`}
             sx={{
               display: "block",

@@ -490,26 +490,26 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     EntityTypeId::from(ontology_id),
-                    EntityTypeRelationAndSubject::GeneralViewer(
-                        EntityTypeGeneralViewerSubject::Public,
-                    ),
+                    EntityTypeRelationAndSubject::GeneralViewer {
+                        subject: EntityTypeGeneralViewerSubject::Public,
+                    },
                 ));
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
                             EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner(EntityTypeOwnerSubject::Account {
-                                id,
-                            }),
+                            EntityTypeRelationAndSubject::Owner {
+                                subject: EntityTypeOwnerSubject::Account { id },
+                            },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
                             EntityTypeId::from(ontology_id),
-                            EntityTypeRelationAndSubject::Owner(
-                                EntityTypeOwnerSubject::AccountGroup {
+                            EntityTypeRelationAndSubject::Owner {
+                                subject: EntityTypeOwnerSubject::AccountGroup {
                                     id,
                                     set: EntityTypeSubjectSet::Member,
                                 },
-                            ),
+                            },
                         )),
                     }
                 }
@@ -754,11 +754,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Owner(owner),
+                EntityTypeRelationAndSubject::Owner { subject: owner },
             ),
             (
                 EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::GeneralViewer(EntityTypeGeneralViewerSubject::Public),
+                EntityTypeRelationAndSubject::GeneralViewer {
+                    subject: EntityTypeGeneralViewerSubject::Public,
+                },
             ),
         ];
 

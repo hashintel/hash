@@ -1,5 +1,7 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../..";
@@ -118,7 +120,7 @@ export const getCommentText: ImpureGraphFunction<
  *
  * @param params.author - the user that created the comment
  * @param params.parent - the linked parent entity
- * @param params.tokens - the text tokens that describe the comment's text
+ * @param params.textualContent - the textual content that describe the comment's text
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
@@ -126,17 +128,19 @@ export const createComment: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     author: User;
     parentEntityId: EntityId;
-    tokens: TextToken[];
+    textualContent: TextToken[];
   },
   Promise<Comment>
 > = async (ctx, authentication, params): Promise<Comment> => {
-  const { ownedById, tokens, parentEntityId, author } = params;
+  const { ownedById, textualContent, parentEntityId, author } = params;
 
   const textEntity = await createEntity(ctx, authentication, {
     ownedById,
     owner: author.accountId,
     properties: {
-      [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]: tokens,
+      [extractBaseUrl(
+        blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+      )]: textualContent,
     },
     entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
   });
@@ -212,16 +216,16 @@ export const createComment: ImpureGraphFunction<
  *
  * @param params.comment - the comment
  * @param params.actorId - id of the user that edited the comment
- * @param params.tokens - the new text tokens that describe the comment's text
+ * @param params.textualContent - the new textual content that describe the comment's text
  */
 export const updateCommentText: ImpureGraphFunction<
   {
     commentEntityId: EntityId;
-    tokens: TextToken[];
+    textualContent: TextToken[];
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
-  const { commentEntityId, tokens } = params;
+  const { commentEntityId, textualContent } = params;
 
   const text = await getCommentText(ctx, authentication, {
     commentEntityId,
@@ -229,9 +233,10 @@ export const updateCommentText: ImpureGraphFunction<
 
   await updateEntityProperty(ctx, authentication, {
     entity: text.entity,
-    propertyTypeBaseUrl:
-      SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl,
-    value: tokens,
+    propertyTypeBaseUrl: extractBaseUrl(
+      blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+    ),
+    value: textualContent,
   });
 };
 

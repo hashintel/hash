@@ -4,12 +4,9 @@ use graph_types::account::{AccountGroupId, AccountId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    schema::error::InvalidRelationship,
-    zanzibar::{
-        types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
-    },
+use crate::zanzibar::{
+    types::{LeveledRelation, Relationship, RelationshipParts, Resource},
+    Permission, Relation,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,10 +38,9 @@ impl Resource for AccountGroupId {
 #[serde(rename_all = "snake_case")]
 pub enum AccountGroupResourceRelation {
     Owner,
-    GeneralMember,
+    Member,
 }
 
-impl Affiliation<AccountGroupId> for AccountGroupResourceRelation {}
 impl Relation<AccountGroupId> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,7 +51,6 @@ pub enum AccountGroupPermission {
     RemoveMember,
 }
 
-impl Affiliation<AccountGroupId> for AccountGroupPermission {}
 impl Permission<AccountGroupId> for AccountGroupPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,7 +110,7 @@ pub enum AccountGroupOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum AccountGroupGeneralMemberSubject {
+pub enum AccountGroupMemberSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -124,10 +119,10 @@ pub enum AccountGroupGeneralMemberSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
+#[serde(rename_all = "camelCase", tag = "relation")]
 pub enum AccountGroupRelationAndSubject {
-    Owner(AccountGroupOwnerSubject),
-    GeneralMember(AccountGroupGeneralMemberSubject),
+    Owner { subject: AccountGroupOwnerSubject },
+    GeneralMember { subject: AccountGroupMemberSubject },
 }
 
 impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
@@ -136,86 +131,62 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
     type Subject = AccountGroupSubject;
     type SubjectSet = !;
 
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error> {
-        Ok((
-            resource,
-            match relation {
-                AccountGroupResourceRelation::Owner => match (subject, subject_set) {
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
+        Ok::<_, !>((
+            parts.resource,
+            match parts.relation.name {
+                AccountGroupResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
-                            id,
-                        })
-                    }
-                    (AccountGroupSubject::Account(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                        AccountGroupRelationAndSubject::Owner {
+                            subject: AccountGroupOwnerSubject::Account { id },
+                        }
                     }
                 },
-                AccountGroupResourceRelation::GeneralMember => match (subject, subject_set) {
+                AccountGroupResourceRelation::Member => match (parts.subject, parts.subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::GeneralMember(
-                            AccountGroupGeneralMemberSubject::Account { id },
-                        )
-                    }
-                    (AccountGroupSubject::Account(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                        AccountGroupRelationAndSubject::GeneralMember {
+                            subject: AccountGroupMemberSubject::Account { id },
+                        }
                     }
                 },
             },
         ))
     }
 
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn to_parts(&self) -> RelationshipParts<Self> {
         Self::into_parts(*self)
     }
 
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            AccountGroupRelationAndSubject::Owner(subject) => (
-                AccountGroupResourceRelation::Owner,
+            AccountGroupRelationAndSubject::Owner { subject } => (
+                LeveledRelation {
+                    name: AccountGroupResourceRelation::Owner,
+                    level: 0,
+                },
                 match subject {
                     AccountGroupOwnerSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },
             ),
-            AccountGroupRelationAndSubject::GeneralMember(subject) => (
-                AccountGroupResourceRelation::GeneralMember,
+            AccountGroupRelationAndSubject::GeneralMember { subject } => (
+                LeveledRelation {
+                    name: AccountGroupResourceRelation::Member,
+                    level: 0,
+                },
                 match subject {
-                    AccountGroupGeneralMemberSubject::Account { id } => {
+                    AccountGroupMemberSubject::Account { id } => {
                         (AccountGroupSubject::Account(id), None)
                     }
                 },
             ),
         };
-        (self.0, relation, subject, subject_set)
+        RelationshipParts {
+            resource: self.0,
+            relation,
+            subject,
+            subject_set,
+        }
     }
 }

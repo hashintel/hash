@@ -119,7 +119,7 @@ describe("Comment Notification", () => {
         ),
         author: triggerUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        tokens: [],
+        textualContent: [],
       },
     );
 
@@ -179,7 +179,7 @@ describe("Comment Notification", () => {
         ),
         author: recipientUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        tokens: [],
+        textualContent: [],
       },
     );
 
@@ -192,7 +192,7 @@ describe("Comment Notification", () => {
         ),
         author: triggerUser,
         parentEntityId: comment.entity.metadata.recordId.entityId,
-        tokens: [],
+        textualContent: [],
       },
     );
 

@@ -250,6 +250,31 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
+  fileStorageBucket: {
+    title: "File Storage Bucket",
+    description: "The bucket in which a file is stored.",
+  },
+  fileStorageEndpoint: {
+    title: "File Storage Endpoint",
+    description: "The endpoint for making requests to a file storage provider.",
+  },
+  fileStorageForcePathStyle: {
+    title: "File Storage Force Path Style",
+    description:
+      "Whether to force path style for requests to a file storage provider (vs virtual host style).",
+  },
+  fileStorageKey: {
+    title: "File Storage Key",
+    description: "The key identifying a file in storage.",
+  },
+  fileStorageProvider: {
+    title: "File Storage Provider",
+    description: "The provider of a file storage service.",
+  },
+  fileStorageRegion: {
+    title: "File Storage Region",
+    description: "The region in which a file is stored.",
+  },
   profileUrl: {
     title: "Profile URL",
     description: "A URL to a profile",
@@ -331,10 +356,6 @@ const systemPropertyTypes = {
   icon: {
     title: "Icon",
     description: "An emoji icon.",
-  },
-  tokens: {
-    title: "Tokens",
-    description: undefined,
   },
   resolvedAt: {
     title: "Resolved At",
@@ -1046,11 +1067,21 @@ export const linearTypes: LinearTypeDefinitions = {
  *
  * e.g.
  * export const blockProtocolTypes = {
- *   "remote-file": {
- *     title: "Remote File",
- *     entityTypeId:
- *       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *   entityTypes: {
+ *     "remote-file": {
+ *       title: "Remote File",
+ *       entityTypeId:
+ *         "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *     }
  *   }
  * }
  */
-export const blockProtocolTypes = {} as const;
+export const blockProtocolTypes = {
+  entityType: {},
+  propertyType: {
+    textualContent: {
+      propertyTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2" as const,
+    },
+  },
+} as const;

@@ -12,7 +12,7 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityType } from "./shared/entity-type-context";
 
 export const EntitiesTab: FunctionComponent = () => {
-  const { entities } = useEntityTypeEntities();
+  const { entities, loading } = useEntityTypeEntities();
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
@@ -32,7 +32,8 @@ export const EntitiesTab: FunctionComponent = () => {
     };
   }, [entities, activeWorkspaceOwnedById]);
 
-  const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
+  const isEmpty =
+    !loading && entitiesCount.namespace + entitiesCount.public === 0;
 
   return (
     <Box>

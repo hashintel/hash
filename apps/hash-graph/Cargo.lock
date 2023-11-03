@@ -121,6 +121,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "serde_plain",
  "tokio",
  "tokio-util",
  "type-system",
@@ -671,6 +672,7 @@ checksum = "27a72baa257b5e0e2de241967bc5ee8f855d6072351042688621081d66b2a76b"
 dependencies = [
  "anyhow",
  "rustc_version",
+ "serde",
  "tracing-error",
 ]
 
@@ -899,6 +901,7 @@ dependencies = [
  "type-system",
  "utoipa",
  "uuid",
+ "validation",
 ]
 
 [[package]]
@@ -995,6 +998,7 @@ dependencies = [
  "type-fetcher",
  "type-system",
  "uuid",
+ "validation",
 ]
 
 [[package]]
@@ -2304,6 +2308,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_plain"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ce1fc6db65a611022b23a0dec6975d63fb80a302cb3388835ff02c097258d50"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_spanned"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3176,6 +3189,17 @@ dependencies = [
  "getrandom",
  "serde",
  "sha1_smol",
+]
+
+[[package]]
+name = "validation"
+version = "0.0.0"
+dependencies = [
+ "error-stack 0.4.1",
+ "graph-types",
+ "serde_json",
+ "thiserror",
+ "type-system",
 ]
 
 [[package]]

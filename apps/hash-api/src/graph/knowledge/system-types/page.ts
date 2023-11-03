@@ -5,6 +5,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   BlockDataProperties,
@@ -25,7 +26,10 @@ import {
   getEntities as getEntitiesFromSubgraph,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
@@ -180,8 +184,9 @@ export const createPage: ImpureGraphFunction<
             blockData: await createEntity(ctx, authentication, {
               ownedById,
               properties: {
-                [SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl]:
-                  [],
+                [extractBaseUrl(
+                  blockProtocolTypes.propertyType.textualContent.propertyTypeId,
+                )]: [],
               },
               entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
             }),
