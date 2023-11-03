@@ -9,11 +9,11 @@ import {
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
+import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
-} from "@local/hash-subgraph/src/shared/type-system-patch";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/src/stdlib";
+} from "@local/hash-subgraph/type-system-patch";
 
 import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
 

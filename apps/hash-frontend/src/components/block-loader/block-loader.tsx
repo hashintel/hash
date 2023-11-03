@@ -104,7 +104,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     if (
       !blockEntityId ||
       !blockCollectionSubgraph ||
-      !userPermissionsOnEntities
+      !userPermissionsOnEntities ||
+      // If we already have data, we don't need to set an initial value from the collection subgraph
+      blockSubgraph
     ) {
       return;
     }
@@ -112,9 +114,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     const entityEditionMap = blockCollectionSubgraph.vertices[blockEntityId];
 
     if (!entityEditionMap) {
-      throw new Error(
-        `Block entity with id ${blockEntityId} not found in page subgraph`,
-      );
+      // The block isn't in the page subgraph – it might have just been created
+      return;
     }
 
     const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
@@ -132,6 +133,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   }, [
     blockEntityId,
     blockCollectionSubgraph,
+    blockSubgraph,
     setBlockSubgraph,
     userPermissionsOnEntities,
     setUserPermissions,

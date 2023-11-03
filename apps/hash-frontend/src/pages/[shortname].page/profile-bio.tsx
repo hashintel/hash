@@ -36,16 +36,16 @@ export const ProfileBio: FunctionComponent<{
     profile.kind === "user" ? profile.accountId : profile.accountGroupId
   ) as OwnedById;
 
-  const { data, refetch } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    {
-      variables: {
-        entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
-        ...blockCollectionContentsStaticVariables,
-      },
-      skip: !profile.hasBio,
+  const { data, loading, refetch } = useQuery<
+    GetEntityQuery,
+    GetEntityQueryVariables
+  >(getEntityQuery, {
+    variables: {
+      entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
+      ...blockCollectionContentsStaticVariables,
     },
-  );
+    skip: !profile.hasBio,
+  });
 
   const profileBioSubgraph = data
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
@@ -188,8 +188,15 @@ export const ProfileBio: FunctionComponent<{
               </Box>
             </UserBlocksProvider>
           </BlockLoadedProvider>
-        ) : isBioEmpty ? (
-          <Typography sx={{ color: ({ palette }) => palette.gray[60] }}>
+        ) : isBioEmpty && !loading ? (
+          <Typography
+            onClick={() => {
+              if (isEditable) {
+                void toggleEdit();
+              }
+            }}
+            sx={{ color: ({ palette }) => palette.gray[60] }}
+          >
             Add a bio for{" "}
             {profile.kind === "user" ? profile.preferredName : profile.name}...
           </Typography>
