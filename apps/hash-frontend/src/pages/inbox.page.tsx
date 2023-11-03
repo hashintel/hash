@@ -16,7 +16,7 @@ import {
   tableRowClasses,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../lib/routes";
@@ -117,6 +117,10 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     return title;
   }, [occurredInPage]);
 
+  const handleNotificationClick = useCallback(async () => {
+    await markNotificationAsRead({ notification });
+  }, [markNotificationAsRead, notification]);
+
   return (
     <TableRow>
       <TableCell
@@ -138,12 +142,16 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           : kind === "page-mention"
           ? "mentioned you in "
           : "mentioned you in a comment on "}
-        <Link noLinkStyle href={pageHref ?? ""}>
+        <Link
+          noLinkStyle
+          href={pageHref ?? ""}
+          onClick={handleNotificationClick}
+        >
           {pageTitle}
         </Link>{" "}
       </TableCell>
       <TableCell sx={{ display: "flex", columnGap: 1 }}>
-        <Button href={pageHref} size="xs">
+        <Button href={pageHref} onClick={handleNotificationClick} size="xs">
           {kind === "new-comment" ||
           kind === "comment-reply" ||
           kind === "comment-mention"
