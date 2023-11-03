@@ -492,7 +492,7 @@ export const save = async (
      * If the text entity type is ever updated in the backend,
      * the FE will need to be redeployed to avoid this being out of sync.
      */
-    types.entityType.text.entityTypeId,
+    systemTypes.entityType.text.entityTypeId,
     blocks,
     doc,
     /**
@@ -501,7 +501,7 @@ export const save = async (
     (componentId: string) => {
       return (
         (blocksMap()[componentId]?.meta.schema as VersionedUrl | undefined) ??
-        types.entityType.text.entityTypeId
+        systemTypes.entityType.text.entityTypeId
       );
     },
   );
