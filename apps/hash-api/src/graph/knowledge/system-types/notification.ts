@@ -262,6 +262,7 @@ export const getMentionNotification: ImpureGraphFunction<
                     ],
                   },
                   // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  //   @see https://linear.app/hash/issue/H-1207
                   null,
                 ],
               },
@@ -499,6 +500,7 @@ export const getCommentNotification: ImpureGraphFunction<
                     ],
                   },
                   // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  //   @see https://linear.app/hash/issue/H-1207
                   null,
                 ],
               },
