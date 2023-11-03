@@ -32,7 +32,7 @@ import { DataSource } from "apollo-datasource";
 import { AuthenticationContext } from "../graphql/context";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { addAccountGroupMember } from "./account-groups";
 import { createAccountGroup } from "./knowledge/system-types/account.fields";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
@@ -104,14 +104,18 @@ export const RESTRICTED_SHORTNAMES = [
 
 export type GraphApi = GraphApiClient & DataSource;
 
-export type ImpureGraphContext = {
+export type ImpureGraphContext<WithUpload extends boolean = false> = {
   graphApi: GraphApi;
-  uploadProvider: UploadableStorageProvider;
-  /** @todo: add logger? */
-};
+} & (WithUpload extends true
+  ? { uploadProvider: UploadableStorageProvider }
+  : {});
 
-export type ImpureGraphFunction<Parameters, ReturnType> = (
-  context: ImpureGraphContext,
+export type ImpureGraphFunction<
+  Parameters,
+  ReturnType,
+  WithUpload extends boolean = false,
+> = (
+  context: ImpureGraphContext<WithUpload>,
   authentication: AuthenticationContext,
   params: Parameters,
 ) => ReturnType;

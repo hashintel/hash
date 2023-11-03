@@ -22,8 +22,8 @@ import { Express } from "express";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
-import { ImpureGraphContext } from "../graph";
 import { SYSTEM_TYPES } from "../graph/system-types";
+import { ImpureGraphContext } from "../graph/util";
 import { AuthenticationContext } from "../graphql/context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";

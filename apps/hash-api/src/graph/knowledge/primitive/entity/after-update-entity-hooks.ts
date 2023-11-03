@@ -1,5 +1,5 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -144,7 +144,7 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 
 export const afterUpdateEntityHooks: UpdateEntityHook[] = [
   {
-    entityTypeId: types.entityType.text.entityTypeId,
+    entityTypeId: systemTypes.entityType.text.entityTypeId,
     callback: textEntityUpdateHookCallback,
   },
 ];

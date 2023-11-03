@@ -4,7 +4,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityRootType,
@@ -54,7 +54,7 @@ const NotesPage: NextPageWithLayout = () => {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              types.entityType.quickNote.entityTypeId,
+              systemTypes.entityType.quickNote.entityTypeId,
             ),
             {
               equal: [
@@ -70,7 +70,7 @@ const NotesPage: NextPageWithLayout = () => {
                       path: [
                         "properties",
                         extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
+                          systemTypes.propertyType.archived.propertyTypeId,
                         ),
                       ],
                     },
@@ -84,7 +84,7 @@ const NotesPage: NextPageWithLayout = () => {
                       path: [
                         "properties",
                         extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
+                          systemTypes.propertyType.archived.propertyTypeId,
                         ),
                       ],
                     },

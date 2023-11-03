@@ -1,8 +1,5 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
 import {
   getEntityOutgoingLinks,
   updateEntityProperties,
@@ -33,11 +30,11 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 
@@ -79,9 +76,6 @@ describe("Page Mention Notification", () => {
     await deleteKratosIdentity({
       kratosIdentityId: recipientUser.kratosIdentityId,
     });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
 
     await resetGraph();
   });
@@ -117,7 +111,7 @@ describe("Page Mention Notification", () => {
 
     const textEntity = pageBlockDataEntities.find(
       ({ metadata }) =>
-        metadata.entityTypeId === types.entityType.text.entityTypeId,
+        metadata.entityTypeId === systemTypes.entityType.text.entityTypeId,
     );
 
     if (!textEntity) {
@@ -148,7 +142,7 @@ describe("Page Mention Notification", () => {
     const occurredInEntityLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInEntity.linkEntityTypeId,
+        systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
     );
 
     expect(occurredInEntityLinks).toHaveLength(1);
@@ -162,7 +156,7 @@ describe("Page Mention Notification", () => {
     const occurredInTextLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInText.linkEntityTypeId,
+        systemTypes.linkEntityType.occurredInText.linkEntityTypeId,
     );
 
     expect(occurredInTextLinks).toHaveLength(1);
@@ -176,7 +170,7 @@ describe("Page Mention Notification", () => {
     const triggeredByUserLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.triggeredByUser.linkEntityTypeId,
+        systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
     );
 
     expect(triggeredByUserLinks).toHaveLength(1);
@@ -192,7 +186,7 @@ describe("Page Mention Notification", () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
-    const fetchedPageMentionNotification = await getMentionNotification(
+    const fetchedPageMentionNotification = (await getMentionNotification(
       graphContext,
       authentication,
       {
@@ -201,12 +195,12 @@ describe("Page Mention Notification", () => {
         occurredInEntity: occurredInPage,
         occurredInText,
       },
-    );
+    )) as MentionNotification;
 
     expect(fetchedPageMentionNotification).toBeDefined();
 
     expect(
-      fetchedPageMentionNotification!.entity.metadata.recordId.entityId,
+      fetchedPageMentionNotification.entity.metadata.recordId.entityId,
     ).toBe(pageMentionNotification.entity.metadata.recordId.entityId);
   });
 

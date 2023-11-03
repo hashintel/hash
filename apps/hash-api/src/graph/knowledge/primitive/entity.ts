@@ -230,11 +230,11 @@ export const getOrCreateEntity: ImpureGraphFunction<
   let entity;
 
   if (existingEntityId) {
-    entity = await getLatestEntityById(context, authentication, {
-      entityId: existingEntityId,
-    });
-
-    if (!entity) {
+    try {
+      entity = await getLatestEntityById(context, authentication, {
+        entityId: existingEntityId,
+      });
+    } catch {
       throw new ApolloError(
         `Entity ${existingEntityId} not found`,
         "NOT_FOUND",

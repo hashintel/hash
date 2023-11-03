@@ -5,7 +5,7 @@ import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.querie
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityRootType,
   extractEntityUuidFromEntityId,
@@ -64,7 +64,7 @@ const parseTextFromTextBlock = ({
   rightEntity,
 }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
-    extractBaseUrl(types.propertyType.tokens.propertyTypeId)
+    extractBaseUrl(systemTypes.propertyType.tokens.propertyTypeId)
   ] as TextToken[] | undefined;
 
   return (
@@ -198,10 +198,11 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: quickNoteEntity.metadata.recordId.entityId,
-        entityTypeId: types.entityType.quickNote.entityTypeId,
+        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
         properties: {
           ...quickNoteEntity.properties,
-          [extractBaseUrl(types.propertyType.archived.propertyTypeId)]: true,
+          [extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)]:
+            true,
         },
       },
     });
@@ -225,7 +226,7 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: blockCollectionEntityId,
-        entityTypeId: types.entityType.quickNote.entityTypeId,
+        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
         properties: {},
       },
     });

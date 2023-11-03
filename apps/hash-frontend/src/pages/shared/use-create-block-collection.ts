@@ -1,5 +1,5 @@
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -19,7 +19,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         await Promise.all([
           createEntity({
             data: {
-              entityTypeId: types.entityType[kind].entityTypeId,
+              entityTypeId: systemTypes.entityType[kind].entityTypeId,
               properties: {} satisfies BlockCollectionProperties,
             },
           }).then(({ data }) => {
@@ -31,10 +31,11 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: types.entityType.block.entityTypeId,
+              entityTypeId: systemTypes.entityType.block.entityTypeId,
               properties: {
-                [extractBaseUrl(types.propertyType.componentId.propertyTypeId)]:
-                  paragraphBlockComponentId,
+                [extractBaseUrl(
+                  systemTypes.propertyType.componentId.propertyTypeId,
+                )]: paragraphBlockComponentId,
               },
             },
           }).then(({ data }) => {
@@ -46,9 +47,11 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: types.entityType.text.entityTypeId,
+              entityTypeId: systemTypes.entityType.text.entityTypeId,
               properties: {
-                [extractBaseUrl(types.propertyType.tokens.propertyTypeId)]: [],
+                [extractBaseUrl(
+                  systemTypes.propertyType.tokens.propertyTypeId,
+                )]: [],
               },
             },
           }).then(({ data }) => {
@@ -63,7 +66,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
       await Promise.all([
         createEntity({
           data: {
-            entityTypeId: types.linkEntityType.contains.linkEntityTypeId,
+            entityTypeId: systemTypes.linkEntityType.contains.linkEntityTypeId,
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
@@ -74,7 +77,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         }),
         createEntity({
           data: {
-            entityTypeId: types.linkEntityType.blockData.linkEntityTypeId,
+            entityTypeId: systemTypes.linkEntityType.blockData.linkEntityTypeId,
             linkData: {
               leftEntityId: blockEntity.metadata.recordId.entityId,
               rightEntityId: textEntity.metadata.recordId.entityId,
