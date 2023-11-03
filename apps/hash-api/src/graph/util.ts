@@ -29,7 +29,7 @@ import {
 } from "@local/hash-subgraph";
 import { DataSource } from "apollo-datasource";
 
-import { AuthenticationContext } from "../graphql/context";
+import { AuthenticationContext } from "../graphql/authentication-context";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { UploadableStorageProvider } from "../storage/storage-provider";

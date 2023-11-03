@@ -9,7 +9,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 

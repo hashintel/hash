@@ -24,7 +24,7 @@ import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { SYSTEM_TYPES } from "../graph/system-types";
 import { ImpureGraphContext } from "../graph/util";
-import { AuthenticationContext } from "../graphql/context";
+import { AuthenticationContext } from "../graphql/authentication-context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";

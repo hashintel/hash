@@ -11,7 +11,7 @@ import {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
-import { AuthenticationContext } from "../../../graphql/context";
+import { AuthenticationContext } from "../../../graphql/authentication-context";
 import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
 import { SYSTEM_TYPES } from "../../system-types";

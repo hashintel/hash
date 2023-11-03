@@ -7,7 +7,7 @@ import {
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
 import { ImpureGraphContext } from "../graph/util";
-import { AuthenticationContext } from "../graphql/context";
+import { AuthenticationContext } from "../graphql/authentication-context";
 
 export type PageDefinition = {
   title: string;

@@ -3,7 +3,7 @@ import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primi
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";

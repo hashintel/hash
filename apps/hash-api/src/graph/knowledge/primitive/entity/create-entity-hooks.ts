@@ -1,7 +1,7 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-subgraph";
 
-import { AuthenticationContext } from "../../../../graphql/context";
+import { AuthenticationContext } from "../../../../graphql/authentication-context";
 import { ImpureGraphContext } from "../../../util";
 
 export type CreateEntityHookCallback = (params: {

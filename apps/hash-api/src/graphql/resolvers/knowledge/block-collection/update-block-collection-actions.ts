@@ -26,7 +26,7 @@ import {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
-import { AuthenticationContext } from "../../../context";
+import { AuthenticationContext } from "../../../authentication-context";
 
 export const createEntityWithPlaceholdersFn =
   (

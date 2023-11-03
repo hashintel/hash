@@ -1,6 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
-import { AccountId } from "@local/hash-subgraph";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
@@ -9,10 +8,7 @@ import { GraphApi } from "../graph/util";
 import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault";
-
-export type AuthenticationContext = {
-  actorId: AccountId;
-};
+import { AuthenticationContext } from "./authentication-context";
 
 /**
  * Apollo context object with dataSources. For details see:
