@@ -28,6 +28,8 @@ import {
 
 jest.setTimeout(60000);
 
+const afterHookTriggerTimeout = 3_000;
+
 const logger = new Logger({
   mode: "dev",
   level: "debug",
@@ -128,7 +130,7 @@ describe("Comment Notification", () => {
      * @todo: consider adding retry logic instead of relying on a timeout
      */
     await new Promise((resolve) => {
-      setTimeout(resolve, 1000);
+      setTimeout(resolve, afterHookTriggerTimeout);
     });
 
     const commentNotification = await getCommentNotification(
@@ -201,7 +203,7 @@ describe("Comment Notification", () => {
      * @todo: consider adding retry logic instead of relying on a timeout
      */
     await new Promise((resolve) => {
-      setTimeout(resolve, 1000);
+      setTimeout(resolve, afterHookTriggerTimeout);
     });
 
     const commentReplyNotification = await getCommentNotification(
