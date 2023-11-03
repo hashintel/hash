@@ -394,6 +394,9 @@ export const inferEntitiesResolver: ResolverFn<
       },
     ],
     workflowId: `inferEntities-${genId()}`,
+    retry: {
+      maximumAttempts: 3,
+    },
   });
 
   if (status.code !== "OK") {

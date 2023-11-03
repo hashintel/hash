@@ -607,15 +607,23 @@ class LinkData(EntityLinkOrder):
     left_entity_id: EntityId = Field(..., alias='leftEntityId')
     right_entity_id: EntityId = Field(..., alias='rightEntityId')
 
-class LoadExternalDataTypeRequest(BaseModel):
+class LoadExternalDataTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     data_type_id: VersionedURL = Field(..., alias='dataTypeId')
 
-class LoadExternalEntityTypeRequest(BaseModel):
+class LoadExternalDataTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    schema_: DataType = Field(..., alias='schema')
+
+class LoadExternalDataTypeRequest(RootModel[LoadExternalDataTypeRequestItem | LoadExternalDataTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalDataTypeRequestItem | LoadExternalDataTypeRequestItem1
+
+class LoadExternalEntityTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     entity_type_id: VersionedURL = Field(..., alias='entityTypeId')
 
-class LoadExternalPropertyTypeRequest(BaseModel):
+class LoadExternalPropertyTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     property_type_id: VersionedURL = Field(..., alias='propertyTypeId')
 
@@ -792,6 +800,16 @@ class LeftClosedTemporalInterval(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     end: OpenTemporalBound
     start: ClosedTemporalBound
+
+class LoadExternalEntityTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
+    label_property: BaseURL | None = None
+    schema_: EntityType = Field(..., alias='schema')
+
+class LoadExternalEntityTypeRequest(RootModel[LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1
 
 class OntologyTemporalMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -1041,6 +1059,14 @@ class Filter(RootModel[AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqua
     model_config = ConfigDict(populate_by_name=True)
     root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
 
+class LoadExternalPropertyTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    schema_: PropertyType = Field(..., alias='schema')
+
+class LoadExternalPropertyTypeRequest(RootModel[LoadExternalPropertyTypeRequestItem | LoadExternalPropertyTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalPropertyTypeRequestItem | LoadExternalPropertyTypeRequestItem1
+
 class PropertyTypeVertex(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     inner: PropertyTypeWithMetadata
@@ -1130,6 +1156,7 @@ EntityTypeStructuralQuery.model_rebuild()
 AllFilter.model_rebuild()
 AnyFilter.model_rebuild()
 NotFilter.model_rebuild()
+LoadExternalPropertyTypeRequestItem1.model_rebuild()
 PropertyTypeVertex.model_rebuild()
 PropertyTypeWithMetadata.model_rebuild()
 Subgraph.model_rebuild()

@@ -3651,37 +3651,89 @@
         "format": "int32"
       },
       "LoadExternalDataTypeRequest": {
-        "type": "object",
-        "required": [
-          "dataTypeId"
-        ],
-        "properties": {
-          "dataTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "dataTypeId"
+            ],
+            "properties": {
+              "dataTypeId": {
+                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "schema"
+            ],
+            "properties": {
+              "schema": {
+                "$ref": "./models/data_type.json"
+              }
+            }
           }
-        }
+        ]
       },
       "LoadExternalEntityTypeRequest": {
-        "type": "object",
-        "required": [
-          "entityTypeId"
-        ],
-        "properties": {
-          "entityTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "entityTypeId"
+            ],
+            "properties": {
+              "entityTypeId": {
+                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "schema"
+            ],
+            "properties": {
+              "icon": {
+                "type": "string",
+                "nullable": true
+              },
+              "label_property": {
+                "$ref": "./models/shared.json#/definitions/BaseUrl"
+              },
+              "schema": {
+                "$ref": "./models/entity_type.json"
+              }
+            }
           }
-        }
+        ]
       },
       "LoadExternalPropertyTypeRequest": {
-        "type": "object",
-        "required": [
-          "propertyTypeId"
-        ],
-        "properties": {
-          "propertyTypeId": {
-            "$ref": "./models/shared.json#/definitions/VersionedUrl"
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "propertyTypeId"
+            ],
+            "properties": {
+              "propertyTypeId": {
+                "$ref": "./models/shared.json#/definitions/VersionedUrl"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "schema"
+            ],
+            "properties": {
+              "schema": {
+                "$ref": "./models/property_type.json"
+              }
+            }
           }
-        }
+        ]
       },
       "MaybeListOfEntityTypeMetadata": {
         "oneOf": [
