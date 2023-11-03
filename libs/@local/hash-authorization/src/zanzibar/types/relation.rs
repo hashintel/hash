@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::zanzibar::types::Resource;
 
 /// Encapsulates the relationship between an [`Resource`] and a [`Subject`].
+///
+/// [`Subject`]: crate::zanzibar::types::Subject
 pub trait Relation<O: Resource> {}
 impl<O: Resource> Relation<O> for ! {}
 
