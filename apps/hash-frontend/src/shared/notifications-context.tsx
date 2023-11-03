@@ -8,7 +8,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  SimpleProperties,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 /** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import {
   BlockProperties,
@@ -55,7 +58,7 @@ export type PageMentionNotification = {
   occurredInBlock: Entity<BlockProperties>;
   occurredInText: Entity<TextProperties>;
   triggeredByUser: MinimalUser;
-};
+} & SimpleProperties<MentionNotificationProperties>;
 
 export type CommentMentionNotification = {
   kind: "comment-mention";
@@ -69,7 +72,7 @@ export type NewCommentNotification = {
   occurredInBlock: Entity<BlockProperties>;
   triggeredByComment: Entity<CommentProperties>;
   triggeredByUser: MinimalUser;
-};
+} & SimpleProperties<CommentNotificationProperties>;
 
 export type CommentReplyNotification = {
   kind: "comment-reply";
@@ -196,30 +199,6 @@ export const NotificationsContextProvider: FunctionComponent<
 
     return (
       getRoots(subgraph)
-        // Filter notifications that have been marked as read
-        .filter((entity) => {
-          const { readAt } = simplifyProperties(
-            entity.properties as NotificationProperties,
-          );
-
-          return !readAt;
-        })
-        /**
-         * Order the notifications by when their revisions were created
-         *
-         * @todo: if we ever want to display updated notifications, we will need
-         * to sort by their created at timestamps instead (i.e. when the first
-         * revision of the entity was created, not the latest)
-         */
-        .sort(
-          (a, b) =>
-            new Date(
-              b.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime() -
-            new Date(
-              a.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime(),
-        )
         .map((entity) => {
           const {
             metadata: {
@@ -227,6 +206,10 @@ export const NotificationsContextProvider: FunctionComponent<
               recordId: { entityId },
             },
           } = entity;
+
+          const { readAt } = simplifyProperties(
+            entity.properties as NotificationProperties,
+          );
 
           const outgoingLinks = getOutgoingLinkAndTargetEntities(
             subgraph,
@@ -284,6 +267,7 @@ export const NotificationsContextProvider: FunctionComponent<
             if (occurredInComment) {
               return {
                 kind: "comment-mention",
+                readAt,
                 entity,
                 occurredInPage: occurredInPage as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -296,6 +280,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             return {
               kind: "page-mention",
+              readAt,
               entity,
               occurredInPage: occurredInPage as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -353,6 +338,7 @@ export const NotificationsContextProvider: FunctionComponent<
             if (repliedToComment) {
               return {
                 kind: "comment-reply",
+                readAt,
                 entity,
                 occurredInPage: occurredInPage as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -364,6 +350,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             return {
               kind: "new-comment",
+              readAt,
               entity,
               occurredInPage: occurredInPage as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -373,6 +360,30 @@ export const NotificationsContextProvider: FunctionComponent<
           }
 
           throw new Error(`Notification of type "${entityTypeId}" not handled`);
+        })
+        /**
+         * Order the notifications by when their revisions were created
+         *
+         * @todo: if we ever want to display updated notifications, we will need
+         * to sort by their created at timestamps instead (i.e. when the first
+         * revision of the entity was created, not the latest)
+         */
+        .sort((a, b) => {
+          if (a.readAt && !b.readAt) {
+            return 1;
+          } else if (b.readAt && !a.readAt) {
+            return -1;
+          }
+
+          const aCreatedAt = new Date(
+            b.entity.metadata.temporalVersioning.decisionTime.start.limit,
+          );
+
+          const bCreatedAt = new Date(
+            a.entity.metadata.temporalVersioning.decisionTime.start.limit,
+          );
+
+          return aCreatedAt.getTime() - bCreatedAt.getTime();
         })
     );
   }, [notificationsData]);

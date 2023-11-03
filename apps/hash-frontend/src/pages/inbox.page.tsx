@@ -85,7 +85,7 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
 
 const NotificationRow: FunctionComponent<Notification> = (notification) => {
   const { markNotificationAsRead } = useNotifications();
-  const { kind, triggeredByUser, occurredInPage, occurredInBlock } =
+  const { kind, triggeredByUser, occurredInPage, occurredInBlock, readAt } =
     notification;
 
   const ownedById = useMemo(
@@ -122,7 +122,12 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
   }, [markNotificationAsRead, notification]);
 
   return (
-    <TableRow>
+    <TableRow
+      sx={{
+        background: readAt ? ({ palette }) => palette.gray[10] : undefined,
+        opacity: readAt ? 0.6 : 1,
+      }}
+    >
       <TableCell
         sx={{
           a: {
@@ -158,13 +163,15 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
             ? "View comment"
             : "View page"}
         </Button>
-        <Button
-          variant="tertiary"
-          size="xs"
-          onClick={() => markNotificationAsRead({ notification })}
-        >
-          Mark as read
-        </Button>
+        {readAt ? null : (
+          <Button
+            variant="tertiary"
+            size="xs"
+            onClick={() => markNotificationAsRead({ notification })}
+          >
+            Mark as read
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   );
