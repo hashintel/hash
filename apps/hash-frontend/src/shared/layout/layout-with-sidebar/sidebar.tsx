@@ -1,5 +1,5 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { IconButton } from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent } from "react";
@@ -7,6 +7,7 @@ import { FunctionComponent } from "react";
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { SidebarToggleIcon } from "../../icons";
+import { QuickNoteIcon } from "../../icons/quick-note-icon";
 import { useRoutePageInfo } from "../../routing";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { AccountEntityTypeList } from "./account-entity-type-list";
@@ -66,11 +67,18 @@ export const PageSidebar: FunctionComponent = () => {
         </Tooltip>
       </Box>
       <TopNavLink
-        icon={faHome}
+        icon={<FontAwesomeIcon icon={faHome} />}
         title="Home"
         href="/"
         tooltipTitle=""
         active={router.pathname === "/[shortname]"}
+      />
+      <TopNavLink
+        icon={<QuickNoteIcon sx={{ fontSize: 16 }} />}
+        title="Quick Note"
+        href="/notes"
+        tooltipTitle=""
+        active={router.pathname === "/notes"}
       />
       {/* 
         Commented out nav links whose functionality have not been 

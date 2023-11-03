@@ -60,7 +60,7 @@ export const processEntityChange = async (
   };
 
   const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
-    { graphApi, uploadProvider: null as any }, // @todo uploadProvider shouldn't be required
+    { graphApi },
     authentication,
     {
       hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(

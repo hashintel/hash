@@ -18,6 +18,32 @@ class AccountId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
+class DataTypeGeneralViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class DataTypeGeneralViewerSubject(RootModel[DataTypeGeneralViewerSubjectItem]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: DataTypeGeneralViewerSubjectItem
+
+class DataTypeOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class DataTypeOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class DataTypeOwnerSubject(RootModel[DataTypeOwnerSubjectItem | DataTypeOwnerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: DataTypeOwnerSubjectItem | DataTypeOwnerSubjectItem1 = Field(..., discriminator='kind')
+
+class DataTypePermission(Enum):
+    update = 'update'
+    view = 'view'
+
 class DataTypeQueryToken(Enum):
     """
     A single token in a [`DataTypeQueryPath`].
@@ -31,6 +57,20 @@ class DataTypeQueryToken(Enum):
     title = 'title'
     description = 'description'
     type = 'type'
+
+class DataTypeRelationAndSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['owner']
+    subject: DataTypeOwnerSubject
+
+class DataTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['generalViewer']
+    subject: DataTypeGeneralViewerSubject
+
+class DataTypeRelationAndSubject(RootModel[DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class DecisionTime(RootModel[Literal['decisionTime']]):
     model_config = ConfigDict(populate_by_name=True)
@@ -149,6 +189,32 @@ class EntityRelationAndSubject(RootModel[EntityRelationAndSubjectItem | EntityRe
     model_config = ConfigDict(populate_by_name=True)
     root: EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
+class EntityTypeGeneralViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class EntityTypeGeneralViewerSubject(RootModel[EntityTypeGeneralViewerSubjectItem]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeGeneralViewerSubjectItem
+
+class EntityTypeOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class EntityTypeOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class EntityTypeOwnerSubject(RootModel[EntityTypeOwnerSubjectItem | EntityTypeOwnerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeOwnerSubjectItem | EntityTypeOwnerSubjectItem1 = Field(..., discriminator='kind')
+
+class EntityTypePermission(Enum):
+    update = 'update'
+    view = 'view'
+
 class EntityTypeQueryToken(Enum):
     """
     A single token in a [`EntityTypeQueryPath`].
@@ -169,6 +235,20 @@ class EntityTypeQueryToken(Enum):
     links = 'links'
     inherits_from = 'inheritsFrom'
     children = 'children'
+
+class EntityTypeRelationAndSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['owner']
+    subject: EntityTypeOwnerSubject
+
+class EntityTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['generalViewer']
+    subject: EntityTypeGeneralViewerSubject
+
+class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class EntityUuid(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
@@ -230,6 +310,32 @@ class PermissionResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     has_permission: bool
 
+class PropertyTypeGeneralViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class PropertyTypeGeneralViewerSubject(RootModel[PropertyTypeGeneralViewerSubjectItem]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeGeneralViewerSubjectItem
+
+class PropertyTypeOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class PropertyTypeOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class PropertyTypeOwnerSubject(RootModel[PropertyTypeOwnerSubjectItem | PropertyTypeOwnerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeOwnerSubjectItem | PropertyTypeOwnerSubjectItem1 = Field(..., discriminator='kind')
+
+class PropertyTypePermission(Enum):
+    update = 'update'
+    view = 'view'
+
 class PropertyTypeQueryToken(Enum):
     """
     A single token in a [`DataTypeQueryPath`].
@@ -244,6 +350,20 @@ class PropertyTypeQueryToken(Enum):
     description = 'description'
     data_types = 'dataTypes'
     property_types = 'propertyTypes'
+
+class PropertyTypeRelationAndSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['owner']
+    subject: PropertyTypeOwnerSubject
+
+class PropertyTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['generalViewer']
+    subject: PropertyTypeGeneralViewerSubject
+
+class PropertyTypeRelationAndSubject(RootModel[PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class PinnedDecisionAxis(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -279,13 +399,11 @@ class TransactionTime(RootModel[Literal['transactionTime']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['transactionTime'] = Field(..., description='Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.')
 
-class Viewer(RootModel[Literal['public'] | OwnedById]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: Literal['public'] | OwnedById
-
-class WebPermission(RootModel[Literal['create_entity']]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: Literal['create_entity']
+class WebPermission(Enum):
+    create_entity = 'create_entity'
+    create_entity_type = 'create_entity_type'
+    create_property_type = 'create_property_type'
+    create_data_type = 'create_data_type'
 
 class UpdateDataType(BaseModel):
     """
@@ -435,10 +553,6 @@ class DataTypeVertexId(BaseModel):
     base_id: BaseURL = Field(..., alias='baseId')
     revision_id: OntologyTypeVersion = Field(..., alias='revisionId')
 
-class EntityAuthorizationRelationship(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    relation_and_subject: EntityRelationAndSubject = Field(..., alias='relationAndSubject')
-
 class EntityLinkOrder(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     left_to_right_order: LinkOrder | None = Field(None, alias='leftToRightOrder')
@@ -493,23 +607,49 @@ class LinkData(EntityLinkOrder):
     left_entity_id: EntityId = Field(..., alias='leftEntityId')
     right_entity_id: EntityId = Field(..., alias='rightEntityId')
 
-class LoadExternalDataTypeRequest(BaseModel):
+class LoadExternalDataTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     data_type_id: VersionedURL = Field(..., alias='dataTypeId')
 
-class LoadExternalEntityTypeRequest(BaseModel):
+class LoadExternalDataTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    schema_: DataType = Field(..., alias='schema')
+
+class LoadExternalDataTypeRequest(RootModel[LoadExternalDataTypeRequestItem | LoadExternalDataTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalDataTypeRequestItem | LoadExternalDataTypeRequestItem1
+
+class LoadExternalEntityTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     entity_type_id: VersionedURL = Field(..., alias='entityTypeId')
 
-class LoadExternalPropertyTypeRequest(BaseModel):
+class LoadExternalPropertyTypeRequestItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     property_type_id: VersionedURL = Field(..., alias='propertyTypeId')
+
+class ModifyDataTypeAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: DataTypeRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: VersionedURL
 
 class ModifyEntityAuthorizationRelationship(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     operation: ModifyRelationshipOperation
     relation_subject: EntityRelationAndSubject = Field(..., alias='relationSubject')
     resource: EntityId
+
+class ModifyEntityTypeAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: EntityTypeRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: VersionedURL
+
+class ModifyPropertyTypeAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: PropertyTypeRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: VersionedURL
 
 class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
     model_config = ConfigDict(populate_by_name=True)
@@ -660,6 +800,16 @@ class LeftClosedTemporalInterval(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     end: OpenTemporalBound
     start: ClosedTemporalBound
+
+class LoadExternalEntityTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    icon: str | None = None
+    label_property: BaseURL | None = None
+    schema_: EntityType = Field(..., alias='schema')
+
+class LoadExternalEntityTypeRequest(RootModel[LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1
 
 class OntologyTemporalMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -909,6 +1059,14 @@ class Filter(RootModel[AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqua
     model_config = ConfigDict(populate_by_name=True)
     root: AllFilter | AnyFilter | NotFilter | EqualFilter | NotEqualFilter | StartsWithFilter | EndsWithFilter | ContainsSegmentFilter
 
+class LoadExternalPropertyTypeRequestItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    schema_: PropertyType = Field(..., alias='schema')
+
+class LoadExternalPropertyTypeRequest(RootModel[LoadExternalPropertyTypeRequestItem | LoadExternalPropertyTypeRequestItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: LoadExternalPropertyTypeRequestItem | LoadExternalPropertyTypeRequestItem1
+
 class PropertyTypeVertex(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     inner: PropertyTypeWithMetadata
@@ -998,6 +1156,7 @@ EntityTypeStructuralQuery.model_rebuild()
 AllFilter.model_rebuild()
 AnyFilter.model_rebuild()
 NotFilter.model_rebuild()
+LoadExternalPropertyTypeRequestItem1.model_rebuild()
 PropertyTypeVertex.model_rebuild()
 PropertyTypeWithMetadata.model_rebuild()
 Subgraph.model_rebuild()

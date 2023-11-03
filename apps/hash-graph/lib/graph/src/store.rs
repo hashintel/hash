@@ -9,6 +9,7 @@ mod migration;
 mod ontology;
 mod pool;
 mod record;
+mod validation;
 
 mod fetcher;
 mod postgres;

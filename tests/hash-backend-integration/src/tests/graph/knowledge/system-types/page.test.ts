@@ -174,7 +174,7 @@ describe("Page", () => {
     await setPageParentPage(graphContext, authentication, {
       page: testPage,
       parentPage,
-      prevIndex: null,
+      prevFractionalIndex: null,
       nextIndex: null,
     });
     expect(

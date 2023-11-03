@@ -4,7 +4,7 @@ import { GraphQLContext } from "../context";
 export const dataSourcesToImpureGraphContext = ({
   graphApi,
   uploadProvider,
-}: GraphQLContext["dataSources"]): ImpureGraphContext => {
+}: GraphQLContext["dataSources"]): ImpureGraphContext<true> => {
   return {
     graphApi,
     uploadProvider,

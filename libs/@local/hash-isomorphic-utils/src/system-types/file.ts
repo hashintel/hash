@@ -3,6 +3,7 @@
  */
 
 import {
+  BooleanDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -12,6 +13,12 @@ import {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   MIMETypePropertyValue,
   NumberDataType,
@@ -22,6 +29,7 @@ import {
 } from "./shared";
 
 export type {
+  BooleanDataType,
   DescriptionPropertyValue,
   DisplayNamePropertyValue,
   File,
@@ -31,6 +39,12 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   MIMETypePropertyValue,
   NumberDataType,

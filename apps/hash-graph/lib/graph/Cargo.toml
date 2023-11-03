@@ -7,6 +7,7 @@ description = "HASH Graph API"
 
 [dependencies]
 graph-types = { workspace = true, features = ["postgres", "utoipa"] }
+validation = { workspace = true }
 temporal-versioning = { workspace = true, features = ["postgres", "utoipa"] }
 type-fetcher = { path = "../type-fetcher" }
 authorization = { workspace = true, features = ["utoipa"] }

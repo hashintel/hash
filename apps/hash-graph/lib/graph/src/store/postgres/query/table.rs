@@ -569,14 +569,18 @@ impl_ontology_column!(PropertyTypes);
 pub enum EntityTypes<'p> {
     OntologyId,
     Schema(Option<JsonField<'p>>),
+    ClosedSchema(Option<JsonField<'p>>),
     LabelProperty,
     Icon,
 }
 impl<'p> EntityTypes<'p> {
     pub const fn nullable(self) -> bool {
         match self {
-            Self::OntologyId => false,
-            Self::Schema(_) | Self::LabelProperty | Self::Icon => true,
+            Self::OntologyId | Self::Schema(None) | Self::ClosedSchema(None) => false,
+            Self::Schema(Some(_))
+            | Self::ClosedSchema(Some(_))
+            | Self::LabelProperty
+            | Self::Icon => true,
         }
     }
 
@@ -591,6 +595,11 @@ impl<'p> EntityTypes<'p> {
                 let (path, parameter) = path.into_owned(current_parameter_index);
                 (EntityTypes::Schema(Some(path)), parameter)
             }
+            Self::ClosedSchema(None) => (EntityTypes::ClosedSchema(None), None),
+            Self::ClosedSchema(Some(path)) => {
+                let (path, parameter) = path.into_owned(current_parameter_index);
+                (EntityTypes::ClosedSchema(Some(path)), parameter)
+            }
             Self::LabelProperty => (EntityTypes::LabelProperty, None),
             Self::Icon => (EntityTypes::Icon, None),
         }
@@ -604,6 +613,10 @@ impl EntityTypes<'static> {
             Self::Schema(Some(path)) => {
                 return transpile_json_field(path, "schema", table, fmt);
             }
+            Self::ClosedSchema(None) => "closed_schema",
+            Self::ClosedSchema(Some(path)) => {
+                return transpile_json_field(path, "closed_schema", table, fmt);
+            }
             Self::LabelProperty => "label_property",
             Self::Icon => "icon",
         };
@@ -615,7 +628,7 @@ impl EntityTypes<'static> {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Schema(Some(JsonField::StaticText(_))) | Self::Icon => ParameterType::Text,
-            Self::Schema(_) => ParameterType::Any,
+            Self::Schema(_) | Self::ClosedSchema(_) => ParameterType::Any,
             Self::LabelProperty => ParameterType::BaseUrl,
         }
     }

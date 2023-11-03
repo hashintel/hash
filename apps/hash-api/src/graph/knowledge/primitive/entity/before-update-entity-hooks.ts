@@ -1,25 +1,24 @@
-import { VersionedUrl } from "@blockprotocol/type-system";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  AccountId,
-  Entity,
-  EntityPropertiesObject,
-} from "@local/hash-subgraph";
+import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
+import { SYSTEM_TYPES } from "../../../system-types";
+import { ImpureGraphContext } from "../../../util";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
   shortnameIsTaken,
   shortnameMaximumLength,
   shortnameMinimumLength,
-} from "../../../../graph/knowledge/system-types/account.fields";
+} from "../../system-types/account.fields";
 import {
   getUserFromEntity,
   updateUserKratosIdentityTraits,
-} from "../../../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
-import { ImpureGraphContext } from "../../../../graph/util";
+} from "../../system-types/user";
+import {
+  UpdateEntityHook,
+  UpdateEntityHookCallback,
+} from "./update-entity-hooks";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,
@@ -54,13 +53,7 @@ const validateAccountShortname = async (
   }
 };
 
-type BeforeUpdateEntityHookCallback = (params: {
-  context: ImpureGraphContext;
-  entity: Entity;
-  updatedProperties: EntityPropertiesObject;
-}) => Promise<void>;
-
-const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
+const userEntityHookCallback: UpdateEntityHookCallback = async ({
   entity,
   updatedProperties,
   context,
@@ -120,12 +113,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   }
 };
 
-type BeforeUpdateEntityHook = {
-  entityTypeId: VersionedUrl;
-  callback: BeforeUpdateEntityHookCallback;
-};
-
-export const beforeUpdateEntityHooks: BeforeUpdateEntityHook[] = [
+export const beforeUpdateEntityHooks: UpdateEntityHook[] = [
   {
     entityTypeId: systemTypes.entityType.user.entityTypeId,
     callback: userEntityHookCallback,

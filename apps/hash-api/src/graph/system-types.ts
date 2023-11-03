@@ -54,8 +54,11 @@ export let SYSTEM_TYPES: {
     archived: PropertyTypeWithMetadata;
     summary: PropertyTypeWithMetadata;
     title: PropertyTypeWithMetadata;
-    index: PropertyTypeWithMetadata;
+    fractionalIndex: PropertyTypeWithMetadata;
     icon: PropertyTypeWithMetadata;
+
+    // Contains related
+    numericIndex: PropertyTypeWithMetadata;
 
     // Text-related
     tokens: PropertyTypeWithMetadata;
@@ -64,6 +67,14 @@ export let SYSTEM_TYPES: {
     resolvedAt: PropertyTypeWithMetadata;
     deletedAt: PropertyTypeWithMetadata;
     expiredAt: PropertyTypeWithMetadata;
+
+    // File storage related
+    fileStorageBucket: PropertyTypeWithMetadata;
+    fileStorageEndpoint: PropertyTypeWithMetadata;
+    fileStorageForcePathStyle: PropertyTypeWithMetadata;
+    fileStorageKey: PropertyTypeWithMetadata;
+    fileStorageProvider: PropertyTypeWithMetadata;
+    fileStorageRegion: PropertyTypeWithMetadata;
 
     // Integration related
     connectionSourceName: PropertyTypeWithMetadata;
@@ -97,6 +108,7 @@ export let SYSTEM_TYPES: {
     profileBio: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
+    quickNote: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     userSecret: EntityTypeWithMetadata;
     linearIntegration: EntityTypeWithMetadata;
@@ -107,6 +119,9 @@ export let SYSTEM_TYPES: {
     facebookAccount: EntityTypeWithMetadata;
     instagramAccount: EntityTypeWithMetadata;
     gitHubAccount: EntityTypeWithMetadata;
+    notification: EntityTypeWithMetadata;
+    mentionNotification: EntityTypeWithMetadata;
+    commentNotification: EntityTypeWithMetadata;
   };
   linkEntityType: {
     // User-related
@@ -134,6 +149,16 @@ export let SYSTEM_TYPES: {
     // Linear Integration related
     syncLinearDataWith: EntityTypeWithMetadata;
     usesUserSecret: EntityTypeWithMetadata;
+
+    // Mention Notification related
+    occurredInEntity: EntityTypeWithMetadata;
+    occurredInComment: EntityTypeWithMetadata;
+    occurredInText: EntityTypeWithMetadata;
+    triggeredByUser: EntityTypeWithMetadata;
+
+    // Comment Notification related
+    triggeredByComment: EntityTypeWithMetadata;
+    repliedToComment: EntityTypeWithMetadata;
   };
 };
 
@@ -726,7 +751,66 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const fileStorageBucketPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fileStorageBucket,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
+
+const fileStorageEndpointPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fileStorageEndpoint,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
+
+const fileStorageForcePathStylePropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...systemTypes.propertyType.fileStorageForcePathStyle,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
+  });
+
+const fileStorageKeyPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fileStorageKey,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
+
+const fileStorageProviderPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fileStorageProvider,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
+
+const fileStorageRegionPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fileStorageRegion,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
+
 const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const fileStorageBucketPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageBucket(context);
+
+  const fileStorageEndpointPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageEndpoint(context);
+
+  const fileStorageForcePathStylePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageForcePathStyle(
+      context,
+    );
+
+  const fileStorageKeyPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageKey(context);
+
+  const fileStorageProviderPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageProvider(context);
+
+  const fileStorageProviderRegion =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fileStorageRegion(context);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
   return entityTypeInitializer({
     ...systemTypes.entityType.file,
     properties: [
@@ -739,6 +823,24 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: mimeTypePropertyTypeUrl,
+      },
+      {
+        propertyType: fileStorageBucketPropertyType,
+      },
+      {
+        propertyType: fileStorageEndpointPropertyType,
+      },
+      {
+        propertyType: fileStorageForcePathStylePropertyType,
+      },
+      {
+        propertyType: fileStorageKeyPropertyType,
+      },
+      {
+        propertyType: fileStorageProviderPropertyType,
+      },
+      {
+        propertyType: fileStorageProviderRegion,
       },
       {
         propertyType:
@@ -806,8 +908,8 @@ const titlePropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const indexPropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.index,
+const fractionalIndexPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.fractionalIndex,
   possibleValues: [{ primitiveDataType: "text" }],
   webShortname: "hash",
 });
@@ -818,15 +920,37 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
+const numericIndexPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.numericIndex,
+  possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
+});
+
 /**
  * @todo this 'contains' link type is used to link a page to blocks it contains
  *     for both canvas and document mode. We probably want to split these out into two links,
  *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
  */
-const containsLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.contains,
-  webShortname: "hash",
-});
+const containsLinkEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const numericIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.numericIndex(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.linkEntityType.contains,
+    properties: [
+      {
+        propertyType: numericIndexPropertyType,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
 
 const blockCollectionEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -855,6 +979,25 @@ const blockCollectionEntityTypeInitializer = async (
   })(context);
 };
 
+const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const blockCollectionEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
+
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.quickNote,
+    allOf: [blockCollectionEntityType.schema.$id],
+    properties: [{ propertyType: archivedPropertyType }],
+    webShortname: "hash",
+  })(context);
+};
+
 const parentLinkEntityTypeInitializer = entityTypeInitializer({
   ...systemTypes.linkEntityType.parent,
   webShortname: "hash",
@@ -872,8 +1015,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const titlePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
 
-  const indexPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.index(context);
+  const fractionalIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
 
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
@@ -904,7 +1047,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: true,
       },
       {
-        propertyType: indexPropertyType,
+        propertyType: fractionalIndexPropertyType,
         required: true,
       },
     ],
@@ -1128,6 +1271,191 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const notificationEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.notification,
+    properties: [
+      {
+        propertyType: archivedPropertyType,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
+export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInEntity,
+  webShortname: "hash",
+});
+
+export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
+  {
+    ...systemTypes.linkEntityType.occurredInComment,
+    webShortname: "hash",
+  },
+);
+
+export const occurredInTextLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInText,
+  webShortname: "hash",
+});
+
+export const triggeredByUserLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.triggeredByUser,
+  webShortname: "hash",
+});
+
+const mentionNotificationEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const notificationEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
+
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
+
+  const pageEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const occurredInCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInComment(context);
+
+  const commentEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.comment(context);
+
+  const occurredInTextLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInText(context);
+
+  const textEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.text(context);
+
+  const triggeredByUserLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
+
+  const userEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.mentionNotification,
+    allOf: [notificationEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: occurredInEntityLinkEntityType,
+        destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 0,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInTextLinkEntityType,
+        destinationEntityTypes: [textEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: triggeredByUserLinkEntityType,
+        destinationEntityTypes: [userEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
+export const triggeredByCommentLinkEntityTypeInitializer =
+  entityTypeInitializer({
+    ...systemTypes.linkEntityType.triggeredByComment,
+    webShortname: "hash",
+  });
+
+export const repliedToCommentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.repliedToComment,
+  webShortname: "hash",
+});
+
+const commentNotificationEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const notificationEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.notification(context);
+
+  const occurredInEntityLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInEntity(context);
+
+  const pageEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const triggeredByCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
+
+  const commentEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.comment(context);
+
+  const triggeredByUserLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
+
+  const userEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
+
+  const repliedToCommentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.repliedToComment(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.commentNotification,
+    allOf: [notificationEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: occurredInEntityLinkEntityType,
+        destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: triggeredByCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: triggeredByUserLinkEntityType,
+        destinationEntityTypes: [userEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: repliedToCommentLinkEntityType,
+        destinationEntityTypes: [commentEntityType],
+        minItems: 0,
+        maxItems: 1,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
 type LazyPromise<T> = (context: ImpureGraphContext) => Promise<T>;
 
 type FlattenAndPromisify<T> = {
@@ -1152,6 +1480,13 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     preferredName: preferredNamePropertyTypeInitializer,
     preferredPronouns: preferredPronounsPropertyTypeInitializer,
 
+    fileStorageBucket: fileStorageBucketPropertyTypeInitializer,
+    fileStorageEndpoint: fileStorageEndpointPropertyTypeInitializer,
+    fileStorageForcePathStyle: fileStorageForcePathStylePropertyTypeInitializer,
+    fileStorageKey: fileStorageKeyPropertyTypeInitializer,
+    fileStorageProvider: fileStorageProviderPropertyTypeInitializer,
+    fileStorageRegion: fileStorageRegionPropertyTypeInitializer,
+
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
     orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
@@ -1161,8 +1496,10 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     summary: summaryPropertyTypeInitializer,
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
-    index: indexPropertyTypeInitializer,
+    fractionalIndex: fractionalIndexPropertyTypeInitializer,
     icon: iconPropertyTypeInitializer,
+
+    numericIndex: numericIndexPropertyTypeInitializer,
 
     tokens: tokensPropertyTypeInitializer,
 
@@ -1198,6 +1535,12 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
+    occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
+    occurredInComment: occurredInCommentLinkEntityTypeInitializer,
+    occurredInText: occurredInTextLinkEntityTypeInitializer,
+    triggeredByUser: triggeredByUserLinkEntityTypeInitializer,
+    triggeredByComment: triggeredByCommentLinkEntityTypeInitializer,
+    repliedToComment: repliedToCommentLinkEntityTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
@@ -1209,6 +1552,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     blockCollection: blockCollectionEntityTypeInitializer,
     profileBio: profileBioEntityTypeInitializer,
     page: pageEntityTypeInitializer,
+    quickNote: quickNoteEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,
     userSecret: userSecretEntityTypeInitializer,
@@ -1220,6 +1564,9 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     facebookAccount: facebookAccountEntityTypeInitializer,
     instagramAccount: instagramAccountEntityTypeInitializer,
     gitHubAccount: gitHubAccountEntityTypeInitializer,
+    notification: notificationEntityTypeInitializer,
+    mentionNotification: mentionNotificationEntityTypeInitializer,
+    commentNotification: commentNotificationEntityTypeInitializer,
   },
 };
 

@@ -3,7 +3,9 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  ModifyRelationshipOperation,
   OntologyTemporalMetadata,
+  PropertyTypePermission,
   PropertyTypeStructuralQuery,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -19,6 +21,7 @@ import {
   OntologyTypeRecordId,
   ontologyTypeRecordIdToVersionedUrl,
   OwnedById,
+  PropertyTypeAuthorizationRelationship,
   PropertyTypeRootType,
   PropertyTypeWithMetadata,
   Subgraph,
@@ -261,3 +264,51 @@ export const unarchivePropertyType: ImpureGraphFunction<
 
   return temporalMetadata;
 };
+
+export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
+  { propertyTypeId: VersionedUrl },
+  Promise<PropertyTypeAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: {
+              kind: "propertyType",
+              resourceId: params.propertyTypeId,
+            },
+            ...relationship,
+          }) as PropertyTypeAuthorizationRelationship,
+      ),
+    );
+
+export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: PropertyTypeAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyPropertyTypeAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkPropertyTypePermission: ImpureGraphFunction<
+  { propertyTypeId: VersionedUrl; permission: PropertyTypePermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkPropertyTypePermission(
+      actorId,
+      params.propertyTypeId,
+      params.permission,
+    )
+    .then(({ data }) => data.has_permission);

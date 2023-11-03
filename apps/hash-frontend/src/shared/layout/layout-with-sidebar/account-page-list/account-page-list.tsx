@@ -252,10 +252,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             : overPageLocalIndex - 1;
 
         const beforeFractionalIndex =
-          siblingPages[newIndex]?.page.index ?? null;
+          siblingPages[newIndex]?.page.fractionalIndex ?? null;
 
         const afterFractionalIndex =
-          siblingPages[newIndex + 1]?.page.index ?? null;
+          siblingPages[newIndex + 1]?.page.fractionalIndex ?? null;
 
         if (typeof active.id !== "string" || !isEntityId(active.id)) {
           throw new Error("Expected draggable element ID to be an `EntityId`");

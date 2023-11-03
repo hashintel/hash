@@ -1,5 +1,7 @@
 {
-  "https://blockprotocol.org/@alice/types/property-type/name/": "The Time Machine",
+  "https://blockprotocol.org/@alice/types/property-type/name/": [
+    "The Time Machine"
+  ],
   "https://blockprotocol.org/@alice/types/property-type/blurb/": "brulb",
   "https://blockprotocol.org/@alice/types/property-type/published-on/": "1895-05"
 }

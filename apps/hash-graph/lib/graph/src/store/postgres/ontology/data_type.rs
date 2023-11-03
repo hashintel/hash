@@ -5,7 +5,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         DataTypeGeneralViewerSubject, DataTypeId, DataTypeOwnerSubject, DataTypePermission,
-        DataTypeRelationAndSubject, DataTypeSubjectSet,
+        DataTypeRelationAndSubject, DataTypeSubjectSet, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -15,9 +15,10 @@ use graph_types::{
     account::AccountId,
     ontology::{
         DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        PartialOntologyElementMetadata,
+        PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{url::VersionedUrl, DataType};
@@ -153,6 +154,20 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         let mut inserted_data_type_metadata = Vec::new();
         for (schema, metadata) in data_types {
+            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+                authorization_api
+                    .check_web_permission(
+                        actor_id,
+                        WebPermission::CreateDataType,
+                        WebId::from(*owned_by_id),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(InsertionError)?
+                    .assert_permission()
+                    .change_context(InsertionError)?;
+            }
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
@@ -332,6 +347,22 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         authorization_api: &mut A,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
+        let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
+            base_url: data_type.id().base_url.clone(),
+            version: data_type.id().version - 1,
+        });
+        authorization_api
+            .check_data_type_permission(
+                actor_id,
+                DataTypePermission::Update,
+                old_ontology_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let (ontology_id, metadata, owner) = transaction

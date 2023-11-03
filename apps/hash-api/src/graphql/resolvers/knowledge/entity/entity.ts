@@ -17,6 +17,7 @@ import {
   UserInputError,
 } from "apollo-server-express";
 
+import { publicUserAccountId } from "../../../../auth/public-user-account-id";
 import {
   addEntityEditor,
   addEntityOwner,
@@ -65,15 +66,10 @@ import {
   QueryStructuralQueryEntitiesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import {
-  GraphQLContext,
-  LoggedInGraphQLContext,
-  publicUserAccountId,
-} from "../../../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
-import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -319,16 +315,6 @@ export const updateEntityResolver: ResolverFn<
     entityId,
   });
 
-  for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
-      await beforeUpdateHook.callback({
-        context,
-        entity,
-        updatedProperties,
-      });
-    }
-  }
-
   let updatedEntity: Entity;
 
   if (
@@ -405,6 +391,9 @@ export const inferEntitiesResolver: ResolverFn<
       },
     ],
     workflowId: `inferEntities-${genId()}`,
+    retry: {
+      maximumAttempts: 3,
+    },
   });
 
   if (status.code !== "OK") {

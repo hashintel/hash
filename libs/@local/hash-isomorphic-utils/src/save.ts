@@ -18,6 +18,7 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
+import { getBlockCollectionResolveDepth } from "./block-collection";
 import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
@@ -195,8 +196,11 @@ const calculateSaveActions = (
       store.draft,
       block.metadata.recordId.entityId,
     );
+
     if (!draftEntity) {
-      throw new Error("Draft entity missing");
+      throw new Error(
+        `Draft entity missing: ${block.metadata.recordId.entityId}`,
+      );
     }
 
     return draftEntity.draftId;
@@ -439,8 +443,7 @@ export const save = async (
         entityId: blockCollectionEntityId,
         ...zeroedGraphResolveDepths,
         isOfType: { outgoing: 1 },
-        hasLeftEntity: { outgoing: 2, incoming: 2 },
-        hasRightEntity: { outgoing: 2, incoming: 2 },
+        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
         ...currentTimeInstantTemporalAxes,
       },
       fetchPolicy: "network-only",
@@ -514,6 +517,17 @@ export const save = async (
     >({
       variables: { entityId: blockCollectionEntityId, actions },
       mutation: updateBlockCollectionContents,
+      refetchQueries: [
+        {
+          query: getEntityQuery,
+          variables: {
+            includePermissions: false,
+            entityId: blockCollectionEntityId,
+            ...zeroedGraphResolveDepths,
+            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
+          } satisfies GetEntityQueryVariables,
+        },
+      ],
     });
 
     if (!res.data) {

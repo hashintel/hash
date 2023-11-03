@@ -1,16 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet,
+        EntityTypeRelationAndSubject, EntityTypeSubjectSet, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
-use error_stack::{Result, ResultExt};
+use error_stack::{ensure, Report, Result, ResultExt};
+use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
     ontology::{
@@ -18,16 +22,20 @@ use graph_types::{
         PartialCustomOntologyMetadata, PartialEntityTypeMetadata,
     },
     provenance::{ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 use type_system::{
+    raw,
     url::{BaseUrl, VersionedUrl},
     EntityType,
 };
+use uuid::Uuid;
 
 #[cfg(hash_graph_test_environment)]
 use crate::store::error::DeletionError;
 use crate::{
+    ontology::EntityTypeQueryPath,
     store::{
         crud::Read,
         postgres::{
@@ -35,6 +43,7 @@ use crate::{
             query::ReferenceTable,
             OntologyTypeSubject, TraversalContext,
         },
+        query::{Filter, FilterExpression, ParameterList},
         AsClient, ConflictBehavior, EntityTypeStore, InsertionError, PostgresStore, QueryError,
         Record, UpdateError,
     },
@@ -42,7 +51,7 @@ use crate::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, PropertyTypeVertexId},
         query::StructuralQuery,
-        temporal_axes::VariableAxis,
+        temporal_axes::{QueryTemporalAxesUnresolved, VariableAxis},
         Subgraph,
     },
 };
@@ -275,6 +284,132 @@ impl<C: AsClient> PostgresStore<C> {
 
         Ok(())
     }
+
+    fn create_closed_entity_type(
+        entity_type_id: EntityTypeId,
+        available_types: &mut HashMap<EntityTypeId, raw::EntityType>,
+    ) -> Result<raw::EntityType, QueryError> {
+        let mut current_type = available_types
+            .remove(&entity_type_id)
+            .ok_or_else(|| Report::new(QueryError))
+            .attach_printable("entity type not available")?;
+        let mut visited_ids = HashSet::from([entity_type_id]);
+
+        loop {
+            for parent in current_type.all_of.elements.clone() {
+                // TODO: Use `VersionedUrl` instead of `String` in `raw`
+                //   see https://linear.app/hash/issue/BP-30
+                let parent_id = EntityTypeId::from_url(
+                    &VersionedUrl::from_str(&parent.url)
+                        .change_context(QueryError)
+                        .attach_printable("Invalid versioned url")?,
+                );
+
+                ensure!(
+                    parent_id != entity_type_id,
+                    Report::new(QueryError).attach_printable("inheritance cycle detected")
+                );
+
+                if visited_ids.contains(&parent_id) {
+                    // This can happens in case of multiple inheritance or cycles. Cycles are
+                    // already checked above, so we can just skip this parent.
+                    current_type
+                        .all_of
+                        .elements
+                        .retain(|value| *value != parent);
+                    break;
+                }
+
+                current_type
+                    .merge_parent(
+                        available_types
+                            .get(&parent_id)
+                            .ok_or_else(|| Report::new(QueryError))
+                            .attach_printable("entity type not available")
+                            .attach_printable(parent.url)?
+                            .clone(),
+                    )
+                    .change_context(QueryError)
+                    .attach_printable("could not merge parent")?;
+
+                visited_ids.insert(parent_id);
+            }
+
+            if current_type.all_of.elements.is_empty() {
+                break;
+            }
+        }
+
+        available_types.insert(entity_type_id, current_type.clone());
+        Ok(current_type)
+    }
+
+    pub(crate) async fn resolve_entity_types(
+        &self,
+        entity_types: impl IntoIterator<Item = EntityType> + Send,
+    ) -> Result<Vec<EntityTypeInsertion>, QueryError> {
+        let entity_types = entity_types
+            .into_iter()
+            .map(|entity_type| {
+                (
+                    EntityTypeId::from_url(entity_type.id()).into_uuid(),
+                    // TODO: Distinguish between format validation and content validation so it's
+                    //       possible to directly use reference iterators from `raw`
+                    //   see https://linear.app/hash/issue/BP-33
+                    (entity_type.clone(), raw::EntityType::from(entity_type)),
+                )
+            })
+            .collect::<Vec<(Uuid, (EntityType, raw::EntityType))>>();
+
+        // We need all types that the provided types inherit from so we can create the closed
+        // schemas
+        let parent_entity_type_ids = entity_types
+            .iter()
+            .flat_map(|(_, (schema, _))| schema.inherits_from().all_of())
+            .map(|reference| EntityTypeId::from_url(reference.url()).into_uuid())
+            .collect::<Vec<_>>();
+
+        // We read all relevant schemas from the graph
+        let parent_schemas = self
+            .read_closed_schemas(
+                &Filter::In(
+                    FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                    ParameterList::Uuid(&parent_entity_type_ids),
+                ),
+                Some(&QueryTemporalAxesUnresolved::default().resolve()),
+            )
+            .await?
+            .map_ok(|(id, schema)| (EntityTypeId::from(id), schema))
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        // The types we check either come from the graph or are provided by the user
+        let mut available_schemas: HashMap<_, _> = entity_types
+            .iter()
+            .map(|(id, (_, raw_schema))| (EntityTypeId::new(*id), raw_schema.clone()))
+            .chain(parent_schemas)
+            .collect();
+
+        entity_types
+            .into_iter()
+            .map(|(entity_type_id, (schema, raw_schema))| {
+                Ok(EntityTypeInsertion {
+                    schema,
+                    raw_schema,
+                    closed_schema: Self::create_closed_entity_type(
+                        EntityTypeId::new(entity_type_id),
+                        &mut available_schemas,
+                    )?,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()
+    }
+}
+
+pub struct EntityTypeInsertion {
+    pub schema: EntityType,
+    pub raw_schema: raw::EntityType,
+    pub closed_schema: raw::EntityType,
 }
 
 #[async_trait]
@@ -288,8 +423,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         + Send,
         on_conflict: ConflictBehavior,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
-        let entity_types = entity_types.into_iter();
         let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        let (entity_type_schemas, metadatas): (Vec<_>, Vec<_>) = entity_types.into_iter().unzip();
+        let insertions = transaction
+            .resolve_entity_types(entity_type_schemas)
+            .await
+            .change_context(InsertionError)?;
 
         let provenance = ProvenanceMetadata {
             record_created_by_id: RecordCreatedById::new(actor_id),
@@ -301,7 +441,28 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata =
             Vec::with_capacity(inserted_entity_types.capacity());
-        for (schema, metadata) in entity_types {
+
+        for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
+            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
+                authorization_api
+                    .check_web_permission(
+                        actor_id,
+                        WebPermission::CreateEntityType,
+                        WebId::from(*owned_by_id),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(InsertionError)?
+                    .assert_permission()
+                    .change_context(InsertionError)?;
+            }
+
+            let EntityTypeInsertion {
+                schema,
+                raw_schema,
+                closed_schema,
+            } = insertion;
+
             if let Some((ontology_id, transaction_time, owner)) = transaction
                 .create_ontology_metadata(
                     provenance.record_created_by_id,
@@ -314,7 +475,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 transaction
                     .insert_entity_type_with_id(
                         ontology_id,
-                        schema.clone(),
+                        raw_schema,
+                        closed_schema,
                         metadata.label_property.as_ref(),
                     )
                     .await?;
@@ -510,6 +672,22 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         label_property: Option<BaseUrl>,
         icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
+        let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
+            base_url: entity_type.id().base_url.clone(),
+            version: entity_type.id().version - 1,
+        });
+        authorization_api
+            .check_entity_type_permission(
+                actor_id,
+                EntityTypePermission::Update,
+                old_ontology_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)?;
+
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         let url = entity_type.id();
@@ -523,8 +701,26 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let (ontology_id, owned_by_id, transaction_time, owner) = transaction
             .update_owned_ontology_id(url, provenance.record_created_by_id)
             .await?;
+
+        let mut insertions = transaction
+            .resolve_entity_types([entity_type])
+            .await
+            .change_context(UpdateError)?;
+        let EntityTypeInsertion {
+            schema,
+            raw_schema,
+            closed_schema,
+        } = insertions
+            .pop()
+            .ok_or_else(|| Report::new(UpdateError).attach_printable("entity type not found"))?;
+
         transaction
-            .insert_entity_type_with_id(ontology_id, entity_type.clone(), label_property.as_ref())
+            .insert_entity_type_with_id(
+                ontology_id,
+                raw_schema,
+                closed_schema,
+                label_property.as_ref(),
+            )
             .await
             .change_context(UpdateError)?;
 
@@ -536,16 +732,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         };
 
         transaction
-            .insert_entity_type_references(&entity_type, ontology_id)
+            .insert_entity_type_references(&schema, ontology_id)
             .await
             .change_context(UpdateError)
             .attach_printable_lazy(|| {
                 format!(
                     "could not insert references for entity type: {}",
-                    entity_type.id()
+                    schema.id()
                 )
             })
-            .attach_lazy(|| entity_type.clone())?;
+            .attach_lazy(|| schema.clone())?;
 
         let owner = match owner {
             OntologyTypeSubject::Account { id } => EntityTypeOwnerSubject::Account { id },

@@ -1,6 +1,6 @@
 pub use self::{
     batch::WebBatch,
-    channel::{channel, WebReceiver, WebSender},
+    channel::{channel, WebSender},
 };
 
 mod batch;

@@ -53,7 +53,10 @@ import {
 } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import { setupFileProxyHandler, setupStorageProviders } from "./storage";
+import {
+  setupFileDownloadProxyHandler,
+  setupStorageProviders,
+} from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { createTemporalClient } from "./temporal";
 import { getRequiredEnv } from "./util";
@@ -62,7 +65,7 @@ import { createVaultClient, VaultClient } from "./vault";
 declare global {
   namespace Express {
     interface Request {
-      context: ImpureGraphContext & {
+      context: ImpureGraphContext<true> & {
         temporalClient?: TemporalClient;
         vaultClient?: VaultClient;
       };
@@ -155,8 +158,6 @@ const main = async () => {
   const vaultClient = createVaultClient();
 
   const context = { graphApi, uploadProvider };
-
-  setupFileProxyHandler(app, uploadProvider, redis);
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
@@ -264,6 +265,8 @@ const main = async () => {
     };
     next();
   });
+
+  setupFileDownloadProxyHandler(app, redis);
 
   app.get("/", (_, res) => res.send("Hello World"));
 

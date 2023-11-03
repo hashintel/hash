@@ -1,4 +1,6 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { Entity, EntityId, Subgraph } from "@local/hash-subgraph";
+import { getEntityRevisionsByEntityId } from "@local/hash-subgraph/stdlib";
 
 import {
   DraftEntity,
@@ -105,4 +107,32 @@ export const flatMapBlocks = <T>(
   }
 
   return result;
+};
+
+export const getFirstEntityRevision = (
+  subgraph: Subgraph,
+  entityId: EntityId,
+) => {
+  const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
+
+  if (entityRevisions.length === 0) {
+    throw new Error("Could not find entity revisions in subgraph");
+  }
+
+  return entityRevisions.reduce<Entity>(
+    (previousEarliestRevision, currentRevision) => {
+      const currentCreatedAt = new Date(
+        currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      const previousEarliestRevisionCreatedAt = new Date(
+        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      return previousEarliestRevisionCreatedAt < currentCreatedAt
+        ? previousEarliestRevision
+        : currentRevision;
+    },
+    entityRevisions[0]!,
+  );
 };

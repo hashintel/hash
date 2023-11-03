@@ -3,7 +3,9 @@ import {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
+  DataTypePermission,
   DataTypeStructuralQuery,
+  ModifyRelationshipOperation,
   OntologyTemporalMetadata,
 } from "@local/hash-graph-client";
 import { ConstructDataTypeParams } from "@local/hash-graphql-shared/graphql/types";
@@ -14,6 +16,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
+  DataTypeAuthorizationRelationship,
   DataTypeRootType,
   DataTypeWithMetadata,
   OntologyElementMetadata,
@@ -259,3 +262,44 @@ export const unarchiveDataType: ImpureGraphFunction<
 
   return temporalMetadata;
 };
+
+export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl },
+  Promise<DataTypeAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getDataTypeAuthorizationRelationships(actorId, params.dataTypeId)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "dataType", resourceId: params.dataTypeId },
+            ...relationship,
+          }) as DataTypeAuthorizationRelationship,
+      ),
+    );
+
+export const modifyDataTypeAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: DataTypeAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyDataTypeAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkDataTypePermission: ImpureGraphFunction<
+  { dataTypeId: VersionedUrl; permission: DataTypePermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkDataTypePermission(actorId, params.dataTypeId, params.permission)
+    .then(({ data }) => data.has_permission);

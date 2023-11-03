@@ -11,12 +11,14 @@ import {
   AuthenticationContext,
   publicUserAccountId,
 } from "@apps/hash-api/src/graphql/context";
-import { StorageType } from "@apps/hash-api/src/storage";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { OrgSize } from "../graphql/api-types.gen";
 
+export const textDataTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
   return new Array(6)
@@ -25,7 +27,7 @@ const randomStringSuffix = () => {
     .join("");
 };
 
-export const createTestImpureGraphContext = (): ImpureGraphContext => {
+export const createTestImpureGraphContext = (): ImpureGraphContext<true> => {
   const logger = new Logger({
     mode: "dev",
     level: "debug",
@@ -57,7 +59,7 @@ export const createTestImpureGraphContext = (): ImpureGraphContext => {
           "File presign upload not implemented in tests. Override with mock to test.",
         );
       },
-      storageType: StorageType.LocalFileSystem,
+      storageType: "LOCAL_FILE_SYSTEM",
     },
   };
 };

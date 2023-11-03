@@ -6,18 +6,15 @@ mod record;
 mod table;
 
 pub use self::{
-    data_type::{data_type_channel, DataTypeReceiver, DataTypeRowBatch, DataTypeSender},
-    entity_type::{entity_type_channel, EntityTypeReceiver, EntityTypeRowBatch, EntityTypeSender},
+    data_type::{data_type_channel, DataTypeRowBatch, DataTypeSender},
+    entity_type::{entity_type_channel, EntityTypeRowBatch, EntityTypeSender},
     metadata::{
-        ontology_metadata_channel, OntologyTypeMetadataReceiver, OntologyTypeMetadataRowBatch,
-        OntologyTypeMetadataSender,
+        ontology_metadata_channel, OntologyTypeMetadataRowBatch, OntologyTypeMetadataSender,
     },
-    property_type::{
-        property_type_channel, PropertyTypeReceiver, PropertyTypeRowBatch, PropertyTypeSender,
-    },
+    property_type::{property_type_channel, PropertyTypeRowBatch, PropertyTypeSender},
     record::{
         DataTypeSnapshotRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
         PropertyTypeSnapshotRecord,
     },
-    table::{DataTypeRow, OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
+    table::{OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow},
 };

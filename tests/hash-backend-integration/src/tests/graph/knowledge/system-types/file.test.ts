@@ -6,10 +6,9 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
-import { StorageType } from "@apps/hash-api/src/storage";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { OwnedById } from "@local/hash-subgraph";
+import { EntityId, OwnedById, Timestamp } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -23,7 +22,6 @@ const logger = new Logger({
 });
 
 describe("File", () => {
-  /* eslint-disable @typescript-eslint/unbound-method */
   let testUser: User;
 
   beforeAll(async () => {
@@ -43,18 +41,28 @@ describe("File", () => {
   });
 
   it("createFileFromUploadRequest can create a file entity from a file", async () => {
-    const graphContext: ImpureGraphContext = createTestImpureGraphContext();
+    const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: testUser.accountId };
 
-    const fileKey = "mock-test-key";
+    const entityId = "abc~123" as EntityId;
+    const editionIdentifier = "ed123" as Timestamp;
+    const fileKey = `${entityId}/${editionIdentifier}/mock-test-key` as const;
     const downloadUrl = "mock-download-url";
     const uploadUrl = "mock-upload-url";
 
     graphContext.uploadProvider = {
       getFileEntityStorageKey: jest.fn(() => fileKey),
       presignDownload: jest.fn(() => Promise.resolve(downloadUrl)),
-      presignUpload: jest.fn(() => Promise.resolve({ url: uploadUrl })),
-      storageType: StorageType.LocalFileSystem,
+      presignUpload: jest.fn(() =>
+        Promise.resolve({
+          fileStorageProperties: {
+            key: fileKey,
+            provider: "LOCAL_FILE_SYSTEM" as const,
+          },
+          presignedPut: { url: uploadUrl },
+        }),
+      ),
+      storageType: "LOCAL_FILE_SYSTEM",
     };
 
     const file = await createFileFromUploadRequest(

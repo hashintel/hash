@@ -1,7 +1,10 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
-import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { createDataType } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
+import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import {
+  joinOrg,
+  User,
+} from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createPropertyType,
   getPropertyTypeById,
@@ -18,14 +21,18 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  DataTypeWithMetadata,
   isOwnedOntologyElementMetadata,
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestOrg,
+  createTestUser,
+  textDataTypeId,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -37,9 +44,9 @@ const logger = new Logger({
 
 const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
+let testOrg: Org;
 let testUser: User;
 let testUser2: User;
-let textDataType: DataTypeWithMetadata;
 let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
@@ -51,20 +58,22 @@ beforeAll(async () => {
 
   const authentication = { actorId: testUser.accountId };
 
-  textDataType = await createDataType(graphContext, authentication, {
-    ownedById: testUser.accountId as OwnedById,
-    schema: {
-      kind: "dataType",
-      title: "Text",
-      type: "string",
-    },
+  testOrg = await createTestOrg(
+    graphContext,
+    authentication,
+    "propertytestorg",
+    logger,
+  );
+  await joinOrg(graphContext, authentication, {
+    userEntityId: testUser2.entity.metadata.recordId.entityId,
+    orgEntityId: testOrg.entity.metadata.recordId.entityId,
   });
 
   propertyTypeSchema = {
     title: "A property type",
     oneOf: [
       {
-        $ref: textDataType.schema.$id,
+        $ref: textDataTypeId,
       },
     ],
   };
@@ -91,7 +100,7 @@ describe("Property type CRU", () => {
       graphContext,
       authentication,
       {
-        ownedById: testUser.accountId as OwnedById,
+        ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
       },
     );

@@ -4,21 +4,35 @@
 
 use std::sync::Arc;
 
-use authorization::AuthorizationApiPool;
+use authorization::{
+    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    schema::{
+        DataTypeGeneralViewerSubject, DataTypeId, DataTypeOwnerSubject, DataTypePermission,
+        DataTypeRelationAndSubject,
+    },
+    zanzibar::Consistency,
+    AuthorizationApi, AuthorizationApiPool,
+};
 use axum::{
+    extract::Path,
     http::StatusCode,
-    routing::{post, put},
+    response::Response,
+    routing::{get, post, put},
     Extension, Router,
 };
+use error_stack::Report;
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, OntologyElementMetadata, OntologyTemporalMetadata,
-        OntologyTypeReference, PartialCustomOntologyMetadata, PartialOntologyElementMetadata,
+        OntologyTypeRecordId, OntologyTypeReference, PartialCustomOntologyMetadata,
+        PartialOntologyElementMetadata,
     },
     provenance::OwnedById,
 };
+use hash_status::Status;
 use serde::{Deserialize, Serialize};
-use type_system::{url::VersionedUrl, DataType};
+use time::OffsetDateTime;
+use type_system::{raw, url::VersionedUrl, DataType};
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
@@ -26,8 +40,9 @@ use crate::{
     api::rest::{
         json::Json,
         report_to_status_code,
+        status::{report_to_response, status_to_response},
         utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
-        AuthenticatedUserHeader, RestApiStore,
+        AuthenticatedUserHeader, PermissionResponse, RestApiStore,
     },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -43,6 +58,10 @@ use crate::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        get_data_type_authorization_relationships,
+        modify_data_type_authorization_relationships,
+        check_data_type_permission,
+
         create_data_type,
         load_external_data_type,
         get_data_types_by_query,
@@ -53,6 +72,12 @@ use crate::{
     components(
         schemas(
             DataTypeWithMetadata,
+
+            DataTypeGeneralViewerSubject,
+            DataTypeOwnerSubject,
+            DataTypePermission,
+            DataTypeRelationAndSubject,
+            ModifyDataTypeAuthorizationRelationship,
 
             CreateDataTypeRequest,
             LoadExternalDataTypeRequest,
@@ -84,6 +109,22 @@ impl RoutedResource for DataTypeResource {
                 .route(
                     "/",
                     post(create_data_type::<S, A>).put(update_data_type::<S, A>),
+                )
+                .route(
+                    "/relationships",
+                    post(modify_data_type_authorization_relationships::<A>),
+                )
+                .nest(
+                    "/:data_type_id",
+                    Router::new()
+                        .route(
+                            "/relationships",
+                            get(get_data_type_authorization_relationships::<A>),
+                        )
+                        .route(
+                            "/permissions/:permission",
+                            get(check_data_type_permission::<A>),
+                        ),
                 )
                 .route("/query", post(get_data_types_by_query::<S, A>))
                 .route("/load", post(load_external_data_type::<S, A>))
@@ -187,6 +228,9 @@ where
             // TODO: consider adding the data type, or at least its URL in the trace
             tracing::error!(error=?report, "Could not create data types");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<BaseUrlAlreadyExists>() {
                 return StatusCode::CONFLICT;
             }
@@ -205,10 +249,17 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct LoadExternalDataTypeRequest {
-    #[schema(value_type = SHARED_VersionedUrl)]
-    data_type_id: VersionedUrl,
+#[serde(untagged)]
+enum LoadExternalDataTypeRequest {
+    #[serde(rename_all = "camelCase")]
+    Fetch {
+        #[schema(value_type = SHARED_VersionedUrl)]
+        data_type_id: VersionedUrl,
+    },
+    Create {
+        #[schema(value_type = VAR_DATA_TYPE)]
+        schema: raw::DataType,
+    },
 }
 
 #[utoipa::path(
@@ -236,35 +287,65 @@ async fn load_external_data_type<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     domain_validator: Extension<DomainValidator>,
-    body: Json<LoadExternalDataTypeRequest>,
-) -> Result<Json<OntologyElementMetadata>, StatusCode>
+    Json(request): Json<LoadExternalDataTypeRequest>,
+) -> Result<Json<OntologyElementMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut store = store_pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let mut store = store_pool.acquire().await.map_err(report_to_response)?;
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
-    let mut authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    match request {
+        LoadExternalDataTypeRequest::Fetch { data_type_id } => Ok(Json(
+            store
+                .load_external_type(
+                    actor_id,
+                    &mut authorization_api,
+                    &domain_validator,
+                    OntologyTypeReference::DataTypeReference((&data_type_id).into()),
+                )
+                .await?,
+        )),
+        LoadExternalDataTypeRequest::Create { schema } => {
+            // TODO: Distinguish between format validation and content validation so it's possible
+            //       to directly use the correct type.
+            //   see https://linear.app/hash/issue/BP-33
+            let schema = DataType::try_from(schema).map_err(report_to_response)?;
+            let record_id = OntologyTypeRecordId::from(schema.id().clone());
 
-    let Json(LoadExternalDataTypeRequest { data_type_id }) = body;
+            if domain_validator.validate_url(schema.id().base_url.as_str()) {
+                let error = "Ontology type is not external".to_owned();
+                tracing::error!(id=%schema.id(), error);
+                return Err(status_to_response(Status::<()>::new(
+                    hash_status::StatusCode::InvalidArgument,
+                    Some(error),
+                    vec![],
+                )));
+            }
 
-    Ok(Json(
-        store
-            .load_external_type(
-                actor_id,
-                &mut authorization_api,
-                &domain_validator,
-                OntologyTypeReference::DataTypeReference((&data_type_id).into()),
-            )
-            .await?,
-    ))
+            Ok(Json(
+                store
+                    .create_data_type(
+                        actor_id,
+                        &mut authorization_api,
+                        schema,
+                        PartialOntologyElementMetadata {
+                            record_id,
+                            custom: PartialCustomOntologyMetadata::External {
+                                fetched_at: OffsetDateTime::now_utc(),
+                            },
+                        },
+                    )
+                    .await
+                    .map_err(report_to_response)?,
+            ))
+        }
+    }
 }
 
 #[utoipa::path(
@@ -388,6 +469,9 @@ where
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");
 
+            if report.contains::<PermissionAssertion>() {
+                return StatusCode::FORBIDDEN;
+            }
             if report.contains::<OntologyVersionDoesNotExist>() {
                 return StatusCode::NOT_FOUND;
             }
@@ -528,4 +612,166 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ModifyDataTypeAuthorizationRelationship {
+    operation: ModifyRelationshipOperation,
+    resource: VersionedUrl,
+    relation_and_subject: DataTypeRelationAndSubject,
+}
+
+#[utoipa::path(
+    post,
+    path = "/data-types/relationships",
+    tag = "DataType",
+    request_body = [ModifyDataTypeAuthorizationRelationship],
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 204, description = "The relationship was modified for the data"),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn modify_data_type_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    relationships: Json<Vec<ModifyDataTypeAuthorizationRelationship>>,
+) -> Result<StatusCode, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let mut authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let (data_types, operations): (Vec<_>, Vec<_>) = relationships
+        .0
+        .into_iter()
+        .map(|request| {
+            let resource = DataTypeId::from_url(&request.resource);
+            (
+                resource,
+                (request.operation, resource, request.relation_and_subject),
+            )
+        })
+        .unzip();
+
+    let (permissions, _zookie) = authorization_api
+        .check_data_types_permission(
+            actor_id,
+            DataTypePermission::Update,
+            data_types,
+            Consistency::FullyConsistent,
+        )
+        .await
+        .map_err(report_to_response)?;
+
+    let mut failed = false;
+    // TODO: Change interface for `check_data_types_permission` to avoid this loop
+    for (_data_type_id, has_permission) in permissions {
+        if !has_permission {
+            tracing::error!("Insufficient permissions to modify relationship for data type");
+            failed = true;
+        }
+    }
+
+    if failed {
+        return Err(report_to_response(
+            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
+        ));
+    }
+
+    // for request in relationships.0 {
+    authorization_api
+        .modify_data_type_relations(operations)
+        .await
+        .map_err(report_to_response)?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/data-types/{data_type_id}/relationships",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("data_type_id" = VersionedUrl, Path, description = "The Data type to read the relations for"),
+    ),
+    responses(
+        (status = 200, description = "The relations of the data type", body = [DataTypeRelationAndSubject]),
+
+        (status = 403, description = "Permission denied"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn get_data_type_authorization_relationships<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(data_type_id): Path<VersionedUrl>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<Vec<DataTypeRelationAndSubject>>, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    Ok(Json(
+        authorization_api
+            .get_data_type_relations(
+                DataTypeId::from_url(&data_type_id),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .map_err(report_to_response)?,
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/data-types/{data_type_id}/permissions/{permission}",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = AccountId, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("data_type_id" = VersionedUrl, Path, description = "The data type ID to check if the actor has the permission"),
+        ("permission" = DataTypePermission, Path, description = "The permission to check for"),
+    ),
+    responses(
+        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the data type"),
+
+        (status = 500, description = "Internal error occurred"),
+    )
+)]
+#[tracing::instrument(level = "info", skip(authorization_api_pool))]
+async fn check_data_type_permission<A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path((data_type_id, permission)): Path<(VersionedUrl, DataTypePermission)>,
+    authorization_api_pool: Extension<Arc<A>>,
+) -> Result<Json<PermissionResponse>, Response>
+where
+    A: AuthorizationApiPool + Send + Sync,
+{
+    Ok(Json(PermissionResponse {
+        has_permission: authorization_api_pool
+            .acquire()
+            .await
+            .map_err(report_to_response)?
+            .check_data_type_permission(
+                actor_id,
+                permission,
+                DataTypeId::from_url(&data_type_id),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .map_err(report_to_response)?
+            .has_permission,
+    }))
 }

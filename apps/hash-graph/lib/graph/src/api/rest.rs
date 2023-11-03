@@ -39,6 +39,7 @@ use graph_types::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
+use hash_status::Status;
 use include_dir::{include_dir, Dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Serialize;
@@ -59,6 +60,7 @@ use self::{api_resource::RoutedResource, middleware::span_trace_layer};
 use crate::{
     api::rest::{
         middleware::log_request_and_response,
+        status::{report_to_response, status_to_response},
         utoipa_typedef::{
             subgraph::{
                 Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
@@ -122,7 +124,7 @@ pub trait RestApiStore: Store + TypeFetcher {
         authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, StatusCode>;
+    ) -> Result<OntologyElementMetadata, Response>;
 }
 
 #[async_trait]
@@ -136,25 +138,26 @@ where
         authorization_api: &mut A,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyElementMetadata, StatusCode> {
+    ) -> Result<OntologyElementMetadata, Response> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
-            tracing::error!(id=%reference.url(), "Ontology type is not external");
-            return Err(StatusCode::UNPROCESSABLE_ENTITY);
+            let error = "Ontology type is not external".to_owned();
+            tracing::error!(id=%reference.url(), error);
+            return Err(status_to_response(Status::<()>::new(
+                hash_status::StatusCode::InvalidArgument,
+                Some(error),
+                vec![],
+            )));
         }
 
-        self
-            .insert_external_ontology_type(
-                actor_id,
-                authorization_api,
-                reference,
-            )
+        self.insert_external_ontology_type(actor_id, authorization_api, reference)
             .await
+            .attach_printable("Could not insert external type")
+            .attach_printable_lazy(|| reference.url().clone())
             .map_err(|report| {
-                tracing::error!(error=?report, id=%reference.url(), "Could not insert external type");
                 if report.contains::<VersionedUrlAlreadyExists>() {
-                    StatusCode::CONFLICT
+                    report_to_response(report.attach(hash_status::StatusCode::AlreadyExists))
                 } else {
-                    StatusCode::INTERNAL_SERVER_ERROR
+                    report_to_response(report)
                 }
             })
     }

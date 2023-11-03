@@ -4,7 +4,6 @@ import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/pri
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
-import { StorageType } from "@apps/hash-api/src/storage";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -40,24 +39,6 @@ export const createImpureGraphContext = (): ImpureGraphContext => {
 
   return {
     graphApi,
-    uploadProvider: {
-      getFileEntityStorageKey: (_params: any) => {
-        throw new Error(
-          "File fetching not implemented yet for temporal worker",
-        );
-      },
-      presignDownload: (_params: any) => {
-        throw new Error(
-          "File presign download not implemented yet for temporal worker.",
-        );
-      },
-      presignUpload: (_params: any) => {
-        throw new Error(
-          "File presign upload not implemented yet for temporal worker.",
-        );
-      },
-      storageType: StorageType.LocalFileSystem,
-    },
   };
 };
 

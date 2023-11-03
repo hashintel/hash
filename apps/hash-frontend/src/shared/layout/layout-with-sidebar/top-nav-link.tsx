@@ -1,12 +1,10 @@
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Tooltip, Typography, typographyClasses } from "@mui/material";
-import { FunctionComponent } from "react";
+import { Box, Tooltip, Typography, typographyClasses } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../ui";
 
 type NavLinkProps = {
-  icon: IconDefinition;
+  icon: ReactNode;
   title: string;
   href: string;
   active?: boolean;
@@ -33,11 +31,11 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
           mx: 0.75,
           transition: transitions.create("background-color"),
 
-          [`& > .${typographyClasses.root}, & > svg`]: {
+          [`& > .${typographyClasses.root}, & svg`]: {
             transition: transitions.create("color"),
           },
 
-          "& > svg": {
+          "& svg": {
             color: palette.gray[40],
           },
 
@@ -61,13 +59,23 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
           ...(active && {
             backgroundColor: palette.gray[30],
 
-            [`& > svg, & > .${typographyClasses.root}`]: {
+            [`& svg, & > .${typographyClasses.root}`]: {
               color: palette.gray[90],
             },
           }),
         })}
       >
-        <FontAwesomeIcon sx={{ mr: 1.5 }} icon={icon} />
+        <Box
+          sx={{
+            width: 20,
+            marginRight: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icon}
+        </Box>
         <Typography variant="smallTextLabels" fontWeight={500}>
           {title}
         </Typography>

@@ -82,11 +82,7 @@ describe("Comment", () => {
     const hasText = await getCommentText(graphContext, authentication, {
       commentEntityId,
     });
-    expect(
-      hasText.properties[
-        SYSTEM_TYPES.propertyType.tokens.metadata.recordId.baseUrl
-      ],
-    ).toEqual([]);
+    expect(hasText.tokens).toEqual([]);
 
     const commentAuthor = await getCommentAuthor(graphContext, authentication, {
       commentEntityId,

@@ -8,13 +8,14 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-co
 import { ApolloServer } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 
+import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { GraphApi } from "../graph/util";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault/index";
-import { GraphQLContext, publicUserAccountId } from "./context";
+import { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
 export interface CreateApolloServerParams {
@@ -64,7 +65,7 @@ export const createApolloServer = ({
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       authentication: {
-        actorId: ctx.req.user?.accountId ?? publicUserAccountId,
+        actorId: getActorIdFromRequest(ctx.req),
       },
       user: ctx.req.user,
       emailTransporter,

@@ -115,7 +115,7 @@ type TopContextBarProps = {
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
   defaultCrumbIcon?: ReactNode;
-  scrollToTop: () => void;
+  scrollToTop?: () => void;
   sx?: SxProps<Theme>;
 };
 

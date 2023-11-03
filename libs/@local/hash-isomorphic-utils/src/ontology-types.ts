@@ -150,6 +150,10 @@ const systemEntityTypes = {
     title: "Page",
     description: undefined,
   },
+  quickNote: {
+    title: "Quick Note",
+    description: undefined,
+  },
   profileBio: {
     title: "Profile Bio",
     description: undefined,
@@ -218,6 +222,18 @@ const systemEntityTypes = {
     title: "GitHub Account",
     description: "A GitHub account.",
   },
+  notification: {
+    title: "Notification",
+    description: undefined,
+  },
+  mentionNotification: {
+    title: "Mention Notification",
+    description: undefined,
+  },
+  commentNotification: {
+    title: "Comment Notification",
+    description: undefined,
+  },
 } as const;
 
 type SystemEntityTypeKey = keyof typeof systemEntityTypes;
@@ -251,6 +267,31 @@ const systemPropertyTypes = {
   email: {
     title: "Email",
     description: undefined,
+  },
+  fileStorageBucket: {
+    title: "File Storage Bucket",
+    description: "The bucket in which a file is stored.",
+  },
+  fileStorageEndpoint: {
+    title: "File Storage Endpoint",
+    description: "The endpoint for making requests to a file storage provider.",
+  },
+  fileStorageForcePathStyle: {
+    title: "File Storage Force Path Style",
+    description:
+      "Whether to force path style for requests to a file storage provider (vs virtual host style).",
+  },
+  fileStorageKey: {
+    title: "File Storage Key",
+    description: "The key identifying a file in storage.",
+  },
+  fileStorageProvider: {
+    title: "File Storage Provider",
+    description: "The provider of a file storage service.",
+  },
+  fileStorageRegion: {
+    title: "File Storage Region",
+    description: "The region in which a file is stored.",
   },
   profileUrl: {
     title: "Profile URL",
@@ -320,10 +361,15 @@ const systemPropertyTypes = {
     title: "Title",
     description: "The title of something.",
   },
-  index: {
-    title: "Index",
+  fractionalIndex: {
+    title: "Fractional Index",
     description:
-      "The (fractional) index indicating the current position of something.",
+      "The fractional index indicating the current position of something.",
+  },
+  numericIndex: {
+    title: "Numeric Index",
+    description:
+      "The numeric index indicating the current position of something.",
   },
   icon: {
     title: "Icon",
@@ -419,6 +465,30 @@ const systemLinkEntityTypes = {
   hasServiceAccount: {
     title: "Has Service Account",
     description: "Something that has a service account.",
+  },
+  occurredInEntity: {
+    title: "Occurred In Entity",
+    description: "An entity that something occurred in.",
+  },
+  occurredInComment: {
+    title: "Occurred In Comment",
+    description: "A comment that something occurred in.",
+  },
+  occurredInText: {
+    title: "Occurred In Text",
+    description: "Text that something occurred in.",
+  },
+  triggeredByUser: {
+    title: "Triggered By User",
+    description: "A user that triggered something.",
+  },
+  triggeredByComment: {
+    title: "Triggered By Comment",
+    description: "A comment that triggered something.",
+  },
+  repliedToComment: {
+    title: "Replied To Comment",
+    description: "A comment that was replied to.",
   },
 } as const;
 

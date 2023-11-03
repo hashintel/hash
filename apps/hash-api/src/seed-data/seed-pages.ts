@@ -26,25 +26,25 @@ export const seedPages = async (
 ) => {
   const { context } = sharedParams;
 
-  let prevIndex: string | undefined;
+  let prevFractionalIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
     const newPage: Page = await createPage(context, authentication, {
       ownedById,
       title: pageDefinition.title,
-      prevIndex,
+      prevFractionalIndex,
     });
 
     if (parentPage) {
       await setPageParentPage(context, authentication, {
         page: newPage,
         parentPage,
-        prevIndex: parentPage.index ?? null,
+        prevFractionalIndex: parentPage.fractionalIndex ?? null,
         nextIndex: null,
       });
     }
 
-    prevIndex = newPage.index;
+    prevFractionalIndex = newPage.fractionalIndex;
 
     if (pageDefinition.nestedPages) {
       await seedPages(

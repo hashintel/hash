@@ -14,6 +14,7 @@ import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
 import { ImpureGraphFunction } from "../../util";
 import { getLatestEntityById } from "./entity";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
 export type CreateLinkEntityParams = {
   ownedById: OwnedById;
@@ -84,11 +85,23 @@ export const createLinkEntity: ImpureGraphFunction<
     },
   );
 
-  return {
+  let linkEntity = {
     metadata: metadata as EntityMetadata,
     properties,
     linkData,
   };
+
+  for (const afterCreateHook of afterCreateEntityHooks) {
+    if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
+      linkEntity = (await afterCreateHook.callback({
+        context,
+        entity: linkEntity,
+        authentication,
+      })) as LinkEntity;
+    }
+  }
+
+  return linkEntity;
 };
 
 /**

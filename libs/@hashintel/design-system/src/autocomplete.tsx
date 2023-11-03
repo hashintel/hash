@@ -26,8 +26,9 @@ type AutocompleteProps<
   MUIAutocompleteProps<T, Multiple, DisableClearable, false>,
   "renderInput"
 > & {
-  height?: number | string;
+  inputHeight?: number;
   inputRef?: Ref<any>;
+  inputLabel?: string;
   inputPlaceholder?: string;
   inputProps?: InputProps;
   autoFocus?: boolean;
@@ -40,16 +41,19 @@ type AutocompleteProps<
   joined?: boolean;
 };
 
+const textFieldLabelHeight = 18;
+
 export const Autocomplete = <
   T,
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
 >({
-  height = 57,
+  inputHeight = 57,
   open,
   sx,
   inputRef,
   inputPlaceholder,
+  inputLabel,
   inputProps,
   autoFocus = true,
   modifiers,
@@ -85,11 +89,15 @@ export const Autocomplete = <
   const paperComponent = useCallback(
     ({ children, ...props }: PaperProps) =>
       options.length ? (
-        <AutocompleteDropdown {...props} joined={joined} inputHeight={height}>
+        <AutocompleteDropdown
+          {...props}
+          joined={joined}
+          inputHeight={inputHeight}
+        >
           {children}
         </AutocompleteDropdown>
       ) : null,
-    [joined, height, options],
+    [joined, inputHeight, options],
   );
 
   return (
@@ -114,6 +122,7 @@ export const Autocomplete = <
           autoFocus={autoFocus}
           inputRef={inputRef}
           placeholder={inputPlaceholder}
+          label={inputLabel}
           sx={{ width: "100%" }}
           /**
            * Prevents backspace deleting chips when in multiple mode
@@ -143,7 +152,7 @@ export const Autocomplete = <
               (theme) => ({
                 // The popover needs to know how tall this is to draw
                 // a shadow around it
-                height,
+                height: inputHeight + (inputLabel ? textFieldLabelHeight : 0),
 
                 // Focus is handled by the options popover
                 "&.Mui-focused": {

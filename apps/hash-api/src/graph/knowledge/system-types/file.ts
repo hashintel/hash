@@ -4,7 +4,7 @@ import {
   File,
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/file";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import mime from "mime-types";
 
 import {
@@ -12,8 +12,9 @@ import {
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
 import { AuthenticationContext } from "../../../graphql/context";
-import { PresignedPutUpload } from "../../../storage";
+import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
+import { SYSTEM_TYPES } from "../../system-types";
 import { ImpureGraphContext, ImpureGraphFunction } from "../../util";
 import {
   createEntity,
@@ -80,7 +81,8 @@ const generateCommonParameters = async (
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
   MutationRequestFileUploadArgs,
-  Promise<{ presignedPut: PresignedPutUpload; entity: File }>
+  Promise<{ presignedPut: PresignedPutUpload; entity: Entity<FileProperties> }>,
+  true
 > = async (ctx, authentication, params) => {
   const { uploadProvider } = ctx;
   const { description, displayName, name, size } = params;
@@ -88,52 +90,77 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   const { entityTypeId, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
 
+  const initialProperties: FileProperties = {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
+      description ?? undefined,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+      "https://placehold.co/600x400?text=PLACEHOLDER",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
+      name,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+      displayName ?? undefined,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
+      mimeType,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
+      name,
+    "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
+      "Upload",
+  };
+
+  let fileEntity = existingEntity;
+  if (!fileEntity) {
+    fileEntity = (await createEntity(ctx, authentication, {
+      ownedById,
+      properties: initialProperties,
+      entityTypeId,
+    })) as Entity<FileProperties>;
+  }
+
   const editionIdentifier = genId();
 
   const key = uploadProvider.getFileEntityStorageKey({
-    ownedById,
+    entityId: fileEntity.metadata.recordId.entityId,
     editionIdentifier,
     filename: name,
   });
 
   try {
-    const properties: FileProperties = {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-        description ?? undefined,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        formatUrl(key),
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        name,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-        displayName ?? undefined,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-        mimeType,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-        name,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-        "Upload",
+    const { fileStorageProperties, presignedPut } =
+      await uploadProvider.presignUpload({
+        key,
+        headers: {
+          "content-length": size,
+          "content-type": mimeType,
+        },
+        expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
+      });
+
+    const { propertyType } = SYSTEM_TYPES;
+    const { bucket, endpoint, forcePathStyle, provider, region } =
+      fileStorageProperties;
+
+    const storageProperties: Partial<FileProperties> = {
+      [propertyType.fileStorageBucket.metadata.recordId.baseUrl]: bucket,
+      [propertyType.fileStorageEndpoint.metadata.recordId.baseUrl]: endpoint,
+      [propertyType.fileStorageForcePathStyle.metadata.recordId.baseUrl]:
+        !!forcePathStyle,
+      [propertyType.fileStorageKey.metadata.recordId.baseUrl]: key,
+      [propertyType.fileStorageProvider.metadata.recordId.baseUrl]: provider,
+      [propertyType.fileStorageRegion.metadata.recordId.baseUrl]: region,
     };
 
-    const presignedPut = await uploadProvider.presignUpload({
-      key,
-      headers: {
-        "content-length": size,
-        "content-type": mimeType,
-      },
-      expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
-    });
+    const properties: FileProperties = {
+      ...initialProperties,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+        formatUrl(key),
+      ...storageProperties,
+    };
 
-    const entity = existingEntity
-      ? ((await updateEntity(ctx, authentication, {
-          entity: existingEntity,
-          entityTypeId,
-          properties,
-        })) as unknown as File)
-      : ((await createEntity(ctx, authentication, {
-          ownedById,
-          properties,
-          entityTypeId,
-        })) as unknown as File);
+    const entity = (await updateEntity(ctx, authentication, {
+      entity: fileEntity,
+      entityTypeId,
+      properties,
+    })) as Entity<FileProperties>;
 
     return {
       presignedPut,

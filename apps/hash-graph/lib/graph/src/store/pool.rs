@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use error_stack::Result;
+use error_stack::{Context, Result};
 
 use crate::store::Store;
 
@@ -7,7 +7,7 @@ use crate::store::Store;
 #[async_trait]
 pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
-    type Error;
+    type Error: Context;
 
     /// The store returned when acquiring.
     type Store<'pool>: Store + Send;

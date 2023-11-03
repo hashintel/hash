@@ -1,5 +1,5 @@
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { Entity } from "@local/hash-subgraph/.";
+import { Entity } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,

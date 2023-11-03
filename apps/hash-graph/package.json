@@ -28,13 +28,14 @@
     "@local/codec-rs": "0.0.0-private",
     "@local/hash-authorization-rs": "0.0.0-private",
     "@local/hash-graph-types-rs": "0.0.0-private",
+    "@local/hash-validation-rs": "0.0.0-private",
     "@local/status-rust": "0.0.0-private",
     "@local/temporal-versioning-rs": "0.0.0-private",
     "ts-node": "10.9.1"
   },
   "devDependencies": {
     "@tests/hash-graph-test-data-rs": "0.0.0-private",
-    "httpyac": "6.8.1",
+    "httpyac": "6.8.2",
     "quicktype": "^16.0.43",
     "typescript": "5.1.6"
   }
