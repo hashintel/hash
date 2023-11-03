@@ -39,22 +39,22 @@ const Table = styled(MuiTable)(({ theme }) => ({
 }));
 
 const TableRow = styled(MuiTableRow)(() => ({
-  [`&:last-child .${tableCellClasses.body}`]: {
+  [`&:last-of-type .${tableCellClasses.body}`]: {
     borderBottom: "none",
   },
-  [`&:first-child .${tableCellClasses.head}`]: {
-    "&:first-child": {
+  [`&:first-of-type .${tableCellClasses.head}`]: {
+    "&:first-of-type": {
       borderTopLeftRadius: "8px",
     },
-    "&:last-child": {
+    "&:last-of-type": {
       borderTopRightRadius: "8px",
     },
   },
-  [`&:last-child .${tableCellClasses.body}`]: {
-    "&:first-child": {
+  [`&:last-of-type .${tableCellClasses.body}`]: {
+    "&:first-of-type": {
       borderBottomLeftRadius: "8px",
     },
-    "&:last-child": {
+    "&:last-of-type": {
       borderBottomRightRadius: "8px",
     },
   },
@@ -78,7 +78,7 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
     fontWeight: 500,
     color: theme.palette.gray[90],
   },
-  "&:last-child": {
+  "&:last-of-type": {
     borderRightWidth: 0,
   },
 }));
@@ -186,7 +186,7 @@ const InboxPage: NextPageWithLayout = () => {
           </TableHead>
           <TableBody
             sx={{
-              [`> .${tableRowClasses.root}:last-child > .${tableCellClasses.root}`]:
+              [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]:
                 {
                   borderBottomWidth: 0,
                 },
