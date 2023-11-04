@@ -10,8 +10,8 @@ use uuid::Uuid;
 use crate::{
     schema::error::InvalidRelationship,
     zanzibar::{
-        types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
+        Permission, Relation,
     },
 };
 
@@ -46,7 +46,6 @@ pub enum WebResourceRelation {
     Owner,
 }
 
-impl Affiliation<WebId> for WebResourceRelation {}
 impl Relation<WebId> for WebResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,7 +57,6 @@ pub enum WebPermission {
     CreatePropertyType,
     CreateDataType,
 }
-impl Affiliation<WebId> for WebPermission {}
 impl Permission<WebId> for WebPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,7 +73,6 @@ pub enum WebSubjectSet {
     Member,
 }
 
-impl Affiliation<WebSubject> for WebSubjectSet {}
 impl Relation<WebSubject> for WebSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,9 +140,9 @@ pub enum WebOwnerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
+#[serde(rename_all = "camelCase", tag = "relation")]
 pub enum WebRelationAndSubject {
-    Owner(WebOwnerSubject),
+    Owner { subject: WebOwnerSubject },
 }
 
 impl Relationship for (WebId, WebRelationAndSubject) {
@@ -154,57 +151,36 @@ impl Relationship for (WebId, WebRelationAndSubject) {
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error> {
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
-            resource,
-            match relation {
-                WebResourceRelation::Owner => match (subject, subject_set) {
-                    (WebSubject::Account(id), None) => {
-                        WebRelationAndSubject::Owner(WebOwnerSubject::Account { id })
-                    }
-                    (WebSubject::AccountGroup(id), Some(set)) => {
-                        WebRelationAndSubject::Owner(WebOwnerSubject::AccountGroup { id, set })
-                    }
-                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+            parts.resource,
+            match parts.relation.name {
+                WebResourceRelation::Owner => match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebRelationAndSubject::Owner {
+                        subject: WebOwnerSubject::Account { id },
+                    },
+                    (WebSubject::AccountGroup(id), Some(set)) => WebRelationAndSubject::Owner {
+                        subject: WebOwnerSubject::AccountGroup { id, set },
+                    },
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _subject_set) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
                     }
                 },
             },
         ))
     }
 
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn to_parts(&self) -> RelationshipParts<Self> {
         Self::into_parts(*self)
     }
 
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            WebRelationAndSubject::Owner(subject) => (
-                WebResourceRelation::Owner,
+            WebRelationAndSubject::Owner { subject } => (
+                LeveledRelation {
+                    name: WebResourceRelation::Owner,
+                    level: 0,
+                },
                 match subject {
                     WebOwnerSubject::Account { id } => (WebSubject::Account(id), None),
                     WebOwnerSubject::AccountGroup { id, set } => {
@@ -213,6 +189,11 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                 },
             ),
         };
-        (self.0, relation, subject, subject_set)
+        RelationshipParts {
+            resource: self.0,
+            relation,
+            subject,
+            subject_set,
+        }
     }
 }

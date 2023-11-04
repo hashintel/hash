@@ -2,12 +2,12 @@ use std::error::Error;
 
 use crate::zanzibar::{
     types::{resource::ResourceFilter, Resource},
-    Affiliation,
+    Relation,
 };
 
 pub trait Subject: Sized {
     type Resource: Resource;
-    type Relation: Affiliation<Self::Resource>;
+    type Relation: Relation<Self::Resource>;
 
     /// Creates a subject from a resource and relation.
     ///

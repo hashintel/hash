@@ -602,7 +602,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationAndSubject::Owner(owner),
+            EntityRelationAndSubject::Owner { subject: owner },
         )])
         .await
         .map_err(|error| {
@@ -689,7 +689,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationAndSubject::Owner(subject),
+            EntityRelationAndSubject::Owner { subject },
         )])
         .await
         .map_err(|error| {
@@ -770,7 +770,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Create,
             entity_id,
-            EntityRelationAndSubject::GeneralEditor(subject),
+            EntityRelationAndSubject::GeneralEditor { subject },
         )])
         .await
         .map_err(|error| {
@@ -854,7 +854,7 @@ where
         .modify_entity_relations([(
             ModifyRelationshipOperation::Delete,
             entity_id,
-            EntityRelationAndSubject::GeneralEditor(subject),
+            EntityRelationAndSubject::GeneralEditor { subject },
         )])
         .await
         .map_err(|error| {

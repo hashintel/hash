@@ -11,8 +11,8 @@ use crate::{
         PublicAccess,
     },
     zanzibar::{
-        types::{Relationship, Resource},
-        Affiliation, Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
+        Permission, Relation,
     },
 };
 
@@ -74,10 +74,9 @@ impl Resource for PropertyTypeId {
 #[serde(rename_all = "snake_case")]
 pub enum PropertyTypeResourceRelation {
     Owner,
-    GeneralViewer,
+    Viewer,
 }
 
-impl Affiliation<PropertyTypeId> for PropertyTypeResourceRelation {}
 impl Relation<PropertyTypeId> for PropertyTypeResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,7 +87,6 @@ pub enum PropertyTypePermission {
     View,
 }
 
-impl Affiliation<PropertyTypeId> for PropertyTypePermission {}
 impl Permission<PropertyTypeId> for PropertyTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -106,7 +104,6 @@ pub enum PropertyTypeSubjectSet {
     Member,
 }
 
-impl Affiliation<PropertyTypeSubject> for PropertyTypeSubjectSet {}
 impl Relation<PropertyTypeSubject> for PropertyTypeSubjectSet {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -196,10 +193,14 @@ pub enum PropertyTypeGeneralViewerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", tag = "relation", content = "subject")]
+#[serde(rename_all = "camelCase", tag = "relation")]
 pub enum PropertyTypeRelationAndSubject {
-    Owner(PropertyTypeOwnerSubject),
-    GeneralViewer(PropertyTypeGeneralViewerSubject),
+    Owner {
+        subject: PropertyTypeOwnerSubject,
+    },
+    GeneralViewer {
+        subject: PropertyTypeGeneralViewerSubject,
+    },
 }
 
 impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
@@ -208,92 +209,61 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
     type Subject = PropertyTypeSubject;
     type SubjectSet = PropertyTypeSubjectSet;
 
-    fn from_parts(
-        resource: Self::Resource,
-        relation: Self::Relation,
-        subject: Self::Subject,
-        subject_set: Option<Self::SubjectSet>,
-    ) -> Result<Self, impl Error> {
+    fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
         Ok((
-            resource,
-            match relation {
-                PropertyTypeResourceRelation::Owner => match (subject, subject_set) {
+            parts.resource,
+            match parts.relation.name {
+                PropertyTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (PropertyTypeSubject::Account(id), None) => {
-                        PropertyTypeRelationAndSubject::Owner(PropertyTypeOwnerSubject::Account {
-                            id,
-                        })
+                        PropertyTypeRelationAndSubject::Owner {
+                            subject: PropertyTypeOwnerSubject::Account { id },
+                        }
                     }
                     (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
-                        PropertyTypeRelationAndSubject::Owner(
-                            PropertyTypeOwnerSubject::AccountGroup { id, set },
-                        )
+                        PropertyTypeRelationAndSubject::Owner {
+                            subject: PropertyTypeOwnerSubject::AccountGroup { id, set },
+                        }
                     }
-                    (PropertyTypeSubject::Public, subject_set) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                    (PropertyTypeSubject::Public, _subject_set) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                     (
                         PropertyTypeSubject::Account(_) | PropertyTypeSubject::AccountGroup(_),
-                        subject_set,
+                        _subject_set,
                     ) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
-                PropertyTypeResourceRelation::GeneralViewer => match (subject, subject_set) {
+                PropertyTypeResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
                     (PropertyTypeSubject::Public, None) => {
-                        PropertyTypeRelationAndSubject::GeneralViewer(
-                            PropertyTypeGeneralViewerSubject::Public,
-                        )
+                        PropertyTypeRelationAndSubject::GeneralViewer {
+                            subject: PropertyTypeGeneralViewerSubject::Public,
+                        }
                     }
                     (
                         PropertyTypeSubject::Account(_)
                         | PropertyTypeSubject::AccountGroup(_)
                         | PropertyTypeSubject::Public,
-                        subject_set,
+                        _subject_set,
                     ) => {
-                        return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                            resource,
-                            relation,
-                            subject,
-                            subject_set,
-                        ));
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
             },
         ))
     }
 
-    fn to_parts(
-        &self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn to_parts(&self) -> RelationshipParts<Self> {
         Self::into_parts(*self)
     }
 
-    fn into_parts(
-        self,
-    ) -> (
-        Self::Resource,
-        Self::Relation,
-        Self::Subject,
-        Option<Self::SubjectSet>,
-    ) {
+    fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            PropertyTypeRelationAndSubject::Owner(subject) => (
-                PropertyTypeResourceRelation::Owner,
+            PropertyTypeRelationAndSubject::Owner { subject } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Owner,
+                    level: 0,
+                },
                 match subject {
                     PropertyTypeOwnerSubject::Account { id } => {
                         (PropertyTypeSubject::Account(id), None)
@@ -303,13 +273,21 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                     }
                 },
             ),
-            PropertyTypeRelationAndSubject::GeneralViewer(subject) => (
-                PropertyTypeResourceRelation::GeneralViewer,
+            PropertyTypeRelationAndSubject::GeneralViewer { subject } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Viewer,
+                    level: 0,
+                },
                 match subject {
                     PropertyTypeGeneralViewerSubject::Public => (PropertyTypeSubject::Public, None),
                 },
             ),
         };
-        (self.0, relation, subject, subject_set)
+        RelationshipParts {
+            resource: self.0,
+            relation,
+            subject,
+            subject_set,
+        }
     }
 }

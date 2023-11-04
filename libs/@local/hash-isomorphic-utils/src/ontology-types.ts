@@ -357,10 +357,6 @@ const systemPropertyTypes = {
     title: "Icon",
     description: "An emoji icon.",
   },
-  tokens: {
-    title: "Tokens",
-    description: undefined,
-  },
   resolvedAt: {
     title: "Resolved At",
     description: "Stringified timestamp of when something was resolved.",
@@ -1063,11 +1059,21 @@ export const linearTypes: LinearTypeDefinitions = {
  *
  * e.g.
  * export const blockProtocolTypes = {
- *   "remote-file": {
- *     title: "Remote File",
- *     entityTypeId:
- *       "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *   entityTypes: {
+ *     "remote-file": {
+ *       title: "Remote File",
+ *       entityTypeId:
+ *         "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2",
+ *     }
  *   }
  * }
  */
-export const blockProtocolTypes = {} as const;
+export const blockProtocolTypes = {
+  entityType: {},
+  propertyType: {
+    textualContent: {
+      propertyTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2" as const,
+    },
+  },
+} as const;

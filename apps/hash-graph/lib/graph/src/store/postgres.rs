@@ -1277,9 +1277,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
                 account_group_id,
-                AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
-                    id: actor_id,
-                }),
+                AccountGroupRelationAndSubject::Owner {
+                    subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                },
             )])
             .await
             .change_context(InsertionError)?;
@@ -1289,9 +1289,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
                     account_group_id,
-                    AccountGroupRelationAndSubject::Owner(AccountGroupOwnerSubject::Account {
-                        id: actor_id,
-                    }),
+                    AccountGroupRelationAndSubject::Owner {
+                        subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    },
                 )])
                 .await
                 .change_context(InsertionError)
@@ -1340,7 +1340,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_web_relations([(
                 ModifyRelationshipOperation::Create,
                 WebId::new(owned_by_id.into_uuid()),
-                WebRelationAndSubject::Owner(owner),
+                WebRelationAndSubject::Owner { subject: owner },
             )])
             .await
             .change_context(InsertionError)?;
@@ -1350,7 +1350,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_web_relations([(
                     ModifyRelationshipOperation::Delete,
                     WebId::new(owned_by_id.into_uuid()),
-                    WebRelationAndSubject::Owner(owner),
+                    WebRelationAndSubject::Owner { subject: owner },
                 )])
                 .await
                 .change_context(InsertionError)

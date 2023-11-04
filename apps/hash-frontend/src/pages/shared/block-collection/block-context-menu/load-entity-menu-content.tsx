@@ -6,6 +6,7 @@ import {
   LoadingSpinner,
   TextField,
 } from "@hashintel/design-system";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
@@ -109,12 +110,20 @@ export const LoadEntityMenuContent: FunctionComponent<
     [blockView, blockEntityId],
   );
 
+  const subgraph = useMemo(
+    () =>
+      queryResult
+        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+            queryResult.queryEntities.subgraph,
+          )
+        : undefined,
+    [queryResult],
+  );
+
   const filteredEntities = useMemo(() => {
     const uniqueEntityIds = new Set();
 
-    const entities = queryResult?.queryEntities
-      ? getRoots<EntityRootType>(queryResult.queryEntities as any)
-      : [];
+    const entities = subgraph ? getRoots(subgraph) : [];
 
     return entities.filter((entity) => {
       const targetEntityId = entity.metadata.recordId.entityId;
@@ -133,7 +142,7 @@ export const LoadEntityMenuContent: FunctionComponent<
 
       return true;
     });
-  }, [queryResult, childEntityEntityId]);
+  }, [subgraph, childEntityEntityId]);
 
   return (
     <MenuList>
@@ -166,7 +175,7 @@ export const LoadEntityMenuContent: FunctionComponent<
           <LoadingSpinner size={16} thickness={4} />
         </Box>
       ) : null}
-      {queryResult &&
+      {subgraph &&
         filteredEntities.map((entity) => {
           return (
             <MenuItem
@@ -181,10 +190,7 @@ export const LoadEntityMenuContent: FunctionComponent<
               </ListItemIcon>
               <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
                 <ListItemText
-                  primary={generateEntityLabel(
-                    queryResult.queryEntities as any,
-                    entity,
-                  )}
+                  primary={generateEntityLabel(subgraph, entity)}
                   primaryTypographyProps={{
                     noWrap: true,
                   }}
