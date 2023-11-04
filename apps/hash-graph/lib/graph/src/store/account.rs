@@ -35,6 +35,18 @@ pub trait AccountStore {
         account_group_id: AccountGroupId,
     ) -> Result<(), InsertionError>;
 
+    /// Inserts the specified [`OwnedById`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if insertion failed, e.g. because the [`OwnedById`] already exists.
+    async fn insert_web_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut A,
+        owned_by_id: OwnedById,
+    ) -> Result<(), InsertionError>;
+
     /// Returns if the [`AccountId`] exists in the database.
     ///
     /// # Errors

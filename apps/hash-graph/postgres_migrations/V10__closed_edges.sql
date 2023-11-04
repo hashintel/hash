@@ -1,8 +1,3 @@
-DROP TABLE
-  "closed_entity_types",
-  "closed_entity_types_to_constituent_types",
-  "entity_types_to_closed_entity_types";
-
 CREATE VIEW
   closed_entity_type_inherits_from AS
 WITH RECURSIVE

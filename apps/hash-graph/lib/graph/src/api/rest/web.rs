@@ -5,10 +5,7 @@
 use std::sync::Arc;
 
 use authorization::{
-    backend::ModifyRelationshipOperation,
-    schema::{WebOwnerSubject, WebPermission, WebRelationAndSubject, WebSubject, WebSubjectSet},
-    zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
+    schema::WebPermission, zanzibar::Consistency, AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
     extract::Path,
@@ -77,19 +74,14 @@ async fn create_web<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     store_pool: Extension<Arc<S>>,
-    Path(web_id): Path<OwnedById>,
+    Path(owned_by_id): Path<OwnedById>,
 ) -> Result<StatusCode, StatusCode>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let store = store_pool.acquire().await.map_err(|report| {
+    let mut store = store_pool.acquire().await.map_err(|report| {
         tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    let owner_id = store.identify_owned_by_id(web_id).await.map_err(|report| {
-        tracing::error!(error=?report, "Could not find web id `{web_id}`");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
@@ -98,25 +90,12 @@ where
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let owner = match owner_id {
-        WebSubject::Account(account_id) => WebOwnerSubject::Account { id: account_id },
-        WebSubject::AccountGroup(account_group_id) => WebOwnerSubject::AccountGroup {
-            id: account_group_id,
-            set: WebSubjectSet::Member,
-        },
-    };
-
-    // We don't need to check for permissions as the web is created with the same id as the account
-    // or account group id. That will also be the owner of the web.
-    authorization_api
-        .modify_web_relations([(
-            ModifyRelationshipOperation::Create,
-            WebId::new(web_id.into_uuid()),
-            WebRelationAndSubject::Owner(owner),
-        )])
+    store
+        .insert_web_id(actor_id, &mut authorization_api, owned_by_id)
         .await
-        .map_err(|error| {
-            tracing::error!(?error, "Could not add web owner");
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not create web id");
+
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 

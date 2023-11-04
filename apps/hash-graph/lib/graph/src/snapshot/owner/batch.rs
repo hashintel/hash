@@ -103,8 +103,8 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                         ON CONFLICT DO NOTHING
                         RETURNING account_id
                     )
-                    INSERT INTO owners
-                    SELECT account_id as owner_id
+                    INSERT INTO webs
+                    SELECT account_id as web_id
                     FROM inserted_accounts;
 
                     WITH inserted_account_groups AS (
@@ -113,8 +113,8 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
                         ON CONFLICT DO NOTHING
                         RETURNING account_group_id
                     )
-                    INSERT INTO owners
-                    SELECT account_group_id as owner_id
+                    INSERT INTO webs
+                    SELECT account_group_id as web_id
                     FROM inserted_account_groups;
                 ",
             )
