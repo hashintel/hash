@@ -523,10 +523,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     #[doc(hidden)]
     #[cfg(hash_graph_test_environment)]
-    async fn insert_entities_batched_by_type<A: AuthorizationApi + Sync>(
+    #[expect(clippy::too_many_lines)]
+    async fn insert_entities_batched_by_type<A: AuthorizationApi + Send + Sync>(
         &mut self,
         actor_id: AccountId,
-        _authorization_api: &mut A,
+        authorization_api: &mut A,
         entities: impl IntoIterator<
             Item = (
                 OwnedById,
@@ -537,8 +538,22 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             ),
             IntoIter: Send,
         > + Send,
-        entity_type_id: &VersionedUrl,
+        entity_type_url: &VersionedUrl,
     ) -> Result<Vec<EntityMetadata>, InsertionError> {
+        let entity_type_id = EntityTypeId::from_url(entity_type_url);
+        authorization_api
+            .check_entity_type_permission(
+                actor_id,
+                EntityTypePermission::Instantiate,
+                entity_type_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(InsertionError)?
+            .assert_permission()
+            .change_context(InsertionError)
+            .attach(StatusCode::PermissionDenied)?;
+
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let entities = entities.into_iter();
@@ -597,7 +612,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // complex logic and/or be inefficient.
         // Please see the documentation for this function on the trait for more information.
         let entity_type_ontology_id = transaction
-            .ontology_id_by_url(entity_type_id)
+            .ontology_id_by_url(entity_type_url)
             .await
             .change_context(InsertionError)?;
 
@@ -635,7 +650,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         edition_id,
                     },
                     entity_version,
-                    entity_type_id.clone(),
+                    entity_type_url.clone(),
                     ProvenanceMetadata {
                         record_created_by_id: RecordCreatedById::new(actor_id),
                         record_archived_by_id: None,
@@ -744,10 +759,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
-        entity_type_id: VersionedUrl,
+        entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
+        let entity_type_id = EntityTypeId::from_url(&entity_type_url);
+        authorization_api
+            .check_entity_type_permission(
+                actor_id,
+                EntityTypePermission::Instantiate,
+                entity_type_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .assert_permission()
+            .change_context(UpdateError)
+            .attach(StatusCode::PermissionDenied)?;
+
         authorization_api
             .check_entity_permission(
                 actor_id,
@@ -784,7 +813,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
-                &entity_type_id,
+                &entity_type_url,
                 &properties,
                 &link_order,
             )
@@ -856,7 +885,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     decision_time: row.get(0),
                     transaction_time: row.get(1),
                 },
-                entity_type_id,
+                entity_type_url,
                 ProvenanceMetadata {
                     record_created_by_id: RecordCreatedById::new(actor_id),
                     record_archived_by_id: None,
