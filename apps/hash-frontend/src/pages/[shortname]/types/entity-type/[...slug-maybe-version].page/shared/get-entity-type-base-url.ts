@@ -7,7 +7,7 @@ import { BaseUrl } from "@local/hash-subgraph";
 
 export const getEntityTypeBaseUrl = (
   slug: string,
-  namespaceWithAt: string,
+  namespaceWithAt: `@${string}`,
 ): BaseUrl =>
   `${
     // To be removed in H-1172: Temporary provision until https://app.hash.ai migrated to https://hash.ai
