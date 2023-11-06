@@ -403,7 +403,7 @@ jobs:
           echo "Running services: $SERVICES"
           yarn workspace @apps/hash-external-services deploy:test up $SERVICES --detach
           echo "Debug domain validator"
-          echo process.env.HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN
+          echo "$HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN"
 
       - name: Show disk usage
         run: df -h
