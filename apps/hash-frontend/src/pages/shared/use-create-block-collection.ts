@@ -27,7 +27,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             },
           }).then(({ data }) => {
             if (!data) {
-              throw new Error("Error creating profile bio entity");
+              throw new Error(`Error creating ${kind} entity`);
             }
 
             return data;
@@ -59,7 +59,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             },
           }).then(({ data }) => {
             if (!data) {
-              throw new Error("Error creating block entity");
+              throw new Error("Error creating text entity");
             }
 
             return data;
@@ -73,9 +73,12 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
-              leftToRightOrder: 0,
             },
-            properties: {},
+            properties: {
+              [extractBaseUrl(
+                systemTypes.propertyType.numericIndex.propertyTypeId,
+              )]: 0,
+            },
           },
         }),
         createEntity({
