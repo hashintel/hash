@@ -198,7 +198,7 @@ describe("Page Mention Notification", () => {
         occurredInEntity: occurredInPage,
         occurredInText,
       },
-    )) as MentionNotification;
+    ))!;
 
     expect(fetchedPageMentionNotification).toBeDefined();
 
