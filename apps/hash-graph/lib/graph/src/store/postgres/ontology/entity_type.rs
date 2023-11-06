@@ -7,8 +7,9 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, WebPermission,
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeInstantiatorSubject,
+        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        EntityTypeSubjectSet, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -443,19 +444,23 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             Vec::with_capacity(inserted_entity_types.capacity());
 
         for (insertion, metadata) in insertions.into_iter().zip(metadatas) {
-            if let PartialCustomOntologyMetadata::Owned { owned_by_id } = &metadata.custom {
-                authorization_api
-                    .check_web_permission(
-                        actor_id,
-                        WebPermission::CreateEntityType,
-                        WebId::from(*owned_by_id),
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(InsertionError)?
-                    .assert_permission()
-                    .change_context(InsertionError)?;
-            }
+            let is_external = match &metadata.custom {
+                PartialCustomOntologyMetadata::Owned { owned_by_id } => {
+                    authorization_api
+                        .check_web_permission(
+                            actor_id,
+                            WebPermission::CreateEntityType,
+                            WebId::from(*owned_by_id),
+                            Consistency::FullyConsistent,
+                        )
+                        .await
+                        .change_context(InsertionError)?
+                        .assert_permission()
+                        .change_context(InsertionError)?;
+                    false
+                }
+                PartialCustomOntologyMetadata::External { fetched_at: _ } => true,
+            };
 
             let EntityTypeInsertion {
                 schema,
@@ -494,6 +499,14 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                         subject: EntityTypeGeneralViewerSubject::Public,
                     },
                 ));
+                if is_external {
+                    relationships.push((
+                        EntityTypeId::from(ontology_id),
+                        EntityTypeRelationAndSubject::Instantiator {
+                            subject: EntityTypeInstantiatorSubject::Public,
+                        },
+                    ));
+                }
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
