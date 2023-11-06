@@ -9071,7 +9071,7 @@ aproba@^1.0.3, "aproba@^1.0.3 || ^2.0.0":
   resolved "https://registry.yarnpkg.com/aproba/-/aproba-1.2.0.tgz#6802e6264efd18c790a1b0d517f0f2627bf2c94a"
   integrity "sha1-aALmJk79GMeQobDVF/DyYnvyyUo= sha512-Y9J6ZjXtoYh8RnXVCMOU/ttDmk1aBjunq9vO0ta5x85WDQiQfUF9sIPBITdbiiIVcBo03Hi3jMxigBtsddlXRw=="
 
-arch@^2.1.1, arch@^2.2.0:
+arch@^2.1.1:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/arch/-/arch-2.2.0.tgz#1bc47818f305764f23ab3306b0bfc086c5a29d11"
   integrity "sha1-G8R4GPMFdk8jqzMGsL/AhsWinRE= sha512-Of/R0wqp83cgHozfIYLbBMnej79U/SVGOOyuB3VVFv1NRM/PSFMK12x9KVtiYzJqmnU5WR2qp0Z5rHb7sWGnFQ=="
@@ -10562,14 +10562,14 @@ clipboardy@2.3.0:
     execa "^1.0.0"
     is-wsl "^2.1.1"
 
-clipboardy@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/clipboardy/-/clipboardy-3.0.0.tgz#f3876247404d334c9ed01b6f269c11d09a5e3092"
-  integrity "sha1-84diR0BNM0ye0BtvJpwR0JpeMJI= sha512-Su+uU5sr1jkUy1sGRpLKjKrvEOVXgSgiSInwa/qeID6aJ07yh+5NWc3h2QfjHjBnfX4LhtFcuAWKUsJ3r+fjbg=="
+clipboardy@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/clipboardy/-/clipboardy-4.0.0.tgz#e73ced93a76d19dd379ebf1f297565426dffdca1"
+  integrity sha512-5mOlNS0mhX0707P2I0aZ2V/cmHUEO/fL7VFLqszkhUsxt7RwnmrInf/eEQKlf5GzvYeHIjT+Ov1HRfNmymlG0w==
   dependencies:
-    arch "^2.2.0"
-    execa "^5.1.1"
-    is-wsl "^2.2.0"
+    execa "^8.0.1"
+    is-wsl "^3.1.0"
+    is64bit "^2.0.0"
 
 cliui@^4.0.0:
   version "4.1.0"
@@ -12952,7 +12952,7 @@ execa@5.1.1, execa@^5.0.0, execa@^5.1.1:
     signal-exit "^3.0.3"
     strip-final-newline "^2.0.0"
 
-execa@8.0.1:
+execa@8.0.1, execa@^8.0.1:
   version "8.0.1"
   resolved "https://registry.yarnpkg.com/execa/-/execa-8.0.1.tgz#51f6a5943b580f963c3ca9c6321796db8cc39b8c"
   integrity sha512-VyhnebXciFV2DESc+p6B+y0LjSm0krU4OgJN44qFAhBY0TJ+1V61tYD2+wHusZ6F9n5K+vl8k0sTy7PEfV4qpg==
@@ -14453,10 +14453,10 @@ hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.1, hoist-non-react-
   dependencies:
     react-is "^16.7.0"
 
-hookpoint@3.2.1:
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/hookpoint/-/hookpoint-3.2.1.tgz#5c3dab448b6b474b0884e3b85486513986ee8ea5"
-  integrity sha512-aj/kGFoZ27fxTHJg2PqEVo8VtZPgDXRPqhG99bdFA8vmo++LcN8VBObVYapWQvzjIkA7DbUBQeyfSQa8dLfzDg==
+hookpoint@4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/hookpoint/-/hookpoint-4.0.0.tgz#b30ab451f729a9d94ea01db5831f34b5747e0d18"
+  integrity sha512-ESTwO3saGfKWpnHxKQTBE1s1ZMt4GSaLwVJGl1Ml8it7LMEieEYW49FOUtlMW/UQ2OWzIQUhffbO5X+hFEaMEw==
 
 hosted-git-info@^2.1.4:
   version "2.8.9"
@@ -14730,10 +14730,10 @@ https-proxy-agent@^7.0.1:
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.8.2:
-  version "6.8.2"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.8.2.tgz#f4ffaf9f4780772e75a44425fde5d024b2f51208"
-  integrity sha512-+8NTf89ghepinZNmElJPHqoQYFSt4OVajX7Yvw6oADZK4mTW78L0L5FXI6Husyv5tw4mpYGkfcOyYggQmDBJdA==
+httpyac@6.9.1:
+  version "6.9.1"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.9.1.tgz#2706fb5985f1c16b71a3d741744adf195697033c"
+  integrity sha512-FYhIEJH2DjsfGf+n9SrH/YwDfB2VSUdJ0SRNTP4K8eZz5+xUGt66ahAIhX8ZF2P8BQZAUhDpWSm49vacnx3Kig==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.9.0"
@@ -14741,7 +14741,7 @@ httpyac@6.8.2:
     "@xmldom/xmldom" "^0.8.10"
     aws4 "^1.12.0"
     chalk "^4.1.2"
-    clipboardy "^3.0.0"
+    clipboardy "^4.0.0"
     commander "^11.0.0"
     dayjs "^1.11.9"
     dayjs-plugin-utc "^0.1.2"
@@ -14752,7 +14752,7 @@ httpyac@6.8.2:
     globby "^13.2.2"
     got "^11.8.6"
     grpc-reflection-js "^0.3.0"
-    hookpoint "3.2.1"
+    hookpoint "4.0.0"
     http-proxy-agent "^7.0.0"
     https-proxy-agent "^7.0.1"
     inquirer "^9.2.8"
@@ -15239,6 +15239,11 @@ is-docker@^2.0.0, is-docker@^2.1.1:
   resolved "https://registry.yarnpkg.com/is-docker/-/is-docker-2.2.1.tgz#33eeabe23cfe86f14bde4408a02c0cfb853acdaa"
   integrity "sha1-M+6r4jz+hvFL3kQIoCwM+4U6zao= sha512-F+i2BKsFrH66iaUFc0woD8sLy8getkwTwtOBjvs56Cx4CgJDeKQeqfz8wAYiSb8JOprWhHH5p77PbmYCvvUuXQ=="
 
+is-docker@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/is-docker/-/is-docker-3.0.0.tgz#90093aa3106277d8a77a5910dbae71747e15a200"
+  integrity sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==
+
 is-extendable@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/is-extendable/-/is-extendable-0.1.1.tgz#62b110e289a471418e3ec36a617d472e301dfc89"
@@ -15317,6 +15322,13 @@ is-hotkey@^0.1.6:
   version "0.1.8"
   resolved "https://registry.yarnpkg.com/is-hotkey/-/is-hotkey-0.1.8.tgz#6b1f4b2d0e5639934e20c05ed24d623a21d36d25"
   integrity "sha1-ax9LLQ5WOZNOIMBe0k1iOiHTbSU= sha512-qs3NZ1INIS+H+yeo7cD9pDfwYV/jqRh1JG9S9zYrNudkoUQg7OL7ziXqRKu+InFjUIDoP2o6HIkLYMh1pcWgyQ=="
+
+is-inside-container@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/is-inside-container/-/is-inside-container-1.0.0.tgz#e81fba699662eb31dbdaf26766a61d4814717ea4"
+  integrity sha512-KIYLCCJghfHZxqjYBE7rEy0OBuTd5xCHS7tHVgvCLkx7StIoaxwNW3hCALgEUjFfeRk+MG/Qxmp/vtETEF3tRA==
+  dependencies:
+    is-docker "^3.0.0"
 
 is-interactive@^1.0.0:
   version "1.0.0"
@@ -15617,6 +15629,20 @@ is-wsl@^2.1.1, is-wsl@^2.2.0:
   integrity "sha1-dKTHbnfKn9P5MvKQwX6jJs0VcnE= sha512-fKzAra0rGJUUBwGBgNkHZuToZcn+TtXHpeCgmkMJMMYx1sQDYaCSyjJBSCa2nH1DGm7s3n1oBnohoVTBaN7Lww=="
   dependencies:
     is-docker "^2.0.0"
+
+is-wsl@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/is-wsl/-/is-wsl-3.1.0.tgz#e1c657e39c10090afcbedec61720f6b924c3cbd2"
+  integrity sha512-UcVfVfaK4Sc4m7X3dUSoHoozQGBEFeDC+zVo06t98xe8CzHSZZBekNXH+tu0NalHolcJ/QAGqS46Hef7QXBIMw==
+  dependencies:
+    is-inside-container "^1.0.0"
+
+is64bit@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/is64bit/-/is64bit-2.0.0.tgz#198c627cbcb198bbec402251f88e5e1a51236c07"
+  integrity sha512-jv+8jaWCl0g2lSBkNSVXdzfBA0npK1HGC2KtWM9FumFRoGS94g3NbCCLVnCYHLjp4GrW2KZeeSTMo5ddtznmGw==
+  dependencies:
+    system-architecture "^0.1.0"
 
 isarray@0.0.1:
   version "0.0.1"
@@ -22502,6 +22528,11 @@ synckit@0.8.5:
   dependencies:
     "@pkgr/utils" "^2.3.1"
     tslib "^2.5.0"
+
+system-architecture@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/system-architecture/-/system-architecture-0.1.0.tgz#71012b3ac141427d97c67c56bc7921af6bff122d"
+  integrity sha512-ulAk51I9UVUyJgxlv9M6lFot2WP3e7t8Kz9+IS6D4rVba1tR9kON+Ey69f+1R4Q8cd45Lod6a4IcJIxnzGc/zA==
 
 table-layout@^0.4.3:
   version "0.4.5"
