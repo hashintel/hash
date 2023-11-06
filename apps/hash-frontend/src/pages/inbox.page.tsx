@@ -20,7 +20,6 @@ import {
   differenceInDays,
   differenceInMinutes,
   format,
-  formatDistanceToNow,
   isThisYear,
   isToday,
 } from "date-fns";
@@ -143,12 +142,16 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     if (numberOfMinutesAgo < 1) {
       return "Just now";
     }
-    if (isToday(createdAt)) {
-      return formatDistanceToNow(createdAt, {
-        addSuffix: true,
-      }); // "5 minutes ago" or "2 hours ago"
-    }
 
+    if (isToday(createdAt)) {
+      if (numberOfMinutesAgo < 60) {
+        return `${numberOfMinutesAgo} minute${
+          numberOfMinutesAgo > 1 ? "s" : ""
+        } ago`;
+      }
+      const numberOfHoursAgo = Math.floor(numberOfMinutesAgo / 60);
+      return `${numberOfHoursAgo} hour${numberOfHoursAgo > 1 ? "s" : ""} ago`;
+    }
     const numberOfDaysAgo = differenceInDays(now, createdAt);
 
     if (numberOfDaysAgo < 7) {
@@ -161,6 +164,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
 
     return format(createdAt, "MMMM do, yyyy"); // "December 24th, 2022"
   }, [createdAt]);
+
   return (
     <TableRow
       sx={{
@@ -168,7 +172,15 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
         opacity: readAt ? 0.6 : 1,
       }}
     >
-      <TableCell>{humanReadableCreatedAt}</TableCell>
+      <TableCell
+        sx={{
+          [`&.${tableCellClasses.body}`]: {
+            color: ({ palette }) => palette.gray[70],
+          },
+        }}
+      >
+        {humanReadableCreatedAt}
+      </TableCell>
       <TableCell
         sx={{
           a: {
