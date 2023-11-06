@@ -112,7 +112,6 @@ mod tests {
         error::install_error_stack_hooks, property_type::PropertyValidationError,
     };
 
-    #[expect(clippy::struct_field_names)]
     struct Provider {
         entities: HashMap<EntityId, Entity>,
         entity_types: HashMap<VersionedUrl, EntityType>,
@@ -174,10 +173,10 @@ mod tests {
         async fn provide_entity(
             &self,
             entity_id: EntityId,
-        ) -> Result<&Entity, Report<InvalidPropertyType>> {
+        ) -> Result<&Entity, Report<InvalidEntity>> {
             self.entities
-                .get(entity_id)
-                .ok_or_else(|| Report::new(InvalidPropertyType { id: *entity_id }))
+                .get(&entity_id)
+                .ok_or_else(|| Report::new(InvalidEntity { id: entity_id }))
         }
     }
 
@@ -240,6 +239,7 @@ mod tests {
     pub(crate) async fn validate_entity(
         entity: &'static str,
         entity_type: &'static str,
+        entities: impl IntoIterator<Item = Entity> + Send,
         entity_types: impl IntoIterator<Item = &'static str> + Send,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
@@ -247,6 +247,7 @@ mod tests {
         install_error_stack_hooks();
 
         let provider = Provider::new(
+            entities,
             entity_types.into_iter().map(|entity_type_id| {
                 let raw_entity_type = serde_json::from_str::<raw::EntityType>(entity_type_id)
                     .expect("failed to read entity type string");
@@ -284,6 +285,7 @@ mod tests {
         install_error_stack_hooks();
 
         let provider = Provider::new(
+            [],
             [],
             property_types.into_iter().map(|property_type_id| {
                 let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type_id)

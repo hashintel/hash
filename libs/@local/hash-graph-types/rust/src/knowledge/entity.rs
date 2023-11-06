@@ -160,7 +160,7 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {

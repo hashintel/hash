@@ -69,6 +69,7 @@ mod tests {
 
     #[tokio::test]
     async fn address() {
+        let entities = [];
         let entity_types = [];
         let property_types = [
             graph_test_data::property_type::ADDRESS_LINE_1_V1,
@@ -80,6 +81,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::ADDRESS_V1,
             graph_test_data::entity_type::UK_ADDRESS_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -90,6 +92,7 @@ mod tests {
 
     #[tokio::test]
     async fn block() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -97,6 +100,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::BLOCK_V1,
             graph_test_data::entity_type::BLOCK_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -107,16 +111,22 @@ mod tests {
 
     #[tokio::test]
     async fn book() {
+        let entities = [];
+        let entity_types = [];
+        let property_types = [
+            graph_test_data::property_type::NAME_V1,
+            graph_test_data::property_type::BLURB_V1,
+            graph_test_data::property_type::PUBLISHED_ON_V1,
+        ];
+        let data_types = [graph_test_data::data_type::TEXT_V1];
+
         validate_entity(
             graph_test_data::entity::BOOK_V1,
             graph_test_data::entity_type::BOOK_V1,
-            [],
-            [
-                graph_test_data::property_type::NAME_V1,
-                graph_test_data::property_type::BLURB_V1,
-                graph_test_data::property_type::PUBLISHED_ON_V1,
-            ],
-            [graph_test_data::data_type::TEXT_V1],
+            entities,
+            entity_types,
+            property_types,
+            data_types,
         )
         .await
         .expect("validation failed");
@@ -124,6 +134,7 @@ mod tests {
 
     #[tokio::test]
     async fn building() {
+        let entities = [];
         let entity_types = [];
         let property_types = [];
         let data_types = [];
@@ -131,6 +142,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::BUILDING_V1,
             graph_test_data::entity_type::BUILDING_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -141,6 +153,7 @@ mod tests {
 
     #[tokio::test]
     async fn organization() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -148,6 +161,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::ORGANIZATION_V1,
             graph_test_data::entity_type::ORGANIZATION_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -158,6 +172,7 @@ mod tests {
 
     #[tokio::test]
     async fn page() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::TEXT_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -165,6 +180,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PAGE_V1,
             graph_test_data::entity_type::PAGE_V1,
+            entities.to_vec(),
             entity_types,
             property_types,
             data_types,
@@ -175,6 +191,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PAGE_V2,
             graph_test_data::entity_type::PAGE_V2,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -185,6 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn person() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -192,6 +210,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PERSON_ALICE_V1,
             graph_test_data::entity_type::PERSON_V1,
+            entities.to_vec(),
             entity_types,
             property_types,
             data_types,
@@ -202,6 +221,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PERSON_BOB_V1,
             graph_test_data::entity_type::PERSON_V1,
+            entities.to_vec(),
             entity_types,
             property_types,
             data_types,
@@ -212,6 +232,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PERSON_CHARLES_V1,
             graph_test_data::entity_type::PERSON_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -222,6 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn playlist() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -229,6 +251,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::PLAYLIST_V1,
             graph_test_data::entity_type::PLAYLIST_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
@@ -239,6 +262,7 @@ mod tests {
 
     #[tokio::test]
     async fn song() {
+        let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
         let data_types = [graph_test_data::data_type::TEXT_V1];
@@ -246,6 +270,7 @@ mod tests {
         validate_entity(
             graph_test_data::entity::SONG_V1,
             graph_test_data::entity_type::SONG_V1,
+            entities,
             entity_types,
             property_types,
             data_types,
