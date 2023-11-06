@@ -20,6 +20,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
+import {
+  createAccountGroup,
+  createWeb,
+} from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
@@ -27,7 +31,6 @@ import {
   CreateEntityParams,
   modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
-import { createAccountGroup, createWeb } from "./account.fields";
 import { User } from "./user";
 
 export type HashInstance = {

@@ -18,6 +18,7 @@ import {
 } from "apollo-server-express";
 
 import { publicUserAccountId } from "../../../../auth/public-user-account-id";
+import { createWeb } from "../../../../graph/account-permission-management";
 import {
   addEntityEditor,
   addEntityOwner,
@@ -38,7 +39,6 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import { createWeb } from "../../../../graph/knowledge/system-types/account.fields";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";

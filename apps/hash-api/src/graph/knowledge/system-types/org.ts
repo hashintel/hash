@@ -20,6 +20,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
+import {
+  createAccountGroup,
+  createWeb,
+} from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
@@ -30,8 +34,6 @@ import {
   updateEntityProperty,
 } from "../primitive/entity";
 import {
-  createAccountGroup,
-  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,

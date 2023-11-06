@@ -29,11 +29,8 @@ import {
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { createAccountGroup, createWeb } from "./account-permission-management";
 import { ImpureGraphContext } from "./context-types";
-import {
-  createAccountGroup,
-  createWeb,
-} from "./knowledge/system-types/account.fields";
 import { createOrg, getOrgByShortname } from "./knowledge/system-types/org";
 import {
   createEntityType,

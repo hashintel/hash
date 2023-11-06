@@ -26,6 +26,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
+import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
@@ -37,8 +38,6 @@ import {
   modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
-  createAccount,
-  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,

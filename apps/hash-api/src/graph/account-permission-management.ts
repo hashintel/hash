@@ -27,3 +27,24 @@ export const removeAccountGroupMember: ImpureGraphFunction<
 
   return true;
 };
+
+export const createAccount: ImpureGraphFunction<
+  {},
+  Promise<AccountId>
+> = async ({ graphApi }, { actorId }, _) =>
+  graphApi.createAccount(actorId).then(({ data }) => data as AccountId);
+
+export const createAccountGroup: ImpureGraphFunction<
+  {},
+  Promise<AccountGroupId>
+> = async ({ graphApi }, { actorId }, _) =>
+  graphApi
+    .createAccountGroup(actorId)
+    .then(({ data }) => data as AccountGroupId);
+
+export const createWeb: ImpureGraphFunction<
+  { owner: AccountId | AccountGroupId },
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.createWeb(actorId, params.owner);
+};
