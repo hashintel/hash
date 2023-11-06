@@ -1,9 +1,62 @@
 import { AccountGroupId, AccountId } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { RESTRICTED_SHORTNAMES } from "../../util";
 import { getOrgByShortname } from "./org";
 import { getUserByShortname } from "./user";
+
+/** @todo: enable admins to expand upon restricted shortnames block list */
+export const RESTRICTED_SHORTNAMES = [
+  "-",
+  ".well-known",
+  "404.html",
+  "422.html",
+  "500.html",
+  "502.html",
+  "503.html",
+  "abuse_reports",
+  "admin",
+  "ag",
+  "api",
+  "apple-touch-icon-precomposed.png",
+  "apple-touch-icon.png",
+  "assets",
+  "autocomplete",
+  "bh",
+  "bhg",
+  "dashboard",
+  "deploy.html",
+  "dw",
+  "example",
+  "explore",
+  "favicon.ico",
+  "favicon.png",
+  "files",
+  "groups",
+  "health_check",
+  "help",
+  "import",
+  "invites",
+  "jwt",
+  "local",
+  "login",
+  "new",
+  "oauth",
+  "org",
+  "profile",
+  "projects",
+  "public",
+  "robots.txt",
+  "s",
+  "search",
+  "sent_notifications",
+  "slash-command-logo.png",
+  "snippets",
+  "unsubscribes",
+  "uploads",
+  "user",
+  "users",
+  "v2",
+];
 
 // Validations for shortnames
 /**
