@@ -1,5 +1,8 @@
+import { extractBaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/design-system";
-import { Subgraph } from "@local/hash-subgraph";
+import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { Entity, EntityPropertiesObject, LinkData } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { queryApi } from "../../../../shared/query-api";
@@ -12,22 +15,97 @@ const createEntityQuery = /* GraphQL */ `
   mutation createEntity(
     $entityTypeId: VersionedUrl!
     $properties: EntityPropertiesObject!
+    $linkData: LinkData
   ) {
-    createEntity(entityTypeId: $entityTypeId, properties: $properties)
+    createEntity(
+      entityTypeId: $entityTypeId
+      properties: $properties
+      linkData: $linkData
+    )
   }
 `;
 
-const createQuickNote = (text: string) => {
-  return queryApi(createEntityQuery, {
-    entityTypeId:
-      "https://app.hash.ai/@ciaran/types/entity-type/quick-note/v/1",
-    properties: {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-        text,
-    },
-  }).then(({ data }: { data: { createEntity: Subgraph } }) => {
+const quickNoteEntityTypeId =
+  "http://localhost:3000/@system-user/types/entity-type/quick-note/v/1" as const;
+
+const containsLinkEntityTypeId =
+  "http://localhost:3000/@system-user/types/entity-type/contains/v/1" as const;
+
+const numericIndexPropertyTypeId =
+  "http://localhost:3000/@system-user/types/property-type/numeric-index/v/1" as const;
+
+const blockEntityTypeId =
+  "http://localhost:3000/@system-user/types/entity-type/block/v/1" as const;
+
+const componentIdPropertyTypeId =
+  "http://localhost:3000/@system-user/types/property-type/component-id/v/1" as const;
+
+const blockDataLinkEntityTypeId =
+  "http://localhost:3000/@system-user/types/entity-type/block-data/v/1" as const;
+
+const textEntityTypeId =
+  "http://localhost:3000/@system-user/types/entity-type/text/v/1" as const;
+
+const textualContentPropertyTypeId =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2" as const;
+
+const createEntity = (params: {
+  entityTypeId: VersionedUrl;
+  properties: EntityPropertiesObject;
+  linkData?: LinkData;
+}): Promise<Entity> =>
+  queryApi(createEntityQuery, {
+    entityTypeId: params.entityTypeId,
+    properties: params.properties,
+    linkData: params.linkData,
+  }).then(({ data }: { data: { createEntity: Entity } }) => {
     return data.createEntity;
   });
+
+const createQuickNote = async (text: string) => {
+  const [textEntity, blockEntity, quickNoteEntity] = await Promise.all([
+    createEntity({
+      entityTypeId: textEntityTypeId,
+      properties: {
+        [extractBaseUrl(textualContentPropertyTypeId)]: [
+          { tokenType: "text", text },
+        ] satisfies TextToken[],
+      },
+    }),
+    createEntity({
+      entityTypeId: blockEntityTypeId,
+      properties: {
+        [extractBaseUrl(componentIdPropertyTypeId)]: paragraphBlockComponentId,
+      },
+    }),
+    createEntity({
+      entityTypeId: quickNoteEntityTypeId,
+      properties: {},
+    }),
+  ]);
+
+  await Promise.all([
+    createEntity({
+      entityTypeId: blockDataLinkEntityTypeId,
+      properties: {},
+      linkData: {
+        leftEntityId: blockEntity.metadata.recordId.entityId,
+        rightEntityId: textEntity.metadata.recordId.entityId,
+      },
+    }),
+    createEntity({
+      entityTypeId: containsLinkEntityTypeId,
+      properties: {
+        [extractBaseUrl(numericIndexPropertyTypeId)]: 0,
+      },
+      linkData: {
+        leftEntityId: quickNoteEntity.metadata.recordId.entityId,
+        rightEntityId: blockEntity.metadata.recordId.entityId,
+      },
+    }),
+  ]);
+
+  return quickNoteEntity;
 };
 
 export const QuickNoteAction = () => {
