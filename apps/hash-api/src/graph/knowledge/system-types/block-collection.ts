@@ -94,7 +94,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   } = params;
 
   let index = canvasPosition ? undefined : specifiedPosition;
-  if (!canvasPosition && !index) {
+  if (!canvasPosition && typeof index !== "number") {
     const existingBlocks = await getBlockCollectionBlocks(ctx, authentication, {
       blockCollectionEntityId: blockCollectionEntity.metadata.recordId.entityId,
     });
