@@ -16,6 +16,7 @@ import {
   tableRowClasses,
   Typography,
 } from "@mui/material";
+import { format } from "date-fns";
 import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -85,8 +86,14 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
 
 const NotificationRow: FunctionComponent<Notification> = (notification) => {
   const { markNotificationAsRead } = useNotifications();
-  const { kind, triggeredByUser, occurredInEntity, occurredInBlock, readAt } =
-    notification;
+  const {
+    kind,
+    triggeredByUser,
+    occurredInEntity,
+    occurredInBlock,
+    readAt,
+    createdAt,
+  } = notification;
 
   const ownedById = useMemo(
     () =>
@@ -173,6 +180,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           </Button>
         )}
       </TableCell>
+      <TableCell>{format(createdAt, "h:mm a, MMM d yyyy")}</TableCell>
     </TableRow>
   );
 };
@@ -196,6 +204,9 @@ const InboxPage: NextPageWithLayout = () => {
               </TableCell>
               <TableCell variant="head" sx={{ width: "auto" }}>
                 Actions
+              </TableCell>
+              <TableCell variant="head" sx={{ width: "auto" }}>
+                Occurred At
               </TableCell>
             </TableRow>
           </TableHead>

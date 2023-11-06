@@ -1,7 +1,10 @@
 import { useQuery } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { TextProperties } from "@local/hash-isomorphic-utils/entity";
+import {
+  getFirstEntityRevision,
+  TextProperties,
+} from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -51,6 +54,7 @@ import { useAuthInfo } from "../pages/shared/auth-info-context";
 
 export type PageMentionNotification = {
   kind: "page-mention";
+  createdAt: Date;
   entity: Entity<MentionNotificationProperties>;
   occurredInEntity: Entity<PageProperties>;
   occurredInBlock: Entity<BlockProperties>;
@@ -65,6 +69,7 @@ export type CommentMentionNotification = {
 
 export type NewCommentNotification = {
   kind: "new-comment";
+  createdAt: Date;
   entity: Entity<CommentNotificationProperties>;
   occurredInEntity: Entity<PageProperties>;
   occurredInBlock: Entity<BlockProperties>;
@@ -115,10 +120,58 @@ export const NotificationsContextProvider: FunctionComponent<
 > = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
 
+  const getNotificationsQueryFilter = useMemo<
+    StructuralQueryEntitiesQueryVariables["query"]["filter"]
+  >(
+    () => ({
+      all: [
+        {
+          equal: [
+            { path: ["ownedById"] },
+            { parameter: authenticatedUser?.accountId },
+          ],
+        },
+        generateVersionedUrlMatchingFilter(
+          types.entityType.notification.entityTypeId,
+          { ignoreParents: false },
+        ),
+        {
+          any: [
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(types.propertyType.archived.propertyTypeId),
+                  ],
+                },
+                // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                //   @see https://linear.app/hash/issue/H-1207
+                null,
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    extractBaseUrl(types.propertyType.archived.propertyTypeId),
+                  ],
+                },
+                { parameter: false },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+    [authenticatedUser],
+  );
+
   const {
-    data: notificationsData,
-    loading,
-    refetch: refetchQuery,
+    data: notificationRevisionsData,
+    loading: loadingNotificationRevisions,
+    refetch: refetchNotificationRevisions,
   } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
@@ -127,52 +180,38 @@ export const NotificationsContextProvider: FunctionComponent<
     variables: {
       includePermissions: false,
       query: {
-        filter: {
-          all: [
-            {
-              equal: [
-                { path: ["ownedById"] },
-                { parameter: authenticatedUser?.accountId },
-              ],
-            },
-            generateVersionedUrlMatchingFilter(
-              types.entityType.notification.entityTypeId,
-              { ignoreParents: false },
-            ),
-            {
-              any: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                    //   @see https://linear.app/hash/issue/H-1207
-                    null,
-                  ],
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
-          ],
+        filter: getNotificationsQueryFilter,
+        graphResolveDepths: zeroedGraphResolveDepths,
+        /**
+         * We need to obtain all revisions of the notifications
+         * to determine when they were created.
+         */
+        temporalAxes: {
+          pinned: { axis: "transactionTime", timestamp: null },
+          variable: {
+            axis: "decisionTime",
+            interval: { start: { kind: "unbounded" }, end: null },
+          },
         },
+      },
+    },
+    skip: !authenticatedUser,
+    fetchPolicy: "cache-and-network",
+  });
+
+  const {
+    data: notificationsWithOutgoingLinksData,
+    loading: loadingNotificationsWithOutgoingLinks,
+    refetch: refetchNotificationsWithOutgoingLinks,
+  } = useQuery<
+    StructuralQueryEntitiesQuery,
+    StructuralQueryEntitiesQueryVariables
+  >(structuralQueryEntitiesQuery, {
+    pollInterval: 5_000,
+    variables: {
+      includePermissions: false,
+      query: {
+        filter: getNotificationsQueryFilter,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
           isOfType: { outgoing: 1 },
@@ -188,16 +227,27 @@ export const NotificationsContextProvider: FunctionComponent<
   });
 
   const notifications = useMemo<Notification[] | undefined>(() => {
-    if (!notificationsData) {
+    if (
+      !notificationsWithOutgoingLinksData ||
+      !notificationRevisionsData ||
+      loadingNotificationRevisions ||
+      loadingNotificationsWithOutgoingLinks
+    ) {
       return undefined;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      notificationsData.structuralQueryEntities.subgraph,
-    );
+    const revisionsSubgraph =
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        notificationRevisionsData.structuralQueryEntities.subgraph,
+      );
+
+    const outgoingLinksSubgraph =
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        notificationsWithOutgoingLinksData.structuralQueryEntities.subgraph,
+      );
 
     return (
-      getRoots(subgraph)
+      getRoots(outgoingLinksSubgraph)
         .map((entity) => {
           const {
             metadata: {
@@ -206,12 +256,21 @@ export const NotificationsContextProvider: FunctionComponent<
             },
           } = entity;
 
+          const firstRevision = getFirstEntityRevision(
+            revisionsSubgraph,
+            entity.metadata.recordId.entityId,
+          );
+
+          const createdAt = new Date(
+            firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
+          );
+
           const { readAt } = simplifyProperties(
             entity.properties as NotificationProperties,
           );
 
           const outgoingLinks = getOutgoingLinkAndTargetEntities(
-            subgraph,
+            outgoingLinksSubgraph,
             entityId,
           );
 
@@ -267,6 +326,7 @@ export const NotificationsContextProvider: FunctionComponent<
               return {
                 kind: "comment-mention",
                 readAt,
+                createdAt,
                 entity,
                 occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -280,6 +340,7 @@ export const NotificationsContextProvider: FunctionComponent<
             return {
               kind: "page-mention",
               readAt,
+              createdAt,
               entity,
               occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -338,6 +399,7 @@ export const NotificationsContextProvider: FunctionComponent<
               return {
                 kind: "comment-reply",
                 readAt,
+                createdAt,
                 entity,
                 occurredInEntity: occurredInEntity as Entity<PageProperties>,
                 occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -350,6 +412,7 @@ export const NotificationsContextProvider: FunctionComponent<
             return {
               kind: "new-comment",
               readAt,
+              createdAt,
               entity,
               occurredInEntity: occurredInEntity as Entity<PageProperties>,
               occurredInBlock: occurredInBlock as Entity<BlockProperties>,
@@ -374,22 +437,22 @@ export const NotificationsContextProvider: FunctionComponent<
             return -1;
           }
 
-          const aCreatedAt = new Date(
-            b.entity.metadata.temporalVersioning.decisionTime.start.limit,
-          );
-
-          const bCreatedAt = new Date(
-            a.entity.metadata.temporalVersioning.decisionTime.start.limit,
-          );
-
-          return aCreatedAt.getTime() - bCreatedAt.getTime();
+          return a.createdAt.getTime() - b.createdAt.getTime();
         })
     );
-  }, [notificationsData]);
+  }, [
+    notificationRevisionsData,
+    notificationsWithOutgoingLinksData,
+    loadingNotificationRevisions,
+    loadingNotificationsWithOutgoingLinks,
+  ]);
 
   const refetch = useCallback(async () => {
-    await refetchQuery();
-  }, [refetchQuery]);
+    await Promise.all([
+      refetchNotificationRevisions,
+      refetchNotificationsWithOutgoingLinks,
+    ]);
+  }, [refetchNotificationRevisions, refetchNotificationsWithOutgoingLinks]);
 
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
@@ -419,11 +482,18 @@ export const NotificationsContextProvider: FunctionComponent<
   const value = useMemo<NotificationsContextValues>(
     () => ({
       notifications,
-      loading,
+      loading:
+        loadingNotificationRevisions || loadingNotificationsWithOutgoingLinks,
       refetch,
       markNotificationAsRead,
     }),
-    [notifications, loading, refetch, markNotificationAsRead],
+    [
+      notifications,
+      loadingNotificationRevisions,
+      loadingNotificationsWithOutgoingLinks,
+      refetch,
+      markNotificationAsRead,
+    ],
   );
 
   return (
