@@ -152,7 +152,7 @@ pub enum WebRelationAndSubject {
 impl Relationship for (WebId, WebRelationAndSubject) {
     type Relation = WebResourceRelation;
     type Resource = WebId;
-    type Subject = WebSubject; 
+    type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
