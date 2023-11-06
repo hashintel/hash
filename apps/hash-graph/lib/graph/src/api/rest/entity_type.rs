@@ -7,8 +7,8 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject,EntityTypeInstantiatorSubject
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeInstantiatorSubject,
+        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
