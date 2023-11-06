@@ -1,47 +1,38 @@
-CREATE TABLE
-  "entity_ids" (
-    "web_id" UUID NOT NULL REFERENCES "webs",
+CREATE TABLE "entity_ids" (
+    "web_id"      UUID NOT NULL REFERENCES "webs",
     "entity_uuid" UUID NOT NULL,
     PRIMARY KEY ("web_id", "entity_uuid")
-  );
+);
 
-CREATE TABLE
-  "entity_editions" (
-    "entity_edition_id" UUID NOT NULL PRIMARY KEY,
-    "properties" JSONB NOT NULL,
-    "left_to_right_order" INTEGER,
-    "right_to_left_order" INTEGER,
-    "record_created_by_id" UUID NOT NULL REFERENCES "accounts",
-    "archived" BOOLEAN NOT NULL
-  );
+CREATE TABLE "entity_editions" (
+    "entity_edition_id"    UUID    NOT NULL PRIMARY KEY,
+    "properties"           JSONB   NOT NULL,
+    "left_to_right_order"  INTEGER,
+    "right_to_left_order"  INTEGER,
+    "record_created_by_id" UUID    NOT NULL REFERENCES "accounts",
+    "archived"             BOOLEAN NOT NULL
+);
 
-CREATE TABLE
-  "entity_temporal_metadata" (
-    "web_id" UUID NOT NULL,
-    "entity_uuid" UUID NOT NULL,
-    "entity_edition_id" UUID NOT NULL REFERENCES "entity_editions",
-    "decision_time" tstzrange NOT NULL,
-    "transaction_time" tstzrange NOT NULL,
+CREATE TABLE "entity_temporal_metadata" (
+    "web_id"            UUID      NOT NULL,
+    "entity_uuid"       UUID      NOT NULL,
+    "entity_edition_id" UUID      NOT NULL REFERENCES "entity_editions",
+    "decision_time"     tstzrange NOT NULL,
+    "transaction_time"  tstzrange NOT NULL,
     FOREIGN KEY ("web_id", "entity_uuid") REFERENCES "entity_ids",
     CONSTRAINT entity_temporal_metadata_overlapping EXCLUDE USING gist (
-      web_id
-      WITH
-        =,
-        entity_uuid
-      WITH
-        =,
-        decision_time
-      WITH
-        &&,
-        transaction_time
-      WITH
-        &&
+        web_id WITH =,
+        entity_uuid WITH =,
+        decision_time WITH &&,
+        transaction_time WITH &&
     ) DEFERRABLE INITIALLY IMMEDIATE,
     CHECK (LOWER(decision_time) <= LOWER(transaction_time))
-  );
+);
+
 
 CREATE
-OR REPLACE FUNCTION update_entity_version_trigger () RETURNS TRIGGER AS $$
+    OR REPLACE FUNCTION update_entity_version_trigger() RETURNS TRIGGER AS
+$$
 BEGIN
     SET CONSTRAINTS entity_temporal_metadata_overlapping DEFERRED;
 
@@ -79,9 +70,6 @@ BEGIN
 END
 $$ VOLATILE LANGUAGE plpgsql;
 
-CREATE TRIGGER
-  update_entity_version_trigger BEFORE
-UPDATE
-  ON "entity_temporal_metadata" FOR EACH ROW
-EXECUTE
-  PROCEDURE "update_entity_version_trigger" ();
+CREATE TRIGGER update_entity_version_trigger
+    BEFORE UPDATE ON "entity_temporal_metadata"
+    FOR EACH ROW EXECUTE PROCEDURE "update_entity_version_trigger"();

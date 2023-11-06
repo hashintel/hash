@@ -1,2 +1,3 @@
-CREATE TABLE
-  "accounts" ("account_id" UUID PRIMARY KEY);
+CREATE TABLE "accounts" (
+    "account_id" uuid PRIMARY KEY
+);

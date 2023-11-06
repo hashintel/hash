@@ -1,2 +1,3 @@
-CREATE TABLE
-  "webs" ("web_id" UUID PRIMARY KEY);
+CREATE TABLE "webs" (
+    "web_id" uuid PRIMARY KEY
+);
