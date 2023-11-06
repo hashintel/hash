@@ -97,25 +97,13 @@ impl<C: AsClient> WriteBatch<C> for AccountRowBatch {
             .client()
             .simple_query(
                 "
-                    WITH inserted_accounts AS (
-                        INSERT INTO accounts
-                        SELECT * FROM accounts_tmp
-                        ON CONFLICT DO NOTHING
-                        RETURNING account_id
-                    )
-                    INSERT INTO webs
-                    SELECT account_id as web_id
-                    FROM inserted_accounts;
+                    INSERT INTO accounts
+                    SELECT * FROM accounts_tmp
+                    ON CONFLICT DO NOTHING;
 
-                    WITH inserted_account_groups AS (
-                        INSERT INTO account_groups
-                        SELECT * FROM account_groups_tmp
-                        ON CONFLICT DO NOTHING
-                        RETURNING account_group_id
-                    )
-                    INSERT INTO webs
-                    SELECT account_group_id as web_id
-                    FROM inserted_account_groups;
+                    INSERT INTO account_groups
+                    SELECT * FROM account_groups_tmp
+                    ON CONFLICT DO NOTHING;
                 ",
             )
             .await

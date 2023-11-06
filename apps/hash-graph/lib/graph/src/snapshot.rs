@@ -26,12 +26,9 @@ use authorization::{
     schema::{
         AccountGroupRelationAndSubject, DataTypeId, DataTypeRelationAndSubject,
         EntityRelationAndSubject, EntityTypeId, EntityTypeRelationAndSubject, PropertyTypeId,
-        PropertyTypeRelationAndSubject, WebNamespace, WebRelationAndSubject,
+        PropertyTypeRelationAndSubject, WebRelationAndSubject,
     },
-    zanzibar::{
-        types::{RelationshipFilter, ResourceFilter},
-        Consistency,
-    },
+    zanzibar::{types::RelationshipFilter, Consistency},
 };
 use error_stack::{ensure, Context, Report, Result, ResultExt};
 use futures::{
@@ -250,28 +247,31 @@ where
         authorization_api: &'a (impl ZanzibarBackend + Sync),
     ) -> Result<impl Stream<Item = Result<Web, SnapshotDumpError>> + Send + 'a, SnapshotDumpError>
     {
-        Ok(stream::iter(
-            authorization_api
-                .read_relations::<(WebId, WebRelationAndSubject)>(
-                    RelationshipFilter::from_resource(ResourceFilter::from_kind(
-                        &WebNamespace::Web,
-                    )),
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(SnapshotDumpError::Query)?
-                .into_iter()
-                .map(|(id, relation_and_subject)| {
-                    Ok(Web {
-                        id,
-                        // TODO: Partition web ids so a single web holds multiple owners/editors per
-                        //       snapshot line. For the restoring logic this has no effect, but it
-                        // would       make the snapshot file smaller and
-                        // more readable.
-                        relations: vec![relation_and_subject],
-                    })
-                }),
-        ))
+        Ok(self
+            .acquire()
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw("SELECT web_id FROM webs", [] as [&(dyn ToSql + Sync); 0])
+            .await
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
+            .and_then(move |row| async move {
+                let id = WebId::new(row.get(0));
+                Ok(Web {
+                    id,
+                    relations: authorization_api
+                        .read_relations::<(WebId, WebRelationAndSubject)>(
+                            RelationshipFilter::from_resource(id),
+                            Consistency::FullyConsistent,
+                        )
+                        .await
+                        .change_context(SnapshotDumpError::Query)?
+                        .into_iter()
+                        .map(|(_web_id, relation)| relation)
+                        .collect(),
+                })
+            }))
     }
 
     /// Convenience function to create a stream of snapshot entries.
