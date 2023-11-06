@@ -112,7 +112,10 @@ where
         .modify_web_relations([(
             ModifyRelationshipOperation::Create,
             WebId::new(web_id.into_uuid()),
-            WebRelationAndSubject::Owner { subject: owner },
+            WebRelationAndSubject::Owner {
+                subject: owner,
+                level: 0,
+            },
         )])
         .await
         .map_err(|error| {

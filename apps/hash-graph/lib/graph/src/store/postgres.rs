@@ -1316,6 +1316,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 account_group_id,
                 AccountGroupRelationAndSubject::Owner {
                     subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    level: 0,
                 },
             )])
             .await
@@ -1328,6 +1329,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     account_group_id,
                     AccountGroupRelationAndSubject::Owner {
                         subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                        level: 0,
                     },
                 )])
                 .await

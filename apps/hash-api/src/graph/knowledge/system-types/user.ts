@@ -335,7 +335,7 @@ export const createUser: ImpureGraphFunction<
           subject: {
             kind: "public",
           },
-          relation: "generalViewer",
+          relation: "viewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

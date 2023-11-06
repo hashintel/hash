@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        DataTypeGeneralViewerSubject, DataTypeId, DataTypeOwnerSubject, DataTypePermission,
-        DataTypeRelationAndSubject, DataTypeSubjectSet, WebPermission,
+        DataTypeId, DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject,
+        DataTypeSubjectSet, DataTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -188,8 +188,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     DataTypeId::from(ontology_id),
-                    DataTypeRelationAndSubject::GeneralViewer {
-                        subject: DataTypeGeneralViewerSubject::Public,
+                    DataTypeRelationAndSubject::Viewer {
+                        subject: DataTypeViewerSubject::Public,
+                        level: 0,
                     },
                 ));
                 if let Some(owner) = owner {
@@ -198,6 +199,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                             DataTypeId::from(ontology_id),
                             DataTypeRelationAndSubject::Owner {
                                 subject: DataTypeOwnerSubject::Account { id },
+                                level: 0,
                             },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
@@ -207,6 +209,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                                     id,
                                     set: DataTypeSubjectSet::Member,
                                 },
+                                level: 0,
                             },
                         )),
                     }
@@ -386,12 +389,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::Owner { subject: owner },
+                DataTypeRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
             ),
             (
                 DataTypeId::from(ontology_id),
-                DataTypeRelationAndSubject::GeneralViewer {
-                    subject: DataTypeGeneralViewerSubject::Public,
+                DataTypeRelationAndSubject::Viewer {
+                    subject: DataTypeViewerSubject::Public,
+                    level: 0,
                 },
             ),
         ];

@@ -187,7 +187,7 @@ pub enum DataTypeOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum DataTypeGeneralViewerSubject {
+pub enum DataTypeViewerSubject {
     Public,
 }
 
@@ -197,9 +197,13 @@ pub enum DataTypeGeneralViewerSubject {
 pub enum DataTypeRelationAndSubject {
     Owner {
         subject: DataTypeOwnerSubject,
+        #[serde(skip)]
+        level: u8,
     },
-    GeneralViewer {
-        subject: DataTypeGeneralViewerSubject,
+    Viewer {
+        subject: DataTypeViewerSubject,
+        #[serde(skip)]
+        level: u8,
     },
 }
 
@@ -216,10 +220,12 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
                 DataTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (DataTypeSubject::Account(id), None) => DataTypeRelationAndSubject::Owner {
                         subject: DataTypeOwnerSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (DataTypeSubject::AccountGroup(id), Some(set)) => {
                         DataTypeRelationAndSubject::Owner {
                             subject: DataTypeOwnerSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
                         }
                     }
                     (DataTypeSubject::Public, _subject_set) => {
@@ -233,8 +239,9 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
                     }
                 },
                 DataTypeResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
-                    (DataTypeSubject::Public, None) => DataTypeRelationAndSubject::GeneralViewer {
-                        subject: DataTypeGeneralViewerSubject::Public,
+                    (DataTypeSubject::Public, None) => DataTypeRelationAndSubject::Viewer {
+                        subject: DataTypeViewerSubject::Public,
+                        level: parts.relation.level,
                     },
                     (
                         DataTypeSubject::Account(_)
@@ -255,10 +262,10 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            DataTypeRelationAndSubject::Owner { subject } => (
+            DataTypeRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: DataTypeResourceRelation::Owner,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     DataTypeOwnerSubject::Account { id } => (DataTypeSubject::Account(id), None),
@@ -267,13 +274,13 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
                     }
                 },
             ),
-            DataTypeRelationAndSubject::GeneralViewer { subject } => (
+            DataTypeRelationAndSubject::Viewer { subject, level } => (
                 LeveledRelation {
                     name: DataTypeResourceRelation::Viewer,
-                    level: 0,
+                    level,
                 },
                 match subject {
-                    DataTypeGeneralViewerSubject::Public => (DataTypeSubject::Public, None),
+                    DataTypeViewerSubject::Public => (DataTypeSubject::Public, None),
                 },
             ),
         };
