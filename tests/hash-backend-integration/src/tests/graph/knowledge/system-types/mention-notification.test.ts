@@ -45,11 +45,13 @@ import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  waitForAfterHookTriggerToComplete,
+} from "../../../util";
 
 jest.setTimeout(60000);
-
-const afterHookTriggerTimeout = 3_000;
 
 const logger = new Logger({
   mode: "dev",
@@ -283,9 +285,7 @@ describe("Page Mention Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
@@ -344,9 +344,7 @@ describe("Page Mention Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
@@ -393,9 +391,7 @@ describe("Page Mention Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     commentText = await getCommentText(
       graphContext,
@@ -462,9 +458,7 @@ describe("Page Mention Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,

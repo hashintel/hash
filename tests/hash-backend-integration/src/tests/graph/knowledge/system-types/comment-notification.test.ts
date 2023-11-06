@@ -24,11 +24,10 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  waitForAfterHookTriggerToComplete,
 } from "../../../util";
 
 jest.setTimeout(60000);
-
-const afterHookTriggerTimeout = 3_000;
 
 const logger = new Logger({
   mode: "dev",
@@ -129,9 +128,7 @@ describe("Comment Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     const commentNotification = await getCommentNotification(
       graphContext,
@@ -202,9 +199,7 @@ describe("Comment Notification", () => {
      *
      * @todo: consider adding retry logic instead of relying on a timeout
      */
-    await new Promise((resolve) => {
-      setTimeout(resolve, afterHookTriggerTimeout);
-    });
+    await waitForAfterHookTriggerToComplete();
 
     const commentReplyNotification = await getCommentNotification(
       graphContext,

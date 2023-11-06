@@ -22,7 +22,11 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  waitForAfterHookTriggerToComplete,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -78,6 +82,14 @@ describe("Comment", () => {
       textualContent: [],
       author: testUser,
     });
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     const commentEntityId = comment.entity.metadata.recordId.entityId;
 
