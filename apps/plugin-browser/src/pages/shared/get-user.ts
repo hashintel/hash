@@ -8,8 +8,10 @@ import { queryApi } from "../../shared/query-api";
 const meQuery = /* GraphQL */ `
   {
     me {
-      roots
-      vertices
+      subgraph {
+        roots
+        vertices
+      }
     }
   }
 `;
@@ -18,9 +20,11 @@ export const getUser = () => {
   return queryApi(meQuery)
     .then(
       ({
-        data: { me: subgraph },
+        data: {
+          me: { subgraph },
+        },
       }: {
-        data: { me: Subgraph<EntityRootType> };
+        data: { me: { subgraph: Subgraph<EntityRootType> } };
       }) => {
         const user = getRoots(subgraph)[0] as unknown as User;
         return {
