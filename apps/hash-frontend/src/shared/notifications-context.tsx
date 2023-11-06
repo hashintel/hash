@@ -185,6 +185,10 @@ export const NotificationsContextProvider: FunctionComponent<
         /**
          * We need to obtain all revisions of the notifications
          * to determine when they were created.
+         *
+         * @todo update this when we can obtain the created at timestamp
+         * from the latest revision of an entity
+         * @see https://linear.app/hash/issue/H-1098/expose-created-at-createdat-without-needing-to-fetch-entire-entity
          */
         temporalAxes: {
           pinned: { axis: "transactionTime", timestamp: null },
