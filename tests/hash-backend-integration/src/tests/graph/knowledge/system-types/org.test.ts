@@ -1,4 +1,5 @@
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   getOrgByShortname,
   Org,

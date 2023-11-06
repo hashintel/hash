@@ -2,7 +2,7 @@ import { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import { DataSource } from "apollo-datasource";
 
 import { AuthenticationContext } from "../graphql/authentication-context";
-import { UploadableStorageProvider } from "../storage";
+import { UploadableStorageProvider } from "../storage/storage-provider";
 
 export type GraphApi = GraphApiClient & DataSource;
 

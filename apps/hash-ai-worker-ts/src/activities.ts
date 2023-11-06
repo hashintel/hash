@@ -1,4 +1,5 @@
 import { createGraphClient } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getDataTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { getEntityTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { getPropertyTypeSubgraphById } from "@apps/hash-api/src/graph/ontology/primitive/property-type";

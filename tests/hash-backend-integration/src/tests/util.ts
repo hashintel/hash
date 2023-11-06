@@ -4,6 +4,7 @@ import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
 } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";

@@ -1,5 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
