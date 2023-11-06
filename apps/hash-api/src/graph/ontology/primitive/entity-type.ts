@@ -54,6 +54,7 @@ export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
           }) as EntityTypeAuthorizationRelationship,
       ),
     );
+
 export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   {
     operation: ModifyRelationshipOperation;
