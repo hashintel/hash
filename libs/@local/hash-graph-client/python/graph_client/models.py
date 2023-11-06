@@ -318,6 +318,24 @@ class PropertyTypeGeneralViewerSubject(RootModel[PropertyTypeGeneralViewerSubjec
     model_config = ConfigDict(populate_by_name=True)
     root: PropertyTypeGeneralViewerSubjectItem
 
+class PropertyTypeInstantiatorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class PropertyTypeInstantiatorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class PropertyTypeInstantiatorSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class PropertyTypeInstantiatorSubject(RootModel[PropertyTypeInstantiatorSubjectItem | PropertyTypeInstantiatorSubjectItem1 | PropertyTypeInstantiatorSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeInstantiatorSubjectItem | PropertyTypeInstantiatorSubjectItem1 | PropertyTypeInstantiatorSubjectItem2 = Field(..., discriminator='kind')
+
 class PropertyTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -335,6 +353,7 @@ class PropertyTypeOwnerSubject(RootModel[PropertyTypeOwnerSubjectItem | Property
 class PropertyTypePermission(Enum):
     update = 'update'
     view = 'view'
+    instantiate = 'instantiate'
 
 class PropertyTypeQueryToken(Enum):
     """
@@ -361,9 +380,14 @@ class PropertyTypeRelationAndSubjectItem1(BaseModel):
     relation: Literal['generalViewer']
     subject: PropertyTypeGeneralViewerSubject
 
-class PropertyTypeRelationAndSubject(RootModel[PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1]):
+class PropertyTypeRelationAndSubjectItem2(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    root: PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    relation: Literal['instantiator']
+    subject: PropertyTypeInstantiatorSubject
+
+class PropertyTypeRelationAndSubject(RootModel[PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 | PropertyTypeRelationAndSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 | PropertyTypeRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
 class PinnedDecisionAxis(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

@@ -8,6 +8,7 @@ import {
   DataTypeRelationAndSubject,
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
+  PropertyTypeInstantiatorSubject as PropertyTypeInstantiatorSubjectGraph,
   PropertyTypeRelationAndSubject,
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
@@ -137,6 +138,8 @@ export type PropertyTypeAuthorizationRelationship = {
     resourceId: VersionedUrl;
   };
 } & BrandRelationship<PropertyTypeRelationAndSubject>;
+export type PropertyTypeInstantiatorSubject =
+  BrandSubject<PropertyTypeInstantiatorSubjectGraph>;
 
 export type DataTypeAuthorizationRelationship = {
   resource: {

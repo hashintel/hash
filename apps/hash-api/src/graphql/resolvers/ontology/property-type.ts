@@ -46,6 +46,7 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       ownedById: (ownedById ?? user.accountId) as OwnedById,
       schema: propertyType,
+      instantiators: [{ kind: "public" }],
     },
   );
 
@@ -151,6 +152,7 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
+      instantiators: [{ kind: "public" }],
     },
   );
 

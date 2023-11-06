@@ -284,6 +284,27 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.global.set("person_property_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
+
+### Allow the name property type to be instantiated by the account
+POST http://127.0.0.1:4000/property-types/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{person_property_type_id}}",
+    "relationAndSubject": {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  }
+]
+
 ### Get Name property type
 POST http://127.0.0.1:4000/property-types/query
 Content-Type: application/json
@@ -372,7 +393,29 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
+    client.global.set("person_property_type_id_2", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
+
+
+### Allow the name property type to be instantiated by the account
+POST http://127.0.0.1:4000/property-types/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{person_property_type_id_2}}",
+    "relationAndSubject": {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  }
+]
 
 ### Get all latest property types
 POST http://127.0.0.1:4000/property-types/query
@@ -1284,7 +1327,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
  "entityId": "{{person_a_entity_id}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "properties": {
-   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allisons"
  },
  "archived": false
 }

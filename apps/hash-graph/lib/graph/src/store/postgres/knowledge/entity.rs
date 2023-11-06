@@ -4,7 +4,10 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
+    schema::{
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, PropertyTypeId,
+        PropertyTypePermission, WebPermission,
+    },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -26,7 +29,7 @@ use postgres_types::Json;
 use temporal_versioning::{DecisionTime, RightBoundedTemporalInterval, Timestamp};
 #[cfg(hash_graph_test_environment)]
 use tokio_postgres::GenericClient;
-use type_system::{raw, url::VersionedUrl, EntityType};
+use type_system::{raw, url::VersionedUrl, EntityType, ValueOrArray};
 use uuid::Uuid;
 use validation::Validate;
 
@@ -40,6 +43,7 @@ use crate::{
             knowledge::entity::read::EntityEdgeTraversalData, query::ReferenceTable,
             TraversalContext,
         },
+        query::Filter,
         validation::StoreProvider,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, Record, UpdateError,
     },
@@ -47,7 +51,10 @@ use crate::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         query::StructuralQuery,
-        temporal_axes::VariableAxis,
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
+            VariableTemporalAxisUnresolved,
+        },
         Subgraph,
     },
 };
@@ -386,6 +393,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 &link_order,
             )
             .await?;
+
+        let has_permission = authorization_api
+            .check_property_types_permission(
+                actor_id,
+                PropertyTypePermission::Instantiate,
+                closed_schema
+                    .properties()
+                    .iter()
+                    .map(|(_, reference)| {
+                        PropertyTypeId::from_url(match reference {
+                            ValueOrArray::Value(value) => value.url(),
+                            ValueOrArray::Array(array) => array.items().url(),
+                        })
+                    })
+                    .collect::<Vec<_>>(),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(InsertionError)?
+            .0
+            .into_iter()
+            .all(|(_id, has_permission)| has_permission);
+        if !has_permission {
+            return Err(Report::new(InsertionError)
+                .attach_printable("Could not create specified properties")
+                .attach(StatusCode::PermissionDenied));
+        }
 
         let row = if let Some(decision_time) = decision_time {
             transaction
@@ -773,6 +807,63 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await
             .change_context(UpdateError)?;
+
+        let previous_entity = Read::<Entity>::read_one(
+            &transaction,
+            &Filter::for_entity_by_entity_id(entity_id),
+            Some(
+                &QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                }
+                .resolve(),
+            ),
+        )
+        .await
+        .change_context(UpdateError)?;
+
+        let changed_properties =
+            properties
+                .properties()
+                .iter()
+                .filter(|(base_url, value)| {
+                    previous_entity
+                        .properties
+                        .properties()
+                        .get(base_url)
+                        .map(|old_value| old_value != *value)
+                        .unwrap_or(true)
+                })
+                .chain(previous_entity.properties.properties().iter().filter(
+                    |(base_url, _valuevalue)| properties.properties().get(base_url).is_none(),
+                ))
+                .filter_map(|(base_url, _value)| {
+                    Some(PropertyTypeId::from_url(
+                        match closed_schema.properties().get(base_url)? {
+                            ValueOrArray::Value(value) => value.url(),
+                            ValueOrArray::Array(array) => array.items().url(),
+                        },
+                    ))
+                })
+                .collect::<Vec<_>>();
+
+        let has_permission = authorization_api
+            .check_property_types_permission(
+                actor_id,
+                PropertyTypePermission::Instantiate,
+                changed_properties,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(UpdateError)?
+            .0
+            .into_iter()
+            .all(|(_id, has_permission)| has_permission);
+        if !has_permission {
+            return Err(Report::new(UpdateError)
+                .attach_printable("Could not update specified properties")
+                .attach(StatusCode::PermissionDenied));
+        }
 
         // Calling `UPDATE` on `entity_temporal_metadata` will invoke a trigger that properly
         // updates the temporal versioning of the entity.

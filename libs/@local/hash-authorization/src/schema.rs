@@ -30,10 +30,10 @@ pub use self::{
         EntityTypeSubject, EntityTypeSubjectId, EntityTypeSubjectSet,
     },
     property_type::{
-        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeNamespace,
-        PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
-        PropertyTypeResourceRelation, PropertyTypeSubject, PropertyTypeSubjectId,
-        PropertyTypeSubjectSet,
+        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeInstantiatorSubject,
+        PropertyTypeNamespace, PropertyTypeOwnerSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, PropertyTypeResourceRelation, PropertyTypeSubject,
+        PropertyTypeSubjectId, PropertyTypeSubjectSet,
     },
     web::{
         WebNamespace, WebOwnerSubject, WebPermission, WebRelationAndSubject, WebResourceRelation,

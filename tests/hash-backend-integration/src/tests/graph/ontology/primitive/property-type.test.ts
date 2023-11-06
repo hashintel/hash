@@ -108,6 +108,7 @@ describe("Property type CRU", () => {
       {
         ownedById: testOrg.accountGroupId as OwnedById,
         schema: propertyTypeSchema,
+        instantiators: [{ kind: "public" }],
       },
     );
   });
@@ -145,6 +146,7 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
+        instantiators: [{ kind: "public" }],
       },
     ).catch((err) => Promise.reject(err.data));
 

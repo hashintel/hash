@@ -75,6 +75,7 @@ impl Resource for PropertyTypeId {
 pub enum PropertyTypeResourceRelation {
     Owner,
     Viewer,
+    Instantiator,
 }
 
 impl Relation<PropertyTypeId> for PropertyTypeResourceRelation {}
@@ -85,6 +86,7 @@ impl Relation<PropertyTypeId> for PropertyTypeResourceRelation {}
 pub enum PropertyTypePermission {
     Update,
     View,
+    Instantiate,
 }
 
 impl Permission<PropertyTypeId> for PropertyTypePermission {}
@@ -193,6 +195,23 @@ pub enum PropertyTypeGeneralViewerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum PropertyTypeInstantiatorSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: PropertyTypeSubjectSet,
+    },
+    Public,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum PropertyTypeRelationAndSubject {
     Owner {
@@ -200,6 +219,9 @@ pub enum PropertyTypeRelationAndSubject {
     },
     GeneralViewer {
         subject: PropertyTypeGeneralViewerSubject,
+    },
+    Instantiator {
+        subject: PropertyTypeInstantiatorSubject,
     },
 }
 
@@ -249,6 +271,33 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
+                PropertyTypeResourceRelation::Instantiator => {
+                    match (parts.subject, parts.subject_set) {
+                        (PropertyTypeSubject::Account(id), None) => {
+                            PropertyTypeRelationAndSubject::Instantiator {
+                                subject: PropertyTypeInstantiatorSubject::Account { id },
+                            }
+                        }
+                        (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
+                            PropertyTypeRelationAndSubject::Instantiator {
+                                subject: PropertyTypeInstantiatorSubject::AccountGroup { id, set },
+                            }
+                        }
+                        (PropertyTypeSubject::Public, None) => {
+                            PropertyTypeRelationAndSubject::Instantiator {
+                                subject: PropertyTypeInstantiatorSubject::Public,
+                            }
+                        }
+                        (
+                            PropertyTypeSubject::Account(_)
+                            | PropertyTypeSubject::AccountGroup(_)
+                            | PropertyTypeSubject::Public,
+                            _subject_set,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                    }
+                }
             },
         ))
     }
@@ -280,6 +329,21 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                 },
                 match subject {
                     PropertyTypeGeneralViewerSubject::Public => (PropertyTypeSubject::Public, None),
+                },
+            ),
+            PropertyTypeRelationAndSubject::Instantiator { subject } => (
+                LeveledRelation {
+                    name: PropertyTypeResourceRelation::Instantiator,
+                    level: 0,
+                },
+                match subject {
+                    PropertyTypeInstantiatorSubject::Account { id } => {
+                        (PropertyTypeSubject::Account(id), None)
+                    }
+                    PropertyTypeInstantiatorSubject::AccountGroup { id, set } => {
+                        (PropertyTypeSubject::AccountGroup(id), Some(set))
+                    }
+                    PropertyTypeInstantiatorSubject::Public => (PropertyTypeSubject::Public, None),
                 },
             ),
         };

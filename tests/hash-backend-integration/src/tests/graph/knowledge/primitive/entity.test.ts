@@ -110,6 +110,7 @@ describe("Entity CRU", () => {
           title: "Favorite Book",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        instantiators: [{ kind: "public" }],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -124,6 +125,7 @@ describe("Entity CRU", () => {
           title: "Name",
           oneOf: [{ $ref: textDataTypeId }],
         },
+        instantiators: [{ kind: "public" }],
       })
         .then((val) => {
           namePropertyType = val;

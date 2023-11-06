@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeOwnerSubject,
-        PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSubjectSet,
-        WebPermission,
+        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeInstantiatorSubject,
+        PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
+        PropertyTypeSubjectSet, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -316,6 +316,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                         subject: PropertyTypeGeneralViewerSubject::Public,
                     },
                 ));
+
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
@@ -334,6 +335,13 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                             },
                         )),
                     }
+                } else {
+                    relationships.push((
+                        PropertyTypeId::from(ontology_id),
+                        PropertyTypeRelationAndSubject::Instantiator {
+                            subject: PropertyTypeInstantiatorSubject::Public,
+                        },
+                    ));
                 }
             }
         }

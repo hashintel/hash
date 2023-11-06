@@ -190,6 +190,7 @@ export const propertyTypeInitializer = (
           return await createPropertyType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: propertyTypeSchema,
+            instantiators: [{ kind: "public" }],
           }).catch((createError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;

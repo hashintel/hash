@@ -111,6 +111,7 @@ beforeAll(async () => {
         title: "Favorite Book",
         oneOf: [{ $ref: textDataTypeId }],
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -120,6 +121,7 @@ beforeAll(async () => {
         title: "Name",
         oneOf: [{ $ref: textDataTypeId }],
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       namePropertyType = val;
     }),
