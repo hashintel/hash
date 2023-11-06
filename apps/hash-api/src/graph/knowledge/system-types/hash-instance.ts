@@ -20,8 +20,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
-import { ImpureGraphFunction, PureGraphFunction } from "../../util";
 import {
   createEntity,
   CreateEntityParams,

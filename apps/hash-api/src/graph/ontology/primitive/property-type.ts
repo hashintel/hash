@@ -32,7 +32,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../../util";
+import { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname } from "./util";
 
 /**

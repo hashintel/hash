@@ -1,12 +1,12 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
+import { ImpureGraphContext } from "../graph/context-types";
 import {
   createPage,
   Page,
   setPageParentPage,
 } from "../graph/knowledge/system-types/page";
-import { ImpureGraphContext } from "../graph/util";
 import { AuthenticationContext } from "../graphql/authentication-context";
 
 export type PageDefinition = {

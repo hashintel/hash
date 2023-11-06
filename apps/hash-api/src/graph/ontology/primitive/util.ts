@@ -5,9 +5,9 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 
+import { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
-import { ImpureGraphFunction } from "../../util";
 
 /**
  * Get the web shortname of an account or account group by its id

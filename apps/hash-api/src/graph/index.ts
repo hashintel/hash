@@ -11,14 +11,11 @@ import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios, { AxiosError } from "axios";
 
+import { GraphApi, ImpureGraphContext } from "./context-types";
 import { ensureSystemAccountExists } from "./system-account";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
-import {
-  ensureAccountGroupOrgsExist,
-  GraphApi,
-  ImpureGraphContext,
-} from "./util";
+import { ensureAccountGroupOrgsExist } from "./util";
 
 const agentConfig = {
   maxSockets: 128,

@@ -1,6 +1,6 @@
 import { AccountGroupId, AccountId } from "@local/hash-subgraph";
 
-import { ImpureGraphFunction } from "./util";
+import { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },

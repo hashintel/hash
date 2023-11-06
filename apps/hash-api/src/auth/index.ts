@@ -3,13 +3,13 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
+import { ImpureGraphContext } from "../graph/context-types";
 import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
 } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
-import { ImpureGraphContext } from "../graph/util";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");

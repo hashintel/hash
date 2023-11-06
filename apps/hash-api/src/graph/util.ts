@@ -13,7 +13,6 @@ import {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   PrimitiveDataTypeKey,
@@ -27,12 +26,10 @@ import {
   OwnedById,
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
-import { DataSource } from "apollo-datasource";
 
-import { AuthenticationContext } from "../graphql/authentication-context";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { UploadableStorageProvider } from "../storage/storage-provider";
+import { ImpureGraphContext } from "./context-types";
 import {
   createAccountGroup,
   createWeb,
@@ -103,28 +100,6 @@ export const RESTRICTED_SHORTNAMES = [
   "users",
   "v2",
 ];
-
-export type GraphApi = GraphApiClient & DataSource;
-
-export type ImpureGraphContext<WithUpload extends boolean = false> = {
-  graphApi: GraphApi;
-} & (WithUpload extends true
-  ? { uploadProvider: UploadableStorageProvider }
-  : {});
-
-export type ImpureGraphFunction<
-  Parameters,
-  ReturnType,
-  WithUpload extends boolean = false,
-> = (
-  context: ImpureGraphContext<WithUpload>,
-  authentication: AuthenticationContext,
-  params: Parameters,
-) => ReturnType;
-
-export type PureGraphFunction<Parameters, ReturnType> = (
-  params: Parameters,
-) => ReturnType;
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance = ![

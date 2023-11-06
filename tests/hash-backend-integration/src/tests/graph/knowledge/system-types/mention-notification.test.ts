@@ -1,5 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   getEntityOutgoingLinks,
   updateEntityProperties,
@@ -29,7 +30,6 @@ import {
   Text,
 } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";

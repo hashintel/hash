@@ -30,9 +30,9 @@ import {
   EmailTransporter,
 } from "./email/transporters";
 import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import { ImpureGraphContext } from "./graph/context-types";
 import { User } from "./graph/knowledge/system-types/user";
 import { ensureLinearTypesExist } from "./graph/linear-types";
-import { ImpureGraphContext } from "./graph/util";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";

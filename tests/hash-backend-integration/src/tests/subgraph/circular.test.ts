@@ -1,7 +1,7 @@
 import path from "node:path";
 
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntities } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { EntityStructuralQuery } from "@local/hash-graph-client";
 import {
   currentTimeInstantTemporalAxes,

@@ -3,6 +3,7 @@ import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
+import { ImpureGraphContext } from "../../../../graph/context-types";
 import {
   createEntityWithLinks,
   getLatestEntityById,
@@ -17,7 +18,6 @@ import {
   updateBlockDataEntity,
 } from "../../../../graph/knowledge/system-types/block";
 import { User } from "../../../../graph/knowledge/system-types/user";
-import { ImpureGraphContext } from "../../../../graph/util";
 import {
   CreateEntityAction,
   EntityDefinition,

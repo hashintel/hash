@@ -2,12 +2,12 @@ import { Logger } from "@local/hash-backend-utils/logger";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
+import { ImpureGraphContext } from "./context-types";
 import {
   createHashInstance,
   getHashInstance,
 } from "./knowledge/system-types/hash-instance";
 import { systemAccountId } from "./system-account";
-import { ImpureGraphContext } from "./util";
 
 /**
  * Ensures the required system entities has been created in the graph.

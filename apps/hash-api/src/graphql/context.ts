@@ -3,8 +3,8 @@ import { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
+import { GraphApi } from "../graph/context-types";
 import { User } from "../graph/knowledge/system-types/user";
-import { GraphApi } from "../graph/util";
 import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault";

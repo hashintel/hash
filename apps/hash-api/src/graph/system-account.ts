@@ -3,9 +3,9 @@ import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId } from "@local/hash-subgraph";
 
 import { publicUserAccountId } from "../auth/public-user-account-id";
+import { ImpureGraphContext } from "./context-types";
 import { createAccount } from "./knowledge/system-types/account.fields";
 import { getEntityTypeById } from "./ontology/primitive/entity-type";
-import { ImpureGraphContext } from "./util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemAccountId: AccountId;

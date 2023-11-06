@@ -2,8 +2,8 @@ import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
+import { ImpureGraphContext } from "../../../context-types";
 import { SYSTEM_TYPES } from "../../../system-types";
-import { ImpureGraphContext } from "../../../util";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,

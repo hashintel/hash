@@ -12,8 +12,8 @@ import {
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 import { UserInputError } from "apollo-server-errors";
 
+import { ImpureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
-import { ImpureGraphFunction } from "../../util";
 import { archiveEntity, getEntityOutgoingLinks } from "../primitive/entity";
 import {
   createLinkEntity,

@@ -1,6 +1,7 @@
 import { Logger } from "@local/hash-backend-utils/logger";
 import { OwnedById } from "@local/hash-subgraph";
 
+import { ImpureGraphContext } from "../graph/context-types";
 import {
   createOrg,
   getOrgByShortname,
@@ -9,7 +10,6 @@ import {
 } from "../graph/knowledge/system-types/org";
 import { joinOrg } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
-import { ImpureGraphContext } from "../graph/util";
 import { PageDefinition, seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
 

@@ -1,5 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createComment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { getCommentNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
@@ -11,7 +12,6 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { ImpureGraphContext } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractOwnedByIdFromEntityId, OwnedById } from "@local/hash-subgraph";
