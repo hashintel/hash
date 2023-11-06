@@ -3,7 +3,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 import {
   addAccountGroupMember,
   removeAccountGroupMember,
-} from "../../graph/account-groups";
+} from "../../graph/account-permission-management";
 import {
   EntityAuthorizationSubject,
   MutationResolvers,
