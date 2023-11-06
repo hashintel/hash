@@ -23,13 +23,10 @@ import { useBlockProtocolCreateEntity } from "../../components/hooks/block-proto
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
-import { GetAccountPagesTreeQuery } from "../../graphql/api-types.gen";
 import { XMarkRegularIcon } from "../../shared/icons/x-mark-regular-icon";
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { QuickNoteEntityWithCreatedAt } from "./types";
-
-type Page = GetAccountPagesTreeQuery["pages"][number];
 
 export type PageWithParentLink = Page & { parentLinkEntity?: Entity };
 

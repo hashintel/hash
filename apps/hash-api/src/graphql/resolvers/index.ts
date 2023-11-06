@@ -53,8 +53,6 @@ import {
   createPageResolver,
   pageCommentsResolver,
   pageResolver,
-  pagesResolver,
-  parentPageResolver,
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
@@ -108,7 +106,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Knowledge
     // @ts-expect-error –– canUserEdit and contents are resolved separately
     page: pageResolver,
-    pages: loggedInAndSignedUpMiddleware(pagesResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,
@@ -202,8 +199,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     userPermissions: checkUserPermissionsOnEntity,
     // @ts-expect-error –– the type requires 'blockChildEntity' inside the return, but we deal with it in a field resolver
     contents: pageContents,
-    // @ts-expect-error –– the type requires 'contents' to be returned here, but we deal with it in a field resolver
-    parentPage: parentPageResolver,
   },
 
   BlockCollection: {

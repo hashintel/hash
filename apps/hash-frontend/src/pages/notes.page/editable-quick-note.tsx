@@ -27,8 +27,10 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  archiveEntityMutation,
+  structuralQueryEntitiesQuery,
+} from "../../graphql/queries/knowledge/entity.queries";
 import { getBlockCollectionContents } from "../../lib/block-collection";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
@@ -114,7 +116,8 @@ export const EditableQuickNote: FunctionComponent<{
   const apolloClient = useApolloClient();
 
   const refetchPageTree = useCallback(async () => {
-    await apolloClient.refetchQueries({ include: [getAccountPagesTree] });
+    // @TODO BEFORE MERGING!!! fix this to refetch account pages properly
+    await apolloClient.refetchQueries({});
   }, [apolloClient]);
 
   const { quickNoteEntity } = quickNoteEntityWithCreatedAt;

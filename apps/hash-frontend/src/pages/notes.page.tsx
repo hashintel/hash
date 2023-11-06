@@ -12,7 +12,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -37,6 +36,7 @@ import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { QuickNoteEntityWithCreatedAt } from "./notes.page/types";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
+import { notArchivedFilter } from "./shared/not-archived-filter";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const NotesPage: NextPageWithLayout = () => {
@@ -62,37 +62,7 @@ const NotesPage: NextPageWithLayout = () => {
                 { parameter: authenticatedUser.accountId },
               ],
             },
-            {
-              any: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                    null,
-                  ],
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          types.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
+            notArchivedFilter,
           ],
         },
         graphResolveDepths: {

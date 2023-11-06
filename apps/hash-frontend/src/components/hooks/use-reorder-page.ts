@@ -6,8 +6,9 @@ import {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { setParentPage } from "../../graphql/queries/page.queries";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useReorderPage = () => {
   const [setParentPageFn, { loading }] = useMutation<
@@ -19,12 +20,12 @@ export const useReorderPage = () => {
       data
         ? [
             {
-              query: getAccountPagesTree,
-              variables: {
+              query: structuralQueryEntitiesQuery,
+              variables: getAccountPagesVariables({
                 ownedById: extractOwnedByIdFromEntityId(
                   data.setParentPage.metadata.recordId.entityId,
                 ),
-              },
+              }),
             },
           ]
         : [],

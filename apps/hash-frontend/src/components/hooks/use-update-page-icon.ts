@@ -6,8 +6,9 @@ import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useUpdatePageIcon = () => {
   const [updatePageFn, { loading: updatePageIconLoading }] = useMutation<
@@ -18,8 +19,10 @@ export const useUpdatePageIcon = () => {
   const getRefetchQueries = useCallback(
     (pageEntityId: EntityId) => [
       {
-        query: getAccountPagesTree,
-        variables: { ownedById: extractOwnedByIdFromEntityId(pageEntityId) },
+        query: structuralQueryEntitiesQuery,
+        variables: getAccountPagesVariables({
+          ownedById: extractOwnedByIdFromEntityId(pageEntityId),
+        }),
       },
     ],
     [],
