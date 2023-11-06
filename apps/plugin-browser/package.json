@@ -20,8 +20,11 @@
     "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },
   "dependencies": {
+    "@blockprotocol/type-system": "0.1.1",
     "@hashintel/block-design-system": "0.0.1",
     "@hashintel/design-system": "0.0.7",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@mui/material": "5.14.11",
     "@sentry/browser": "7.74.1",
     "bowser": "2.11.0",
@@ -55,6 +58,7 @@
     "graphql": "16.8.1",
     "html-loader": "4.2.0",
     "html-webpack-plugin": "5.5.0",
+    "process": "0.11.10",
     "react-refresh": "0.14.0",
     "react-refresh-typescript": "2.0.7",
     "sass": "1.57.1",
