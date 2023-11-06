@@ -116,6 +116,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// This initializes the database for all benchmarks within this module, and therefore should be a
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
+#[expect(clippy::too_many_lines)]
 async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
