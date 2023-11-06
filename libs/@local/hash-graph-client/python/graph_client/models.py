@@ -197,6 +197,24 @@ class EntityTypeGeneralViewerSubject(RootModel[EntityTypeGeneralViewerSubjectIte
     model_config = ConfigDict(populate_by_name=True)
     root: EntityTypeGeneralViewerSubjectItem
 
+class EntityTypeInstantiatorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class EntityTypeInstantiatorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class EntityTypeInstantiatorSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class EntityTypeInstantiatorSubject(RootModel[EntityTypeInstantiatorSubjectItem | EntityTypeInstantiatorSubjectItem1 | EntityTypeInstantiatorSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeInstantiatorSubjectItem | EntityTypeInstantiatorSubjectItem1 | EntityTypeInstantiatorSubjectItem2 = Field(..., discriminator='kind')
+
 class EntityTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -214,6 +232,7 @@ class EntityTypeOwnerSubject(RootModel[EntityTypeOwnerSubjectItem | EntityTypeOw
 class EntityTypePermission(Enum):
     update = 'update'
     view = 'view'
+    instantiate = 'instantiate'
 
 class EntityTypeQueryToken(Enum):
     """
@@ -246,9 +265,14 @@ class EntityTypeRelationAndSubjectItem1(BaseModel):
     relation: Literal['generalViewer']
     subject: EntityTypeGeneralViewerSubject
 
-class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1]):
+class EntityTypeRelationAndSubjectItem2(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    relation: Literal['instantiator']
+    subject: EntityTypeInstantiatorSubject
+
+class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 | EntityTypeRelationAndSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 | EntityTypeRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
 class EntityUuid(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)

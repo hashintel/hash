@@ -4,7 +4,10 @@ use std::collections::{HashMap, HashSet};
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
+    schema::{
+        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypeId,
+        EntityTypePermission, WebPermission,
+    },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
@@ -288,10 +291,24 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp<DecisionTime>>,
         archived: bool,
-        entity_type_id: VersionedUrl,
+        entity_type_url: VersionedUrl,
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
+        let entity_type_id = EntityTypeId::from_url(&entity_type_url);
+        authorization_api
+            .check_entity_type_permission(
+                actor_id,
+                EntityTypePermission::Instantiate,
+                entity_type_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(InsertionError)?
+            .assert_permission()
+            .change_context(InsertionError)
+            .attach(StatusCode::PermissionDenied)?;
+
         if Some(owned_by_id.into_uuid()) != entity_uuid.map(EntityUuid::into_uuid) {
             authorization_api
                 .check_web_permission(
@@ -381,7 +398,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_edition(
                 RecordCreatedById::new(actor_id),
                 archived,
-                &entity_type_id,
+                &entity_type_url,
                 &properties,
                 &link_order,
             )
@@ -452,7 +469,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     decision_time: row.get(0),
                     transaction_time: row.get(1),
                 },
-                entity_type_id,
+                entity_type_url,
                 ProvenanceMetadata {
                     record_created_by_id: RecordCreatedById::new(actor_id),
                     record_archived_by_id: None,

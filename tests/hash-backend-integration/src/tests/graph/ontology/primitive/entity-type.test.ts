@@ -92,6 +92,7 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -102,6 +103,7 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -133,6 +135,7 @@ beforeAll(async () => {
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -145,6 +148,7 @@ beforeAll(async () => {
         allOf: [{ $ref: linkEntityTypeUrl }],
         properties: {},
       },
+      instantiators: [{ kind: "public" }],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -203,6 +207,7 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(graphContext, authentication, {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: entityTypeSchema,
+      instantiators: [{ kind: "public" }],
     });
   });
 
@@ -236,6 +241,7 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
+        instantiators: [{ kind: "public" }],
       },
     ).catch((err) => Promise.reject(err.data));
 

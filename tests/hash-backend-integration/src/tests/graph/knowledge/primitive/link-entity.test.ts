@@ -72,6 +72,7 @@ describe("Link entity", () => {
           entityTypeId,
           ...params,
         }),
+        instantiators: [{ kind: "public" }],
       },
     );
   };
@@ -95,6 +96,7 @@ describe("Link entity", () => {
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
+        instantiators: [{ kind: "public" }],
       }).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
       }),
@@ -107,6 +109,7 @@ describe("Link entity", () => {
           allOf: [{ $ref: linkEntityTypeUrl }],
           properties: {},
         },
+        instantiators: [{ kind: "public" }],
       }).then((linkEntityType) => {
         acquaintanceLinkEntityType = linkEntityType;
       }),

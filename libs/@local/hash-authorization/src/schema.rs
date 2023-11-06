@@ -25,9 +25,10 @@ pub use self::{
         EntitySubject, EntitySubjectId, EntitySubjectSet,
     },
     entity_type::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeNamespace, EntityTypeOwnerSubject,
-        EntityTypePermission, EntityTypeRelationAndSubject, EntityTypeResourceRelation,
-        EntityTypeSubject, EntityTypeSubjectId, EntityTypeSubjectSet,
+        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeInstantiatorSubject,
+        EntityTypeNamespace, EntityTypeOwnerSubject, EntityTypePermission,
+        EntityTypeRelationAndSubject, EntityTypeResourceRelation, EntityTypeSubject,
+        EntityTypeSubjectId, EntityTypeSubjectSet,
     },
     property_type::{
         PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeNamespace,

@@ -398,6 +398,7 @@ export const entityTypeInitializer = (
           return await createEntityType(context, authentication, {
             ownedById: systemUserAccountId as OwnedById,
             schema: entityTypeSchema,
+            instantiators: [{ kind: "public" }],
           }).catch((createError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;
