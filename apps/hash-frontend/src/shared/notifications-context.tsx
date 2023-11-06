@@ -115,6 +115,8 @@ const isLinkAndRightEntityWithLinkType =
   ({ linkEntity }: LinkEntityAndRightEntity) =>
     linkEntity[0] && linkEntity[0].metadata.entityTypeId === linkEntityTypeId;
 
+const fetchNotificationPollInterval = 5_000;
+
 export const NotificationsContextProvider: FunctionComponent<
   PropsWithChildren
 > = ({ children }) => {
@@ -176,7 +178,7 @@ export const NotificationsContextProvider: FunctionComponent<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
-    pollInterval: 5_000,
+    pollInterval: fetchNotificationPollInterval,
     variables: {
       includePermissions: false,
       query: {
@@ -211,7 +213,7 @@ export const NotificationsContextProvider: FunctionComponent<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
-    pollInterval: 5_000,
+    pollInterval: fetchNotificationPollInterval,
     variables: {
       includePermissions: false,
       query: {
