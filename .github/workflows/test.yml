@@ -382,6 +382,8 @@ jobs:
         run: df -h
 
       - name: Launch external services
+        env:
+          HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "(?:http://localhost:3000|https://hash.ai)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/"
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
