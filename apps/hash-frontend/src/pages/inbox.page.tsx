@@ -16,7 +16,14 @@ import {
   tableRowClasses,
   Typography,
 } from "@mui/material";
-import { format } from "date-fns";
+import {
+  differenceInDays,
+  differenceInMinutes,
+  format,
+  formatDistanceToNow,
+  isThisYear,
+  isToday,
+} from "date-fns";
 import { FunctionComponent, useCallback, useMemo } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -128,6 +135,32 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
     await markNotificationAsRead({ notification });
   }, [markNotificationAsRead, notification]);
 
+  const humanReadableCreatedAt = useMemo(() => {
+    const now = new Date();
+
+    const numberOfMinutesAgo = differenceInMinutes(now, createdAt);
+
+    if (numberOfMinutesAgo < 1) {
+      return "Just now";
+    }
+    if (isToday(createdAt)) {
+      return formatDistanceToNow(createdAt, {
+        addSuffix: true,
+      }); // "5 minutes ago" or "2 hours ago"
+    }
+
+    const numberOfDaysAgo = differenceInDays(now, createdAt);
+
+    if (numberOfDaysAgo < 7) {
+      return format(createdAt, "iiii"); // "Monday"
+    }
+
+    if (isThisYear(createdAt)) {
+      return format(createdAt, "MMMM do"); // "October 27th"
+    }
+
+    return format(createdAt, "MMMM do, yyyy"); // "December 24th, 2022"
+  }, [createdAt]);
   return (
     <TableRow
       sx={{
@@ -135,6 +168,7 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
         opacity: readAt ? 0.6 : 1,
       }}
     >
+      <TableCell>{humanReadableCreatedAt}</TableCell>
       <TableCell
         sx={{
           a: {
@@ -180,7 +214,6 @@ const NotificationRow: FunctionComponent<Notification> = (notification) => {
           </Button>
         )}
       </TableCell>
-      <TableCell>{format(createdAt, "h:mm a, MMM d yyyy")}</TableCell>
     </TableRow>
   );
 };
@@ -199,14 +232,14 @@ const InboxPage: NextPageWithLayout = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell variant="head" sx={{ width: "auto" }}>
+                When
+              </TableCell>
               <TableCell variant="head" sx={{ width: "100%" }}>
                 Title
               </TableCell>
               <TableCell variant="head" sx={{ width: "auto" }}>
                 Actions
-              </TableCell>
-              <TableCell variant="head" sx={{ width: "auto" }}>
-                Occurred At
               </TableCell>
             </TableRow>
           </TableHead>
