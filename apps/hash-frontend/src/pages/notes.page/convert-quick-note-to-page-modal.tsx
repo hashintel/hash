@@ -110,7 +110,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     if (parentPage) {
       await createEntity({
         data: {
-          entityTypeId: systemTypes.linkEntityType.parent.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: pageEntity.metadata.recordId.entityId,

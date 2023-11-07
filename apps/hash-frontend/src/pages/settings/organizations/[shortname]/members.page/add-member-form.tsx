@@ -116,7 +116,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       createEntity({
         data: {
           entityTypeId:
-            systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
+            systemTypes.linkEntityType.hasOrgMembership.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,

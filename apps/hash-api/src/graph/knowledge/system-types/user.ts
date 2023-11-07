@@ -443,7 +443,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
     {
       entityId: userEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+        SYSTEM_TYPES.linkEntityType.hasOrgMembership.schema.$id,
     },
   );
 
@@ -470,7 +470,9 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 
   const orgs = await Promise.all(
     orgMemberships.map((orgMembership) =>
-      getOrgMembershipOrg(ctx, authentication, { orgMembership }),
+      getOrgMembershipOrg(ctx, authentication, {
+        orgMembership,
+      }),
     ),
   );
 

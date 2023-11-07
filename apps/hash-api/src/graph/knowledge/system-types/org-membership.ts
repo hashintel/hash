@@ -32,11 +32,11 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 > = ({ linkEntity }) => {
   if (
     linkEntity.metadata.entityTypeId !==
-    SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id
+    SYSTEM_TYPES.linkEntityType.hasOrgMembership.schema.$id
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,
-      SYSTEM_TYPES.linkEntityType.orgMembership.schema.$id,
+      SYSTEM_TYPES.linkEntityType.hasOrgMembership.schema.$id,
       linkEntity.metadata.entityTypeId,
     );
   }
@@ -83,7 +83,7 @@ export const createOrgMembership: ImpureGraphFunction<
   try {
     linkEntity = await createLinkEntity(ctx, authentication, {
       ownedById: orgAccountGroupId as OwnedById,
-      linkEntityType: SYSTEM_TYPES.linkEntityType.orgMembership,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.hasOrgMembership,
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
       properties: {},

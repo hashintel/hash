@@ -416,9 +416,9 @@ export type SystemPropertyTypeTitle =
  * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
-  orgMembership: {
-    title: "Org Membership",
-    description: undefined,
+  hasOrgMembership: {
+    title: "Has Org Membership",
+    description: "The organizational membership something has.",
   },
   blockData: {
     title: "Block Data",
@@ -426,15 +426,15 @@ const systemLinkEntityTypes = {
   },
   hasBio: {
     title: "Has Bio",
-    description: "Something that has a bio.",
+    description: "The biography something has.",
   },
   contains: {
     title: "Contains",
-    description: "Something containing something.",
+    description: "What something contains",
   },
-  parent: {
-    title: "Parent",
-    description: "The parent of something.",
+  hasParent: {
+    title: "Has Parent",
+    description: "The parent something has.",
   },
   hasAvatar: {
     title: "Has Avatar",
@@ -448,9 +448,9 @@ const systemLinkEntityTypes = {
     title: "Has Text",
     description: "The text something has.",
   },
-  author: {
-    title: "Author",
-    description: "The author of something.",
+  authoredBy: {
+    title: "Authored By",
+    description: "What or whom something was authored by.",
   },
   syncLinearDataWith: {
     title: "Sync Linear Data With",
@@ -458,11 +458,11 @@ const systemLinkEntityTypes = {
   },
   usesUserSecret: {
     title: "Uses User Secret",
-    description: "Something that uses a user secret.",
+    description: "The user secret something uses.",
   },
   hasServiceAccount: {
     title: "Has Service Account",
-    description: "Something that has a service account.",
+    description: "The service account something has.",
   },
   occurredInEntity: {
     title: "Occurred In Entity",
@@ -490,7 +490,7 @@ const systemLinkEntityTypes = {
   },
   repliedToComment: {
     title: "Replied To Comment",
-    description: "A comment that was replied to.",
+    description: "The comment that something replied to.",
   },
 } as const;
 

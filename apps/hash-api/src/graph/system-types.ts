@@ -121,7 +121,7 @@ export let SYSTEM_TYPES: {
   };
   linkEntityType: {
     // User-related
-    orgMembership: EntityTypeWithMetadata;
+    hasOrgMembership: EntityTypeWithMetadata;
     hasServiceAccount: EntityTypeWithMetadata;
 
     // Account-related
@@ -136,11 +136,11 @@ export let SYSTEM_TYPES: {
     contains: EntityTypeWithMetadata;
 
     // Page-related
-    parent: EntityTypeWithMetadata;
+    hasParent: EntityTypeWithMetadata;
 
     // Comment-related
     hasText: EntityTypeWithMetadata;
-    author: EntityTypeWithMetadata;
+    authoredBy: EntityTypeWithMetadata;
 
     // Linear Integration related
     syncLinearDataWith: EntityTypeWithMetadata;
@@ -427,7 +427,7 @@ const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
   return entityTypeInitializer({
-    ...systemTypes.linkEntityType.orgMembership,
+    ...systemTypes.linkEntityType.hasOrgMembership,
     webShortname: "hash",
   })(context);
 };
@@ -466,7 +466,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
     await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
 
   const orgMembershipLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(context);
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasOrgMembership(context);
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
@@ -978,8 +978,8 @@ const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.parent,
+const hasParentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasParent,
   webShortname: "hash",
 });
 
@@ -1001,8 +1001,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
 
-  const parentLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
+  const hasParentLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
   const blockCollectionEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
@@ -1033,7 +1033,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
     outgoingLinks: [
       {
-        linkEntityType: parentLinkTypeType,
+        linkEntityType: hasParentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
@@ -1183,8 +1183,8 @@ const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
   webShortname: "hash",
 });
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.author,
+const authoredByLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.authoredBy,
   webShortname: "hash",
 });
 
@@ -1200,11 +1200,11 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const hasTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasText(context);
 
-  const parentLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
+  const hasParentLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
-  const authorLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(context);
+  const authoredByLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.authoredBy(context);
 
   const userEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
@@ -1235,13 +1235,13 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
       {
-        linkEntityType: parentLinkTypeType,
+        linkEntityType: hasParentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
       {
-        linkEntityType: authorLinkTypeType,
+        linkEntityType: authoredByLinkTypeType,
         destinationEntityTypes: [userEntityType],
         minItems: 1,
         maxItems: 1,
@@ -1544,14 +1544,14 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
-    orgMembership: orgMembershipLinkEntityTypeInitializer,
+    hasOrgMembership: orgMembershipLinkEntityTypeInitializer,
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
-    parent: parentLinkEntityTypeInitializer,
+    hasParent: hasParentLinkEntityTypeInitializer,
     hasAvatar: hasAvatarLinkEntityTypeInitializer,
     hasCoverImage: hasCoverImageLinkEntityTypeInitializer,
     hasText: hasTextLinkEntityTypeInitializer,
-    author: authorLinkEntityTypeInitializer,
+    authoredBy: authoredByLinkEntityTypeInitializer,
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
