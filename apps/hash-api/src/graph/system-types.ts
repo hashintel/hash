@@ -1253,8 +1253,9 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
 };
 
 const readAtPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.readAt,
+  ...systemTypes.propertyType.readAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const notificationEntityTypeInitializer = async (
@@ -1289,9 +1290,10 @@ export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer({
   webShortname: "hash",
 });
 
-export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInBlock,
-);
+export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInBlock,
+  webShortname: "hash",
+});
 
 export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
   {
