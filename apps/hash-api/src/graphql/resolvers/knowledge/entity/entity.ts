@@ -70,6 +70,8 @@ import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
+import { systemAccountId } from "../../../../graph/system-account";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -327,9 +329,40 @@ export const updateEntityResolver: ResolverFn<
     ]
   ) {
     // Now that the user has completed signup, we can create their web, allowing them to create/edit entities
-    await createWeb(context, authentication, {
-      owner: user.accountId,
-    });
+    await modifyWebAuthorizationRelationships(
+      context,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "delete",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: systemAccountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+        {
+          operation: "create",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: user.accountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+      ],
+    );
   }
 
   if (isEntityLinkEntity(entity)) {

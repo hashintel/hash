@@ -88,6 +88,14 @@ impl AuthorizationApi for NoAuthorization {
         Ok(Zookie::empty())
     }
 
+    async fn get_web_relations(
+        &self,
+        _web: WebId,
+        _consistency: Consistency<'static>,
+    ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
+        Ok(Vec::new())
+    }
+
     async fn check_entity_permission(
         &self,
         _actor: AccountId,

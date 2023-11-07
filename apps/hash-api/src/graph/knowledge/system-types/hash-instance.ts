@@ -129,7 +129,10 @@ export const createHashInstance: ImpureGraphFunction<
   }
 
   const hashInstanceAdmins = await createAccountGroup(ctx, authentication, {});
-  await createWeb(ctx, authentication, { owner: hashInstanceAdmins });
+  await createWeb(ctx, authentication, {
+    ownedById: hashInstanceAdmins as OwnedById,
+    owner: { kind: "accountGroup", subjectId: hashInstanceAdmins },
+  });
 
   const entity = await createEntity(ctx, authentication, {
     ownedById: hashInstanceAdmins as OwnedById,

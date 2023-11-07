@@ -131,7 +131,10 @@ export const createOrg: ImpureGraphFunction<
     orgAccountGroupId = params.orgAccountGroupId;
   } else {
     orgAccountGroupId = await createAccountGroup(ctx, authentication, {});
-    await createWeb(ctx, authentication, { owner: orgAccountGroupId });
+    await createWeb(ctx, authentication, {
+      ownedById: orgAccountGroupId as OwnedById,
+      owner: { kind: "accountGroup", subjectId: orgAccountGroupId },
+    });
   }
 
   const properties: EntityPropertiesObject = {

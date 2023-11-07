@@ -49,6 +49,8 @@ import {
   getOrgMembershipOrg,
   OrgMembership,
 } from "./org-membership";
+import { systemAccountId } from "../../system-account";
+import { modifyWebAuthorizationRelationships } from "../../ontology/primitive/util";
 
 export type User = {
   accountId: AccountId;
@@ -283,17 +285,24 @@ export const createUser: ImpureGraphFunction<
   } else {
     userAccountId = await createAccount(ctx, authentication, {});
 
-    if (shortname && preferredName) {
-      /**
-       * Creating a web allows users to create further entities in it
-       * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
-       */
-      await createWeb(
-        ctx,
-        { actorId: userAccountId },
-        { owner: userAccountId },
-      );
-    }
+    await createWeb(
+      ctx,
+      { actorId: systemAccountId },
+      {
+        ownedById: userAccountId as OwnedById,
+        owner: {
+          kind: "account",
+          /**
+           * Creating a web allows users to create further entities in it
+           * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
+           * - the web is created with the system account as the owner and will be updated to the user account as the
+           *   owner once the user has completed signup
+           */
+          subjectId:
+            shortname && preferredName ? userAccountId : systemAccountId,
+        },
+      },
+    );
   }
 
   const properties: EntityPropertiesObject = {

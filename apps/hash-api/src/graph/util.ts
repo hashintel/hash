@@ -107,7 +107,10 @@ const getOrCreateOwningAccountGroupId = async (
   // The systemAccountId will automatically be assigned as an owner of the account group since it creates it
   const accountGroupId = await createAccountGroup(context, authentication, {});
 
-  await createWeb(context, authentication, { owner: accountGroupId });
+  await createWeb(context, authentication, {
+    ownedById: accountGroupId as OwnedById,
+    owner: { kind: "accountGroup", subjectId: accountGroupId },
+  });
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
 
