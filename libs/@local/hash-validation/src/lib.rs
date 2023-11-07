@@ -19,7 +19,8 @@ mod property_type;
 use std::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
-use type_system::url::VersionedUrl;
+use graph_types::knowledge::entity::{Entity, EntityId};
+use type_system::{url::VersionedUrl, EntityType};
 
 trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
@@ -82,11 +83,25 @@ pub trait OntologyTypeProvider<O> {
     ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
 }
 
+pub trait EntityTypeProvider: OntologyTypeProvider<EntityType> {
+    fn is_parent_of(
+        &self,
+        child: &VersionedUrl,
+        parent: &VersionedUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+}
+pub trait EntityProvider {
+    fn provide_entity(
+        &self,
+        entity_id: EntityId,
+    ) -> impl Future<Output = Result<impl Borrow<Entity> + Send, Report<impl Context>>> + Send;
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::entity::EntityProperties;
+    use graph_types::knowledge::entity::{EntityId, EntityProperties};
     use serde_json::Value as JsonValue;
     use thiserror::Error;
     use type_system::{raw, DataType, EntityType, PropertyType};
@@ -98,15 +113,27 @@ mod tests {
     };
 
     struct Provider {
+        entities: HashMap<EntityId, Entity>,
+        entity_types: HashMap<VersionedUrl, EntityType>,
         property_types: HashMap<VersionedUrl, PropertyType>,
         data_types: HashMap<VersionedUrl, DataType>,
     }
     impl Provider {
         fn new(
+            entities: impl IntoIterator<Item = Entity>,
+            entity_types: impl IntoIterator<Item = EntityType>,
             property_types: impl IntoIterator<Item = PropertyType>,
             data_types: impl IntoIterator<Item = DataType>,
         ) -> Self {
             Self {
+                entities: entities
+                    .into_iter()
+                    .map(|entity| (entity.metadata.record_id().entity_id, entity))
+                    .collect(),
+                entity_types: entity_types
+                    .into_iter()
+                    .map(|schema| (schema.id().clone(), schema))
+                    .collect(),
                 property_types: property_types
                     .into_iter()
                     .map(|schema| (schema.id().clone(), schema))
@@ -120,6 +147,18 @@ mod tests {
     }
 
     #[derive(Debug, Error)]
+    #[error("entity was not found: `{id}`")]
+    struct InvalidEntity {
+        id: EntityId,
+    }
+
+    #[derive(Debug, Error)]
+    #[error("entity type was not found: `{id}`")]
+    struct InvalidEntityType {
+        id: VersionedUrl,
+    }
+
+    #[derive(Debug, Error)]
     #[error("property type was not found: `{id}`")]
     struct InvalidPropertyType {
         id: VersionedUrl,
@@ -128,6 +167,47 @@ mod tests {
     #[error("data type was not found: `{id}`")]
     struct InvalidDataType {
         id: VersionedUrl,
+    }
+
+    impl EntityProvider for Provider {
+        async fn provide_entity(
+            &self,
+            entity_id: EntityId,
+        ) -> Result<&Entity, Report<InvalidEntity>> {
+            self.entities
+                .get(&entity_id)
+                .ok_or_else(|| Report::new(InvalidEntity { id: entity_id }))
+        }
+    }
+
+    impl EntityTypeProvider for Provider {
+        async fn is_parent_of(
+            &self,
+            child: &VersionedUrl,
+            parent: &VersionedUrl,
+        ) -> Result<bool, Report<InvalidEntityType>> {
+            Ok(
+                OntologyTypeProvider::<EntityType>::provide_type(self, child)
+                    .await?
+                    .inherits_from()
+                    .all_of()
+                    .iter()
+                    .any(|id| id.url() == parent),
+            )
+        }
+    }
+
+    impl OntologyTypeProvider<EntityType> for Provider {
+        async fn provide_type(
+            &self,
+            type_id: &VersionedUrl,
+        ) -> Result<&EntityType, Report<InvalidEntityType>> {
+            self.entity_types.get(type_id).ok_or_else(|| {
+                Report::new(InvalidEntityType {
+                    id: type_id.clone(),
+                })
+            })
+        }
     }
 
     impl OntologyTypeProvider<PropertyType> for Provider {
@@ -159,12 +239,20 @@ mod tests {
     pub(crate) async fn validate_entity(
         entity: &'static str,
         entity_type: &'static str,
+        entities: impl IntoIterator<Item = Entity> + Send,
+        entity_types: impl IntoIterator<Item = &'static str> + Send,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
     ) -> Result<(), Report<EntityValidationError>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
+            entities,
+            entity_types.into_iter().map(|entity_type_id| {
+                let raw_entity_type = serde_json::from_str::<raw::EntityType>(entity_type_id)
+                    .expect("failed to read entity type string");
+                EntityType::try_from(raw_entity_type).expect("failed to parse entity type")
+            }),
             property_types.into_iter().map(|property_type_id| {
                 let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type_id)
                     .expect("failed to read property type string");
@@ -197,6 +285,8 @@ mod tests {
         install_error_stack_hooks();
 
         let provider = Provider::new(
+            [],
+            [],
             property_types.into_iter().map(|property_type_id| {
                 let raw_property_type = serde_json::from_str::<raw::PropertyType>(property_type_id)
                     .expect("failed to read property type string");
