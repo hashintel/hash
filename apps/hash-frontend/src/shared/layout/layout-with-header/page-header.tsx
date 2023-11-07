@@ -8,6 +8,7 @@ import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
+import { NotificationsDropdown } from "./notifications-dropdown";
 import { SearchBar } from "./search-bar";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
@@ -77,13 +78,18 @@ export const PageHeader: FunctionComponent = () => {
           {authenticatedUser ? <SearchBar /> : null}
         </Box>
         {authenticatedUser ? (
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              columnGap: {
+                xs: 1,
+                md: 1.5,
+              },
+            }}
+          >
             <ActionsDropdown />
-            {/*  
-              Commented out Notifications dropdown because the functionality has not been implemented yet
-              @todo uncomment when functionality has been implemented 
-            */}
-            {/* <NotificationsDropdown /> */}
+            <NotificationsDropdown />
             <AccountDropdown
               logout={logout}
               authenticatedUser={authenticatedUser}

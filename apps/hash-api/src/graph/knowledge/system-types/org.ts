@@ -20,7 +20,11 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import {
+  createAccountGroup,
+  createWeb,
+} from "../../account-permission-management";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
@@ -30,8 +34,6 @@ import {
   updateEntityProperty,
 } from "../primitive/entity";
 import {
-  createAccountGroup,
-  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -165,7 +167,7 @@ export const createOrg: ImpureGraphFunction<
         subject: {
           kind: "public",
         },
-        relation: "generalViewer",
+        relation: "viewer",
         resource: {
           kind: "entity",
           resourceId: entity.metadata.recordId.entityId,

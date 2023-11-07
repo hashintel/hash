@@ -1,7 +1,7 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
-  types,
+  systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
@@ -20,7 +20,8 @@ import {
   getTextFromEntity,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
-import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
+import { checkPermissionsOnEntity } from "../entity";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 import {
   UpdateEntityHook,
   UpdateEntityHookCallback,
@@ -40,12 +41,12 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
 }) => {
   const text = getTextFromEntity({ entity });
 
-  const { occurredInComment, occurredInPage } =
-    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+  const { occurredInComment, occurredInEntity, occurredInBlock } =
+    await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage) {
+  if (!occurredInEntity || !occurredInBlock) {
     return;
   }
 
@@ -101,8 +102,9 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         {
           recipient: removedMentionedUser,
           triggeredByUser,
-          occurredInEntity: occurredInPage,
+          occurredInEntity,
           occurredInComment,
+          occurredInBlock,
           occurredInText: text,
         },
       );
@@ -115,41 +117,59 @@ const textEntityUpdateHookCallback: UpdateEntityHookCallback = async ({
         );
       }
     }),
-    ...addedMentionedUsers.map(async (addedMentionedUser) => {
-      const existingNotification = await getMentionNotification(
-        context,
-        /** @todo: use authentication of machine user instead */
-        { actorId: addedMentionedUser.accountId },
-        {
-          recipient: addedMentionedUser,
-          triggeredByUser,
-          occurredInEntity: occurredInPage,
-          occurredInComment,
-          occurredInText: text,
-        },
-      );
+    ...addedMentionedUsers
+      .filter(
+        (addedMentionedUser) =>
+          triggeredByUser.accountId !== addedMentionedUser.accountId,
+      )
+      .map(async (addedMentionedUser) => {
+        const { view: mentionedUserCanViewPage } =
+          await checkPermissionsOnEntity(
+            context,
+            { actorId: addedMentionedUser.accountId },
+            { entity: occurredInEntity.entity },
+          );
 
-      if (!existingNotification) {
-        await createMentionNotification(
+        if (!mentionedUserCanViewPage) {
+          return;
+        }
+
+        const existingNotification = await getMentionNotification(
           context,
           /** @todo: use authentication of machine user instead */
           { actorId: addedMentionedUser.accountId },
           {
-            ownedById: addedMentionedUser.accountId as OwnedById,
-            occurredInEntity: occurredInPage,
-            occurredInComment,
-            occurredInText: text,
+            recipient: addedMentionedUser,
             triggeredByUser,
+            occurredInEntity,
+            occurredInComment,
+            occurredInBlock,
+            occurredInText: text,
           },
         );
-      }
-    }),
+
+        if (!existingNotification) {
+          await createMentionNotification(
+            context,
+            /** @todo: use authentication of machine user instead */
+            { actorId: addedMentionedUser.accountId },
+            {
+              ownedById: addedMentionedUser.accountId as OwnedById,
+              occurredInEntity,
+              occurredInBlock,
+              occurredInComment,
+              occurredInText: text,
+              triggeredByUser,
+            },
+          );
+        }
+      }),
   ]);
 };
 
 export const afterUpdateEntityHooks: UpdateEntityHook[] = [
   {
-    entityTypeId: types.entityType.text.entityTypeId,
+    entityTypeId: systemTypes.entityType.text.entityTypeId,
     callback: textEntityUpdateHookCallback,
   },
 ];

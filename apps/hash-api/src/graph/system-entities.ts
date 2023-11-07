@@ -2,12 +2,12 @@ import { Logger } from "@local/hash-backend-utils/logger";
 
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
+import { ImpureGraphContext } from "./context-types";
 import {
   createHashInstance,
   getHashInstance,
 } from "./knowledge/system-types/hash-instance";
-import { systemUserAccountId } from "./system-user";
+import { systemAccountId } from "./system-account";
 
 /**
  * Ensures the required system entities has been created in the graph.
@@ -17,7 +17,7 @@ export const ensureSystemEntitiesExists = async (params: {
   context: ImpureGraphContext;
 }) => {
   const { context } = params;
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
   logger.debug("Ensuring required system entities exists");
 
   // Create system entities if they don't already exist

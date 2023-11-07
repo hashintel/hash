@@ -1,4 +1,10 @@
-import { Box, Tooltip, Typography, typographyClasses } from "@mui/material";
+import {
+  Box,
+  Fade,
+  Tooltip,
+  Typography,
+  typographyClasses,
+} from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../ui";
@@ -7,6 +13,7 @@ type NavLinkProps = {
   icon: ReactNode;
   title: string;
   href: string;
+  count?: number;
   active?: boolean;
   tooltipTitle: string;
 };
@@ -16,6 +23,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   title,
   href,
   active,
+  count,
   tooltipTitle,
 }) => {
   return (
@@ -41,6 +49,9 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
 
           [`& > .${typographyClasses.root}`]: {
             color: palette.gray[70],
+            "&.count": {
+              color: palette.gray[50],
+            },
           },
 
           "&:hover": {
@@ -48,6 +59,9 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
 
             [`& > svg, & > .${typographyClasses.root}`]: {
               color: palette.gray[80],
+              "&.count": {
+                color: palette.gray[60],
+              },
             },
           },
 
@@ -79,6 +93,16 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
         <Typography variant="smallTextLabels" fontWeight={500}>
           {title}
         </Typography>
+        <Fade in={typeof count !== "undefined"}>
+          <Typography
+            variant="smallTextLabels"
+            fontWeight={500}
+            className="count"
+            sx={{ marginLeft: 1.25 }}
+          >
+            {count}
+          </Typography>
+        </Fade>
       </Link>
     </Tooltip>
   );

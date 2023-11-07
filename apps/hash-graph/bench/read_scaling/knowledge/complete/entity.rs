@@ -59,6 +59,14 @@ async fn seed_db(
         .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
+    transaction
+        .insert_web_id(
+            account_id,
+            &mut NoAuthorization,
+            OwnedById::new(account_id.into_uuid()),
+        )
+        .await
+        .expect("could not create web id");
 
     seed(
         &mut transaction,

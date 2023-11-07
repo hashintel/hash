@@ -1,5 +1,5 @@
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   extractEntityUuidFromEntityId,
@@ -134,12 +134,14 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     if (entity) {
       if (mention.kind === "user" || mention.kind === "entity") {
         if (
-          entity.metadata.entityTypeId === types.entityType.user.entityTypeId ||
-          entity.metadata.entityTypeId === types.entityType.org.entityTypeId
+          entity.metadata.entityTypeId ===
+            systemTypes.entityType.user.entityTypeId ||
+          entity.metadata.entityTypeId ===
+            systemTypes.entityType.org.entityTypeId
         ) {
           const shortname =
             entity.properties[
-              extractBaseUrl(types.propertyType.shortname.propertyTypeId)
+              extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)
             ];
           return `/@${shortname}`;
         }

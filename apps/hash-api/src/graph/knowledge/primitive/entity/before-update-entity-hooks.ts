@@ -1,8 +1,8 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { ImpureGraphContext } from "../../..";
+import { ImpureGraphContext } from "../../../context-types";
 import { SYSTEM_TYPES } from "../../../system-types";
 import {
   shortnameContainsInvalidCharacter,
@@ -115,7 +115,7 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
 
 export const beforeUpdateEntityHooks: UpdateEntityHook[] = [
   {
-    entityTypeId: types.entityType.user.entityTypeId,
+    entityTypeId: systemTypes.entityType.user.entityTypeId,
     callback: userEntityHookCallback,
   },
 ];

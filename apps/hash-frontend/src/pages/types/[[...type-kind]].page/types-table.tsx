@@ -42,7 +42,7 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 const typesTableColumnIds = [
   "title",
   "kind",
-  "namespaceShortname",
+  "webShortname",
   "archived",
 ] as const;
 
@@ -58,8 +58,15 @@ type TypesTableRow = {
   typeId: VersionedUrl;
   title: string;
   external: boolean;
-  namespaceShortname?: string;
+  webShortname?: string;
   archived: boolean;
+};
+
+const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
+  const url = new URL(typeId);
+  const domain = url.hostname;
+  const firstPathSegment = url.pathname.split("/")[1];
+  return `${domain}/${firstPathSegment}`;
 };
 
 export const TypesTable: FunctionComponent<{
@@ -101,9 +108,9 @@ export const TypesTable: FunctionComponent<{
           ]
         : []),
       {
-        id: "namespaceShortname",
-        title: "Namespace",
-        width: 200,
+        id: "webShortname",
+        title: "Web",
+        width: 280,
       },
       {
         id: "archived",
@@ -145,9 +152,9 @@ export const TypesTable: FunctionComponent<{
             ? undefined
             : type.metadata.custom.ownedById;
 
-          const namespace = namespaces?.find(
+          const webShortname = namespaces?.find(
             (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
-          );
+          )?.shortname;
 
           return {
             rowId: type.schema.$id,
@@ -162,7 +169,7 @@ export const TypesTable: FunctionComponent<{
                 ? "property-type"
                 : "data-type",
             external: isExternal,
-            namespaceShortname: namespace?.shortname,
+            webShortname,
             archived: isTypeArchived(type),
           } as const;
         })
@@ -212,10 +219,10 @@ export const TypesTable: FunctionComponent<{
               displayData: String(row.kind),
               data: row.kind,
             };
-          case "namespaceShortname": {
-            const value = row.namespaceShortname
-              ? `@${row.namespaceShortname}`
-              : "";
+          case "webShortname": {
+            const value = row.webShortname
+              ? `@${row.webShortname}`
+              : typeNamespaceFromTypeId(row.typeId);
 
             return {
               kind: GridCellKind.Text,

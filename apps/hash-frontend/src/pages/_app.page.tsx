@@ -39,6 +39,7 @@ import {
   NextPageWithLayout,
 } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
+import { NotificationsContextProvider } from "../shared/notifications-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
@@ -140,24 +141,28 @@ const App: FunctionComponent<AppProps> = ({
             <RoutePageInfoProvider>
               <WorkspaceContextProvider>
                 <SnackbarProvider maxSnack={3}>
-                  <EntityTypesContextProvider>
-                    <PropertyTypesContextProvider includeArchived>
-                      <FileUploadsProvider>
-                        <SidebarContextProvider>
-                          <ErrorBoundary
-                            beforeCapture={(scope) => {
-                              scope.setTag("error-boundary", "_app");
-                            }}
-                            fallback={(props) =>
-                              getLayoutWithSidebar(<ErrorFallback {...props} />)
-                            }
-                          >
-                            {getLayout(<Component {...pageProps} />)}
-                          </ErrorBoundary>
-                        </SidebarContextProvider>
-                      </FileUploadsProvider>
-                    </PropertyTypesContextProvider>
-                  </EntityTypesContextProvider>
+                  <NotificationsContextProvider>
+                    <EntityTypesContextProvider>
+                      <PropertyTypesContextProvider includeArchived>
+                        <FileUploadsProvider>
+                          <SidebarContextProvider>
+                            <ErrorBoundary
+                              beforeCapture={(scope) => {
+                                scope.setTag("error-boundary", "_app");
+                              }}
+                              fallback={(props) =>
+                                getLayoutWithSidebar(
+                                  <ErrorFallback {...props} />,
+                                )
+                              }
+                            >
+                              {getLayout(<Component {...pageProps} />)}
+                            </ErrorBoundary>
+                          </SidebarContextProvider>
+                        </FileUploadsProvider>
+                      </PropertyTypesContextProvider>
+                    </EntityTypesContextProvider>
+                  </NotificationsContextProvider>
                 </SnackbarProvider>
               </WorkspaceContextProvider>
             </RoutePageInfoProvider>

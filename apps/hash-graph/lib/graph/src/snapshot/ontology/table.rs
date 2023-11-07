@@ -20,7 +20,7 @@ pub struct OntologyIdRow {
 #[postgres(name = "ontology_owned_metadata")]
 pub struct OntologyOwnedMetadataRow {
     pub ontology_id: Uuid,
-    pub owned_by_id: OwnedById,
+    pub web_id: OwnedById,
 }
 
 #[derive(Debug, ToSql)]

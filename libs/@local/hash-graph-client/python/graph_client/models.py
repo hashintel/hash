@@ -18,14 +18,6 @@ class AccountId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
-class DataTypeGeneralViewerSubjectItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['public']
-
-class DataTypeGeneralViewerSubject(RootModel[DataTypeGeneralViewerSubjectItem]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: DataTypeGeneralViewerSubjectItem
-
 class DataTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -63,14 +55,13 @@ class DataTypeRelationAndSubjectItem(BaseModel):
     relation: Literal['owner']
     subject: DataTypeOwnerSubject
 
-class DataTypeRelationAndSubjectItem1(BaseModel):
+class DataTypeViewerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['generalViewer']
-    subject: DataTypeGeneralViewerSubject
+    kind: Literal['public']
 
-class DataTypeRelationAndSubject(RootModel[DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1]):
+class DataTypeViewerSubject(RootModel[DataTypeViewerSubjectItem]):
     model_config = ConfigDict(populate_by_name=True)
-    root: DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    root: DataTypeViewerSubjectItem
 
 class DecisionTime(RootModel[Literal['decisionTime']]):
     model_config = ConfigDict(populate_by_name=True)
@@ -85,37 +76,19 @@ class EntityEditionId(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
 
-class EntityGeneralEditorSubjectItem(BaseModel):
+class EntityEditorSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
     subject_id: AccountId = Field(..., alias='subjectId')
 
-class EntityGeneralEditorSubjectItem1(BaseModel):
+class EntityEditorSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['accountGroup']
     subject_id: AccountGroupId = Field(..., alias='subjectId')
 
-class EntityGeneralEditorSubject(RootModel[EntityGeneralEditorSubjectItem | EntityGeneralEditorSubjectItem1]):
+class EntityEditorSubject(RootModel[EntityEditorSubjectItem | EntityEditorSubjectItem1]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityGeneralEditorSubjectItem | EntityGeneralEditorSubjectItem1 = Field(..., discriminator='kind')
-
-class EntityGeneralViewerSubjectItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['public']
-
-class EntityGeneralViewerSubjectItem1(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['account']
-    subject_id: AccountId = Field(..., alias='subjectId')
-
-class EntityGeneralViewerSubjectItem2(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['accountGroup']
-    subject_id: AccountGroupId = Field(..., alias='subjectId')
-
-class EntityGeneralViewerSubject(RootModel[EntityGeneralViewerSubjectItem | EntityGeneralViewerSubjectItem1 | EntityGeneralViewerSubjectItem2]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: EntityGeneralViewerSubjectItem | EntityGeneralViewerSubjectItem1 | EntityGeneralViewerSubjectItem2 = Field(..., discriminator='kind')
+    root: EntityEditorSubjectItem | EntityEditorSubjectItem1 = Field(..., discriminator='kind')
 
 class EntityId(RootModel[str]):
     model_config = ConfigDict(populate_by_name=True)
@@ -177,25 +150,8 @@ class EntityRelationAndSubjectItem(BaseModel):
 
 class EntityRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['generalEditor']
-    subject: EntityGeneralEditorSubject
-
-class EntityRelationAndSubjectItem2(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['generalViewer']
-    subject: EntityGeneralViewerSubject
-
-class EntityRelationAndSubject(RootModel[EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2 = Field(..., discriminator='relation')
-
-class EntityTypeGeneralViewerSubjectItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['public']
-
-class EntityTypeGeneralViewerSubject(RootModel[EntityTypeGeneralViewerSubjectItem]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: EntityTypeGeneralViewerSubjectItem
+    relation: Literal['editor']
+    subject: EntityEditorSubject
 
 class EntityTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -241,18 +197,35 @@ class EntityTypeRelationAndSubjectItem(BaseModel):
     relation: Literal['owner']
     subject: EntityTypeOwnerSubject
 
-class EntityTypeRelationAndSubjectItem1(BaseModel):
+class EntityTypeViewerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['generalViewer']
-    subject: EntityTypeGeneralViewerSubject
+    kind: Literal['public']
 
-class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1]):
+class EntityTypeViewerSubject(RootModel[EntityTypeViewerSubjectItem]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    root: EntityTypeViewerSubjectItem
 
 class EntityUuid(RootModel[UUID]):
     model_config = ConfigDict(populate_by_name=True)
     root: UUID
+
+class EntityViewerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class EntityViewerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class EntityViewerSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class EntityViewerSubject(RootModel[EntityViewerSubjectItem | EntityViewerSubjectItem1 | EntityViewerSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityViewerSubjectItem | EntityViewerSubjectItem1 | EntityViewerSubjectItem2 = Field(..., discriminator='kind')
 
 class ParameterExpression(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -310,14 +283,6 @@ class PermissionResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     has_permission: bool
 
-class PropertyTypeGeneralViewerSubjectItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    kind: Literal['public']
-
-class PropertyTypeGeneralViewerSubject(RootModel[PropertyTypeGeneralViewerSubjectItem]):
-    model_config = ConfigDict(populate_by_name=True)
-    root: PropertyTypeGeneralViewerSubjectItem
-
 class PropertyTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -356,14 +321,13 @@ class PropertyTypeRelationAndSubjectItem(BaseModel):
     relation: Literal['owner']
     subject: PropertyTypeOwnerSubject
 
-class PropertyTypeRelationAndSubjectItem1(BaseModel):
+class PropertyTypeViewerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    relation: Literal['generalViewer']
-    subject: PropertyTypeGeneralViewerSubject
+    kind: Literal['public']
 
-class PropertyTypeRelationAndSubject(RootModel[PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1]):
+class PropertyTypeViewerSubject(RootModel[PropertyTypeViewerSubjectItem]):
     model_config = ConfigDict(populate_by_name=True)
-    root: PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    root: PropertyTypeViewerSubjectItem
 
 class PinnedDecisionAxis(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -548,6 +512,15 @@ class CreateDataTypeRequest(BaseModel):
     owned_by_id: OwnedById = Field(..., alias='ownedById')
     schema_: DataType | list[DataType] = Field(..., alias='schema')
 
+class DataTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['viewer']
+    subject: DataTypeViewerSubject
+
+class DataTypeRelationAndSubject(RootModel[DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: DataTypeRelationAndSubjectItem | DataTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+
 class DataTypeVertexId(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     base_id: BaseURL = Field(..., alias='baseId')
@@ -557,6 +530,24 @@ class EntityLinkOrder(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     left_to_right_order: LinkOrder | None = Field(None, alias='leftToRightOrder')
     right_to_left_order: LinkOrder | None = Field(None, alias='rightToLeftOrder')
+
+class EntityRelationAndSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['viewer']
+    subject: EntityViewerSubject
+
+class EntityRelationAndSubject(RootModel[EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityRelationAndSubjectItem | EntityRelationAndSubjectItem1 | EntityRelationAndSubjectItem2 = Field(..., discriminator='relation')
+
+class EntityTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['viewer']
+    subject: EntityTypeViewerSubject
+
+class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class EntityTypeVertexId(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -645,15 +636,18 @@ class ModifyEntityTypeAuthorizationRelationship(BaseModel):
     relation_and_subject: EntityTypeRelationAndSubject = Field(..., alias='relationAndSubject')
     resource: VersionedURL
 
-class ModifyPropertyTypeAuthorizationRelationship(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    operation: ModifyRelationshipOperation
-    relation_and_subject: PropertyTypeRelationAndSubject = Field(..., alias='relationAndSubject')
-    resource: VersionedURL
-
 class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
     model_config = ConfigDict(populate_by_name=True)
     root: ExclusiveBound | UnboundedBound = Field(..., discriminator='kind')
+
+class PropertyTypeRelationAndSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['viewer']
+    subject: PropertyTypeViewerSubject
+
+class PropertyTypeRelationAndSubject(RootModel[PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: PropertyTypeRelationAndSubjectItem | PropertyTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
 
 class PropertyTypeVertexId(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -810,6 +804,12 @@ class LoadExternalEntityTypeRequestItem1(BaseModel):
 class LoadExternalEntityTypeRequest(RootModel[LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1]):
     model_config = ConfigDict(populate_by_name=True)
     root: LoadExternalEntityTypeRequestItem | LoadExternalEntityTypeRequestItem1
+
+class ModifyPropertyTypeAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: PropertyTypeRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: VersionedURL
 
 class OntologyTemporalMetadata(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

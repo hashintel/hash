@@ -1,6 +1,6 @@
 import { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { isBaseUrl } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, buttonClasses, Container, Typography } from "@mui/material";
@@ -88,7 +88,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   });
 
   const isViewAllPagesPage =
-    entityType?.schema.$id === types.entityType.page.entityTypeId;
+    entityType?.schema.$id === systemTypes.entityType.page.entityTypeId;
 
   const pageTitle = entityType
     ? entityTypeId

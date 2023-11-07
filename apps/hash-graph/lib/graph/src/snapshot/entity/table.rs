@@ -12,7 +12,7 @@ use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionT
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_ids")]
 pub struct EntityIdRow {
-    pub owned_by_id: OwnedById,
+    pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
 }
 
@@ -32,7 +32,7 @@ pub struct EntityEditionRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_temporal_metadata")]
 pub struct EntityTemporalMetadataRow {
-    pub owned_by_id: OwnedById,
+    pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
     pub entity_edition_id: EntityEditionId,
     pub decision_time: LeftClosedTemporalInterval<DecisionTime>,
@@ -42,10 +42,10 @@ pub struct EntityTemporalMetadataRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_link_edges_tmp")]
 pub struct EntityLinkEdgeRow {
-    pub owned_by_id: OwnedById,
+    pub web_id: OwnedById,
     pub entity_uuid: EntityUuid,
-    pub left_owned_by_id: OwnedById,
+    pub left_web_id: OwnedById,
     pub left_entity_uuid: EntityUuid,
-    pub right_owned_by_id: OwnedById,
+    pub right_web_id: OwnedById,
     pub right_entity_uuid: EntityUuid,
 }

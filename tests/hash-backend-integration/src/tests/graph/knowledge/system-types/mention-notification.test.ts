@@ -1,8 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   getEntityOutgoingLinks,
   updateEntityProperties,
@@ -32,20 +30,23 @@ import {
   Text,
 } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
-  types,
+  systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  waitForAfterHookTriggerToComplete,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -82,18 +83,15 @@ describe("Page Mention Notification", () => {
     await deleteKratosIdentity({
       kratosIdentityId: recipientUser.kratosIdentityId,
     });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
 
     await resetGraph();
   });
 
   let pageMentionNotification: MentionNotification;
 
-  let occurredInPage: Page;
+  let occurredInEntity: Page;
 
-  let pageBlocks: Block[];
+  let occurredInBlock: Block;
 
   let occurredInText: Text;
 
@@ -101,31 +99,26 @@ describe("Page Mention Notification", () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
     const authentication = { actorId: triggerUser.accountId };
 
-    occurredInPage = await createPage(graphContext, authentication, {
+    occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
     });
 
-    pageBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+    const pageBlocks = await getPageBlocks(graphContext, authentication, {
+      pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );
 
-    const pageBlockDataEntities = await Promise.all(
-      pageBlocks.map((block) =>
-        getBlockData(graphContext, authentication, { block }),
-      ),
-    );
+    occurredInBlock = pageBlocks[0]!;
 
-    const textEntity = pageBlockDataEntities.find(
-      ({ metadata }) =>
-        metadata.entityTypeId === types.entityType.text.entityTypeId,
-    );
+    const textEntity = await getBlockData(graphContext, authentication, {
+      block: occurredInBlock,
+    });
 
-    if (!textEntity) {
-      throw new Error("Text entity not found.");
-    }
+    expect(textEntity.metadata.entityTypeId).toBe(
+      systemTypes.entityType.text.entityTypeId,
+    );
 
     occurredInText = getTextFromEntity({ entity: textEntity });
 
@@ -134,8 +127,9 @@ describe("Page Mention Notification", () => {
       { actorId: recipientUser.accountId },
       {
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
         occurredInText,
+        occurredInBlock,
         ownedById: recipientUser.accountId as OwnedById,
       },
     );
@@ -151,7 +145,7 @@ describe("Page Mention Notification", () => {
     const occurredInEntityLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInEntity.linkEntityTypeId,
+        systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
     );
 
     expect(occurredInEntityLinks).toHaveLength(1);
@@ -159,13 +153,13 @@ describe("Page Mention Notification", () => {
     const [occurredInEntityLink] = occurredInEntityLinks;
 
     expect(occurredInEntityLink!.linkData.rightEntityId).toBe(
-      occurredInPage.entity.metadata.recordId.entityId,
+      occurredInEntity.entity.metadata.recordId.entityId,
     );
 
     const occurredInTextLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.occurredInText.linkEntityTypeId,
+        systemTypes.linkEntityType.occurredInText.linkEntityTypeId,
     );
 
     expect(occurredInTextLinks).toHaveLength(1);
@@ -179,7 +173,7 @@ describe("Page Mention Notification", () => {
     const triggeredByUserLinks = outgoingLinks.filter(
       ({ metadata }) =>
         metadata.entityTypeId ===
-        types.linkEntityType.triggeredByUser.linkEntityTypeId,
+        systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
     );
 
     expect(triggeredByUserLinks).toHaveLength(1);
@@ -195,21 +189,22 @@ describe("Page Mention Notification", () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
     const authentication = { actorId: recipientUser.accountId };
 
-    const fetchedPageMentionNotification = await getMentionNotification(
+    const fetchedPageMentionNotification = (await getMentionNotification(
       graphContext,
       authentication,
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
-    );
+    ))!;
 
     expect(fetchedPageMentionNotification).toBeDefined();
 
     expect(
-      fetchedPageMentionNotification!.entity.metadata.recordId.entityId,
+      fetchedPageMentionNotification.entity.metadata.recordId.entityId,
     ).toBe(pageMentionNotification.entity.metadata.recordId.entityId);
   });
 
@@ -227,7 +222,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -244,7 +240,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -276,13 +273,22 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -299,7 +305,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -325,13 +332,22 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -346,13 +362,11 @@ describe("Page Mention Notification", () => {
   it("can create a comment mention notification when a user is mentioned in a comment", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const commentBlock = pageBlocks[0]!;
-
     occurredInComment = await createComment(
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        parentEntityId: commentBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         ownedById: triggerUser.accountId as OwnedById,
         textualContent: [
           {
@@ -364,6 +378,14 @@ describe("Page Mention Notification", () => {
         author: triggerUser,
       },
     );
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     commentText = await getCommentText(
       graphContext,
@@ -377,7 +399,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -395,7 +418,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -422,13 +446,22 @@ describe("Page Mention Notification", () => {
     )) as Entity<TextProperties>;
     commentText.textualContent = updatedCommentTextualContent;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },

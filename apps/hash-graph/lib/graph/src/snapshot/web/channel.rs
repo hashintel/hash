@@ -11,9 +11,12 @@ use futures::{
     stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
 };
-use graph_types::web::WebId;
+use graph_types::{provenance::OwnedById, web::WebId};
 
-use crate::snapshot::{web::WebBatch, SnapshotRestoreError, Web};
+use crate::snapshot::{
+    web::{WebBatch, WebRow},
+    SnapshotRestoreError, Web,
+};
 
 /// A sink to insert [`Web`]s.
 ///
@@ -21,6 +24,7 @@ use crate::snapshot::{web::WebBatch, SnapshotRestoreError, Web};
 /// function.
 #[derive(Debug, Clone)]
 pub struct WebSender {
+    webs: Sender<WebRow>,
     relations: Sender<(WebId, WebRelationAndSubject)>,
 }
 
@@ -31,6 +35,9 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.webs.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll webs sender")?;
         ready!(self.relations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll web relations sender")?;
@@ -38,10 +45,16 @@ impl Sink<Web> for WebSender {
         Poll::Ready(Ok(()))
     }
 
-    fn start_send(mut self: Pin<&mut Self>, item: Web) -> StdResult<(), Self::Error> {
-        for relation_and_subject in item.relations {
+    fn start_send(mut self: Pin<&mut Self>, web: Web) -> StdResult<(), Self::Error> {
+        self.webs
+            .start_send_unpin(WebRow {
+                web_id: OwnedById::new(web.id.into_uuid()),
+            })
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send webs")?;
+        for relation_and_subject in web.relations {
             self.relations
-                .start_send_unpin((item.id, relation_and_subject))
+                .start_send_unpin((web.id, relation_and_subject))
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send web relations")?;
         }
@@ -52,6 +65,9 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.webs.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush webs sender")?;
         ready!(self.relations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush web relations sender")?;
@@ -63,6 +79,9 @@ impl Sink<Web> for WebSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
+        ready!(self.webs.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close webs sender")?;
         ready!(self.relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close web relations sender")?;
@@ -93,17 +112,22 @@ impl Stream for WebReceiver {
 ///
 /// The `chunk_size` parameter determines the number of ids are sent in a single batch.
 pub fn channel(chunk_size: usize) -> (WebSender, WebReceiver) {
+    let (webs_tx, webs_rx) = mpsc::channel(chunk_size);
     let (web_relations_tx, web_relations_rx) = mpsc::channel(chunk_size);
 
     (
         WebSender {
+            webs: webs_tx,
             relations: web_relations_tx,
         },
         WebReceiver {
-            stream: select_all([web_relations_rx
-                .ready_chunks(chunk_size)
-                .map(WebBatch::Relations)
-                .boxed()]),
+            stream: select_all([
+                webs_rx.ready_chunks(chunk_size).map(WebBatch::Webs).boxed(),
+                web_relations_rx
+                    .ready_chunks(chunk_size)
+                    .map(WebBatch::Relations)
+                    .boxed(),
+            ]),
         },
     )
 }

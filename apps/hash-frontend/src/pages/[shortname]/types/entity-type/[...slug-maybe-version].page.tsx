@@ -12,7 +12,6 @@ import {
   getSchemaFromFormData,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl, OwnedById } from "@local/hash-subgraph";
 import { Box, Container, Theme } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -61,7 +60,7 @@ const Page: NextPageWithLayout = () => {
   ] as [string, "v" | undefined, `${number}` | undefined]; // @todo validate that the URL is formatted as expected;
 
   const entityTypeBaseUrl = !isDraft
-    ? getEntityTypeBaseUrl(slug, router.query.shortname as string)
+    ? getEntityTypeBaseUrl(slug, router.query.shortname as `@${string}`)
     : undefined;
 
   const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue({
@@ -331,7 +330,7 @@ const Page: NextPageWithLayout = () => {
                     isDraft={isDraft}
                     ontologyChip={
                       <OntologyChip
-                        domain={frontendDomain}
+                        domain={new URL(entityType.$id).hostname}
                         path={`${router.query.shortname}/types/entity-type/${slug}/v/${currentVersion}`}
                       />
                     }

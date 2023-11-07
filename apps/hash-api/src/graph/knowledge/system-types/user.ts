@@ -26,7 +26,8 @@ import {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { createAccount, createWeb } from "../../account-permission-management";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   checkEntityPermission,
@@ -37,8 +38,6 @@ import {
   modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
-  createAccount,
-  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -335,7 +334,7 @@ export const createUser: ImpureGraphFunction<
           subject: {
             kind: "public",
           },
-          relation: "generalViewer",
+          relation: "viewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

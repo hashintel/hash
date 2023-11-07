@@ -9,37 +9,13 @@ import {
 } from "@local/hash-graph-client";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import { DataSource } from "apollo-datasource";
 import axios, { AxiosError } from "axios";
 
-import { AuthenticationContext } from "../graphql/context";
-import { UploadableStorageProvider } from "../storage/storage-provider";
+import { GraphApi, ImpureGraphContext } from "./context-types";
+import { ensureSystemAccountExists } from "./system-account";
 import { ensureSystemEntitiesExists } from "./system-entities";
 import { ensureSystemTypesExist } from "./system-types";
-import {
-  ensureSystemUserAccountIdExists,
-  ensureSystemUserExists,
-} from "./system-user";
-
-export type ImpureGraphContext<WithUpload extends boolean = false> = {
-  graphApi: GraphApi;
-} & (WithUpload extends true
-  ? { uploadProvider: UploadableStorageProvider }
-  : {});
-
-export type ImpureGraphFunction<
-  Parameters,
-  ReturnType,
-  WithUpload extends boolean = false,
-> = (
-  context: ImpureGraphContext<WithUpload>,
-  authentication: AuthenticationContext,
-  params: Parameters,
-) => ReturnType;
-
-export type PureGraphFunction<Parameters, ReturnType> = (
-  params: Parameters,
-) => ReturnType;
+import { ensureAccountGroupOrgsExist } from "./util";
 
 const agentConfig = {
   maxSockets: 128,
@@ -51,12 +27,10 @@ const agentConfig = {
 const httpAgent = new HttpAgent(agentConfig);
 const httpsAgent = new HttpsAgent(agentConfig);
 
-export type GraphApi = GraphApiClient & DataSource;
-
 const isErrorAxiosError = (error: Error): error is AxiosError =>
   (error as AxiosError).isAxiosError;
 
-export class GraphApiError extends Error {
+class GraphApiError extends Error {
   status: GraphStatus;
 
   /**
@@ -149,11 +123,11 @@ export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext;
 }) => {
-  await ensureSystemUserAccountIdExists(params);
+  await ensureSystemAccountExists(params);
 
   await ensureSystemTypesExist(params);
 
-  await ensureSystemUserExists(params);
+  await ensureAccountGroupOrgsExist(params);
 
   await ensureSystemEntitiesExists(params);
 };

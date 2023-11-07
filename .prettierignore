@@ -18,7 +18,6 @@
 !*.mdx
 !*.mjs
 !*.scss
-!*.sql
 !*.ts
 !*.tsx
 !*.yml

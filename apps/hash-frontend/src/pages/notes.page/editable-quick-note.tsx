@@ -7,7 +7,7 @@ import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolTypes,
-  types,
+  systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   EntityRootType,
@@ -201,10 +201,11 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: quickNoteEntity.metadata.recordId.entityId,
-        entityTypeId: types.entityType.quickNote.entityTypeId,
+        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
         properties: {
           ...quickNoteEntity.properties,
-          [extractBaseUrl(types.propertyType.archived.propertyTypeId)]: true,
+          [extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)]:
+            true,
         },
       },
     });
@@ -228,7 +229,7 @@ export const EditableQuickNote: FunctionComponent<{
     await updateEntity({
       data: {
         entityId: blockCollectionEntityId,
-        entityTypeId: types.entityType.quickNote.entityTypeId,
+        entityTypeId: systemTypes.entityType.quickNote.entityTypeId,
         properties: {},
       },
     });

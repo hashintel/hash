@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -32,4 +32,4 @@ export const isTypePropertyType = (
 ) => type.schema.kind === "propertyType";
 
 export const isEntityPageEntity = (item: Entity) =>
-  item.metadata.entityTypeId === types.entityType.page.entityTypeId;
+  item.metadata.entityTypeId === systemTypes.entityType.page.entityTypeId;

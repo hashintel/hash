@@ -61,7 +61,7 @@ impl Sink<(Uuid, OntologyElementMetadata)> for OntologyTypeMetadataSender {
                 self.owned_metadata
                     .start_send(OntologyOwnedMetadataRow {
                         ontology_id,
-                        owned_by_id,
+                        web_id: owned_by_id,
                     })
                     .change_context(SnapshotRestoreError::Read)
                     .attach_printable("could not send owned metadata")?;

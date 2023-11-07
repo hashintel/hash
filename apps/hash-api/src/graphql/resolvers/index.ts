@@ -3,7 +3,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 import {
   addAccountGroupMember,
   removeAccountGroupMember,
-} from "../../graph/account-groups";
+} from "../../graph/account-permission-management";
 import {
   EntityAuthorizationSubject,
   MutationResolvers,
@@ -95,13 +95,11 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     isShortnameTaken: isShortnameTakenResolver,
     embedCode,
     // Ontology
-    queryDataTypes: loggedInAndSignedUpMiddleware(queryDataTypes),
+    queryDataTypes,
     getDataType,
-    queryPropertyTypes: loggedInAndSignedUpMiddleware(
-      queryPropertyTypesResolver,
-    ),
+    queryPropertyTypes: queryPropertyTypesResolver,
     getPropertyType: getPropertyTypeResolver,
-    queryEntityTypes: loggedInAndSignedUpMiddleware(queryEntityTypesResolver),
+    queryEntityTypes: queryEntityTypesResolver,
     getEntityType: getEntityTypeResolver,
     // Knowledge
     // @ts-expect-error –– canUserEdit and contents are resolved separately

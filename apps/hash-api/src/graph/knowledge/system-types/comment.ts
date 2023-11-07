@@ -4,7 +4,7 @@ import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
@@ -198,7 +198,7 @@ export const createComment: ImpureGraphFunction<
             subjectId: ownedById as AccountGroupId,
             kind: "accountGroup",
           },
-          relation: "generalViewer",
+          relation: "viewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

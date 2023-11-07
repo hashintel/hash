@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject, EntityTypeSubjectSet, WebPermission,
+        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -490,8 +490,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     EntityTypeId::from(ontology_id),
-                    EntityTypeRelationAndSubject::GeneralViewer {
-                        subject: EntityTypeGeneralViewerSubject::Public,
+                    EntityTypeRelationAndSubject::Viewer {
+                        subject: EntityTypeViewerSubject::Public,
+                        level: 0,
                     },
                 ));
                 if let Some(owner) = owner {
@@ -500,6 +501,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             EntityTypeId::from(ontology_id),
                             EntityTypeRelationAndSubject::Owner {
                                 subject: EntityTypeOwnerSubject::Account { id },
+                                level: 0,
                             },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
@@ -509,6 +511,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                                     id,
                                     set: EntityTypeSubjectSet::Member,
                                 },
+                                level: 0,
                             },
                         )),
                     }
@@ -754,12 +757,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::Owner { subject: owner },
+                EntityTypeRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
             ),
             (
                 EntityTypeId::from(ontology_id),
-                EntityTypeRelationAndSubject::GeneralViewer {
-                    subject: EntityTypeGeneralViewerSubject::Public,
+                EntityTypeRelationAndSubject::Viewer {
+                    subject: EntityTypeViewerSubject::Public,
+                    level: 0,
                 },
             ),
         ];
