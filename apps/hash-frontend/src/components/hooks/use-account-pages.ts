@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { types } from "@local/hash-isomorphic-utils/ontology-types";
@@ -33,6 +33,7 @@ export type AccountPagesInfo = {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
+  refetch: () => Promise<ApolloQueryResult<StructuralQueryEntitiesQuery>>;
 };
 
 export const useAccountPages = (
@@ -41,7 +42,7 @@ export const useAccountPages = (
 ): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
 
-  const { data, loading } = useQuery<
+  const { data, loading, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -102,5 +103,8 @@ export const useAccountPages = (
     return rootPages[rootPages.length - 1] ?? null;
   }, [pages]);
 
-  return { data: pages, lastRootPageIndex, loading };
+  return useMemo(
+    () => ({ data: pages, lastRootPageIndex, loading, refetch }),
+    [pages, lastRootPageIndex, loading, refetch],
+  );
 };
