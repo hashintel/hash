@@ -67,7 +67,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
     ) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
-                owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
+                web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
             })
             .change_context(SnapshotRestoreError::Read)
@@ -111,7 +111,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
 
         self.temporal_metadata
             .start_send_unpin(EntityTemporalMetadataRow {
-                owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
+                web_id: entity.metadata.record_id.entity_id.owned_by_id,
                 entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                 entity_edition_id: entity.metadata.record_id.edition_id,
                 decision_time,
@@ -123,11 +123,11 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
         if let Some(link_data) = entity.link_data {
             self.links
                 .start_send_unpin(EntityLinkEdgeRow {
-                    owned_by_id: entity.metadata.record_id.entity_id.owned_by_id,
+                    web_id: entity.metadata.record_id.entity_id.owned_by_id,
                     entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    left_owned_by_id: link_data.left_entity_id.owned_by_id,
+                    left_web_id: link_data.left_entity_id.owned_by_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    right_owned_by_id: link_data.right_entity_id.owned_by_id,
+                    right_web_id: link_data.right_entity_id.owned_by_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                 })
                 .change_context(SnapshotRestoreError::Read)

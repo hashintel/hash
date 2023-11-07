@@ -93,7 +93,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime)
             }
             Self::Archived => Column::EntityEditions(EntityEditions::Archived),
-            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+            Self::OwnedById => Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
             Self::RecordCreatedById => Column::EntityEditions(EntityEditions::RecordCreatedById),
             Self::EntityTypeEdge { path, .. } => path.terminating_column(),
             Self::EntityEdge {
@@ -108,7 +108,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::OwnedById => {
-                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById)
+                Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityWebId)
             }
             Self::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
@@ -122,7 +122,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 path,
                 direction: EdgeDirection::Outgoing,
             } if **path == EntityQueryPath::OwnedById => {
-                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById)
+                Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId)
             }
             Self::EntityEdge { path, .. } => path.terminating_column(),
             Self::LeftToRightOrder => Column::EntityEditions(EntityEditions::LeftToRightOrder),
