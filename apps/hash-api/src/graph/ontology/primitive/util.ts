@@ -65,6 +65,7 @@ export const getWebAuthorizationRelationships: ImpureGraphFunction<
           }) as WebAuthorizationRelationship,
       ),
     );
+    
 export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
   {
     operation: ModifyRelationshipOperation;
