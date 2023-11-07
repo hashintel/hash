@@ -3,13 +3,13 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { AxiosError } from "axios";
 import { Express, Request, RequestHandler } from "express";
 
-import { ImpureGraphContext } from "../graph";
+import { ImpureGraphContext } from "../graph/context-types";
 import { getHashInstance } from "../graph/knowledge/system-types/hash-instance";
 import {
   createUser,
   getUserByKratosIdentityId,
 } from "../graph/knowledge/system-types/user";
-import { systemUserAccountId } from "../graph/system-user";
+import { systemAccountId } from "../graph/system-account";
 import { kratosFrontendApi, KratosUserIdentity } from "./ory-kratos";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
@@ -27,7 +27,7 @@ const kratosAfterRegistrationHookHandler =
         identity: { id: kratosIdentityId, traits },
       },
     } = req;
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
@@ -82,7 +82,7 @@ const setupAuth = (params: {
   context: ImpureGraphContext;
 }) => {
   const { app, logger, context } = params;
-  const authentication = { actorId: systemUserAccountId };
+  const authentication = { actorId: systemAccountId };
 
   // Kratos hook handlers
   app.post(

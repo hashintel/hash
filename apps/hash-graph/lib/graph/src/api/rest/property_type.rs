@@ -7,8 +7,8 @@ use std::sync::Arc;
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeOwnerSubject,
-        PropertyTypePermission, PropertyTypeRelationAndSubject,
+        PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -73,7 +73,7 @@ use crate::{
         schemas(
             PropertyTypeWithMetadata,
 
-            PropertyTypeGeneralViewerSubject,
+            PropertyTypeViewerSubject,
             PropertyTypeOwnerSubject,
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,

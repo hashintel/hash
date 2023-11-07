@@ -52,6 +52,8 @@ impl Relation<WebId> for WebResourceRelation {}
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum WebPermission {
+    Update,
+
     CreateEntity,
     CreateEntityType,
     CreatePropertyType,
@@ -142,7 +144,11 @@ pub enum WebOwnerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum WebRelationAndSubject {
-    Owner { subject: WebOwnerSubject },
+    Owner {
+        subject: WebOwnerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
 }
 
 impl Relationship for (WebId, WebRelationAndSubject) {
@@ -158,9 +164,11 @@ impl Relationship for (WebId, WebRelationAndSubject) {
                 WebResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (WebSubject::Account(id), None) => WebRelationAndSubject::Owner {
                         subject: WebOwnerSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (WebSubject::AccountGroup(id), Some(set)) => WebRelationAndSubject::Owner {
                         subject: WebOwnerSubject::AccountGroup { id, set },
+                        level: parts.relation.level,
                     },
                     (WebSubject::Account(_) | WebSubject::AccountGroup(_), _subject_set) => {
                         return Err(InvalidRelationship::invalid_subject_set(parts));
@@ -176,10 +184,10 @@ impl Relationship for (WebId, WebRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            WebRelationAndSubject::Owner { subject } => (
+            WebRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: WebResourceRelation::Owner,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     WebOwnerSubject::Account { id } => (WebSubject::Account(id), None),

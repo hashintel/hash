@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -20,17 +20,18 @@ import {
   createMentionNotification,
   getMentionNotification,
 } from "../../system-types/notification";
-import { getPageCreator, getPageFromEntity } from "../../system-types/page";
+import { getPageAuthor, getPageFromEntity } from "../../system-types/page";
 import {
   getMentionedUsersInTextualContent,
   getTextById,
 } from "../../system-types/text";
 import { getUserById } from "../../system-types/user";
+import { checkPermissionsOnEntity } from "../entity";
 import {
   CreateEntityHook,
   CreateEntityHookCallback,
 } from "./create-entity-hooks";
-import { getTextUpdateOccurredInPageAndComment } from "./shared/mention-notification";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 
 /**
  * This after create `Comment` entity hook is responsible for creating
@@ -51,7 +52,8 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
   // If the parent of the comment is a block, check if we need to create a comment notification
   if (
-    commentParent.metadata.entityTypeId === types.entityType.block.entityTypeId
+    commentParent.metadata.entityTypeId ===
+    systemTypes.entityType.block.entityTypeId
   ) {
     const parentBlock = getBlockFromEntity({ entity: commentParent });
     const blockCollectionEntity = await getBlockCollectionByBlock(
@@ -63,30 +65,41 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     if (
       blockCollectionEntity &&
       blockCollectionEntity.metadata.entityTypeId ===
-        types.entityType.page.entityTypeId
+        systemTypes.entityType.page.entityTypeId
     ) {
-      const occurredInPage = getPageFromEntity({
+      const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
       });
 
-      const recipientUser = await getPageCreator(context, authentication, {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+      const pageAuthor = await getPageAuthor(context, authentication, {
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       });
 
       const commentAuthor = await getCommentAuthor(context, authentication, {
         commentEntityId: comment.entity.metadata.recordId.entityId,
       });
 
-      // If the comment author is not the recipient, then create a page comment notification
-      if (commentAuthor.accountId !== recipientUser.accountId) {
+      const { view: pageAuthorCanViewPage } = await checkPermissionsOnEntity(
+        context,
+        { actorId: pageAuthor.accountId },
+        { entity: occurredInEntity.entity },
+      );
+
+      // If the comment author is not the page creator, and the page
+      // creator can view the page, then create a page comment notification
+      if (
+        commentAuthor.accountId !== pageAuthor.accountId &&
+        pageAuthorCanViewPage
+      ) {
         await createCommentNotification(
           context,
-          { actorId: recipientUser.accountId },
+          { actorId: pageAuthor.accountId },
           {
-            ownedById: recipientUser.accountId as OwnedById,
+            ownedById: pageAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInEntity: occurredInPage,
+            occurredInEntity,
+            occurredInBlock: parentBlock,
           },
         );
       }
@@ -94,7 +107,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     // If the parent is another comment check if we need to create a comment reply notification
   } else if (
     commentParent.metadata.entityTypeId ===
-    types.entityType.comment.entityTypeId
+    systemTypes.entityType.comment.entityTypeId
   ) {
     const parentComment = getCommentFromEntity({ entity: commentParent });
 
@@ -113,13 +126,13 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     if (
       blockCollectionEntity &&
       blockCollectionEntity.metadata.entityTypeId ===
-        types.entityType.page.entityTypeId
+        systemTypes.entityType.page.entityTypeId
     ) {
-      const occurredInPage = getPageFromEntity({
+      const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
       });
 
-      const [commentAuthor, recipientUser] = await Promise.all([
+      const [commentAuthor, parentCommentAuthor] = await Promise.all([
         getCommentAuthor(context, authentication, {
           commentEntityId: comment.entity.metadata.recordId.entityId,
         }),
@@ -128,16 +141,29 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
         }),
       ]);
 
-      // If the comment author is not the author of the parent comment, then create a comment reply notification
-      if (commentAuthor.accountId !== recipientUser.accountId) {
+      const { view: parentCommentAuthorCanViewPage } =
+        await checkPermissionsOnEntity(
+          context,
+          { actorId: parentCommentAuthor.accountId },
+          { entity: occurredInEntity.entity },
+        );
+
+      // If the comment author is not the parent comment author, and the
+      // parent comment author can view the page, then create a comment
+      // reply notification
+      if (
+        commentAuthor.accountId !== parentCommentAuthor.accountId &&
+        parentCommentAuthorCanViewPage
+      ) {
         await createCommentNotification(
           context,
-          { actorId: recipientUser.accountId },
+          { actorId: parentCommentAuthor.accountId },
           {
-            ownedById: recipientUser.accountId as OwnedById,
+            ownedById: parentCommentAuthor.accountId as OwnedById,
             triggeredByUser: commentAuthor,
             triggeredByComment: comment,
-            occurredInEntity: occurredInPage,
+            occurredInEntity,
+            occurredInBlock: ancestorBlock,
             repliedToComment: parentComment,
           },
         );
@@ -164,12 +190,12 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
     entityId: entity.linkData!.rightEntityId,
   });
 
-  const { occurredInComment, occurredInPage } =
-    await getTextUpdateOccurredInPageAndComment(context, authentication, {
+  const { occurredInComment, occurredInEntity, occurredInBlock } =
+    await getTextUpdateOccurredIn(context, authentication, {
       text,
     });
 
-  if (!occurredInPage) {
+  if (!occurredInEntity || !occurredInBlock) {
     return entity;
   }
 
@@ -189,35 +215,50 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
   });
 
   await Promise.all([
-    ...mentionedUsers.map(async (mentionedUser) => {
-      const existingNotification = await getMentionNotification(
-        context,
-        /** @todo: use authentication of machine user instead */
-        { actorId: mentionedUser.accountId },
-        {
-          recipient: mentionedUser,
-          triggeredByUser,
-          occurredInEntity: occurredInPage,
-          occurredInComment,
-          occurredInText: text,
-        },
-      );
+    ...mentionedUsers
+      .filter((user) => user.accountId !== triggeredByUser.accountId)
+      .map(async (mentionedUser) => {
+        const { view: mentionedUserCanViewPage } =
+          await checkPermissionsOnEntity(
+            context,
+            { actorId: mentionedUser.accountId },
+            { entity: occurredInEntity.entity },
+          );
 
-      if (!existingNotification) {
-        await createMentionNotification(
+        if (!mentionedUserCanViewPage) {
+          return;
+        }
+
+        const existingNotification = await getMentionNotification(
           context,
           /** @todo: use authentication of machine user instead */
           { actorId: mentionedUser.accountId },
           {
-            ownedById: mentionedUser.accountId as OwnedById,
-            occurredInEntity: occurredInPage,
-            occurredInComment,
-            occurredInText: text,
+            recipient: mentionedUser,
             triggeredByUser,
+            occurredInEntity,
+            occurredInComment,
+            occurredInBlock,
+            occurredInText: text,
           },
         );
-      }
-    }),
+
+        if (!existingNotification) {
+          await createMentionNotification(
+            context,
+            /** @todo: use authentication of machine user instead */
+            { actorId: mentionedUser.accountId },
+            {
+              ownedById: mentionedUser.accountId as OwnedById,
+              occurredInEntity,
+              occurredInBlock,
+              occurredInComment,
+              occurredInText: text,
+              triggeredByUser,
+            },
+          );
+        }
+      }),
   ]);
 
   return entity;
@@ -225,11 +266,11 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
 
 export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
-    entityTypeId: types.entityType.comment.entityTypeId,
+    entityTypeId: systemTypes.entityType.comment.entityTypeId,
     callback: commentCreateHookCallback,
   },
   {
-    entityTypeId: types.linkEntityType.hasText.linkEntityTypeId,
+    entityTypeId: systemTypes.linkEntityType.hasText.linkEntityTypeId,
     callback: hasTextCreateHookCallback,
   },
 ];

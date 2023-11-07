@@ -13,7 +13,7 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
 
-import { systemUserAccountId } from "../graph/system-user";
+import { systemAccountId } from "../graph/system-account";
 import { logger } from "../logger";
 import { getRequiredEnv } from "../util";
 import {
@@ -51,7 +51,7 @@ export const createIntegrationSyncBackWatcher = async (
 
         const entity = (
           await graphApiClient
-            .getEntitiesByQuery(systemUserAccountId, {
+            .getEntitiesByQuery(systemAccountId, {
               filter: {
                 equal: [
                   { path: ["editionId"] },

@@ -1,12 +1,9 @@
 import {
   createKratosIdentity,
-  deleteKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   createUser,
   getUserByKratosIdentityId,
@@ -15,10 +12,7 @@ import {
   joinOrg,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
@@ -49,10 +43,6 @@ describe("User model class", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 
@@ -61,7 +51,7 @@ describe("User model class", () => {
   let kratosIdentityId: string;
 
   it("can create a user", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     const identity = await createKratosIdentity({
       traits: {
@@ -80,7 +70,7 @@ describe("User model class", () => {
   });
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
 
     await expect(
       createUser(graphContext, authentication, {
@@ -119,7 +109,7 @@ describe("User model class", () => {
   });
 
   it("can join an org", async () => {
-    const authentication = { actorId: systemUserAccountId };
+    const authentication = { actorId: systemAccountId };
     const testOrg = await createTestOrg(
       graphContext,
       authentication,

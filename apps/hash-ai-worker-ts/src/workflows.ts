@@ -1,4 +1,4 @@
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,

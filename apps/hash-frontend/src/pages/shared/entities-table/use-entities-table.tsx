@@ -4,7 +4,7 @@ import {
   PropertyType,
 } from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   BaseUrl,
   Entity,
@@ -156,7 +156,7 @@ export const useEntitiesTable = (params: {
 
             const isPage =
               entity.metadata.entityTypeId ===
-              types.entityType.page.entityTypeId;
+              systemTypes.entityType.page.entityTypeId;
 
             /**
              * @todo: consider displaying handling this differently for pages, where
@@ -185,7 +185,9 @@ export const useEntitiesTable = (params: {
               namespace: `@${entityNamespace}`,
               archived: isPage
                 ? (entity.properties[
-                    extractBaseUrl(types.propertyType.archived.propertyTypeId)
+                    extractBaseUrl(
+                      systemTypes.propertyType.archived.propertyTypeId,
+                    )
                   ] as boolean)
                 : undefined,
               lastEdited,

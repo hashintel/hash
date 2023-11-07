@@ -38,8 +38,9 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import { createWeb } from "../../../../graph/knowledge/system-types/account.fields";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
+import { systemAccountId } from "../../../../graph/system-account";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
@@ -326,10 +327,42 @@ export const updateEntityResolver: ResolverFn<
       SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
     ]
   ) {
-    // Now that the user has completed signup, we can create their web, allowing them to create/edit entities
-    await createWeb(context, authentication, {
-      owner: user.accountId,
-    });
+    // Now that the user has completed signup, we can transfer the ownership of the web
+    // allowing them to create entities and types.
+    await modifyWebAuthorizationRelationships(
+      context,
+      { actorId: systemAccountId },
+      [
+        {
+          operation: "delete",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: systemAccountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+        {
+          operation: "create",
+          relationship: {
+            subject: {
+              kind: "account",
+              subjectId: user.accountId,
+            },
+            resource: {
+              kind: "web",
+              resourceId: user.accountId as OwnedById,
+            },
+            relation: "owner",
+          },
+        },
+      ],
+    );
   }
 
   if (isEntityLinkEntity(entity)) {
@@ -493,7 +526,7 @@ export const addEntityViewerResolver: ResolverFn<
           kind: "entity",
           resourceId: entityId,
         },
-        relation: "generalViewer",
+        relation: "viewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
     },
@@ -518,7 +551,7 @@ export const removeEntityViewerResolver: ResolverFn<
           kind: "entity",
           resourceId: entityId,
         },
-        relation: "generalViewer",
+        relation: "viewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
     },
@@ -557,7 +590,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   return relationships.map(({ resource, relation, subject }) => ({
     objectEntityId: resource.resourceId,
     relation:
-      relation === "generalEditor"
+      relation === "editor"
         ? EntityAuthorizationRelation.Editor
         : relation === "owner"
         ? EntityAuthorizationRelation.Owner

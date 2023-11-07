@@ -27,7 +27,7 @@ export const EntityTypeTabs = ({
 
   const baseUrl = getEntityTypeBaseUrl(
     router.query["slug-maybe-version"]![0] as string,
-    router.query.shortname as string,
+    router.query.shortname as `@${string}`,
   );
 
   const currentTab = useCurrentTab();

@@ -46,7 +46,7 @@ import {
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
-import { ImpureGraphFunction } from "../..";
+import { ImpureGraphFunction } from "../../context-types";
 import { getEntityTypeById } from "../../ontology/primitive/entity-type";
 import { SYSTEM_TYPES } from "../../system-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
@@ -102,7 +102,7 @@ export const createEntity: ImpureGraphFunction<
     owner: params.owner ?? ownedById,
   });
 
-  let entity = { properties, metadata: metadata as EntityMetadata };
+  const entity = { properties, metadata: metadata as EntityMetadata };
 
   for (const createOutgoingLinkParams of outgoingLinks ?? []) {
     await createLinkEntity(context, authentication, {
@@ -113,7 +113,7 @@ export const createEntity: ImpureGraphFunction<
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {
-      entity = await afterCreateHook.callback({
+      void afterCreateHook.callback({
         context,
         entity,
         authentication,
@@ -230,12 +230,11 @@ export const getOrCreateEntity: ImpureGraphFunction<
   let entity;
 
   if (existingEntityId) {
-    entity = await getLatestEntityById(context, authentication, {
-      entityId: existingEntityId,
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
-    if (!entity) {
+    try {
+      entity = await getLatestEntityById(context, authentication, {
+        entityId: existingEntityId,
+      });
+    } catch {
       throw new ApolloError(
         `Entity ${existingEntityId} not found`,
         "NOT_FOUND",
@@ -407,7 +406,7 @@ export const updateEntity: ImpureGraphFunction<
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
     if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
-      await afterUpdateHook.callback({
+      void afterUpdateHook.callback({
         context,
         entity,
         updatedProperties: properties,

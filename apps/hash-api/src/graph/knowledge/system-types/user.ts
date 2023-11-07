@@ -26,7 +26,9 @@ import {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { createAccount, createWeb } from "../../account-permission-management";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   checkEntityPermission,
@@ -37,8 +39,6 @@ import {
   modifyEntityAuthorizationRelationships,
 } from "../primitive/entity";
 import {
-  createAccount,
-  createWeb,
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
@@ -284,17 +284,24 @@ export const createUser: ImpureGraphFunction<
   } else {
     userAccountId = await createAccount(ctx, authentication, {});
 
-    if (shortname && preferredName) {
-      /**
-       * Creating a web allows users to create further entities in it
-       * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
-       */
-      await createWeb(
-        ctx,
-        { actorId: userAccountId },
-        { owner: userAccountId },
-      );
-    }
+    await createWeb(
+      ctx,
+      { actorId: systemAccountId },
+      {
+        ownedById: userAccountId as OwnedById,
+        owner: {
+          kind: "account",
+          /**
+           * Creating a web allows users to create further entities in it
+           * – we don't want them to do that until they've completed signup (have a shortname and preferredName)
+           * - the web is created with the system account as the owner and will be updated to the user account as the
+           *   owner once the user has completed signup
+           */
+          subjectId:
+            shortname && preferredName ? userAccountId : systemAccountId,
+        },
+      },
+    );
   }
 
   const properties: EntityPropertiesObject = {
@@ -335,7 +342,7 @@ export const createUser: ImpureGraphFunction<
           subject: {
             kind: "public",
           },
-          relation: "generalViewer",
+          relation: "viewer",
           resource: {
             kind: "entity",
             resourceId: entity.metadata.recordId.entityId,

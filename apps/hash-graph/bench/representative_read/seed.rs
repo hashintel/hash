@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use authorization::NoAuthorization;
+use authorization::{schema::WebOwnerSubject, NoAuthorization};
 use graph::store::{AccountStore, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -116,6 +116,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
 /// This initializes the database for all benchmarks within this module, and therefore should be a
 /// single point to swap out the seeding of test data when we can invest time in creating a
 /// representative environment.
+#[expect(clippy::too_many_lines)]
 async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
@@ -130,6 +131,15 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         .insert_account_id(account_id, &mut NoAuthorization, account_id)
         .await
         .expect("could not insert account id");
+    transaction
+        .insert_web_id(
+            account_id,
+            &mut NoAuthorization,
+            OwnedById::new(account_id.into_uuid()),
+            WebOwnerSubject::Account { id: account_id },
+        )
+        .await
+        .expect("could not create web id");
 
     seed(
         &mut transaction,

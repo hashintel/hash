@@ -4,7 +4,7 @@ import {
   Modal,
   TextField,
 } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -92,11 +92,13 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         entityId:
           quickNoteEntityWithCreatedAt.quickNoteEntity.metadata.recordId
             .entityId,
-        entityTypeId: types.entityType.page.entityTypeId,
+        entityTypeId: systemTypes.entityType.page.entityTypeId,
         properties: {
-          [extractBaseUrl(types.propertyType.title.propertyTypeId)]: title,
-          [extractBaseUrl(types.propertyType.fractionalIndex.propertyTypeId)]:
-            fractionalIndex,
+          [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]:
+            title,
+          [extractBaseUrl(
+            systemTypes.propertyType.fractionalIndex.propertyTypeId,
+          )]: fractionalIndex,
         },
       },
     });
@@ -108,7 +110,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     if (parentPage) {
       await createEntity({
         data: {
-          entityTypeId: types.linkEntityType.parent.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.parent.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: pageEntity.metadata.recordId.entityId,

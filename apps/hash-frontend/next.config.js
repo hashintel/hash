@@ -28,11 +28,6 @@ process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
-// This allows the frontend to have the system account shortname, used to generate system types in shared/src/types.ts
-// the frontend imports 'types' from that file in various places
-process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME =
-  process.env.SYSTEM_USER_SHORTNAME ?? "system-user";
-
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN =
   process.env.API_ORIGIN ?? "http://localhost:5001";
@@ -41,27 +36,15 @@ process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? 1;
 
-/**
- * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
- * when the `next.config.js` supports imports from modules
- */
-const frontendUrl =
-  process.env.NEXT_PUBLIC_FRONTEND_URL ??
-  (process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : process.env.FRONTEND_URL ?? "http://localhost:3000");
-
 const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";
 
 const apiDomain = new URL(apiUrl).hostname;
 
-const systemUserShortname =
-  process.env.SYSTEM_USER_SHORTNAME ??
-  // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
-  process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
-  "example-org";
-
-const pageEntityTypeId = `${frontendUrl}/@${systemUserShortname}/types/entity-type/page/`;
+/**
+ * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
+ * when the `next.config.js` supports imports from modules
+ */
+const pageEntityTypeBaseUrl = "https://hash.ai/@hash/types/entity-type/page/";
 
 /**
  * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
@@ -75,7 +58,7 @@ module.exports = withSentryConfig(
         return [
           {
             source: "/pages",
-            destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeId}`,
+            destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
           },
         ];
       },

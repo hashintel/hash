@@ -3,12 +3,12 @@ import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account
 import {
   createGraphClient,
   ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createOrg } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { createUser } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { ensureSystemTypesExist } from "@apps/hash-api/src/graph/system-types";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -123,3 +123,10 @@ export const createTestOrg = async (
     },
   });
 };
+
+const afterHookTriggerTimeout = 3_000;
+
+export const waitForAfterHookTriggerToComplete = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, afterHookTriggerTimeout);
+  });

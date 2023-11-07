@@ -18,7 +18,7 @@
     "dev:backend:realtime": "turbo dev --log-order stream --filter '@apps/hash-realtime' --",
     "dev:backend:search-loader": "turbo dev --log-order stream --filter '@apps/hash-search-loader' --",
     "dev:frontend": "turbo dev --log-order stream --filter '@apps/hash-frontend' --",
-    "dev:graph": "RUST_LOG=info yarn workspace @apps/hash-graph dev",
+    "dev:graph": "yarn workspace @apps/hash-graph dev",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",

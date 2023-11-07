@@ -29,16 +29,13 @@ import {
   DummyEmailTransporter,
   EmailTransporter,
 } from "./email/transporters";
-import {
-  createGraphClient,
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "./graph";
+import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
+import { ImpureGraphContext } from "./graph/context-types";
 import { User } from "./graph/knowledge/system-types/user";
-import { ensureLinearOrgExists } from "./graph/linear-org";
 import { ensureLinearTypesExist } from "./graph/linear-types";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
@@ -165,9 +162,7 @@ const main = async () => {
 
   await ensureSystemGraphIsInitialized({ logger, context });
 
-  if (process.env.LINEAR_CLIENT_ID) {
-    await ensureLinearOrgExists({ logger, context });
-
+  if (enabledIntegrations.linear) {
     await ensureLinearTypesExist({ logger, context });
   }
 

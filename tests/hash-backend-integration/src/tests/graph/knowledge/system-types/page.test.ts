@@ -1,8 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   Block,
@@ -24,7 +22,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
@@ -55,9 +52,6 @@ describe("Page", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
     });

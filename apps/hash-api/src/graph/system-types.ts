@@ -1,5 +1,5 @@
 import { Logger } from "@local/hash-backend-utils/logger";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   descriptionPropertyTypeUrl,
@@ -10,7 +10,7 @@ import {
 } from "@local/hash-subgraph";
 
 import { logger } from "../logger";
-import { ImpureGraphContext } from "./index";
+import { ImpureGraphContext } from "./context-types";
 import { entityTypeInitializer, propertyTypeInitializer } from "./util";
 
 /**
@@ -90,6 +90,9 @@ export let SYSTEM_TYPES: {
 
     // Service Account related
     profileUrl: PropertyTypeWithMetadata;
+
+    // Notifications
+    readAt: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -118,9 +121,6 @@ export let SYSTEM_TYPES: {
     commentNotification: EntityTypeWithMetadata;
   };
   linkEntityType: {
-    // HASHInstance-related
-    admin: EntityTypeWithMetadata;
-
     // User-related
     orgMembership: EntityTypeWithMetadata;
     hasServiceAccount: EntityTypeWithMetadata;
@@ -149,6 +149,7 @@ export let SYSTEM_TYPES: {
 
     // Mention Notification related
     occurredInEntity: EntityTypeWithMetadata;
+    occurredInBlock: EntityTypeWithMetadata;
     occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
     triggeredByUser: EntityTypeWithMetadata;
@@ -160,31 +161,31 @@ export let SYSTEM_TYPES: {
 };
 
 const pagesAreEnabledPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.pagesAreEnabled,
+  ...systemTypes.propertyType.pagesAreEnabled,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "hash",
 });
 
 const userSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
-    ...types.propertyType.userSelfRegistrationIsEnabled,
+    ...systemTypes.propertyType.userSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
-    ...types.propertyType.orgSelfRegistrationIsEnabled,
+    ...systemTypes.propertyType.orgSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
-    ...types.propertyType.userRegistrationByInviteIsEnabled,
+    ...systemTypes.propertyType.userRegistrationByInviteIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
-
-export const adminLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.admin,
-);
 
 export const hashInstanceEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -209,16 +210,10 @@ export const hashInstanceEntityTypeInitializer = async (
       context,
     );
 
-  const adminLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(context);
-
-  const userEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
-
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.hashInstance,
+    ...systemTypes.entityType.hashInstance,
     properties: [
       {
         propertyType: pagesAreEnabledPropertyType,
@@ -237,12 +232,8 @@ export const hashInstanceEntityTypeInitializer = async (
         required: true,
       },
     ],
-    outgoingLinks: [
-      {
-        linkEntityType: adminLinkEntityType,
-        destinationEntityTypes: [userEntityType],
-      },
-    ],
+    outgoingLinks: [],
+    webShortname: "hash",
   })(context);
 };
 
@@ -257,7 +248,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
   const orgSizeBaseUrl = orgSizePropertyType.metadata.recordId.baseUrl;
 
   return propertyTypeInitializer({
-    ...types.propertyType.orgProvidedInfo,
+    ...systemTypes.propertyType.orgProvidedInfo,
     possibleValues: [
       {
         propertyTypeObjectProperties: {
@@ -267,11 +258,15 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
-  entityTypeInitializer(types.linkEntityType.hasBio)(context);
+  entityTypeInitializer({
+    ...systemTypes.linkEntityType.hasBio,
+    webShortname: "hash",
+  })(context);
 
 // Generate the schema for the org entity type
 export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -314,7 +309,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.org,
+    ...systemTypes.entityType.org,
     properties: [
       {
         propertyType: shortnamePropertyType,
@@ -365,63 +360,77 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const locationPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.location,
+  ...systemTypes.propertyType.location,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const websitePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.website,
+  ...systemTypes.propertyType.website,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.shortname,
+  ...systemTypes.propertyType.shortname,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.orgName,
+  ...systemTypes.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.orgSize,
+  ...systemTypes.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.email,
+  ...systemTypes.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.kratosIdentityId,
+  ...systemTypes.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.preferredName,
+  ...systemTypes.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const preferredPronounsPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.preferredPronouns,
+  ...systemTypes.propertyType.preferredPronouns,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const pinnedEntityTypeBaseUrlPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.pinnedEntityTypeBaseUrl,
+  ...systemTypes.propertyType.pinnedEntityTypeBaseUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
-  return entityTypeInitializer(types.linkEntityType.orgMembership)(context);
+  return entityTypeInitializer({
+    ...systemTypes.linkEntityType.orgMembership,
+    webShortname: "hash",
+  })(context);
 };
 
 const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -478,7 +487,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.user,
+    ...systemTypes.entityType.user,
     properties: [
       {
         propertyType: shortnamePropertyType,
@@ -531,12 +540,14 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const profileUrlPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.profileUrl,
+  ...systemTypes.propertyType.profileUrl,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const serviceAccountEntityTypeInitializer = async (
@@ -550,7 +561,7 @@ const serviceAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.serviceAccount,
+    ...systemTypes.entityType.serviceAccount,
     properties: [
       {
         propertyType: profileUrlPropertyType,
@@ -561,6 +572,7 @@ const serviceAccountEntityTypeInitializer = async (
         required: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -575,8 +587,9 @@ const linkedInAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.linkedInAccount,
+    ...systemTypes.entityType.linkedInAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -591,8 +604,9 @@ const twitterAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.twitterAccount,
+    ...systemTypes.entityType.twitterAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -607,8 +621,9 @@ const tikTokAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.tikTokAccount,
+    ...systemTypes.entityType.tikTokAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -623,8 +638,9 @@ const facebookAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.facebookAccount,
+    ...systemTypes.entityType.facebookAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -639,8 +655,9 @@ const instagramAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.instagramAccount,
+    ...systemTypes.entityType.instagramAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
@@ -655,19 +672,22 @@ const gitHubAccountEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.gitHubAccount,
+    ...systemTypes.entityType.gitHubAccount,
     allOf: [serviceAccountEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.componentId,
+  ...systemTypes.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.blockData,
-);
+const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.blockData,
+  webShortname: "hash",
+});
 
 const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -681,7 +701,7 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.block,
+    ...systemTypes.entityType.block,
     properties: [
       {
         propertyType: componentIdPropertyType,
@@ -695,12 +715,13 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 const textEntityTypeInitializer = async (context: ImpureGraphContext) =>
   entityTypeInitializer({
-    ...types.entityType.text,
+    ...systemTypes.entityType.text,
     properties: [
       {
         propertyType:
@@ -708,37 +729,44 @@ const textEntityTypeInitializer = async (context: ImpureGraphContext) =>
         required: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 
 const fileStorageBucketPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileStorageBucket,
+  ...systemTypes.propertyType.fileStorageBucket,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fileStorageEndpointPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileStorageEndpoint,
+  ...systemTypes.propertyType.fileStorageEndpoint,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fileStorageForcePathStylePropertyTypeInitializer =
   propertyTypeInitializer({
-    ...types.propertyType.fileStorageForcePathStyle,
+    ...systemTypes.propertyType.fileStorageForcePathStyle,
     possibleValues: [{ primitiveDataType: "boolean" }],
+    webShortname: "hash",
   });
 
 const fileStorageKeyPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileStorageKey,
+  ...systemTypes.propertyType.fileStorageKey,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fileStorageProviderPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileStorageProvider,
+  ...systemTypes.propertyType.fileStorageProvider,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fileStorageRegionPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fileStorageRegion,
+  ...systemTypes.propertyType.fileStorageRegion,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
@@ -765,7 +793,7 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.file,
+    ...systemTypes.entityType.file,
     properties: [
       {
         propertyType: fileUrlPropertyTypeUrl,
@@ -824,6 +852,7 @@ const fileEntityTypeInitializer = async (context: ImpureGraphContext) => {
           "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -836,39 +865,46 @@ const imageFileEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.imageFile,
+    ...systemTypes.entityType.imageFile,
     allOf: [fileEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.archived,
+  ...systemTypes.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  webShortname: "hash",
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.summary,
+  ...systemTypes.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.title,
+  ...systemTypes.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const fractionalIndexPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.fractionalIndex,
+  ...systemTypes.propertyType.fractionalIndex,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.icon,
+  ...systemTypes.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const numericIndexPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.numericIndex,
+  ...systemTypes.propertyType.numericIndex,
   possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
 });
 
 /**
@@ -887,12 +923,13 @@ const containsLinkEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.linkEntityType.contains,
+    ...systemTypes.linkEntityType.contains,
     properties: [
       {
         propertyType: numericIndexPropertyType,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -910,7 +947,7 @@ const blockCollectionEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.blockCollection,
+    ...systemTypes.entityType.blockCollection,
     outgoingLinks: [
       {
         linkEntityType: containsLinkEntityType,
@@ -919,6 +956,7 @@ const blockCollectionEntityTypeInitializer = async (
         ordered: true,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -934,15 +972,17 @@ const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.quickNote,
+    ...systemTypes.entityType.quickNote,
     allOf: [blockCollectionEntityType.schema.$id],
     properties: [{ propertyType: archivedPropertyType }],
+    webShortname: "hash",
   })(context);
 };
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.parent,
-);
+const parentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.parent,
+  webShortname: "hash",
+});
 
 const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -971,7 +1011,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.page,
+    ...systemTypes.entityType.page,
     allOf: [blockCollectionEntityType.schema.$id],
     properties: [
       {
@@ -999,6 +1039,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -1011,122 +1052,142 @@ const profileBioEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.profileBio,
+    ...systemTypes.entityType.profileBio,
     allOf: [blockCollectionEntityType.schema.$id],
+    webShortname: "hash",
   })(context);
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.resolvedAt,
+  ...systemTypes.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.deletedAt,
+  ...systemTypes.propertyType.deletedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const expiredAtPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.expiredAt,
+  ...systemTypes.propertyType.expiredAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const connectionSourceNamePropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.connectionSourceName,
+  ...systemTypes.propertyType.connectionSourceName,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const vaultPathPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.vaultPath,
+  ...systemTypes.propertyType.vaultPath,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const linearTeamIdPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.linearTeamId,
+  ...systemTypes.propertyType.linearTeamId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const syncLinearDataWithLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.syncLinearDataWith,
+  ...systemTypes.linkEntityType.syncLinearDataWith,
   properties: [
     {
-      propertyType: types.propertyType.linearTeamId.propertyTypeId,
+      propertyType: systemTypes.propertyType.linearTeamId.propertyTypeId,
       array: true,
     },
   ],
+  webShortname: "hash",
 });
 
 const usesUserSecretLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.usesUserSecret,
+  ...systemTypes.linkEntityType.usesUserSecret,
+  webShortname: "hash",
 });
 
 const hasServiceAccountSecretLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.hasServiceAccount,
+  ...systemTypes.linkEntityType.hasServiceAccount,
+  webShortname: "hash",
 });
 
 const userSecretEntityTypeInitializer = entityTypeInitializer({
-  ...types.entityType.userSecret,
+  ...systemTypes.entityType.userSecret,
   properties: [
     {
-      propertyType: types.propertyType.expiredAt.propertyTypeId,
+      propertyType: systemTypes.propertyType.expiredAt.propertyTypeId,
       required: true,
     },
     {
-      propertyType: types.propertyType.connectionSourceName.propertyTypeId,
+      propertyType:
+        systemTypes.propertyType.connectionSourceName.propertyTypeId,
       required: true,
     },
     {
-      propertyType: types.propertyType.vaultPath.propertyTypeId,
+      propertyType: systemTypes.propertyType.vaultPath.propertyTypeId,
       required: true,
     },
   ],
+  webShortname: "hash",
 });
 
 const linearOrgIdPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.linearOrgId,
+  ...systemTypes.propertyType.linearOrgId,
   possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
 });
 
 const linearIntegrationEntityTypeInitializer = entityTypeInitializer({
-  ...types.entityType.linearIntegration,
+  ...systemTypes.entityType.linearIntegration,
   properties: [
     {
-      propertyType: types.propertyType.linearOrgId.propertyTypeId,
+      propertyType: systemTypes.propertyType.linearOrgId.propertyTypeId,
       required: true,
     },
   ],
   outgoingLinks: [
     {
-      linkEntityType: types.linkEntityType.syncLinearDataWith.linkEntityTypeId,
+      linkEntityType:
+        systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
       destinationEntityTypes: [
-        types.entityType.user.entityTypeId,
-        types.entityType.org.entityTypeId,
+        systemTypes.entityType.user.entityTypeId,
+        systemTypes.entityType.org.entityTypeId,
       ],
     },
     {
-      linkEntityType: types.linkEntityType.usesUserSecret.linkEntityTypeId,
-      destinationEntityTypes: [types.entityType.userSecret.entityTypeId],
+      linkEntityType:
+        systemTypes.linkEntityType.usesUserSecret.linkEntityTypeId,
+      destinationEntityTypes: [systemTypes.entityType.userSecret.entityTypeId],
       minItems: 1,
       maxItems: 1,
     },
   ],
+  webShortname: "hash",
 });
 
-const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.hasAvatar,
-);
+const hasAvatarLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasAvatar,
+  webShortname: "hash",
+});
 
-const hasCoverImageLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.hasCoverImage,
-);
+const hasCoverImageLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasCoverImage,
+  webShortname: "hash",
+});
 
-const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.hasText,
-);
+const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasText,
+  webShortname: "hash",
+});
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.author,
-);
+const authorLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.author,
+  webShortname: "hash",
+});
 
 const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -1158,7 +1219,7 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.comment,
+    ...systemTypes.entityType.comment,
     properties: [
       {
         propertyType: resolvedAtPropertyType,
@@ -1187,8 +1248,15 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
+
+const readAtPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.readAt,
+  possibleValues: [{ primitiveDataType: "text" }],
+  webShortname: "hash",
+});
 
 const notificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -1198,33 +1266,51 @@ const notificationEntityTypeInitializer = async (
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
+  const readAtPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.readAt(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.notification,
+    ...systemTypes.entityType.notification,
     properties: [
       {
         propertyType: archivedPropertyType,
       },
+      {
+        propertyType: readAtPropertyType,
+      },
     ],
+    webShortname: "hash",
   })(context);
 };
 
-export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInEntity,
-);
+export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInEntity,
+  webShortname: "hash",
+});
+
+export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInBlock,
+  webShortname: "hash",
+});
 
 export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInComment,
+  {
+    ...systemTypes.linkEntityType.occurredInComment,
+    webShortname: "hash",
+  },
 );
 
-export const occurredInTextLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.occurredInText,
-);
+export const occurredInTextLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.occurredInText,
+  webShortname: "hash",
+});
 
-export const triggeredByUserLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.triggeredByUser,
-);
+export const triggeredByUserLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.triggeredByUser,
+  webShortname: "hash",
+});
 
 const mentionNotificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -1239,6 +1325,12 @@ const mentionNotificationEntityTypeInitializer = async (
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
 
   const occurredInCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInComment(context);
@@ -1261,12 +1353,18 @@ const mentionNotificationEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.mentionNotification,
+    ...systemTypes.entityType.mentionNotification,
     allOf: [notificationEntityType.schema.$id],
     outgoingLinks: [
       {
         linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1289,15 +1387,20 @@ const mentionNotificationEntityTypeInitializer = async (
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
 export const triggeredByCommentLinkEntityTypeInitializer =
-  entityTypeInitializer(types.linkEntityType.triggeredByComment);
+  entityTypeInitializer({
+    ...systemTypes.linkEntityType.triggeredByComment,
+    webShortname: "hash",
+  });
 
-export const repliedToCommentLinkEntityTypeInitializer = entityTypeInitializer(
-  types.linkEntityType.repliedToComment,
-);
+export const repliedToCommentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.repliedToComment,
+  webShortname: "hash",
+});
 
 const commentNotificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
@@ -1312,6 +1415,12 @@ const commentNotificationEntityTypeInitializer = async (
 
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
 
   const triggeredByCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
@@ -1331,12 +1440,18 @@ const commentNotificationEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.commentNotification,
+    ...systemTypes.entityType.commentNotification,
     allOf: [notificationEntityType.schema.$id],
     outgoingLinks: [
       {
         linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1359,6 +1474,7 @@ const commentNotificationEntityTypeInitializer = async (
         maxItems: 1,
       },
     ],
+    webShortname: "hash",
   })(context);
 };
 
@@ -1425,9 +1541,10 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
     profileUrl: profileUrlPropertyTypeInitializer,
+
+    readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
-    admin: adminLinkEntityTypeInitializer,
     orgMembership: orgMembershipLinkEntityTypeInitializer,
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
@@ -1441,6 +1558,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
     occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
+    occurredInBlock: occurredInBlockLinkEntityTypeInitializer,
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
     triggeredByUser: triggeredByUserLinkEntityTypeInitializer,
@@ -1477,8 +1595,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
 /**
  * Ensures the required system types have been created in the graph by fetching
- * them or creating them using the `systemUserAccountId`. Note this method must
- * be run after the `systemUserAccountId` has been initialized.
+ * them or creating them using the `systemAccountId`. Note this method must
+ * be run after the `systemAccountId` has been initialized.
  */
 export const ensureSystemTypesExist = async (params: {
   logger: Logger;

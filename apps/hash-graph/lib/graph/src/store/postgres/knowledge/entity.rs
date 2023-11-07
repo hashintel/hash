@@ -318,7 +318,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .as_client()
             .query(
                 "
-                    INSERT INTO entity_ids (owned_by_id, entity_uuid)
+                    INSERT INTO entity_ids (web_id, entity_uuid)
                     VALUES ($1, $2);
                 ",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
@@ -332,9 +332,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .query(
                     "
                         INSERT INTO entity_has_left_entity (
-                            owned_by_id,
+                            web_id,
                             entity_uuid,
-                            left_owned_by_id,
+                            left_web_id,
                             left_entity_uuid
                         ) VALUES ($1, $2, $3, $4);
                     ",
@@ -353,9 +353,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .query(
                     "
                         INSERT INTO entity_has_right_entity (
-                            owned_by_id,
+                            web_id,
                             entity_uuid,
-                            right_owned_by_id,
+                            right_web_id,
                             right_entity_uuid
                         ) VALUES ($1, $2, $3, $4);
                     ",
@@ -393,7 +393,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .query_one(
                     "
                     INSERT INTO entity_temporal_metadata (
-                        owned_by_id,
+                        web_id,
                         entity_uuid,
                         entity_edition_id,
                         decision_time,
@@ -421,7 +421,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .query_one(
                     "
                     INSERT INTO entity_temporal_metadata (
-                        owned_by_id,
+                        web_id,
                         entity_uuid,
                         entity_edition_id,
                         decision_time,
@@ -465,7 +465,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .modify_entity_relations([(
                 ModifyRelationshipOperation::Create,
                 entity_id,
-                EntityRelationAndSubject::Owner { subject: owner },
+                EntityRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
             )])
             .await
             .change_context(InsertionError)?;
@@ -488,7 +491,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .modify_entity_relations([(
                     ModifyRelationshipOperation::Delete,
                     entity_id,
-                    EntityRelationAndSubject::Owner { subject: owner },
+                    EntityRelationAndSubject::Owner {
+                        subject: owner,
+                        level: 0,
+                    },
                 )])
                 .await
                 .change_context(InsertionError)
@@ -750,7 +756,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_opt(
                 "
                  SELECT EXISTS (
-                    SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2
+                    SELECT 1 FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2
                  );",
                 &[&entity_id.owned_by_id, &entity_id.entity_uuid],
             )
@@ -785,7 +791,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         SET decision_time = tstzrange($4, upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
                             entity_edition_id = $3
-                        WHERE owned_by_id = $1
+                        WHERE web_id = $1
                           AND entity_uuid = $2
                           AND decision_time @> $4::TIMESTAMPTZ
                           AND transaction_time @> now()
@@ -808,7 +814,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         SET decision_time = tstzrange(now(), upper(decision_time), '[)'),
                             transaction_time = tstzrange(now(), NULL, '[)'),
                             entity_edition_id = $3
-                        WHERE owned_by_id = $1
+                        WHERE web_id = $1
                           AND entity_uuid = $2
                           AND decision_time @> now()
                           AND transaction_time @> now()

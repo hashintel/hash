@@ -13,7 +13,10 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use authorization::{schema::EntityOwnerSubject, NoAuthorization};
+use authorization::{
+    schema::{EntityOwnerSubject, WebOwnerSubject},
+    NoAuthorization,
+};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -127,6 +130,15 @@ impl DatabaseTestWrapper {
             .insert_account_id(account_id, &mut NoAuthorization, account_id)
             .await
             .expect("could not insert account id");
+        store
+            .insert_web_id(
+                account_id,
+                &mut NoAuthorization,
+                OwnedById::new(account_id.into_uuid()),
+                WebOwnerSubject::Account { id: account_id },
+            )
+            .await
+            .expect("could not create web id");
 
         let data_types_iter = propertys.into_iter().map(|data_type_str| {
             let data_type_repr: raw::DataType = serde_json::from_str(data_type_str)

@@ -9,6 +9,8 @@ import {
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
+  ReadAtPropertyValue,
+  TextDataType,
 } from "./shared";
 
 export type {
@@ -18,4 +20,6 @@ export type {
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
+  ReadAtPropertyValue,
+  TextDataType,
 };

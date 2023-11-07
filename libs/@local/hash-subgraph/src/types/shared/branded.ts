@@ -9,6 +9,7 @@ import {
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
+  WebRelationAndSubject,
 } from "@local/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
@@ -116,6 +117,13 @@ type BrandSubject<T extends object> = T extends { kind: "account" }
 type BrandRelationship<T extends { subject: object }> = {
   [K in keyof T]: K extends "subject" ? BrandSubject<T[K]> : T[K];
 };
+
+export type WebAuthorizationRelationship = {
+  resource: {
+    kind: "web";
+    resourceId: OwnedById;
+  };
+} & BrandRelationship<WebRelationAndSubject>;
 
 export type EntityAuthorizationRelationship = {
   resource: {

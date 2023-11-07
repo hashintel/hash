@@ -6,7 +6,7 @@ import {
 } from "@local/hash-graphql-shared/graphql/api-types.gen";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType, OwnedById } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
@@ -83,7 +83,7 @@ export const ProfileBio: FunctionComponent<{
 
     await createEntity({
       data: {
-        entityTypeId: types.linkEntityType.hasBio.linkEntityTypeId,
+        entityTypeId: systemTypes.linkEntityType.hasBio.linkEntityTypeId,
         linkData: {
           leftEntityId: profile.entity.metadata.recordId.entityId,
           rightEntityId: profileBioEntity.metadata.recordId.entityId,

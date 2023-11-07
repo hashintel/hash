@@ -127,6 +127,7 @@ import {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileURLPropertyValue,
+  ReadAtPropertyValue,
   ResolvedAtPropertyValue,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
@@ -279,6 +280,7 @@ export type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileURLPropertyValue,
+  ReadAtPropertyValue,
   ResolvedAtPropertyValue,
   ServiceAccount,
   ServiceAccountOutgoingLinkAndTarget,
@@ -333,7 +335,7 @@ export type MentionNotificationOutgoingLinkAndTarget =
 
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
   "http://localhost:3000/@system-user/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-entity/v/1": MentionNotificationOccurredInEntityLink;
+  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": MentionNotificationOccurredInEntityLink;
   "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
   "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };

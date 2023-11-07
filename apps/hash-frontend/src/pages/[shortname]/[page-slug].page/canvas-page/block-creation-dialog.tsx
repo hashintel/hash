@@ -3,7 +3,7 @@ import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-sli
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { useApp } from "@tldraw/editor";
@@ -106,7 +106,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const newBlock = blockCollection.contents.find(
         (contentItem) =>
           contentItem.linkEntity.properties[
-            extractBaseUrl(types.propertyType.numericIndex.propertyTypeId)
+            extractBaseUrl(systemTypes.propertyType.numericIndex.propertyTypeId)
           ] === position,
       )!.rightEntity;
 

@@ -2,7 +2,7 @@ use std::{collections::HashSet, mem};
 
 use async_trait::async_trait;
 use authorization::{
-    schema::{EntityOwnerSubject, WebSubject},
+    schema::{EntityOwnerSubject, WebOwnerSubject, WebSubject},
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -606,6 +606,18 @@ where
     ) -> Result<(), InsertionError> {
         self.store
             .insert_account_group_id(actor_id, authorization_api, account_group_id)
+            .await
+    }
+
+    async fn insert_web_id<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
+    ) -> Result<(), InsertionError> {
+        self.store
+            .insert_web_id(actor_id, authorization_api, owned_by_id, owner)
             .await
     }
 

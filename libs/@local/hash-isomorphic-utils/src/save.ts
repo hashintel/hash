@@ -41,7 +41,7 @@ import {
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen";
-import { types } from "./ontology-types";
+import { systemTypes } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
 import { BlockProperties, ContainsProperties } from "./system-types/shared";
 
@@ -390,7 +390,9 @@ const mapEntityToGqlBlock = (
   entity: Entity<BlockProperties>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
-  if (entity.metadata.entityTypeId !== types.entityType.block.entityTypeId) {
+  if (
+    entity.metadata.entityTypeId !== systemTypes.entityType.block.entityTypeId
+  ) {
     throw new Error(
       `Entity with type ${entity.metadata.entityTypeId} is not a block`,
     );
@@ -403,7 +405,7 @@ const mapEntityToGqlBlock = (
     ({ linkEntity: linkEntityRevisions }) =>
       linkEntityRevisions[0] &&
       linkEntityRevisions[0].metadata.entityTypeId ===
-        types.linkEntityType.blockData.linkEntityTypeId,
+        systemTypes.linkEntityType.blockData.linkEntityTypeId,
   )?.rightEntity[0];
 
   if (!blockChildEntity) {
@@ -464,10 +466,10 @@ export const save = async (
           }) =>
             linkEntityRevisions[0] &&
             linkEntityRevisions[0].metadata.entityTypeId ===
-              types.linkEntityType.contains.linkEntityTypeId &&
+              systemTypes.linkEntityType.contains.linkEntityTypeId &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===
-              types.entityType.block.entityTypeId,
+              systemTypes.entityType.block.entityTypeId,
         )
         .sort(({ linkEntity: a }, { linkEntity: b }) => {
           const { numericIndex: aNumericIndex } = simplifyProperties(
@@ -492,7 +494,7 @@ export const save = async (
           (blockEntity): blockEntity is Entity<BlockProperties> =>
             !blockEntity ||
             blockEntity.metadata.entityTypeId ===
-              types.entityType.block.entityTypeId,
+              systemTypes.entityType.block.entityTypeId,
         );
 
       return blockEntities.map((blockEntity) =>
@@ -509,7 +511,7 @@ export const save = async (
      * If the text entity type is ever updated in the backend,
      * the FE will need to be redeployed to avoid this being out of sync.
      */
-    types.entityType.text.entityTypeId,
+    systemTypes.entityType.text.entityTypeId,
     blocks,
     doc,
     /**
@@ -518,7 +520,7 @@ export const save = async (
     (componentId: string) => {
       return (
         (blocksMap()[componentId]?.meta.schema as VersionedUrl | undefined) ??
-        types.entityType.text.entityTypeId
+        systemTypes.entityType.text.entityTypeId
       );
     },
   );

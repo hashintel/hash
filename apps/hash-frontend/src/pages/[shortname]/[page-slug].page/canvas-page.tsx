@@ -6,7 +6,7 @@ import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
@@ -117,7 +117,9 @@ export const CanvasPageBlock = ({
             },
             indexPosition:
               linkEntity.properties[
-                extractBaseUrl(types.propertyType.numericIndex.propertyTypeId)
+                extractBaseUrl(
+                  systemTypes.propertyType.numericIndex.propertyTypeId,
+                )
               ] ?? index,
             pageEntityId: linkEntity.linkData?.leftEntityId,
             h: height ?? defaultBlockHeight,

@@ -1,6 +1,6 @@
 /*
-  This module contains the configuration for standing up a HASH instance in 
-  AWS using ECS Fargate. 
+  This module contains the configuration for standing up a HASH instance in
+  AWS using ECS Fargate.
 */
 
 module "variables_hash" {
@@ -257,7 +257,6 @@ module "application" {
     { name = "AWS_S3_UPLOADS_BUCKET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_bucket" ]) },
     { name = "AWS_S3_UPLOADS_ENDPOINT", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_endpoint" ]) },
     { name = "AWS_S3_UPLOADS_SECRET_ACCESS_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key" ]) },
-    { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_system_user_password"]) },
     { name = "BLOCK_PROTOCOL_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_block_protocol_api_key"]) },
     { name = "KRATOS_API_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_api_key"]) },
     { name = "HASH_API_RUDDERSTACK_KEY", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_api_rudderstack_key"]) },
@@ -267,8 +266,8 @@ module "application" {
     { name = "HASH_TEMPORAL_SERVER_HOST", secret = false, value = module.temporal.host },
     { name = "HASH_TEMPORAL_SERVER_PORT", secret = false, value = module.temporal.temporal_port },
     { name = "HASH_INTEGRATION_QUEUE_NAME", secret = false, value = "integration" },
-    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
-    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
+#    { name = "LINEAR_CLIENT_ID", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_id"]) },
+#    { name = "LINEAR_CLIENT_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_client_secret"]) },
     { name = "LINEAR_WEBHOOK_SECRET", secret = true, value = sensitive(data.vault_kv_secret_v2.secrets.data["linear_webhook_secret"]) },
   ])
   temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr

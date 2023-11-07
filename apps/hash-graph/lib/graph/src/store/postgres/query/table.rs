@@ -138,21 +138,21 @@ impl ReferenceTable {
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
-                    Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::WebId),
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::EntityUuid),
                 ],
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
-                    Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::WebId),
                     Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
                 ],
             },
@@ -213,21 +213,21 @@ impl ReferenceTable {
             },
             Self::EntityHasLeftEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityOwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityWebId),
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::LeftEntityUuid),
                 ],
                 join: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
             },
             Self::EntityHasRightEntity => ForeignKeyReference::Double {
                 on: [
-                    Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityOwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityWebId),
                     Column::EntityHasRightEntity(EntityHasRightEntity::RightEntityUuid),
                 ],
                 join: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
             },
@@ -339,7 +339,7 @@ pub enum OntologyIds {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OntologyOwnedMetadata {
     OntologyId,
-    OwnedById,
+    WebId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -411,7 +411,7 @@ impl OntologyOwnedMetadata {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
-            Self::OwnedById => "owned_by_id",
+            Self::WebId => "web_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -419,7 +419,7 @@ impl OntologyOwnedMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+            Self::OntologyId | Self::WebId => ParameterType::Uuid,
         }
     }
 }
@@ -485,14 +485,14 @@ impl OntologyTemporalMetadata {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OwnedOntologyMetadata {
     OntologyId,
-    OwnedById,
+    WebId,
 }
 
 impl OwnedOntologyMetadata {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::OntologyId => "ontology_id",
-            Self::OwnedById => "owned_by_id",
+            Self::WebId => "web_id",
         };
         table.transpile(fmt)?;
         write!(fmt, r#"."{column}""#)
@@ -500,7 +500,7 @@ impl OwnedOntologyMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
+            Self::OntologyId | Self::WebId => ParameterType::Uuid,
         }
     }
 }
@@ -636,7 +636,7 @@ impl EntityTypes<'static> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityTemporalMetadata {
-    OwnedById,
+    WebId,
     EntityUuid,
     EditionId,
     DecisionTime,
@@ -655,7 +655,7 @@ impl EntityTemporalMetadata {
 impl EntityTemporalMetadata {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
-            Self::OwnedById => "owned_by_id",
+            Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
             Self::EditionId => "entity_edition_id",
             Self::DecisionTime => "decision_time",
@@ -667,7 +667,7 @@ impl EntityTemporalMetadata {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OwnedById | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::EditionId => ParameterType::Uuid,
             Self::DecisionTime | Self::TransactionTime => ParameterType::TimeInterval,
         }
     }
@@ -765,18 +765,18 @@ impl EntityIsOfType {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityHasLeftEntity {
-    OwnedById,
+    WebId,
     EntityUuid,
-    LeftEntityOwnedById,
+    LeftEntityWebId,
     LeftEntityUuid,
 }
 
 impl EntityHasLeftEntity {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
-            Self::OwnedById => "owned_by_id",
+            Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
-            Self::LeftEntityOwnedById => "left_owned_by_id",
+            Self::LeftEntityWebId => "left_web_id",
             Self::LeftEntityUuid => "left_entity_uuid",
         };
         table.transpile(fmt)?;
@@ -785,28 +785,27 @@ impl EntityHasLeftEntity {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OwnedById
-            | Self::EntityUuid
-            | Self::LeftEntityOwnedById
-            | Self::LeftEntityUuid => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::LeftEntityWebId | Self::LeftEntityUuid => {
+                ParameterType::Uuid
+            }
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EntityHasRightEntity {
-    OwnedById,
+    WebId,
     EntityUuid,
-    RightEntityOwnedById,
+    RightEntityWebId,
     RightEntityUuid,
 }
 
 impl EntityHasRightEntity {
     fn transpile_column(self, table: &impl Transpile, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
-            Self::OwnedById => "owned_by_id",
+            Self::WebId => "web_id",
             Self::EntityUuid => "entity_uuid",
-            Self::RightEntityOwnedById => "right_owned_by_id",
+            Self::RightEntityWebId => "right_web_id",
             Self::RightEntityUuid => "right_entity_uuid",
         };
         table.transpile(fmt)?;
@@ -815,10 +814,9 @@ impl EntityHasRightEntity {
 
     pub const fn parameter_type(self) -> ParameterType {
         match self {
-            Self::OwnedById
-            | Self::EntityUuid
-            | Self::RightEntityOwnedById
-            | Self::RightEntityUuid => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::RightEntityWebId | Self::RightEntityUuid => {
+                ParameterType::Uuid
+            }
         }
     }
 }
@@ -1418,21 +1416,21 @@ impl Relation {
             }),
             Self::LeftEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
-                    Column::EntityHasLeftEntity(EntityHasLeftEntity::OwnedById),
+                    Column::EntityHasLeftEntity(EntityHasLeftEntity::WebId),
                     Column::EntityHasLeftEntity(EntityHasLeftEntity::EntityUuid),
                 ],
             }),
             Self::RightEntity => ForeignKeyJoin::from_reference(ForeignKeyReference::Double {
                 on: [
-                    Column::EntityTemporalMetadata(EntityTemporalMetadata::OwnedById),
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
                     Column::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
                 ],
                 join: [
-                    Column::EntityHasRightEntity(EntityHasRightEntity::OwnedById),
+                    Column::EntityHasRightEntity(EntityHasRightEntity::WebId),
                     Column::EntityHasRightEntity(EntityHasRightEntity::EntityUuid),
                 ],
             }),
