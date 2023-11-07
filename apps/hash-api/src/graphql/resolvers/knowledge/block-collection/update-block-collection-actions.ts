@@ -3,7 +3,7 @@ import { Entity, EntityId, OwnedById } from "@local/hash-subgraph";
 import { UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
-import { ImpureGraphContext } from "../../../../graph";
+import { ImpureGraphContext } from "../../../../graph/context-types";
 import {
   createEntityWithLinks,
   getLatestEntityById,
@@ -26,7 +26,7 @@ import {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
-import { AuthenticationContext } from "../../../context";
+import { AuthenticationContext } from "../../../authentication-context";
 
 export const createEntityWithPlaceholdersFn =
   (

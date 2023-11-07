@@ -4,7 +4,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -56,7 +56,7 @@ export const useUsersWithLinks = ({
                 ]
               : []),
             generateVersionedUrlMatchingFilter(
-              types.entityType.user.entityTypeId,
+              systemTypes.entityType.user.entityTypeId,
               { ignoreParents: true },
             ),
           ],

@@ -5,7 +5,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -90,7 +90,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const pinnedEntityTypeBaseUrls = useMemo(
     () => [
-      extractBaseUrl(types.entityType.page.entityTypeId),
+      extractBaseUrl(systemTypes.entityType.page.entityTypeId),
       ...(profile?.pinnedEntityTypeBaseUrls ?? []),
     ],
     [profile],

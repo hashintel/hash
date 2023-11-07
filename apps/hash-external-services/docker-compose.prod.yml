@@ -59,11 +59,6 @@ services:
       FRONTEND_URL: "${FRONTEND_URL}"
 
       API_ORIGIN: "${API_ORIGIN}"
-      SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
-      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
-      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-      SYSTEM_USER_PASSWORD: "${SYSTEM_USER_PASSWORD}"
-      SYSTEM_USER_EMAIL_ADDRESS: "${SYSTEM_USER_EMAIL_ADDRESS}"
       HASH_SEED_USERS: "${HASH_SEED_USERS}"
 
       HASH_GRAPH_API_HOST: "graph"
@@ -91,8 +86,6 @@ services:
         # At build-time (client-side) we use the public API origin that is
         # outside the docker network.
         API_ORIGIN: "${API_ORIGIN}"
-        SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-        SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
     depends_on:
       hash-api:
         condition: service_healthy
@@ -107,8 +100,6 @@ services:
       # this container.
       API_ORIGIN: "http://hash-api:5001"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
-      SYSTEM_USER_PREFERRED_NAME: "${SYSTEM_USER_PREFERRED_NAME}"
-      SYSTEM_USER_SHORTNAME: "${SYSTEM_USER_SHORTNAME}"
 
     ports:
       - "3000:3000"

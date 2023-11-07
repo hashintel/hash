@@ -11,7 +11,7 @@ import { StatsD } from "hot-shots";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { GraphApi } from "../graph";
+import { GraphApi } from "../graph/context-types";
 import { UploadableStorageProvider } from "../storage/storage-provider";
 import { TemporalClient } from "../temporal";
 import { VaultClient } from "../vault/index";

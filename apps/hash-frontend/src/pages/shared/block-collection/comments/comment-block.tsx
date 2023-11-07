@@ -15,7 +15,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
@@ -136,7 +136,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const preferredName = useMemo(
     () =>
       author.properties[
-        extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.preferredName.propertyTypeId)
       ] as string,
     [author.properties],
   );

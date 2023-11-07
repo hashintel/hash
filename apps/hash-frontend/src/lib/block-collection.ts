@@ -1,7 +1,7 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import {
   blockProtocolTypes,
-  types,
+  systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -25,7 +25,7 @@ export const isBlockCollectionContentsEmpty = (params: {
   if (
     contents.length === 1 &&
     contents[0]!.rightEntity.blockChildEntity.metadata.entityTypeId ===
-      types.entityType.text.entityTypeId
+      systemTypes.entityType.text.entityTypeId
   ) {
     const textualContent = contents[0]!.rightEntity.blockChildEntity.properties[
       extractBaseUrl(
@@ -52,7 +52,7 @@ export const getBlockCollectionContents = (params: {
       ({ linkEntity: linkEntityRevisions }) =>
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeId ===
-          types.linkEntityType.contains.linkEntityTypeId,
+          systemTypes.linkEntityType.contains.linkEntityTypeId,
     )
     .sort((a, b) => {
       const aLinkEntity = a.linkEntity[0] as LinkEntity<ContainsProperties>;
@@ -84,7 +84,7 @@ export const getBlockCollectionContents = (params: {
       const rightEntity = rightEntityRevisions[0]!;
 
       const componentId = rightEntity.properties[
-        extractBaseUrl(types.propertyType.componentId.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.componentId.propertyTypeId)
       ] as string;
 
       const blockChildEntity = getOutgoingLinkAndTargetEntities(
@@ -94,7 +94,7 @@ export const getBlockCollectionContents = (params: {
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
           linkEntityRevisions[0].metadata.entityTypeId ===
-            types.linkEntityType.blockData.linkEntityTypeId,
+            systemTypes.linkEntityType.blockData.linkEntityTypeId,
       )?.rightEntity[0];
 
       if (!blockChildEntity) {

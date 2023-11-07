@@ -2,7 +2,7 @@ import { LinearClient, Organization, Team } from "@linear/sdk";
 import { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-workflow-types";
 import { OwnedById } from "@local/hash-subgraph";
 
-import { AuthenticationContext } from "../graphql/context";
+import { AuthenticationContext } from "../graphql/authentication-context";
 import { TemporalClient } from "../temporal";
 import { genId } from "../util";
 

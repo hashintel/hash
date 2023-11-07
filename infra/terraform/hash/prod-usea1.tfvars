@@ -28,7 +28,7 @@ kratos_env_vars = [
 ]
 
 hash_graph_env_vars = [
-  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "https://app.hash.ai/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
+  { name = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN", secret = false, value = "(?:https://hash\\.ai|https://app\\.hash\\.ai)/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\\w\\-_%]+/" },
   { name = "HASH_GRAPH_LOG_FORMAT", secret = false, value = "pretty" },
   { name = "RUST_LOG", secret = false, value = "graph=info,hash-graph=info,tokio_postgres=info,hash_type_fetcher=info" },
   { name = "RUST_BACKTRACE", secret = false, value = "1" }
@@ -37,10 +37,6 @@ hash_graph_env_vars = [
 hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://app.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://app-api.hash.ai" },
-
-  { name = "SYSTEM_USER_SHORTNAME", secret = false, value = "hash" },
-  { name = "SYSTEM_USER_PREFERRED_NAME", secret = false, value = "HASH" },
-  { name = "SYSTEM_USER_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
 
   { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
   { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },

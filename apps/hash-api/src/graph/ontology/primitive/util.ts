@@ -1,4 +1,3 @@
-import { systemUserShortname } from "@local/hash-isomorphic-utils/environment";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -6,42 +5,38 @@ import {
   Uuid,
 } from "@local/hash-subgraph";
 
-import { ImpureGraphFunction } from "../..";
+import { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
-import { systemUserAccountId } from "../../system-user";
 
 /**
- * Get the namespace of an account owner by its id
- *
- * @param params.ownerId - the id of the owner
+ * Get the web shortname of an account or account group by its id
  */
-export const getNamespaceOfAccountOwner: ImpureGraphFunction<
+export const getWebShortname: ImpureGraphFunction<
   {
-    ownerId: OwnedById;
+    accountOrAccountGroupId: OwnedById;
   },
   Promise<string>
 > = async (ctx, authentication, params) => {
-  const namespace =
-    params.ownerId === systemUserAccountId
-      ? systemUserShortname
-      : (
-          (await getUserById(ctx, authentication, {
-            entityId: entityIdFromOwnedByIdAndEntityUuid(
-              params.ownerId as Uuid as OwnedById,
-              params.ownerId as Uuid as EntityUuid,
-            ),
-          }).catch(() => undefined)) ??
-          (await getOrgById(ctx, authentication, {
-            entityId: entityIdFromOwnedByIdAndEntityUuid(
-              params.ownerId as Uuid as OwnedById,
-              params.ownerId as Uuid as EntityUuid,
-            ),
-          }).catch(() => undefined))
-        )?.shortname;
+  const namespace = (
+    (await getUserById(ctx, authentication, {
+      entityId: entityIdFromOwnedByIdAndEntityUuid(
+        params.accountOrAccountGroupId as Uuid as OwnedById,
+        params.accountOrAccountGroupId as Uuid as EntityUuid,
+      ),
+    }).catch(() => undefined)) ??
+    (await getOrgById(ctx, authentication, {
+      entityId: entityIdFromOwnedByIdAndEntityUuid(
+        params.accountOrAccountGroupId as Uuid as OwnedById,
+        params.accountOrAccountGroupId as Uuid as EntityUuid,
+      ),
+    }).catch(() => undefined))
+  )?.shortname;
 
   if (!namespace) {
-    throw new Error(`failed to get namespace for owner: ${params.ownerId}`);
+    throw new Error(
+      `failed to get namespace for owner: ${params.accountOrAccountGroupId}`,
+    );
   }
 
   return namespace;

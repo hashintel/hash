@@ -1,9 +1,6 @@
-import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   addHashInstanceAdmin,
   getHashInstance,
@@ -14,11 +11,8 @@ import {
   isUserHashInstanceAdmin,
   User,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import {
-  systemUser,
-  systemUserAccountId,
-} from "@apps/hash-api/src/graph/system-user";
-import { AuthenticationContext } from "@apps/hash-api/src/graphql/context";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
+import { AuthenticationContext } from "@apps/hash-api/src/graphql/authentication-context";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
@@ -42,10 +36,6 @@ describe("Hash Instance", () => {
   });
 
   afterAll(async () => {
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
-    });
-
     await resetGraph();
   });
 
@@ -82,7 +72,7 @@ describe("Hash Instance", () => {
   it("can add a hash instance admin", async () => {
     await addHashInstanceAdmin(
       graphContext,
-      { actorId: systemUserAccountId },
+      { actorId: systemAccountId },
       {
         user: testHashInstanceAdmin,
       },
@@ -98,7 +88,7 @@ describe("Hash Instance", () => {
   it("can remove a hash instance admin", async () => {
     await removeHashInstanceAdmin(
       graphContext,
-      { actorId: systemUserAccountId },
+      { actorId: systemAccountId },
       {
         user: testHashInstanceAdmin,
       },

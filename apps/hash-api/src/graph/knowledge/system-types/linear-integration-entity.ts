@@ -18,7 +18,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";

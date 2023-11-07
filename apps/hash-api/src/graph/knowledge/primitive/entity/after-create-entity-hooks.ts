@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
@@ -52,7 +52,8 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
   // If the parent of the comment is a block, check if we need to create a comment notification
   if (
-    commentParent.metadata.entityTypeId === types.entityType.block.entityTypeId
+    commentParent.metadata.entityTypeId ===
+    systemTypes.entityType.block.entityTypeId
   ) {
     const parentBlock = getBlockFromEntity({ entity: commentParent });
     const blockCollectionEntity = await getBlockCollectionByBlock(
@@ -64,7 +65,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     if (
       blockCollectionEntity &&
       blockCollectionEntity.metadata.entityTypeId ===
-        types.entityType.page.entityTypeId
+        systemTypes.entityType.page.entityTypeId
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -106,7 +107,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     // If the parent is another comment check if we need to create a comment reply notification
   } else if (
     commentParent.metadata.entityTypeId ===
-    types.entityType.comment.entityTypeId
+    systemTypes.entityType.comment.entityTypeId
   ) {
     const parentComment = getCommentFromEntity({ entity: commentParent });
 
@@ -125,7 +126,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
     if (
       blockCollectionEntity &&
       blockCollectionEntity.metadata.entityTypeId ===
-        types.entityType.page.entityTypeId
+        systemTypes.entityType.page.entityTypeId
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -265,11 +266,11 @@ const hasTextCreateHookCallback: CreateEntityHookCallback = async ({
 
 export const afterCreateEntityHooks: CreateEntityHook[] = [
   {
-    entityTypeId: types.entityType.comment.entityTypeId,
+    entityTypeId: systemTypes.entityType.comment.entityTypeId,
     callback: commentCreateHookCallback,
   },
   {
-    entityTypeId: types.linkEntityType.hasText.linkEntityTypeId,
+    entityTypeId: systemTypes.linkEntityType.hasText.linkEntityTypeId,
     callback: hasTextCreateHookCallback,
   },
 ];

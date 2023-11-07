@@ -1,5 +1,5 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountEntityId,
   EntityId,
@@ -73,7 +73,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const preferredName = useMemo(
     () =>
       comment.author.properties[
-        extractBaseUrl(types.propertyType.preferredName.propertyTypeId)
+        extractBaseUrl(systemTypes.propertyType.preferredName.propertyTypeId)
       ],
     [comment.author.properties],
   );

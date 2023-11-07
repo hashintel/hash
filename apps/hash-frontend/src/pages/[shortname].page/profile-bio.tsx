@@ -1,5 +1,5 @@
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
 import {
@@ -96,7 +96,7 @@ export const ProfileBio: FunctionComponent<{
 
     await createEntity({
       data: {
-        entityTypeId: types.linkEntityType.hasBio.linkEntityTypeId,
+        entityTypeId: systemTypes.linkEntityType.hasBio.linkEntityTypeId,
         linkData: {
           leftEntityId: profile.entity.metadata.recordId.entityId,
           rightEntityId: profileBioEntity.metadata.recordId.entityId,

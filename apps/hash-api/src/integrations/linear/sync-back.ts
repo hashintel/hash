@@ -12,7 +12,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
-import { systemUserAccountId } from "../../graph/system-user";
+import { systemAccountId } from "../../graph/system-account";
 import { createTemporalClient } from "../../temporal";
 import { genId } from "../../util";
 import { createVaultClient } from "../../vault";
@@ -64,7 +64,7 @@ export const processEntityChange = async (
     authentication,
     {
       hashWorkspaceEntityId: entityIdFromOwnedByIdAndEntityUuid(
-        systemUserAccountId as OwnedById,
+        systemAccountId as OwnedById,
         owningAccountUuId as Uuid as EntityUuid,
       ),
       vaultClient,

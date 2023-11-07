@@ -1,4 +1,4 @@
-import { ImpureGraphFunction } from "../../../..";
+import { ImpureGraphFunction } from "../../../../context-types";
 import { SYSTEM_TYPES } from "../../../../system-types";
 import { Block, getBlockCollectionByBlock } from "../../../system-types/block";
 import {

@@ -35,13 +35,15 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { ImpureGraphFunction } from "../../context-types";
+import { getWebShortname } from "./util";
 
 /**
  * Create an entity type.
  *
  * @param params.ownedById - the id of the account who owns the entity type
+ * @param [params.webShortname] – the shortname of the web that owns the entity type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `EntityType`
  * @param params.actorId - the id of the account that is creating the entity type
  */
@@ -49,20 +51,23 @@ export const createEntityType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructEntityTypeParams;
-
     labelProperty?: BaseUrl;
+    webShortname?: string;
   },
   Promise<EntityTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, labelProperty } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: params.ownedById,
-  });
+  const { ownedById, labelProperty, webShortname } = params;
+
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: ownedById,
+    }));
 
   const entityTypeId = generateTypeId({
-    namespace,
     kind: "entity-type",
     title: params.schema.title,
+    webShortname: shortname,
   });
 
   const schema = {

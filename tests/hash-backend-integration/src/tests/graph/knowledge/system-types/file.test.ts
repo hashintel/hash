@@ -1,14 +1,11 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   createFileFromExternalUrl,
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { EntityId, OwnedById, Timestamp } from "@local/hash-subgraph";
@@ -38,9 +35,6 @@ describe("File", () => {
   afterAll(async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
     });
 
     await resetGraph();

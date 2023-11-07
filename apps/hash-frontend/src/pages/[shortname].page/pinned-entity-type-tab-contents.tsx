@@ -1,6 +1,6 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
   EntityRootType,
@@ -57,7 +57,7 @@ const EntityRow: FunctionComponent<{
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
-    entity.metadata.entityTypeId === types.entityType.page.entityTypeId
+    entity.metadata.entityTypeId === systemTypes.entityType.page.entityTypeId
       ? ""
       : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
@@ -228,7 +228,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const isPagesTab =
     currentTab.entityTypeBaseUrl ===
-    extractBaseUrl(types.entityType.page.entityTypeId);
+    extractBaseUrl(systemTypes.entityType.page.entityTypeId);
 
   return (
     <Box>
