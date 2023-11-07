@@ -328,7 +328,8 @@ export const updateEntityResolver: ResolverFn<
       SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
     ]
   ) {
-    // Now that the user has completed signup, we can create their web, allowing them to create/edit entities
+    // Now that the user has completed signup, we can transfer the ownership of the web
+    // allowing them to create entities and types.
     await modifyWebAuthorizationRelationships(
       context,
       { actorId: systemAccountId },
