@@ -394,6 +394,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             )
             .await?;
 
+        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         let has_permission = authorization_api
             .check_property_types_permission(
                 actor_id,
@@ -831,8 +832,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                         .properties
                         .properties()
                         .get(base_url)
-                        .map(|old_value| old_value != *value)
-                        .unwrap_or(true)
+                        .map_or(true, |old_value| old_value != *value)
                 })
                 .chain(previous_entity.properties.properties().iter().filter(
                     |(base_url, _valuevalue)| properties.properties().get(base_url).is_none(),
