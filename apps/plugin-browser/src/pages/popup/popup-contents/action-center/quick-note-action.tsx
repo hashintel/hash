@@ -5,25 +5,16 @@ import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { Entity, EntityPropertiesObject, LinkData } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
+import {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { createEntityMutation } from "../../../../graphql/queries/entity.queries";
 import { queryApi } from "../../../../shared/query-api";
 import { useSessionStorage } from "../../../shared/use-storage-sync";
 import { Action } from "./action";
 import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
-
-const createEntityQuery = /* GraphQL */ `
-  mutation createEntity(
-    $entityTypeId: VersionedUrl!
-    $properties: EntityPropertiesObject!
-    $linkData: LinkData
-  ) {
-    createEntity(
-      entityTypeId: $entityTypeId
-      properties: $properties
-      linkData: $linkData
-    )
-  }
-`;
 
 const quickNoteEntityTypeId =
   "http://localhost:3000/@system-user/types/entity-type/quick-note/v/1" as const;
@@ -54,11 +45,14 @@ const createEntity = (params: {
   properties: EntityPropertiesObject;
   linkData?: LinkData;
 }): Promise<Entity> =>
-  queryApi(createEntityQuery, {
-    entityTypeId: params.entityTypeId,
-    properties: params.properties,
-    linkData: params.linkData,
-  }).then(({ data }: { data: { createEntity: Entity } }) => {
+  queryApi<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+    {
+      entityTypeId: params.entityTypeId,
+      properties: params.properties,
+      linkData: params.linkData,
+    },
+  ).then(({ data }) => {
     return data.createEntity;
   });
 

@@ -16,6 +16,7 @@
   "scripts": {
     "build": "NODE_ENV=production node utils/build.js",
     "build:firefox": "NODE_ENV=production BROWSER=firefox node utils/build.js",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "node utils/webserver.js",
     "dev:firefox": "BROWSER=firefox node utils/webserver.js"
   },
@@ -28,6 +29,7 @@
     "@mui/material": "5.14.11",
     "@sentry/browser": "7.74.1",
     "bowser": "2.11.0",
+    "graphql": "16.8.1",
     "pluralize": "8.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -39,6 +41,7 @@
     "@babel/plugin-proposal-class-properties": "7.18.6",
     "@babel/preset-env": "7.20.2",
     "@babel/preset-react": "7.18.6",
+    "@graphql-codegen/cli": "5.0.0",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
