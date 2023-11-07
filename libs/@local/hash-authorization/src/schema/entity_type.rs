@@ -187,7 +187,7 @@ pub enum EntityTypeOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum EntityTypeGeneralViewerSubject {
+pub enum EntityTypeViewerSubject {
     Public,
 }
 
@@ -197,9 +197,13 @@ pub enum EntityTypeGeneralViewerSubject {
 pub enum EntityTypeRelationAndSubject {
     Owner {
         subject: EntityTypeOwnerSubject,
+        #[serde(skip)]
+        level: u8,
     },
-    GeneralViewer {
-        subject: EntityTypeGeneralViewerSubject,
+    Viewer {
+        subject: EntityTypeViewerSubject,
+        #[serde(skip)]
+        level: u8,
     },
 }
 
@@ -216,10 +220,12 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                 EntityTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (EntityTypeSubject::Account(id), None) => EntityTypeRelationAndSubject::Owner {
                         subject: EntityTypeOwnerSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (EntityTypeSubject::AccountGroup(id), Some(set)) => {
                         EntityTypeRelationAndSubject::Owner {
                             subject: EntityTypeOwnerSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
                         }
                     }
                     (EntityTypeSubject::Public, _subject_set) => {
@@ -233,11 +239,10 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                     }
                 },
                 EntityTypeResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
-                    (EntityTypeSubject::Public, None) => {
-                        EntityTypeRelationAndSubject::GeneralViewer {
-                            subject: EntityTypeGeneralViewerSubject::Public,
-                        }
-                    }
+                    (EntityTypeSubject::Public, None) => EntityTypeRelationAndSubject::Viewer {
+                        subject: EntityTypeViewerSubject::Public,
+                        level: parts.relation.level,
+                    },
                     (
                         EntityTypeSubject::Account(_)
                         | EntityTypeSubject::AccountGroup(_)
@@ -257,10 +262,10 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            EntityTypeRelationAndSubject::Owner { subject } => (
+            EntityTypeRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: EntityTypeResourceRelation::Owner,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     EntityTypeOwnerSubject::Account { id } => {
@@ -271,13 +276,13 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                     }
                 },
             ),
-            EntityTypeRelationAndSubject::GeneralViewer { subject } => (
+            EntityTypeRelationAndSubject::Viewer { subject, level } => (
                 LeveledRelation {
                     name: EntityTypeResourceRelation::Viewer,
-                    level: 0,
+                    level,
                 },
                 match subject {
-                    EntityTypeGeneralViewerSubject::Public => (EntityTypeSubject::Public, None),
+                    EntityTypeViewerSubject::Public => (EntityTypeSubject::Public, None),
                 },
             ),
         };

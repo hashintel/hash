@@ -298,8 +298,9 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Create,
             account_group_id,
-            AccountGroupRelationAndSubject::GeneralMember {
+            AccountGroupRelationAndSubject::Member {
                 subject: AccountGroupMemberSubject::Account { id: account_id },
+                level: 0,
             },
         )])
         .await
@@ -366,8 +367,9 @@ where
         .modify_account_group_relations([(
             ModifyRelationshipOperation::Delete,
             account_group_id,
-            AccountGroupRelationAndSubject::GeneralMember {
+            AccountGroupRelationAndSubject::Member {
                 subject: AccountGroupMemberSubject::Account { id: account_id },
+                level: 0,
             },
         )])
         .await

@@ -8,9 +8,7 @@ use std::error::Error;
 
 use authorization::{
     backend::ZanzibarBackend,
-    schema::{
-        EntityGeneralViewerSubject, EntityOwnerSubject, EntityPermission, EntityRelationAndSubject,
-    },
+    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityViewerSubject},
     zanzibar::Consistency,
 };
 
@@ -41,18 +39,21 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
                 ENTITY_A,
                 EntityRelationAndSubject::Owner {
                     subject: EntityOwnerSubject::Account { id: ALICE },
+                    level: 0,
                 },
             ),
             (
                 ENTITY_A,
-                EntityRelationAndSubject::GeneralViewer {
-                    subject: EntityGeneralViewerSubject::Account { id: BOB },
+                EntityRelationAndSubject::Viewer {
+                    subject: EntityViewerSubject::Account { id: BOB },
+                    level: 0,
                 },
             ),
             (
                 ENTITY_B,
                 EntityRelationAndSubject::Owner {
                     subject: EntityOwnerSubject::Account { id: BOB },
+                    level: 0,
                 },
             ),
         ])
@@ -144,8 +145,9 @@ async fn plain_permissions() -> Result<(), Box<dyn Error>> {
     let token = api
         .delete_relationships([(
             ENTITY_A,
-            EntityRelationAndSubject::GeneralViewer {
-                subject: EntityGeneralViewerSubject::Account { id: BOB },
+            EntityRelationAndSubject::Viewer {
+                subject: EntityViewerSubject::Account { id: BOB },
+                level: 0,
             },
         )])
         .await?

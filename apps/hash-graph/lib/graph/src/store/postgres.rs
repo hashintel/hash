@@ -1279,6 +1279,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 account_group_id,
                 AccountGroupRelationAndSubject::Owner {
                     subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                    level: 0,
                 },
             )])
             .await
@@ -1291,6 +1292,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     account_group_id,
                     AccountGroupRelationAndSubject::Owner {
                         subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                        level: 0,
                     },
                 )])
                 .await
@@ -1340,7 +1342,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .modify_web_relations([(
                 ModifyRelationshipOperation::Create,
                 WebId::new(owned_by_id.into_uuid()),
-                WebRelationAndSubject::Owner { subject: owner },
+                WebRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
             )])
             .await
             .change_context(InsertionError)?;
@@ -1350,7 +1355,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .modify_web_relations([(
                     ModifyRelationshipOperation::Delete,
                     WebId::new(owned_by_id.into_uuid()),
-                    WebRelationAndSubject::Owner { subject: owner },
+                    WebRelationAndSubject::Owner {
+                        subject: owner,
+                        level: 0,
+                    },
                 )])
                 .await
                 .change_context(InsertionError)
