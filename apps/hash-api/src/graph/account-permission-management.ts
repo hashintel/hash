@@ -1,7 +1,7 @@
+import { WebOwnerSubject } from "@local/hash-graph-client";
 import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "./context-types";
-import { WebOwnerSubject } from "@local/hash-graph-client";
 
 export const addAccountGroupMember: ImpureGraphFunction<
   { accountId: AccountId; accountGroupId: AccountGroupId },

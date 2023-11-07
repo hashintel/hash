@@ -1,6 +1,9 @@
 import {
+  ModifyRelationshipOperation,
+  WebPermission,
+} from "@local/hash-graph-client";
+import {
   entityIdFromOwnedByIdAndEntityUuid,
-  EntityTypeAuthorizationRelationship,
   EntityUuid,
   OwnedById,
   Uuid,
@@ -10,12 +13,6 @@ import {
 import { ImpureGraphFunction } from "../../context-types";
 import { getOrgById } from "../../knowledge/system-types/org";
 import { getUserById } from "../../knowledge/system-types/user";
-import { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  EntityTypePermission,
-  ModifyRelationshipOperation,
-  WebPermission,
-} from "@local/hash-graph-client";
 
 /**
  * Get the web shortname of an account or account group by its id
@@ -65,7 +62,7 @@ export const getWebAuthorizationRelationships: ImpureGraphFunction<
           }) as WebAuthorizationRelationship,
       ),
     );
-    
+
 export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
   {
     operation: ModifyRelationshipOperation;

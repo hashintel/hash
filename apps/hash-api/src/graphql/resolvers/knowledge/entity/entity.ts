@@ -18,7 +18,6 @@ import {
 } from "apollo-server-express";
 
 import { publicUserAccountId } from "../../../../auth/public-user-account-id";
-import { createWeb } from "../../../../graph/account-permission-management";
 import {
   addEntityEditor,
   addEntityOwner,
@@ -40,6 +39,8 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
+import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
+import { systemAccountId } from "../../../../graph/system-account";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
@@ -70,8 +71,6 @@ import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import { mapEntityToGQL } from "../graphql-mapping";
 import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
-import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
-import { systemAccountId } from "../../../../graph/system-account";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,

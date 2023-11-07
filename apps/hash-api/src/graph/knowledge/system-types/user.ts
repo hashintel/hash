@@ -28,6 +28,7 @@ import {
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   checkEntityPermission,
@@ -49,8 +50,6 @@ import {
   getOrgMembershipOrg,
   OrgMembership,
 } from "./org-membership";
-import { systemAccountId } from "../../system-account";
-import { modifyWebAuthorizationRelationships } from "../../ontology/primitive/util";
 
 export type User = {
   accountId: AccountId;
