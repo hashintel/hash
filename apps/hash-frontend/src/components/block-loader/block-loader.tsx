@@ -96,7 +96,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
-  useEffect(() => {}, []);
 
   /**
    * Set the initial block data from either:
