@@ -1,13 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const orgTypedef = gql`
-  enum OrgSize {
-    ELEVEN_TO_FIFTY
-    FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
-    ONE_TO_TEN
-    TWO_HUNDRED_AND_FIFTY_PLUS
-  }
-
   extend type Mutation {
     """
     Create an organization. The creator will be automatically added as an org member.

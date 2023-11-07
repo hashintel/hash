@@ -6,7 +6,6 @@ import {
   createOrg,
   getOrgByShortname,
   Org,
-  OrgSize,
 } from "../graph/knowledge/system-types/org";
 import { joinOrg } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
