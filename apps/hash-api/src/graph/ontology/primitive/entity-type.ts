@@ -131,21 +131,23 @@ export const createEntityType: ImpureGraphFunction<
     },
   );
 
-  await modifyEntityTypeAuthorizationRelationships(
-    ctx,
-    authentication,
-    params.instantiators.map((subject) => ({
-      operation: "create",
-      relationship: {
-        resource: {
-          kind: "entityType",
-          resourceId: entityTypeId,
+  if (params.instantiators.length > 0) {
+    await modifyEntityTypeAuthorizationRelationships(
+      ctx,
+      authentication,
+      params.instantiators.map((subject) => ({
+        operation: "create",
+        relationship: {
+          resource: {
+            kind: "entityType",
+            resourceId: entityTypeId,
+          },
+          relation: "instantiator",
+          subject,
         },
-        relation: "instantiator",
-        subject,
-      },
-    })),
-  );
+      })),
+    );
+  }
 
   return { schema, metadata: metadata as EntityTypeMetadata };
 };

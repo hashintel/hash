@@ -547,7 +547,7 @@ export const entityTypeInitializer = (
                 ownedById: accountGroupId as OwnedById,
                 schema: entityTypeSchema,
                 webShortname: params.webShortname,
-                instantiators: [{ kind: "public" }],
+                instantiators: [],
               },
             ).catch((createError) => {
               logger.warn(
@@ -585,6 +585,19 @@ export const entityTypeInitializer = (
                     subject: {
                       kind: "account",
                       subjectId: systemAccountId,
+                    },
+                  },
+                },
+                {
+                  operation: "create",
+                  relationship: {
+                    resource: {
+                      kind: "entityType",
+                      resourceId: createdEntityType.schema.$id,
+                    },
+                    relation: "instantiator",
+                    subject: {
+                      kind: "public",
                     },
                   },
                 },
