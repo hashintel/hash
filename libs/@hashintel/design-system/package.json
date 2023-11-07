@@ -54,8 +54,8 @@
     "@storybook/react": "7.0.5",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.10",
-    "eslint": "8.33.0",
-    "eslint-plugin-storybook": "0.6.10",
+    "eslint": "8.53.0",
+    "eslint-plugin-storybook": "0.6.15",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "5.1.6"

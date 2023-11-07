@@ -56,7 +56,7 @@
     "@types/lodash": "4.14.188",
     "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
-    "eslint": "8.33.0",
+    "eslint": "8.53.0",
     "next": "13.5.5",
     "react": "18.2.0",
     "rimraf": "^5.0.5",

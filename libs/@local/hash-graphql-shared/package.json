@@ -40,7 +40,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.15.13",
     "@types/node-fetch": "^2.6.2",
-    "eslint": "8.33.0",
+    "eslint": "8.53.0",
     "graphql": "16.8.1",
     "rimraf": "^5.0.5",
     "typescript": "5.1.6"

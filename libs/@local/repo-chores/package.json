@@ -25,6 +25,6 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "9.0.13",
     "@types/prettier": "2.7.3",
-    "eslint": "8.33.0"
+    "eslint": "8.53.0"
   }
 }

@@ -18,7 +18,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.15.13",
-    "eslint": "8.33.0"
+    "eslint": "8.53.0"
   },
   "engines": {
     "node": ">=v18.15.0"
