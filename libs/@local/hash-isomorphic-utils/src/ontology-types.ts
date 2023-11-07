@@ -138,27 +138,28 @@ export const generateLinearTypeId = (args: {
 const systemEntityTypes = {
   block: {
     title: "Block",
-    description: undefined,
+    description:
+      "A block that displays or otherwise uses data, part of a wider page or collection.",
   },
   blockCollection: {
     title: "Block Collection",
-    description: undefined,
+    description: "A collection of blocks.",
   },
   page: {
     title: "Page",
-    description: undefined,
+    description: "A page for displaying and potentially interacting with data.",
   },
   quickNote: {
     title: "Quick Note",
-    description: undefined,
+    description: "A (usually) quick or short note.",
   },
   profileBio: {
     title: "Profile Bio",
-    description: undefined,
+    description: "A biography for display on someone or something's profile.",
   },
   text: {
     title: "Text",
-    description: undefined,
+    description: "Textual data.",
   },
   file: {
     title: "File",
@@ -170,15 +171,15 @@ const systemEntityTypes = {
   },
   user: {
     title: "User",
-    description: undefined,
+    description: "A user of the HASH application.",
   },
   org: {
-    title: "Org",
-    description: undefined,
+    title: "Organization",
+    description: "An organization in the HASH application.",
   },
   comment: {
     title: "Comment",
-    description: undefined,
+    description: "A comment.",
   },
   hashInstance: {
     title: "HASH Instance",
@@ -222,15 +223,15 @@ const systemEntityTypes = {
   },
   notification: {
     title: "Notification",
-    description: undefined,
+    description: "A notification to a user.",
   },
   mentionNotification: {
     title: "Mention Notification",
-    description: undefined,
+    description: "A notification that a user was mentioned somewhere.",
   },
   commentNotification: {
     title: "Comment Notification",
-    description: undefined,
+    description: "A notification related to a comment.",
   },
 } as const;
 
@@ -264,7 +265,7 @@ const systemPropertyTypes = {
   },
   email: {
     title: "Email",
-    description: undefined,
+    description: "An email address",
   },
   fileStorageBucket: {
     title: "File Storage Bucket",
@@ -316,15 +317,15 @@ const systemPropertyTypes = {
   },
   kratosIdentityId: {
     title: "Kratos Identity Id",
-    description: undefined,
+    description: "An identifier for a record in Ory Kratos.",
   },
   preferredName: {
     title: "Preferred Name",
-    description: undefined,
+    description: "The preferred name of someone or something.",
   },
   preferredPronouns: {
     title: "Preferred Pronouns",
-    description: undefined,
+    description: "Someone's preferred pronouns.",
   },
   pinnedEntityTypeBaseUrl: {
     title: "Pinned Entity Type Base URL",
@@ -332,11 +333,11 @@ const systemPropertyTypes = {
   },
   orgName: {
     title: "Organization Name",
-    description: undefined,
+    description: "The name of an organization.",
   },
   componentId: {
     title: "Component Id",
-    description: undefined,
+    description: "An identifier for a component.",
   },
   // @todo this could be a timestamp – archivedAt
   archived: {
