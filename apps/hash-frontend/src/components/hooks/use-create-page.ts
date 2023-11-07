@@ -29,7 +29,7 @@ export const useCreatePage = ({
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: ({ data }) =>
       data
         ? [

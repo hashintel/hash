@@ -19,7 +19,7 @@ export const useArchivePage = () => {
     UpdatePageMutation,
     UpdatePageMutationVariables
   >(updatePage, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     onCompleted: async () => {
       if (entityTypeEntitiesContext) {
         await entityTypeEntitiesContext.refetch();

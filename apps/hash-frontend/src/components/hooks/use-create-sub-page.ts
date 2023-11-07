@@ -36,7 +36,7 @@ export const useCreateSubPage = ({
     SetParentPageMutation,
     SetParentPageMutationVariables
   >(setParentPage, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: [
       {
         query: structuralQueryEntitiesQuery,
