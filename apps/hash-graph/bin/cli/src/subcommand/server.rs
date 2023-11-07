@@ -98,14 +98,14 @@ pub struct ServerArgs {
     /// - be in the standard format accepted by Rust's `regex` crate.
     ///
     /// - contain a capture group named "shortname" to identify a user's shortname, e.g.
-    ///   `(?P<shortname>[\w|-]+)`
+    ///   `(?P<shortname>[\w-]+)`
     ///
     /// - contain a capture group named "kind" to identify the slug of the kind of ontology type
     ///   being hosted (data-type, property-type, entity-type, link-type), e.g.
-    ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))`
+    ///   `(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))`
     #[clap(
         long,
-        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\w\-_%]+/").unwrap(),
+        default_value_t = Regex::new(r"http://localhost:3000/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\w\-_%]+/").unwrap(),
         env = "HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN",
     )]
     pub allowed_url_domain: Regex,
