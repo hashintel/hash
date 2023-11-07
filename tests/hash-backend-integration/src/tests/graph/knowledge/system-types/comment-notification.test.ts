@@ -21,6 +21,7 @@ import {
   createTestImpureGraphContext,
   createTestOrg,
   createTestUser,
+  waitForAfterHookTriggerToComplete,
 } from "../../../util";
 
 jest.setTimeout(60000);
@@ -83,7 +84,7 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a comment is left on a page", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const occurredInPage = await createPage(
+    const occurredInEntity = await createPage(
       graphContext,
       { actorId: recipientUser.accountId },
       {
@@ -96,24 +97,32 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       },
     );
 
-    const firstBlock = blocks[0]!.rightEntity;
+    const occurredInBlock = blocks[0]!.rightEntity;
 
     const comment = await createComment(
       graphContext,
       { actorId: triggerUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
-        parentEntityId: firstBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         textualContent: [],
       },
     );
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     const commentNotification = await getCommentNotification(
       graphContext,
@@ -122,7 +131,8 @@ describe("Comment Notification", () => {
         triggeredByComment: comment,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
       },
     );
 
@@ -132,7 +142,7 @@ describe("Comment Notification", () => {
   it("can create a comment notification when a user replies to an existing comment", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const occurredInPage = await createPage(
+    const occurredInEntity = await createPage(
       graphContext,
       { actorId: triggerUser.accountId },
       {
@@ -145,21 +155,21 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+        pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       },
     );
 
-    const firstBlock = blocks[0]!.rightEntity;
+    const occurredInBlock = blocks[0]!.rightEntity;
 
     const comment = await createComment(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: recipientUser,
-        parentEntityId: firstBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         textualContent: [],
       },
     );
@@ -169,13 +179,21 @@ describe("Comment Notification", () => {
       { actorId: triggerUser.accountId },
       {
         ownedById: extractOwnedByIdFromEntityId(
-          occurredInPage.entity.metadata.recordId.entityId,
+          occurredInEntity.entity.metadata.recordId.entityId,
         ),
         author: triggerUser,
         parentEntityId: comment.entity.metadata.recordId.entityId,
         textualContent: [],
       },
     );
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     const commentReplyNotification = await getCommentNotification(
       graphContext,
@@ -184,7 +202,8 @@ describe("Comment Notification", () => {
         triggeredByComment: commentReply,
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         repliedToComment: comment,
       },
     );

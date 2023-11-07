@@ -754,16 +754,16 @@ mod tests {
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
-              ON "entity_has_left_entity_0_1_0"."left_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_left_entity_0_1_0"."left_web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_left_entity_0_1_0"."left_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
-              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."owned_by_id"
+              ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_left_entity_0_1_0"."web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."entity_uuid"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_3_0"
-              ON "entity_has_right_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+              ON "entity_has_right_entity_0_3_0"."web_id" = "entity_temporal_metadata_0_2_0"."web_id"
              AND "entity_has_right_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
-              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_right_entity_0_3_0"."right_owned_by_id"
+              ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_right_entity_0_3_0"."right_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_right_entity_0_3_0"."right_entity_uuid"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
@@ -803,16 +803,16 @@ mod tests {
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
-              ON "entity_has_right_entity_0_1_0"."right_owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_right_entity_0_1_0"."right_web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
-              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_right_entity_0_1_0"."owned_by_id"
+              ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_right_entity_0_1_0"."web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_right_entity_0_1_0"."entity_uuid"
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_3_0"
-              ON "entity_has_left_entity_0_3_0"."owned_by_id" = "entity_temporal_metadata_0_2_0"."owned_by_id"
+              ON "entity_has_left_entity_0_3_0"."web_id" = "entity_temporal_metadata_0_2_0"."web_id"
              AND "entity_has_left_entity_0_3_0"."entity_uuid" = "entity_temporal_metadata_0_2_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_4_0"
-              ON "entity_temporal_metadata_0_4_0"."owned_by_id" = "entity_has_left_entity_0_3_0"."left_owned_by_id"
+              ON "entity_temporal_metadata_0_4_0"."web_id" = "entity_has_left_entity_0_3_0"."left_web_id"
              AND "entity_temporal_metadata_0_4_0"."entity_uuid" = "entity_has_left_entity_0_3_0"."left_entity_uuid"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
@@ -874,17 +874,17 @@ mod tests {
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
-              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_left_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
-              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
               AND ("entity_has_left_entity_0_1_0"."left_entity_uuid" = $3)
-              AND ("entity_has_left_entity_0_1_0"."left_owned_by_id" = $4)
+              AND ("entity_has_left_entity_0_1_0"."left_web_id" = $4)
               AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $5)
-              AND ("entity_has_right_entity_0_1_0"."right_owned_by_id" = $6)
+              AND ("entity_has_right_entity_0_1_0"."right_web_id" = $6)
             "#,
             &[
                 &pinned_timestamp,
@@ -941,10 +941,10 @@ mod tests {
             SELECT *
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_1_0"
-              ON "entity_has_left_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_left_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_left_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
-              ON "entity_temporal_metadata_0_2_0"."owned_by_id" = "entity_has_left_entity_0_1_0"."left_owned_by_id"
+              ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_left_entity_0_1_0"."left_web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
             INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
               ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
@@ -953,10 +953,10 @@ mod tests {
             INNER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
               ON "ontology_ids_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
-              ON "entity_has_right_entity_0_1_0"."owned_by_id" = "entity_temporal_metadata_0_0_0"."owned_by_id"
+              ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
              AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
-              ON "entity_temporal_metadata_0_2_1"."owned_by_id" = "entity_has_right_entity_0_1_0"."right_owned_by_id"
+              ON "entity_temporal_metadata_0_2_1"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
              AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
             INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
               ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
@@ -1051,7 +1051,7 @@ mod tests {
                 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
                 WHERE "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
                   AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
-                  AND ("entity_temporal_metadata_0_0_0"."owned_by_id" = $3)
+                  AND ("entity_temporal_metadata_0_0_0"."web_id" = $3)
                   AND ("entity_temporal_metadata_0_0_0"."entity_uuid" = $4)
                 "#,
                 &[

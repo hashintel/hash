@@ -18,6 +18,7 @@ import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
+import { Block, getBlockById } from "./block";
 import { Comment, getCommentById } from "./comment";
 import { getPageFromEntity, Page } from "./page";
 import { getUserById, User } from "./user";
@@ -69,9 +70,9 @@ export const getTextById: ImpureGraphFunction<
  *
  * @param params.text - the text entity
  */
-export const getPageByText: ImpureGraphFunction<
+export const getPageAndBlockByText: ImpureGraphFunction<
   { text: Text },
-  Promise<Page | null>
+  Promise<{ page: Page; block: Block } | null>
 > = async (context, authentication, { text }) => {
   const textEntityUuid = extractEntityUuidFromEntityId(
     text.entity.metadata.recordId.entityId,
@@ -187,7 +188,21 @@ export const getPageByText: ImpureGraphFunction<
     getRoots(subgraph).map((entity) => getPageFromEntity({ entity })),
   );
 
-  return pageEntities[0] ?? null;
+  const page = pageEntities[0];
+
+  if (page) {
+    const blockEntityId = matchingContainsLinks.find(
+      ({ linkData }) =>
+        linkData.leftEntityId === page.entity.metadata.recordId.entityId,
+    )!.linkData.rightEntityId;
+
+    const block = await getBlockById(context, authentication, {
+      entityId: blockEntityId,
+    });
+
+    return { page, block };
+  }
+  return null;
 };
 
 /**

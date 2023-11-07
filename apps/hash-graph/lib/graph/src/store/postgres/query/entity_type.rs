@@ -127,7 +127,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             Self::TransactionTime => {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::TransactionTime)
             }
-            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::OwnedById),
+            Self::OwnedById => Column::OntologyOwnedMetadata(OntologyOwnedMetadata::WebId),
             Self::RecordCreatedById => {
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::RecordCreatedById)
             }

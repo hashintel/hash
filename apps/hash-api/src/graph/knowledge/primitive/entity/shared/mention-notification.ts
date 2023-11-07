@@ -1,6 +1,6 @@
 import { ImpureGraphFunction } from "../../../../context-types";
 import { SYSTEM_TYPES } from "../../../../system-types";
-import { getBlockCollectionByBlock } from "../../../system-types/block";
+import { Block, getBlockCollectionByBlock } from "../../../system-types/block";
 import {
   Comment,
   getCommentAncestorBlock,
@@ -8,20 +8,25 @@ import {
 import { getPageFromEntity, Page } from "../../../system-types/page";
 import {
   getCommentByText,
-  getPageByText,
+  getPageAndBlockByText,
   Text,
 } from "../../../system-types/text";
 
-export const getTextUpdateOccurredInPageAndComment: ImpureGraphFunction<
+export const getTextUpdateOccurredIn: ImpureGraphFunction<
   { text: Text },
-  Promise<{ occurredInPage?: Page; occurredInComment?: Comment }>
+  Promise<{
+    occurredInEntity?: Page;
+    occurredInBlock?: Block;
+    occurredInComment?: Comment;
+  }>
 > = async (context, authentication, { text }) => {
-  const pageWithText = await getPageByText(context, authentication, {
+  const pageAndBlock = await getPageAndBlockByText(context, authentication, {
     text,
   });
 
-  if (pageWithText) {
-    return { occurredInPage: pageWithText };
+  if (pageAndBlock) {
+    const { page, block } = pageAndBlock;
+    return { occurredInEntity: page, occurredInBlock: block };
   }
 
   const commentWithText = await getCommentByText(context, authentication, {
@@ -54,11 +59,15 @@ export const getTextUpdateOccurredInPageAndComment: ImpureGraphFunction<
 
       return {
         occurredInComment: commentWithText,
-        occurredInPage: pageWithComment,
+        occurredInBlock: commentAncestorBlock,
+        occurredInEntity: pageWithComment,
       };
     }
 
-    return { occurredInComment: commentWithText };
+    return {
+      occurredInComment: commentWithText,
+      occurredInBlock: commentAncestorBlock,
+    };
   }
 
   return {};

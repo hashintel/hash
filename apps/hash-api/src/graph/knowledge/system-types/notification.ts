@@ -4,11 +4,8 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { CommentNotificationProperties } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-/** @todo: figure out why this isn't in `@local/hash-isomorphic-utils/system-types/shared` */
 import { NotificationProperties } from "@local/hash-isomorphic-utils/system-types/notification";
 import { Entity, EntityId, EntityPropertiesObject } from "@local/hash-subgraph";
 import {
@@ -28,6 +25,7 @@ import {
   updateEntityProperties,
 } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
+import { Block } from "./block";
 import { Comment } from "./comment";
 import { Page } from "./page";
 import { Text } from "./text";
@@ -154,6 +152,7 @@ export const createMentionNotification: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId"> & {
     triggeredByUser: User;
     occurredInEntity: Page;
+    occurredInBlock: Block;
     occurredInComment?: Comment;
     occurredInText: Text;
   },
@@ -163,6 +162,7 @@ export const createMentionNotification: ImpureGraphFunction<
     triggeredByUser,
     occurredInText,
     occurredInEntity,
+    occurredInBlock,
     occurredInComment,
     ownedById,
   } = params;
@@ -186,6 +186,12 @@ export const createMentionNotification: ImpureGraphFunction<
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInEntity,
+      }),
+      createLinkEntity(context, authentication, {
+        ownedById,
+        leftEntityId: entity.metadata.recordId.entityId,
+        rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInBlock,
       }),
       occurredInComment
         ? createLinkEntity(context, authentication, {
@@ -212,6 +218,7 @@ export const getMentionNotification: ImpureGraphFunction<
     recipient: User;
     triggeredByUser: User;
     occurredInEntity: Page;
+    occurredInBlock: Block;
     occurredInComment?: Comment;
     occurredInText: Text;
   },
@@ -221,6 +228,7 @@ export const getMentionNotification: ImpureGraphFunction<
     recipient,
     triggeredByUser,
     occurredInEntity,
+    occurredInBlock,
     occurredInComment,
     occurredInText,
   } = params;
@@ -239,7 +247,6 @@ export const getMentionNotification: ImpureGraphFunction<
               { parameter: recipient.accountId },
             ],
           },
-          /** @todo: enforce the type of these links somehow */
           {
             any: [
               {
@@ -252,6 +259,7 @@ export const getMentionNotification: ImpureGraphFunction<
                     ],
                   },
                   // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  //   @see https://linear.app/hash/issue/H-1207
                   null,
                 ],
               },
@@ -304,6 +312,12 @@ export const getMentionNotification: ImpureGraphFunction<
         SYSTEM_TYPES.linkEntityType.occurredInEntity.schema.$id,
     );
 
+    const occurredInBlockLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.occurredInBlock.schema.$id,
+    );
+
     const occurredInTextLink = outgoingLinks.find(
       ({ metadata }) =>
         metadata.entityTypeId ===
@@ -323,6 +337,9 @@ export const getMentionNotification: ImpureGraphFunction<
       occurredInEntityLink &&
       occurredInEntityLink.linkData.rightEntityId ===
         occurredInEntity.entity.metadata.recordId.entityId &&
+      occurredInBlockLink &&
+      occurredInBlockLink.linkData.rightEntityId ===
+        occurredInBlock.entity.metadata.recordId.entityId &&
       occurredInTextLink &&
       occurredInTextLink.linkData.rightEntityId ===
         occurredInText.entity.metadata.recordId.entityId &&
@@ -381,6 +398,7 @@ export const createCommentNotification: ImpureGraphFunction<
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
+    occurredInBlock: Block;
     repliedToComment?: Comment;
   },
   Promise<CommentNotification>
@@ -389,6 +407,7 @@ export const createCommentNotification: ImpureGraphFunction<
     triggeredByUser,
     triggeredByComment,
     occurredInEntity,
+    occurredInBlock,
     repliedToComment,
     ownedById,
   } = params;
@@ -413,6 +432,11 @@ export const createCommentNotification: ImpureGraphFunction<
         rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInEntity,
       },
+      {
+        ownedById,
+        rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.occurredInBlock,
+      },
       repliedToComment
         ? {
             ownedById,
@@ -432,6 +456,7 @@ export const getCommentNotification: ImpureGraphFunction<
     triggeredByUser: User;
     triggeredByComment: Comment;
     occurredInEntity: Page;
+    occurredInBlock: Block;
     repliedToComment?: Comment;
   },
   Promise<CommentNotification | null>
@@ -441,6 +466,7 @@ export const getCommentNotification: ImpureGraphFunction<
     triggeredByUser,
     triggeredByComment,
     occurredInEntity,
+    occurredInBlock,
     repliedToComment,
   } = params;
 
@@ -471,6 +497,7 @@ export const getCommentNotification: ImpureGraphFunction<
                     ],
                   },
                   // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                  //   @see https://linear.app/hash/issue/H-1207
                   null,
                 ],
               },
@@ -523,6 +550,12 @@ export const getCommentNotification: ImpureGraphFunction<
         SYSTEM_TYPES.linkEntityType.occurredInEntity.schema.$id,
     );
 
+    const occurredInBlockLink = outgoingLinks.find(
+      ({ metadata }) =>
+        metadata.entityTypeId ===
+        SYSTEM_TYPES.linkEntityType.occurredInBlock.schema.$id,
+    );
+
     const triggeredByCommentLink = outgoingLinks.find(
       ({ metadata }) =>
         metadata.entityTypeId ===
@@ -542,6 +575,9 @@ export const getCommentNotification: ImpureGraphFunction<
       occurredInEntityLink &&
       occurredInEntityLink.linkData.rightEntityId ===
         occurredInEntity.entity.metadata.recordId.entityId &&
+      occurredInBlockLink &&
+      occurredInBlockLink.linkData.rightEntityId ===
+        occurredInBlock.entity.metadata.recordId.entityId &&
       triggeredByCommentLink &&
       triggeredByCommentLink.linkData.rightEntityId ===
         triggeredByComment.entity.metadata.recordId.entityId &&

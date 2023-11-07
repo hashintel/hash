@@ -401,6 +401,10 @@ const systemPropertyTypes = {
     title: "Linear Team Id",
     description: "The unique identifier for a team in Linear.",
   },
+  readAt: {
+    title: "Read At",
+    description: "The timestamp of when something was read.",
+  },
 } as const;
 
 type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
@@ -463,6 +467,10 @@ const systemLinkEntityTypes = {
   occurredInEntity: {
     title: "Occurred In Entity",
     description: "An entity that something occurred in.",
+  },
+  occurredInBlock: {
+    title: "Occurred In Block",
+    description: "A block that something occurred in.",
   },
   occurredInComment: {
     title: "Occurred In Comment",
