@@ -17,25 +17,25 @@ import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 import { TextFieldWithDarkMode } from "./text-field-with-dark-mode";
 
 const quickNoteEntityTypeId =
-  "http://localhost:3000/@system-user/types/entity-type/quick-note/v/1" as const;
+  "https://hash.ai/@hash/types/entity-type/quick-note/v/1" as const;
 
 const containsLinkEntityTypeId =
-  "http://localhost:3000/@system-user/types/entity-type/contains/v/1" as const;
+  "https://hash.ai/@hash/types/entity-type/contains/v/1" as const;
 
 const numericIndexPropertyTypeId =
-  "http://localhost:3000/@system-user/types/property-type/numeric-index/v/1" as const;
+  "https://hash.ai/@hash/types/property-type/numeric-index/v/1" as const;
 
 const blockEntityTypeId =
-  "http://localhost:3000/@system-user/types/entity-type/block/v/1" as const;
+  "https://hash.ai/@hash/types/entity-type/block/v/1" as const;
 
 const componentIdPropertyTypeId =
-  "http://localhost:3000/@system-user/types/property-type/component-id/v/1" as const;
+  "https://hash.ai/@hash/types/property-type/component-id/v/1" as const;
 
 const blockDataLinkEntityTypeId =
-  "http://localhost:3000/@system-user/types/entity-type/block-data/v/1" as const;
+  "https://hash.ai/@hash/types/entity-type/block-data/v/1" as const;
 
 const textEntityTypeId =
-  "http://localhost:3000/@system-user/types/entity-type/text/v/1" as const;
+  "https://hash.ai/@hash/types/entity-type/text/v/1" as const;
 
 const textualContentPropertyTypeId =
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2" as const;
@@ -57,47 +57,67 @@ const createEntity = (params: {
   });
 
 const createQuickNote = async (text: string) => {
-  const [textEntity, blockEntity, quickNoteEntity] = await Promise.all([
-    createEntity({
-      entityTypeId: textEntityTypeId,
-      properties: {
-        [extractBaseUrl(textualContentPropertyTypeId)]: [
-          { tokenType: "text", text },
-        ] satisfies TextToken[],
-      },
-    }),
-    createEntity({
-      entityTypeId: blockEntityTypeId,
-      properties: {
-        [extractBaseUrl(componentIdPropertyTypeId)]: paragraphBlockComponentId,
-      },
-    }),
+  const paragraphs = text
+    // Normalize line endings (optional, in case input comes with different OS-specific newlines)
+    .replace(/\r\n/g, "\n")
+    // Split the input by one or more newlines to identify paragraphs
+    .split(/\n+/)
+    // Trim whitespace from each paragraph and filter out any empty strings that might result from excessive newlines
+
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph.length > 0);
+
+  const [quickNoteEntity, ...blockEntities] = await Promise.all([
     createEntity({
       entityTypeId: quickNoteEntityTypeId,
       properties: {},
     }),
+    ...paragraphs.map(async (paragraph) => {
+      const [textEntity, blockEntity] = await Promise.all([
+        createEntity({
+          entityTypeId: textEntityTypeId,
+          properties: {
+            [extractBaseUrl(textualContentPropertyTypeId)]: [
+              { tokenType: "text", text: paragraph },
+            ] satisfies TextToken[],
+          },
+        }),
+        createEntity({
+          entityTypeId: blockEntityTypeId,
+          properties: {
+            [extractBaseUrl(componentIdPropertyTypeId)]:
+              paragraphBlockComponentId,
+          },
+        }),
+      ]);
+
+      await createEntity({
+        entityTypeId: blockDataLinkEntityTypeId,
+        properties: {},
+        linkData: {
+          leftEntityId: blockEntity.metadata.recordId.entityId,
+          rightEntityId: textEntity.metadata.recordId.entityId,
+        },
+      });
+
+      return blockEntity;
+    }),
   ]);
 
-  await Promise.all([
-    createEntity({
-      entityTypeId: blockDataLinkEntityTypeId,
-      properties: {},
-      linkData: {
-        leftEntityId: blockEntity.metadata.recordId.entityId,
-        rightEntityId: textEntity.metadata.recordId.entityId,
-      },
-    }),
-    createEntity({
-      entityTypeId: containsLinkEntityTypeId,
-      properties: {
-        [extractBaseUrl(numericIndexPropertyTypeId)]: 0,
-      },
-      linkData: {
-        leftEntityId: quickNoteEntity.metadata.recordId.entityId,
-        rightEntityId: blockEntity.metadata.recordId.entityId,
-      },
-    }),
-  ]);
+  await Promise.all(
+    blockEntities.map(async (blockEntity, index) =>
+      createEntity({
+        entityTypeId: containsLinkEntityTypeId,
+        properties: {
+          [extractBaseUrl(numericIndexPropertyTypeId)]: index,
+        },
+        linkData: {
+          leftEntityId: quickNoteEntity.metadata.recordId.entityId,
+          rightEntityId: blockEntity.metadata.recordId.entityId,
+        },
+      }),
+    ),
+  );
 
   return quickNoteEntity;
 };
