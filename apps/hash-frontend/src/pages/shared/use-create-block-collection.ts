@@ -76,7 +76,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             },
             properties: {
               [extractBaseUrl(
-                types.propertyType.numericIndex.propertyTypeId,
+                systemTypes.propertyType.numericIndex.propertyTypeId,
               )]: 0,
             },
           },

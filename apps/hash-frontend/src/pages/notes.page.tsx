@@ -1,17 +1,19 @@
 import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
+  EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
@@ -51,7 +53,7 @@ const NotesPage: NextPageWithLayout = () => {
     setPreviouslyFetchedQuickNotesAllVersionsData,
   ] = useState<StructuralQueryEntitiesQuery>();
 
-  const { data: quickNotesAllVersionsData } = useQuery<
+  const { data: quickNotesAllVersionsData, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -69,38 +71,6 @@ const NotesPage: NextPageWithLayout = () => {
                 { parameter: authenticatedUser.accountId },
               ],
             },
-            {
-              any: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          systemTypes.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                    //   @see https://linear.app/hash/issue/H-1207
-                    null,
-                  ],
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          systemTypes.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
           ],
         },
         graphResolveDepths: {
@@ -108,16 +78,12 @@ const NotesPage: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
         },
         /**
-         * We need to obtain all revisions of the quick note entities
-         * to determine when they were created.
+         * We need to obtain all revisions of the quick note entities to determine when they were created.
+         *
+         * When H-1098 is implemented we can update this use currentTimeInstantTemporalAxes,
+         * add the notArchivedFilter to this query, and remove the latestQuickNoteEntitiesWithCreatedAt creation below.
          */
-        temporalAxes: {
-          pinned: { axis: "transactionTime", timestamp: null },
-          variable: {
-            axis: "decisionTime",
-            interval: { start: { kind: "unbounded" }, end: null },
-          },
-        },
+        temporalAxes: fullDecisionTimeAxis,
       },
     },
     onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
@@ -134,33 +100,35 @@ const NotesPage: NextPageWithLayout = () => {
     if (!quickNotesAllVersionsSubgraph) {
       return undefined;
     }
-    const latestQuickNoteEntities = getRoots(
-      quickNotesAllVersionsSubgraph,
-    ).reduce<Entity[]>((prev, current) => {
-      const previousEntityIndex = prev.findIndex(
-        (entity) =>
-          entity.metadata.recordId.entityId ===
-          current.metadata.recordId.entityId,
+
+    const latestQuickNoteEditionMap: Record<EntityId, Entity> = {};
+    for (const entityEdition of getRoots(quickNotesAllVersionsSubgraph)) {
+      const entityId = entityEdition.metadata.recordId.entityId;
+      if (latestQuickNoteEditionMap[entityId]) {
+        continue;
+      }
+
+      const latestEdition = getEntityRevision(
+        quickNotesAllVersionsSubgraph,
+        entityId,
       );
 
-      const previousEntity = prev[previousEntityIndex];
-
-      if (!previousEntity) {
-        return [...prev, current];
-      }
-
-      const updatedPrev = [...prev];
-
       if (
-        previousEntity.metadata.temporalVersioning.decisionTime.start.limit <
-        current.metadata.temporalVersioning.decisionTime.start.limit
+        !latestEdition ||
+        /**
+         * Because we have to use a fullDecisionTimeAxis to check the createdAt, we may have archived notes to filter out.
+         * Once H-1098 exposes createdAt natively, we can switch to a currentTimeInstantTemporalAxes and filter archived in the query.
+         */
+        latestEdition.properties[
+          extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
+        ]
       ) {
-        updatedPrev[previousEntityIndex] = current;
+        continue;
       }
-      return updatedPrev;
-    }, []);
+      latestQuickNoteEditionMap[entityId] = latestEdition;
+    }
 
-    return latestQuickNoteEntities.map((quickNoteEntity) => ({
+    return Object.values(latestQuickNoteEditionMap).map((quickNoteEntity) => ({
       quickNoteEntity,
       createdAt: getFirstRevisionCreatedAt(
         quickNotesAllVersionsSubgraph,
@@ -240,7 +208,7 @@ const NotesPage: NextPageWithLayout = () => {
     setPreviouslyFetchedQuickNotesWithContentsData,
   ] = useState<StructuralQueryEntitiesQuery>();
 
-  const { data: quickNotesWithContentsData, refetch } = useQuery<
+  const { data: quickNotesWithContentsData } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
