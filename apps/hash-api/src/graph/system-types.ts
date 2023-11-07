@@ -128,7 +128,7 @@ export let SYSTEM_TYPES: {
     hasBio: EntityTypeWithMetadata;
 
     // Block-related
-    blockData: EntityTypeWithMetadata;
+    hasData: EntityTypeWithMetadata;
 
     // Block Collection related
     contains: EntityTypeWithMetadata;
@@ -643,8 +643,8 @@ const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.blockData,
+const hasDataLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasData,
   webShortname: "hash",
 });
 
@@ -654,8 +654,8 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const componentIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(context);
 
-  const blockDataLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.blockData(context);
+  const hasDataLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasData(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -669,7 +669,7 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
     outgoingLinks: [
       {
-        linkEntityType: blockDataLinkEntityType,
+        linkEntityType: hasDataLinkEntityType,
         minItems: 1,
         maxItems: 1,
       },
@@ -1503,7 +1503,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
   },
   linkEntityType: {
     hasOrgMembership: orgMembershipLinkEntityTypeInitializer,
-    blockData: blockDataLinkEntityTypeInitializer,
+    hasData: hasDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
     hasParent: hasParentLinkEntityTypeInitializer,
     hasAvatar: hasAvatarLinkEntityTypeInitializer,

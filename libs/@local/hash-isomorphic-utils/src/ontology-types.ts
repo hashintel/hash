@@ -413,9 +413,9 @@ const systemLinkEntityTypes = {
     title: "Has Org Membership",
     description: "The organizational membership something has.",
   },
-  blockData: {
-    title: "Block Data",
-    description: "The entity representing the data in a block.",
+  hasData: {
+    title: "Has Data",
+    description: "The data that something has.",
   },
   hasBio: {
     title: "Has Bio",
