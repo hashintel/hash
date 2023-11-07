@@ -70,7 +70,7 @@ export type MinimalUser = {
   preferredName?: string;
   preferredPronouns?: string;
   location?: string;
-  website?: string;
+  websiteUrl?: string;
 };
 
 export const isEntityUserEntity = (
@@ -517,7 +517,7 @@ export type MinimalOrg = {
   location?: string;
   name: string;
   shortname: string;
-  website?: string;
+  websiteUrl?: string;
 };
 
 export const isUser = (

@@ -26,8 +26,7 @@ export let SYSTEM_TYPES: {
   propertyType: {
     // General
     location: PropertyTypeWithMetadata;
-    // @todo use 'url' when this is available? or rename to websiteUrl?
-    website: PropertyTypeWithMetadata;
+    websiteUrl: PropertyTypeWithMetadata;
 
     // General account related
     shortname: PropertyTypeWithMetadata;
@@ -283,8 +282,8 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const orgProvidedInfoPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(context);
 
-  const websitePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+  const websiteUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.websiteUrl(context);
 
   const pinnedEntityTypeBaseUrlPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.pinnedEntityTypeBaseUrl(
@@ -332,7 +331,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: false,
       },
       {
-        propertyType: websitePropertyType,
+        propertyType: websiteUrlPropertyType,
         required: false,
       },
       {
@@ -370,8 +369,8 @@ const locationPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const websitePropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.website,
+const websiteUrlPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.websiteUrl,
   possibleValues: [{ primitiveDataType: "text" }],
   webShortname: "hash",
 });
@@ -458,8 +457,8 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const locationPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
 
-  const websitePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+  const websiteUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.websiteUrl(context);
 
   const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(context);
 
@@ -511,7 +510,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
         propertyType: locationPropertyType,
       },
       {
-        propertyType: websitePropertyType,
+        propertyType: websiteUrlPropertyType,
       },
       {
         propertyType: pinnedEntityTypeBaseUrlPropertyType,
@@ -1492,7 +1491,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
   dataType: {},
   propertyType: {
     location: locationPropertyTypeInitializer,
-    website: websitePropertyTypeInitializer,
+    websiteUrl: websiteUrlPropertyTypeInitializer,
 
     shortname: shortnamePropertyTypeInitializer,
     pinnedEntityTypeBaseUrl: pinnedEntityTypeBaseUrlPropertyTypeInitializer,

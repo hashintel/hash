@@ -32,7 +32,7 @@ export type UserProfileFormServiceAccount = {
 export type UserProfileFormData = {
   preferredName: string;
   location?: string;
-  website?: string;
+  websiteUrl?: string;
   preferredPronouns?: string;
   serviceAccounts: UserProfileFormServiceAccount[];
 };
@@ -58,7 +58,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       defaultValues: {
         preferredName: userProfile.preferredName,
         location: userProfile.location,
-        website: userProfile.website,
+        websiteUrl: userProfile.websiteUrl,
         preferredPronouns: userProfile.preferredPronouns,
         serviceAccounts: userProfile.hasServiceAccounts.map(
           ({ linkEntity, serviceAccountEntity, kind, profileUrl }) => ({
@@ -309,8 +309,8 @@ export const UserProfileInfoForm: FunctionComponent<{
           fullWidth
           label="Website URL"
           placeholder="Enter a website, e.g. https://example.com/"
-          error={touchedFields.website && !!errors.website}
-          {...register("website", {
+          error={touchedFields.websiteUrl && !!errors.websiteUrl}
+          {...register("websiteUrl", {
             pattern: {
               value: urlRegex,
               message: "Please enter a valid URL",

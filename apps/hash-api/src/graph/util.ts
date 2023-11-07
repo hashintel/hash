@@ -56,16 +56,16 @@ const owningWebs: Record<
   {
     accountGroupId?: AccountGroupId;
     name: string;
-    website: string;
+    websiteUrl: string;
   }
 > = {
   hash: {
     name: "HASH",
-    website: "https://hash.ai",
+    websiteUrl: "https://hash.ai",
   },
   linear: {
     name: "Linear",
-    website: "https://linear.app",
+    websiteUrl: "https://linear.app",
   },
 };
 
@@ -125,7 +125,9 @@ export const ensureAccountGroupOrgsExist = async (params: {
 
   logger.debug("Ensuring account group organization entities exist");
 
-  for (const [webShortname, { name, website }] of Object.entries(owningWebs)) {
+  for (const [webShortname, { name, websiteUrl }] of Object.entries(
+    owningWebs,
+  )) {
     const authentication = { actorId: systemAccountId };
     const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,
@@ -141,7 +143,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
         orgAccountGroupId,
         shortname: webShortname,
         name,
-        website,
+        websiteUrl,
       });
 
       logger.info(

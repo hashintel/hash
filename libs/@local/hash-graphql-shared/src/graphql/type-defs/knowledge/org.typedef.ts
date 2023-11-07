@@ -28,7 +28,7 @@ export const orgTypedef = gql`
       """
       The website of the organization.
       """
-      website: String
+      websiteUrl: String
       """
       The depths that \`hasLeftEntity\` edges are resolved to.
       """

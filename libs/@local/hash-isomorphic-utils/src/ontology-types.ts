@@ -254,8 +254,8 @@ const systemPropertyTypes = {
     title: "Location",
     description: "A location for something, expressed as a single string",
   },
-  website: {
-    title: "Website",
+  websiteUrl: {
+    title: "Website URL",
     description: "A URL for a website",
   },
   shortname: {

@@ -97,7 +97,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @param params.shortname - the shortname of the organization
  * @param params.name - the name of the organization
  * @param params.providedInfo - optional metadata about the organization
- * @param params.website - the website of the organization
+ * @param params.websiteUrl - the website of the organization
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
@@ -107,11 +107,11 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     providedInfo?: OrgProvidedInfo;
     orgAccountGroupId?: AccountGroupId;
-    website?: string | null;
+    websiteUrl?: string | null;
   },
   Promise<Org>
 > = async (ctx, authentication, params) => {
-  const { shortname, name, providedInfo, website } = params;
+  const { shortname, name, providedInfo, websiteUrl } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -146,10 +146,10 @@ export const createOrg: ImpureGraphFunction<
             },
         }
       : {}),
-    ...(website
+    ...(websiteUrl
       ? {
-          [SYSTEM_TYPES.propertyType.website.metadata.recordId.baseUrl]:
-            website,
+          [SYSTEM_TYPES.propertyType.websiteUrl.metadata.recordId.baseUrl]:
+            websiteUrl,
         }
       : {}),
   };
