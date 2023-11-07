@@ -22,10 +22,6 @@ export const orgTypedef = gql`
       """
       name: String!
       """
-      The size of the organization.
-      """
-      orgSize: OrgSize
-      """
       The website of the organization.
       """
       websiteUrl: String

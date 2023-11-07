@@ -35,9 +35,6 @@ const seedOrg = async (params: {
   const sharedOrg = await createOrg(context, authentication, {
     name: exampleOrgName,
     shortname: exampleOrgShortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
-    },
   });
 
   logger.info(

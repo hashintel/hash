@@ -74,7 +74,7 @@ describe("OrgMembership", () => {
 
   it("can get the org of an org membership", async () => {
     const fetchedOrg = await getOrgMembershipOrg(graphContext, authentication, {
-      hasOrgMembership: testOrgMembership,
+      orgMembership: testOrgMembership,
     });
 
     expect(fetchedOrg).toEqual(testOrg);
@@ -85,7 +85,7 @@ describe("OrgMembership", () => {
       graphContext,
       authentication,
       {
-        hasOrgMembership: testOrgMembership,
+        orgMembership: testOrgMembership,
       },
     );
 

@@ -118,9 +118,6 @@ export const createTestOrg = async (
   return createOrg(context, authentication, {
     name: "Test org",
     shortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
-    },
   });
 };
 

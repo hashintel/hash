@@ -40,8 +40,6 @@ export let SYSTEM_TYPES: {
 
     // Org-related
     orgName: PropertyTypeWithMetadata;
-    orgSize: PropertyTypeWithMetadata;
-    orgProvidedInfo: PropertyTypeWithMetadata;
 
     // Block-related
     componentId: PropertyTypeWithMetadata;
@@ -236,31 +234,6 @@ export const hashInstanceEntityTypeInitializer = async (
   })(context);
 };
 
-// Generate the schema for the org provided info property type
-export const orgProvidedInfoPropertyTypeInitializer = async (
-  context: ImpureGraphContext,
-) => {
-  const orgSizePropertyType =
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(context);
-
-  const orgSizeBaseUrl = orgSizePropertyType.metadata.recordId.baseUrl;
-
-  return propertyTypeInitializer({
-    ...systemTypes.propertyType.orgProvidedInfo,
-    possibleValues: [
-      {
-        propertyTypeObjectProperties: {
-          [orgSizeBaseUrl]: {
-            $ref: orgSizePropertyType.schema.$id,
-          },
-        },
-      },
-    ],
-    webShortname: "hash",
-  })(context);
-};
-
 const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
   entityTypeInitializer({
     ...systemTypes.linkEntityType.hasBio,
@@ -278,9 +251,6 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
 
   const orgNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgName(context);
-
-  const orgProvidedInfoPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(context);
 
   const websiteUrlPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.websiteUrl(context);
@@ -324,10 +294,6 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
       },
       {
         propertyType: locationPropertyType,
-        required: false,
-      },
-      {
-        propertyType: orgProvidedInfoPropertyType,
         required: false,
       },
       {
@@ -383,12 +349,6 @@ const shortnamePropertyTypeInitializer = propertyTypeInitializer({
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.orgName,
-  possibleValues: [{ primitiveDataType: "text" }],
-  webShortname: "hash",
-});
-
-const orgSizePropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
   webShortname: "hash",
 });
@@ -1509,8 +1469,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     fileStorageRegion: fileStorageRegionPropertyTypeInitializer,
 
     orgName: orgNamePropertyTypeInitializer,
-    orgSize: orgSizePropertyTypeInitializer,
-    orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
 

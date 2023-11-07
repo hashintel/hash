@@ -334,14 +334,6 @@ const systemPropertyTypes = {
     title: "Organization Name",
     description: undefined,
   },
-  orgSize: {
-    title: "Organization Size",
-    description: undefined,
-  },
-  orgProvidedInfo: {
-    title: "Organization Provided Information",
-    description: undefined,
-  },
   componentId: {
     title: "Component Id",
     description: undefined,

@@ -51,10 +51,6 @@ export enum OrgSize {
   TwoHundredAndFiftyPlus = "TWO_HUNDRED_AND_FIFTY_PLUS",
 }
 
-export type OrgProvidedInfo = {
-  orgSize: OrgSize;
-};
-
 export type Org = {
   accountGroupId: AccountGroupId;
   orgName: string;
@@ -105,13 +101,12 @@ export const createOrg: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
     shortname: string;
     name: string;
-    providedInfo?: OrgProvidedInfo;
     orgAccountGroupId?: AccountGroupId;
     websiteUrl?: string | null;
   },
   Promise<Org>
 > = async (ctx, authentication, params) => {
-  const { shortname, name, providedInfo, websiteUrl } = params;
+  const { shortname, name, websiteUrl } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -137,15 +132,6 @@ export const createOrg: ImpureGraphFunction<
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
     [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
-    ...(providedInfo
-      ? {
-          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUrl]:
-            {
-              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUrl]:
-                providedInfo.orgSize,
-            },
-        }
-      : {}),
     ...(websiteUrl
       ? {
           [SYSTEM_TYPES.propertyType.websiteUrl.metadata.recordId.baseUrl]:
