@@ -115,8 +115,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     await Promise.all([
       createEntity({
         data: {
-          entityTypeId:
-            systemTypes.linkEntityType.hasOrgMembership.linkEntityTypeId,
+          entityTypeId: systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
           properties: {},
           linkData: {
             leftEntityId: user.metadata.recordId.entityId,

@@ -119,7 +119,7 @@ export let SYSTEM_TYPES: {
   };
   linkEntityType: {
     // User-related
-    hasOrgMembership: EntityTypeWithMetadata;
+    isMemberOf: EntityTypeWithMetadata;
     hasServiceAccount: EntityTypeWithMetadata;
 
     // Account-related
@@ -387,7 +387,7 @@ const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
   return entityTypeInitializer({
-    ...systemTypes.linkEntityType.hasOrgMembership,
+    ...systemTypes.linkEntityType.isMemberOf,
     webShortname: "hash",
   })(context);
 };
@@ -426,7 +426,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
     await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
 
   const orgMembershipLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasOrgMembership(context);
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.isMemberOf(context);
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
@@ -1502,7 +1502,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
-    hasOrgMembership: orgMembershipLinkEntityTypeInitializer,
+    isMemberOf: orgMembershipLinkEntityTypeInitializer,
     hasData: hasDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
     hasParent: hasParentLinkEntityTypeInitializer,

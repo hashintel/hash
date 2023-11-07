@@ -409,9 +409,9 @@ export type SystemPropertyTypeTitle =
  * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
-  hasOrgMembership: {
-    title: "Has Org Membership",
-    description: "The organizational membership something has.",
+  isMemberOf: {
+    title: "Is Member Of",
+    description: "Something that someone or something is a member of.",
   },
   hasData: {
     title: "Has Data",

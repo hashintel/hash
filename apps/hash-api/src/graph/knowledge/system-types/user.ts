@@ -443,7 +443,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
     {
       entityId: userEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.hasOrgMembership.schema.$id,
+        SYSTEM_TYPES.linkEntityType.isMemberOf.schema.$id,
     },
   );
 

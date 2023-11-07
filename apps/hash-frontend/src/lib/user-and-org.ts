@@ -193,7 +193,7 @@ export const constructOrg = (params: {
   ).filter(
     (linkEntity): linkEntity is Entity<OrgMembershipProperties> =>
       linkEntity.metadata.entityTypeId ===
-      systemTypes.linkEntityType.hasOrgMembership.linkEntityTypeId,
+      systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
   );
 
   const memberships = orgMemberships.map((linkEntity) => {
@@ -329,7 +329,7 @@ export const constructUser = (params: {
     ).filter(
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
-        systemTypes.linkEntityType.hasOrgMembership.linkEntityTypeId,
+        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
     );
 
   const memberOf = orgMemberships.map((linkEntity) => {
