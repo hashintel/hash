@@ -185,7 +185,7 @@ mod tests {
             &self,
             child: &VersionedUrl,
             parent: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidPropertyType>> {
+        ) -> Result<bool, Report<InvalidEntityType>> {
             Ok(
                 OntologyTypeProvider::<EntityType>::provide_type(self, child)
                     .await?
@@ -201,9 +201,9 @@ mod tests {
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&EntityType, Report<InvalidPropertyType>> {
+        ) -> Result<&EntityType, Report<InvalidEntityType>> {
             self.entity_types.get(type_id).ok_or_else(|| {
-                Report::new(InvalidPropertyType {
+                Report::new(InvalidEntityType {
                     id: type_id.clone(),
                 })
             })
