@@ -299,12 +299,12 @@ impl<C: AsClient> PostgresStore<C> {
                              filter.interval * source.{variable_axis}
                         FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
                              WITH ORDINALITY
-                             AS filter(owned_by_id, entity_uuid, entity_version, interval, idx)
+                             AS filter(web_id, entity_uuid, entity_version, interval, idx)
 
                         JOIN entity_temporal_metadata AS source
                           ON source.{pinned_axis} @> $5::timestamptz
                          AND lower(source.{variable_axis}) = filter.entity_version
-                         AND source.owned_by_id = filter.owned_by_id
+                         AND source.web_id = filter.web_id
                          AND source.entity_uuid = filter.entity_uuid
 
                         JOIN {table}
@@ -390,7 +390,7 @@ impl<C: AsClient> PostgresStore<C> {
                     r#"
                         SELECT
                              filter.idx,
-                             target.owned_by_id,
+                             target.web_id,
                              target.entity_uuid,
                              lower(target.{variable_axis}),
                              target.entity_edition_id,
@@ -398,23 +398,23 @@ impl<C: AsClient> PostgresStore<C> {
                              source.{variable_axis} * target.{variable_axis} * filter.interval
                         FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
                              WITH ORDINALITY
-                             AS filter(owned_by_id, entity_uuid, entity_version, interval, idx)
+                             AS filter(web_id, entity_uuid, entity_version, interval, idx)
 
                         JOIN entity_temporal_metadata AS source
                           ON source.{pinned_axis} @> $5::timestamptz
                          AND lower(source.{variable_axis}) = filter.entity_version
-                         AND source.owned_by_id = filter.owned_by_id
+                         AND source.web_id = filter.web_id
                          AND source.entity_uuid = filter.entity_uuid
 
                         JOIN {table}
-                          ON {source_1} = source.owned_by_id
+                          ON {source_1} = source.web_id
                          AND {source_2} = source.entity_uuid
 
                         JOIN entity_temporal_metadata AS target
                           ON target.{pinned_axis} @> $5::timestamptz
                          AND target.{variable_axis} && source.{variable_axis}
                          AND target.{variable_axis} && filter.interval
-                         AND target.owned_by_id = {target_1}
+                         AND target.web_id = {target_1}
                          AND target.entity_uuid = {target_2}
                     "#
                 ),

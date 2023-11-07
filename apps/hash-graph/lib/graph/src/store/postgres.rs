@@ -8,7 +8,10 @@ mod traversal_context;
 use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
-    schema::{AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebSubject},
+    schema::{
+        AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebOwnerSubject,
+        WebRelationAndSubject, WebSubject, WebSubjectSet,
+    },
     AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -24,6 +27,7 @@ use graph_types::{
         OntologyTypeRecordId, OntologyTypeVersion, PartialCustomOntologyMetadata,
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
+    web::WebId,
 };
 use postgres_types::Json;
 #[cfg(hash_graph_test_environment)]
@@ -343,17 +347,17 @@ where
         owned_by_id: OwnedById,
     ) -> Result<OntologyTypeSubject, InsertionError> {
         let query = "
-                WITH inserted_owners AS (
+                WITH web_ids AS (
                     INSERT INTO ontology_owned_metadata (
                         ontology_id,
-                        owned_by_id
+                        web_id
                     ) VALUES ($1, $2)
-                    RETURNING owned_by_id
+                    RETURNING web_id
                 )
                 SELECT EXISTS (
                     SELECT 1
                     FROM account_groups
-                    JOIN inserted_owners ON account_group_id = inserted_owners.owned_by_id
+                    JOIN web_ids ON account_group_id = web_id
                 );
             ";
 
@@ -864,14 +868,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .as_client()
             .query_opt(
                 "
-                  SELECT owned_by_id
+                  SELECT web_id
                   FROM ontology_owned_metadata
                   NATURAL JOIN ontology_ids
                   WHERE base_url = $1
                     AND version = $2
                   LIMIT 1 -- There might be multiple versions of the same ontology, but we only
-                          -- care about the `owned_by_id` which does not change when \
-                 (un-)archiving.
+                          -- care about the `web_id` which does not change when (un-)archiving.
                 ;",
                 &[&url.base_url.as_str(), &i64::from(url.version - 1)],
             )
@@ -950,7 +953,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_ids (
-                    owned_by_id,
+                    web_id,
                     entity_uuid
                 ) FROM STDIN BINARY",
             )
@@ -1013,9 +1016,9 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(&format!(
                 "COPY entity_has_{left_right}_entity (
-                    owned_by_id,
+                    web_id,
                     entity_uuid,
-                    {left_right}_owned_by_id,
+                    {left_right}_web_id,
                     {left_right}_entity_uuid
                 ) FROM STDIN BINARY",
             ))
@@ -1149,7 +1152,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_temporal_metadata_temp (
-                    owned_by_id UUID NOT NULL,
+                    web_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
                     entity_edition_id UUID NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
@@ -1162,7 +1165,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .copy_in(
                 "COPY entity_temporal_metadata_temp (
-                    owned_by_id,
+                    web_id,
                     entity_uuid,
                     entity_edition_id,
                     decision_time
@@ -1194,13 +1197,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             .client
             .query(
                 "INSERT INTO entity_temporal_metadata (
-                    owned_by_id,
+                    web_id,
                     entity_uuid,
                     entity_edition_id,
                     decision_time,
                     transaction_time
                 ) SELECT
-                    owned_by_id,
+                    web_id,
                     entity_uuid,
                     entity_edition_id,
                     tstzrange(
@@ -1240,37 +1243,15 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _authorization_api: &mut A,
         account_id: AccountId,
     ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        transaction
-            .as_client()
-            .query_one(
-                "
-                INSERT INTO owners (owner_id)
-                VALUES ($1)
-                RETURNING owner_id;
-                ",
+        self.as_client()
+            .query(
+                "INSERT INTO accounts (account_id) VALUES ($1);",
                 &[&account_id],
             )
             .await
             .change_context(InsertionError)
             .attach_printable(account_id)?;
-
-        transaction
-            .as_client()
-            .query_one(
-                "
-                INSERT INTO accounts (account_id)
-                VALUES ($1)
-                RETURNING account_id;
-                ",
-                &[&account_id],
-            )
-            .await
-            .change_context(InsertionError)
-            .attach_printable(account_id)?;
-
-        transaction.commit().await.change_context(InsertionError)
+        Ok(())
     }
 
     #[tracing::instrument(level = "info", skip(self, authorization_api))]
@@ -1284,26 +1265,8 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
 
         transaction
             .as_client()
-            .query_one(
-                "
-                INSERT INTO owners (owner_id)
-                VALUES ($1)
-                RETURNING owner_id;
-                ",
-                &[&account_group_id],
-            )
-            .await
-            .change_context(InsertionError)
-            .attach_printable(account_group_id)?;
-
-        transaction
-            .as_client()
-            .query_one(
-                "
-                INSERT INTO account_groups (account_group_id)
-                VALUES ($1)
-                RETURNING account_group_id;
-                ",
+            .query(
+                "INSERT INTO account_groups (account_group_id) VALUES ($1);",
                 &[&account_group_id],
             )
             .await
@@ -1329,6 +1292,71 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     account_group_id,
                     AccountGroupRelationAndSubject::Owner {
                         subject: AccountGroupOwnerSubject::Account { id: actor_id },
+                        level: 0,
+                    },
+                )])
+                .await
+                .change_context(InsertionError)
+            {
+                // TODO: Use `add_child`
+                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
+                error.extend_one(auth_error);
+            }
+
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip(self, authorization_api))]
+    async fn insert_web_id<A: AuthorizationApi + Send + Sync>(
+        &mut self,
+        _actor_id: AccountId,
+        authorization_api: &mut A,
+        owned_by_id: OwnedById,
+    ) -> Result<(), InsertionError> {
+        let transaction = self.transaction().await.change_context(InsertionError)?;
+
+        let web_subject = transaction
+            .identify_owned_by_id(owned_by_id)
+            .await
+            .change_context(InsertionError)?;
+
+        let owner = match web_subject {
+            WebSubject::Account(id) => WebOwnerSubject::Account { id },
+            WebSubject::AccountGroup(id) => WebOwnerSubject::AccountGroup {
+                id,
+                set: WebSubjectSet::Member,
+            },
+        };
+
+        transaction
+            .as_client()
+            .query("INSERT INTO webs (web_id) VALUES ($1);", &[&owned_by_id])
+            .await
+            .change_context(InsertionError)
+            .attach_printable(owned_by_id)?;
+
+        authorization_api
+            .modify_web_relations([(
+                ModifyRelationshipOperation::Create,
+                WebId::new(owned_by_id.into_uuid()),
+                WebRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
+            )])
+            .await
+            .change_context(InsertionError)?;
+
+        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+            if let Err(auth_error) = authorization_api
+                .modify_web_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    WebId::new(owned_by_id.into_uuid()),
+                    WebRelationAndSubject::Owner {
+                        subject: owner,
                         level: 0,
                     },
                 )])
@@ -1411,17 +1439,17 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), DeletionError> {
         self.as_client()
             .client()
+            .simple_query("DELETE FROM webs;")
+            .await
+            .change_context(DeletionError)?;
+        self.as_client()
+            .client()
             .simple_query("DELETE FROM accounts;")
             .await
             .change_context(DeletionError)?;
         self.as_client()
             .client()
             .simple_query("DELETE FROM account_groups;")
-            .await
-            .change_context(DeletionError)?;
-        self.as_client()
-            .client()
-            .simple_query("DELETE FROM owners;")
             .await
             .change_context(DeletionError)?;
 

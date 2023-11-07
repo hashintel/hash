@@ -609,6 +609,17 @@ where
             .await
     }
 
+    async fn insert_web_id<Au: AuthorizationApi + Send + Sync>(
+        &mut self,
+        actor_id: AccountId,
+        authorization_api: &mut Au,
+        owned_by_id: OwnedById,
+    ) -> Result<(), InsertionError> {
+        self.store
+            .insert_web_id(actor_id, authorization_api, owned_by_id)
+            .await
+    }
+
     async fn has_account(&self, account_id: AccountId) -> Result<bool, QueryError> {
         self.store.has_account(account_id).await
     }
