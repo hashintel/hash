@@ -110,7 +110,15 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
 
     return () => {
       clearPortals();
-      view.destroy();
+      try {
+        view.destroy();
+      } catch {
+        /**
+         * Sometimes the Quick Note page can result in docView being null when calling view.destroy()
+         * Ideally we would figure out why we're calling view.destroy() when it's null, but this seems to fix it for now
+         * @see https://discuss.prosemirror.net/t/what-could-create-a-null-docview/1830
+         */
+      }
       connection?.close();
       prosemirrorSetup.current = null;
     };
