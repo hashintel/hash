@@ -121,8 +121,16 @@ pub enum AccountGroupMemberSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum AccountGroupRelationAndSubject {
-    Owner { subject: AccountGroupOwnerSubject },
-    GeneralMember { subject: AccountGroupMemberSubject },
+    Owner {
+        subject: AccountGroupOwnerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Member {
+        subject: AccountGroupMemberSubject,
+        #[serde(skip)]
+        level: u8,
+    },
 }
 
 impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
@@ -139,13 +147,15 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                     (AccountGroupSubject::Account(id), None) => {
                         AccountGroupRelationAndSubject::Owner {
                             subject: AccountGroupOwnerSubject::Account { id },
+                            level: parts.relation.level,
                         }
                     }
                 },
                 AccountGroupResourceRelation::Member => match (parts.subject, parts.subject_set) {
                     (AccountGroupSubject::Account(id), None) => {
-                        AccountGroupRelationAndSubject::GeneralMember {
+                        AccountGroupRelationAndSubject::Member {
                             subject: AccountGroupMemberSubject::Account { id },
+                            level: parts.relation.level,
                         }
                     }
                 },
@@ -159,10 +169,10 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            AccountGroupRelationAndSubject::Owner { subject } => (
+            AccountGroupRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: AccountGroupResourceRelation::Owner,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     AccountGroupOwnerSubject::Account { id } => {
@@ -170,10 +180,10 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
                     }
                 },
             ),
-            AccountGroupRelationAndSubject::GeneralMember { subject } => (
+            AccountGroupRelationAndSubject::Member { subject, level } => (
                 LeveledRelation {
                     name: AccountGroupResourceRelation::Member,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     AccountGroupMemberSubject::Account { id } => {

@@ -160,7 +160,7 @@ pub enum EntityOwnerSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum EntityGeneralEditorSubject {
+pub enum EntityEditorSubject {
     Account {
         #[serde(rename = "subjectId")]
         id: AccountId,
@@ -176,7 +176,7 @@ pub enum EntityGeneralEditorSubject {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum EntityGeneralViewerSubject {
+pub enum EntityViewerSubject {
     Public,
     Account {
         #[serde(rename = "subjectId")]
@@ -194,9 +194,21 @@ pub enum EntityGeneralViewerSubject {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum EntityRelationAndSubject {
-    Owner { subject: EntityOwnerSubject },
-    GeneralEditor { subject: EntityGeneralEditorSubject },
-    GeneralViewer { subject: EntityGeneralViewerSubject },
+    Owner {
+        subject: EntityOwnerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Editor {
+        subject: EntityEditorSubject,
+        #[serde(skip)]
+        level: u8,
+    },
+    Viewer {
+        subject: EntityViewerSubject,
+        #[serde(skip)]
+        level: u8,
+    },
 }
 
 impl Relationship for (EntityUuid, EntityRelationAndSubject) {
@@ -212,10 +224,12 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                 EntityResourceRelation::Owner => match (parts.subject, parts.subject_set) {
                     (EntitySubject::Account(id), None) => EntityRelationAndSubject::Owner {
                         subject: EntityOwnerSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
                         EntityRelationAndSubject::Owner {
                             subject: EntityOwnerSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
                         }
                     }
                     (EntitySubject::Public, _subject_set) => {
@@ -226,12 +240,14 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
                 EntityResourceRelation::Editor => match (parts.subject, parts.subject_set) {
-                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralEditor {
-                        subject: EntityGeneralEditorSubject::Account { id },
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::Editor {
+                        subject: EntityEditorSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::GeneralEditor {
-                            subject: EntityGeneralEditorSubject::AccountGroup { id, set },
+                        EntityRelationAndSubject::Editor {
+                            subject: EntityEditorSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
                         }
                     }
                     (EntitySubject::Public, _subject_set) => {
@@ -242,15 +258,18 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
                 EntityResourceRelation::Viewer => match (parts.subject, parts.subject_set) {
-                    (EntitySubject::Public, None) => EntityRelationAndSubject::GeneralViewer {
-                        subject: EntityGeneralViewerSubject::Public,
+                    (EntitySubject::Public, None) => EntityRelationAndSubject::Viewer {
+                        subject: EntityViewerSubject::Public,
+                        level: parts.relation.level,
                     },
-                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::GeneralViewer {
-                        subject: EntityGeneralViewerSubject::Account { id },
+                    (EntitySubject::Account(id), None) => EntityRelationAndSubject::Viewer {
+                        subject: EntityViewerSubject::Account { id },
+                        level: parts.relation.level,
                     },
                     (EntitySubject::AccountGroup(id), Some(set)) => {
-                        EntityRelationAndSubject::GeneralViewer {
-                            subject: EntityGeneralViewerSubject::AccountGroup { id, set },
+                        EntityRelationAndSubject::Viewer {
+                            subject: EntityViewerSubject::AccountGroup { id, set },
+                            level: parts.relation.level,
                         }
                     }
                     (
@@ -272,10 +291,10 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
 
     fn into_parts(self) -> RelationshipParts<Self> {
         let (relation, (subject, subject_set)) = match self.1 {
-            EntityRelationAndSubject::Owner { subject } => (
+            EntityRelationAndSubject::Owner { subject, level } => (
                 LeveledRelation {
                     name: EntityResourceRelation::Owner,
-                    level: 0,
+                    level,
                 },
                 match subject {
                     EntityOwnerSubject::Account { id } => (EntitySubject::Account(id), None),
@@ -284,33 +303,29 @@ impl Relationship for (EntityUuid, EntityRelationAndSubject) {
                     }
                 },
             ),
-            EntityRelationAndSubject::GeneralEditor { subject } => (
+            EntityRelationAndSubject::Editor { subject, level } => (
                 LeveledRelation {
                     name: EntityResourceRelation::Editor,
-                    level: 0,
+                    level,
                 },
                 match subject {
-                    EntityGeneralEditorSubject::Account { id } => {
-                        (EntitySubject::Account(id), None)
-                    }
-                    EntityGeneralEditorSubject::AccountGroup { id, set } => {
+                    EntityEditorSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityEditorSubject::AccountGroup { id, set } => {
                         (EntitySubject::AccountGroup(id), Some(set))
                     }
                 },
             ),
-            EntityRelationAndSubject::GeneralViewer { subject } => (
+            EntityRelationAndSubject::Viewer { subject, level } => (
                 LeveledRelation {
                     name: EntityResourceRelation::Viewer,
-                    level: 0,
+                    level,
                 },
                 match subject {
-                    EntityGeneralViewerSubject::Account { id } => {
-                        (EntitySubject::Account(id), None)
-                    }
-                    EntityGeneralViewerSubject::AccountGroup { id, set } => {
+                    EntityViewerSubject::Account { id } => (EntitySubject::Account(id), None),
+                    EntityViewerSubject::AccountGroup { id, set } => {
                         (EntitySubject::AccountGroup(id), Some(set))
                     }
-                    EntityGeneralViewerSubject::Public => (EntitySubject::Public, None),
+                    EntityViewerSubject::Public => (EntitySubject::Public, None),
                 },
             ),
         };

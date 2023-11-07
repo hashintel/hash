@@ -45,7 +45,11 @@ import { Entity, OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  waitForAfterHookTriggerToComplete,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -91,9 +95,9 @@ describe("Page Mention Notification", () => {
 
   let pageMentionNotification: MentionNotification;
 
-  let occurredInPage: Page;
+  let occurredInEntity: Page;
 
-  let pageBlocks: Block[];
+  let occurredInBlock: Block;
 
   let occurredInText: Text;
 
@@ -101,31 +105,26 @@ describe("Page Mention Notification", () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
     const authentication = { actorId: triggerUser.accountId };
 
-    occurredInPage = await createPage(graphContext, authentication, {
+    occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
     });
 
-    pageBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId: occurredInPage.entity.metadata.recordId.entityId,
+    const pageBlocks = await getPageBlocks(graphContext, authentication, {
+      pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );
 
-    const pageBlockDataEntities = await Promise.all(
-      pageBlocks.map((block) =>
-        getBlockData(graphContext, authentication, { block }),
-      ),
-    );
+    occurredInBlock = pageBlocks[0]!;
 
-    const textEntity = pageBlockDataEntities.find(
-      ({ metadata }) =>
-        metadata.entityTypeId === types.entityType.text.entityTypeId,
-    );
+    const textEntity = await getBlockData(graphContext, authentication, {
+      block: occurredInBlock,
+    });
 
-    if (!textEntity) {
-      throw new Error("Text entity not found.");
-    }
+    expect(textEntity.metadata.entityTypeId).toBe(
+      types.entityType.text.entityTypeId,
+    );
 
     occurredInText = getTextFromEntity({ entity: textEntity });
 
@@ -134,8 +133,9 @@ describe("Page Mention Notification", () => {
       { actorId: recipientUser.accountId },
       {
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
         occurredInText,
+        occurredInBlock,
         ownedById: recipientUser.accountId as OwnedById,
       },
     );
@@ -159,7 +159,7 @@ describe("Page Mention Notification", () => {
     const [occurredInEntityLink] = occurredInEntityLinks;
 
     expect(occurredInEntityLink!.linkData.rightEntityId).toBe(
-      occurredInPage.entity.metadata.recordId.entityId,
+      occurredInEntity.entity.metadata.recordId.entityId,
     );
 
     const occurredInTextLinks = outgoingLinks.filter(
@@ -201,7 +201,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -227,7 +228,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -244,7 +246,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -276,13 +279,22 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -299,7 +311,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -325,13 +338,22 @@ describe("Page Mention Notification", () => {
       },
     )) as Entity<TextProperties>;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterPageMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInText,
       },
     );
@@ -346,13 +368,11 @@ describe("Page Mention Notification", () => {
   it("can create a comment mention notification when a user is mentioned in a comment", async () => {
     const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 
-    const commentBlock = pageBlocks[0]!;
-
     occurredInComment = await createComment(
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        parentEntityId: commentBlock.entity.metadata.recordId.entityId,
+        parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         ownedById: triggerUser.accountId as OwnedById,
         textualContent: [
           {
@@ -364,6 +384,14 @@ describe("Page Mention Notification", () => {
         author: triggerUser,
       },
     );
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     commentText = await getCommentText(
       graphContext,
@@ -377,7 +405,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -395,7 +424,8 @@ describe("Page Mention Notification", () => {
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },
@@ -422,13 +452,22 @@ describe("Page Mention Notification", () => {
     )) as Entity<TextProperties>;
     commentText.textualContent = updatedCommentTextualContent;
 
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
+
     const afterCommentMentionNotification = await getMentionNotification(
       graphContext,
       { actorId: recipientUser.accountId },
       {
         recipient: recipientUser,
         triggeredByUser: triggerUser,
-        occurredInEntity: occurredInPage,
+        occurredInEntity,
+        occurredInBlock,
         occurredInComment,
         occurredInText: commentText,
       },

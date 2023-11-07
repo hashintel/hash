@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error};
+use std::borrow::Cow;
 
 use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
@@ -12,7 +12,7 @@ use graph_types::{
     },
     provenance::{OwnedById, ProvenanceMetadata, RecordArchivedById, RecordCreatedById},
 };
-use postgres_types::{FromSql, Type};
+use postgres_types::Json;
 use serde::Deserialize;
 use temporal_versioning::RightBoundedTemporalInterval;
 use time::OffsetDateTime;
@@ -51,26 +51,12 @@ use crate::{
 #[serde(untagged)]
 enum AdditionalOntologyMetadata {
     Owned {
-        owned_by_id: OwnedById,
+        web_id: OwnedById,
     },
     External {
         #[serde(with = "temporal_versioning::serde::time")]
         fetched_at: OffsetDateTime,
     },
-}
-
-impl<'a> FromSql<'a> for AdditionalOntologyMetadata {
-    fn from_sql(
-        ty: &Type,
-        raw: &'a [u8],
-    ) -> std::result::Result<Self, Box<dyn Error + Sync + Send>> {
-        let value = serde_json::Value::from_sql(ty, raw)?;
-        Ok(serde_json::from_value(value)?)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        serde_json::Value::accepts(ty)
-    }
 }
 
 #[async_trait]
@@ -122,7 +108,7 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let additional_metadata: AdditionalOntologyMetadata =
+                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
                     row.get(additional_metadata_index);
 
                 let provenance = ProvenanceMetadata {
@@ -139,13 +125,13 @@ impl<C: AsClient> Read<DataTypeSnapshotRecord> for PostgresStore<C> {
                 };
 
                 let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
-                        CustomOntologyMetadata::Owned {
-                            provenance,
-                            temporal_versioning,
-                            owned_by_id,
-                        }
-                    }
+                    AdditionalOntologyMetadata::Owned {
+                        web_id: owned_by_id,
+                    } => CustomOntologyMetadata::Owned {
+                        provenance,
+                        temporal_versioning,
+                        owned_by_id,
+                    },
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
@@ -223,7 +209,7 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let additional_metadata: AdditionalOntologyMetadata =
+                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
                     row.get(additional_metadata_index);
 
                 let provenance = ProvenanceMetadata {
@@ -240,13 +226,13 @@ impl<C: AsClient> Read<PropertyTypeSnapshotRecord> for PostgresStore<C> {
                 };
 
                 let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
-                        CustomOntologyMetadata::Owned {
-                            provenance,
-                            temporal_versioning,
-                            owned_by_id,
-                        }
-                    }
+                    AdditionalOntologyMetadata::Owned {
+                        web_id: owned_by_id,
+                    } => CustomOntologyMetadata::Owned {
+                        provenance,
+                        temporal_versioning,
+                        owned_by_id,
+                    },
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,
@@ -326,7 +312,7 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
             .and_then(move |row| async move {
-                let additional_metadata: AdditionalOntologyMetadata =
+                let Json(additional_metadata): Json<AdditionalOntologyMetadata> =
                     row.get(additional_metadata_index);
 
                 let provenance = ProvenanceMetadata {
@@ -343,13 +329,13 @@ impl<C: AsClient> Read<EntityTypeSnapshotRecord> for PostgresStore<C> {
                 };
 
                 let custom_metadata = match additional_metadata {
-                    AdditionalOntologyMetadata::Owned { owned_by_id } => {
-                        CustomOntologyMetadata::Owned {
-                            provenance,
-                            temporal_versioning,
-                            owned_by_id,
-                        }
-                    }
+                    AdditionalOntologyMetadata::Owned {
+                        web_id: owned_by_id,
+                    } => CustomOntologyMetadata::Owned {
+                        provenance,
+                        temporal_versioning,
+                        owned_by_id,
+                    },
                     AdditionalOntologyMetadata::External { fetched_at } => {
                         CustomOntologyMetadata::External {
                             provenance,

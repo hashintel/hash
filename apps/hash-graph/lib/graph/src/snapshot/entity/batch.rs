@@ -53,11 +53,11 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
                         SET DEFAULT TSTZRANGE(now(), NULL, '[)');
 
                     CREATE TEMPORARY TABLE entity_link_edges_tmp (
-                        owned_by_id UUID NOT NULL,
+                        web_id UUID NOT NULL,
                         entity_uuid UUID NOT NULL,
-                        left_owned_by_id UUID NOT NULL,
+                        left_web_id UUID NOT NULL,
                         left_entity_uuid UUID NOT NULL,
-                        right_owned_by_id UUID NOT NULL,
+                        right_web_id UUID NOT NULL,
                         right_entity_uuid UUID NOT NULL
                     ) ON COMMIT DROP;
                 ",
@@ -183,17 +183,17 @@ impl<C: AsClient> WriteBatch<C> for EntityRowBatch {
 
                     INSERT INTO entity_has_left_entity
                         SELECT
-                            owned_by_id UUID,
+                            web_id UUID,
                             entity_uuid UUID,
-                            left_owned_by_id UUID,
+                            left_web_id UUID,
                             left_entity_uuid UUID
                         FROM entity_link_edges_tmp;
 
                     INSERT INTO entity_has_right_entity
                         SELECT
-                            owned_by_id UUID,
+                            web_id UUID,
                             entity_uuid UUID,
-                            right_owned_by_id UUID,
+                            right_web_id UUID,
                             right_entity_uuid UUID
                         FROM entity_link_edges_tmp;
             ",

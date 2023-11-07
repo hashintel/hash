@@ -351,6 +351,7 @@ export type NotificationOutgoingLinksByLinkEntityTypeId = {};
 
 export type NotificationProperties = {
   "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "http://localhost:3000/@system-user/types/property-type/read-at/"?: ReadAtPropertyValue;
 };
 
 /**
@@ -377,7 +378,7 @@ export type OccurredInEntityOutgoingLinkAndTarget = never;
 export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * An entity that something occurred in.
+ * A page that something occurred in.
  */
 export type OccurredInEntityProperties = OccurredInEntityProperties1 &
   OccurredInEntityProperties2;
@@ -541,6 +542,11 @@ export type ProfileBioProperties2 = {};
  * A URL to a profile
  */
 export type ProfileURLPropertyValue = TextDataType;
+
+/**
+ * The timestamp of when something was read.
+ */
+export type ReadAtPropertyValue = TextDataType;
 
 /**
  * Stringified timestamp of when something was resolved.

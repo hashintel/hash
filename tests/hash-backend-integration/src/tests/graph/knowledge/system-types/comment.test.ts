@@ -3,28 +3,30 @@ import {
   ensureSystemGraphIsInitialized,
   ImpureGraphContext,
 } from "@apps/hash-api/src/graph";
-import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import {
-  Block,
-  createBlock,
-} from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   createComment,
   getCommentAuthor,
   getCommentParent,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
+import {
+  createPage,
+  getPageBlocks,
+  Page,
+} from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { resetGraph } from "../../../test-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
+import {
+  createTestImpureGraphContext,
+  createTestUser,
+  waitForAfterHookTriggerToComplete,
+} from "../../../util";
 
 jest.setTimeout(60000);
 
@@ -39,8 +41,7 @@ const graphContext: ImpureGraphContext = createTestImpureGraphContext();
 describe("Comment", () => {
   let testUser: User;
   let testBlock: Block;
-
-  const testBlockComponentId = "test-component-id";
+  let testPage: Page;
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
@@ -49,21 +50,16 @@ describe("Comment", () => {
     testUser = await createTestUser(graphContext, "commentTest", logger);
     const authentication = { actorId: testUser.accountId };
 
-    const textEntity = await createEntity(graphContext, authentication, {
+    testPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
-      properties: {
-        [extractBaseUrl(
-          blockProtocolTypes.propertyType.textualContent.propertyTypeId,
-        )]: [],
-      },
-      entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+      title: "test page",
     });
 
-    testBlock = await createBlock(graphContext, authentication, {
-      ownedById: testUser.accountId as OwnedById,
-      componentId: testBlockComponentId,
-      blockData: textEntity,
+    const pageBlocks = await getPageBlocks(graphContext, authentication, {
+      pageEntityId: testPage.entity.metadata.recordId.entityId,
     });
+
+    testBlock = pageBlocks[0]!.rightEntity;
   });
 
   afterAll(async () => {
@@ -86,6 +82,14 @@ describe("Comment", () => {
       textualContent: [],
       author: testUser,
     });
+
+    /**
+     * Notifications are created after the request is resolved, so we need to wait
+     * before trying to get the notification.
+     *
+     * @todo: consider adding retry logic instead of relying on a timeout
+     */
+    await waitForAfterHookTriggerToComplete();
 
     const commentEntityId = comment.entity.metadata.recordId.entityId;
 
