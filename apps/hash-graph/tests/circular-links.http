@@ -12,8 +12,17 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 %}
 
 ### Create account web
-POST http://127.0.0.1:4000/webs/{{account_id}}
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+   "ownedById": "{{account_id}}",
+   "owner": {
+       "kind": "account",
+       "subjectId": "{{account_id}}"
+    }
+}
 
 > {%
   client.test("status", function() {

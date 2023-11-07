@@ -363,11 +363,35 @@ class TransactionTime(RootModel[Literal['transactionTime']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['transactionTime'] = Field(..., description='Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.')
 
+class WebOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class WebOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class WebOwnerSubject(RootModel[WebOwnerSubjectItem | WebOwnerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebOwnerSubjectItem | WebOwnerSubjectItem1 = Field(..., discriminator='kind')
+
 class WebPermission(Enum):
+    update = 'update'
     create_entity = 'create_entity'
     create_entity_type = 'create_entity_type'
     create_property_type = 'create_property_type'
     create_data_type = 'create_data_type'
+
+class WebRelationAndSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['owner']
+    subject: WebOwnerSubject
+
+class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebRelationAndSubjectItem = Field(..., discriminator='relation')
 
 class UpdateDataType(BaseModel):
     """
@@ -512,6 +536,11 @@ class CreateDataTypeRequest(BaseModel):
     owned_by_id: OwnedById = Field(..., alias='ownedById')
     schema_: DataType | list[DataType] = Field(..., alias='schema')
 
+class CreateWebRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    owned_by_id: OwnedById = Field(..., alias='ownedById')
+    owner: WebOwnerSubject
+
 class DataTypeRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['viewer']
@@ -635,6 +664,12 @@ class ModifyEntityTypeAuthorizationRelationship(BaseModel):
     operation: ModifyRelationshipOperation
     relation_and_subject: EntityTypeRelationAndSubject = Field(..., alias='relationAndSubject')
     resource: VersionedURL
+
+class ModifyWebAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: WebRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: OwnedById
 
 class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
     model_config = ConfigDict(populate_by_name=True)
