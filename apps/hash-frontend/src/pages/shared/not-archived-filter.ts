@@ -1,9 +1,9 @@
 import { Filter } from "@local/hash-graph-client";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 const archivedBaseUrl = extractBaseUrl(
-  types.propertyType.archived.propertyTypeId,
+  systemTypes.propertyType.archived.propertyTypeId,
 );
 
 export const notArchivedFilter: Filter = {

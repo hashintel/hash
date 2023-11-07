@@ -1,7 +1,7 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -81,7 +81,7 @@ export const useAccountPages = (
       const parentLink = pageOutgoingLinks.find(
         ({ linkEntity }) =>
           linkEntity[0]!.metadata.entityTypeId ===
-          types.linkEntityType.parent.linkEntityTypeId,
+          systemTypes.linkEntityType.parent.linkEntityTypeId,
       );
 
       const parentPage = parentLink?.rightEntity[0] ?? null;

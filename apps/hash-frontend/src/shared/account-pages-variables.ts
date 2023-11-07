@@ -3,7 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
 
 import { notArchivedFilter } from "../pages/shared/not-archived-filter";
@@ -19,7 +19,7 @@ export const getAccountPagesVariables = ({
     filter: {
       all: [
         generateVersionedUrlMatchingFilter(
-          types.entityType.page.entityTypeId,
+          systemTypes.entityType.page.entityTypeId,
           // ignoreParents assumes we don't have types which are children of Page which should be returned here
           { ignoreParents: true },
         ),
