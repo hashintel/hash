@@ -27,6 +27,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import { enabledIntegrations } from "../integrations/enabled-integrations";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { createAccountGroup, createWeb } from "./account-permission-management";
@@ -55,15 +56,18 @@ const owningWebs: Record<
   SystemTypeWebShortname,
   {
     accountGroupId?: AccountGroupId;
+    enabled: boolean;
     name: string;
     websiteUrl: string;
   }
 > = {
   hash: {
+    enabled: true,
     name: "HASH",
     websiteUrl: "https://hash.ai",
   },
   linear: {
+    enabled: enabledIntegrations.linear,
     name: "Linear",
     websiteUrl: "https://linear.app",
   },
@@ -125,9 +129,13 @@ export const ensureAccountGroupOrgsExist = async (params: {
 
   logger.debug("Ensuring account group organization entities exist");
 
-  for (const [webShortname, { name, websiteUrl }] of Object.entries(
+  for (const [webShortname, { enabled, name, websiteUrl }] of Object.entries(
     owningWebs,
   )) {
+    if (!enabled) {
+      continue;
+    }
+
     const authentication = { actorId: systemAccountId };
     const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,
