@@ -1,4 +1,4 @@
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   DataTypeWithMetadata,
   Entity,
@@ -25,7 +25,7 @@ export const isPageArchived = (pageEntity: Entity) => {
 
   return (
     (pageEntity.properties[
-      extractBaseUrl(types.propertyType.archived.propertyTypeId)
+      extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
     ] as boolean | undefined) ?? false
   );
 };

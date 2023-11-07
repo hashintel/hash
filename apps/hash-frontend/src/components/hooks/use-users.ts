@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -31,7 +31,7 @@ export const useUsers = (): {
         multiFilter: {
           filters: [
             entityHasEntityTypeByVersionedUrlFilter(
-              types.entityType.user.entityTypeId,
+              systemTypes.entityType.user.entityTypeId,
             ),
           ],
           operator: "AND",

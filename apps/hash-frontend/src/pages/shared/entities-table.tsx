@@ -4,7 +4,7 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -81,7 +81,7 @@ export const EntitiesTable: FunctionComponent<{
     () =>
       entities?.every(
         ({ metadata: { entityTypeId } }) =>
-          entityTypeId === types.entityType.page.entityTypeId,
+          entityTypeId === systemTypes.entityType.page.entityTypeId,
       ),
     [entities],
   );
@@ -110,10 +110,11 @@ export const EntitiesTable: FunctionComponent<{
               )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
-          entity.metadata.entityTypeId !== types.entityType.page.entityTypeId
+          entity.metadata.entityTypeId !==
+            systemTypes.entityType.page.entityTypeId
             ? true
             : entity.properties[
-                extractBaseUrl(types.propertyType.archived.propertyTypeId)
+                extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
               ] !== true),
       ),
     [entities, filterState, internalWebIds],

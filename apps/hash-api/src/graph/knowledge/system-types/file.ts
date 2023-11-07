@@ -1,5 +1,5 @@
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   File,
   FileProperties,
@@ -11,10 +11,10 @@ import {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
-import { AuthenticationContext } from "../../../graphql/context";
+import { AuthenticationContext } from "../../../graphql/authentication-context";
 import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
-import { ImpureGraphContext, ImpureGraphFunction } from "../..";
+import { ImpureGraphContext, ImpureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
@@ -67,8 +67,8 @@ const generateCommonParameters = async (
       existingEntity: null,
       entityTypeId:
         fileEntityCreationInput.entityTypeId ?? mimeType.startsWith("image/")
-          ? types.entityType.imageFile.entityTypeId
-          : types.entityType.file.entityTypeId,
+          ? systemTypes.entityType.imageFile.entityTypeId
+          : systemTypes.entityType.file.entityTypeId,
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };

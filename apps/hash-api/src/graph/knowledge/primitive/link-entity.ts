@@ -11,7 +11,7 @@ import {
 } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
 
-import { ImpureGraphFunction } from "../..";
+import { ImpureGraphFunction } from "../../context-types";
 import { isEntityTypeLinkEntityType } from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";

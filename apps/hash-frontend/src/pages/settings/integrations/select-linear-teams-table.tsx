@@ -1,5 +1,5 @@
 import { Chip, Select } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
@@ -103,7 +103,9 @@ export const mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces =
         .find(
           ({ entity }) =>
             entity.properties[
-              extractBaseUrl(types.propertyType.linearOrgId.propertyTypeId)
+              extractBaseUrl(
+                systemTypes.propertyType.linearOrgId.propertyTypeId,
+              )
             ] === organization.id,
         )!
         .syncedWithWorkspaces.filter(

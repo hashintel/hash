@@ -19,7 +19,7 @@ import {
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
-import { ImpureGraphFunction, PureGraphFunction } from "../..";
+import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
 
 export type LinearUserSecret = {

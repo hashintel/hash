@@ -1,9 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { publicUserAccountId } from "@apps/hash-api/src/auth/public-user-account-id";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   joinOrg,
@@ -16,7 +14,6 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -185,9 +182,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await deleteKratosIdentity({
-    kratosIdentityId: systemUser.kratosIdentityId,
-  });
   await deleteKratosIdentity({
     kratosIdentityId: testUser.kratosIdentityId,
   });

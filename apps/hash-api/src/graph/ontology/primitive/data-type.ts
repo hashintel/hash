@@ -31,8 +31,8 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import { NotFoundError } from "../../../lib/error";
-import { ImpureGraphFunction } from "../..";
-import { getNamespaceOfAccountOwner } from "./util";
+import { ImpureGraphFunction } from "../../context-types";
+import { getWebShortname } from "./util";
 
 /**
  * Create a data type.
@@ -44,6 +44,8 @@ import { getNamespaceOfAccountOwner } from "./util";
  *   https://app.asana.com/0/1200211978612931/1202464168422955/f
  *
  * @param params.ownedById - the id of the account who owns the data type
+ * @param [params.webShortname] – the shortname of the web that owns the data type, if the web entity does not yet exist.
+ *    - Only for seeding purposes. Caller is responsible for ensuring the webShortname is correct for the ownedById.
  * @param params.schema - the `DataType`
  * @param params.actorId - the id of the account that is creating the data type
  */
@@ -51,21 +53,26 @@ export const createDataType: ImpureGraphFunction<
   {
     ownedById: OwnedById;
     schema: ConstructDataTypeParams;
+    webShortname?: string;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById } = params;
-  const namespace = await getNamespaceOfAccountOwner(ctx, authentication, {
-    ownerId: params.ownedById,
-  });
+  const { ownedById, webShortname } = params;
+
+  const shortname =
+    webShortname ??
+    (await getWebShortname(ctx, authentication, {
+      accountOrAccountGroupId: params.ownedById,
+    }));
 
   const { graphApi } = ctx;
 
   const dataTypeUrl = generateTypeId({
-    namespace,
     kind: "data-type",
     title: params.schema.title,
+    webShortname: shortname,
   });
+
   const schema = {
     $schema: DATA_TYPE_META_SCHEMA,
     kind: "dataType" as const,

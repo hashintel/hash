@@ -1,8 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  ensureSystemGraphIsInitialized,
-  ImpureGraphContext,
-} from "@apps/hash-api/src/graph";
+import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph";
+import { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import {
   createEntity,
   createEntityWithLinks,
@@ -18,7 +16,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { systemUser } from "@apps/hash-api/src/graph/system-user";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/util";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -139,7 +136,7 @@ describe("Entity CRU", () => {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
-          namespace: testOrg.shortname,
+          webShortname: testOrg.shortname,
           kind: "entity-type",
           title: "Person",
         }),
@@ -165,9 +162,6 @@ describe("Entity CRU", () => {
     });
     await deleteKratosIdentity({
       kratosIdentityId: testUser2.kratosIdentityId,
-    });
-    await deleteKratosIdentity({
-      kratosIdentityId: systemUser.kratosIdentityId,
     });
 
     await resetGraph();

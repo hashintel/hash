@@ -1,5 +1,5 @@
 import { AsteriskRegularIcon } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
@@ -10,11 +10,13 @@ import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
 export const entityTypeIcons = {
-  [types.entityType.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
-  [types.entityType.org.entityTypeId]: (
+  [systemTypes.entityType.user.entityTypeId]: (
+    <UserIcon sx={{ fontSize: 12 }} />
+  ),
+  [systemTypes.entityType.org.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
-  [types.entityType.page.entityTypeId]: (
+  [systemTypes.entityType.page.entityTypeId]: (
     <FileRegularIcon sx={{ fontSize: 12 }} />
   ),
 } as const;
@@ -26,10 +28,13 @@ export const useEntityIcon = (params: {
   const { entity, pageIcon } = params;
   return useMemo(() => {
     if (entity) {
-      if (entity.metadata.entityTypeId === types.entityType.page.entityTypeId) {
+      if (
+        entity.metadata.entityTypeId ===
+        systemTypes.entityType.page.entityTypeId
+      ) {
         const customPageIcon =
           entity.properties[
-            extractBaseUrl(types.propertyType.icon.propertyTypeId)
+            extractBaseUrl(systemTypes.propertyType.icon.propertyTypeId)
           ];
         if (typeof customPageIcon === "string") {
           return (
@@ -44,7 +49,8 @@ export const useEntityIcon = (params: {
        * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
        */
       return pageIcon &&
-        entity.metadata.entityTypeId === types.entityType.page.entityTypeId
+        entity.metadata.entityTypeId ===
+          systemTypes.entityType.page.entityTypeId
         ? pageIcon
         : entityTypeIcons[entity.metadata.entityTypeId] ?? (
             <AsteriskRegularIcon sx={{ fontSize: 12 }} />

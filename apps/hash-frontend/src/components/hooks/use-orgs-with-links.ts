@@ -4,7 +4,7 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { AccountGroupId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
@@ -52,7 +52,7 @@ export const useOrgsWithLinks = ({
                 ]
               : []),
             generateVersionedUrlMatchingFilter(
-              types.entityType.org.entityTypeId,
+              systemTypes.entityType.org.entityTypeId,
               { ignoreParents: true },
             ),
           ],

@@ -10,7 +10,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   SimpleProperties,
   simplifyProperties,
@@ -134,7 +134,7 @@ export const NotificationsContextProvider: FunctionComponent<
           ],
         },
         generateVersionedUrlMatchingFilter(
-          types.entityType.notification.entityTypeId,
+          systemTypes.entityType.notification.entityTypeId,
           { ignoreParents: false },
         ),
         {
@@ -144,7 +144,9 @@ export const NotificationsContextProvider: FunctionComponent<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(types.propertyType.archived.propertyTypeId),
+                    extractBaseUrl(
+                      systemTypes.propertyType.archived.propertyTypeId,
+                    ),
                   ],
                 },
                 // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
@@ -157,7 +159,9 @@ export const NotificationsContextProvider: FunctionComponent<
                 {
                   path: [
                     "properties",
-                    extractBaseUrl(types.propertyType.archived.propertyTypeId),
+                    extractBaseUrl(
+                      systemTypes.propertyType.archived.propertyTypeId,
+                    ),
                   ],
                 },
                 { parameter: false },
@@ -281,29 +285,30 @@ export const NotificationsContextProvider: FunctionComponent<
           );
 
           if (
-            entityTypeId === types.entityType.mentionNotification.entityTypeId
+            entityTypeId ===
+            systemTypes.entityType.mentionNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInBlock.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInBlock.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInText.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInText.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.triggeredByUser.linkEntityTypeId,
+                systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -324,7 +329,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             const occurredInComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInComment.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -354,29 +359,30 @@ export const NotificationsContextProvider: FunctionComponent<
               triggeredByUser,
             } satisfies PageMentionNotification;
           } else if (
-            entityTypeId === types.entityType.commentNotification.entityTypeId
+            entityTypeId ===
+            systemTypes.entityType.commentNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInEntity.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInEntity.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.occurredInBlock.linkEntityTypeId,
+                systemTypes.linkEntityType.occurredInBlock.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.triggeredByComment.linkEntityTypeId,
+                systemTypes.linkEntityType.triggeredByComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.triggeredByUser.linkEntityTypeId,
+                systemTypes.linkEntityType.triggeredByUser.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -397,7 +403,7 @@ export const NotificationsContextProvider: FunctionComponent<
 
             const repliedToComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
-                types.linkEntityType.repliedToComment.linkEntityTypeId,
+                systemTypes.linkEntityType.repliedToComment.linkEntityTypeId,
               ),
             )?.rightEntity[0];
 
@@ -474,7 +480,7 @@ export const NotificationsContextProvider: FunctionComponent<
           entityTypeId: notification.entity.metadata.entityTypeId,
           properties: {
             ...notification.entity.properties,
-            [extractBaseUrl(types.propertyType.readAt.propertyTypeId)]:
+            [extractBaseUrl(systemTypes.propertyType.readAt.propertyTypeId)]:
               now.toISOString(),
           },
         },

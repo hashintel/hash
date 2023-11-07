@@ -9,7 +9,7 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import { types } from "@local/hash-isomorphic-utils/ontology-types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { EditorType } from "./types";
 
@@ -26,7 +26,7 @@ interface EditorSpec {
 export const editorSpecs: Record<EditorType, EditorSpec> = {
   boolean: {
     icon: faSquareCheck,
-    title: types.dataType.boolean.title,
+    title: systemTypes.dataType.boolean.title,
     gridIcon: "bpTypeBoolean",
     defaultValue: true,
     arrayEditException: "no-edit-mode",
@@ -34,19 +34,19 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   number: {
     icon: fa100,
-    title: types.dataType.number.title,
+    title: systemTypes.dataType.number.title,
     gridIcon: "bpTypeNumber",
     valueToString: (value: number) => String(value),
   },
   text: {
     icon: faText,
-    title: types.dataType.text.title,
+    title: systemTypes.dataType.text.title,
     gridIcon: "bpTypeText",
     valueToString: (value: string) => value,
   },
   object: {
     icon: faBracketsCurly,
-    title: types.dataType.object.title,
+    title: systemTypes.dataType.object.title,
     gridIcon: "bpBracketsCurly",
     arrayEditException: "no-save-and-discard-buttons",
     valueToString: () => "Object",
@@ -54,7 +54,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   emptyList: {
     icon: faBracketsSquare,
-    title: types.dataType.emptyList.title,
+    title: systemTypes.dataType.emptyList.title,
     gridIcon: "bpBracketsSquare",
     defaultValue: [],
     arrayEditException: "no-edit-mode",
@@ -63,7 +63,7 @@ export const editorSpecs: Record<EditorType, EditorSpec> = {
   },
   null: {
     icon: faEmptySet,
-    title: types.dataType.null.title,
+    title: systemTypes.dataType.null.title,
     gridIcon: "bpEmptySet",
     defaultValue: null,
     arrayEditException: "no-edit-mode",
