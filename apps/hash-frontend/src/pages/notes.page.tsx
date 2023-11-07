@@ -75,6 +75,7 @@ const NotesPage: NextPageWithLayout = () => {
                       ],
                     },
                     // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
+                    //   @see https://linear.app/hash/issue/H-1207
                     null,
                   ],
                 },

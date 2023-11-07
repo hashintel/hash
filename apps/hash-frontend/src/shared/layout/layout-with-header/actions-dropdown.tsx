@@ -47,7 +47,6 @@ const ActionsDropdownInner: FunctionComponent = () => {
         size="medium"
         rounded
         sx={({ palette }) => ({
-          mr: 1,
           color: popupState.isOpen ? palette.common.white : palette.gray[40],
           backgroundColor: popupState.isOpen
             ? palette.blue["70"]

@@ -90,6 +90,9 @@ export let SYSTEM_TYPES: {
 
     // Service Account related
     profileUrl: PropertyTypeWithMetadata;
+
+    // Notifications
+    readAt: PropertyTypeWithMetadata;
   };
   entityType: {
     hashInstance: EntityTypeWithMetadata;
@@ -149,6 +152,7 @@ export let SYSTEM_TYPES: {
 
     // Mention Notification related
     occurredInEntity: EntityTypeWithMetadata;
+    occurredInBlock: EntityTypeWithMetadata;
     occurredInComment: EntityTypeWithMetadata;
     occurredInText: EntityTypeWithMetadata;
     triggeredByUser: EntityTypeWithMetadata;
@@ -1190,6 +1194,11 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
+const readAtPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.readAt,
+  possibleValues: [{ primitiveDataType: "text" }],
+});
+
 const notificationEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
@@ -1197,6 +1206,9 @@ const notificationEntityTypeInitializer = async (
 
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
+  const readAtPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.readAt(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -1206,12 +1218,19 @@ const notificationEntityTypeInitializer = async (
       {
         propertyType: archivedPropertyType,
       },
+      {
+        propertyType: readAtPropertyType,
+      },
     ],
   })(context);
 };
 
 export const occurredInEntityLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.occurredInEntity,
+);
+
+export const occurredInBlockLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.occurredInBlock,
 );
 
 export const occurredInCommentLinkEntityTypeInitializer = entityTypeInitializer(
@@ -1240,6 +1259,12 @@ const mentionNotificationEntityTypeInitializer = async (
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
 
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
   const occurredInCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInComment(context);
 
@@ -1267,6 +1292,12 @@ const mentionNotificationEntityTypeInitializer = async (
       {
         linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1313,6 +1344,12 @@ const commentNotificationEntityTypeInitializer = async (
   const pageEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
 
+  const occurredInBlockLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.occurredInBlock(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
   const triggeredByCommentLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.triggeredByUser(context);
 
@@ -1337,6 +1374,12 @@ const commentNotificationEntityTypeInitializer = async (
       {
         linkEntityType: occurredInEntityLinkEntityType,
         destinationEntityTypes: [pageEntityType],
+        minItems: 1,
+        maxItems: 1,
+      },
+      {
+        linkEntityType: occurredInBlockLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
@@ -1425,6 +1468,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userRegistrationByInviteIsEnabledPropertyTypeInitializer,
 
     profileUrl: profileUrlPropertyTypeInitializer,
+
+    readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
@@ -1441,6 +1486,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,
     hasBio: hasBioLinkEntityTypeInitializer,
     occurredInEntity: occurredInEntityLinkEntityTypeInitializer,
+    occurredInBlock: occurredInBlockLinkEntityTypeInitializer,
     occurredInComment: occurredInCommentLinkEntityTypeInitializer,
     occurredInText: occurredInTextLinkEntityTypeInitializer,
     triggeredByUser: triggeredByUserLinkEntityTypeInitializer,
