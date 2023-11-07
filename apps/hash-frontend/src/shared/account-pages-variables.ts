@@ -32,6 +32,8 @@ export const getAccountPagesVariables = ({
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       isOfType: { outgoing: 1 },
+      // These depths are chosen to cover the following:
+      //  - the page's parent page (page -> [hasLeftEntity incoming 1] parent [hasRightEntity outgoing 1] -> page)
       hasLeftEntity: { incoming: 1, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 1 },
     },
