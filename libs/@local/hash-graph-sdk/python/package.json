@@ -5,8 +5,6 @@
   "description": "Type definitions for the type system and entity validation based on schemas",
   "scripts": {
     "build": "poetry build --no-interaction",
-    "codegen:blocking": "poetry run python ./scripts/generate_blocking.py",
-    "codegen:filter": "poetry run python ./scripts/generate_filter.py",
     "fix:black": "poetry run black graph_sdk",
     "fix:lock-files": "poetry lock --no-update",
     "fix:ruff": "poetry run ruff graph_sdk --fix",
