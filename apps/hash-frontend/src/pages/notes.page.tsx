@@ -80,7 +80,7 @@ const NotesPage: NextPageWithLayout = () => {
         /**
          * We need to obtain all revisions of the quick note entities to determine when they were created.
          *
-         * When H-1098 is implemented we can update this use currentTimeInstantTemporalAxes,
+         * When H-1098 is implemented we can update this to use currentTimeInstantTemporalAxes,
          * add the notArchivedFilter to this query, and remove the latestQuickNoteEntitiesWithCreatedAt creation below.
          */
         temporalAxes: fullDecisionTimeAxis,
