@@ -2416,24 +2416,6 @@
           }
         ]
       },
-      "DataTypeGeneralViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
-      },
       "DataTypeOwnerSubject": {
         "oneOf": [
           {
@@ -2529,11 +2511,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "generalViewer"
+                  "viewer"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/DataTypeGeneralViewerSubject"
+                "$ref": "#/components/schemas/DataTypeViewerSubject"
               }
             }
           }
@@ -2575,6 +2557,24 @@
             "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
+      },
+      "DataTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ]
       },
       "DataTypeWithMetadata": {
         "type": "object",
@@ -2663,65 +2663,8 @@
         "type": "string",
         "format": "uuid"
       },
-      "EntityGeneralEditorSubject": {
+      "EntityEditorSubject": {
         "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountId"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/AccountGroupId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "EntityGeneralViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
           {
             "type": "object",
             "required": [
@@ -2946,11 +2889,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "generalEditor"
+                  "editor"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityGeneralEditorSubject"
+                "$ref": "#/components/schemas/EntityEditorSubject"
               }
             }
           },
@@ -2964,11 +2907,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "generalViewer"
+                  "viewer"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityGeneralViewerSubject"
+                "$ref": "#/components/schemas/EntityViewerSubject"
               }
             }
           }
@@ -3010,24 +2953,6 @@
             "$ref": "#/components/schemas/LeftClosedTemporalInterval"
           }
         }
-      },
-      "EntityTypeGeneralViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
       },
       "EntityTypeMetadata": {
         "type": "object",
@@ -3158,11 +3083,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "generalViewer"
+                  "viewer"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/EntityTypeGeneralViewerSubject"
+                "$ref": "#/components/schemas/EntityTypeViewerSubject"
               }
             }
           }
@@ -3205,6 +3130,24 @@
           }
         }
       },
+      "EntityTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ]
+      },
       "EntityTypeWithMetadata": {
         "type": "object",
         "required": [
@@ -3237,6 +3180,63 @@
           "revisionId": {
             "$ref": "#/components/schemas/Timestamp"
           }
+        }
+      },
+      "EntityViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
         }
       },
       "Filter": {
@@ -4108,24 +4108,6 @@
           }
         }
       },
-      "PropertyTypeGeneralViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
-      },
       "PropertyTypeOwnerSubject": {
         "oneOf": [
           {
@@ -4222,11 +4204,11 @@
               "relation": {
                 "type": "string",
                 "enum": [
-                  "generalViewer"
+                  "viewer"
                 ]
               },
               "subject": {
-                "$ref": "#/components/schemas/PropertyTypeGeneralViewerSubject"
+                "$ref": "#/components/schemas/PropertyTypeViewerSubject"
               }
             }
           }
@@ -4268,6 +4250,24 @@
             "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
+      },
+      "PropertyTypeViewerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ]
       },
       "PropertyTypeWithMetadata": {
         "type": "object",

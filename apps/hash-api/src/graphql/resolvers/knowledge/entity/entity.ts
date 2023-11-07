@@ -493,7 +493,7 @@ export const addEntityViewerResolver: ResolverFn<
           kind: "entity",
           resourceId: entityId,
         },
-        relation: "generalViewer",
+        relation: "viewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
     },
@@ -518,7 +518,7 @@ export const removeEntityViewerResolver: ResolverFn<
           kind: "entity",
           resourceId: entityId,
         },
-        relation: "generalViewer",
+        relation: "viewer",
         subject: parseGqlAuthorizationViewerInput(viewer),
       },
     },
@@ -557,7 +557,7 @@ export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
   return relationships.map(({ resource, relation, subject }) => ({
     objectEntityId: resource.resourceId,
     relation:
-      relation === "generalEditor"
+      relation === "editor"
         ? EntityAuthorizationRelation.Editor
         : relation === "owner"
         ? EntityAuthorizationRelation.Owner

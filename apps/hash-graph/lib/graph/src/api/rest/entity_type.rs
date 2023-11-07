@@ -7,8 +7,8 @@ use std::{collections::hash_map, sync::Arc};
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
-        EntityTypeGeneralViewerSubject, EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission,
-        EntityTypeRelationAndSubject,
+        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+        EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
     AuthorizationApi, AuthorizationApiPool,
@@ -80,7 +80,7 @@ use crate::{
         schemas(
             EntityTypeWithMetadata,
 
-            EntityTypeGeneralViewerSubject,
+            EntityTypeViewerSubject,
             EntityTypeOwnerSubject,
             EntityTypePermission,
             EntityTypeRelationAndSubject,

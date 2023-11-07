@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        PropertyTypeGeneralViewerSubject, PropertyTypeId, PropertyTypeOwnerSubject,
-        PropertyTypePermission, PropertyTypeRelationAndSubject, PropertyTypeSubjectSet,
+        PropertyTypeId, PropertyTypeOwnerSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, PropertyTypeSubjectSet, PropertyTypeViewerSubject,
         WebPermission,
     },
     zanzibar::{Consistency, Zookie},
@@ -312,8 +312,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
                 relationships.push((
                     PropertyTypeId::from(ontology_id),
-                    PropertyTypeRelationAndSubject::GeneralViewer {
-                        subject: PropertyTypeGeneralViewerSubject::Public,
+                    PropertyTypeRelationAndSubject::Viewer {
+                        subject: PropertyTypeViewerSubject::Public,
+                        level: 0,
                     },
                 ));
                 if let Some(owner) = owner {
@@ -322,6 +323,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                             PropertyTypeId::from(ontology_id),
                             PropertyTypeRelationAndSubject::Owner {
                                 subject: PropertyTypeOwnerSubject::Account { id },
+                                level: 0,
                             },
                         )),
                         OntologyTypeSubject::AccountGroup { id } => relationships.push((
@@ -331,6 +333,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                                     id,
                                     set: PropertyTypeSubjectSet::Member,
                                 },
+                                level: 0,
                             },
                         )),
                     }
@@ -540,12 +543,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         let relationships = [
             (
                 PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::Owner { subject: owner },
+                PropertyTypeRelationAndSubject::Owner {
+                    subject: owner,
+                    level: 0,
+                },
             ),
             (
                 PropertyTypeId::from(ontology_id),
-                PropertyTypeRelationAndSubject::GeneralViewer {
-                    subject: PropertyTypeGeneralViewerSubject::Public,
+                PropertyTypeRelationAndSubject::Viewer {
+                    subject: PropertyTypeViewerSubject::Public,
+                    level: 0,
                 },
             ),
         ];
