@@ -93,6 +93,7 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUrl }],
         },
+        instantiators: [{ kind: "public" }],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -151,6 +152,7 @@ describe("Entity CRU", () => {
           },
         ],
       }),
+      instantiators: [{ kind: "public" }],
     });
   });
 

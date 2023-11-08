@@ -33,8 +33,10 @@ definition graph/web {
 definition graph/entity_type {
 	relation level_00_owner: graph/account | graph/account_group#member
 	relation level_00_viewer: graph/account:*
+	relation level_00_instantiator: graph/account | graph/account_group#member | graph/account:*
 
 	permission update = level_00_owner
+	permission instantiate = level_00_instantiator
 	permission view = level_00_viewer + update
 }
 

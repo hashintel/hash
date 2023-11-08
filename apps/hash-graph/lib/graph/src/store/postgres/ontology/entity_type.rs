@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
-        EntityTypeId, EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject,
-        EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
+        EntityTypeId, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject, EntityTypePermission,
+        EntityTypeRelationAndSubject, EntityTypeSubjectSet, EntityTypeViewerSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
@@ -495,6 +495,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                         level: 0,
                     },
                 ));
+
                 if let Some(owner) = owner {
                     match owner {
                         OntologyTypeSubject::Account { id } => relationships.push((
@@ -515,6 +516,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                             },
                         )),
                     }
+                } else {
+                    relationships.push((
+                        EntityTypeId::from(ontology_id),
+                        EntityTypeRelationAndSubject::Instantiator {
+                            subject: EntityTypeInstantiatorSubject::Public,
+                        },
+                    ));
                 }
             }
         }

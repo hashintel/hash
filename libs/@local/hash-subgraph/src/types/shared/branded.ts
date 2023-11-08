@@ -7,6 +7,7 @@ import { Brand } from "@local/advanced-types/brand";
 import {
   DataTypeRelationAndSubject,
   EntityRelationAndSubject,
+  EntityTypeInstantiatorSubject as EntityTypeInstantiatorSubjectGraph,
   EntityTypeRelationAndSubject,
   PropertyTypeRelationAndSubject,
   WebRelationAndSubject,
@@ -138,6 +139,8 @@ export type EntityTypeAuthorizationRelationship = {
     resourceId: VersionedUrl;
   };
 } & BrandRelationship<EntityTypeRelationAndSubject>;
+export type EntityTypeInstantiatorSubject =
+  BrandSubject<EntityTypeInstantiatorSubjectGraph>;
 
 export type PropertyTypeAuthorizationRelationship = {
   resource: {
