@@ -11,7 +11,7 @@ publish = false
 deer = { path = ".." }
 error-stack = { git = "https://github.com/hashintel/hash", rev = "0829935", default_features = false }
 serde_json = { version = "1.0.108", default_features = false, features = ['alloc'] }
-serde = { version = "1.0.191", default_features = false, features = ['alloc'] }
+serde = { version = "1.0.192", default_features = false, features = ['alloc'] }
 bitvec = { version = "1", default_features = false, features = ['alloc', 'atomic'] }
 num-traits = "0.2.17"
 
