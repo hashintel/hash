@@ -3,6 +3,9 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
   AccountId,
@@ -19,6 +22,7 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import {
   kratosIdentityApi,
@@ -29,7 +33,6 @@ import { EntityTypeMismatchError } from "../../../lib/error";
 import { createAccount, createWeb } from "../../account-permission-management";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import { systemAccountId } from "../../system-account";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   checkEntityPermission,
   createEntity,
@@ -65,30 +68,21 @@ export const getUserFromEntity: PureGraphFunction<{ entity: Entity }, User> = ({
   entity,
 }) => {
   if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.user.schema.$id
+    entity.metadata.entityTypeId !== systemTypes.entityType.user.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.user.schema.$id,
+      systemTypes.entityType.user.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const kratosIdentityId = entity.properties[
-    SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl
-  ] as string;
-
-  const shortname = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const preferredName = entity.properties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const emails = entity.properties[
-    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl
-  ] as string[];
+  const {
+    kratosIdentityId,
+    shortname,
+    preferredName,
+    email: emails,
+  } = simplifyProperties(entity.properties as UserProperties);
 
   const isAccountSignupComplete = !!shortname && !!preferredName;
 
@@ -133,7 +127,7 @@ export const getUserByShortname: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.user.schema.$id,
+            systemTypes.entityType.user.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -141,7 +135,9 @@ export const getUserByShortname: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl,
+                  extractBaseUrl(
+                    systemTypes.propertyType.shortname.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: params.shortname },
@@ -185,7 +181,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.user.schema.$id,
+            systemTypes.entityType.user.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -193,8 +189,9 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemTypes.propertyType.kratosIdentityId.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: params.kratosIdentityId },
@@ -305,19 +302,20 @@ export const createUser: ImpureGraphFunction<
   }
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl]: emails,
-    [SYSTEM_TYPES.propertyType.kratosIdentityId.metadata.recordId.baseUrl]:
+    [extractBaseUrl(systemTypes.propertyType.email.propertyTypeId)]: emails,
+    [extractBaseUrl(systemTypes.propertyType.kratosIdentityId.propertyTypeId)]:
       kratosIdentityId,
     ...(shortname
       ? {
-          [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]:
+          [extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)]:
             shortname,
         }
       : {}),
     ...(preferredName
       ? {
-          [SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl]:
-            preferredName,
+          [extractBaseUrl(
+            systemTypes.propertyType.preferredName.propertyTypeId,
+          )]: preferredName,
         }
       : {}),
   };
@@ -328,7 +326,7 @@ export const createUser: ImpureGraphFunction<
     {
       ownedById: userAccountId as OwnedById,
       properties,
-      entityTypeId: SYSTEM_TYPES.entityType.user.schema.$id,
+      entityTypeId: systemTypes.entityType.user.entityTypeId,
       entityUuid: userAccountId as string as EntityUuid,
     },
   );
@@ -451,7 +449,7 @@ export const getUserOrgMemberships: ImpureGraphFunction<
     {
       entityId: userEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.isMemberOf.schema.$id,
+        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
     },
   );
 

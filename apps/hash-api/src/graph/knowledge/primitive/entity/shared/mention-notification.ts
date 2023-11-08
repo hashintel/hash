@@ -1,5 +1,6 @@
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+
 import { ImpureGraphFunction } from "../../../../context-types";
-import { SYSTEM_TYPES } from "../../../../system-types";
 import { Block, getBlockCollectionByBlock } from "../../../system-types/block";
 import {
   Comment,
@@ -51,7 +52,7 @@ export const getTextUpdateOccurredIn: ImpureGraphFunction<
     if (
       blockCollectionEntity &&
       blockCollectionEntity.metadata.entityTypeId ===
-        SYSTEM_TYPES.entityType.page.schema.$id
+        systemTypes.entityType.page.entityTypeId
     ) {
       const pageWithComment = getPageFromEntity({
         entity: blockCollectionEntity,

@@ -5,6 +5,7 @@ import {
   FileProperties,
 } from "@local/hash-isomorphic-utils/system-types/file";
 import { Entity, extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import mime from "mime-types";
 
 import {
@@ -15,7 +16,6 @@ import { AuthenticationContext } from "../../../graphql/authentication-context";
 import { PresignedPutUpload } from "../../../storage/storage-provider";
 import { genId } from "../../../util";
 import { ImpureGraphContext, ImpureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   getLatestEntityById,
@@ -135,18 +135,27 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
 
-    const { propertyType } = SYSTEM_TYPES;
     const { bucket, endpoint, forcePathStyle, provider, region } =
       fileStorageProperties;
 
     const storageProperties: Partial<FileProperties> = {
-      [propertyType.fileStorageBucket.metadata.recordId.baseUrl]: bucket,
-      [propertyType.fileStorageEndpoint.metadata.recordId.baseUrl]: endpoint,
-      [propertyType.fileStorageForcePathStyle.metadata.recordId.baseUrl]:
-        !!forcePathStyle,
-      [propertyType.fileStorageKey.metadata.recordId.baseUrl]: key,
-      [propertyType.fileStorageProvider.metadata.recordId.baseUrl]: provider,
-      [propertyType.fileStorageRegion.metadata.recordId.baseUrl]: region,
+      [extractBaseUrl(
+        systemTypes.propertyType.fileStorageBucket.propertyTypeId,
+      )]: bucket,
+      [extractBaseUrl(
+        systemTypes.propertyType.fileStorageEndpoint.propertyTypeId,
+      )]: endpoint,
+      [extractBaseUrl(
+        systemTypes.propertyType.fileStorageForcePathStyle.propertyTypeId,
+      )]: !!forcePathStyle,
+      [extractBaseUrl(systemTypes.propertyType.fileStorageKey.propertyTypeId)]:
+        key,
+      [extractBaseUrl(
+        systemTypes.propertyType.fileStorageProvider.propertyTypeId,
+      )]: provider,
+      [extractBaseUrl(
+        systemTypes.propertyType.fileStorageRegion.propertyTypeId,
+      )]: region,
     };
 
     const properties: FileProperties = {

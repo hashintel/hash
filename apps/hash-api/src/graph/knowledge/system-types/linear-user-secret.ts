@@ -3,6 +3,9 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserSecretProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountId,
   Entity,
@@ -16,11 +19,11 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError, NotFoundError } from "../../../lib/error";
 import { VaultClient } from "../../../vault";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 
 export type LinearUserSecret = {
   connectionSourceName: string;
@@ -34,22 +37,18 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.userSecret.schema.$id
+    systemTypes.entityType.userSecret.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.userSecret.schema.$id,
+      systemTypes.entityType.userSecret.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const connectionSourceName = entity.properties[
-    SYSTEM_TYPES.propertyType.connectionSourceName.metadata.recordId.baseUrl
-  ] as string;
-
-  const vaultPath = entity.properties[
-    SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl
-  ] as string;
+  const { connectionSourceName, vaultPath } = simplifyProperties(
+    entity.properties as UserSecretProperties,
+  );
 
   return {
     connectionSourceName,
@@ -76,15 +75,15 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.userSecret.schema.$id,
+            systemTypes.entityType.userSecret.entityTypeId,
             { ignoreParents: true },
           ),
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.usesUserSecret.schema.$id,
+            systemTypes.linkEntityType.usesUserSecret.linkEntityTypeId,
             { ignoreParents: true, pathPrefix: ["incomingLinks"] },
           ),
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            systemTypes.entityType.linearIntegration.entityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["incomingLinks", "leftEntity"],
@@ -97,8 +96,9 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
                   "incomingLinks",
                   "leftEntity",
                   "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemTypes.propertyType.linearOrgId.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: linearOrgId },
@@ -152,7 +152,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
             {
               ignoreParents: true,
               pathPrefix: ["outgoingLinks"],
@@ -203,7 +203,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
     authentication,
     {
       linearOrgId: integrationEntity.properties[
-        SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
+        extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
       ] as string,
       userAccountId: extractOwnedByIdFromEntityId(
         integrationEntity.metadata.recordId.entityId,

@@ -5,11 +5,15 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   BlockDataProperties,
   ContainsProperties,
+  PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
@@ -35,7 +39,6 @@ import { generateKeyBetween } from "fractional-indexing";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   archiveEntity,
   createEntity,
@@ -72,34 +75,17 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   entity,
 }) => {
   if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.page.schema.$id
+    entity.metadata.entityTypeId !== systemTypes.entityType.page.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.page.schema.$id,
+      systemTypes.entityType.page.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const title = entity.properties[
-    SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl
-  ] as string;
-
-  const summary = entity.properties[
-    SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const fractionalIndex = entity.properties[
-    SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const icon = entity.properties[
-    SYSTEM_TYPES.propertyType.icon.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const archived = entity.properties[
-    SYSTEM_TYPES.propertyType.archived.metadata.recordId.baseUrl
-  ] as boolean | undefined;
+  const { title, summary, fractionalIndex, icon, archived } =
+    simplifyProperties(entity.properties as PageProperties);
 
   return {
     title,
@@ -150,12 +136,12 @@ export const createPage: ImpureGraphFunction<
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
   const properties: EntityPropertiesObject = {
-    [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
-    [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+    [extractBaseUrl(systemTypes.propertyType.title.propertyTypeId)]: title,
+    [extractBaseUrl(systemTypes.propertyType.fractionalIndex.propertyTypeId)]:
       fractionalIndex,
     ...(summary
       ? {
-          [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
+          [extractBaseUrl(systemTypes.propertyType.summary.propertyTypeId)]:
             summary,
         }
       : {}),
@@ -164,7 +150,7 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.page.schema.$id,
+    entityTypeId: systemTypes.entityType.page.entityTypeId,
   });
 
   const page = getPageFromEntity({ entity });
@@ -183,7 +169,7 @@ export const createPage: ImpureGraphFunction<
                   blockProtocolTypes.propertyType.textualContent.propertyTypeId,
                 )]: [],
               },
-              entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+              entityTypeId: systemTypes.entityType.text.entityTypeId,
             }),
           }),
         ];
@@ -210,7 +196,7 @@ export const getPageParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
+      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -271,7 +257,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.page.schema.$id,
+            systemTypes.entityType.page.entityTypeId,
             // ignoreParents assumes we don't have types which are children of Page which should be returned here
             { ignoreParents: true },
           ),
@@ -363,7 +349,7 @@ export const removeParentPage: ImpureGraphFunction<
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
+      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -429,7 +415,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
+      linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,
@@ -439,8 +425,9 @@ export const setPageParentPage: ImpureGraphFunction<
   if (page.fractionalIndex !== newIndex) {
     const updatedPageEntity = await updateEntityProperty(ctx, authentication, {
       entity: page.entity,
-      propertyTypeBaseUrl:
-        SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl,
+      propertyTypeBaseUrl: extractBaseUrl(
+        systemTypes.propertyType.fractionalIndex.propertyTypeId,
+      ),
       value: newIndex,
     });
 
@@ -465,7 +452,7 @@ export const getPageBlocks: ImpureGraphFunction<
     {
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        systemTypes.linkEntityType.contains.linkEntityTypeId,
     },
   )) as LinkEntity<ContainsProperties>[];
 

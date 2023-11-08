@@ -3,6 +3,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   Entity,
@@ -16,10 +17,10 @@ import {
   getRoots,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -34,17 +35,17 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   if (
     entity.metadata.entityTypeId !==
-    SYSTEM_TYPES.entityType.linearIntegration.schema.$id
+    systemTypes.entityType.linearIntegration.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+      systemTypes.entityType.linearIntegration.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
   const linearOrgId = entity.properties[
-    SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl
+    extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)
   ] as string;
 
   return {
@@ -68,7 +69,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
             equal: [{ path: ["ownedById"] }, { parameter: userAccountId }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+            systemTypes.entityType.linearIntegration.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -76,8 +77,9 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemTypes.propertyType.linearOrgId.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: linearOrgId },
@@ -130,7 +132,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -188,7 +190,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
             equal: [{ path: ["archived"] }, { parameter: false }],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.syncLinearDataWith.schema.$id,
+            systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -230,18 +232,19 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
     await updateEntity(context, authentication, {
       entity: existingLinkEntity,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        [extractBaseUrl(systemTypes.propertyType.linearTeamId.propertyTypeId)]:
           linearTeamIds,
       },
     });
   } else {
     await createLinkEntity(context, authentication, {
       ownedById: extractOwnedByIdFromEntityId(linearIntegrationEntityId),
-      linkEntityType: SYSTEM_TYPES.linkEntityType.syncLinearDataWith,
+      linkEntityTypeId:
+        systemTypes.linkEntityType.syncLinearDataWith.linkEntityTypeId,
       leftEntityId: linearIntegrationEntityId,
       rightEntityId: workspaceEntityId,
       properties: {
-        [SYSTEM_TYPES.propertyType.linearTeamId.metadata.recordId.baseUrl]:
+        [extractBaseUrl(systemTypes.propertyType.linearTeamId.propertyTypeId)]:
           linearTeamIds,
       },
     });

@@ -3,6 +3,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountGroupId,
   AccountId,
@@ -10,7 +11,10 @@ import {
   OwnedById,
   splitEntityId,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import {
   ApolloError,
   ForbiddenError,
@@ -38,10 +42,8 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
-import { getEntityTypeById } from "../../../../graph/ontology/primitive/entity-type";
 import { modifyWebAuthorizationRelationships } from "../../../../graph/ontology/primitive/util";
 import { systemAccountId } from "../../../../graph/system-account";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { genId } from "../../../../util";
 import {
   AccountGroupAuthorizationSubjectRelation,
@@ -97,14 +99,13 @@ export const createEntityResolver: ResolverFn<
     const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
       linkData;
 
-    const [leftEntity, rightEntity, linkEntityType] = await Promise.all([
+    const [leftEntity, rightEntity] = await Promise.all([
       getLatestEntityById(context, authentication, {
         entityId: leftEntityId,
       }),
       getLatestEntityById(context, authentication, {
         entityId: rightEntityId,
       }),
-      getEntityTypeById(context, authentication, { entityTypeId }),
     ]);
 
     entity = await createLinkEntity(context, authentication, {
@@ -113,7 +114,7 @@ export const createEntityResolver: ResolverFn<
       rightEntityId: rightEntity.metadata.recordId.entityId,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
-      linkEntityType,
+      linkEntityTypeId: entityTypeId,
       ownedById: ownedById ?? (user.accountId as OwnedById),
     });
   } else {
@@ -321,10 +322,10 @@ export const updateEntityResolver: ResolverFn<
   if (
     isIncompleteUser &&
     updatedProperties[
-      SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
+      extractBaseUrl(systemTypes.propertyType.shortname.propertyTypeId)
     ] &&
     updatedProperties[
-      SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
+      extractBaseUrl(systemTypes.propertyType.preferredName.propertyTypeId)
     ]
   ) {
     // Now that the user has completed signup, we can transfer the ownership of the web

@@ -14,6 +14,7 @@ import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountGroupId,
   AccountId,
@@ -24,7 +25,6 @@ import {
   EntityMetadata,
   EntityPropertiesObject,
   EntityRootType,
-  EntityTypeWithMetadata,
   EntityUuid,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
@@ -47,8 +47,6 @@ import {
 } from "../../../graphql/api-types.gen";
 import { linkedTreeFlatten } from "../../../util";
 import { ImpureGraphFunction } from "../../context-types";
-import { getEntityTypeById } from "../../ontology/primitive/entity-type";
-import { SYSTEM_TYPES } from "../../system-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
@@ -338,17 +336,10 @@ export const createEntityWithLinks: ImpureGraphFunction<
         if (!parentEntity) {
           throw new ApolloError("Could not find parent entity");
         }
-        const linkEntityType = await getEntityTypeById(
-          context,
-          authentication,
-          {
-            entityTypeId: link.meta.linkEntityTypeId,
-          },
-        );
 
         // links are created as an outgoing link from the parent entity to the children.
         await createLinkEntity(context, authentication, {
-          linkEntityType,
+          linkEntityTypeId: link.meta.linkEntityTypeId,
           leftEntityId: parentEntity.entity.metadata.recordId.entityId,
           rightEntityId: entity.metadata.recordId.entityId,
           leftToRightOrder: link.meta.index ?? undefined,
@@ -509,7 +500,7 @@ export const updateEntityProperty: ImpureGraphFunction<
 export const getEntityIncomingLinks: ImpureGraphFunction<
   {
     entityId: EntityId;
-    linkEntityType?: EntityTypeWithMetadata;
+    linkEntityTypeId?: VersionedUrl;
   },
   Promise<LinkEntity[]>
 > = async (context, authentication, params) => {
@@ -538,12 +529,12 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     ],
   };
 
-  if (params.linkEntityType) {
+  if (params.linkEntityTypeId) {
     filter.all.push({
       equal: [
         { path: ["type", "versionedUrl"] },
         {
-          parameter: params.linkEntityType.schema.$id,
+          parameter: params.linkEntityTypeId,
         },
       ],
     });
@@ -783,7 +774,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
   const { entityId } = entity.metadata.recordId;
 
   const isAccountGroup =
-    entity.metadata.entityTypeId === SYSTEM_TYPES.entityType.org.schema.$id;
+    entity.metadata.entityTypeId === systemTypes.entityType.org.entityTypeId;
 
   const isPublicUser = actorId === publicUserAccountId;
 

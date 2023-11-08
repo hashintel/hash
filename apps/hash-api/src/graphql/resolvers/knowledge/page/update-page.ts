@@ -1,9 +1,11 @@
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+
 import { updateEntityProperties } from "../../../../graph/knowledge/primitive/entity";
 import {
   getPageById,
   getPageFromEntity,
 } from "../../../../graph/knowledge/system-types/page";
-import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { MutationUpdatePageArgs, ResolverFn } from "../../../api-types.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
@@ -30,10 +32,11 @@ export const updatePageResolver: ResolverFn<
       entity: page.entity,
       updatedProperties: Object.entries(updatedProperties).map(
         ([propertyName, value]) => ({
-          propertyTypeBaseUrl:
-            SYSTEM_TYPES.propertyType[
+          propertyTypeBaseUrl: extractBaseUrl(
+            systemTypes.propertyType[
               propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-            ].metadata.recordId.baseUrl,
+            ].propertyTypeId,
+          ),
           value: value ?? undefined,
         }),
       ),

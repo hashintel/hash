@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { LinearClient } from "@linear/sdk";
 import { apiOrigin } from "@local/hash-graphql-shared/environment";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   AccountId,
   Entity,
@@ -12,6 +13,7 @@ import {
   OwnedById,
   Uuid,
 } from "@local/hash-subgraph";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { RequestHandler } from "express";
 
 import { createEntity } from "../../graph/knowledge/primitive/entity";
@@ -22,7 +24,6 @@ import {
   LinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
 import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "../../graph/system-types";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;
@@ -214,9 +215,9 @@ export const oAuthLinearCallback: RequestHandler<
     });
 
     const secretMetadata = {
-      [SYSTEM_TYPES.propertyType.expiredAt.metadata.recordId.baseUrl]:
+      [extractBaseUrl(systemTypes.propertyType.expiredAt.propertyTypeId)]:
         expiredAt.toISOString(),
-      [SYSTEM_TYPES.propertyType.vaultPath.metadata.recordId.baseUrl]:
+      [extractBaseUrl(systemTypes.propertyType.vaultPath.propertyTypeId)]:
         vaultPath,
     };
 
@@ -237,13 +238,13 @@ export const oAuthLinearCallback: RequestHandler<
       linearIntegration = existingLinearIntegration;
     } else {
       const userSecretEntity = await createEntity(req.context, authentication, {
-        entityTypeId: SYSTEM_TYPES.entityType.userSecret.schema.$id,
+        entityTypeId: systemTypes.entityType.userSecret.entityTypeId,
         ownedById: ownedById as Uuid as OwnedById,
         properties: secretMetadata,
       });
 
       const linearIntegrationProperties = {
-        [SYSTEM_TYPES.propertyType.linearOrgId.metadata.recordId.baseUrl]:
+        [extractBaseUrl(systemTypes.propertyType.linearOrgId.propertyTypeId)]:
           linearOrgId,
       };
 
@@ -251,7 +252,7 @@ export const oAuthLinearCallback: RequestHandler<
         req.context,
         authentication,
         {
-          entityTypeId: SYSTEM_TYPES.entityType.linearIntegration.schema.$id,
+          entityTypeId: systemTypes.entityType.linearIntegration.entityTypeId,
           ownedById: ownedById as Uuid as OwnedById,
           properties: linearIntegrationProperties,
         },
@@ -259,7 +260,8 @@ export const oAuthLinearCallback: RequestHandler<
 
       await createLinkEntity(req.context, authentication, {
         ownedById: ownedById as Uuid as OwnedById,
-        linkEntityType: SYSTEM_TYPES.linkEntityType.usesUserSecret,
+        linkEntityTypeId:
+          systemTypes.linkEntityType.usesUserSecret.linkEntityTypeId,
         leftEntityId: linearIntegrationEntity.metadata.recordId.entityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
         properties: {},

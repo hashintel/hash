@@ -21,10 +21,12 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -67,7 +69,7 @@ describe("Page", () => {
       componentId: "text",
       blockData: await createEntity(graphContext, authentication, {
         ownedById: testUser.accountId as OwnedById,
-        entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+        entityTypeId: systemTypes.entityType.text.entityTypeId,
         properties: {
           [extractBaseUrl(
             blockProtocolTypes.propertyType.textualContent.propertyTypeId,

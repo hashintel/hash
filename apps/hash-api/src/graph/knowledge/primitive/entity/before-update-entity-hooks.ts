@@ -1,9 +1,10 @@
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { AccountId } from "@local/hash-subgraph";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { ImpureGraphContext } from "../../../context-types";
-import { SYSTEM_TYPES } from "../../../system-types";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
@@ -62,9 +63,11 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
 
   const currentShortname = user.shortname;
 
-  const updatedShortname = updatedProperties[
-    SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl
-  ] as string | undefined;
+  const {
+    email: updatedEmails,
+    shortname: updatedShortname,
+    preferredName: updatedPreferredName,
+  } = simplifyProperties(updatedProperties as UserProperties);
 
   if (currentShortname !== updatedShortname) {
     if (!updatedShortname) {
@@ -80,10 +83,6 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
 
   const currentPreferredName = user.preferredName;
 
-  const updatedPreferredName = updatedProperties[
-    SYSTEM_TYPES.propertyType.preferredName.metadata.recordId.baseUrl
-  ] as string | undefined;
-
   if (currentPreferredName !== updatedPreferredName) {
     if (!updatedPreferredName) {
       throw new ApolloError("Cannot unset preferred name");
@@ -91,10 +90,6 @@ const userEntityHookCallback: UpdateEntityHookCallback = async ({
   }
 
   const currentEmails = user.emails;
-
-  const updatedEmails = updatedProperties[
-    SYSTEM_TYPES.propertyType.email.metadata.recordId.baseUrl
-  ] as string[];
 
   if (
     [...currentEmails].sort().join().toLowerCase() !==

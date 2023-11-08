@@ -4,6 +4,7 @@ import {
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -23,7 +24,6 @@ import { Express } from "express";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import { CacheAdapter } from "../cache";
 import { ImpureGraphContext } from "../graph/context-types";
-import { SYSTEM_TYPES } from "../graph/system-types";
 import { AuthenticationContext } from "../graphql/authentication-context";
 import { getAwsS3Config } from "../lib/aws-config";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
@@ -104,7 +104,7 @@ export const setupStorageProviders = (
 };
 
 const isFileEntity = (entity: Entity): entity is Entity<FileProperties> =>
-  SYSTEM_TYPES.propertyType.fileStorageKey.metadata.recordId.baseUrl in
+  extractBaseUrl(systemTypes.propertyType.fileStorageKey.propertyTypeId) in
     entity.properties &&
   extractBaseUrl(fileUrlPropertyTypeUrl) in entity.properties;
 
@@ -134,8 +134,9 @@ const getFileEntity = async (
               {
                 path: [
                   "properties",
-                  SYSTEM_TYPES.propertyType.fileStorageKey.metadata.recordId
-                    .baseUrl,
+                  extractBaseUrl(
+                    systemTypes.propertyType.fileStorageKey.propertyTypeId,
+                  ),
                 ],
               },
               { parameter: key },

@@ -1,11 +1,15 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
-import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import {
+  blockProtocolTypes,
+  systemTypes,
+} from "@local/hash-isomorphic-utils/ontology-types";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { CommentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { AccountGroupId, Entity, EntityId } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import {
   createEntity,
   CreateEntityParams,
@@ -40,22 +44,18 @@ export const getCommentFromEntity: PureGraphFunction<
   Comment
 > = ({ entity }) => {
   if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.comment.schema.$id
+    entity.metadata.entityTypeId !== systemTypes.entityType.comment.entityTypeId
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.comment.schema.$id,
+      systemTypes.entityType.comment.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
 
-  const resolvedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUrl
-  ] as string | undefined;
-
-  const deletedAt = entity.properties[
-    SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl
-  ] as string | undefined;
+  const { resolvedAt, deletedAt } = simplifyProperties(
+    entity.properties as CommentProperties,
+  );
 
   return {
     resolvedAt,
@@ -91,7 +91,8 @@ export const getCommentText: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const hasTextLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
+    linkEntityTypeVersionedUrl:
+      systemTypes.linkEntityType.hasText.linkEntityTypeId,
   });
 
   const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -142,23 +143,24 @@ export const createComment: ImpureGraphFunction<
         blockProtocolTypes.propertyType.textualContent.propertyTypeId,
       )]: textualContent,
     },
-    entityTypeId: SYSTEM_TYPES.entityType.text.schema.$id,
+    entityTypeId: systemTypes.entityType.text.entityTypeId,
   });
 
   const commentEntity = await createEntity(ctx, authentication, {
     ownedById,
     owner: author.accountId, // the author has ownership permissions (owner), regardless of which web the comment belongs to (ownedById)
     properties: {},
-    entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
+    entityTypeId: systemTypes.entityType.comment.entityTypeId,
     outgoingLinks: [
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
+        linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
       },
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.authoredBy,
+        linkEntityTypeId:
+          systemTypes.linkEntityType.authoredBy.linkEntityTypeId,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
@@ -169,7 +171,7 @@ export const createComment: ImpureGraphFunction<
        * `parent` nad `author` link entities.
        */
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.hasText,
+        linkEntityTypeId: systemTypes.linkEntityType.hasText.linkEntityTypeId,
         rightEntityId: textEntity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
@@ -261,8 +263,9 @@ export const deleteComment: ImpureGraphFunction<
       entity: comment.entity,
       updatedProperties: [
         {
-          propertyTypeBaseUrl:
-            SYSTEM_TYPES.propertyType.deletedAt.metadata.recordId.baseUrl,
+          propertyTypeBaseUrl: extractBaseUrl(
+            systemTypes.propertyType.deletedAt.propertyTypeId,
+          ),
           value: new Date().toISOString(),
         },
       ],
@@ -284,7 +287,7 @@ export const getCommentParent: ImpureGraphFunction<
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
+      systemTypes.linkEntityType.hasParent.linkEntityTypeId,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -318,7 +321,7 @@ export const getCommentAuthor: ImpureGraphFunction<
   const authorLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
     linkEntityTypeVersionedUrl:
-      SYSTEM_TYPES.linkEntityType.authoredBy.schema.$id,
+      systemTypes.linkEntityType.authoredBy.linkEntityTypeId,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -353,7 +356,7 @@ export const getCommentReplies: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const replyLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
+    linkEntityTypeId: systemTypes.linkEntityType.hasParent.linkEntityTypeId,
   });
 
   return Promise.all(
@@ -383,8 +386,9 @@ export const resolveComment: ImpureGraphFunction<
     entity: comment.entity,
     updatedProperties: [
       {
-        propertyTypeBaseUrl:
-          SYSTEM_TYPES.propertyType.resolvedAt.metadata.recordId.baseUrl,
+        propertyTypeBaseUrl: extractBaseUrl(
+          systemTypes.propertyType.resolvedAt.propertyTypeId,
+        ),
         value: new Date().toISOString(),
       },
     ],
@@ -408,7 +412,7 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
 
   if (
     parentEntity.metadata.entityTypeId ===
-    SYSTEM_TYPES.entityType.block.schema.$id
+    systemTypes.entityType.block.entityTypeId
   ) {
     return getBlockFromEntity({ entity: parentEntity });
   } else {

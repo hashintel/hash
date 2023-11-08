@@ -4,6 +4,7 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { TextProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -15,7 +16,6 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { EntityTypeMismatchError } from "../../../lib/error";
 import { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import { getEntities, getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
 import { Block, getBlockById } from "./block";
@@ -31,7 +31,7 @@ export type Text = {
 export const isEntityTextEntity = (
   entity: Entity,
 ): entity is Entity<TextProperties> =>
-  entity.metadata.entityTypeId === SYSTEM_TYPES.entityType.text.schema.$id;
+  entity.metadata.entityTypeId === systemTypes.entityType.text.entityTypeId;
 
 export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
   entity,
@@ -39,7 +39,7 @@ export const getTextFromEntity: PureGraphFunction<{ entity: Entity }, Text> = ({
   if (!isEntityTextEntity(entity)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.text.schema.$id,
+      systemTypes.entityType.text.entityTypeId,
       entity.metadata.entityTypeId,
     );
   }
@@ -87,7 +87,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
+              systemTypes.linkEntityType.hasData.linkEntityTypeId,
               { ignoreParents: true },
             ),
             {
@@ -107,7 +107,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
+              systemTypes.linkEntityType.hasData.linkEntityTypeId,
               { ignoreParents: true },
             ),
             {
@@ -137,7 +137,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+            systemTypes.linkEntityType.contains.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -164,7 +164,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.page.schema.$id,
+            systemTypes.entityType.page.entityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -223,7 +223,7 @@ export const getCommentByText: ImpureGraphFunction<
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.linkEntityType.hasText.schema.$id,
+            systemTypes.linkEntityType.hasText.linkEntityTypeId,
             { ignoreParents: true },
           ),
           {
@@ -233,7 +233,7 @@ export const getCommentByText: ImpureGraphFunction<
             ],
           },
           generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.comment.schema.$id,
+            systemTypes.entityType.comment.entityTypeId,
             { ignoreParents: true, pathPrefix: ["leftEntity"] },
           ),
         ],

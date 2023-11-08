@@ -1,4 +1,5 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   BlockDataProperties,
@@ -10,11 +11,13 @@ import {
   EntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
 import { UserInputError } from "apollo-server-errors";
 
 import { ImpureGraphFunction } from "../../context-types";
-import { SYSTEM_TYPES } from "../../system-types";
 import { archiveEntity, getEntityOutgoingLinks } from "../primitive/entity";
 import {
   createLinkEntity,
@@ -37,7 +40,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     {
       entityId: blockCollectionEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        systemTypes.linkEntityType.contains.linkEntityTypeId,
     },
   )) as LinkEntity<ContainsProperties>[];
 
@@ -103,8 +106,9 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     const lastIndex =
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       existingBlocks[0]?.linkEntity.properties[
-        SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId
-          .baseUrl as keyof LinkProperties
+        extractBaseUrl(
+          systemTypes.propertyType.numericIndex.propertyTypeId,
+        ) as keyof LinkProperties
       ] ?? existingBlocks.length - 1;
     index = lastIndex + 1;
   }
@@ -112,14 +116,15 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
+    linkEntityTypeId: systemTypes.linkEntityType.contains.linkEntityTypeId,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(
       blockCollectionEntity.metadata.recordId.entityId,
     ),
     properties: {
       ...canvasPosition,
-      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]: index,
+      [extractBaseUrl(systemTypes.propertyType.numericIndex.propertyTypeId)]:
+        index,
     },
   });
 };
@@ -150,7 +155,8 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
 
   const contentLinks = (await getEntityOutgoingLinks(ctx, authentication, {
     entityId: blockCollectionEntity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+    linkEntityTypeVersionedUrl:
+      systemTypes.linkEntityType.contains.linkEntityTypeId,
   })) as LinkEntity<ContainsProperties>[];
 
   if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -178,7 +184,7 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
     properties: {
       ...linkEntity.properties,
       ...canvasPosition,
-      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]:
+      [extractBaseUrl(systemTypes.propertyType.numericIndex.propertyTypeId)]:
         newPosition,
     },
     linkEntity,
@@ -213,7 +219,7 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     {
       entityId: blockCollectionEntity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        systemTypes.linkEntityType.contains.linkEntityTypeId,
     },
   )) as LinkEntity<ContainsProperties>[];
 
