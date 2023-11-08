@@ -1,5 +1,5 @@
 ---
-description: An introduction to HASH
+title: An introduction to HASH
 ---
 
 # Introduction
