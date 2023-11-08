@@ -118,7 +118,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }
 
     try {
-      await createUntitledPage(getLastIndex(treeItems));
+      await createUntitledPage(getLastIndex(treeItems), "document");
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);

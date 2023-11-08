@@ -48,11 +48,17 @@ export let SYSTEM_TYPES: {
     archived: PropertyTypeWithMetadata;
     summary: PropertyTypeWithMetadata;
     title: PropertyTypeWithMetadata;
-    fractionalIndex: PropertyTypeWithMetadata;
     icon: PropertyTypeWithMetadata;
 
-    // Contains related
-    numericIndex: PropertyTypeWithMetadata;
+    // Indexed positioning
+    fractionalIndex: PropertyTypeWithMetadata;
+
+    // Spatial positioning
+    xPosition: PropertyTypeWithMetadata;
+    yPosition: PropertyTypeWithMetadata;
+    heightInPixels: PropertyTypeWithMetadata;
+    widthInPixels: PropertyTypeWithMetadata;
+    rotationInRads: PropertyTypeWithMetadata;
 
     // Timestamps
     resolvedAt: PropertyTypeWithMetadata;
@@ -102,6 +108,8 @@ export let SYSTEM_TYPES: {
     profileBio: EntityTypeWithMetadata;
     comment: EntityTypeWithMetadata;
     page: EntityTypeWithMetadata;
+    document: EntityTypeWithMetadata;
+    canvas: EntityTypeWithMetadata;
     quickNote: EntityTypeWithMetadata;
     text: EntityTypeWithMetadata;
     userSecret: EntityTypeWithMetadata;
@@ -131,7 +139,8 @@ export let SYSTEM_TYPES: {
     hasData: EntityTypeWithMetadata;
 
     // Block Collection related
-    contains: EntityTypeWithMetadata;
+    hasIndexedContent: EntityTypeWithMetadata;
+    hasSpatiallyPositionedContent: EntityTypeWithMetadata;
 
     // Page-related
     hasParent: EntityTypeWithMetadata;
@@ -860,32 +869,101 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const numericIndexPropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.numericIndex,
+const xPositionPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.xPosition,
   possibleValues: [{ primitiveDataType: "number" }],
   webShortname: "hash",
 });
 
-/**
- * @todo this 'contains' link type is used to link a page to blocks it contains
- *     for both canvas and document mode. We probably want to split these out into two links,
- *     and maybe even split a Page into two types. @see https://app.asana.com/0/1204355839255041/1204504514595841/f
- */
-const containsLinkEntityTypeInitializer = async (
+const yPositionPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.yPosition,
+  possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
+});
+
+const heightInPixelsPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.heightInPixels,
+  possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
+});
+
+const widthInPixelsPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.widthInPixels,
+  possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
+});
+
+const rotationInRadsPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.rotationInRads,
+  possibleValues: [{ primitiveDataType: "number" }],
+  webShortname: "hash",
+});
+
+const hasIndexedContentLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const numericIndexPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.numericIndex(context);
+  const fractionalIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...systemTypes.linkEntityType.contains,
+    ...systemTypes.linkEntityType.hasIndexedContent,
     properties: [
       {
-        propertyType: numericIndexPropertyType,
+        propertyType: fractionalIndexPropertyType,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
+const hasSpatiallyPositionedContentLinkEntityTypeInitializer = async (
+  context: ImpureGraphContext,
+) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const xPositionPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.xPosition(context);
+
+  const yPositionPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.yPosition(context);
+
+  const heightInPixelsPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.heightInPixels(context);
+
+  const widthInPixelsPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.widthInPixels(context);
+
+  const rotationInRadsPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.rotationInRads(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.linkEntityType.hasSpatiallyPositionedContent,
+    properties: [
+      {
+        propertyType: xPositionPropertyType,
+        required: true,
+      },
+      {
+        propertyType: yPositionPropertyType,
+        required: true,
+      },
+      {
+        propertyType: heightInPixelsPropertyType,
+        required: true,
+      },
+      {
+        propertyType: widthInPixelsPropertyType,
+        required: true,
+      },
+      {
+        propertyType: rotationInRadsPropertyType,
+        required: true,
       },
     ],
     webShortname: "hash",
@@ -895,26 +973,8 @@ const containsLinkEntityTypeInitializer = async (
 const blockCollectionEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-
-  const containsLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.contains(context);
-
-  const blockEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
   return entityTypeInitializer({
     ...systemTypes.entityType.blockCollection,
-    outgoingLinks: [
-      {
-        linkEntityType: containsLinkEntityType,
-        destinationEntityTypes: [blockEntityType],
-        minItems: 1,
-        ordered: true,
-      },
-    ],
     webShortname: "hash",
   })(context);
 };
@@ -928,12 +988,25 @@ const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const archivedPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
 
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
+  const hasIndexedContentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasIndexedContent(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     ...systemTypes.entityType.quickNote,
     allOf: [blockCollectionEntityType.schema.$id],
     properties: [{ propertyType: archivedPropertyType }],
+    outgoingLinks: [
+      {
+        linkEntityType: hasIndexedContentLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
+        minItems: 1,
+      },
+    ],
     webShortname: "hash",
   })(context);
 };
@@ -946,21 +1019,6 @@ const hasParentLinkEntityTypeInitializer = entityTypeInitializer({
 const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const summaryPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.summary(context);
-
-  const archivedPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
-
-  const titlePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
-
-  const fractionalIndexPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
-
-  const iconPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
-
   const hasParentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
@@ -972,30 +1030,69 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   return entityTypeInitializer({
     ...systemTypes.entityType.page,
     allOf: [blockCollectionEntityType.schema.$id],
-    properties: [
-      {
-        propertyType: summaryPropertyType,
-      },
-      {
-        propertyType: archivedPropertyType,
-      },
-      {
-        propertyType: iconPropertyType,
-      },
-      {
-        propertyType: titlePropertyType,
-        required: true,
-      },
-      {
-        propertyType: fractionalIndexPropertyType,
-        required: true,
-      },
-    ],
     outgoingLinks: [
       {
         linkEntityType: hasParentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
+const documentEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const pageEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const hasIndexedContentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasIndexedContent(context);
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.page,
+    allOf: [pageEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: hasIndexedContentLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
+        minItems: 1,
+      },
+    ],
+    webShortname: "hash",
+  })(context);
+};
+
+const canvasEntityTypeInitializer = async (context: ImpureGraphContext) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const pageEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.page(context);
+
+  const hasSpatiallyPositionedContentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasSpatiallyPositionedContent(
+      context,
+    );
+
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...systemTypes.entityType.page,
+    allOf: [pageEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: hasSpatiallyPositionedContentLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
+        minItems: 1,
       },
     ],
     webShortname: "hash",
@@ -1008,11 +1105,24 @@ const profileBioEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const blockCollectionEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
 
+  const blockEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.entityType.block(context);
+
+  const hasIndexedContentLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasIndexedContent(context);
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
     ...systemTypes.entityType.profileBio,
     allOf: [blockCollectionEntityType.schema.$id],
+    outgoingLinks: [
+      {
+        linkEntityType: hasIndexedContentLinkEntityType,
+        destinationEntityTypes: [blockEntityType],
+        minItems: 1,
+      },
+    ],
     webShortname: "hash",
   })(context);
 };
@@ -1475,10 +1585,15 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     summary: summaryPropertyTypeInitializer,
     archived: archivedPropertyTypeInitializer,
     title: titlePropertyTypeInitializer,
-    fractionalIndex: fractionalIndexPropertyTypeInitializer,
     icon: iconPropertyTypeInitializer,
 
-    numericIndex: numericIndexPropertyTypeInitializer,
+    fractionalIndex: fractionalIndexPropertyTypeInitializer,
+
+    xPosition: xPositionPropertyTypeInitializer,
+    yPosition: yPositionPropertyTypeInitializer,
+    heightInPixels: heightInPixelsPropertyTypeInitializer,
+    widthInPixels: widthInPixelsPropertyTypeInitializer,
+    rotationInRads: rotationInRadsPropertyTypeInitializer,
 
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,
@@ -1504,7 +1619,9 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
   linkEntityType: {
     isMemberOf: orgMembershipLinkEntityTypeInitializer,
     hasData: hasDataLinkEntityTypeInitializer,
-    contains: containsLinkEntityTypeInitializer,
+    hasIndexedContent: hasIndexedContentLinkEntityTypeInitializer,
+    hasSpatiallyPositionedContent:
+      hasSpatiallyPositionedContentLinkEntityTypeInitializer,
     hasParent: hasParentLinkEntityTypeInitializer,
     hasAvatar: hasAvatarLinkEntityTypeInitializer,
     hasCoverImage: hasCoverImageLinkEntityTypeInitializer,
@@ -1532,6 +1649,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     blockCollection: blockCollectionEntityTypeInitializer,
     profileBio: profileBioEntityTypeInitializer,
     page: pageEntityTypeInitializer,
+    document: documentEntityTypeInitializer,
+    canvas: canvasEntityTypeInitializer,
     quickNote: quickNoteEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
     text: textEntityTypeInitializer,

@@ -7,10 +7,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
-  BlockDataProperties,
-  ContainsProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -142,10 +139,11 @@ export const createPage: ImpureGraphFunction<
     summary?: string;
     prevFractionalIndex?: string;
     initialBlocks?: Block[];
+    type: "canvas" | "document";
   },
   Promise<Page>
 > = async (ctx, authentication, params): Promise<Page> => {
-  const { title, summary, prevFractionalIndex, ownedById } = params;
+  const { title, type, summary, prevFractionalIndex, ownedById } = params;
 
   const fractionalIndex = generateKeyBetween(prevFractionalIndex ?? null, null);
 
@@ -164,7 +162,7 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.page.schema.$id,
+    entityTypeId: SYSTEM_TYPES.entityType.document.schema.$id,
   });
 
   const page = getPageFromEntity({ entity });
@@ -192,6 +190,28 @@ export const createPage: ImpureGraphFunction<
     await addBlockToBlockCollection(ctx, authentication, {
       blockCollectionEntity: page.entity,
       block,
+      position:
+        type === "document"
+          ? { fractionalIndex: generateKeyBetween(null, null) }
+          : {
+              canvasPosition: {
+                [extractBaseUrl(
+                  SYSTEM_TYPES.propertyType.xPosition.schema.$id,
+                )]: 0,
+                [extractBaseUrl(
+                  SYSTEM_TYPES.propertyType.yPosition.schema.$id,
+                )]: 0,
+                [extractBaseUrl(
+                  SYSTEM_TYPES.propertyType.widthInPixels.schema.$id,
+                )]: 500,
+                [extractBaseUrl(
+                  SYSTEM_TYPES.propertyType.heightInPixels.schema.$id,
+                )]: 200,
+                [extractBaseUrl(
+                  SYSTEM_TYPES.propertyType.rotationInRads.schema.$id,
+                )]: 0,
+              },
+            },
     });
   }
 
@@ -456,22 +476,29 @@ export const setPageParentPage: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageBlocks: ImpureGraphFunction<
-  { pageEntityId: EntityId },
+  { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
-> = async (ctx, authentication, { pageEntityId }) => {
+> = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
       entityId: pageEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        type === "document"
+          ? SYSTEM_TYPES.linkEntityType.hasIndexedContent.schema.$id
+          : SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent.schema
+              .$id,
     },
-  )) as LinkEntity<ContainsProperties>[];
+  )) as LinkEntity<{}>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
       .sort((a, b) => {
+        if (type === "canvas") {
+          return 0;
+        }
+
         const { numericIndex: aNumericIndex } = simplifyProperties(
           a.properties,
         );
@@ -504,11 +531,12 @@ export const getPageBlocks: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
-  { pageEntityId: EntityId },
+  { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<Comment[]>
-> = async (ctx, authentication, { pageEntityId }) => {
+> = async (ctx, authentication, { pageEntityId, type }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
+    type,
   });
 
   const comments = await Promise.all(

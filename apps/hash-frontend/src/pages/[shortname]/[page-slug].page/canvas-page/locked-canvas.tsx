@@ -1,4 +1,4 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { CanvasProperties } from "@local/hash-graphql-shared/graphql/types";
 import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -48,7 +48,7 @@ export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
                 height,
               "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
                 rotation,
-            } = linkEntity.properties as CanvasPosition;
+            } = linkEntity.properties as CanvasProperties;
 
             const matrix = Matrix2d.Compose(
               Matrix2d.Translate(x, y),

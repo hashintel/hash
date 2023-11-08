@@ -17,9 +17,18 @@ export const getAccountPagesVariables = ({
   query: {
     filter: {
       all: [
+        /**
+         * We specify each of these page types individually rather than Page, which they both inherit from,
+         * because checking against types involving inheritance is currently slow.
+         * Once H-392 is implemented we can replace it with a single check against 'page', and don't ignore parents.
+         * @todo update this once H-392 is implemented
+         */
         generateVersionedUrlMatchingFilter(
-          systemTypes.entityType.page.entityTypeId,
-          // ignoreParents assumes we don't have types which are children of Page which should be returned here
+          systemTypes.entityType.document.entityTypeId,
+          { ignoreParents: true },
+        ),
+        generateVersionedUrlMatchingFilter(
+          systemTypes.entityType.canvas.entityTypeId,
           { ignoreParents: true },
         ),
         {

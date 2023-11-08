@@ -37,7 +37,7 @@ import {
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
@@ -229,7 +229,7 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !entityTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
     await context.graphApi.loadExternalEntityType(authentication.actorId, {
       entityTypeId,
     });

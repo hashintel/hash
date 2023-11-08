@@ -38,23 +38,20 @@ export type TextToken =
     };
 
 const fakeXPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/x-position/";
+  "https://blockprotocol.org/@hash/types/property-type/x-position/" as const;
 const fakeYPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/y-position/";
+  "https://blockprotocol.org/@hash/types/property-type/y-position/" as const;
 const fakeWidthPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/";
+  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/" as const;
 const fakeHeightPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/";
+  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/" as const;
 const fakeRotationPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/";
+  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/" as const;
 
 /**
- * Temporary type for canvas position properties
- * In future, we may want to move this either to be:
- * 1. Hosted on Block Protocol
- * 2. Defined as a system type in HASH
+ * @todo generate CanvasProperties fr
  */
-export type CanvasPosition = {
+export type CanvasProperties = {
   [fakeXPropertyBaseUrl]: number;
   [fakeYPropertyBaseUrl]: number;
   [fakeWidthPropertyBaseUrl]: number;

@@ -1,4 +1,4 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { CanvasProperties } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -34,7 +34,7 @@ export type BlockShape = TLBaseShape<
     w: number;
     h: number;
     opacity: TLOpacityType;
-    indexPosition: number;
+    linkEntityId: EntityId;
     pageEntityId: EntityId;
     blockLoaderProps: JsonSerializableBlockLoaderProps;
   }
@@ -42,13 +42,13 @@ export type BlockShape = TLBaseShape<
 
 // Persist a block's new position in the database
 const persistBlockPosition = ({
-  blockIndexPosition,
+  linkEntityId,
   pageEntityId,
   canvasPosition,
 }: {
-  blockIndexPosition: number;
+  linkEntityId: EntityId;
   pageEntityId: EntityId;
-  canvasPosition: CanvasPosition;
+  canvasPosition: CanvasProperties;
 }) => {
   void apolloClient.mutate<
     UpdateBlockCollectionContentsMutation,
@@ -57,9 +57,8 @@ const persistBlockPosition = ({
     variables: {
       actions: {
         moveBlock: {
-          currentPosition: blockIndexPosition,
-          newPosition: blockIndexPosition,
-          canvasPosition,
+          linkEntityId,
+          position: { canvasPosition },
         },
       },
       entityId: pageEntityId,
@@ -83,7 +82,7 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   // gather a shape's positional information into a flat object
   // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
-  static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
+  static shapeToCanvasPosition = (shape: BlockShape): CanvasProperties => {
     return {
       "https://blockprotocol.org/@hash/types/property-type/x-position/":
         shape.x,
@@ -100,7 +99,7 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   static persistShapePosition = (shape: BlockShape) => {
     persistBlockPosition({
-      blockIndexPosition: shape.props.indexPosition,
+      linkEntityId: shape.props.linkEntityId,
       pageEntityId: shape.props.pageEntityId,
       canvasPosition: BlockUtil.shapeToCanvasPosition(shape),
     });
@@ -132,11 +131,11 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
        */
       blockLoaderProps: {} as JsonSerializableBlockLoaderProps,
       /**
-       * This is intentionally a dummy string that should never be used,
-       * because we supply it in when creating a BlockShape
+       * These are intentionally dummy strings that should never be used,
+       * because we supply them when creating a BlockShape
        */
       pageEntityId: "placeholder-123" as EntityId,
-      indexPosition: 0,
+      linkEntityId: "placeholder-123" as EntityId,
     };
   }
 

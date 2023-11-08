@@ -1,9 +1,6 @@
-import {
-  faCheck,
-  faFile,
-  faPencilRuler,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { Entity, EntityTypeWithMetadata } from "@local/hash-subgraph";
 import {
   Box,
@@ -12,8 +9,6 @@ import {
   Switch,
   SxProps,
   Theme,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
@@ -133,17 +128,15 @@ export const TopContextBar = ({
 
   const { replace, query } = useRouter();
 
+  const isCanvasPage =
+    item &&
+    "entityTypeId" in item &&
+    item.entityTypeId === systemTypes.entityType.canvas.entityTypeId;
+
   // @todo make 'additional buttons' a prop and move this to the page page
-  const setPageMode = (type: "canvas" | "document", lockCanvas?: boolean) => {
-    const newQuery: { canvas?: true; locked?: true } = {};
-    if (type === "canvas") {
-      newQuery.canvas = true;
-      if (lockCanvas) {
-        newQuery.locked = true;
-      }
-    }
-    const { canvas: _, locked: __, ...otherParams } = query;
-    void replace({ query: { ...otherParams, ...newQuery } }, undefined, {
+  const setCanvasLockState = (shouldLock: boolean) => {
+    const { locked: __, ...otherParams } = query;
+    void replace({ query: { ...otherParams, locked: shouldLock } }, undefined, {
       shallow: true,
     });
   };
@@ -156,11 +149,6 @@ export const TopContextBar = ({
 
     return isItemArchived(item);
   }, [item]);
-
-  const isBlockPage = useMemo(
-    () => item && !isItemEntityType(item) && isEntityPageEntity(item),
-    [item],
-  );
 
   return (
     <>
@@ -204,7 +192,7 @@ export const TopContextBar = ({
               {actionMenuItems}
             </ContextBarActionsDropdown>
           ) : null}
-          {isBlockPage && query.canvas && (
+          {isCanvasPage && (
             <FormControlLabel
               labelPlacement="start"
               slotProps={{
@@ -216,41 +204,13 @@ export const TopContextBar = ({
               control={
                 <Switch
                   checked={!!query.locked}
-                  onChange={() => setPageMode("canvas", !query.locked)}
+                  onChange={() => setCanvasLockState(!query.locked)}
                   inputProps={{ "aria-label": "controlled" }}
                   size="medium"
                 />
               }
               label="Locked"
             />
-          )}
-          {isBlockPage && (
-            <ToggleButtonGroup value={query.canvas ? "canvas" : "document"}>
-              <ToggleButton
-                value="document"
-                aria-label="document"
-                onClick={() => setPageMode("document")}
-              >
-                <FontAwesomeIcon
-                  icon={faFile}
-                  sx={(theme) => ({
-                    color: theme.palette.gray[40],
-                  })}
-                />
-              </ToggleButton>
-              <ToggleButton
-                value="canvas"
-                aria-label="canvas"
-                onClick={() => setPageMode("canvas", false)}
-              >
-                <FontAwesomeIcon
-                  icon={faPencilRuler}
-                  sx={(theme) => ({
-                    color: theme.palette.gray[40],
-                  })}
-                />
-              </ToggleButton>
-            </ToggleButtonGroup>
           )}
         </Box>
       </Box>

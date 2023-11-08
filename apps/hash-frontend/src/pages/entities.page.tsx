@@ -63,7 +63,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   });
 
   const createPage = useCallback(async () => {
-    await createUntitledPage(lastRootPageIndex);
+    await createUntitledPage(lastRootPageIndex, "document");
   }, [lastRootPageIndex, createUntitledPage]);
 
   const latestEntityTypes = useLatestEntityTypesOptional({

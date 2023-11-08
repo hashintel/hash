@@ -149,6 +149,15 @@ const systemEntityTypes = {
     title: "Page",
     description: "A page for displaying and potentially interacting with data.",
   },
+  document: {
+    title: "Document",
+    description: "A page in document format, with content arranged in columns.",
+  },
+  canvas: {
+    title: "Canvas",
+    description:
+      "A page in canvas format, with content in a free-form arrangement.",
+  },
   quickNote: {
     title: "Quick Note",
     description: "A (usually) quick or short note.",
@@ -357,10 +366,25 @@ const systemPropertyTypes = {
     description:
       "The fractional index indicating the current position of something.",
   },
-  numericIndex: {
-    title: "Numeric Index",
-    description:
-      "The numeric index indicating the current position of something.",
+  xPosition: {
+    title: "X Position",
+    description: "The position of something on the x axis.",
+  },
+  yPosition: {
+    title: "Y Position",
+    description: "The position of something on the y axis.",
+  },
+  widthInPixels: {
+    title: "Width In Pixels",
+    description: "The width of something in pixels.",
+  },
+  heightInPixels: {
+    title: "Height In Pixels",
+    description: "The height of something in pixels.",
+  },
+  rotationInRads: {
+    title: "Rotation In Rads",
+    description: "The rotation of something in radians.",
   },
   icon: {
     title: "Icon",
@@ -421,9 +445,13 @@ const systemLinkEntityTypes = {
     title: "Has Bio",
     description: "The biography something has.",
   },
-  contains: {
-    title: "Contains",
-    description: "What something contains",
+  hasIndexedContent: {
+    title: "Has Indexed Content",
+    description: "Something contained at an index by something",
+  },
+  hasSpatiallyPositionedContent: {
+    title: "Has Spatially Positioned Content",
+    description: "Something contained at a spatial position by something",
   },
   hasParent: {
     title: "Has Parent",

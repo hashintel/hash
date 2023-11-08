@@ -1,13 +1,11 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { CanvasProperties } from "@local/hash-graphql-shared/graphql/types";
 import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
 import {
@@ -88,6 +86,7 @@ export const CanvasPageBlock = ({
 
     app.createShapes(
       contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
+        // @todo use the proper types when available
         const {
           "https://blockprotocol.org/@hash/types/property-type/x-position/": x,
           "https://blockprotocol.org/@hash/types/property-type/y-position/": y,
@@ -97,7 +96,7 @@ export const CanvasPageBlock = ({
             height,
           "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
             rotation,
-        } = linkEntity.properties as Partial<CanvasPosition>;
+        } = linkEntity.properties as Partial<CanvasProperties>;
 
         return {
           id: createShapeId(),
@@ -115,12 +114,7 @@ export const CanvasPageBlock = ({
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,
             },
-            indexPosition:
-              linkEntity.properties[
-                extractBaseUrl(
-                  systemTypes.propertyType.numericIndex.propertyTypeId,
-                )
-              ] ?? index,
+            linkEntityId: linkEntity.metadata.recordId.entityId,
             pageEntityId: linkEntity.linkData?.leftEntityId,
             h: height ?? defaultBlockHeight,
             w: width ?? defaultBlockWidth,

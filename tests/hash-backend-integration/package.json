@@ -21,6 +21,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "execa": "5.1.1",
+    "fractional-indexing": "2.1.0",
     "graphql": "16.8.1",
     "graphql-request": "3.4.0",
     "node-fetch": "^2.6.7"

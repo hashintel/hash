@@ -5,14 +5,16 @@ import {
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   EntityId,
   EntityRootType,
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
@@ -78,6 +80,12 @@ export const getBlockCollectionContents = (params: {
   blockCollectionEntityId: EntityId;
 }): BlockCollectionContentItem[] => {
   const { blockCollectionEntityId, blockCollectionSubgraph } = params;
+
+  const blockCollection = getRoots(blockCollectionSubgraph)[0]!;
+  const isCanvas =
+    blockCollection.metadata.entityTypeId ===
+    systemTypes.entityType.canvas.entityTypeId;
+
   const outgoingContentLinks = getOutgoingLinkAndTargetEntities(
     blockCollectionSubgraph,
     blockCollectionEntityId,
@@ -86,11 +94,19 @@ export const getBlockCollectionContents = (params: {
       ({ linkEntity: linkEntityRevisions }) =>
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeId ===
-          systemTypes.linkEntityType.contains.linkEntityTypeId,
+          (isCanvas
+            ? systemTypes.linkEntityType.hasSpatiallyPositionedContent
+                .linkEntityTypeId
+            : systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId),
     )
     .sort((a, b) => {
-      const aLinkEntity = a.linkEntity[0] as LinkEntity<ContainsProperties>;
-      const bLinkEntity = b.linkEntity[0] as LinkEntity<ContainsProperties>;
+      if (isCanvas) {
+        return 0;
+      }
+
+      // @todo update when HasIndexedContentProperties regenerated
+      const aLinkEntity = a.linkEntity[0] as LinkEntity<{}>;
+      const bLinkEntity = b.linkEntity[0] as LinkEntity<{}>;
 
       const { numericIndex: aNumericIndex } = simplifyProperties(
         aLinkEntity.properties,

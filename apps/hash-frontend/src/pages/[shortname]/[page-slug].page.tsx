@@ -313,7 +313,6 @@ const Page: NextPageWithLayout<PageProps> = ({
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
   const { asPath, query } = useRouter();
-  const canvasPage = query.canvas;
 
   const routeHash = asPath.split("#")[1] ?? "";
 

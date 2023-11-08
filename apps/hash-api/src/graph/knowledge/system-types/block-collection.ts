@@ -1,9 +1,7 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   BlockDataProperties,
   ContainsProperties,
-  LinkProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
@@ -11,17 +9,22 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { LinkEntity } from "@local/hash-subgraph/type-system-patch";
-import { UserInputError } from "apollo-server-errors";
 
+import { PositionInput } from "../../../graphql/api-types.gen";
 import { ImpureGraphFunction } from "../../context-types";
 import { SYSTEM_TYPES } from "../../system-types";
-import { archiveEntity, getEntityOutgoingLinks } from "../primitive/entity";
+import {
+  archiveEntity,
+  getEntityOutgoingLinks,
+  getLatestEntityById,
+} from "../primitive/entity";
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
 import { Block, getBlockFromEntity } from "./block";
+
 /**
  * Get the blocks in this blockCollection.
  *
@@ -37,7 +40,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
     {
       entityId: blockCollectionEntityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+        SYSTEM_TYPES.linkEntityType.hasIndexedContent.schema.$id,
     },
   )) as LinkEntity<ContainsProperties>[];
 
@@ -81,45 +84,33 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   {
     blockCollectionEntity: Entity;
     block: Block;
-    canvasPosition?: CanvasPosition;
-    position?: number;
+    position: PositionInput;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
   const {
-    position: specifiedPosition,
-    canvasPosition,
     blockCollectionEntity,
     block,
+    position: { canvasPosition, fractionalIndex },
   } = params;
 
-  let index = canvasPosition ? undefined : specifiedPosition;
-  if (!canvasPosition && typeof index !== "number") {
-    const existingBlocks = await getBlockCollectionBlocks(ctx, authentication, {
-      blockCollectionEntityId: blockCollectionEntity.metadata.recordId.entityId,
-    });
-    // Add the block to the last position if no index specified
-    // @todo overhaul page positioning logic and save process, it's buggy – H-1209
-    const lastIndex =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      existingBlocks[0]?.linkEntity.properties[
-        SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId
-          .baseUrl as keyof LinkProperties
-      ] ?? existingBlocks.length - 1;
-    index = lastIndex + 1;
+  if (!canvasPosition && !fractionalIndex) {
+    throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
   }
 
   await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.contains,
+    linkEntityType: canvasPosition
+      ? SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent
+      : SYSTEM_TYPES.linkEntityType.hasIndexedContent,
     // assume that link to block is owned by the same account as the blockCollection
     ownedById: extractOwnedByIdFromEntityId(
       blockCollectionEntity.metadata.recordId.entityId,
     ),
-    properties: {
-      ...canvasPosition,
-      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]: index,
+    properties: canvasPosition || {
+      [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+        fractionalIndex,
     },
   });
 };
@@ -134,111 +125,53 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
  */
 export const moveBlockInBlockCollection: ImpureGraphFunction<
   {
-    blockCollectionEntity: Entity;
-    canvasPosition?: CanvasPosition;
-    currentPosition: number;
-    newPosition: number;
+    linkEntityId: EntityId;
+    position: PositionInput;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
   const {
-    blockCollectionEntity,
-    canvasPosition,
-    currentPosition,
-    newPosition,
+    position: { fractionalIndex, canvasPosition },
+    linkEntityId,
   } = params;
 
-  const contentLinks = (await getEntityOutgoingLinks(ctx, authentication, {
-    entityId: blockCollectionEntity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-  })) as LinkEntity<ContainsProperties>[];
-
-  if (currentPosition < 0 || currentPosition >= contentLinks.length) {
-    throw new UserInputError(
-      `invalid currentPosition: ${params.currentPosition}`,
-    );
-  }
-  if (newPosition < 0 || newPosition >= contentLinks.length) {
-    throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
+  if (!canvasPosition && !fractionalIndex) {
+    throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
   }
 
-  const linkEntity = contentLinks.find(({ properties }) => {
-    const { numericIndex } = simplifyProperties(properties);
-
-    return numericIndex === currentPosition;
+  const linkEntity = await getLatestEntityById(ctx, authentication, {
+    entityId: linkEntityId,
   });
 
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${currentPosition} for blockCollection with entityId ${blockCollectionEntity.metadata.recordId.entityId}`,
-    );
+  if (!linkEntity.linkData) {
+    throw new Error(`Entity with id ${linkEntityId} is not a link entity`);
   }
 
   await updateLinkEntity(ctx, authentication, {
-    properties: {
-      ...linkEntity.properties,
-      ...canvasPosition,
-      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]:
-        newPosition,
+    properties: canvasPosition || {
+      [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+        fractionalIndex,
     },
-    linkEntity,
+    linkEntity: linkEntity as LinkEntity,
   });
 };
 
 /**
  * Remove a block from the blockCollection.
  *
- * @param params.blockCollection - the blockCollection
- * @param params.position - the position of the block being removed
- * @param params.actorId - the id of the account that is removing the block
- * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the blockCollection should be permitted (defaults to `true`)
+ * @param params.linkEntityId - the EntityId of the link between the block collection and the block
  */
 export const removeBlockFromBlockCollection: ImpureGraphFunction<
   {
-    blockCollectionEntity: Entity;
-    position: number;
-    allowRemovingFinal?: boolean;
+    linkEntityId: EntityId;
   },
   Promise<void>
 > = async (ctx, authentication, params) => {
-  const {
-    blockCollectionEntity,
-    allowRemovingFinal = false,
-    position,
-  } = params;
+  const { linkEntityId } = params;
 
-  const contentLinkEntities = (await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: blockCollectionEntity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.contains.schema.$id,
-    },
-  )) as LinkEntity<ContainsProperties>[];
-
-  /**
-   * @todo currently the count of outgoing links are not the best indicator of a valid position
-   *   as blockCollection saving could assume index positions higher than the number of blocks.
-   *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
-   *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
-   */
-
-  const linkEntity = contentLinkEntities.find((contentLinkEntity) => {
-    const { numericIndex } = simplifyProperties(contentLinkEntity.properties);
-
-    return numericIndex === position;
+  const linkEntity = await getLatestEntityById(ctx, authentication, {
+    entityId: linkEntityId,
   });
-
-  if (!linkEntity) {
-    throw new Error(
-      `Critical: could not find contents link with index ${position} for blockCollection with entity ID ${blockCollectionEntity.metadata.recordId.entityId}`,
-    );
-  }
-
-  if (!allowRemovingFinal && contentLinkEntities.length === 1) {
-    throw new Error("Cannot remove final block from blockCollection");
-  }
 
   await archiveEntity(ctx, authentication, { entity: linkEntity });
 };

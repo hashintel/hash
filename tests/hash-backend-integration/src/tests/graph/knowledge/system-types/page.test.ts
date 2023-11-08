@@ -25,8 +25,13 @@ import { SYSTEM_TYPES } from "@apps/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { LinkProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { OwnedById } from "@local/hash-subgraph";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  extractBaseUrl,
+  LinkEntity,
+} from "@local/hash-subgraph/type-system-patch";
+import { generateKeyBetween } from "fractional-indexing";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -85,10 +90,12 @@ describe("Page", () => {
     testPage = await createPage(graphContext, authentication, {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Page",
+      type: "document",
     });
 
     const initialBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
+      type: "document",
     });
 
     expect(initialBlocks).toHaveLength(1);
@@ -109,11 +116,13 @@ describe("Page", () => {
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
+      type: "document",
     });
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage2.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((block) => block.rightEntity);
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
@@ -169,6 +178,7 @@ describe("Page", () => {
       ownedById: testUser.accountId as OwnedById,
       title: "Test Parent Page",
       summary: "Test page summary",
+      type: "document",
     });
 
     expect(
@@ -187,45 +197,52 @@ describe("Page", () => {
   });
 
   let testBlock1: Block;
+  let testLink1: LinkEntity<LinkProperties>;
 
   let testBlock2: Block;
-
-  let testBlock3: Block;
+  let testBlock2: LinkEntity<LinkProperties>;
 
   it("can insert blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const existingBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: testPage.entity.metadata.recordId.entityId,
+      type: "document",
     });
 
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
+    const testBlock1Link = existingBlocks[0]!.linkEntity;
 
     [testBlock2, testBlock3] = await Promise.all([
       createTestBlock(),
       createTestBlock(),
     ]);
 
-    // insert block at un-specified position
-    await addBlockToBlockCollection(graphContext, authentication, {
-      blockCollectionEntity: testPage.entity,
-      block: testBlock3,
-    });
     // insert block at specified position
     await addBlockToBlockCollection(graphContext, authentication, {
       blockCollectionEntity: testPage.entity,
       block: testBlock2,
-      position: 1,
+      position: {
+        fractionalIndex: generateKeyBetween(
+          testBlock1Link.properties[
+            extractBaseUrl(
+              SYSTEM_TYPES.propertyType.fractionalIndex.schema.$id,
+            ) as keyof LinkProperties
+          ],
+          null,
+        ),
+      },
     });
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
+        type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
-    const expectedBlocks = [testBlock1, testBlock2, testBlock3];
+    const expectedBlocks = [testBlock1, testBlock2];
 
     expect(blocks).toHaveLength(expectedBlocks.length);
     expect(blocks).toEqual(expect.arrayContaining(expectedBlocks));
@@ -245,7 +262,7 @@ describe("Page", () => {
         pageEntityId: testPage.entity.metadata.recordId.entityId,
       })
     ).map((contentItem) => contentItem.rightEntity);
-    const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
+    const expectedInitialBlocks = [testBlock2, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
     expect(initialBlocks).toEqual(

@@ -32,7 +32,7 @@ import {
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a data type.
@@ -164,7 +164,7 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !dataTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(dataTypeId)) {
     await context.graphApi.loadExternalDataType(authentication.actorId, {
       dataTypeId,
     });

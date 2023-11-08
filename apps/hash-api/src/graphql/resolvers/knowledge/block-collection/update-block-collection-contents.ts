@@ -137,23 +137,17 @@ export const updateBlockCollectionContents: ResolverFn<
         await addBlockToBlockCollection(context, authentication, {
           blockCollectionEntity,
           block: insertedBlocks[insertCount]!,
-          canvasPosition: action.insertBlock.canvasPosition ?? undefined,
           position: action.insertBlock.position,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
         await moveBlockInBlockCollection(context, authentication, {
-          ...action.moveBlock,
-          canvasPosition: action.moveBlock.canvasPosition ?? undefined,
-          blockCollectionEntity,
+          position: action.moveBlock.position,
+          linkEntityId: action.moveBlock.linkEntityId,
         });
       } else if (action.removeBlock) {
         await removeBlockFromBlockCollection(context, authentication, {
-          blockCollectionEntity,
-          position: action.removeBlock.position,
-          allowRemovingFinal: actions
-            .slice(i + 1)
-            .some((actionToFollow) => actionToFollow.insertBlock),
+          linkEntityId: action.removeBlock.linkEntityId,
         });
       }
     } catch (error) {

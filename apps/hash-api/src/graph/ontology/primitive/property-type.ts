@@ -10,7 +10,6 @@ import {
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import { ConstructPropertyTypeParams } from "@local/hash-graphql-shared/graphql/types";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -33,7 +32,7 @@ import {
 
 import { NotFoundError } from "../../../lib/error";
 import { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
+import { getWebShortname, isExternalTypeId } from "./util";
 
 /**
  * Create a property type.
@@ -162,7 +161,7 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
     query,
   });
 
-  if (subgraph.roots.length === 0 && !propertyTypeId.startsWith(frontendUrl)) {
+  if (subgraph.roots.length === 0 && isExternalTypeId(propertyTypeId)) {
     await context.graphApi.loadExternalPropertyType(authentication.actorId, {
       propertyTypeId,
     });
