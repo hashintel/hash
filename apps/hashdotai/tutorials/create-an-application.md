@@ -9,7 +9,7 @@ description: Creating a simple application in HASH
 
 Let’s explore how HASH works by building a simple application. We’re going to model our business’ projects in HASH and render our project data in a Table Block.
 
-1.  Sign up at [https://alpha.hash.ai/signup](https://alpha.hash.ai/signup).
+1.  Sign up at [hash.ai/signup](https://app.hash.ai/signup).
 
 **Creating the “Project” Entity Type**
 

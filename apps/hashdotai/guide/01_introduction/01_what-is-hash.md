@@ -1,5 +1,6 @@
 ---
-title: An introduction to HASH
+title: HASH User Guide
+description: An introduction to HASH
 ---
 
 # Introduction
