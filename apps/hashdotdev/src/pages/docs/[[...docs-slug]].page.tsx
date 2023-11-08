@@ -40,6 +40,10 @@ const docsTabs: { title: string; href: string }[] = [
     title: "Apps",
     href: "/docs/apps",
   },
+  {
+    title: "Simulation",
+    href: "/docs/simulation",
+  },
 ];
 
 type DocsPageParsedUrlQuery = {
