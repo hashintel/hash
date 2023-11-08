@@ -15,7 +15,7 @@ export const useUpdateCommentText = (pageId: EntityId) => {
     UpdateCommentTextMutation,
     UpdateCommentTextMutationVariables
   >(updateCommentText, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: () => [
       {
         query: getPageComments,

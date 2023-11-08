@@ -7,8 +7,9 @@ import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { updatePage } from "../../graphql/queries/page.queries";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 
 export const useArchivePage = () => {
@@ -18,7 +19,7 @@ export const useArchivePage = () => {
     UpdatePageMutation,
     UpdatePageMutationVariables
   >(updatePage, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     onCompleted: async () => {
       if (entityTypeEntitiesContext) {
         await entityTypeEntitiesContext.refetch();
@@ -30,8 +31,8 @@ export const useArchivePage = () => {
     const ownedById = extractOwnedByIdFromEntityId(pageEntityId);
     return [
       {
-        query: getAccountPagesTree,
-        variables: { ownedById },
+        query: structuralQueryEntitiesQuery,
+        variables: getAccountPagesVariables({ ownedById }),
       },
       {
         query: getPageQuery,

@@ -1,4 +1,4 @@
-import { useApolloClient, useMutation, useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
@@ -20,6 +20,7 @@ import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { useAccountPages } from "../../components/hooks/use-account-pages";
 import {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
@@ -27,7 +28,6 @@ import {
   GetEntityQuery,
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { getBlockCollectionContents } from "../../lib/block-collection";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -111,11 +111,9 @@ export const EditableQuickNote: FunctionComponent<{
   const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] =
     useState(false);
 
-  const apolloClient = useApolloClient();
-
-  const refetchPageTree = useCallback(async () => {
-    await apolloClient.refetchQueries({ include: [getAccountPagesTree] });
-  }, [apolloClient]);
+  const { refetch: refetchPageTree } = useAccountPages(
+    authenticatedUser.accountId as OwnedById,
+  );
 
   const { quickNoteEntity } = quickNoteEntityWithCreatedAt;
 
