@@ -42,3 +42,7 @@ Pages can have an unlimited number of subpages. In terms of features, subpages a
 ## Sharing Pages in read-only mode {#sharing-pages-in-read-only-mode}
 
 Pages in HASH are accessible to anyone with the link but only logged in users who are members of the Workspace which owns the page can edit it. To share a Page with a collaborator who is not a member of your Workspace, simply copy the URL from your browser’s address bar or click the [...] menu on the right of the Page’s title in the side-bar and select “Copy link to page”.
+
+
+
+All pages within a web are stored in its page tree. However, just because a page appears in a tree, it doesn't mean that that page will be visible to everybody else with access to a web. The pages you see 

@@ -9,58 +9,76 @@ HASH helps you integrate, understand, and apply data to any business problem. It
 
 We’re working towards making HASH a platform for complete end-to-end decision making, enabling high-quality no-code application-building, and FINISH
 
-## Introductory concepts {#introductory-concepts}
+# Account concepts
 
-### Workspaces {#workspaces}
+We use the term 'account' to refer to both _users_ and _orgs_ in HASH. Every account has a _handle_ and a _web_.
 
-A workspace in HASH is a space in which you and other collaborators work on a set of data. Data belong to single workspaces and cannot be moved between them.
+## Users
 
-#### Personal workspaces {#personal-workspaces}
+Every user in HASH should correspond to one human being in the "real world". Nobody should have more than one user account, and user accounts shouldn't be created to represent "machines", "agents", "organizations" or any other kind of non-human.
 
-When you create your HASH account, you’ll start out in your personal workspace. Only you can access your personal workspace.
+## Orgs
 
-#### Organization workspaces {#organization-workspaces}
+Orgs are essentially 'groups' created by users in HASH, which have one or more administrators who control them (as well as who can be a member).
 
-In addition to your personal workspace, you can be a member of one or more organization workspaces. Organization workspaces have the same functionality as personal workspaces but allow collaborators to work on data together.
+## Handles
 
-### Data {#data}
+Every account (meaning every user and every org) has a public handle such as `@example`. This handle will be visible to everybody with the ability to view HASH.
 
-The HASH datalayer is a graph database composed of Entities and Links. Schemas for these fundamental objects are defined as Entity Types, Property Types, Data Types, and Link Types. This strongly typed architecture enables any data to be modeled, rendered, and manipulated.
+## Webs
 
-Let’s explore these concepts in more detail with reference to the example of how we might model our business’ projects.
+Every user and every org has a [web](https://hash.ai/guide/webs).
 
-#### Entities {#entities}
+# Web concepts
 
-Entities are basic records of data in HASH. An Entity for a project might encode details like its name, description, goals, owner, due date, and sub-tasks. Capable of modeling data of any shape, entities follow schemas defined via Entity Types.
+## Types
 
-#### Entity Types {#entity-types}
+There are four kinds of [types](https://hash.ai/guide/types):
 
-Entity Types are schemas describing particular _kinds_ of Entities. Our project Entities would be structured in accordance with a project Entity Type. Entity Types themselves have titles and descriptions and consist of sets of Property Types and Link Types.
+- [Entity types](https://hash.ai/guide/types/entity-types) define what an entity is, by specifying what types of attributes (links and properties) can be associated with it
+- [Link types](https://hash.ai/guide/types/link-types) describe relationship between entities (e.g. a person and a date)
+- [Property types](https://hash.ai/guide/types/property-types) describe information that is stored directly on an entity (e.g. a description) without reference to any other entity
+- [Data types](https://hash.ai/guide/types/data-types)
 
-#### Property Types {#property-types}
+These types, known collectively as our "type system", enable any kind of data to be represented in HASH.
 
-Property Types describe specific attributes of Entity Types. Our project Entity Type would have Property Types for each of the attributes we want to record on our project Entities—“Name”, “Description”, “Goals”, etc. Property Types themselves have names and descriptions and contain Data Types.
+## Entities
 
-#### Data Types {#data-types}
+All data in [webs](https://hash.ai/guide/webs) exists as **entities**. An individual entity may have one or more [entity types](https://hash.ai/guide/types/entity-types), which in turn enable [properties] and [links] to be stored on it. An entity cannot contain any information if it has no types associated with it.
 
-Data Types define the accepted values of Property Types. Our project’s “Goal” Property Type may have the Data Type “Text”, meaning that its value could be some text.
+### Example entity
 
-#### Links {#links}
+Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
 
-Links record directional relationships between Entities which have a label and can have Properties, defined by Property Types. These additional attributes enable Links to record information about the relationship between two entities. Our project would have a Link to a user entitiy, for example, and that Limk might be labeled “Owned by”, to model the ownership relationship between the individual and the project.
+- The entity type `Organization` might specify properties such as `Name`, and links like `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
+- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Estimated Value` (new) alongside links such as `Point of Contact` and `Key stakeholders` which may link to other `Person` entities.
 
-#### Link Types {#link-types}
+Entity preview: NHS England
+**Attrbute type**   **Attribute name**  **Value**
+Property type       Name                NHS England
+Property type       Estimated Value     18,300,000
+Link type           Led by              Amanda Pritchard
+Link type           Subsidiaries        
+Link type           Key stakeholders
+Link type           Point of contact
 
-Links Types define the shape of Links. Our “Owned by” Link would be defined by a Link Type which all ownership links would conform to.
+[//]: # (We don't need to mention it to end-users here, but we may wish to explain in the dev docs that every link between two entities is itself an entity (of a special type, called a 'link entity'). In this case, a link called `NHS England - Led by - Amanda Pritchard` is created.)
 
-### Pages {#pages}
+## Pages
 
-Pages are where you can apply data defined by these objects and types to solve business problems. Pages are like documents but are made up of composable interface units called blocks. By composing different blocks together, you can solve different problems.
+Pages are a special kind of entity in HASH. Pages created inside of each web you belong to (i.e. your own, and those of any organizations you're a member of) will appear in your left-hand sidebar inside of HASH.
 
-### Blocks {#blocks}
+There are two types of pages in HASH:
 
-Blocks are third-party developed components which can render and manipulate the data defined by your types. Blocks can be simple and static, like an image or a text block, or they can be more complex, like a checklist or chart block. Blocks in HASH come from the Block Protocol.
+- Documents: linear pages where blocks are arranged in columns; typically used for text-heavy pages
+- Canvases: free-form pages where blocks can be arranged spatially on an infinite canvas; useful for mindmaps, flowcharts, dashboards, and app-building
 
-#### What is the Block Protocol? {#what-is-the-block-protocol}
+# Page Concepts
 
-The Block Protocol enables third-party-developed front-end components, called blocks, to work inside any application. Application developers can avoid reinventing the wheel when implementing common features by leveraging a growing range of interoperable components. They can even enable UI composability by giving end-users the ability to pick and choose which UI components they use. HASH is the company behind the Block Protocol but the Block Protocol is maintained as an independent service. Learn more about the [Block Protocol](https://blockprotocol.org).
+## Blocks {#blocks}
+
+Blocks are rectangles that can be inserted into pages which offer differing sets of functionality.
+
+For example, a block might be simple and static, used to display text or an image. Or a block might be interactive, and offer complex functionality such as access to an AI chatbot, or a game of Minesweeper.
+
+If you're a web developer comfortable writing code, you can build and publish your own blocks, and use them inside of HASH, by following the guide in the [HASH developer docs](https://hash.dev/docs/blocks).

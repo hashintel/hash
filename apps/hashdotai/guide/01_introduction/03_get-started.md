@@ -28,7 +28,7 @@ At the top of the sidebar you'll see quick links to some of the most frequently-
 - Drafts
 - Quick note
 
-You'll also see a section called "Pages" and a section called "Types". You can add your own additional sections later.
+You'll also see a page tree, containing the pages you create in HASH (as well as those created by others in any shared organizations you're a member), as well as a section called "Types". You'll be able to add your own additional sections later.
 
 ## Feed
 

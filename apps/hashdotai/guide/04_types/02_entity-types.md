@@ -74,3 +74,15 @@ Entity Types in HASH are versioned, enabling your schemas to evolve with your kn
     1.  If new Property Types or Links Types have been added to the new version of the Entity Type, the Entity will have those new Property and Link Types, but no Data values or Links will be created.
 
 1.  Click ‘Update entity type’ to upgrade your Entity. You’ll notice the updated Property, Link, and Data Types are now reflected on your Entity and you can make any necessary changes so that this Entity follows its new schema.
+
+# Inheritance
+
+Entity types can extend other entity types, 'inheriting' their properties/links (avoiding the need for them to be re-specified all over again when creating more specific versions of a thing).
+
+An entity type which extends another is called a 'child', while the entity type that extends it is the 'parent'.
+
+An entity type may have any number of parents and children.
+
+## Example of entity type inheritance
+
+`Company > UK Company`
