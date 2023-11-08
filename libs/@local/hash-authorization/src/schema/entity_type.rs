@@ -75,6 +75,7 @@ impl Resource for EntityTypeId {
 pub enum EntityTypeResourceRelation {
     Owner,
     Viewer,
+    Instantiator,
 }
 
 impl Relation<EntityTypeId> for EntityTypeResourceRelation {}
@@ -85,6 +86,7 @@ impl Relation<EntityTypeId> for EntityTypeResourceRelation {}
 pub enum EntityTypePermission {
     Update,
     View,
+    Instantiate,
 }
 
 impl Permission<EntityTypeId> for EntityTypePermission {}
@@ -193,6 +195,23 @@ pub enum EntityTypeViewerSubject {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+pub enum EntityTypeInstantiatorSubject {
+    Account {
+        #[serde(rename = "subjectId")]
+        id: AccountId,
+    },
+    AccountGroup {
+        #[serde(rename = "subjectId")]
+        id: AccountGroupId,
+        #[serde(skip)]
+        set: EntityTypeSubjectSet,
+    },
+    Public,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", tag = "relation")]
 pub enum EntityTypeRelationAndSubject {
     Owner {
@@ -204,6 +223,9 @@ pub enum EntityTypeRelationAndSubject {
         subject: EntityTypeViewerSubject,
         #[serde(skip)]
         level: u8,
+    },
+    Instantiator {
+        subject: EntityTypeInstantiatorSubject,
     },
 }
 
@@ -252,6 +274,33 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                 },
+                EntityTypeResourceRelation::Instantiator => {
+                    match (parts.subject, parts.subject_set) {
+                        (EntityTypeSubject::Account(id), None) => {
+                            EntityTypeRelationAndSubject::Instantiator {
+                                subject: EntityTypeInstantiatorSubject::Account { id },
+                            }
+                        }
+                        (EntityTypeSubject::AccountGroup(id), Some(set)) => {
+                            EntityTypeRelationAndSubject::Instantiator {
+                                subject: EntityTypeInstantiatorSubject::AccountGroup { id, set },
+                            }
+                        }
+                        (EntityTypeSubject::Public, None) => {
+                            EntityTypeRelationAndSubject::Instantiator {
+                                subject: EntityTypeInstantiatorSubject::Public,
+                            }
+                        }
+                        (
+                            EntityTypeSubject::Account(_)
+                            | EntityTypeSubject::AccountGroup(_)
+                            | EntityTypeSubject::Public,
+                            _subject_set,
+                        ) => {
+                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                        }
+                    }
+                }
             },
         ))
     }
@@ -283,6 +332,21 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                 },
                 match subject {
                     EntityTypeViewerSubject::Public => (EntityTypeSubject::Public, None),
+                },
+            ),
+            EntityTypeRelationAndSubject::Instantiator { subject } => (
+                LeveledRelation {
+                    name: EntityTypeResourceRelation::Instantiator,
+                    level: 0,
+                },
+                match subject {
+                    EntityTypeInstantiatorSubject::Account { id } => {
+                        (EntityTypeSubject::Account(id), None)
+                    }
+                    EntityTypeInstantiatorSubject::AccountGroup { id, set } => {
+                        (EntityTypeSubject::AccountGroup(id), Some(set))
+                    }
+                    EntityTypeInstantiatorSubject::Public => (EntityTypeSubject::Public, None),
                 },
             ),
         };
