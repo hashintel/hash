@@ -108,7 +108,7 @@ export const OrgForm = ({
       name: initialOrg?.name ?? "",
       location: initialOrg?.location ?? "",
       shortname: initialOrg?.shortname ?? "",
-      website: initialOrg?.website ?? "",
+      websiteUrl: initialOrg?.websiteUrl ?? "",
     },
   });
 
@@ -309,10 +309,10 @@ export const OrgForm = ({
         <Label
           label="Website"
           hint="Provide a link to help others identify your org"
-          htmlFor="website"
+          htmlFor="websiteUrl"
         />
         <TextField
-          id="website"
+          id="websiteUrl"
           disabled={readonly}
           placeholder="https://acme.com"
           sx={{ width: 400 }}
@@ -322,7 +322,7 @@ export const OrgForm = ({
               "Please enter a valid URL, starting with https:// or http://",
             type: "url",
           }}
-          {...register("website", { required: false })}
+          {...register("websiteUrl", { required: false })}
         />
       </InputGroup>
       {initialOrg && (

@@ -86,7 +86,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     ).filter(
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
-        systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
+        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
     ) as LinkEntity<OrgMembershipProperties>[];
   }, [authenticatedUserSubgraph]);
 

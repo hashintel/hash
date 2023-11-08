@@ -405,7 +405,7 @@ const mapEntityToGqlBlock = (
     ({ linkEntity: linkEntityRevisions }) =>
       linkEntityRevisions[0] &&
       linkEntityRevisions[0].metadata.entityTypeId ===
-        systemTypes.linkEntityType.blockData.linkEntityTypeId,
+        systemTypes.linkEntityType.hasData.linkEntityTypeId,
   )?.rightEntity[0];
 
   if (!blockChildEntity) {

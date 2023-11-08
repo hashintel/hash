@@ -58,18 +58,18 @@ const owningWebs: Record<
     accountGroupId?: AccountGroupId;
     enabled: boolean;
     name: string;
-    website: string;
+    websiteUrl: string;
   }
 > = {
   hash: {
     enabled: true,
     name: "HASH",
-    website: "https://hash.ai",
+    websiteUrl: "https://hash.ai",
   },
   linear: {
     enabled: enabledIntegrations.linear,
     name: "Linear",
-    website: "https://linear.app",
+    websiteUrl: "https://linear.app",
   },
 };
 
@@ -136,7 +136,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
 
   logger.debug("Ensuring account group organization entities exist");
 
-  for (const [webShortname, { enabled, name, website }] of Object.entries(
+  for (const [webShortname, { enabled, name, websiteUrl }] of Object.entries(
     owningWebs,
   )) {
     if (!enabled) {
@@ -158,7 +158,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
         orgAccountGroupId,
         shortname: webShortname,
         name,
-        website,
+        websiteUrl,
       });
 
       logger.info(

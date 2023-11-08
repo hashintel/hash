@@ -21,7 +21,7 @@ type UpdateAuthenticatedUserParams = {
   shortname?: string;
   preferredName?: string;
   location?: string;
-  website?: string;
+  websiteUrl?: string;
   preferredPronouns?: string;
 };
 
@@ -108,11 +108,11 @@ export const useUpdateAuthenticatedUser = () => {
                     )]: params.location,
                   }
                 : {}),
-              ...(typeof params.website !== "undefined"
+              ...(typeof params.websiteUrl !== "undefined"
                 ? {
                     [extractBaseUrl(
-                      systemTypes.propertyType.website.propertyTypeId,
-                    )]: params.website,
+                      systemTypes.propertyType.websiteUrl.propertyTypeId,
+                    )]: params.websiteUrl,
                   }
                 : {}),
               ...(typeof params.preferredPronouns !== "undefined"

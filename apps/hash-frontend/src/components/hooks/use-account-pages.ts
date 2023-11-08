@@ -73,7 +73,7 @@ export const useAccountPages = (
       const parentLink = pageOutgoingLinks.find(
         ({ linkEntity }) =>
           linkEntity[0]!.metadata.entityTypeId ===
-          systemTypes.linkEntityType.parent.linkEntityTypeId,
+          systemTypes.linkEntityType.hasParent.linkEntityTypeId,
       );
 
       const parentPage = parentLink?.rightEntity[0] ?? null;
