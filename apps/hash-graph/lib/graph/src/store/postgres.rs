@@ -10,7 +10,7 @@ use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupOwnerSubject, AccountGroupRelationAndSubject, WebOwnerSubject,
-        WebRelationAndSubject, WebSubject, WebSubjectSet,
+        WebRelationAndSubject, WebSubject,
     },
     AuthorizationApi,
 };
@@ -1315,21 +1315,9 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
         _actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError> {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let web_subject = transaction
-            .identify_owned_by_id(owned_by_id)
-            .await
-            .change_context(InsertionError)?;
-
-        let owner = match web_subject {
-            WebSubject::Account(id) => WebOwnerSubject::Account { id },
-            WebSubject::AccountGroup(id) => WebOwnerSubject::AccountGroup {
-                id,
-                set: WebSubjectSet::Member,
-            },
-        };
 
         transaction
             .as_client()

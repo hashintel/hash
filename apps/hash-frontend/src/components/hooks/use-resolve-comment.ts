@@ -14,7 +14,7 @@ export const useResolveComment = (pageId: EntityId) => {
     ResolveCommentMutation,
     ResolveCommentMutationVariables
   >(resolveComment, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: () => [
       {
         query: getPageComments,

@@ -52,6 +52,8 @@ impl Relation<WebId> for WebResourceRelation {}
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum WebPermission {
+    Update,
+
     CreateEntity,
     CreateEntityType,
     CreatePropertyType,

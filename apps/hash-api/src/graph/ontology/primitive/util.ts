@@ -1,8 +1,13 @@
 import {
+  ModifyRelationshipOperation,
+  WebPermission,
+} from "@local/hash-graph-client";
+import {
   entityIdFromOwnedByIdAndEntityUuid,
   EntityUuid,
   OwnedById,
   Uuid,
+  WebAuthorizationRelationship,
 } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "../../context-types";
@@ -41,3 +46,44 @@ export const getWebShortname: ImpureGraphFunction<
 
   return namespace;
 };
+
+export const getWebAuthorizationRelationships: ImpureGraphFunction<
+  { ownedById: OwnedById },
+  Promise<WebAuthorizationRelationship[]>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getWebAuthorizationRelationships(actorId, params.ownedById)
+    .then(({ data }) =>
+      data.map(
+        (relationship) =>
+          ({
+            resource: { kind: "web", resourceId: params.ownedById },
+            ...relationship,
+          }) as WebAuthorizationRelationship,
+      ),
+    );
+
+export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
+  {
+    operation: ModifyRelationshipOperation;
+    relationship: WebAuthorizationRelationship;
+  }[],
+  Promise<void>
+> = async ({ graphApi }, { actorId }, params) => {
+  await graphApi.modifyWebAuthorizationRelationships(
+    actorId,
+    params.map(({ operation, relationship }) => ({
+      operation,
+      resource: relationship.resource.resourceId,
+      relationAndSubject: relationship,
+    })),
+  );
+};
+
+export const checkWebPermission: ImpureGraphFunction<
+  { ownedById: OwnedById; permission: WebPermission },
+  Promise<boolean>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .checkWebPermission(actorId, params.ownedById, params.permission)
+    .then(({ data }) => data.has_permission);

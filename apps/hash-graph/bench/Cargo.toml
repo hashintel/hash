@@ -23,7 +23,7 @@ criterion = { version = "0.5.1", features = ["async_tokio", "html_reports"] }
 criterion-macro = "0.4.0"
 futures = { workspace = true }
 rand = "0.8.5"
-serde = { version = "1.0.191", features = ["derive"] }
+serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 tokio = { workspace = true, features = ["macros"] }
 tokio-postgres = { version = "0.7.10", default-features = false }

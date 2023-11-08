@@ -1,5 +1,8 @@
 use async_trait::async_trait;
-use authorization::{schema::WebSubject, AuthorizationApi};
+use authorization::{
+    schema::{WebOwnerSubject, WebSubject},
+    AuthorizationApi,
+};
 use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -45,6 +48,7 @@ pub trait AccountStore {
         actor_id: AccountId,
         authorization_api: &mut A,
         owned_by_id: OwnedById,
+        owner: WebOwnerSubject,
     ) -> Result<(), InsertionError>;
 
     /// Returns if the [`AccountId`] exists in the database.

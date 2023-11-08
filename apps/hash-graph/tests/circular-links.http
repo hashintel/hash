@@ -12,8 +12,17 @@ X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
 %}
 
 ### Create account web
-POST http://127.0.0.1:4000/webs/{{account_id}}
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+   "ownedById": "{{account_id}}",
+   "owner": {
+       "kind": "account",
+       "subjectId": "{{account_id}}"
+    }
+}
 
 > {%
   client.test("status", function() {
@@ -56,7 +65,28 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   client.test("status", function() {
     client.assert(response.status === 200, "Response status is not 200");
   });
+  client.global.set("entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
+
+### Allow the entity type to be instantiated by the account
+POST http://127.0.0.1:4000/entity-types/relationships
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+[
+  {
+    "operation": "create",
+    "resource": "{{entity_type_id}}",
+    "relationAndSubject": {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  }
+]
 
 
 ### Insert entity A

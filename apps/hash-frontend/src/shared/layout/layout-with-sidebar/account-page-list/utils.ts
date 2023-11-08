@@ -2,10 +2,10 @@ import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityId } from "@local/hash-subgraph";
 
-import { GetAccountPagesTreeQuery } from "../../../../graphql/api-types.gen";
+import { SimplePage } from "../../../../components/hooks/use-account-pages";
 
 export interface TreeItem {
-  page: GetAccountPagesTreeQuery["pages"][0];
+  page: SimplePage;
   depth: number;
 }
 
@@ -23,9 +23,7 @@ export const getTreeItemList = (
         : !parentPage,
     )
     .sort((pageA, pageB) =>
-      (pageA.fractionalIndex ?? "ZZZ") > (pageB.fractionalIndex ?? "ZZZ")
-        ? 1
-        : -1,
+      pageA.fractionalIndex > pageB.fractionalIndex ? 1 : -1,
     )
     .reduce((prev, page) => {
       const children = getTreeItemList(

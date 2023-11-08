@@ -2086,7 +2086,7 @@
         }
       }
     },
-    "/webs/{web_id}": {
+    "/webs": {
       "post": {
         "tags": [
           "Graph",
@@ -2102,23 +2102,65 @@
             "schema": {
               "$ref": "#/components/schemas/AccountId"
             }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The ID of the account group to add the owner to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/OwnedById"
-            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "204": {
             "description": "The web was created successfully"
           },
           "500": {
             "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/webs/relationships": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "modify_web_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ModifyWebAuthorizationRelationship"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The relationship was modified for the web"
+          },
+          "403": {
+            "description": "Permission denied"
           }
         }
       }
@@ -2172,6 +2214,53 @@
           },
           "500": {
             "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/webs/{web_id}/relationships": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_web_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountId"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The web to read the relations for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/OwnedById"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The relations of the web",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebRelationAndSubject"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
           }
         }
       }
@@ -2369,6 +2458,21 @@
                 }
               }
             ]
+          }
+        }
+      },
+      "CreateWebRequest": {
+        "type": "object",
+        "required": [
+          "ownedById",
+          "owner"
+        ],
+        "properties": {
+          "ownedById": {
+            "$ref": "#/components/schemas/OwnedById"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/WebOwnerSubject"
           }
         }
       },
@@ -2954,6 +3058,63 @@
           }
         }
       },
+      "EntityTypeInstantiatorSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "public"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "EntityTypeMetadata": {
         "type": "object",
         "required": [
@@ -3028,7 +3189,8 @@
         "type": "string",
         "enum": [
           "update",
-          "view"
+          "view",
+          "instantiate"
         ]
       },
       "EntityTypeQueryToken": {
@@ -3088,6 +3250,24 @@
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeViewerSubject"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "instantiator"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/EntityTypeInstantiatorSubject"
               }
             }
           }
@@ -3845,6 +4025,25 @@
           "create",
           "delete"
         ]
+      },
+      "ModifyWebAuthorizationRelationship": {
+        "type": "object",
+        "required": [
+          "operation",
+          "resource",
+          "relationAndSubject"
+        ],
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/ModifyRelationshipOperation"
+          },
+          "relationAndSubject": {
+            "$ref": "#/components/schemas/WebRelationAndSubject"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/OwnedById"
+          }
+        }
       },
       "NullableTimestamp": {
         "type": "string",
@@ -4800,14 +4999,83 @@
           }
         }
       },
+      "WebOwnerSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "account"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountId"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "subjectId",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "accountGroup"
+                ]
+              },
+              "subjectId": {
+                "$ref": "#/components/schemas/AccountGroupId"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
       "WebPermission": {
         "type": "string",
         "enum": [
+          "update",
           "create_entity",
           "create_entity_type",
           "create_property_type",
           "create_data_type"
         ]
+      },
+      "WebRelationAndSubject": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "subject",
+              "relation"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "owner"
+                ]
+              },
+              "subject": {
+                "$ref": "#/components/schemas/WebOwnerSubject"
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "relation"
+        }
       }
     }
   },

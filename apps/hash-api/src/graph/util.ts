@@ -27,6 +27,7 @@ import {
   PropertyTypeWithMetadata,
 } from "@local/hash-subgraph";
 
+import { enabledIntegrations } from "../integrations/enabled-integrations";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { createAccountGroup, createWeb } from "./account-permission-management";
@@ -55,15 +56,18 @@ const owningWebs: Record<
   SystemTypeWebShortname,
   {
     accountGroupId?: AccountGroupId;
+    enabled: boolean;
     name: string;
     website: string;
   }
 > = {
   hash: {
+    enabled: true,
     name: "HASH",
     website: "https://hash.ai",
   },
   linear: {
+    enabled: enabledIntegrations.linear,
     name: "Linear",
     website: "https://linear.app",
   },
@@ -107,7 +111,10 @@ const getOrCreateOwningAccountGroupId = async (
   // The systemAccountId will automatically be assigned as an owner of the account group since it creates it
   const accountGroupId = await createAccountGroup(context, authentication, {});
 
-  await createWeb(context, authentication, { owner: accountGroupId });
+  await createWeb(context, authentication, {
+    ownedById: accountGroupId as OwnedById,
+    owner: { kind: "accountGroup", subjectId: accountGroupId },
+  });
 
   owningWebs[webShortname].accountGroupId = accountGroupId;
 
@@ -125,7 +132,13 @@ export const ensureAccountGroupOrgsExist = async (params: {
 
   logger.debug("Ensuring account group organization entities exist");
 
-  for (const [webShortname, { name, website }] of Object.entries(owningWebs)) {
+  for (const [webShortname, { enabled, name, website }] of Object.entries(
+    owningWebs,
+  )) {
+    if (!enabled) {
+      continue;
+    }
+
     const authentication = { actorId: systemAccountId };
     const foundOrg = await getOrgByShortname(context, authentication, {
       shortname: webShortname,
@@ -547,6 +560,7 @@ export const entityTypeInitializer = (
                 ownedById: accountGroupId as OwnedById,
                 schema: entityTypeSchema,
                 webShortname: params.webShortname,
+                instantiators: [],
               },
             ).catch((createError) => {
               logger.warn(
@@ -584,6 +598,19 @@ export const entityTypeInitializer = (
                     subject: {
                       kind: "account",
                       subjectId: systemAccountId,
+                    },
+                  },
+                },
+                {
+                  operation: "create",
+                  relationship: {
+                    resource: {
+                      kind: "entityType",
+                      resourceId: createdEntityType.schema.$id,
+                    },
+                    relation: "instantiator",
+                    subject: {
+                      kind: "public",
                     },
                   },
                 },

@@ -8,8 +8,12 @@ import {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
+import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { QueryTemporalAxesUnresolved, Timestamp } from "@local/hash-subgraph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
+import {
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+} from "@local/hash-subgraph/type-system-patch";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },
@@ -127,4 +131,30 @@ export const generateVersionedUrlMatchingFilter = (
       },
     ],
   };
+};
+
+const archivedBaseUrl = extractBaseUrl(
+  systemTypes.propertyType.archived.propertyTypeId,
+);
+
+export const notArchivedFilter: Filter = {
+  any: [
+    {
+      equal: [
+        {
+          path: ["properties", archivedBaseUrl],
+        },
+        // @ts-expect-error -- We will update the type definition of `EntityStructuralQuery` to allow this, see H-1207
+        null,
+      ],
+    },
+    {
+      equal: [
+        {
+          path: ["properties", archivedBaseUrl],
+        },
+        { parameter: false },
+      ],
+    },
+  ],
 };

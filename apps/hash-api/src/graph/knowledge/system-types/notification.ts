@@ -1,6 +1,7 @@
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -247,36 +248,7 @@ export const getMentionNotification: ImpureGraphFunction<
               { parameter: recipient.accountId },
             ],
           },
-          {
-            any: [
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      SYSTEM_TYPES.propertyType.archived.metadata.recordId
-                        .baseUrl,
-                    ],
-                  },
-                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                  //   @see https://linear.app/hash/issue/H-1207
-                  null,
-                ],
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      SYSTEM_TYPES.propertyType.archived.metadata.recordId
-                        .baseUrl,
-                    ],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
-          },
+          notArchivedFilter,
         ],
       },
       graphResolveDepths: {
