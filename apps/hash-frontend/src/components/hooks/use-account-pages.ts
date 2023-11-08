@@ -1,5 +1,4 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
-import { typedValues } from "@local/advanced-types/typed-entries";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -8,12 +7,14 @@ import {
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
-  Entity,
   EntityMetadata,
   EntityRootType,
   OwnedById,
 } from "@local/hash-subgraph";
-import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { useMemo } from "react";
 
 import {
