@@ -14,7 +14,7 @@ export const createOrgResolver: ResolverFn<
   MutationCreateOrgArgs
 > = async (
   _,
-  { name, shortname, orgSize, website, hasLeftEntity, hasRightEntity },
+  { name, shortname, websiteUrl, hasLeftEntity, hasRightEntity },
   { dataSources, authentication, user },
 ) => {
   const context = dataSourcesToImpureGraphContext(dataSources);
@@ -22,8 +22,7 @@ export const createOrgResolver: ResolverFn<
   const org = await createOrg(context, authentication, {
     shortname,
     name,
-    providedInfo: orgSize ? { orgSize } : undefined,
-    website,
+    websiteUrl,
   });
 
   await joinOrg(context, authentication, {

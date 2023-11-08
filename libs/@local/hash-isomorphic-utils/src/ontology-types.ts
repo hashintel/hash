@@ -138,27 +138,28 @@ export const generateLinearTypeId = (args: {
 const systemEntityTypes = {
   block: {
     title: "Block",
-    description: undefined,
+    description:
+      "A block that displays or otherwise uses data, part of a wider page or collection.",
   },
   blockCollection: {
     title: "Block Collection",
-    description: undefined,
+    description: "A collection of blocks.",
   },
   page: {
     title: "Page",
-    description: undefined,
+    description: "A page for displaying and potentially interacting with data.",
   },
   quickNote: {
     title: "Quick Note",
-    description: undefined,
+    description: "A (usually) quick or short note.",
   },
   profileBio: {
     title: "Profile Bio",
-    description: undefined,
+    description: "A biography for display on someone or something's profile.",
   },
   text: {
     title: "Text",
-    description: undefined,
+    description: "Textual data.",
   },
   file: {
     title: "File",
@@ -170,15 +171,15 @@ const systemEntityTypes = {
   },
   user: {
     title: "User",
-    description: undefined,
+    description: "A user of the HASH application.",
   },
   org: {
-    title: "Org",
-    description: undefined,
+    title: "Organization",
+    description: "An organization in the HASH application.",
   },
   comment: {
     title: "Comment",
-    description: undefined,
+    description: "A comment.",
   },
   hashInstance: {
     title: "HASH Instance",
@@ -222,15 +223,15 @@ const systemEntityTypes = {
   },
   notification: {
     title: "Notification",
-    description: undefined,
+    description: "A notification to a user.",
   },
   mentionNotification: {
     title: "Mention Notification",
-    description: undefined,
+    description: "A notification that a user was mentioned somewhere.",
   },
   commentNotification: {
     title: "Comment Notification",
-    description: undefined,
+    description: "A notification related to a comment.",
   },
 } as const;
 
@@ -254,8 +255,8 @@ const systemPropertyTypes = {
     title: "Location",
     description: "A location for something, expressed as a single string",
   },
-  website: {
-    title: "Website",
+  websiteUrl: {
+    title: "Website URL",
     description: "A URL for a website",
   },
   shortname: {
@@ -264,7 +265,7 @@ const systemPropertyTypes = {
   },
   email: {
     title: "Email",
-    description: undefined,
+    description: "An email address",
   },
   fileStorageBucket: {
     title: "File Storage Bucket",
@@ -316,15 +317,15 @@ const systemPropertyTypes = {
   },
   kratosIdentityId: {
     title: "Kratos Identity Id",
-    description: undefined,
+    description: "An identifier for a record in Ory Kratos.",
   },
   preferredName: {
     title: "Preferred Name",
-    description: undefined,
+    description: "The preferred name of someone or something.",
   },
   preferredPronouns: {
     title: "Preferred Pronouns",
-    description: undefined,
+    description: "Someone's preferred pronouns.",
   },
   pinnedEntityTypeBaseUrl: {
     title: "Pinned Entity Type Base URL",
@@ -332,19 +333,11 @@ const systemPropertyTypes = {
   },
   orgName: {
     title: "Organization Name",
-    description: undefined,
-  },
-  orgSize: {
-    title: "Organization Size",
-    description: undefined,
-  },
-  orgProvidedInfo: {
-    title: "Organization Provided Information",
-    description: undefined,
+    description: "The name of an organization.",
   },
   componentId: {
     title: "Component Id",
-    description: undefined,
+    description: "An identifier for a component.",
   },
   // @todo this could be a timestamp – archivedAt
   archived: {
@@ -416,25 +409,25 @@ export type SystemPropertyTypeTitle =
  * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
-  orgMembership: {
-    title: "Org Membership",
-    description: undefined,
+  isMemberOf: {
+    title: "Is Member Of",
+    description: "Something that someone or something is a member of.",
   },
-  blockData: {
-    title: "Block Data",
-    description: "The entity representing the data in a block.",
+  hasData: {
+    title: "Has Data",
+    description: "The data that something has.",
   },
   hasBio: {
     title: "Has Bio",
-    description: "Something that has a bio.",
+    description: "The biography something has.",
   },
   contains: {
     title: "Contains",
-    description: "Something containing something.",
+    description: "What something contains",
   },
-  parent: {
-    title: "Parent",
-    description: "The parent of something.",
+  hasParent: {
+    title: "Has Parent",
+    description: "The parent something has.",
   },
   hasAvatar: {
     title: "Has Avatar",
@@ -448,9 +441,9 @@ const systemLinkEntityTypes = {
     title: "Has Text",
     description: "The text something has.",
   },
-  author: {
-    title: "Author",
-    description: "The author of something.",
+  authoredBy: {
+    title: "Authored By",
+    description: "What or whom something was authored by.",
   },
   syncLinearDataWith: {
     title: "Sync Linear Data With",
@@ -458,11 +451,11 @@ const systemLinkEntityTypes = {
   },
   usesUserSecret: {
     title: "Uses User Secret",
-    description: "Something that uses a user secret.",
+    description: "The user secret something uses.",
   },
   hasServiceAccount: {
     title: "Has Service Account",
-    description: "Something that has a service account.",
+    description: "The service account something has.",
   },
   occurredInEntity: {
     title: "Occurred In Entity",
@@ -490,7 +483,7 @@ const systemLinkEntityTypes = {
   },
   repliedToComment: {
     title: "Replied To Comment",
-    description: "A comment that was replied to.",
+    description: "The comment that something replied to.",
   },
 } as const;
 

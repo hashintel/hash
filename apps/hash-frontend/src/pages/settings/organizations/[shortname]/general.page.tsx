@@ -60,10 +60,11 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
               orgData.location,
           }
         : {}),
-      ...(orgData.website
+      ...(orgData.websiteUrl
         ? {
-            [extractBaseUrl(systemTypes.propertyType.website.propertyTypeId)]:
-              orgData.website,
+            [extractBaseUrl(
+              systemTypes.propertyType.websiteUrl.propertyTypeId,
+            )]: orgData.websiteUrl,
           }
         : {}),
     };

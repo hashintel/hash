@@ -152,13 +152,13 @@ export const createComment: ImpureGraphFunction<
     entityTypeId: SYSTEM_TYPES.entityType.comment.schema.$id,
     outgoingLinks: [
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
         rightEntityId: parentEntityId,
         ownedById,
         owner: author.accountId,
       },
       {
-        linkEntityType: SYSTEM_TYPES.linkEntityType.author,
+        linkEntityType: SYSTEM_TYPES.linkEntityType.authoredBy,
         rightEntityId: author.entity.metadata.recordId.entityId,
         ownedById,
         owner: author.accountId,
@@ -283,7 +283,8 @@ export const getCommentParent: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -316,7 +317,8 @@ export const getCommentAuthor: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const authorLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.author.schema.$id,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.authoredBy.schema.$id,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -351,7 +353,7 @@ export const getCommentReplies: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const replyLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
   });
 
   return Promise.all(

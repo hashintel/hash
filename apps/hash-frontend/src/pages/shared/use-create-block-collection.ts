@@ -80,7 +80,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         }),
         createEntity({
           data: {
-            entityTypeId: systemTypes.linkEntityType.blockData.linkEntityTypeId,
+            entityTypeId: systemTypes.linkEntityType.hasData.linkEntityTypeId,
             linkData: {
               leftEntityId: blockEntity.metadata.recordId.entityId,
               rightEntityId: textEntity.metadata.recordId.entityId,

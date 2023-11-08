@@ -26,8 +26,7 @@ export let SYSTEM_TYPES: {
   propertyType: {
     // General
     location: PropertyTypeWithMetadata;
-    // @todo use 'url' when this is available? or rename to websiteUrl?
-    website: PropertyTypeWithMetadata;
+    websiteUrl: PropertyTypeWithMetadata;
 
     // General account related
     shortname: PropertyTypeWithMetadata;
@@ -41,8 +40,6 @@ export let SYSTEM_TYPES: {
 
     // Org-related
     orgName: PropertyTypeWithMetadata;
-    orgSize: PropertyTypeWithMetadata;
-    orgProvidedInfo: PropertyTypeWithMetadata;
 
     // Block-related
     componentId: PropertyTypeWithMetadata;
@@ -122,7 +119,7 @@ export let SYSTEM_TYPES: {
   };
   linkEntityType: {
     // User-related
-    orgMembership: EntityTypeWithMetadata;
+    isMemberOf: EntityTypeWithMetadata;
     hasServiceAccount: EntityTypeWithMetadata;
 
     // Account-related
@@ -131,17 +128,17 @@ export let SYSTEM_TYPES: {
     hasBio: EntityTypeWithMetadata;
 
     // Block-related
-    blockData: EntityTypeWithMetadata;
+    hasData: EntityTypeWithMetadata;
 
     // Block Collection related
     contains: EntityTypeWithMetadata;
 
     // Page-related
-    parent: EntityTypeWithMetadata;
+    hasParent: EntityTypeWithMetadata;
 
     // Comment-related
     hasText: EntityTypeWithMetadata;
-    author: EntityTypeWithMetadata;
+    authoredBy: EntityTypeWithMetadata;
 
     // Linear Integration related
     syncLinearDataWith: EntityTypeWithMetadata;
@@ -237,31 +234,6 @@ export const hashInstanceEntityTypeInitializer = async (
   })(context);
 };
 
-// Generate the schema for the org provided info property type
-export const orgProvidedInfoPropertyTypeInitializer = async (
-  context: ImpureGraphContext,
-) => {
-  const orgSizePropertyType =
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(context);
-
-  const orgSizeBaseUrl = orgSizePropertyType.metadata.recordId.baseUrl;
-
-  return propertyTypeInitializer({
-    ...systemTypes.propertyType.orgProvidedInfo,
-    possibleValues: [
-      {
-        propertyTypeObjectProperties: {
-          [orgSizeBaseUrl]: {
-            $ref: orgSizePropertyType.schema.$id,
-          },
-        },
-      },
-    ],
-    webShortname: "hash",
-  })(context);
-};
-
 const hasBioLinkEntityTypeInitializer = async (context: ImpureGraphContext) =>
   entityTypeInitializer({
     ...systemTypes.linkEntityType.hasBio,
@@ -280,11 +252,8 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const orgNamePropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgName(context);
 
-  const orgProvidedInfoPropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgProvidedInfo(context);
-
-  const websitePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+  const websiteUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.websiteUrl(context);
 
   const pinnedEntityTypeBaseUrlPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.pinnedEntityTypeBaseUrl(
@@ -328,11 +297,7 @@ export const orgEntityTypeInitializer = async (context: ImpureGraphContext) => {
         required: false,
       },
       {
-        propertyType: orgProvidedInfoPropertyType,
-        required: false,
-      },
-      {
-        propertyType: websitePropertyType,
+        propertyType: websiteUrlPropertyType,
         required: false,
       },
       {
@@ -370,8 +335,8 @@ const locationPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const websitePropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.website,
+const websiteUrlPropertyTypeInitializer = propertyTypeInitializer({
+  ...systemTypes.propertyType.websiteUrl,
   possibleValues: [{ primitiveDataType: "text" }],
   webShortname: "hash",
 });
@@ -384,12 +349,6 @@ const shortnamePropertyTypeInitializer = propertyTypeInitializer({
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...systemTypes.propertyType.orgName,
-  possibleValues: [{ primitiveDataType: "text" }],
-  webShortname: "hash",
-});
-
-const orgSizePropertyTypeInitializer = propertyTypeInitializer({
-  ...systemTypes.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
   webShortname: "hash",
 });
@@ -428,7 +387,7 @@ const orgMembershipLinkEntityTypeInitializer = async (
   context: ImpureGraphContext,
 ) => {
   return entityTypeInitializer({
-    ...systemTypes.linkEntityType.orgMembership,
+    ...systemTypes.linkEntityType.isMemberOf,
     webShortname: "hash",
   })(context);
 };
@@ -458,8 +417,8 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const locationPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.location(context);
 
-  const websitePropertyType =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.website(context);
+  const websiteUrlPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.websiteUrl(context);
 
   const orgEntityType = await SYSTEM_TYPES_INITIALIZERS.entityType.org(context);
 
@@ -467,7 +426,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
     await SYSTEM_TYPES_INITIALIZERS.entityType.serviceAccount(context);
 
   const orgMembershipLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(context);
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.isMemberOf(context);
 
   const hasAvatarLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasAvatar(context);
@@ -511,7 +470,7 @@ const userEntityTypeInitializer = async (context: ImpureGraphContext) => {
         propertyType: locationPropertyType,
       },
       {
-        propertyType: websitePropertyType,
+        propertyType: websiteUrlPropertyType,
       },
       {
         propertyType: pinnedEntityTypeBaseUrlPropertyType,
@@ -684,8 +643,8 @@ const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   webShortname: "hash",
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.blockData,
+const hasDataLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasData,
   webShortname: "hash",
 });
 
@@ -695,8 +654,8 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const componentIdPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(context);
 
-  const blockDataLinkEntityType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.blockData(context);
+  const hasDataLinkEntityType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasData(context);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -710,7 +669,7 @@ const blockEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
     outgoingLinks: [
       {
-        linkEntityType: blockDataLinkEntityType,
+        linkEntityType: hasDataLinkEntityType,
         minItems: 1,
         maxItems: 1,
       },
@@ -979,8 +938,8 @@ const quickNoteEntityTypeInitializer = async (context: ImpureGraphContext) => {
   })(context);
 };
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.parent,
+const hasParentLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.hasParent,
   webShortname: "hash",
 });
 
@@ -1002,8 +961,8 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const iconPropertyType =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
 
-  const parentLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
+  const hasParentLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
   const blockCollectionEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.blockCollection(context);
@@ -1034,7 +993,7 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
     ],
     outgoingLinks: [
       {
-        linkEntityType: parentLinkTypeType,
+        linkEntityType: hasParentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE"],
         maxItems: 1,
       },
@@ -1184,8 +1143,8 @@ const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
   webShortname: "hash",
 });
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer({
-  ...systemTypes.linkEntityType.author,
+const authoredByLinkEntityTypeInitializer = entityTypeInitializer({
+  ...systemTypes.linkEntityType.authoredBy,
   webShortname: "hash",
 });
 
@@ -1201,11 +1160,11 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   const hasTextLinkEntityType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasText(context);
 
-  const parentLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.parent(context);
+  const hasParentLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
-  const authorLinkTypeType =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.author(context);
+  const authoredByLinkTypeType =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.authoredBy(context);
 
   const userEntityType =
     await SYSTEM_TYPES_INITIALIZERS.entityType.user(context);
@@ -1236,13 +1195,13 @@ const commentEntityTypeInitializer = async (context: ImpureGraphContext) => {
         maxItems: 1,
       },
       {
-        linkEntityType: parentLinkTypeType,
+        linkEntityType: hasParentLinkTypeType,
         destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
         minItems: 1,
         maxItems: 1,
       },
       {
-        linkEntityType: authorLinkTypeType,
+        linkEntityType: authoredByLinkTypeType,
         destinationEntityTypes: [userEntityType],
         minItems: 1,
         maxItems: 1,
@@ -1492,7 +1451,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
   dataType: {},
   propertyType: {
     location: locationPropertyTypeInitializer,
-    website: websitePropertyTypeInitializer,
+    websiteUrl: websiteUrlPropertyTypeInitializer,
 
     shortname: shortnamePropertyTypeInitializer,
     pinnedEntityTypeBaseUrl: pinnedEntityTypeBaseUrlPropertyTypeInitializer,
@@ -1510,8 +1469,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     fileStorageRegion: fileStorageRegionPropertyTypeInitializer,
 
     orgName: orgNamePropertyTypeInitializer,
-    orgSize: orgSizePropertyTypeInitializer,
-    orgProvidedInfo: orgProvidedInfoPropertyTypeInitializer,
 
     componentId: componentIdPropertyTypeInitializer,
 
@@ -1545,14 +1502,14 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     readAt: readAtPropertyTypeInitializer,
   },
   linkEntityType: {
-    orgMembership: orgMembershipLinkEntityTypeInitializer,
-    blockData: blockDataLinkEntityTypeInitializer,
+    isMemberOf: orgMembershipLinkEntityTypeInitializer,
+    hasData: hasDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
-    parent: parentLinkEntityTypeInitializer,
+    hasParent: hasParentLinkEntityTypeInitializer,
     hasAvatar: hasAvatarLinkEntityTypeInitializer,
     hasCoverImage: hasCoverImageLinkEntityTypeInitializer,
     hasText: hasTextLinkEntityTypeInitializer,
-    author: authorLinkEntityTypeInitializer,
+    authoredBy: authoredByLinkEntityTypeInitializer,
     syncLinearDataWith: syncLinearDataWithLinkEntityTypeInitializer,
     usesUserSecret: usesUserSecretLinkEntityTypeInitializer,
     hasServiceAccount: hasServiceAccountSecretLinkEntityTypeInitializer,

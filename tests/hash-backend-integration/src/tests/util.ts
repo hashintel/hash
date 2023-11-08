@@ -13,8 +13,6 @@ import { getRequiredEnv } from "@apps/hash-api/src/util";
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 
-import { OrgSize } from "../graphql/api-types.gen";
-
 export const textDataTypeId =
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" as VersionedUrl;
 const randomStringSuffix = () => {
@@ -118,9 +116,6 @@ export const createTestOrg = async (
   return createOrg(context, authentication, {
     name: "Test org",
     shortname,
-    providedInfo: {
-      orgSize: OrgSize.ElevenToFifty,
-    },
   });
 };
 

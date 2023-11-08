@@ -78,8 +78,8 @@ const InfoItem: FunctionComponent<{
 const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
   profile,
 }) => {
-  const websiteUrl = profile?.website
-    ? sanitizeHref(profile.website)
+  const websiteUrl = profile?.websiteUrl
+    ? sanitizeHref(profile.websiteUrl)
     : undefined;
 
   const createdAtTimestamp = profile
