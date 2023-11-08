@@ -46,11 +46,11 @@ import {
 import { systemAccountId } from "./system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
-const isSelfHostedInstance = ![
-  "http://localhost:3000",
-  "https://app.hash.ai",
-  "https://hash.ai",
-].includes(frontendUrl);
+const isSelfHostedInstance =
+  process.env.SELF_HOSTED_HASH === "true" ||
+  !["http://localhost:3000", "https://app.hash.ai", "https://hash.ai"].includes(
+    frontendUrl,
+  );
 
 const owningWebs: Record<
   SystemTypeWebShortname,
@@ -128,6 +128,10 @@ const getOrCreateOwningAccountGroupId = async (
 export const ensureAccountGroupOrgsExist = async (params: {
   context: ImpureGraphContext;
 }) => {
+  if (isSelfHostedInstance) {
+    return;
+  }
+
   const { context } = params;
 
   logger.debug("Ensuring account group organization entities exist");
