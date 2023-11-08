@@ -1,4 +1,5 @@
 import { codegen, CodegenParameters } from "@blockprotocol/graph/codegen";
+import { VersionedUrl } from "@blockprotocol/type-system";
 import slugify from "slugify";
 
 import {
@@ -33,6 +34,17 @@ const generateTypes = async (
   await codegen({
     outputFolder: `src/system-types${subFolder ? `/${subFolder}` : ""}`,
     targets,
+    rewriteTypeId: (typeId) => {
+      if (typeId.startsWith("https://hash.ai/")) {
+        const rewrittenTypeId = typeId.replace(
+          "https://hash.ai/",
+          "http://localhost:3000/",
+        ) as VersionedUrl;
+
+        return rewrittenTypeId;
+      }
+      return typeId;
+    },
   });
 
   // eslint-disable-next-line no-console
