@@ -1,7 +1,0 @@
-# Creating a simulation
-
-You can create a new simulation by forking an existing one, or by creating a simulation project from scratch.
-
-Creating your own simulations using our current tools (hCore and hEngine) requires a working knowledge of at least one of JavaScipt, Python, or Rust. These are the programming languages that HASH simulation models can currently be written in. In the future, we'll be making HASH simulations more accessible to users who don't know how to code.
-
-To learn more about creating your own simulations, check out the [hash.dev simulation docs](https://hash.dev/docs/simulation)
