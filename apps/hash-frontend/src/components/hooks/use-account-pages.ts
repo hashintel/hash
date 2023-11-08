@@ -63,16 +63,7 @@ export const useAccountPages = (
     const typedSubgraph =
       mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(subgraph);
 
-    return typedSubgraph.roots.map((root) => {
-      const pageEntityRevisions = typedSubgraph.vertices[root.baseId];
-
-      if (!pageEntityRevisions) {
-        throw new Error(`Could not find page entity with id ${root.baseId}`);
-      }
-
-      const latestPage = typedValues(pageEntityRevisions)[0]!
-        .inner as Entity<PageProperties>;
-
+    return getRoots(typedSubgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
         subgraph,
         latestPage.metadata.recordId.entityId,
@@ -87,7 +78,7 @@ export const useAccountPages = (
       const parentPage = parentLink?.rightEntity[0] ?? null;
 
       return {
-        ...simplifyProperties(latestPage.properties),
+        ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
       };
