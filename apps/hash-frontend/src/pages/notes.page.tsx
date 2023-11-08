@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
@@ -36,7 +37,6 @@ import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { QuickNoteEntityWithCreatedAt } from "./notes.page/types";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
-import { notArchivedFilter } from "./shared/not-archived-filter";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const NotesPage: NextPageWithLayout = () => {
