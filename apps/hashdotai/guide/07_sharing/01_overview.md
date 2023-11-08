@@ -18,3 +18,5 @@ You can share things in HASH with:
 # Entities
 
 # Types
+
+This page provides information about permissions as they relate to sharing only. For more information about permissions in general, see [Webs > Permissions](https://hash.ai/guide/webs/permissions).

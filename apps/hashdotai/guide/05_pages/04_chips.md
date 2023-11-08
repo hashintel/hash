@@ -1,13 +1,21 @@
 
-By pressing `@` on your keyboard when in a [text block] you can insert a wide variety of 'chips' which provide rich information within documents.
+By pressing certain keys while within a [text block] you can insert one of a number of 'chips' which provide rich information within documents.
 
 ## Entity chips
 
-## Property chips
+Type `@`, start typing to narrow your search, highlight the entity you wish to insert, and click the entity -- or press the enter/return key (`↲`) -- to insert it onto your page.
+
+## Attribute chips
+
+Type `@`, and hover over or keyboard-navigate to the entity whose attribute (property or link value) you wish to insert. Once the entity has been highlighted, press the right arrow key on your keyboard `→` to expand the sub-menu to show the entity's attributes, and then tab up (`↑`) or down (`↓`) between properties until you've selected the one you wish to insert. Press the enter or return key on your keyboard (`↲`) to insert the chosen attribute onto the page. This attribute chip will then be kept automatically in sync with the underlying value, even if it changes on the entity in question. This makes it easy to create pages which remain up-to-date, and don't atrophy over time, like normal documents.
 
 ## Calculation chips
 
+**Coming soon.** By pressing the `/` key and selecting 'Calculation (Inline)', you can type out a math formula in full and insert its result in a chip (with the underlying calculation, i.e. your formula, available upon hovering over or tapping the chip).
+
 ## Datetime chip
+
+**Coming soon.** By pressing the `/` key and selecting 'Datetime', or by typing `@` and typing a specific date or time, you can insert a 'datetime chip'. _EXPLAIN_
 
 ## Currency chip
 
