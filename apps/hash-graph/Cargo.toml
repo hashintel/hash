@@ -34,7 +34,7 @@ bytes = "1.5.0"
 utoipa = "4.0.0"
 uuid = { version = "1.5.0", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
-serde = "1.0.191"
+serde = "1.0.192"
 serde_json = "1.0.108"
 tokio = { version = "1.33.0", default-features = false }
 time = { version = "0.3.30", default-features = false }
