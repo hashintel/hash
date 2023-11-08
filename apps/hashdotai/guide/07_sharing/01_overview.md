@@ -3,20 +3,20 @@ It's easy to publicly publish or privately share any type or any entity (includi
 
 This lets you share some things with everybody, while controlling access to others, reading individuals in on certain bits of information, or keeping them entirely private. This flexibility is one of HASH's many unique features.
 
-# Sharing with others
+# Shared webs {#internally}
 
-You can share things in HASH with:
+The easiest way to collaborate with others in HASH is to create an [organization](https://hash.ai/guide/webs/orgs), providing you with a 'shared web' accessible to all of its members.
 
-- [Users](https://hash.ai/guide/webs/users#users) on a one-by-one basis
-- [Orgs](https://hash.ai/guide/webs/orgs#users), providing access to all of their members
-- The public
+# Sharing directly with others {#directly}
 
-# How to share
+You can also share individual entities (including pages) and types directly in HASH with other [users](https://hash.ai/guide/webs/users#users), on a one-by-one basis; [orgs](https://hash.ai/guide/webs/orgs#users), providing access to all of their members; and the public (granting unrestricted view permission to anybody who visits the page).
 
-# Pages
+# How to share {#how-to}
 
-# Entities
+## Sharing pages {#pages}
 
-# Types
+# Sharing entities {#entities}
+
+# Sharing types {#types}
 
 This page provides information about permissions as they relate to sharing only. For more information about permissions in general, see [Webs > Permissions](https://hash.ai/guide/webs/permissions).
