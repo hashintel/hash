@@ -50,17 +50,16 @@ All data in [webs](https://hash.ai/guide/webs) exists as **entities**. An indivi
 
 Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
 
-- The entity type `Organization` might specify properties such as `Name`, and links like `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
-- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Estimated Value` (new) alongside links such as `Point of Contact` and `Key stakeholders` which may link to other `Person` entities.
+- The entity type `Organization` might specify properties like `Legal name`, and links such as `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
+- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
 
 Entity preview: NHS England
 **Attrbute type**   **Attribute name**  **Value**
-Property type       Name                NHS England
-Property type       Estimated Value     18,300,000
+Property type       Legal name          NHS England
+Property type       Contract value      £18,650,000
 Link type           Led by              Amanda Pritchard
-Link type           Subsidiaries        
-Link type           Key stakeholders
-Link type           Point of contact
+Link type           Key stakeholders    Ming Tang, Vin Diwakar, Louise Greenrod
+Link type           Point of contact    Amanda Pritchard
 
 [//]: # (We don't need to mention it to end-users here, but we may wish to explain in the dev docs that every link between two entities is itself an entity (of a special type, called a 'link entity'). In this case, a link called `NHS England - Led by - Amanda Pritchard` is created.)
 

@@ -6,7 +6,6 @@ description: Get started with HASH
 
 Using the hosted version of HASH at [hash.ai](https://app.hash.ai/) is the fastest way to get started.
 
-
 # Navigating the interface {#navigate}
 
 The HASH interface is an all-in-one, browser-based, no-code workspace made up of three main panels:
