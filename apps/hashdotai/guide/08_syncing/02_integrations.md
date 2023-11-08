@@ -1,1 +1,27 @@
-Various currently available plugins, and many more planned. For a complete list, and guides to their usage, visit the [integrations](https://hash.ai//integrations) page.
+---
+description: Integrations in HASH
+---
+
+A small but growing number of integrations are currently available for HASH, with many more under development. For a complete list of those already shipped, and guides to using them, as well as the chance to vote on what upcoming integrations are built next, visit the [integrations directory](https://hash.ai/integrations).
+
+# Types of Integrations
+
+## Full sync
+
+We always develop 'full sync' integrations when external applications support it. This means data can be ingested into HASH, and written back out when it is changed (either in real-time, or close to real-time).
+
+## Partial sync
+
+Some external data sources may not support both reading and writing of all types of entities, but provide a mixed set of access capabilities. In such cases, we try and sync as much data as possible (both ways), but some data may not be available for import in HASH, or may not be writable back to the original application in the event it is changed in HASH. In such cases we'll make users aware (and/or at your option can prevent the modification of imported data which cannot be synced back entirely), helping prevent data conflicts from arising.
+
+## One-way sync
+
+Certain integrations (e.g. Lattice) only support importing information into HASH, and cannot be written back out to.
+
+# Using Integratinos
+
+Whenever you install an integration, you'll be told exactly which types of entities it supports syncing, and what kind of sync is available.
+
+_Full_ sync applications are well-suited for continued use alongside HASH, as changes made in either HASH or the original application will be reflected across one another.
+
+Data contained within _partial_ and _one-way_ sync applications may be better suited to being used within HASH purely as reference data, or may be ingested into HASH as part of a one-time migration away from the external service in question.
