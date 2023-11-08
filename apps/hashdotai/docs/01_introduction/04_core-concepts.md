@@ -9,13 +9,7 @@ description: Getting started with HASH
 
 HASH helps you integrate, understand, and apply data to any business problem. It does this by combining powerful data management tools with a composable, block-based user interface.
 
-We’re working towards making HASH a platform for complete end-to-end decision making, enabling high-quality no-code application-building, and **\_\_**.
-
-## Examples {#examples}
-
-HASH already supports a range of simple yet novel use cases, replacing other SaaS apps you may be paying for. Examples include:
-
-- **Team Page** — employee data can be structured in HASH and then rendered with blocks which present profile information.
+We’re working towards making HASH a platform for complete end-to-end decision making, enabling high-quality no-code application-building, and FINISH
 
 ## Introductory concepts {#introductory-concepts}
 

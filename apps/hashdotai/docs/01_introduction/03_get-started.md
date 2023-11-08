@@ -1,19 +1,13 @@
+---
+description: Get started with HASH
+---
 
 # Creating an account {go}
 
-## Signing up at hash.ai {#sign-up}
+Using the hosted version of HASH at [hash.ai](https://app.hash.ai/) is the fastest way to get started.
 
-Using the hosted version of HASH at app.hash.ai is the fastest way to get started.
-
-## Hosting your own instance {#self-host}
-
-A fully usable, open-source version of HASH is available. In fact, all of the code which powers this website (app.hash.ai) is publicly available, meaning it is freely available for anybody to inspect and review. If you're technically minded, you can learn more about our open-source mission and find links to our source code at [hash.dev](https://hash.dev/).
-
-What this also means is that anybody can host their own instance of HASH. In other words, if you'd like to run HASH locally on your own servers, rather than in the cloud, you can. This also means there's no risk of vendor lock-in, and you are not beholden to HASH as you might be any other provider.
 
 # Navigating the interface {#navigate}
-
-!["The HASH interface"](https://hash.ai/cdn-cgi/imagedelivery/EipKtqu98OotgfhvKf6Eew/7e719229-7e04-448a-1456-fa549cf94800/public)
 
 The HASH interface is an all-in-one, browser-based, no-code workspace made up of three main panels:
 
@@ -36,10 +30,22 @@ At the top of the sidebar you'll see quick links to some of the most frequently-
 
 You'll also see a section called "Pages" and a section called "Types". You can add your own additional sections later.
 
-# Feed
+## Feed
 
-# Inbox
+## Inbox
 
-# Drafts
+## Drafts
 
-# Quick note
+## Quick note
+
+# Browser Extension
+
+We strongly recommend installing the [HASH browser extension](https://hash.ai/integrations#plugins). Doing so will provide you with access to 
+
+# Self-hosting HASH
+
+An alternative to using the hosted version of HASH is to self-host your own instance of HASH. This requires a degree of technical knowldege and is only recommended for advanced users.
+
+If you're trying HASH out, or using it for the first time, we recommend following the instructions above, rather than self-hosting HASH. If, however, you're techically minded, and comfortable hosting your own web services, you can follow the instructions contained on the [HASH developer documentation](https://hash.dev/docs) website for a quickstart guide to self-hosting HASH.
+
+Because HASH is open-source, whichever version of HASH you choose now, there's never any risk of vendor lock-in, and you can decide or switch between using the hosted and self-hosted versions at any time.

@@ -1,0 +1,1 @@
+Read more about permissions under webs/permissions. This page provides information re: permissions only insofar as it is relevant to sharing.
