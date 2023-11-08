@@ -248,13 +248,15 @@ where
         actor_id: AccountId,
         authorization_api: &Au,
         ontology_type: &'o T,
+        bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyTypeReference<'o>>, QueryError> {
         let mut references = Vec::new();
         for reference in ontology_type.traverse_references() {
-            if !self
-                .contains_ontology_type(actor_id, authorization_api, reference)
-                .await
-                .change_context(QueryError)?
+            if !bypassed_types.contains(reference.url())
+                && !self
+                    .contains_ontology_type(actor_id, authorization_api, reference)
+                    .await
+                    .change_context(QueryError)?
             {
                 references.push(reference);
             }
@@ -274,6 +276,7 @@ where
         authorization_api: &Au,
         ontology_type_references: impl IntoIterator<Item = VersionedUrl> + Send,
         fetch_behavior: FetchBehavior,
+        bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<FetchedOntologyTypes, StoreError> {
         let mut queue = ontology_type_references.into_iter().collect::<Vec<_>>();
         let mut seen = match fetch_behavior {
@@ -313,6 +316,7 @@ where
                                 actor_id,
                                 authorization_api,
                                 &data_type,
+                                bypassed_types,
                             )
                             .await
                             .change_context(StoreError)?
@@ -340,6 +344,7 @@ where
                                 actor_id,
                                 authorization_api,
                                 &property_type,
+                                bypassed_types,
                             )
                             .await
                             .change_context(StoreError)?
@@ -367,6 +372,7 @@ where
                                 actor_id,
                                 authorization_api,
                                 &entity_type,
+                                bypassed_types,
                             )
                             .await
                             .change_context(StoreError)?
@@ -399,6 +405,7 @@ where
         actor_id: AccountId,
         authorization_api: &mut Au,
         ontology_types: impl IntoIterator<Item = &'o T, IntoIter: Send> + Send,
+        bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<(), InsertionError>
     where
         T: OntologyType + Sync + 'o,
@@ -413,7 +420,12 @@ where
 
         for ontology_type in ontology_types {
             let external_types = self
-                .collect_external_ontology_types(actor_id, authorization_api, ontology_type)
+                .collect_external_ontology_types(
+                    actor_id,
+                    authorization_api,
+                    ontology_type,
+                    bypassed_types,
+                )
                 .await
                 .change_context(InsertionError)?;
 
@@ -430,6 +442,7 @@ where
                 authorization_api,
                 ontology_type_ids,
                 FetchBehavior::ExcludeProvidedReferences,
+                bypassed_types,
             )
             .await
             .change_context(InsertionError)?;
@@ -469,6 +482,7 @@ where
         reference: OntologyTypeReference<'_>,
         on_conflict: ConflictBehavior,
         fetch_behavior: FetchBehavior,
+        bypassed_types: &HashSet<&VersionedUrl>,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         if on_conflict == ConflictBehavior::Fail
             || !self
@@ -482,6 +496,7 @@ where
                     authorization_api,
                     [reference.url().clone()],
                     fetch_behavior,
+                    bypassed_types,
                 )
                 .await
                 .change_context(InsertionError)?;
@@ -547,6 +562,7 @@ where
             reference,
             ConflictBehavior::Fail,
             FetchBehavior::IncludeProvidedReferences,
+            &HashSet::new(),
         )
         .await?
         .into_iter()
@@ -645,11 +661,16 @@ where
         on_conflict: ConflictBehavior,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let data_types = data_types.into_iter().collect::<Vec<_>>();
+        let requested_types = data_types
+            .iter()
+            .map(|(data_type, _)| data_type.id())
+            .collect::<HashSet<_>>();
 
         self.insert_external_types(
             actor_id,
             authorization_api,
             data_types.iter().map(|(data_type, _)| data_type),
+            &requested_types,
         )
         .await?;
 
@@ -675,9 +696,14 @@ where
         authorization_api: &mut Au,
         data_type: DataType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
-        self.insert_external_types(actor_id, authorization_api, [&data_type])
-            .await
-            .change_context(UpdateError)?;
+        self.insert_external_types(
+            actor_id,
+            authorization_api,
+            [&data_type],
+            &HashSet::from([data_type.id()]),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         self.store
             .update_data_type(actor_id, authorization_api, data_type)
@@ -724,6 +750,10 @@ where
         on_conflict: ConflictBehavior,
     ) -> Result<Vec<OntologyElementMetadata>, InsertionError> {
         let property_types = property_types.into_iter().collect::<Vec<_>>();
+        let requested_types = property_types
+            .iter()
+            .map(|(property_type, _)| property_type.id())
+            .collect::<HashSet<_>>();
 
         self.insert_external_types(
             actor_id,
@@ -731,6 +761,7 @@ where
             property_types
                 .iter()
                 .map(|(property_type, _)| property_type),
+            &requested_types,
         )
         .await?;
 
@@ -756,9 +787,14 @@ where
         authorization_api: &mut Au,
         property_type: PropertyType,
     ) -> Result<OntologyElementMetadata, UpdateError> {
-        self.insert_external_types(actor_id, authorization_api, [&property_type])
-            .await
-            .change_context(UpdateError)?;
+        self.insert_external_types(
+            actor_id,
+            authorization_api,
+            [&property_type],
+            &HashSet::from([property_type.id()]),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         self.store
             .update_property_type(actor_id, authorization_api, property_type)
@@ -803,11 +839,16 @@ where
         on_conflict: ConflictBehavior,
     ) -> Result<Vec<EntityTypeMetadata>, InsertionError> {
         let entity_types = entity_types.into_iter().collect::<Vec<_>>();
+        let requested_types = entity_types
+            .iter()
+            .map(|(entity_type, _)| entity_type.id())
+            .collect::<HashSet<_>>();
 
         self.insert_external_types(
             actor_id,
             authorization_api,
             entity_types.iter().map(|(entity_type, _)| entity_type),
+            &requested_types,
         )
         .await?;
 
@@ -835,9 +876,14 @@ where
         label_property: Option<BaseUrl>,
         icon: Option<String>,
     ) -> Result<EntityTypeMetadata, UpdateError> {
-        self.insert_external_types(actor_id, authorization_api, [&entity_type])
-            .await
-            .change_context(UpdateError)?;
+        self.insert_external_types(
+            actor_id,
+            authorization_api,
+            [&entity_type],
+            &HashSet::from([entity_type.id()]),
+        )
+        .await
+        .change_context(UpdateError)?;
 
         self.store
             .update_entity_type(
@@ -899,6 +945,7 @@ where
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
+            &HashSet::new(),
         )
         .await?;
 
@@ -943,6 +990,7 @@ where
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
+            &HashSet::new(),
         )
         .await?;
 
@@ -980,6 +1028,7 @@ where
             OntologyTypeReference::EntityTypeReference(&entity_type_reference),
             ConflictBehavior::Skip,
             FetchBehavior::ExcludeProvidedReferences,
+            &HashSet::new(),
         )
         .await
         .change_context(UpdateError)?;
