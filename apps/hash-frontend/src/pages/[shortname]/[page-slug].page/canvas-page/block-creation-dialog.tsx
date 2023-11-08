@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system/dist/cjs-slim/index-slim";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { OwnedById } from "@local/hash-subgraph";
@@ -16,6 +16,7 @@ import {
 } from "../../../../graphql/api-types.gen";
 import { BlockSuggester } from "../../../shared/block-collection/create-suggester/block-suggester";
 import { usePageContext } from "../../../shared/block-collection/page-context";
+import { blockCollectionContentsStaticVariables } from "../../../shared/block-collection-contents";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
@@ -86,7 +87,13 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         },
         // temporary hack to keep page data consistent, in the absence of proper data subscriptions
         refetchQueries: [
-          { query: getPageQuery, variables: { entityId: pageEntityId } },
+          {
+            query: getEntityQuery,
+            variables: {
+              entityId: pageEntityId,
+              ...blockCollectionContentsStaticVariables,
+            },
+          },
         ],
       });
 

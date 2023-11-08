@@ -29,7 +29,6 @@ import {
   GetEntityQueryVariables,
 } from "../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { getBlockCollectionContents } from "../../lib/block-collection";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { ArchiveRegularIcon } from "../../shared/icons/achive-regular-icon";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -39,6 +38,7 @@ import { UndoRegularIcon } from "../../shared/icons/undo-regular-icon";
 import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
+import { getBlockCollectionContents } from "../shared/block-collection-contents";
 import {
   ConvertQuickNoteToPageModal,
   PageWithParentLink,

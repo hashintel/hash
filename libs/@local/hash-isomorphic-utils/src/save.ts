@@ -3,6 +3,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Entity,
   EntityId,
@@ -42,7 +43,7 @@ import {
 } from "./graphql/api-types.gen";
 import { systemTypes } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
-import { BlockProperties } from "./system-types/shared";
+import { BlockProperties, ContainsProperties } from "./system-types/shared";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -470,6 +471,24 @@ export const save = async (
             rightEntityRevisions[0].metadata.entityTypeId ===
               systemTypes.entityType.block.entityTypeId,
         )
+        .sort(({ linkEntity: a }, { linkEntity: b }) => {
+          const { numericIndex: aNumericIndex } = simplifyProperties(
+            a[0]!.properties as ContainsProperties,
+          );
+          const { numericIndex: bNumericIndex } = simplifyProperties(
+            b[0]!.properties as ContainsProperties,
+          );
+
+          return (
+            (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
+            a[0]!.metadata.recordId.entityId.localeCompare(
+              b[0]!.metadata.recordId.entityId,
+            ) ||
+            a[0]!.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
+              b[0]!.metadata.temporalVersioning.decisionTime.start.limit,
+            )
+          );
+        })
         .map(({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0])
         .filter(
           (blockEntity): blockEntity is Entity<BlockProperties> =>

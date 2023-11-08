@@ -151,17 +151,12 @@ export const createPage: ImpureGraphFunction<
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
+    [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+      fractionalIndex,
     ...(summary
       ? {
           [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
             summary,
-        }
-      : {}),
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
-    ...(fractionalIndex !== undefined
-      ? {
-          [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-            fractionalIndex,
         }
       : {}),
   };

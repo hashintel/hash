@@ -3,6 +3,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import {
   BlockDataProperties,
   ContainsProperties,
+  LinkProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
@@ -92,17 +93,21 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     block,
   } = params;
 
-  const index =
-    specifiedPosition ??
-    // if position is not specified and there are no blocks currently in the blockCollection, specify the index of the link is `0`
-    ((
-      await getBlockCollectionBlocks(ctx, authentication, {
-        blockCollectionEntityId:
-          blockCollectionEntity.metadata.recordId.entityId,
-      })
-    ).length === 0
-      ? 0
-      : undefined);
+  let index = canvasPosition ? undefined : specifiedPosition;
+  if (!canvasPosition && typeof index !== "number") {
+    const existingBlocks = await getBlockCollectionBlocks(ctx, authentication, {
+      blockCollectionEntityId: blockCollectionEntity.metadata.recordId.entityId,
+    });
+    // Add the block to the last position if no index specified
+    // @todo overhaul page positioning logic and save process, it's buggy – H-1209
+    const lastIndex =
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      existingBlocks[0]?.linkEntity.properties[
+        SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId
+          .baseUrl as keyof LinkProperties
+      ] ?? existingBlocks.length - 1;
+    index = lastIndex + 1;
+  }
 
   await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
@@ -114,12 +119,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     ),
     properties: {
       ...canvasPosition,
-      ...(typeof index === "number"
-        ? {
-            [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]:
-              index,
-          }
-        : {}),
+      [SYSTEM_TYPES.propertyType.numericIndex.metadata.recordId.baseUrl]: index,
     },
   });
 };
@@ -197,7 +197,6 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
   {
     blockCollectionEntity: Entity;
     position: number;
-
     allowRemovingFinal?: boolean;
   },
   Promise<void>

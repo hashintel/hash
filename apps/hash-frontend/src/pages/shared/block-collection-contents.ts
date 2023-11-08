@@ -1,18 +1,52 @@
 import { TextToken } from "@local/hash-graphql-shared/graphql/types";
+import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolTypes,
   systemTypes,
 } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { ContainsProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { EntityId, EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  EntityId,
+  EntityRootType,
+  GraphResolveDepths,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 import {
   extractBaseUrl,
   LinkEntity,
 } from "@local/hash-subgraph/type-system-patch";
 
-import { BlockCollectionContentItem } from "../graphql/api-types.gen";
+import { BlockCollectionContentItem } from "../../graphql/api-types.gen";
+
+/**
+ * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
+ *
+ * [BlockCollection] -[1]-> [Block] -[2]-> [Block Entity] -[3]-> [Linked Entity 1] -> [Linked Entity 2]
+ *
+ * This also resolves _incoming_ links to the BlockCollection to a depth of 4, to allow for incoming links
+ * around the block entity's linked entities. This may result in fetching so much of the graph that we are
+ * better off splitting the request into two:
+ *
+ * 1. BlockCollection { hasLeftEntity: { incoming: 1 }, hasRightEntity: { outgoing: 1 } }
+ *    - fetches all Blocks in the collection (which have the Block Entities' ids as their rightEntity)
+ * 2. Block Entity[] { hasLeftEntity: { incoming: 2, outgoing: 2 }, hasRightEntity: { incoming: 2, outgoing: 2 } }
+ *    - fetches the entire graph of entities at a depth of 2 around all block entities in the collection
+ *
+ * Equivalent to providing each block with the graph resolved to a depth of 2 around the block entity.
+ * Most blocks will require at least 1 (e.g. a table entity with an attached query), and many 2
+ */
+export const blockCollectionContentsDepths: GraphResolveDepths = {
+  ...zeroedGraphResolveDepths,
+  hasLeftEntity: { incoming: 4, outgoing: 4 },
+  hasRightEntity: { incoming: 4, outgoing: 4 },
+};
+
+export const blockCollectionContentsStaticVariables = {
+  ...blockCollectionContentsDepths,
+  includePermissions: true,
+};
 
 export const isBlockCollectionContentsEmpty = (params: {
   contents: BlockCollectionContentItem[];

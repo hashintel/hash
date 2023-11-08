@@ -1,18 +1,20 @@
 import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
   generateVersionedUrlMatchingFilter,
-  notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
+  EntityId,
   EntityRootType,
   extractEntityUuidFromEntityId,
   Subgraph,
 } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { getEntityRevision, getRoots } from "@local/hash-subgraph/stdlib";
+import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -37,6 +39,8 @@ import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { QuickNoteEntityWithCreatedAt } from "./notes.page/types";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
+import { blockCollectionContentsDepths } from "./shared/block-collection-contents";
+import { BlockCollectionContextProvider } from "./shared/block-collection-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
 const NotesPage: NextPageWithLayout = () => {
@@ -44,7 +48,12 @@ const NotesPage: NextPageWithLayout = () => {
 
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
-  const { data: quickNotesData, refetch } = useQuery<
+  const [
+    previouslyFetchedQuickNotesAllVersionsData,
+    setPreviouslyFetchedQuickNotesAllVersionsData,
+  ] = useState<StructuralQueryEntitiesQuery>();
+
+  const { data: quickNotesAllVersionsData, refetch } = useQuery<
     StructuralQueryEntitiesQuery,
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
@@ -62,69 +71,21 @@ const NotesPage: NextPageWithLayout = () => {
                 { parameter: authenticatedUser.accountId },
               ],
             },
-            notArchivedFilter,
           ],
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
           isOfType: { outgoing: 1 },
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const quickNotesSubgraph = quickNotesData?.structuralQueryEntities
-    .subgraph as Subgraph<EntityRootType> | undefined;
-
-  const quickNoteEntities = useMemo(
-    () => (quickNotesSubgraph ? getRoots(quickNotesSubgraph) : undefined),
-    [quickNotesSubgraph],
-  );
-
-  const [
-    previouslyFetchedQuickNotesAllVersionsData,
-    setPreviouslyFetchedQuickNotesAllVersionsData,
-  ] = useState<StructuralQueryEntitiesQuery>();
-
-  const { data: quickNotesAllVersionsData } = useQuery<
-    StructuralQueryEntitiesQuery,
-    StructuralQueryEntitiesQueryVariables
-  >(structuralQueryEntitiesQuery, {
-    variables: {
-      includePermissions: false,
-      query: {
-        filter: {
-          any: (quickNoteEntities ?? []).map((quickNoteEntity) => ({
-            equal: [
-              { path: ["uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  quickNoteEntity.metadata.recordId.entityId,
-                ),
-              },
-            ],
-          })),
-        },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
-        },
         /**
-         * We need to obtain all revisions of the quick note entities
-         * to determine when they were created.
+         * We need to obtain all revisions of the quick note entities to determine when they were created.
+         *
+         * When H-1098 is implemented we can update this to use currentTimeInstantTemporalAxes,
+         * add the notArchivedFilter to this query, and remove the latestQuickNoteEntitiesWithCreatedAt creation below.
          */
-        temporalAxes: {
-          pinned: { axis: "transactionTime", timestamp: null },
-          variable: {
-            axis: "decisionTime",
-            interval: { start: { kind: "unbounded" }, end: null },
-          },
-        },
+        temporalAxes: fullDecisionTimeAxis,
       },
     },
-    skip: !quickNoteEntities,
     onCompleted: (data) => setPreviouslyFetchedQuickNotesAllVersionsData(data),
     fetchPolicy: "cache-and-network",
   });
@@ -139,33 +100,35 @@ const NotesPage: NextPageWithLayout = () => {
     if (!quickNotesAllVersionsSubgraph) {
       return undefined;
     }
-    const latestQuickNoteEntities = getRoots(
-      quickNotesAllVersionsSubgraph,
-    ).reduce<Entity[]>((prev, current) => {
-      const previousEntityIndex = prev.findIndex(
-        (entity) =>
-          entity.metadata.recordId.entityId ===
-          current.metadata.recordId.entityId,
+
+    const latestQuickNoteEditionMap: Record<EntityId, Entity> = {};
+    for (const entityEdition of getRoots(quickNotesAllVersionsSubgraph)) {
+      const entityId = entityEdition.metadata.recordId.entityId;
+      if (latestQuickNoteEditionMap[entityId]) {
+        continue;
+      }
+
+      const latestEdition = getEntityRevision(
+        quickNotesAllVersionsSubgraph,
+        entityId,
       );
 
-      const previousEntity = prev[previousEntityIndex];
-
-      if (!previousEntity) {
-        return [...prev, current];
-      }
-
-      const updatedPrev = [...prev];
-
       if (
-        previousEntity.metadata.temporalVersioning.decisionTime.start.limit <
-        current.metadata.temporalVersioning.decisionTime.start.limit
+        !latestEdition ||
+        /**
+         * Because we have to use a fullDecisionTimeAxis to check the createdAt, we may have archived notes to filter out.
+         * Once H-1098 exposes createdAt natively, we can switch to a currentTimeInstantTemporalAxes and filter archived in the query.
+         */
+        latestEdition.properties[
+          extractBaseUrl(systemTypes.propertyType.archived.propertyTypeId)
+        ]
       ) {
-        updatedPrev[previousEntityIndex] = current;
+        continue;
       }
-      return updatedPrev;
-    }, []);
+      latestQuickNoteEditionMap[entityId] = latestEdition;
+    }
 
-    return latestQuickNoteEntities.map((quickNoteEntity) => ({
+    return Object.values(latestQuickNoteEditionMap).map((quickNoteEntity) => ({
       quickNoteEntity,
       createdAt: getFirstRevisionCreatedAt(
         quickNotesAllVersionsSubgraph,
@@ -250,7 +213,7 @@ const NotesPage: NextPageWithLayout = () => {
     StructuralQueryEntitiesQueryVariables
   >(structuralQueryEntitiesQuery, {
     variables: {
-      includePermissions: false,
+      includePermissions: true,
       query: {
         filter: {
           any: (latestQuickNoteEntitiesWithCreatedAt ?? []).map(
@@ -266,11 +229,7 @@ const NotesPage: NextPageWithLayout = () => {
             }),
           ),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 2, outgoing: 2 },
-          hasRightEntity: { incoming: 2, outgoing: 2 },
-        },
+        graphResolveDepths: blockCollectionContentsDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     },
@@ -328,68 +287,76 @@ const NotesPage: NextPageWithLayout = () => {
       <Container>
         <BlockLoadedProvider>
           <UserBlocksProvider value={{}}>
-            <TodaySection
-              ref={(element) => {
-                if (element) {
-                  sectionRefs.current[0] = element;
+            <BlockCollectionContextProvider
+              blockCollectionSubgraph={quickNotesWithContentsSubgraph}
+              userPermissionsOnEntities={
+                quickNotesWithContentsData?.structuralQueryEntities
+                  .userPermissionsOnEntities
+              }
+            >
+              <TodaySection
+                ref={(element) => {
+                  if (element) {
+                    sectionRefs.current[0] = element;
+                  }
+                }}
+                quickNoteEntities={quickNotesEntitiesCreatedToday}
+                quickNotesSubgraph={
+                  quickNotesEntitiesCreatedToday &&
+                  quickNotesEntitiesCreatedToday.length === 0
+                    ? null
+                    : quickNotesWithContentsSubgraph
                 }
-              }}
-              quickNoteEntities={quickNotesEntitiesCreatedToday}
-              quickNotesSubgraph={
-                quickNotesEntitiesCreatedToday &&
-                quickNotesEntitiesCreatedToday.length === 0
-                  ? null
-                  : quickNotesWithContentsSubgraph
-              }
-              refetchQuickNotes={refetchQuickNotes}
-              navigateDown={
-                quickNotesEntitiesCreatedBeforeToday &&
-                quickNotesEntitiesCreatedBeforeToday.length > 0
-                  ? () => {
-                      sectionRefs.current[1]?.scrollIntoView({
-                        behavior: "smooth",
-                      });
-                    }
-                  : undefined
-              }
-            />
-            {quickNotesEntitiesCreatedBeforeToday
-              ? quickNotesEntitiesCreatedBeforeToday.map(
-                  (
-                    [dayTimestamp, quickNoteEntitiesWithCreatedAt],
-                    index,
-                    all,
-                  ) => (
-                    <NotesSection
-                      key={dayTimestamp}
-                      ref={(element) => {
-                        if (element) {
-                          sectionRefs.current[index + 1] = element;
-                        }
-                      }}
-                      dayTimestamp={dayTimestamp}
-                      heading={dayTimestampToHeadings?.[dayTimestamp]}
-                      quickNoteEntities={quickNoteEntitiesWithCreatedAt}
-                      quickNotesSubgraph={quickNotesWithContentsSubgraph}
-                      refetchQuickNotes={refetchQuickNotes}
-                      navigateUp={() => {
-                        sectionRefs.current[index]?.scrollIntoView({
+                refetchQuickNotes={refetchQuickNotes}
+                navigateDown={
+                  quickNotesEntitiesCreatedBeforeToday &&
+                  quickNotesEntitiesCreatedBeforeToday.length > 0
+                    ? () => {
+                        sectionRefs.current[1]?.scrollIntoView({
                           behavior: "smooth",
                         });
-                      }}
-                      navigateDown={
-                        index < all.length - 1
-                          ? () => {
-                              sectionRefs.current[index + 2]?.scrollIntoView({
-                                behavior: "smooth",
-                              });
-                            }
-                          : undefined
                       }
-                    />
-                  ),
-                )
-              : null}
+                    : undefined
+                }
+              />
+              {quickNotesEntitiesCreatedBeforeToday
+                ? quickNotesEntitiesCreatedBeforeToday.map(
+                    (
+                      [dayTimestamp, quickNoteEntitiesWithCreatedAt],
+                      index,
+                      all,
+                    ) => (
+                      <NotesSection
+                        key={dayTimestamp}
+                        ref={(element) => {
+                          if (element) {
+                            sectionRefs.current[index + 1] = element;
+                          }
+                        }}
+                        dayTimestamp={dayTimestamp}
+                        heading={dayTimestampToHeadings?.[dayTimestamp]}
+                        quickNoteEntities={quickNoteEntitiesWithCreatedAt}
+                        quickNotesSubgraph={quickNotesWithContentsSubgraph}
+                        refetchQuickNotes={refetchQuickNotes}
+                        navigateUp={() => {
+                          sectionRefs.current[index]?.scrollIntoView({
+                            behavior: "smooth",
+                          });
+                        }}
+                        navigateDown={
+                          index < all.length - 1
+                            ? () => {
+                                sectionRefs.current[index + 2]?.scrollIntoView({
+                                  behavior: "smooth",
+                                });
+                              }
+                            : undefined
+                        }
+                      />
+                    ),
+                  )
+                : null}
+            </BlockCollectionContextProvider>
           </UserBlocksProvider>
         </BlockLoadedProvider>
       </Container>

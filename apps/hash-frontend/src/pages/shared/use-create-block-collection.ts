@@ -73,9 +73,12 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
-              leftToRightOrder: 0,
             },
-            properties: {},
+            properties: {
+              [extractBaseUrl(
+                systemTypes.propertyType.numericIndex.propertyTypeId,
+              )]: 0,
+            },
           },
         }),
         createEntity({

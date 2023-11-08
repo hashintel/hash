@@ -52,7 +52,6 @@ import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
   pageCommentsResolver,
-  pageResolver,
 } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
@@ -102,8 +101,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypes: queryEntityTypesResolver,
     getEntityType: getEntityTypeResolver,
     // Knowledge
-    // @ts-expect-error –– canUserEdit and contents are resolved separately
-    page: pageResolver,
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
     getEntity: getEntityResolver,

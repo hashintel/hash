@@ -1,6 +1,6 @@
 import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
-import { getPageQuery } from "@local/hash-graphql-shared/queries/page.queries";
+import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
@@ -19,6 +19,8 @@ import {
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
 import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
+import { blockCollectionContentsStaticVariables } from "../../../shared/block-collection-contents";
+import { BlockCollectionContext } from "../../../shared/block-collection-context";
 import {
   defaultBlockHeight,
   defaultBlockWidth,
@@ -64,7 +66,13 @@ const persistBlockPosition = ({
     },
     mutation: updateBlockCollectionContents,
     refetchQueries: [
-      { query: getPageQuery, variables: { entityId: pageEntityId } },
+      {
+        query: getEntityQuery,
+        variables: {
+          entityId: pageEntityId,
+          ...blockCollectionContentsStaticVariables,
+        },
+      },
     ],
   });
 };
@@ -157,12 +165,22 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
         }}
       >
         <BlockContextProvider key={blockLoaderProps.wrappingEntityId}>
-          <BlockLoader
-            {...blockLoaderProps}
-            editableRef={null}
-            onBlockLoaded={() => null}
-            readonly
-          />
+          <BlockCollectionContext.Consumer>
+            {(collectionContext) => (
+              <BlockLoader
+                {...blockLoaderProps}
+                blockCollectionSubgraph={
+                  collectionContext!.blockCollectionSubgraph
+                }
+                editableRef={null}
+                onBlockLoaded={() => null}
+                readonly
+                userPermissionsOnEntities={
+                  collectionContext!.userPermissionsOnEntities
+                }
+              />
+            )}
+          </BlockCollectionContext.Consumer>
         </BlockContextProvider>
       </HTMLContainer>
     );
