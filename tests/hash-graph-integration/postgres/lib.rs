@@ -13,7 +13,10 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use authorization::{schema::EntityOwnerSubject, NoAuthorization};
+use authorization::{
+    schema::{EntityOwnerSubject, WebOwnerSubject},
+    NoAuthorization,
+};
 use error_stack::Result;
 use graph::{
     knowledge::EntityQueryPath,
@@ -132,6 +135,7 @@ impl DatabaseTestWrapper {
                 account_id,
                 &mut NoAuthorization,
                 OwnedById::new(account_id.into_uuid()),
+                WebOwnerSubject::Account { id: account_id },
             )
             .await
             .expect("could not create web id");

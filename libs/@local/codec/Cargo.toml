@@ -8,6 +8,6 @@ publish = false
 error-stack = { version = "0.4.1", features = ["spantrace"] }
 
 derive-where = { version = "1.2.5", default-features = false, features = ["nightly"] }
-serde = { version = "1.0.191" }
+serde = { version = "1.0.192" }
 serde_json = { version = "1.0.108" }
 tokio-util = { version = "0.7.10", default-features = false, features = ["codec"] }

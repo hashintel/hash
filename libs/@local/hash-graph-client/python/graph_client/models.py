@@ -153,6 +153,24 @@ class EntityRelationAndSubjectItem1(BaseModel):
     relation: Literal['editor']
     subject: EntityEditorSubject
 
+class EntityTypeInstantiatorSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class EntityTypeInstantiatorSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class EntityTypeInstantiatorSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['public']
+
+class EntityTypeInstantiatorSubject(RootModel[EntityTypeInstantiatorSubjectItem | EntityTypeInstantiatorSubjectItem1 | EntityTypeInstantiatorSubjectItem2]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: EntityTypeInstantiatorSubjectItem | EntityTypeInstantiatorSubjectItem1 | EntityTypeInstantiatorSubjectItem2 = Field(..., discriminator='kind')
+
 class EntityTypeOwnerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     kind: Literal['account']
@@ -170,6 +188,7 @@ class EntityTypeOwnerSubject(RootModel[EntityTypeOwnerSubjectItem | EntityTypeOw
 class EntityTypePermission(Enum):
     update = 'update'
     view = 'view'
+    instantiate = 'instantiate'
 
 class EntityTypeQueryToken(Enum):
     """
@@ -196,6 +215,11 @@ class EntityTypeRelationAndSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['owner']
     subject: EntityTypeOwnerSubject
+
+class EntityTypeRelationAndSubjectItem2(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['instantiator']
+    subject: EntityTypeInstantiatorSubject
 
 class EntityTypeViewerSubjectItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -363,11 +387,35 @@ class TransactionTime(RootModel[Literal['transactionTime']]):
     model_config = ConfigDict(populate_by_name=True)
     root: Literal['transactionTime'] = Field(..., description='Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.')
 
+class WebOwnerSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['account']
+    subject_id: AccountId = Field(..., alias='subjectId')
+
+class WebOwnerSubjectItem1(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    kind: Literal['accountGroup']
+    subject_id: AccountGroupId = Field(..., alias='subjectId')
+
+class WebOwnerSubject(RootModel[WebOwnerSubjectItem | WebOwnerSubjectItem1]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebOwnerSubjectItem | WebOwnerSubjectItem1 = Field(..., discriminator='kind')
+
 class WebPermission(Enum):
+    update = 'update'
     create_entity = 'create_entity'
     create_entity_type = 'create_entity_type'
     create_property_type = 'create_property_type'
     create_data_type = 'create_data_type'
+
+class WebRelationAndSubjectItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    relation: Literal['owner']
+    subject: WebOwnerSubject
+
+class WebRelationAndSubject(RootModel[WebRelationAndSubjectItem]):
+    model_config = ConfigDict(populate_by_name=True)
+    root: WebRelationAndSubjectItem = Field(..., discriminator='relation')
 
 class UpdateDataType(BaseModel):
     """
@@ -512,6 +560,11 @@ class CreateDataTypeRequest(BaseModel):
     owned_by_id: OwnedById = Field(..., alias='ownedById')
     schema_: DataType | list[DataType] = Field(..., alias='schema')
 
+class CreateWebRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    owned_by_id: OwnedById = Field(..., alias='ownedById')
+    owner: WebOwnerSubject
+
 class DataTypeRelationAndSubjectItem1(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     relation: Literal['viewer']
@@ -545,9 +598,9 @@ class EntityTypeRelationAndSubjectItem1(BaseModel):
     relation: Literal['viewer']
     subject: EntityTypeViewerSubject
 
-class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1]):
+class EntityTypeRelationAndSubject(RootModel[EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 | EntityTypeRelationAndSubjectItem2]):
     model_config = ConfigDict(populate_by_name=True)
-    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 = Field(..., discriminator='relation')
+    root: EntityTypeRelationAndSubjectItem | EntityTypeRelationAndSubjectItem1 | EntityTypeRelationAndSubjectItem2 = Field(..., discriminator='relation')
 
 class EntityTypeVertexId(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -635,6 +688,12 @@ class ModifyEntityTypeAuthorizationRelationship(BaseModel):
     operation: ModifyRelationshipOperation
     relation_and_subject: EntityTypeRelationAndSubject = Field(..., alias='relationAndSubject')
     resource: VersionedURL
+
+class ModifyWebAuthorizationRelationship(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    operation: ModifyRelationshipOperation
+    relation_and_subject: WebRelationAndSubject = Field(..., alias='relationAndSubject')
+    resource: OwnedById
 
 class OpenTemporalBound(RootModel[ExclusiveBound | UnboundedBound]):
     model_config = ConfigDict(populate_by_name=True)

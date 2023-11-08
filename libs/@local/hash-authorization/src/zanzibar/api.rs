@@ -105,6 +105,24 @@ where
             .written_at)
     }
 
+    async fn get_web_relations(
+        &self,
+        web: WebId,
+        consistency: Consistency<'static>,
+    ) -> Result<Vec<WebRelationAndSubject>, ReadError> {
+        Ok(self
+            .backend
+            .read_relations::<(WebId, WebRelationAndSubject)>(
+                RelationshipFilter::from_resource(web),
+                consistency,
+            )
+            .await
+            .change_context(ReadError)?
+            .into_iter()
+            .map(|(_, relation)| relation)
+            .collect())
+    }
+
     async fn modify_entity_relations(
         &mut self,
         relationships: impl IntoIterator<

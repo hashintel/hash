@@ -1,4 +1,5 @@
-import { AccountGroupId, AccountId } from "@local/hash-subgraph";
+import { WebOwnerSubject } from "@local/hash-graph-client";
+import { AccountGroupId, AccountId, OwnedById } from "@local/hash-subgraph";
 
 import { ImpureGraphFunction } from "./context-types";
 
@@ -43,8 +44,8 @@ export const createAccountGroup: ImpureGraphFunction<
     .then(({ data }) => data as AccountGroupId);
 
 export const createWeb: ImpureGraphFunction<
-  { owner: AccountId | AccountGroupId },
+  { ownedById: OwnedById; owner: WebOwnerSubject },
   Promise<void>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.createWeb(actorId, params.owner);
+  await graphApi.createWeb(actorId, params);
 };

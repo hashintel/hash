@@ -11,9 +11,10 @@ import {
   CreatePageMutation,
   CreatePageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useCreatePage = ({
   shortname,
@@ -28,17 +29,17 @@ export const useCreatePage = ({
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: ({ data }) =>
       data
         ? [
             {
-              query: getAccountPagesTree,
-              variables: {
+              query: structuralQueryEntitiesQuery,
+              variables: getAccountPagesVariables({
                 ownedById: extractOwnedByIdFromEntityId(
                   data.createPage.metadata.recordId.entityId,
                 ),
-              },
+              }),
             },
           ]
         : [],

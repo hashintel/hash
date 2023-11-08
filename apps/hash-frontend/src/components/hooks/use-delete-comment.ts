@@ -14,7 +14,7 @@ export const useDeleteComment = (pageId: EntityId) => {
     DeleteCommentMutation,
     DeleteCommentMutationVariables
   >(deleteComment, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: () => [
       {
         query: getPageComments,

@@ -68,6 +68,7 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
+      instantiators: [{ kind: "public" }],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {

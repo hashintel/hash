@@ -80,6 +80,10 @@ services:
       timeout: 2s
       retries: 10
 
+  redis:
+    ports:
+      - "6379:6379"
+
   graph:
     depends_on:
       graph-test-server:

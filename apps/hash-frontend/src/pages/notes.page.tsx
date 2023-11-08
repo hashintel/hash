@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
@@ -12,7 +13,6 @@ import {
   Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -62,38 +62,7 @@ const NotesPage: NextPageWithLayout = () => {
                 { parameter: authenticatedUser.accountId },
               ],
             },
-            {
-              any: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          systemTypes.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                    //   @see https://linear.app/hash/issue/H-1207
-                    null,
-                  ],
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        extractBaseUrl(
-                          systemTypes.propertyType.archived.propertyTypeId,
-                        ),
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
+            notArchivedFilter,
           ],
         },
         graphResolveDepths: {

@@ -15,7 +15,7 @@ export const useCreateComment = (pageId: EntityId) => {
     CreateCommentMutation,
     CreateCommentMutationVariables
   >(createComment, {
-    awaitRefetchQueries: true,
+    awaitRefetchQueries: false,
     refetchQueries: () => [
       {
         query: getPageComments,

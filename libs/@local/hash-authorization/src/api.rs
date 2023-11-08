@@ -55,6 +55,33 @@ pub trait AuthorizationApi {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, CheckError>> + Send;
 
+    fn check_webs_permission(
+        &self,
+        actor: AccountId,
+        permission: WebPermission,
+        entities: impl IntoIterator<Item = WebId, IntoIter: Send> + Send,
+        consistency: Consistency<'_>,
+    ) -> impl Future<Output = Result<(HashMap<WebId, bool>, Zookie<'static>), CheckError>> + Send
+    where
+        Self: Sync,
+    {
+        async move {
+            let mut zookie = Zookie::empty();
+            let mut result = HashMap::new();
+            for entity in entities {
+                let CheckResponse {
+                    has_permission,
+                    checked_at,
+                } = self
+                    .check_web_permission(actor, permission, entity, consistency)
+                    .await?;
+                result.insert(entity, has_permission);
+                zookie = checked_at;
+            }
+            Ok((result, zookie))
+        }
+    }
+
     fn modify_web_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -62,6 +89,12 @@ pub trait AuthorizationApi {
             IntoIter: Send,
         > + Send,
     ) -> impl Future<Output = Result<Zookie<'static>, ModifyRelationError>> + Send;
+
+    fn get_web_relations(
+        &self,
+        web: WebId,
+        consistency: Consistency<'static>,
+    ) -> impl Future<Output = Result<Vec<WebRelationAndSubject>, ReadError>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Entity authorization
