@@ -37,7 +37,7 @@ export type BlockCollectionContainsLink = {
 export type BlockCollectionOutgoingLinkAndTarget = BlockCollectionContainsLink;
 
 export type BlockCollectionOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/contains/v/1": BlockCollectionContainsLink;
+  "https://hash.ai/@hash/types/entity-type/contains/v/1": BlockCollectionContainsLink;
 };
 
 export type BlockCollectionProperties = {};
@@ -59,11 +59,11 @@ export type BlockDataProperties2 = {};
 export type BlockOutgoingLinkAndTarget = BlockBlockDataLink;
 
 export type BlockOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/block-data/v/1": BlockBlockDataLink;
+  "https://hash.ai/@hash/types/entity-type/block-data/v/1": BlockBlockDataLink;
 };
 
 export type BlockProperties = {
-  "http://localhost:3000/@system-user/types/property-type/component-id/": ComponentIdPropertyValue;
+  "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValue;
 };
 
 /**
@@ -83,9 +83,9 @@ export type CommentOutgoingLinkAndTarget =
   | CommentParentLink;
 
 export type CommentOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/author/v/1": CommentAuthorLink;
-  "http://localhost:3000/@system-user/types/entity-type/has-text/v/1": CommentHasTextLink;
-  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": CommentParentLink;
+  "https://hash.ai/@hash/types/entity-type/author/v/1": CommentAuthorLink;
+  "https://hash.ai/@hash/types/entity-type/has-text/v/1": CommentHasTextLink;
+  "https://hash.ai/@hash/types/entity-type/parent/v/1": CommentParentLink;
 };
 
 export type CommentParentLink = {
@@ -94,8 +94,8 @@ export type CommentParentLink = {
 };
 
 export type CommentProperties = {
-  "http://localhost:3000/@system-user/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
+  "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
+  "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
 };
 
 export type ComponentIdPropertyValue = TextDataType;
@@ -118,7 +118,7 @@ export type ContainsProperties = ContainsProperties1 & ContainsProperties2;
 export type ContainsProperties1 = LinkProperties;
 
 export type ContainsProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/numeric-index/"?: NumericIndexPropertyValue;
+  "https://hash.ai/@hash/types/property-type/numeric-index/"?: NumericIndexPropertyValue;
 };
 
 /**
@@ -163,12 +163,6 @@ export type FileOutgoingLinksByLinkEntityTypeId = {};
  * A file hosted at a URL
  */
 export type FileProperties = {
-  "http://localhost:3000/@system-user/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -179,6 +173,12 @@ export type FileProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/"?: OriginalFileNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/"?: OriginalSourcePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/"?: OriginalURLPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-bucket/"?: FileStorageBucketPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-endpoint/"?: FileStorageEndpointPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-force-path-style/"?: FileStorageForcePathStylePropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
+  "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
 };
 
 /**
@@ -350,8 +350,8 @@ export type NotificationOutgoingLinkAndTarget = never;
 export type NotificationOutgoingLinksByLinkEntityTypeId = {};
 
 export type NotificationProperties = {
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/read-at/"?: ReadAtPropertyValue;
+  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
+  "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValue;
 };
 
 /**
@@ -369,6 +369,23 @@ export type NumericIndexPropertyValue = NumberDataType;
  */
 export type ObjectDataType = {};
 
+export type OccurredInBlock = Entity<OccurredInBlockProperties> & {
+  linkData: LinkData;
+};
+
+export type OccurredInBlockOutgoingLinkAndTarget = never;
+
+export type OccurredInBlockOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A block that something occurred in.
+ */
+export type OccurredInBlockProperties = OccurredInBlockProperties1 &
+  OccurredInBlockProperties2;
+export type OccurredInBlockProperties1 = LinkProperties;
+
+export type OccurredInBlockProperties2 = {};
+
 export type OccurredInEntity = Entity<OccurredInEntityProperties> & {
   linkData: LinkData;
 };
@@ -378,7 +395,7 @@ export type OccurredInEntityOutgoingLinkAndTarget = never;
 export type OccurredInEntityOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * A page that something occurred in.
+ * An entity that something occurred in.
  */
 export type OccurredInEntityProperties = OccurredInEntityProperties1 &
   OccurredInEntityProperties2;
@@ -417,19 +434,20 @@ export type OrgOutgoingLinkAndTarget =
   | OrgHasCoverImageLink;
 
 export type OrgOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
-  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": OrgHasBioLink;
-  "http://localhost:3000/@system-user/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
+  "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": OrgHasAvatarLink;
+  "https://hash.ai/@hash/types/entity-type/has-bio/v/1": OrgHasBioLink;
+  "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1": OrgHasCoverImageLink;
 };
 
 export type OrgProperties = {
-  "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/organization-name/": OrganizationNamePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
+  "https://hash.ai/@hash/types/property-type/organization-name/": OrganizationNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/organization-provided-information/"?: OrganizationProvidedInformationPropertyValue;
   /**
    * @maxItems 5
    */
-  "http://localhost:3000/@system-user/types/property-type/pinned-entity-type-base-url/"?:
+  "https://hash.ai/@hash/types/property-type/pinned-entity-type-base-url/"?:
     | []
     | [PinnedEntityTypeBaseURLPropertyValue]
     | [
@@ -454,15 +472,14 @@ export type OrgProperties = {
         PinnedEntityTypeBaseURLPropertyValue,
         PinnedEntityTypeBaseURLPropertyValue,
       ];
-  "http://localhost:3000/@system-user/types/property-type/shortname/": ShortnamePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
-  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://hash.ai/@hash/types/property-type/shortname/": ShortnamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/website/"?: WebsitePropertyValue;
 };
 
 export type OrganizationNamePropertyValue = TextDataType;
 
 export type OrganizationProvidedInformationPropertyValue = {
-  "http://localhost:3000/@system-user/types/property-type/organization-size/"?: OrganizationSizePropertyValue;
+  "https://hash.ai/@hash/types/property-type/organization-size/"?: OrganizationSizePropertyValue;
 };
 
 export type OrganizationSizePropertyValue = TextDataType;
@@ -487,7 +504,7 @@ export type Page = Entity<PageProperties>;
 export type PageOutgoingLinkAndTarget = PageParentLink;
 
 export type PageOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/parent/v/1": PageParentLink;
+  "https://hash.ai/@hash/types/entity-type/parent/v/1": PageParentLink;
 };
 
 export type PageParentLink = { linkEntity: Parent; rightEntity: Page };
@@ -496,11 +513,11 @@ export type PageProperties = PageProperties1 & PageProperties2;
 export type PageProperties1 = BlockCollectionProperties;
 
 export type PageProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/fractional-index/": FractionalIndexPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/icon/"?: IconPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/summary/"?: SummaryPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/title/": TitlePropertyValue;
+  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
+  "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
+  "https://hash.ai/@hash/types/property-type/icon/"?: IconPropertyValue;
+  "https://hash.ai/@hash/types/property-type/summary/"?: SummaryPropertyValue;
+  "https://hash.ai/@hash/types/property-type/title/": TitlePropertyValue;
 };
 
 export type Parent = Entity<ParentProperties> & { linkData: LinkData };
@@ -563,7 +580,7 @@ export type ServiceAccountOutgoingLinksByLinkEntityTypeId = {};
  * A service account.
  */
 export type ServiceAccountProperties = {
-  "http://localhost:3000/@system-user/types/property-type/profile-url/": ProfileURLPropertyValue;
+  "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValue;
 };
 
 /**
@@ -588,13 +605,13 @@ export type TextOutgoingLinkAndTarget = never;
 export type TextOutgoingLinksByLinkEntityTypeId = {};
 
 export type TextProperties = {
-  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue[];
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
 };
 
 /**
  * The text material, information, or body, that makes up the content of this thing.
  */
-export type TextualContentPropertyValue = TextDataType | ObjectDataType;
+export type TextualContentPropertyValue = TextDataType | ObjectDataType[];
 
 /**
  * The title of something.
@@ -641,26 +658,26 @@ export type UserOutgoingLinkAndTarget =
   | UserOrgMembershipLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
-  "http://localhost:3000/@system-user/types/entity-type/has-bio/v/1": UserHasBioLink;
-  "http://localhost:3000/@system-user/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
-  "http://localhost:3000/@system-user/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
+  "https://hash.ai/@hash/types/entity-type/has-avatar/v/1": UserHasAvatarLink;
+  "https://hash.ai/@hash/types/entity-type/has-bio/v/1": UserHasBioLink;
+  "https://hash.ai/@hash/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
+  "https://hash.ai/@hash/types/entity-type/org-membership/v/1": UserOrgMembershipLink;
 };
 
 export type UserProperties = {
   /**
    * @minItems 1
    */
-  "http://localhost:3000/@system-user/types/property-type/email/": [
+  "https://hash.ai/@hash/types/property-type/email/": [
     EmailPropertyValue,
     ...EmailPropertyValue[],
   ];
-  "http://localhost:3000/@system-user/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/location/"?: LocationPropertyValue;
+  "https://hash.ai/@hash/types/property-type/kratos-identity-id/": KratosIdentityIdPropertyValue;
+  "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
   /**
    * @maxItems 5
    */
-  "http://localhost:3000/@system-user/types/property-type/pinned-entity-type-base-url/"?:
+  "https://hash.ai/@hash/types/property-type/pinned-entity-type-base-url/"?:
     | []
     | [PinnedEntityTypeBaseURLPropertyValue]
     | [
@@ -685,10 +702,10 @@ export type UserProperties = {
         PinnedEntityTypeBaseURLPropertyValue,
         PinnedEntityTypeBaseURLPropertyValue,
       ];
-  "http://localhost:3000/@system-user/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/shortname/"?: ShortnamePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/website/"?: WebsitePropertyValue;
+  "https://hash.ai/@hash/types/property-type/preferred-name/"?: PreferredNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
+  "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/website/"?: WebsitePropertyValue;
 };
 
 export type UserSecret = Entity<UserSecretProperties>;
@@ -701,9 +718,9 @@ export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
  * A secret or credential belonging to a user.
  */
 export type UserSecretProperties = {
-  "http://localhost:3000/@system-user/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/expired-at/": ExpiredAtPropertyValue;
-  "http://localhost:3000/@system-user/types/property-type/vault-path/": VaultPathPropertyValue;
+  "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
+  "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
+  "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
 };
 
 /**

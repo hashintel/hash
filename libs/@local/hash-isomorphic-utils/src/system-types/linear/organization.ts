@@ -150,34 +150,34 @@ export type OrganizationHasMemberLink = {
 export type OrganizationOutgoingLinkAndTarget = OrganizationHasMemberLink;
 
 export type OrganizationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@linear/types/entity-type/has-member/v/1": OrganizationHasMemberLink;
+  "https://hash.ai/@linear/types/entity-type/has-member/v/1": OrganizationHasMemberLink;
 };
 
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type OrganizationProperties = {
-  "http://localhost:3000/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
-  "http://localhost:3000/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/deletion-requested-at/"?: DeletionRequestedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/git-branch-format/"?: GitBranchFormatPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/git-linkback-messages-enabled/": GitLinkbackMessagesEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/git-public-linkback-messages-enabled/": GitPublicLinkbackMessagesEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/id/": IDPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/logo-url/"?: LogoURLPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/name/": NamePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/period-upload-volume/": PeriodUploadVolumePropertyValue;
-  "http://localhost:3000/@linear/types/property-type/previous-url-key/": PreviousURLKeyPropertyValue[];
-  "http://localhost:3000/@linear/types/property-type/project-update-reminders-hour/": ProjectUpdateRemindersHourPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/roadmap-enabled/": RoadmapEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/saml-enabled/": SAMLEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/scim-enabled/": SCIMEnabledPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/trial-ends-at/"?: TrialEndsAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/url-key/": URLKeyPropertyValue;
-  "http://localhost:3000/@linear/types/property-type/user-count/": UserCountPropertyValue;
+  "https://hash.ai/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
+  "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/created-at/": CreatedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/created-issue-count/": CreatedIssueCountPropertyValue;
+  "https://hash.ai/@linear/types/property-type/deletion-requested-at/"?: DeletionRequestedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/git-branch-format/"?: GitBranchFormatPropertyValue;
+  "https://hash.ai/@linear/types/property-type/git-linkback-messages-enabled/": GitLinkbackMessagesEnabledPropertyValue;
+  "https://hash.ai/@linear/types/property-type/git-public-linkback-messages-enabled/": GitPublicLinkbackMessagesEnabledPropertyValue;
+  "https://hash.ai/@linear/types/property-type/id/": IDPropertyValue;
+  "https://hash.ai/@linear/types/property-type/logo-url/"?: LogoURLPropertyValue;
+  "https://hash.ai/@linear/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@linear/types/property-type/period-upload-volume/": PeriodUploadVolumePropertyValue;
+  "https://hash.ai/@linear/types/property-type/previous-url-key/": PreviousURLKeyPropertyValue[];
+  "https://hash.ai/@linear/types/property-type/project-update-reminders-hour/": ProjectUpdateRemindersHourPropertyValue;
+  "https://hash.ai/@linear/types/property-type/roadmap-enabled/": RoadmapEnabledPropertyValue;
+  "https://hash.ai/@linear/types/property-type/saml-enabled/": SAMLEnabledPropertyValue;
+  "https://hash.ai/@linear/types/property-type/scim-enabled/": SCIMEnabledPropertyValue;
+  "https://hash.ai/@linear/types/property-type/trial-ends-at/"?: TrialEndsAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
+  "https://hash.ai/@linear/types/property-type/url-key/": URLKeyPropertyValue;
+  "https://hash.ai/@linear/types/property-type/user-count/": UserCountPropertyValue;
 };
 
 /**

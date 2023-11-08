@@ -48,6 +48,12 @@ import {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   FractionalIndexPropertyValue,
   HasAvatar,
@@ -89,6 +95,10 @@ import {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
+  OccurredInBlock,
+  OccurredInBlockOutgoingLinkAndTarget,
+  OccurredInBlockOutgoingLinksByLinkEntityTypeId,
+  OccurredInBlockProperties,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
@@ -201,6 +211,12 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   FractionalIndexPropertyValue,
   HasAvatar,
@@ -242,6 +258,10 @@ export type {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
+  OccurredInBlock,
+  OccurredInBlockOutgoingLinkAndTarget,
+  OccurredInBlockOutgoingLinksByLinkEntityTypeId,
+  OccurredInBlockProperties,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
@@ -312,6 +332,11 @@ export type {
 
 export type MentionNotification = Entity<MentionNotificationProperties>;
 
+export type MentionNotificationOccurredInBlockLink = {
+  linkEntity: OccurredInBlock;
+  rightEntity: Block;
+};
+
 export type MentionNotificationOccurredInCommentLink = {
   linkEntity: OccurredInComment;
   rightEntity: Comment;
@@ -328,16 +353,18 @@ export type MentionNotificationOccurredInTextLink = {
 };
 
 export type MentionNotificationOutgoingLinkAndTarget =
+  | MentionNotificationOccurredInBlockLink
   | MentionNotificationOccurredInCommentLink
   | MentionNotificationOccurredInEntityLink
   | MentionNotificationOccurredInTextLink
   | MentionNotificationTriggeredByUserLink;
 
 export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": MentionNotificationOccurredInEntityLink;
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
-  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": MentionNotificationOccurredInEntityLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
+  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
 };
 
 export type MentionNotificationProperties = MentionNotificationProperties1 &

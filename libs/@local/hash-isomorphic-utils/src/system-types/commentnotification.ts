@@ -48,6 +48,12 @@ import {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   FractionalIndexPropertyValue,
   HasAvatar,
@@ -89,6 +95,10 @@ import {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
+  OccurredInBlock,
+  OccurredInBlockOutgoingLinkAndTarget,
+  OccurredInBlockOutgoingLinksByLinkEntityTypeId,
+  OccurredInBlockProperties,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
@@ -201,6 +211,12 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FileSizePropertyValue,
+  FileStorageBucketPropertyValue,
+  FileStorageEndpointPropertyValue,
+  FileStorageForcePathStylePropertyValue,
+  FileStorageKeyPropertyValue,
+  FileStorageProviderPropertyValue,
+  FileStorageRegionPropertyValue,
   FileURLPropertyValue,
   FractionalIndexPropertyValue,
   HasAvatar,
@@ -242,6 +258,10 @@ export type {
   NumberDataType,
   NumericIndexPropertyValue,
   ObjectDataType,
+  OccurredInBlock,
+  OccurredInBlockOutgoingLinkAndTarget,
+  OccurredInBlockOutgoingLinksByLinkEntityTypeId,
+  OccurredInBlockProperties,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
@@ -312,20 +332,27 @@ export type {
 
 export type CommentNotification = Entity<CommentNotificationProperties>;
 
+export type CommentNotificationOccurredInBlockLink = {
+  linkEntity: OccurredInBlock;
+  rightEntity: Block;
+};
+
 export type CommentNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
   rightEntity: Page;
 };
 
 export type CommentNotificationOutgoingLinkAndTarget =
+  | CommentNotificationOccurredInBlockLink
   | CommentNotificationOccurredInEntityLink
   | CommentNotificationRepliedToCommentLink
   | CommentNotificationTriggeredByUserLink;
 
 export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/occurred-in-page/v/1": CommentNotificationOccurredInEntityLink;
-  "http://localhost:3000/@system-user/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
-  "http://localhost:3000/@system-user/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
+  "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/1": CommentNotificationOccurredInEntityLink;
+  "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
+  "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
 };
 
 export type CommentNotificationProperties = CommentNotificationProperties1 &

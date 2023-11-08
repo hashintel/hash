@@ -76,5 +76,5 @@ export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
 export type QuickNoteProperties1 = BlockCollectionProperties;
 
 export type QuickNoteProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/archived/"?: ArchivedPropertyValue;
+  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
 };

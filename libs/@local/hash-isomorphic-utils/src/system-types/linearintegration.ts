@@ -243,15 +243,15 @@ export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationUsesUserSecretLink;
 
 export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
-  "http://localhost:3000/@system-user/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
-  "http://localhost:3000/@system-user/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
+  "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
+  "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
 };
 
 /**
  * An instance of an integration with Linear.
  */
 export type LinearIntegrationProperties = {
-  "http://localhost:3000/@system-user/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
+  "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 };
 
 export type LinearIntegrationSyncLinearDataWithLink = {
@@ -290,7 +290,7 @@ export type SyncLinearDataWithProperties = SyncLinearDataWithProperties1 &
 export type SyncLinearDataWithProperties1 = LinkProperties;
 
 export type SyncLinearDataWithProperties2 = {
-  "http://localhost:3000/@system-user/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
+  "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
 };
 
 export type UsesUserSecret = Entity<UsesUserSecretProperties> & {
