@@ -96,7 +96,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   } = useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
-
   /**
    * Set the initial block data from either:
    * - the block collection subgraph and permissions on entities in it, if provided

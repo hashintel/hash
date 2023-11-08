@@ -1,6 +1,5 @@
 import {
   createPage,
-  getPageById,
   getPageComments,
 } from "../../../../graph/knowledge/system-types/page";
 import {
@@ -8,7 +7,7 @@ import {
   QueryPageCommentsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
