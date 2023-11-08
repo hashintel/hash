@@ -27,10 +27,6 @@ export const pageTypedef = gql`
     """
     fractionalIndex: String
     """
-    The page's parent page (may not be set).
-    """
-    parentPage: Page
-    """
     Metadata for the entity.
     """
     metadata: EntityMetadata!
@@ -45,20 +41,6 @@ export const pageTypedef = gql`
   }
 
   extend type Query {
-    """
-    Return a list of pages.
-    """
-    pages(
-      """
-      The account owning the pages. Defaults to the logged in user.
-      """
-      ownedById: OwnedById
-      """
-      Whether or not to include archived pages. Defaults to false.
-      """
-      includeArchived: Boolean = false
-    ): [Page!]!
-
     pageComments(
       """
       The id of the page entity.

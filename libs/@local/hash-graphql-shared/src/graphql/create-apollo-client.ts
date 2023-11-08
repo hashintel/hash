@@ -106,15 +106,7 @@ export const createApolloClient = (params?: {
       possibleTypes: possibleTypes.possibleTypes,
       typePolicies: {
         UnknownEntity: entityKeyFields,
-        Link: { keyFields: ["linkId"] },
         PageProperties: { keyFields: ["pageEntityId"] },
-        Query: {
-          fields: {
-            accountPages: {
-              merge: (_, incoming) => incoming,
-            },
-          },
-        },
       },
     }),
     credentials: "include",

@@ -13,9 +13,10 @@ import {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { structuralQueryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 export const useCreateSubPage = ({
   shortname,
@@ -35,9 +36,12 @@ export const useCreateSubPage = ({
     SetParentPageMutation,
     SetParentPageMutationVariables
   >(setParentPage, {
-    awaitRefetchQueries: true,
-    refetchQueries: () => [
-      { query: getAccountPagesTree, variables: { ownedById } },
+    awaitRefetchQueries: false,
+    refetchQueries: [
+      {
+        query: structuralQueryEntitiesQuery,
+        variables: getAccountPagesVariables({ ownedById }),
+      },
     ],
   });
 

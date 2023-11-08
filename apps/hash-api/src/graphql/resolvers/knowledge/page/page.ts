@@ -1,16 +1,11 @@
-import { OwnedById } from "@local/hash-subgraph";
-
 import {
   createPage,
-  getAllPagesInWorkspace,
   getPageById,
   getPageComments,
-  getPageParentPage,
 } from "../../../../graph/knowledge/system-types/page";
 import {
   MutationCreatePageArgs,
   QueryPageCommentsArgs,
-  QueryPagesArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
@@ -41,44 +36,6 @@ export const createPageResolver: ResolverFn<
   });
 
   return mapPageToGQL(page);
-};
-
-export const parentPageResolver: ResolverFn<
-  UnresolvedPageGQL | null,
-  UnresolvedPageGQL,
-  GraphQLContext,
-  QueryPagesArgs
-> = async (pageGql, _, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const page = await getPageById(context, authentication, {
-    entityId: pageGql.metadata.recordId.entityId,
-  });
-  const parentPage = await getPageParentPage(context, authentication, { page });
-
-  return parentPage ? mapPageToGQL(parentPage) : null;
-};
-
-export const pagesResolver: ResolverFn<
-  Promise<UnresolvedPageGQL[]>,
-  {},
-  LoggedInGraphQLContext,
-  QueryPagesArgs
-> = async (
-  _,
-  { ownedById, includeArchived },
-  { dataSources, authentication, user },
-) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const accountId = ownedById ?? user.accountId;
-
-  const pages = await getAllPagesInWorkspace(context, authentication, {
-    ownedById: accountId as OwnedById,
-    includeArchived: includeArchived ?? false,
-  });
-
-  return pages.map(mapPageToGQL);
 };
 
 export const pageCommentsResolver: ResolverFn<
