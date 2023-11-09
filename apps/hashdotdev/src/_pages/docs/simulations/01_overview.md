@@ -7,7 +7,7 @@ description: Getting started with simulations in HASH
 
 # Overview
 
-[HASH](/) is an end-to-end solution for quickly creating massive, rich, real-time simulations.
+[HASH](/) was designed as an end-to-end solution for quickly creating massive, rich, real-time simulations.
 
 <Hint style="warning">
 
@@ -15,7 +15,12 @@ We're still working on support for simulations in HASH. The docs in this section
 
 </Hint>
 
-You can use HASH's simulatino tools to build rich, detailed, agent-based simulations of [factory floors](/@hash/warehouse-conveyor1), [business processes](/@hash/interconnected-call-center), [public policy decisions](/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
+You can use HASH's simulation tools to build rich, detailed, agent-based simulations of [factory floors](/@hash/warehouse-conveyor1), [business processes](/@hash/interconnected-call-center), [public policy decisions](/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
+
+## Future Plans
+
+Functionality various 'views' (geospatial/3D, charting/plotting)
+Entities in webs can be easily accessed via the HASH API, and instantiated directly in simulations without data processing.
 
 ## Getting Started
   
