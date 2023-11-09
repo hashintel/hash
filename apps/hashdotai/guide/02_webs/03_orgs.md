@@ -1,8 +1,10 @@
 ---
-title: Organizations in HASH
+headtitle: Organizations - HASH
+title: Organizations
+description: Collaborating as a team on HASH
 ---
 
-# Organizations
+# Overview
 
 OVERVIEW
 

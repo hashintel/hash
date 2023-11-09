@@ -1,20 +1,20 @@
 ---
-title: Users in HASH
+headtitle: Webs - HASH
+title: Webs
+description: Personal, shared, and the public web
 ---
 
-# Webs
+# Overview
 
-Webs are collections of entities and types. Every user has a **personal web**, and every org has a **shared web**.
+Webs are collections of entities and types.
 
-## Webs
+Every HASH account has its own web: all users have their own **personal web**, and all orgs a **shared web**.
 
-Both **users** and **organizations** in [HASH] have their own _web_. An account's web acts as its canonical reference, or primary "source of truth" for representing the world around.
+An account's web is designed to represent its owner or member's understanding about the state of the world. The information within a web should provide an accurate, up-to-date reflection of facts, and act as a primary "source of truth" for its members.
 
-Webs contain [entities](https://hash.ai/glossary/entities) conforming to a set of [types](https://hash.ai/glossary/entity-types) which define their [properties](https://hash.ai/glossary/properties).
+Webs represent information as [entities](https://hash.ai/glossary/entities).
 
-Users can create or update entities in their web directly through the HASH user interface, or by connecting external applications or sources via the **integrations** menu.
-
-Entities in webs can be easily accessed via the HASH API, and instantiated directly in simulations without data processing.
+Users can create or update entities in their web directly through the HASH user interface, or by connecting external applications and sources via the **integrations** menu.
 
 ## Personal webs {#personal}
 
@@ -30,7 +30,7 @@ Shared webs (org webs)
 
 The HASH public web consists of all of the public content from across all HASH user's webs. Private information is not included on the public web.
 
-Currently, only public content of [hash.ai] users is announced to and discoverable via the HASH public web, for use by other users when searching HASH, and via the HASH API. In the future we intend to allow for public information contained within self-hosted HASH instances to be connected to the HASH public web, as well.
+Currently, only the public content of [hash.ai] users is announced to and discoverable via the HASH public web, for use by other users when searching HASH, and via the HASH API. In the future we intend to allow for public information contained within self-hosted HASH instances to be connected to the HASH public web, as well.
 
 ## Relationship with the WWW {#www}
 
