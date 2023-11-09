@@ -312,7 +312,7 @@ const Page: NextPageWithLayout<PageProps> = ({
 }) => {
   const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
 
-  const { asPath, query } = useRouter();
+  const { asPath } = useRouter();
 
   const routeHash = asPath.split("#")[1] ?? "";
 
@@ -431,6 +431,9 @@ const Page: NextPageWithLayout<PageProps> = ({
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
 
+  const isCanvasPage =
+    page.metadata.entityTypeId === systemTypes.entityType.canvas.entityTypeId;
+
   return (
     <>
       <NextSeo
@@ -479,7 +482,7 @@ const Page: NextPageWithLayout<PageProps> = ({
           />
         </Box>
 
-        {!canvasPage && (
+        {!isCanvasPage && (
           <PageSectionContainer
             {...pageSectionContainerProps}
             readonly={!canUserEdit}
@@ -550,7 +553,7 @@ const Page: NextPageWithLayout<PageProps> = ({
         <CollabPositionProvider value={[]}>
           <UserBlocksProvider value={blocksMap}>
             <BlockLoadedProvider routeHash={routeHash}>
-              {canvasPage ? (
+              {isCanvasPage ? (
                 <CanvasPageBlock contents={contents} />
               ) : (
                 <Box marginTop={5} position="relative">

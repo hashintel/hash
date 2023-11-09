@@ -283,7 +283,7 @@ export type HasIndexedContentProperties = HasIndexedContentProperties1 &
 export type HasIndexedContentProperties1 = LinkProperties;
 
 export type HasIndexedContentProperties2 = {
-  "https://hash.ai/@hash/types/property-type/fractional-index/"?: FractionalIndexPropertyValue;
+  "https://hash.ai/@hash/types/property-type/fractional-index/": FractionalIndexPropertyValue;
 };
 
 export type HasParent = Entity<HasParentProperties> & { linkData: LinkData };

@@ -1,11 +1,11 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import {
   ComponentIdHashBlockMap,
   fetchBlock,
 } from "@local/hash-isomorphic-utils/blocks";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
 import {
@@ -86,17 +86,14 @@ export const CanvasPageBlock = ({
 
     app.createShapes(
       contents.map(({ linkEntity, rightEntity: blockEntity }, index) => {
-        // @todo use the proper types when available
         const {
-          "https://blockprotocol.org/@hash/types/property-type/x-position/": x,
-          "https://blockprotocol.org/@hash/types/property-type/y-position/": y,
-          "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
-            width,
-          "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
-            height,
-          "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+          "https://hash.ai/@hash/types/property-type/x-position/": x,
+          "https://hash.ai/@hash/types/property-type/y-position/": y,
+          "https://hash.ai/@hash/types/property-type/width-in-pixels/": width,
+          "https://hash.ai/@hash/types/property-type/height-in-pixels/": height,
+          "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
             rotation,
-        } = linkEntity.properties as Partial<CanvasPosition>;
+        } = linkEntity.properties as HasSpatiallyPositionedContentProperties;
 
         return {
           id: createShapeId(),

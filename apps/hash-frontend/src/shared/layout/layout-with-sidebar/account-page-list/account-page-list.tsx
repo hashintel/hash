@@ -308,7 +308,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           ? parentPage?.metadata.recordId.entityId === parentId
           : !parentPage,
       )
-      .map(({ page: { icon, metadata, title }, depth }) => {
+      .map(({ page: { icon, metadata, title, type }, depth }) => {
         const { entityId } = metadata.recordId;
 
         const expanded =
@@ -348,6 +348,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
               await createSubPage(
                 entityId,
                 getLastIndex(treeItemList, entityId),
+                type, // just make the subpage the same type as the parent (doc or canvas) for now
               );
 
               setExpandedPageIds((expandedIds) => {

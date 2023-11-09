@@ -125,6 +125,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
       title,
       fractionalIndex,
       parentPage,
+      type: "document",
       ...pageEntity,
     });
     onClose();

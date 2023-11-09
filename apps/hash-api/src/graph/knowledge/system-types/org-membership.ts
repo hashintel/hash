@@ -1,4 +1,4 @@
-import { OrgMembershipProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { IsMemberOfProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountEntityId,
   AccountGroupEntityId,
@@ -23,7 +23,7 @@ import { getOrgFromEntity, Org } from "./org";
 import { getUserFromEntity, User } from "./user";
 
 export type OrgMembership = {
-  linkEntity: LinkEntity<OrgMembershipProperties>;
+  linkEntity: LinkEntity<IsMemberOfProperties>;
 };
 
 export const getOrgMembershipFromLinkEntity: PureGraphFunction<

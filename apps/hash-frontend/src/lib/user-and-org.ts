@@ -3,8 +3,8 @@ import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { Image } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import {
-  OrgMembershipProperties,
-  OrgProperties,
+  IsMemberOfProperties,
+  OrganizationProperties,
   ProfileBioProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -37,7 +37,7 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 
 export const constructMinimalOrg = (params: {
-  orgEntity: Entity<OrgProperties>;
+  orgEntity: Entity<OrganizationProperties>;
 }): MinimalOrg => {
   const { orgEntity } = params;
 
@@ -118,14 +118,14 @@ export type Org = MinimalOrg & {
     profileBioEntity: Entity<ProfileBioProperties>;
   };
   memberships: {
-    linkEntity: Entity<OrgMembershipProperties>;
+    linkEntity: Entity<IsMemberOfProperties>;
     user: MinimalUser;
   }[];
 };
 
 export const isEntityOrgEntity = (
   entity: Entity,
-): entity is Entity<OrgProperties> =>
+): entity is Entity<OrganizationProperties> =>
   entity.metadata.entityTypeId === systemTypes.entityType.org.entityTypeId;
 
 /**
@@ -141,7 +141,7 @@ export const isEntityOrgEntity = (
  */
 export const constructOrg = (params: {
   subgraph: Subgraph;
-  orgEntity: Entity<OrgProperties>;
+  orgEntity: Entity<OrganizationProperties>;
 }): Org => {
   const { subgraph, orgEntity } = params;
 
@@ -191,7 +191,7 @@ export const constructOrg = (params: {
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
   ).filter(
-    (linkEntity): linkEntity is Entity<OrgMembershipProperties> =>
+    (linkEntity): linkEntity is Entity<IsMemberOfProperties> =>
       linkEntity.metadata.entityTypeId ===
       systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
   );
@@ -280,7 +280,7 @@ export type User = MinimalUser & {
   hasServiceAccounts: UserServiceAccount[];
   isInstanceAdmin: boolean;
   memberOf: {
-    linkEntity: Entity<OrgMembershipProperties>;
+    linkEntity: Entity<IsMemberOfProperties>;
     org: Org;
   }[];
 };

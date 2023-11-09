@@ -1,3 +1,4 @@
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -10,8 +11,11 @@ import {
   pageEntityTypeFilter,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  HasDataProperties,
+  HasIndexedContentProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
   EntityId,
@@ -197,26 +201,21 @@ export const createPage: ImpureGraphFunction<
       block,
       position:
         type === "document"
-          ? { fractionalIndex: generateKeyBetween(null, null) }
-          : ({
-              canvasPosition: {
-                [extractBaseUrl(
-                  SYSTEM_TYPES.propertyType.xPosition.schema.$id,
-                )]: 0,
-                [extractBaseUrl(
-                  SYSTEM_TYPES.propertyType.yPosition.schema.$id,
-                )]: 0,
-                [extractBaseUrl(
-                  SYSTEM_TYPES.propertyType.widthInPixels.schema.$id,
-                )]: 500,
-                [extractBaseUrl(
-                  SYSTEM_TYPES.propertyType.heightInPixels.schema.$id,
-                )]: 200,
-                [extractBaseUrl(
-                  SYSTEM_TYPES.propertyType.rotationInRads.schema.$id,
-                )]: 0,
+          ? {
+              indexPosition: {
+                "https://hash.ai/@hash/types/property-type/fractional-index/":
+                  generateKeyBetween(null, null),
               },
-            } as any), // @todo fix
+            }
+          : {
+              canvasPosition: {
+                "https://hash.ai/@hash/types/property-type/x-position/": 0,
+                "https://hash.ai/@hash/types/property-type/y-position/": 0,
+                "https://hash.ai/@hash/types/property-type/width-in-pixels/": 500,
+                "https://hash.ai/@hash/types/property-type/height-in-pixels/": 200,
+                "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
+              },
+            },
     });
   }
 
@@ -478,7 +477,7 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
-  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { pageEntityId, type }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -491,32 +490,13 @@ export const getPageBlocks: ImpureGraphFunction<
           : SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent.schema
               .$id,
     },
-  )) as LinkEntity<{}>[];
+  )) as
+    | LinkEntity<HasIndexedContentProperties>[]
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort((a, b) => {
-        if (type === "canvas") {
-          return 0;
-        }
-
-        const { fractionalIndex: aFractionalIndex } = simplifyProperties(
-          a.properties,
-        ) as any;
-        const { fractionalIndex: bFractionalIndex } = simplifyProperties(
-          b.properties,
-        ) as any; // @todo fix these
-
-        return (
-          (aFractionalIndex ?? "ZZZ") - (bFractionalIndex ?? "ZZZ") ||
-          a.metadata.recordId.entityId.localeCompare(
-            b.metadata.recordId.entityId,
-          ) ||
-          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            b.metadata.temporalVersioning.decisionTime.start.limit,
-          )
-        );
-      })
+      .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -532,12 +512,12 @@ export const getPageBlocks: ImpureGraphFunction<
  * @param params.page - the page
  */
 export const getPageComments: ImpureGraphFunction<
-  { pageEntityId: EntityId; type: "canvas" | "document" },
+  { pageEntityId: EntityId },
   Promise<Comment[]>
-> = async (ctx, authentication, { pageEntityId, type }) => {
+> = async (ctx, authentication, { pageEntityId }) => {
   const blocks = await getPageBlocks(ctx, authentication, {
     pageEntityId,
-    type,
+    type: "document", // @todo this will need updating to implement commenting on canvas pages
   });
 
   const comments = await Promise.all(

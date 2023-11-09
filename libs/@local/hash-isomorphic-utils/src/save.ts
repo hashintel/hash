@@ -1,10 +1,11 @@
 import { ApolloClient } from "@apollo/client";
 import { VersionedUrl } from "@blockprotocol/type-system";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
+import {
+  HasIndexedContentProperties,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+} from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
-import { isContentLinkEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Entity,
   EntityId,
@@ -12,6 +13,7 @@ import {
   OwnedById,
   Subgraph,
 } from "@local/hash-subgraph";
+import { LinkEntity } from "@local/hash-subgraph/src/shared/type-system-patch";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -20,7 +22,10 @@ import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
-import { getBlockCollectionResolveDepth } from "./block-collection";
+import {
+  getBlockCollectionResolveDepth,
+  sortBlockCollectionLinks,
+} from "./block-collection";
 import { ComponentIdHashBlockMap } from "./blocks";
 import { BlockEntity } from "./entity";
 import {
@@ -44,7 +49,7 @@ import {
 } from "./graphql/api-types.gen";
 import { systemTypes } from "./ontology-types";
 import { isEntityNode } from "./prosemirror";
-import { BlockProperties, ContainsProperties } from "./system-types/shared";
+import { BlockProperties } from "./system-types/shared";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
@@ -295,7 +300,7 @@ const calculateSaveActions = (
 
     // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
     if (beforeDraftId) {
-      moveActions.push({ removeBlock: { position } });
+      moveActions.push({ removeBlock: { linkEntityId: "123" as EntityId } }); // @todo fix this
 
       // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
       beforeBlockDraftIds.splice(position, 1);
@@ -327,7 +332,12 @@ const calculateSaveActions = (
       moveActions.push({
         insertBlock: {
           ownedById,
-          position,
+          position: {
+            indexPosition: {
+              "https://hash.ai/@hash/types/property-type/fractional-index/":
+                "123", // @todo fix this
+            },
+          },
           entity: {
             // This cast is technically incorrect as the blockChildEntityId could be a placeholder.
             // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
@@ -405,7 +415,7 @@ const mapEntityToGqlBlock = (
 
   const componentId =
     entity.properties[
-      "http://localhost:3000/@system-user/types/property-type/component-id/"
+      "https://hash.ai/@hash/types/property-type/component-id/"
     ];
 
   return {
@@ -444,55 +454,35 @@ export const save = async (
 
       const [blockCollectionEntity] = getRoots(subgraph);
 
-      const blockEntities = getOutgoingLinkAndTargetEntities(
-        subgraph,
-        blockCollectionEntity!.metadata.recordId.entityId,
-      )
+      const blockEntities = getOutgoingLinkAndTargetEntities<
+        {
+          linkEntity: LinkEntity<HasIndexedContentProperties>[];
+          rightEntity: Entity<BlockProperties>[];
+        }[]
+      >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(
           ({
             linkEntity: linkEntityRevisions,
             rightEntity: rightEntityRevisions,
           }) =>
             linkEntityRevisions[0] &&
-            isContentLinkEntityTypeId(
-              linkEntityRevisions[0].metadata.entityTypeId,
-            ) &&
+            linkEntityRevisions[0].metadata.entityTypeId ===
+              systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===
               systemTypes.entityType.block.entityTypeId,
         )
-        .sort(({ linkEntity: a }, { linkEntity: b }) => {
-          const { numericIndex: aNumericIndex } = simplifyProperties(
-            a[0]!.properties as ContainsProperties,
-          );
-          const { numericIndex: bNumericIndex } = simplifyProperties(
-            b[0]!.properties as ContainsProperties,
-          );
-
-          return (
-            (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
-            a[0]!.metadata.recordId.entityId.localeCompare(
-              b[0]!.metadata.recordId.entityId,
-            ) ||
-            a[0]!.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-              b[0]!.metadata.temporalVersioning.decisionTime.start.limit,
-            )
-          );
-        })
-        .map(({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0])
-        .filter(
-          (blockEntity): blockEntity is Entity<BlockProperties> =>
-            !blockEntity ||
-            blockEntity.metadata.entityTypeId ===
-              systemTypes.entityType.block.entityTypeId,
+        .sort(({ linkEntity: a }, { linkEntity: b }) =>
+          sortBlockCollectionLinks(a[0]!, b[0]!),
+        )
+        .map(
+          ({ rightEntity: rightEntityRevisions }) => rightEntityRevisions[0]!,
         );
 
       return blockEntities.map((blockEntity) =>
         mapEntityToGqlBlock(blockEntity, subgraph),
       );
     });
-
-  // const entityTypeForComponentId = new Map<string, string>();
 
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,

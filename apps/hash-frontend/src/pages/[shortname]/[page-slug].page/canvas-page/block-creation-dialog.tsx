@@ -67,15 +67,13 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 position: {
                   // These defaults will be overridden when the user draws the shape on the canvas
                   canvasPosition: {
-                    "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+                    "https://hash.ai/@hash/types/property-type/width-in-pixels/":
                       width,
-                    "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+                    "https://hash.ai/@hash/types/property-type/height-in-pixels/":
                       height,
-                    "https://blockprotocol.org/@hash/types/property-type/x-position/":
-                      x,
-                    "https://blockprotocol.org/@hash/types/property-type/y-position/":
-                      y,
-                    "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/": 0,
+                    "https://hash.ai/@hash/types/property-type/x-position/": x,
+                    "https://hash.ai/@hash/types/property-type/y-position/": y,
+                    "https://hash.ai/@hash/types/property-type/rotation-in-rads/": 0,
                   },
                 },
               },

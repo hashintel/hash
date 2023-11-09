@@ -12,6 +12,9 @@ import {
 
 import { SubgraphFieldsFragment } from "./api-types.gen";
 
+export { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+export { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+
 export type TextToken =
   | {
       tokenType: "text";
@@ -36,28 +39,6 @@ export type TextToken =
       propertyTypeBaseUrl?: BaseUrl;
       linkEntityTypeBaseUrl?: BaseUrl;
     };
-
-const fakeXPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/x-position/" as const;
-const fakeYPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/y-position/" as const;
-const fakeWidthPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/" as const;
-const fakeHeightPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/" as const;
-const fakeRotationPropertyBaseUrl =
-  "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/" as const;
-
-/**
- * @todo generate CanvasProperties fr
- */
-export type CanvasPosition = {
-  [fakeXPropertyBaseUrl]: number;
-  [fakeYPropertyBaseUrl]: number;
-  [fakeWidthPropertyBaseUrl]: number;
-  [fakeHeightPropertyBaseUrl]: number;
-  [fakeRotationPropertyBaseUrl]: number;
-};
 
 export type UnknownEntityProperties = {};
 

@@ -90,6 +90,7 @@ describe("Comment Notification", () => {
       {
         title: "Test Page",
         ownedById: testOrg.accountGroupId as OwnedById,
+        type: "document",
       },
     );
 
@@ -98,6 +99,7 @@ describe("Comment Notification", () => {
       { actorId: recipientUser.accountId },
       {
         pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        type: "document",
       },
     );
 
@@ -148,6 +150,7 @@ describe("Comment Notification", () => {
       {
         title: "Test Page",
         ownedById: testOrg.accountGroupId as OwnedById,
+        type: "document",
       },
     );
 
@@ -156,6 +159,7 @@ describe("Comment Notification", () => {
       { actorId: triggerUser.accountId },
       {
         pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+        type: "document",
       },
     );
 

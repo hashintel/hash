@@ -1,7 +1,9 @@
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { VersionedUrl } from "@blockprotocol/type-system";
+import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import {
-  BlockDataProperties,
-  ContainsProperties,
+  HasDataProperties,
+  HasIndexedContentProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   Entity,
@@ -31,41 +33,35 @@ import { Block, getBlockFromEntity } from "./block";
  * @param params.blockCollection - the blockCollection
  */
 export const getBlockCollectionBlocks: ImpureGraphFunction<
-  { blockCollectionEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
-> = async (ctx, authentication, { blockCollectionEntityId }) => {
+  {
+    blockCollectionEntityId: EntityId;
+    blockCollectionEntityTypeId: VersionedUrl;
+  },
+  Promise<{ linkEntity: LinkEntity<HasDataProperties>; rightEntity: Block }[]>
+> = async (
+  ctx,
+  authentication,
+  { blockCollectionEntityId, blockCollectionEntityTypeId },
+) => {
+  const isCanvas =
+    blockCollectionEntityTypeId === SYSTEM_TYPES.entityType.canvas.schema.$id;
+
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
     authentication,
     {
       entityId: blockCollectionEntityId,
-      linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.hasIndexedContent.schema.$id,
+      linkEntityTypeVersionedUrl: isCanvas
+        ? SYSTEM_TYPES.linkEntityType.hasSpatiallyPositionedContent.schema.$id
+        : SYSTEM_TYPES.linkEntityType.hasIndexedContent.schema.$id,
     },
-  )) as LinkEntity<ContainsProperties>[];
+  )) as
+    | LinkEntity<HasSpatiallyPositionedContentProperties>[]
+    | LinkEntity<HasIndexedContentProperties>[];
 
   return await Promise.all(
     outgoingBlockDataLinks
-      .sort((a, b) => {
-        // @todo these need updating
-        const { numericIndex: aNumericIndex } = simplifyProperties(
-          a.properties,
-        );
-        const { numericIndex: bNumericIndex } = simplifyProperties(
-          b.properties,
-        );
-
-        return (
-          // @todo these need updating
-          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
-          a.metadata.recordId.entityId.localeCompare(
-            b.metadata.recordId.entityId,
-          ) ||
-          a.metadata.temporalVersioning.decisionTime.start.limit.localeCompare(
-            b.metadata.temporalVersioning.decisionTime.start.limit,
-          )
-        );
-      })
+      .sort(sortBlockCollectionLinks)
       .map(async (linkEntity) => ({
         linkEntity,
         rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
@@ -93,11 +89,11 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
   const {
     blockCollectionEntity,
     block,
-    position: { canvasPosition, fractionalIndex },
+    position: { canvasPosition, indexPosition },
   } = params;
 
-  if (!canvasPosition && !fractionalIndex) {
-    throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
+  if (!canvasPosition && !indexPosition) {
+    throw new Error(`One of indexPosition or canvasPosition must be defined`);
   }
 
   await createLinkEntity(ctx, authentication, {
@@ -110,12 +106,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       blockCollectionEntity.metadata.recordId.entityId,
     ),
-    properties:
-      canvasPosition ||
-      ({
-        [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-          fractionalIndex,
-      } as any), // @todo fix this
+    properties: canvasPosition || indexPosition,
   });
 };
 
@@ -135,11 +126,11 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
   Promise<void>
 > = async (ctx, authentication, params) => {
   const {
-    position: { fractionalIndex, canvasPosition },
+    position: { indexPosition, canvasPosition },
     linkEntityId,
   } = params;
 
-  if (!canvasPosition && !fractionalIndex) {
+  if (!canvasPosition && !indexPosition) {
     throw new Error(`One of fractionalIndex or canvasPosition must be defined`);
   }
 
@@ -152,12 +143,7 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
   }
 
   await updateLinkEntity(ctx, authentication, {
-    properties:
-      canvasPosition ||
-      ({
-        [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-          fractionalIndex,
-      } as any), // @todo fix
+    properties: canvasPosition || indexPosition,
     linkEntity: linkEntity as LinkEntity,
   });
 };

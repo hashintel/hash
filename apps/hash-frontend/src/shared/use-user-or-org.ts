@@ -8,7 +8,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
-  OrgProperties,
+  OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -110,7 +110,7 @@ export const useUserOrOrg = (
 
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
-          Entity<OrgProperties> | Entity<UserProperties> | undefined
+          Entity<OrganizationProperties> | Entity<UserProperties> | undefined
         >((prev, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&

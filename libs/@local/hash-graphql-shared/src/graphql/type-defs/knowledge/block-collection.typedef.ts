@@ -25,17 +25,18 @@ export const blockCollectionTypedef = gql`
     properties: EntityPropertiesObject!
   }
 
-  scalar CanvasPosition
+  scalar HasIndexedContentProperties
+  scalar HasSpatiallyPositionedContentProperties
 
   input PositionInput @oneOf {
     """
-    The fractional index of the block among other blocks in an indexed block collection
+    Indexed positioning of the block among other blocks in an indexed block collection
     """
-    fractionalIndex: String
+    indexPosition: HasIndexedContentProperties
     """
     Spatial positioning data for blocks in a canvas view
     """
-    canvasPosition: CanvasPosition
+    canvasPosition: HasSpatiallyPositionedContentProperties
   }
 
   """

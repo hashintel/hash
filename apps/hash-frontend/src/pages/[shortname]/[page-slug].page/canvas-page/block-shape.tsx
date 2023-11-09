@@ -1,4 +1,4 @@
-import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
+import { HasSpatiallyPositionedContentProperties } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -48,7 +48,7 @@ const persistBlockPosition = ({
 }: {
   linkEntityId: EntityId;
   pageEntityId: EntityId;
-  canvasPosition: CanvasPosition;
+  canvasPosition: HasSpatiallyPositionedContentProperties;
 }) => {
   void apolloClient.mutate<
     UpdateBlockCollectionContentsMutation,
@@ -82,17 +82,17 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   // gather a shape's positional information into a flat object
   // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
-  static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
+  static shapeToCanvasPosition = (
+    shape: BlockShape,
+  ): HasSpatiallyPositionedContentProperties => {
     return {
-      "https://blockprotocol.org/@hash/types/property-type/x-position/":
-        shape.x,
-      "https://blockprotocol.org/@hash/types/property-type/y-position/":
-        shape.y,
-      "https://blockprotocol.org/@hash/types/property-type/width-in-pixels/":
+      "https://hash.ai/@hash/types/property-type/x-position/": shape.x,
+      "https://hash.ai/@hash/types/property-type/y-position/": shape.y,
+      "https://hash.ai/@hash/types/property-type/width-in-pixels/":
         shape.props.w,
-      "https://blockprotocol.org/@hash/types/property-type/height-in-pixels/":
+      "https://hash.ai/@hash/types/property-type/height-in-pixels/":
         shape.props.h,
-      "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
+      "https://hash.ai/@hash/types/property-type/rotation-in-rads/":
         shape.rotation,
     };
   };

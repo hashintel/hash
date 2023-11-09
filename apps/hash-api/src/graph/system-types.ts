@@ -914,6 +914,7 @@ const hasIndexedContentLinkEntityTypeInitializer = async (
     properties: [
       {
         propertyType: fractionalIndexPropertyType,
+        required: true,
       },
     ],
     webShortname: "hash",

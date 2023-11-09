@@ -28,6 +28,7 @@ import { useHashInstance } from "./use-hash-instance";
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;
   parentPage?: { metadata: EntityMetadata } | null;
+  type: "canvas" | "document";
 };
 
 export type AccountPagesInfo = {
@@ -82,6 +83,11 @@ export const useAccountPages = (
         ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
+        type:
+          latestPage.metadata.entityTypeId ===
+          systemTypes.entityType.canvas.entityTypeId
+            ? "canvas"
+            : "document",
       };
     });
   }, [data]);

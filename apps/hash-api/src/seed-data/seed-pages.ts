@@ -33,6 +33,7 @@ export const seedPages = async (
       ownedById,
       title: pageDefinition.title,
       prevFractionalIndex,
+      type: "document",
     });
 
     if (parentPage) {

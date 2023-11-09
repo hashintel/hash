@@ -102,10 +102,12 @@ describe("Page Mention Notification", () => {
     occurredInEntity = await createPage(graphContext, authentication, {
       title: "Test Page",
       ownedById: triggerUser.accountId as OwnedById,
+      type: "document",
     });
 
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      type: "document",
     }).then((blocksWithLinks) =>
       blocksWithLinks.map(({ rightEntity }) => rightEntity),
     );

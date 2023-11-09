@@ -9,8 +9,12 @@ export const scalars = {
 
   UnknownEntityProperties:
     "@local/hash-graphql-shared/graphql/types#UnknownEntityProperties",
-  CanvasPosition: "@local/hash-graphql-shared/graphql/types#CanvasPosition",
   TextToken: "@local/hash-graphql-shared/graphql/types#TextToken",
+
+  HasIndexedContentProperties:
+    "@local/hash-graphql-shared/graphql/types#HasIndexedContentProperties",
+  HasSpatiallyPositionedContentProperties:
+    "@local/hash-graphql-shared/graphql/types#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
   ConstructDataTypeParams:
