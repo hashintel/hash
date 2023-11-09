@@ -5,7 +5,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
-  blockCollectionContentLinkFilter,
+  contentLinkTypeFilter,
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -140,7 +140,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     query: {
       filter: {
         all: [
-          blockCollectionContentLinkFilter,
+          contentLinkTypeFilter,
           {
             any: matchingBlockDataLinks.map(({ linkData }) => ({
               equal: [

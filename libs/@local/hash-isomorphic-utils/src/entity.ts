@@ -34,7 +34,7 @@ export const isTextEntity = (
 ): entity is TextEntityType =>
   "properties" in entity &&
   // Draft text entities would not have an entity type ID assigned yet.
-  // To have this check, we have to make a seperate check for draft text entities.
+  // To have this check, we have to make a separate check for draft text entities.
   // (entity.entityTypeId ?? "") === TEXT_ENTITY_TYPE_ID &&
   isTextProperties(entity.properties);
 

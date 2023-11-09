@@ -3,6 +3,7 @@ import { VersionedUrl } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
+import { isContentLinkEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
   Entity,
@@ -465,9 +466,9 @@ export const save = async (
             rightEntity: rightEntityRevisions,
           }) =>
             linkEntityRevisions[0] &&
-            linkEntityRevisions[0].metadata.entityTypeId ===
-              // @todo fix as part of rewriting save
-              systemTypes.linkEntityType.contains.linkEntityTypeId &&
+            isContentLinkEntityTypeId(
+              linkEntityRevisions[0].metadata.entityTypeId,
+            ) &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===
               systemTypes.entityType.block.entityTypeId,

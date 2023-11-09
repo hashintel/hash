@@ -37,18 +37,19 @@ export const pageEntityTypeFilter = {
   ),
 };
 
+export const contentLinkEntityTypeIds = [
+  systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
+  systemTypes.linkEntityType.hasSpatiallyPositionedContent.linkEntityTypeId,
+];
+
+export const isContentLinkEntityTypeId = (entityTypeId: VersionedUrl) =>
+  contentLinkEntityTypeIds.includes(entityTypeId);
+
 /**
  * Generate a structural query filter for the types which link a block in a Block Collection to its content.
  */
-export const blockCollectionContentLinkFilter = {
-  any: [
-    generateVersionedUrlMatchingFilter(
-      systemTypes.linkEntityType.hasIndexedContent.linkEntityTypeId,
-      { ignoreParents: true },
-    ),
-    generateVersionedUrlMatchingFilter(
-      systemTypes.linkEntityType.hasSpatiallyPositionedContent.linkEntityTypeId,
-      { ignoreParents: true },
-    ),
-  ],
+export const contentLinkTypeFilter = {
+  any: contentLinkEntityTypeIds.map((entityTypeId) =>
+    generateVersionedUrlMatchingFilter(entityTypeId, { ignoreParents: true }),
+  ),
 };
