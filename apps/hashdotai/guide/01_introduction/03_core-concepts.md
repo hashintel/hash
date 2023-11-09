@@ -1,0 +1,106 @@
+---
+headtitle: Core Concepts - HASH
+title: Core Concepts
+description: Learn the basics of HASH
+---
+
+# Overview
+
+You don't need to understand all of the concepts outlined on this page in order to [Get Started](https://hash.ai/guide/introduction/get-started) with HASH, but being familiar with them will help you learn HASH faster. We recommend having a quick scan of this page as you start out, and returning to it later when you need more information about a particular thing.
+
+# Concepts
+
+## Accounts
+
+We use the term 'account' to refer to both _users_ and _orgs_ in HASH. Every account has a _handle_ and a _web_.
+
+### Users
+
+Every [user](https://hash.ai/guide/webs/users) in HASH should correspond to one human being in the "real world". Nobody should have more than one user account, and user accounts shouldn't be created to represent "machines", "agents", "organizations" or any other kind of non-human. Read more about [Users ›](https://hash.ai/guide/webs/users)
+
+### Orgs
+
+[Orgs](https://hash.ai/guide/webs/orgs) are essentially 'groups' created by users in HASH, which have one or more administrators who control them (as well as who can be a member). Read more about [Orgs ›](https://hash.ai/guide/webs/orgs)
+
+### Handles
+
+Every account (meaning every user and every org) has a public handle such as `@example`. This handle will be visible to everybody with the ability to view HASH.
+
+## Webs
+
+Every account (i.e. every user and every org) has a [web](https://hash.ai/guide/webs). Webs contain **entities** (data), as well as **types** (which define what entities are, and provide them with meaning).
+
+Every user has their own [Personal Web], and every org a [Shared Web]. Users may have access to any number of shared webs, in addition to their own personal one. Read more about [Webs ›](https://hash.ai/guide/webs)
+
+### Types
+
+There are four kinds of [types](https://hash.ai/guide/types):
+
+- [Entity types](https://hash.ai/guide/types/entity-types) define what an entity is, by specifying what types of attributes (links and properties) can be associated with it
+- [Link types](https://hash.ai/guide/types/link-types) describe relationship between entities (e.g. a person and a date)
+- [Property types](https://hash.ai/guide/types/property-types) describe information that is stored directly on an entity (e.g. a description) without reference to any other entity
+- [Data types](https://hash.ai/guide/types/data-types)
+
+These types, known collectively as our "type system", enable any kind of data to be represented in HASH, and they are part of what makes HASH so powerful. Depending on how you use HASH, you may never need to create your own types or learn how they work. However, if you're interested, you can read more about [Types ›](https://hash.ai/guide/types)
+
+### Entities
+
+All data in [webs](https://hash.ai/guide/webs) exists as [entities](https://hash.ai/guide/entities). An individual entity may have one or more [entity types](https://hash.ai/guide/types/entity-types), which in turn enable [properties] and [links] to be stored on it. An entity cannot contain any information if it has no types associated with it. Read more about [Entities ›](https://hash.ai/guide/entities)
+
+#### Example entity
+
+Imagine you are a supplier of medical devices. You want to store information in your graph regarding one of your customers, the British National Health Service (NHS). The NHS entity you create might therefore have at least a couple of different entity types associated with it, such as `Organization`, and `Customer`.
+
+- The entity type `Organization` might specify properties like `Legal name`, and links such as `Led by` (pointing to a `Person` entity representing the organization's Managing Director or CEO), and `Subsidiaries` (pointing to one or more other `Organization` entities).
+- Meanwhile, the `Customer` entity type may also specify properties such as `Name` (which will not appear duplicated) and `Contract value` alongside links such as `Point of contact` and `Key stakeholders` which may link to other `Person` entities.
+
+Entity preview: NHS England
+**Attrbute type**   **Attribute name**  **Value**
+Property type       Legal name          NHS England
+Property type       Contract value      £18,650,000
+Link type           Led by              Amanda Pritchard
+Link type           Key stakeholders    Ming Tang, Vin Diwakar, Louise Greenrod
+Link type           Point of contact    Amanda Pritchard
+
+[//]: # (We don't need to mention it to end-users here, but we may wish to explain in the dev docs that every link between two entities is itself an entity (of a special type, called a 'link entity'). In this case, a link called `NHS England - Led by - Amanda Pritchard` is created.)
+
+### Permissions
+
+[Permissions](https://hash.ai/guide/webs/permissions) govern what users (both individually and on a group-basis) can both see and do. Permissions can be managed very granularly, allowing view, update, comment, share and other forms of access to be restricted only to authoriszed users. Read more about [Permissions ›](https://hash.ai/guide/webs/permissions)
+
+### History
+
+[History](https://hash.ai/guide/webs/history) in HASH refers to three things:
+
+1. a complete record of all the changes to an entity or type over time (change tracking)
+1. the ability to inspect, access and even use older versions of an entity or type (versioning)
+1. the ability to see where information and changes came from (provenance)
+
+Read more about [History ›](https://hash.ai/guide/webs/history)
+
+### Pages
+
+[Pages](https://hash.ai/guide/pages) are a special kind of entity in HASH. Pages created inside of each web you belong to (i.e. your own, and those of any organizations you're a member of) will appear in your left-hand sidebar inside of HASH.
+
+There are two types of pages in HASH:
+
+- [Documents](https://hash.ai/guide/pages/documents): linear pages where blocks are arranged in columns; typically used for text-heavy pages
+- [Canvases](https://hash.ai/guide/pages/canvases): free-form pages where blocks can be arranged spatially on an infinite canvas; useful for mindmaps, flowcharts, dashboards, and app-building
+
+Read more about [Pages ›](https://hash.ai/guide/pages)
+
+## Blocks {#blocks}
+
+[Blocks](https://hash.ai/guide/blocks) are rectangles that can be inserted into pages which do different things. For example:
+
+- the [Paragaph] block lets you type (or see) some text, depending on whether you have edit (or just view) persmissions on a page
+- the [Image] block similarly lets you edit, insert, or simply view a picture (depending again upon your permissions)
+- a [Minesweeper] block 
+
+Or a block might be interactive, and offer complex functionality such as access to an AI chatbot, or a game of Minesweeper.
+
+If you're a web developer comfortable writing code, you can build and publish your own blocks, and use them inside of HASH, by following the guide in the [HASH developer docs](https://hash.dev/docs/blocks).
+
+As a user, you can read more about [Blocks ›](https://hash.ai/guide/blocks)
+
+# Collaborating in HASH

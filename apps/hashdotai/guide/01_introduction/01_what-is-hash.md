@@ -1,32 +1,79 @@
 ---
-title: HASH User Guide
+headtitle: User Guide - HASH
+title: User Guide
 description: An introduction to HASH
 ---
 
-# Introduction
+# What is HASH?
 
-## What is HASH?
+HASH is a knowledge management and decision-making platform. It lets anybody capture information quickly and easily, directly within HASH, or ingest information from elsewhere. All of this data can then be worked with from within one place.
 
-HASH is a knowledge management and decision-making platform. It lets anybody capture information quickly and easily, directly within HASH, or ingest information from elsewhere. All of this data can be worked within from within one place.
+HASH two-way syncs information with its original sources to ensure your data is always up to date, wherever it's viewed from.
 
-## What can I do with HASH?
+**HASH also lets you:**
 
-HASH can be used for a great number of things. You can discover some of these over on the [use cases](https://hash.ai/guide/introduction/use-cases) page.
+- create [documents](https://hash.ai/guides/pages/documents) that cleanly and reliably incorporate live or historical data
+- build your own dashboards and custom views of data (atop [canvases](https://hash.ai/guides/pages/canvases))
+- create interfaces and [apps](https://hash.ai/guides/apps) on top of data... with _or without_ writing code
+- display, update and interact with information through [blocks](https://hash.ai/guide/blocks)
+- set up automated ([flows](https://hash.ai/guide/flows)) that perform actions or transform data: on a schedule, when specific are observed, or when manually triggered
+
+# How can I use HASH?
+
+HASH can be used for a great number of things. You can solve your own problems, or discover some of the use cases HASH has already helped solve for others by taking a look at the [Use Cases](https://hash.ai/guide/introduction/use-cases) page.
+
+BUTTON TO VIEW USE CASES / BUTTON TO GET HELP WITH OWN USE CASE "Explain your use case, enter your email, we'll get back to you"
 
 Whichever version of HASH you use, and whatever you use HASH for, your data is private by default. This means it is only visible to you, unless you explicitly choose to make it public.
 
-## How can I access HASH?
+# How can I access HASH?
 
-HASH is primarily accessed via your web browser. To use it, you'll need to [log in](https://app.hash.ai/login) to a HASH account (or [create an account](https://app.hash.ai/signup) if you don't already have one). Once onboarded and inside, you'll see a homepage that looks like this...
+## Website
+
+The current version of HASH is designed to be accessed primarily via your web browser.
+
+To access HASH, you'll first need to [log in](https://app.hash.ai/login) to a HASH account (or [create an account](https://app.hash.ai/signup) if you don't already have one). Once onboarded and inside, you'll see a homepage that looks like this...
 
 SCREENSHOT!!!
 
-From here, you'll be able to use HASH. You can access this user guide, and get other assistance by clicking the "Help & Support" button in the bottom-left of HASH at any time.
+From here, you'll be able to use HASH. Check out our [Get Started](https://hash.ai/guide/introduction/get-started) for more.
+
+You can access this user guide as well as our community of users by clicking the "Help & Support" button in the bottom-left of HASH at any time.
 
 ## Browser Extension
 
-In addition to accessing HASH via its web interface, you can use the [HASH browser extension](https://hash.ai/integrations#plugins) to quickly access important key HASH features within all major web browsers (including Chrome, Safari, Edge and Firefox). The HASH browser extension:
+In addition to accessing HASH via its web interface, you can use the [HASH browser extension](https://hash.ai/integrations#plugins) within all major web browsers (including Chrome, Safari, Edge and Firefox).
 
-- **makes it easy to perform common actions, quickly, from anywhere:** e.g. creating new entities
-- **provides additional context or information when creating new entities:** e.g. optionally embed a snapshot of the current open page, or a highlighted section of text.
+The HASH browser extension:
+
+- **lets you quickly access common actions and key features from anywhere:** e.g. create a new entities
+- **provides additional context or information when taking actinos:** e.g. optionally embed a snapshot of the current open page when creating a new entity
 - **unlocks new capabilities:** e.g. when enabled, the extension can privately and securely observe your browsing activity, in order to automatically suggest new entities for your [personal HASH web](https://hash.ai/guide/webs). This lets you add new information to your web with zero typing or manual data entry - for example, people, products, or events mentioned on LinkedIn, Twitter or Facebook, in news articles, or on any other website you visit.
+
+## Other Plugins
+
+A number of other HASH plugins are currently being considered for development. Please visit the [plugin directory](https://hash.ai/integrations#plugins) to cast your vote for which we should build next.
+
+## Mobile App
+
+Our mobile apps are coming soon. [Create an account](https://app.hash.ai/signup) to get notified when these are available. _If you're an existing user, we'll notify you via email (unless you've unsubscribed from our updates) when these are available.
+
+In the meantime, you can access HASH on mobile by heading to [hash.ai](https://app.hash.ai/) in your device's web browser.
+
+> **On an iPhone, using Safari**
+- Navigate to `app.hash.ai` in Safari, and log in.
+- Once logged in, tap the 'Share' icon undeneath the URL address bar that you originally typed `app.hash.ai` into.
+- Once the share menu is open, scroll down and tap 'Add to Home Screen'
+- On the 'Add to Home Screen' page, tap 'Add' in the top-right
+
+> **On an iPhone, using Chrome:**
+- Navigate to `app.hash.ai` in Chrome, and log in.
+- Once logged in, tap the 'Share' icon undeneath the URL address bar that you originally typed `app.hash.ai` into.
+- Once the share menu is open, scroll down and tap 'Add to Home Screen'
+- On the 'Add to Home Screen' page, tap 'Add' in the top-right
+
+> **On Android:**
+- Navigate to `app.hash.ai` in the browser of your choice.
+- Depending on the browser you are using, you should see a banner that contains an 'Install' or 'Add to Home Screen' button. Tap this and follow the on-screen prompts.
+
+_If you experience any difficulty following the steps above, or otherwise in accessing HASH on your mobile device, please [contact us](https://hash.ai/contact) for support._

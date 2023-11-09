@@ -1,14 +1,20 @@
 ---
-description: Get started with HASH
+headtitle: Get Started - HASH
+title: Get Started
+description: Begin using HASH
 ---
 
-# Creating an account {go}
+# Introduction
 
-Using the hosted version of HASH at [hash.ai](https://app.hash.ai/) is the fastest way to get started.
+HASH contains a lot of features and functionality, but it's easy to learn and get started with. You can start using HASH for one simple thing, and discover additional capabilities and functionality as you go.
 
-# Navigating the interface {#navigate}
+# Create an account {go}
 
-The HASH interface is an all-in-one, browser-based, no-code workspace made up of three main panels:
+Using the hosted version of HASH at [hash.ai](https://app.hash.ai/) is the fastest way to get started. Create an account over on the [Sign Up](https://app.hash.ai/signup) page and follow the on-screen instructions to get onboarded.
+
+# Finding your way around {#navigate}
+
+The HASH interface is made up of three main panels:
 
 1.  The **top-nav**, where you’ll see the workspace switcher and options to create new Pages, Entity Types, and Entities.
 1.  The **left side-bar**, where you’ll find your account options alongside panels for managing Pages and Types.

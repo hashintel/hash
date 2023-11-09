@@ -1,16 +1,20 @@
 ---
-title: Use cases for HASH
+headtitle: Use Cases - HASH
+title: Use Cases
+description: Example ways to use HASH
 ---
 
 # Using HASH {#examples}
 
-## Personal Use Cases
+You can use HASH by yourself, with family, friends, or as part of a larger/more formal organization.
+
+## Personal Use Cases {#personal}
 
 - **Notes:** quick note-taking, ability to `@mention` entities as well as pages/other notes, `@insert` specific properties/values, and use any one of an ever-growing library of [blocks](https://hash.ai/guide/blocks).
 - **Personal CRM:** automatically create and flesh out records for people based on pages you visit while you browse (e.g. from news articles, and profiles on LinkedIn, Twitter, etc.)
 - **Shareable Pages:** 
 
-## Group Use Cases
+## Group Use Cases {#group}
 
 HASH supports a wide range of use cases, replacing other SaaS apps you may be paying for.
 
@@ -20,6 +24,10 @@ HASH supports a wide range of use cases, replacing other SaaS apps you may be pa
 - **Membership Group Coordination:** 
 - **Content Management System:** 
 
-## Developer Use Cases
+## Developer Use Cases {#dev}
 
 HASH is usable as a high-performance, flexible datastore and backend for separately developed applications. To learn more about using HASH as a datastore or backend, please see the [HASH developer docs](https://hash.dev/docs).
+
+# Limits to using HASH
+
+Many people use HASH for just one or two things to start with, and over time begin to use it for more. If you're unsure whether HASH is a good fit for a problem you're trying to solve, or if you're wondering how you might achieve something with HASH, [get in touch](https://hash.ai/contact) with us.
