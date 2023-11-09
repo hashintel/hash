@@ -2,7 +2,10 @@
  * This file was automatically generated – do not edit it.
  */
 
+import { Entity } from "@blockprotocol/graph";
+
 import {
+  ArchivedPropertyValue,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,
@@ -12,6 +15,7 @@ import {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   ComponentIdPropertyValue,
   FractionalIndexPropertyValue,
   HasData,
@@ -22,19 +26,27 @@ import {
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
+  HasParent,
+  HasParentOutgoingLinkAndTarget,
+  HasParentOutgoingLinksByLinkEntityTypeId,
+  HasParentProperties,
+  IconPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  ProfileBio,
-  ProfileBioHasIndexedContentLink,
-  ProfileBioOutgoingLinkAndTarget,
-  ProfileBioOutgoingLinksByLinkEntityTypeId,
-  ProfileBioProperties,
+  Page,
+  PageHasParentLink,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageProperties,
+  SummaryPropertyValue,
   TextDataType,
+  TitlePropertyValue,
 } from "./shared";
 
 export type {
+  ArchivedPropertyValue,
   Block,
   BlockCollection,
   BlockCollectionOutgoingLinkAndTarget,
@@ -44,6 +56,7 @@ export type {
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
+  BooleanDataType,
   ComponentIdPropertyValue,
   FractionalIndexPropertyValue,
   HasData,
@@ -54,14 +67,42 @@ export type {
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
+  HasParent,
+  HasParentOutgoingLinkAndTarget,
+  HasParentOutgoingLinksByLinkEntityTypeId,
+  HasParentProperties,
+  IconPropertyValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
-  ProfileBio,
-  ProfileBioHasIndexedContentLink,
-  ProfileBioOutgoingLinkAndTarget,
-  ProfileBioOutgoingLinksByLinkEntityTypeId,
-  ProfileBioProperties,
+  Page,
+  PageHasParentLink,
+  PageOutgoingLinkAndTarget,
+  PageOutgoingLinksByLinkEntityTypeId,
+  PageProperties,
+  SummaryPropertyValue,
   TextDataType,
+  TitlePropertyValue,
 };
+
+export type Document = Entity<DocumentProperties>;
+
+export type DocumentHasIndexedContentLink = {
+  linkEntity: HasIndexedContent;
+  rightEntity: Block;
+};
+
+export type DocumentOutgoingLinkAndTarget = DocumentHasIndexedContentLink;
+
+export type DocumentOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": DocumentHasIndexedContentLink;
+};
+
+/**
+ * A page in document format, with content arranged in columns.
+ */
+export type DocumentProperties = DocumentProperties1 & DocumentProperties2;
+export type DocumentProperties1 = PageProperties;
+
+export type DocumentProperties2 = {};

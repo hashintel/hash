@@ -1,11 +1,9 @@
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/src/page-entity-type-ids";
+import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { OwnedById } from "@local/hash-subgraph";
 
 export const getAccountPagesVariables = ({
