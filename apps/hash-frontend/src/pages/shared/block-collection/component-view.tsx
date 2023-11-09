@@ -3,7 +3,7 @@ import { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import {
   BlockEntity,
   getBlockChildEntity,
-  isTextEntity,
+  isRichTextContainingEntity,
 } from "@local/hash-isomorphic-utils/entity";
 import {
   DraftEntity,
@@ -308,7 +308,7 @@ export class ComponentView implements NodeView {
         throw new Error("Block not ready to become editable");
       }
 
-      if (!isTextEntity(childEntity)) {
+      if (!isRichTextContainingEntity(childEntity)) {
         tr ??= state.tr;
 
         addEntityStoreAction(state, tr, {

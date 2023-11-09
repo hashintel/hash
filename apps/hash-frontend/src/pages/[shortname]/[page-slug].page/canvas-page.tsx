@@ -1,7 +1,7 @@
 import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 
-import { CanvasProperties } from "@local/hash-graphql-shared/graphql/types";
+import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import {
   ComponentIdHashBlockMap,
   fetchBlock,
@@ -96,7 +96,7 @@ export const CanvasPageBlock = ({
             height,
           "https://blockprotocol.org/@hash/types/property-type/rotation-in-rads/":
             rotation,
-        } = linkEntity.properties as Partial<CanvasProperties>;
+        } = linkEntity.properties as Partial<CanvasPosition>;
 
         return {
           id: createShapeId(),

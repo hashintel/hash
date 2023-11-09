@@ -4,8 +4,8 @@ import {
   Item,
   TextCell,
 } from "@glideapps/glide-data-grid";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-entity-type-id";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

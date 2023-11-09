@@ -2,13 +2,14 @@ import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import {
   currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { pageEntityTypeIds } from "@local/hash-isomorphic-utils/is-page-entity-type-id";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-versioned-url";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import {
+  isPageEntityTypeId,
+  pageEntityTypeFilter,
+  pageEntityTypeIds,
+} from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -74,7 +75,7 @@ export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      pageEntityTypeIds.join(", "),
+      pageEntityTypeIds,
       entity.metadata.entityTypeId,
     );
   }
@@ -197,7 +198,7 @@ export const createPage: ImpureGraphFunction<
       position:
         type === "document"
           ? { fractionalIndex: generateKeyBetween(null, null) }
-          : {
+          : ({
               canvasPosition: {
                 [extractBaseUrl(
                   SYSTEM_TYPES.propertyType.xPosition.schema.$id,
@@ -215,7 +216,7 @@ export const createPage: ImpureGraphFunction<
                   SYSTEM_TYPES.propertyType.rotationInRads.schema.$id,
                 )]: 0,
               },
-            },
+            } as any), // @todo fix
     });
   }
 
@@ -499,15 +500,15 @@ export const getPageBlocks: ImpureGraphFunction<
           return 0;
         }
 
-        const { numericIndex: aNumericIndex } = simplifyProperties(
+        const { fractionalIndex: aFractionalIndex } = simplifyProperties(
           a.properties,
-        );
-        const { numericIndex: bNumericIndex } = simplifyProperties(
+        ) as any;
+        const { fractionalIndex: bFractionalIndex } = simplifyProperties(
           b.properties,
-        );
+        ) as any; // @todo fix these
 
         return (
-          (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
+          (aFractionalIndex ?? "ZZZ") - (bFractionalIndex ?? "ZZZ") ||
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
           ) ||

@@ -1,4 +1,4 @@
-import { CanvasProperties } from "@local/hash-graphql-shared/graphql/types";
+import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { updateBlockCollectionContents } from "@local/hash-graphql-shared/queries/block-collection.queries";
 import { getEntityQuery } from "@local/hash-graphql-shared/queries/entity.queries";
 import {
@@ -48,7 +48,7 @@ const persistBlockPosition = ({
 }: {
   linkEntityId: EntityId;
   pageEntityId: EntityId;
-  canvasPosition: CanvasProperties;
+  canvasPosition: CanvasPosition;
 }) => {
   void apolloClient.mutate<
     UpdateBlockCollectionContentsMutation,
@@ -82,7 +82,7 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   // gather a shape's positional information into a flat object
   // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
-  static shapeToCanvasPosition = (shape: BlockShape): CanvasProperties => {
+  static shapeToCanvasPosition = (shape: BlockShape): CanvasPosition => {
     return {
       "https://blockprotocol.org/@hash/types/property-type/x-position/":
         shape.x,

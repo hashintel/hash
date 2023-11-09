@@ -51,7 +51,7 @@ const fakeRotationPropertyBaseUrl =
 /**
  * @todo generate CanvasProperties fr
  */
-export type CanvasProperties = {
+export type CanvasPosition = {
   [fakeXPropertyBaseUrl]: number;
   [fakeYPropertyBaseUrl]: number;
   [fakeWidthPropertyBaseUrl]: number;

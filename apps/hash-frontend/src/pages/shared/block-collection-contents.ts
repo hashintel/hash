@@ -108,12 +108,13 @@ export const getBlockCollectionContents = (params: {
       const aLinkEntity = a.linkEntity[0] as LinkEntity<{}>;
       const bLinkEntity = b.linkEntity[0] as LinkEntity<{}>;
 
+      // @todo update these
       const { numericIndex: aNumericIndex } = simplifyProperties(
         aLinkEntity.properties,
-      );
+      ) as any;
       const { numericIndex: bNumericIndex } = simplifyProperties(
         bLinkEntity.properties,
-      );
+      ) as any;
 
       return (
         (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||

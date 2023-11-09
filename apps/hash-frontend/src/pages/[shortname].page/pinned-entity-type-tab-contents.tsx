@@ -1,7 +1,7 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-versioned-url";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Entity,
   EntityRootType,

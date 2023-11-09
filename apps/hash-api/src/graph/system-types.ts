@@ -1019,6 +1019,21 @@ const hasParentLinkEntityTypeInitializer = entityTypeInitializer({
 const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
+  const summaryPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.summary(context);
+
+  const archivedPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.archived(context);
+
+  const titlePropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.title(context);
+
+  const fractionalIndexPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.fractionalIndex(context);
+
+  const iconPropertyType =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(context);
+
   const hasParentLinkTypeType =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasParent(context);
 
@@ -1030,6 +1045,25 @@ const pageEntityTypeInitializer = async (context: ImpureGraphContext) => {
   return entityTypeInitializer({
     ...systemTypes.entityType.page,
     allOf: [blockCollectionEntityType.schema.$id],
+    properties: [
+      {
+        propertyType: summaryPropertyType,
+      },
+      {
+        propertyType: archivedPropertyType,
+      },
+      {
+        propertyType: iconPropertyType,
+      },
+      {
+        propertyType: titlePropertyType,
+        required: true,
+      },
+      {
+        propertyType: fractionalIndexPropertyType,
+        required: true,
+      },
+    ],
     outgoingLinks: [
       {
         linkEntityType: hasParentLinkTypeType,
@@ -1056,13 +1090,13 @@ const documentEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...systemTypes.entityType.page,
+    ...systemTypes.entityType.document,
     allOf: [pageEntityType.schema.$id],
     outgoingLinks: [
       {
         linkEntityType: hasIndexedContentLinkEntityType,
         destinationEntityTypes: [blockEntityType],
-        minItems: 1,
+        minItems: 0,
       },
     ],
     webShortname: "hash",
@@ -1086,13 +1120,13 @@ const canvasEntityTypeInitializer = async (context: ImpureGraphContext) => {
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...systemTypes.entityType.page,
+    ...systemTypes.entityType.canvas,
     allOf: [pageEntityType.schema.$id],
     outgoingLinks: [
       {
         linkEntityType: hasSpatiallyPositionedContentLinkEntityType,
         destinationEntityTypes: [blockEntityType],
-        minItems: 1,
+        minItems: 0,
       },
     ],
     webShortname: "hash",

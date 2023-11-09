@@ -1,5 +1,4 @@
-import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/src/page-entity-type-ids";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   DataTypeWithMetadata,
   Entity,

@@ -1,7 +1,6 @@
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-entity-type-id";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 import { ImpureGraphFunction } from "../../../../context-types";
-import { SYSTEM_TYPES } from "../../../../system-types";
 import { Block, getBlockCollectionByBlock } from "../../../system-types/block";
 import {
   Comment,

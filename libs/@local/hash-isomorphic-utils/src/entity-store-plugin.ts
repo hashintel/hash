@@ -10,7 +10,11 @@ import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
-import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
+import {
+  BlockEntity,
+  getEntityChildEntity,
+  isRichTextContainingEntity,
+} from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -587,7 +591,7 @@ class ProsemirrorStateChangeHandler {
     // and we'd like to update the child entity's text contents appropriately.
 
     if (
-      isTextEntity(childEntity) &&
+      isRichTextContainingEntity(childEntity) &&
       node.firstChild &&
       node.firstChild.firstChild &&
       // Check if the next entity node's child is a component node

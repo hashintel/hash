@@ -22,7 +22,7 @@ import { v4 as uuid } from "uuid";
 
 import { getBlockCollectionResolveDepth } from "./block-collection";
 import { ComponentIdHashBlockMap } from "./blocks";
-import { BlockEntity, isDraftTextEntity } from "./entity";
+import { BlockEntity } from "./entity";
 import {
   DraftEntity,
   EntityStore,
@@ -58,7 +58,6 @@ const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
 const calculateSaveActions = (
   store: EntityStore,
   ownedById: OwnedById,
-  textEntityTypeId: VersionedUrl,
   blocks: BlockEntity[],
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
@@ -133,33 +132,22 @@ const calculateSaveActions = (
         draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
       }
 
-      let entityTypeId: VersionedUrl | null = null;
+      /**
+       * At this point, we will supply the assumed entity type ID based on the component ID
+       */
+      const blockEntity = Object.values(store.draft).find(
+        (entity): entity is DraftEntity<BlockEntity> =>
+          isDraftBlockEntity(entity) &&
+          entity.blockChildEntity?.draftId === draftEntity.draftId,
+      );
 
-      if (isDraftTextEntity(draftEntity)) {
-        /**
-         * Text types are built in, so we use our own text entity type ID
-         */
-        entityTypeId = textEntityTypeId;
-      } else {
-        /**
-         * At this point, we will supply the assumed entity type ID based on the component ID
-         */
-        const blockEntity = Object.values(store.draft).find(
-          (entity): entity is DraftEntity<BlockEntity> =>
-            isDraftBlockEntity(entity) &&
-            entity.blockChildEntity?.draftId === draftEntity.draftId,
-        );
-
-        if (!blockEntity) {
-          throw new Error("Cannot find parent entity");
-        }
-
-        const assumedEntityTypeId = getEntityTypeForComponent(
-          blockEntity.componentId ?? "",
-        );
-
-        entityTypeId = assumedEntityTypeId;
+      if (!blockEntity) {
+        throw new Error("Cannot find parent entity");
       }
+
+      const entityTypeId = getEntityTypeForComponent(
+        blockEntity.componentId ?? "",
+      );
 
       const action: UpdateBlockCollectionAction = {
         createEntity: {
@@ -509,21 +497,15 @@ export const save = async (
   const [actions, placeholderToDraft] = calculateSaveActions(
     store,
     ownedById,
-    /**
-     * If the text entity type is ever updated in the backend,
-     * the FE will need to be redeployed to avoid this being out of sync.
-     */
-    systemTypes.entityType.text.entityTypeId,
     blocks,
     doc,
-    /**
-     * @todo Should the fallback be text here?
-     */
     (componentId: string) => {
-      return (
-        (blocksMap()[componentId]?.meta.schema as VersionedUrl | undefined) ??
-        systemTypes.entityType.text.entityTypeId
-      );
+      const component = blocksMap()[componentId];
+      if (!component) {
+        throw new Error(`Component ${componentId} not found in blocksMap`);
+      }
+
+      return component.meta.schema as VersionedUrl;
     },
   );
 

@@ -47,6 +47,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
   return await Promise.all(
     outgoingBlockDataLinks
       .sort((a, b) => {
+        // @todo these need updating
         const { numericIndex: aNumericIndex } = simplifyProperties(
           a.properties,
         );
@@ -55,6 +56,7 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
         );
 
         return (
+          // @todo these need updating
           (aNumericIndex ?? 0) - (bNumericIndex ?? 0) ||
           a.metadata.recordId.entityId.localeCompare(
             b.metadata.recordId.entityId,
@@ -108,10 +110,12 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(
       blockCollectionEntity.metadata.recordId.entityId,
     ),
-    properties: canvasPosition || {
-      [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-        fractionalIndex,
-    },
+    properties:
+      canvasPosition ||
+      ({
+        [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+          fractionalIndex,
+      } as any), // @todo fix this
   });
 };
 
@@ -148,10 +152,12 @@ export const moveBlockInBlockCollection: ImpureGraphFunction<
   }
 
   await updateLinkEntity(ctx, authentication, {
-    properties: canvasPosition || {
-      [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-        fractionalIndex,
-    },
+    properties:
+      canvasPosition ||
+      ({
+        [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+          fractionalIndex,
+      } as any), // @todo fix
     linkEntity: linkEntity as LinkEntity,
   });
 };
