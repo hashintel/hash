@@ -90,6 +90,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const pinnedEntityTypeBaseUrls = useMemo(
     () => [
+      // @todo check if inheritance is taken into account in pinned entity types
       extractBaseUrl(systemTypes.entityType.page.entityTypeId),
       ...(profile?.pinnedEntityTypeBaseUrls ?? []),
     ],

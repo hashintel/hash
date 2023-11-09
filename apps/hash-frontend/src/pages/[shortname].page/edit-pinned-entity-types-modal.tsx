@@ -391,6 +391,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               <EntityTypeSelector
                 excludeEntityTypeIds={[
                   ...fields.map(({ schema }) => schema.$id),
+                  // @todo check if inheritance is taken into account in excludedEntityTypeIds
                   systemTypes.entityType.page.entityTypeId,
                 ]}
                 disableCreateNewEmpty

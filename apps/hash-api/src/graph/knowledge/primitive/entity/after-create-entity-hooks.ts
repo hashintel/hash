@@ -1,3 +1,4 @@
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-versioned-url";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
@@ -64,8 +65,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,
@@ -125,8 +125,7 @@ const commentCreateHookCallback: CreateEntityHookCallback = async ({
 
     if (
       blockCollectionEntity &&
-      blockCollectionEntity.metadata.entityTypeId ===
-        systemTypes.entityType.page.entityTypeId
+      isPageEntityTypeId(blockCollectionEntity.metadata.entityTypeId)
     ) {
       const occurredInEntity = getPageFromEntity({
         entity: blockCollectionEntity,

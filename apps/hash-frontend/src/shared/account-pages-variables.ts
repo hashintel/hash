@@ -5,6 +5,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/src/page-entity-type-ids";
 import { OwnedById } from "@local/hash-subgraph";
 
 export const getAccountPagesVariables = ({
@@ -17,20 +18,7 @@ export const getAccountPagesVariables = ({
   query: {
     filter: {
       all: [
-        /**
-         * We specify each of these page types individually rather than Page, which they both inherit from,
-         * because checking against types involving inheritance is currently slow.
-         * Once H-392 is implemented we can replace it with a single check against 'page', and don't ignore parents.
-         * @todo update this once H-392 is implemented
-         */
-        generateVersionedUrlMatchingFilter(
-          systemTypes.entityType.document.entityTypeId,
-          { ignoreParents: true },
-        ),
-        generateVersionedUrlMatchingFilter(
-          systemTypes.entityType.canvas.entityTypeId,
-          { ignoreParents: true },
-        ),
+        pageEntityTypeFilter,
         {
           equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
         },

@@ -466,6 +466,7 @@ export const save = async (
           }) =>
             linkEntityRevisions[0] &&
             linkEntityRevisions[0].metadata.entityTypeId ===
+              // @todo fix as part of rewriting save
               systemTypes.linkEntityType.contains.linkEntityTypeId &&
             rightEntityRevisions[0] &&
             rightEntityRevisions[0].metadata.entityTypeId ===

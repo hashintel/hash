@@ -5,7 +5,10 @@ import {
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { pageEntityTypeIds } from "@local/hash-isomorphic-utils/is-page-entity-type-id";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-versioned-url";
 import { blockProtocolTypes } from "@local/hash-isomorphic-utils/ontology-types";
+import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { BlockDataProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -68,12 +71,10 @@ export type Page = {
 export const getPageFromEntity: PureGraphFunction<{ entity: Entity }, Page> = ({
   entity,
 }) => {
-  if (
-    entity.metadata.entityTypeId !== SYSTEM_TYPES.entityType.page.schema.$id
-  ) {
+  if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      SYSTEM_TYPES.entityType.page.schema.$id,
+      pageEntityTypeIds.join(", "),
       entity.metadata.entityTypeId,
     );
   }
@@ -162,7 +163,10 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId: SYSTEM_TYPES.entityType.document.schema.$id,
+    entityTypeId:
+      type === "document"
+        ? SYSTEM_TYPES.entityType.document.schema.$id
+        : SYSTEM_TYPES.entityType.canvas.schema.$id,
   });
 
   const page = getPageFromEntity({ entity });
@@ -290,11 +294,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     .getEntitiesByQuery(authentication.actorId, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            SYSTEM_TYPES.entityType.page.schema.$id,
-            // ignoreParents assumes we don't have types which are children of Page which should be returned here
-            { ignoreParents: true },
-          ),
+          pageEntityTypeFilter,
           {
             equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
           },

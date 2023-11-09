@@ -1,5 +1,6 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, Select, SelectProps } from "@hashintel/design-system";
+import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/is-page-versioned-url";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   Entity,
@@ -57,9 +58,7 @@ const EntityRow: FunctionComponent<{
   const label = generateEntityLabel(entitiesSubgraph, entity);
 
   const href = `/@${profile.shortname}/${
-    entity.metadata.entityTypeId === systemTypes.entityType.page.entityTypeId
-      ? ""
-      : "entities/"
+    isPageEntityTypeId(entity.metadata.entityTypeId) ? "" : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
 
   const updatedAt = new Date(
@@ -228,6 +227,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const isPagesTab =
     currentTab.entityTypeBaseUrl ===
+    // @todo check inheritance in pinned entity type tabs
     extractBaseUrl(systemTypes.entityType.page.entityTypeId);
 
   return (
