@@ -54,5 +54,5 @@ export const sortBlockCollectionLinks = <
     b.properties,
   );
 
-  return (aFractionalIndex ?? "ZZZ") < (bFractionalIndex ?? "ZZZ") ? -1 : 1;
+  return aFractionalIndex < bFractionalIndex ? -1 : 1;
 };

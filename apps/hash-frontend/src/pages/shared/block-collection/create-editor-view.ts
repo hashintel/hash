@@ -35,7 +35,7 @@ import styles from "./style.module.css";
 const createSavePlugin = (
   ownedById: OwnedById,
   pageEntityId: EntityId,
-  blocks: () => ComponentIdHashBlockMap,
+  getBlocksMap: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -45,14 +45,14 @@ const createSavePlugin = (
 
   const triggerSave = () => {
     saveQueue = saveQueue.catch().then(async () => {
-      const [newContents, newDraftToEntityId] = await save(
-        client,
+      const [newContents, newDraftToEntityId] = await save({
+        apolloClient: client,
         ownedById,
-        pageEntityId,
-        view.state.doc,
-        entityStorePluginState(view.state).store,
-        blocks,
-      );
+        blockCollectionEntityId: pageEntityId,
+        doc: view.state.doc,
+        store: entityStorePluginState(view.state).store,
+        getBlocksMap,
+      });
 
       if (!view.isDestroyed) {
         const { tr } = view.state;
@@ -134,7 +134,7 @@ export const createEditorView = (params: {
   renderPortal: RenderPortal;
   ownedById: OwnedById;
   pageEntityId: EntityId;
-  blocks: () => ComponentIdHashBlockMap;
+  getBlocksMap: () => ComponentIdHashBlockMap;
   readonly: boolean;
   pageTitleRef?: RefObject<HTMLTextAreaElement>;
   getLastSavedValue: () => BlockEntity[];
@@ -147,7 +147,7 @@ export const createEditorView = (params: {
     renderPortal,
     ownedById,
     pageEntityId,
-    blocks,
+    getBlocksMap,
     readonly,
     pageTitleRef,
     getLastSavedValue,
@@ -168,7 +168,7 @@ export const createEditorView = (params: {
         createPlaceholderPlugin(renderPortal),
         errorPlugin,
         ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
-        createSavePlugin(ownedById, pageEntityId, blocks, client),
+        createSavePlugin(ownedById, pageEntityId, getBlocksMap, client),
       ];
 
   const state = createProseMirrorState({ ownedById, plugins });
@@ -254,7 +254,7 @@ export const createEditorView = (params: {
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksArray = Object.values(blocks());
+  const blocksArray = Object.values(getBlocksMap());
 
   if (blocksArray.length) {
     const paragraphBlock = blocksArray.find(
