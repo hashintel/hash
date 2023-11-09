@@ -14730,10 +14730,10 @@ https-proxy-agent@^7.0.1:
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.9.1:
-  version "6.9.1"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.9.1.tgz#2706fb5985f1c16b71a3d741744adf195697033c"
-  integrity sha512-FYhIEJH2DjsfGf+n9SrH/YwDfB2VSUdJ0SRNTP4K8eZz5+xUGt66ahAIhX8ZF2P8BQZAUhDpWSm49vacnx3Kig==
+httpyac@6.9.3:
+  version "6.9.3"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.9.3.tgz#ffb313573300f5fb8967e4ad421c564b191b98ac"
+  integrity sha512-oGvKNcSm/1jKWEtKyj3tXC3/KbbzCppNPD6fxF1nkGp8mynvE6tIy+m/mt5QF5WHp0E5/AlS6u5OFD4zCOPTEQ==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.9.0"
