@@ -1,3 +1,14 @@
-Permissions, authorization and access control
+---
+headtitle: Permissions - HASH
+title: Permissions
+description: Ensure only authorized parties can access your data
+---
+
+# Permissions, authorization and access control
 
 For information about sharing pages, entities and types, see [Sharing](https://hash.ai/guide/sharing) to learn more about how permissions can be applied.
+
+By default, information created in a web is private to its members:
+
+- In the case of your personal web, this means _only you_ can view the information that gets added.
+- In the case of a shared web, EXPLAIN
