@@ -151,17 +151,12 @@ export const createPage: ImpureGraphFunction<
 
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.title.metadata.recordId.baseUrl]: title,
+    [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
+      fractionalIndex,
     ...(summary
       ? {
           [SYSTEM_TYPES.propertyType.summary.metadata.recordId.baseUrl]:
             summary,
-        }
-      : {}),
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- account for old browsers
-    ...(fractionalIndex !== undefined
-      ? {
-          [SYSTEM_TYPES.propertyType.fractionalIndex.metadata.recordId.baseUrl]:
-            fractionalIndex,
         }
       : {}),
   };
@@ -214,7 +209,8 @@ export const getPageParentPage: ImpureGraphFunction<
 > = async (ctx, authentication, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -366,7 +362,8 @@ export const removeParentPage: ImpureGraphFunction<
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl: SYSTEM_TYPES.linkEntityType.parent.schema.$id,
+    linkEntityTypeVersionedUrl:
+      SYSTEM_TYPES.linkEntityType.hasParent.schema.$id,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -432,7 +429,7 @@ export const setPageParentPage: ImpureGraphFunction<
     }
 
     await createLinkEntity(ctx, authentication, {
-      linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
       leftEntityId: page.entity.metadata.recordId.entityId,
       rightEntityId: parentPage.entity.metadata.recordId.entityId,
       ownedById: authentication.actorId as OwnedById,

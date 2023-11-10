@@ -46,11 +46,11 @@ import {
 import { systemAccountId } from "./system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
-const isSelfHostedInstance = ![
-  "http://localhost:3000",
-  "https://app.hash.ai",
-  "https://hash.ai",
-].includes(frontendUrl);
+const isSelfHostedInstance =
+  process.env.SELF_HOSTED_HASH === "true" ||
+  !["http://localhost:3000", "https://app.hash.ai", "https://hash.ai"].includes(
+    frontendUrl,
+  );
 
 const owningWebs: Record<
   SystemTypeWebShortname,
@@ -58,18 +58,18 @@ const owningWebs: Record<
     accountGroupId?: AccountGroupId;
     enabled: boolean;
     name: string;
-    website: string;
+    websiteUrl: string;
   }
 > = {
   hash: {
     enabled: true,
     name: "HASH",
-    website: "https://hash.ai",
+    websiteUrl: "https://hash.ai",
   },
   linear: {
     enabled: enabledIntegrations.linear,
     name: "Linear",
-    website: "https://linear.app",
+    websiteUrl: "https://linear.app",
   },
 };
 
@@ -128,11 +128,15 @@ const getOrCreateOwningAccountGroupId = async (
 export const ensureAccountGroupOrgsExist = async (params: {
   context: ImpureGraphContext;
 }) => {
+  if (isSelfHostedInstance) {
+    return;
+  }
+
   const { context } = params;
 
   logger.debug("Ensuring account group organization entities exist");
 
-  for (const [webShortname, { enabled, name, website }] of Object.entries(
+  for (const [webShortname, { enabled, name, websiteUrl }] of Object.entries(
     owningWebs,
   )) {
     if (!enabled) {
@@ -154,7 +158,7 @@ export const ensureAccountGroupOrgsExist = async (params: {
         orgAccountGroupId,
         shortname: webShortname,
         name,
-        website,
+        websiteUrl,
       });
 
       logger.info(

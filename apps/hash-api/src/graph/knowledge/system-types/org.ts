@@ -39,22 +39,6 @@ import {
   shortnameIsTaken,
 } from "./account.fields";
 
-/**
- * @todo revisit organization size provided info. These constant strings could
- *   be replaced by ranges for example.
- *   https://app.asana.com/0/0/1202900021005257/f
- */
-export enum OrgSize {
-  ElevenToFifty = "ELEVEN_TO_FIFTY",
-  FiftyOneToTwoHundredAndFifty = "FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY",
-  OneToTen = "ONE_TO_TEN",
-  TwoHundredAndFiftyPlus = "TWO_HUNDRED_AND_FIFTY_PLUS",
-}
-
-export type OrgProvidedInfo = {
-  orgSize: OrgSize;
-};
-
 export type Org = {
   accountGroupId: AccountGroupId;
   orgName: string;
@@ -97,7 +81,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
  * @param params.shortname - the shortname of the organization
  * @param params.name - the name of the organization
  * @param params.providedInfo - optional metadata about the organization
- * @param params.website - the website of the organization
+ * @param params.websiteUrl - the website of the organization
  *
  * @see {@link createEntity} for the documentation of the remaining parameters
  */
@@ -105,13 +89,12 @@ export const createOrg: ImpureGraphFunction<
   Omit<CreateEntityParams, "properties" | "entityTypeId" | "ownedById"> & {
     shortname: string;
     name: string;
-    providedInfo?: OrgProvidedInfo;
     orgAccountGroupId?: AccountGroupId;
-    website?: string | null;
+    websiteUrl?: string | null;
   },
   Promise<Org>
 > = async (ctx, authentication, params) => {
-  const { shortname, name, providedInfo, website } = params;
+  const { shortname, name, websiteUrl } = params;
 
   if (shortnameIsInvalid({ shortname })) {
     throw new Error(`The shortname "${shortname}" is invalid`);
@@ -140,19 +123,10 @@ export const createOrg: ImpureGraphFunction<
   const properties: EntityPropertiesObject = {
     [SYSTEM_TYPES.propertyType.shortname.metadata.recordId.baseUrl]: shortname,
     [SYSTEM_TYPES.propertyType.orgName.metadata.recordId.baseUrl]: name,
-    ...(providedInfo
+    ...(websiteUrl
       ? {
-          [SYSTEM_TYPES.propertyType.orgProvidedInfo.metadata.recordId.baseUrl]:
-            {
-              [SYSTEM_TYPES.propertyType.orgSize.metadata.recordId.baseUrl]:
-                providedInfo.orgSize,
-            },
-        }
-      : {}),
-    ...(website
-      ? {
-          [SYSTEM_TYPES.propertyType.website.metadata.recordId.baseUrl]:
-            website,
+          [SYSTEM_TYPES.propertyType.websiteUrl.metadata.recordId.baseUrl]:
+            websiteUrl,
         }
       : {}),
   };

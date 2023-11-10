@@ -1,15 +1,13 @@
 import {
   createPage,
-  getPageById,
   getPageComments,
 } from "../../../../graph/knowledge/system-types/page";
 import {
   MutationCreatePageArgs,
-  QueryPageArgs,
   QueryPageCommentsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import { LoggedInGraphQLContext } from "../../../context";
 import { dataSourcesToImpureGraphContext } from "../../util";
 import {
   mapCommentToGQL,
@@ -17,21 +15,6 @@ import {
   UnresolvedCommentGQL,
   UnresolvedPageGQL,
 } from "../graphql-mapping";
-
-export const pageResolver: ResolverFn<
-  Promise<UnresolvedPageGQL>,
-  {},
-  GraphQLContext,
-  QueryPageArgs
-> = async (_, { entityId }, { dataSources, authentication }) => {
-  const context = dataSourcesToImpureGraphContext(dataSources);
-
-  const page = await getPageById(context, authentication, {
-    entityId,
-  });
-
-  return mapPageToGQL(page);
-};
 
 export const createPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

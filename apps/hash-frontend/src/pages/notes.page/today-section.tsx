@@ -6,7 +6,7 @@ import { forwardRef, Fragment, useMemo, useState } from "react";
 import {
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
-} from "../../lib/block-collection";
+} from "../shared/block-collection-contents";
 import { CreateQuickNote } from "./create-quick-note";
 import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";

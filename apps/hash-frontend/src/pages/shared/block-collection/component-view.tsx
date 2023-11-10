@@ -30,6 +30,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 
 import { BlockLoader } from "../../../components/block-loader/block-loader";
 import { ErrorBlock } from "../../../components/error-block/error-block";
+import { BlockCollectionContext } from "../block-collection-context";
 import { BlockContext } from "./block-context";
 import { RenderPortal } from "./block-portals";
 import {
@@ -195,22 +196,32 @@ export class ComponentView implements NodeView {
                 ctx?.setError(true);
               }}
             >
-              <BlockLoader
-                key={entityId} // reset the component state when the entity changes
-                blockEntityId={
-                  childEntity?.metadata.recordId.entityId as
-                    | EntityId
-                    | undefined
-                } // @todo make this always defined
-                blockEntityTypeId={this.block.meta.schema as VersionedUrl}
-                blockMetadata={this.block.meta}
-                // @todo uncomment this when sandbox is fixed
-                // shouldSandbox={!this.editable}
-                editableRef={this.editableRef}
-                wrappingEntityId={entityId}
-                onBlockLoaded={this.onBlockLoaded}
-                readonly={this.readonly}
-              />
+              <BlockCollectionContext.Consumer>
+                {(collectionContext) => (
+                  <BlockLoader
+                    key={entityId} // reset the component state when the entity changes
+                    blockCollectionSubgraph={
+                      collectionContext?.blockCollectionSubgraph
+                    }
+                    blockEntityId={
+                      childEntity?.metadata.recordId.entityId as
+                        | EntityId
+                        | undefined
+                    } // @todo make this always defined
+                    blockEntityTypeId={this.block.meta.schema as VersionedUrl}
+                    blockMetadata={this.block.meta}
+                    // @todo uncomment this when sandbox is fixed
+                    // shouldSandbox={!this.editable}
+                    editableRef={this.editableRef}
+                    wrappingEntityId={entityId}
+                    onBlockLoaded={this.onBlockLoaded}
+                    readonly={this.readonly}
+                    userPermissionsOnEntities={
+                      collectionContext?.userPermissionsOnEntities
+                    }
+                  />
+                )}
+              </BlockCollectionContext.Consumer>
             </Sentry.ErrorBoundary>
           )}
         </BlockContext.Consumer>,

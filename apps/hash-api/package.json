@@ -53,7 +53,7 @@
     "apollo-server-errors": "3.3.1",
     "apollo-server-express": "3.9.0",
     "app-root-path": "3.0.0",
-    "axios": "0.27.2",
+    "axios": "1.6.0",
     "body-parser": "1.19.0",
     "clipboardy": "2.3.0",
     "cors": "2.8.5",

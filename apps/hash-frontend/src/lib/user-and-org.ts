@@ -70,7 +70,7 @@ export type MinimalUser = {
   preferredName?: string;
   preferredPronouns?: string;
   location?: string;
-  website?: string;
+  websiteUrl?: string;
 };
 
 export const isEntityUserEntity = (
@@ -193,7 +193,7 @@ export const constructOrg = (params: {
   ).filter(
     (linkEntity): linkEntity is Entity<OrgMembershipProperties> =>
       linkEntity.metadata.entityTypeId ===
-      systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
+      systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
   );
 
   const memberships = orgMemberships.map((linkEntity) => {
@@ -329,7 +329,7 @@ export const constructUser = (params: {
     ).filter(
       (linkEntity) =>
         linkEntity.metadata.entityTypeId ===
-        systemTypes.linkEntityType.orgMembership.linkEntityTypeId,
+        systemTypes.linkEntityType.isMemberOf.linkEntityTypeId,
     );
 
   const memberOf = orgMemberships.map((linkEntity) => {
@@ -517,7 +517,7 @@ export type MinimalOrg = {
   location?: string;
   name: string;
   shortname: string;
-  website?: string;
+  websiteUrl?: string;
 };
 
 export const isUser = (

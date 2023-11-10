@@ -104,7 +104,7 @@ export const createBlock: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    linkEntityType: SYSTEM_TYPES.linkEntityType.hasData,
     leftEntityId: entity.metadata.recordId.entityId,
     rightEntityId: blockData.metadata.recordId.entityId,
     ownedById,
@@ -128,7 +128,7 @@ export const getBlockData: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+        SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
     },
   );
 
@@ -166,7 +166,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     {
       entityId: block.entity.metadata.recordId.entityId,
       linkEntityTypeVersionedUrl:
-        SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+        SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
     },
   );
 
@@ -200,7 +200,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   });
 
   await createLinkEntity(ctx, authentication, {
-    linkEntityType: SYSTEM_TYPES.linkEntityType.blockData,
+    linkEntityType: SYSTEM_TYPES.linkEntityType.hasData,
     leftEntityId: block.entity.metadata.recordId.entityId,
     rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     ownedById: extractOwnedByIdFromEntityId(
@@ -220,7 +220,7 @@ export const getBlockComments: ImpureGraphFunction<
 > = async (ctx, authentication, { block }) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
-    linkEntityType: SYSTEM_TYPES.linkEntityType.parent,
+    linkEntityType: SYSTEM_TYPES.linkEntityType.hasParent,
   });
 
   const commentEntities = await Promise.all(

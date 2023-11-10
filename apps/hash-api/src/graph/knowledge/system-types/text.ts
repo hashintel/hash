@@ -87,7 +87,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+              SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
               { ignoreParents: true },
             ),
             {
@@ -107,7 +107,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
-              SYSTEM_TYPES.linkEntityType.blockData.schema.$id,
+              SYSTEM_TYPES.linkEntityType.hasData.schema.$id,
               { ignoreParents: true },
             ),
             {
