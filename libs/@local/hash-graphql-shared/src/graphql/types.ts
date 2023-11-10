@@ -12,8 +12,8 @@ import {
 
 import { SubgraphFieldsFragment } from "./api-types.gen";
 
-export { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
-export { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+export type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+export type { HasIndexedContentProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type TextToken =
   | {

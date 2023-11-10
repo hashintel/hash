@@ -1,6 +1,9 @@
 import { VersionedUrl } from "@blockprotocol/type-system";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
+import {
+  HasSpatiallyPositionedContent,
+  HasSpatiallyPositionedContentProperties,
+} from "@local/hash-isomorphic-utils/system-types/canvas";
 import {
   HasDataProperties,
   HasIndexedContentProperties,
@@ -80,7 +83,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     block: Block;
     position: PositionInput;
   },
-  Promise<void>
+  Promise<HasSpatiallyPositionedContent | HasIndexedContentProperties>
 > = async (ctx, authentication, params) => {
   const {
     blockCollectionEntityId,
@@ -92,7 +95,7 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     throw new Error(`One of indexPosition or canvasPosition must be defined`);
   }
 
-  await createLinkEntity(ctx, authentication, {
+  const linkEntity: LinkEntity = await createLinkEntity(ctx, authentication, {
     leftEntityId: blockCollectionEntityId,
     rightEntityId: block.entity.metadata.recordId.entityId,
     linkEntityType: canvasPosition
@@ -102,6 +105,10 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     ownedById: extractOwnedByIdFromEntityId(blockCollectionEntityId),
     properties: canvasPosition || indexPosition,
   });
+
+  return linkEntity as unknown as
+    | HasSpatiallyPositionedContent
+    | HasIndexedContentProperties;
 };
 
 /**
