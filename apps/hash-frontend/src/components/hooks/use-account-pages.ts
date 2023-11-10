@@ -1,11 +1,11 @@
 import { ApolloQueryResult, useQuery } from "@apollo/client";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   SimpleProperties,
   simplifyProperties,
 } from "@local/hash-isomorphic-utils/simplify-properties";
 import { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   EntityMetadata,
   EntityRootType,

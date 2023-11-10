@@ -7,6 +7,7 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
   notArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -24,7 +25,6 @@ import {
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import { MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
 import {
   Entity,
   EntityRootType,

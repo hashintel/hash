@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { Entity, EntityId, EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import {

@@ -7,20 +7,26 @@ export const scalars = {
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
   VersionedUrl: "@blockprotocol/type-system#VersionedUrl",
 
-  UnknownEntityProperties: "@blockprotocol/core#JsonObject",
-  TextToken: "@blockprotocol/core#JsonObject",
+  UnknownEntityProperties:
+    "@local/hash-isomorphic-utils/types#UnknownEntityProperties",
+  TextToken: "@local/hash-isomorphic-utils/types#TextToken",
 
-  HasIndexedContentProperties: "@blockprotocol/core#JsonObject",
-  HasSpatiallyPositionedContentProperties: "@blockprotocol/core#JsonObject",
+  HasIndexedContentProperties:
+    "@local/hash-isomorphic-utils/system-types/shared#HasIndexedContentProperties",
+  HasSpatiallyPositionedContentProperties:
+    "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@local/hash-subgraph#DataTypeWithMetadata",
-  ConstructDataTypeParams: "@blockprotocol/core#JsonObject",
+  ConstructDataTypeParams:
+    "@local/hash-isomorphic-utils/types#ConstructDataTypeParams",
 
   EntityTypeWithMetadata: "@local/hash-subgraph#EntityTypeWithMetadata",
-  ConstructEntityTypeParams: "@blockprotocol/core#JsonObject",
+  ConstructEntityTypeParams:
+    "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata: "@local/hash-subgraph#PropertyTypeWithMetadata",
-  ConstructPropertyTypeParams: "@blockprotocol/core#JsonObject",
+  ConstructPropertyTypeParams:
+    "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
 
   Entity: "@local/hash-subgraph#Entity",
   EntityRecordId: "@local/hash-subgraph#EntityRecordId",
@@ -30,8 +36,9 @@ export const scalars = {
     "@local/hash-subgraph#EntityTemporalVersioningMetadata",
   EntityPropertiesObject: "@local/hash-subgraph#EntityPropertiesObject",
 
-  UserPermissionsOnEntities: "@blockprotocol/core#JsonObject",
-  UserPermissions: "@blockprotocol/core#JsonObject",
+  UserPermissionsOnEntities:
+    "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
+  UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
 
   GraphElementVertexId: "@local/hash-subgraph#GraphElementVertexId",
   Edges: "@local/hash-subgraph#Edges",

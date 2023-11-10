@@ -1,5 +1,5 @@
 import { useLazyQuery } from "@apollo/client";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/types";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { PropertyTypeRootType } from "@local/hash-subgraph";
 import { useCallback } from "react";
 
