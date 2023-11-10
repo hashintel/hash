@@ -5,7 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { OrgProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { OrganizationProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
   AccountGroupEntityId,
   AccountGroupId,
@@ -64,7 +64,7 @@ export const getOrgFromEntity: PureGraphFunction<{ entity: Entity }, Org> = ({
   }
 
   const { organizationName: orgName, shortname } = simplifyProperties(
-    entity.properties as OrgProperties,
+    entity.properties as OrganizationProperties,
   );
 
   return {

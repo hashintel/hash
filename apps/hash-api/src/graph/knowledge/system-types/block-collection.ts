@@ -2,7 +2,6 @@ import { CanvasPosition } from "@local/hash-graphql-shared/graphql/types";
 import { systemTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  BlockDataProperties,
   ContainsProperties,
   LinkProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -32,7 +31,7 @@ import { Block, getBlockFromEntity } from "./block";
  */
 export const getBlockCollectionBlocks: ImpureGraphFunction<
   { blockCollectionEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<ContainsProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { blockCollectionEntityId }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,

@@ -11,7 +11,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
-  BlockDataProperties,
   ContainsProperties,
   PageProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -444,7 +443,7 @@ export const setPageParentPage: ImpureGraphFunction<
  */
 export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId },
-  Promise<{ linkEntity: LinkEntity<BlockDataProperties>; rightEntity: Block }[]>
+  Promise<{ linkEntity: LinkEntity<ContainsProperties>; rightEntity: Block }[]>
 > = async (ctx, authentication, { pageEntityId }) => {
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
