@@ -46,7 +46,7 @@ import {
 import { systemAccountId } from "./system-account";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
-const isSelfHostedInstance =
+export const isSelfHostedInstance =
   process.env.SELF_HOSTED_HASH === "true" ||
   !["http://localhost:3000", "https://app.hash.ai", "https://hash.ai"].includes(
     frontendUrl,
@@ -73,7 +73,7 @@ const owningWebs: Record<
   },
 };
 
-const getOrCreateOwningAccountGroupId = async (
+export const getOrCreateOwningAccountGroupId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
 ) => {
@@ -183,7 +183,7 @@ type PropertyTypeCreatorParams = {
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
-const generateSystemPropertyTypeSchema = (
+export const generateSystemPropertyTypeSchema = (
   params: Omit<PropertyTypeCreatorParams, "webShortname">,
 ): PropertyType => {
   const possibleValues: PropertyValues[] = params.possibleValues.map(
@@ -352,7 +352,7 @@ export const propertyTypeInitializer = (
   };
 };
 
-type LinkDestinationConstraint =
+export type LinkDestinationConstraint =
   | EntityTypeWithMetadata
   | VersionedUrl
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
@@ -488,7 +488,7 @@ type LinkEntityTypeCreatorParams = Omit<
 /**
  * Helper method for generating a link entity type schema for the Graph API.
  */
-const generateSystemLinkEntityTypeSchema = (
+export const generateSystemLinkEntityTypeSchema = (
   params: Omit<LinkEntityTypeCreatorParams, "webShortname">,
 ): EntityType => {
   const baseSchema = generateSystemEntityTypeSchema({

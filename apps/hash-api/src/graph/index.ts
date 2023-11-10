@@ -12,9 +12,9 @@ import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios, { AxiosError } from "axios";
 
 import { GraphApi, ImpureGraphContext } from "./context-types";
+import { migrateSystemTypes } from "./migrate-system-types";
 import { ensureSystemAccountExists } from "./system-account";
 import { ensureSystemEntitiesExists } from "./system-entities";
-import { ensureSystemTypesExist } from "./system-types";
 import { ensureAccountGroupOrgsExist } from "./util";
 
 const agentConfig = {
@@ -125,7 +125,7 @@ export const ensureSystemGraphIsInitialized = async (params: {
 }) => {
   await ensureSystemAccountExists(params);
 
-  await ensureSystemTypesExist(params);
+  await migrateSystemTypes(params);
 
   await ensureAccountGroupOrgsExist(params);
 
