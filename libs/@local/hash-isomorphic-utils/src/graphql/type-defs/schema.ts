@@ -51,7 +51,7 @@ const knowledge = [
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
-const schema = [
+export const schema = [
   baseSchema,
   blockprotocolTypedef,
   embedTypeDef,
@@ -60,5 +60,3 @@ const schema = [
   linearTypedef,
   subgraphTypedef,
 ];
-
-export default schema;
